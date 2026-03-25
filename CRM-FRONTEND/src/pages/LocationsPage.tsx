@@ -1,19 +1,17 @@
 import React, { useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Plus, Upload } from 'lucide-react';
-import { Badge } from '@/ui/components/Badge';
-import { Button } from '@/ui/components/Button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
+import { Plus, Upload, MapPin, Building, Globe, Map } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { locationsService } from '@/services/locations';
 import { CountriesTable } from '@/components/locations/CountriesTable';
 import { StatesTable } from '@/components/locations/StatesTable';
 import { CitiesTable } from '@/components/locations/CitiesTable';
 import { PincodesTable } from '@/components/locations/PincodesTable';
 import { AreasTable } from '@/components/locations/AreasTable';
-import { LocationsSummaryCards } from '@/components/locations/LocationsSummaryCards';
-import { LocationsTabPanel } from '@/components/locations/LocationsTabPanel';
 import { CreateCountryDialog } from '@/components/locations/CreateCountryDialog';
 import { CreateStateDialog } from '@/components/locations/CreateStateDialog';
 import { CreateCityDialog } from '@/components/locations/CreateCityDialog';
@@ -22,17 +20,11 @@ import { CascadingCreatePincodeDialog } from '@/components/locations/CascadingCr
 import { CreateAreaDialog } from '@/components/locations/CreateAreaDialog';
 import { BulkImportLocationDialog } from '@/components/locations/BulkImportLocationDialog';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchInput } from '@/ui/components/UnifiedSearchInput';
+import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 import { PincodeArea } from '@/types/location';
-import { Page } from '@/ui/layout/Page';
-import { Section } from '@/ui/layout/Section';
-import { Box } from '@/ui/primitives/Box';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
-
-type LocationTab = 'countries' | 'states' | 'cities' | 'pincodes' | 'areas';
 
 export function LocationsPage() {
+  console.warn('LocationsPage component loaded');
   const navigate = useNavigate();
   const { tab: tabParam } = useParams<{ tab?: string }>();
   const [searchParams] = useSearchParams();
@@ -50,6 +42,7 @@ export function LocationsPage() {
   const [pageSize, _setPageSize] = useState(100); // Increased default page size
 
   const validTabs = ['countries', 'states', 'cities', 'pincodes', 'areas'] as const;
+  type LocationTab = (typeof validTabs)[number];
 
   const queryTab = searchParams.get('tab');
   const rawTab = tabParam || queryTab || 'countries';
@@ -197,213 +190,428 @@ export function LocationsPage() {
 
   const stats = getTabStats();
 
-  const tabCounts: Record<LocationTab, number> = {
-    countries: stats.countries,
-    states: stats.states,
-    cities: stats.cities,
-    pincodes: stats.pincodes,
-    areas: stats.areas,
-  };
-
-  const pageActions: Record<LocationTab, React.ReactNode> = {
-    countries: (
-      <>
-        <Button variant="secondary" icon={<Upload size={16} />} onClick={() => handleBulkImport('countries')}>
-          Import
-        </Button>
-        <Button variant="primary" icon={<Plus size={16} />} onClick={() => setShowCreateCountry(true)}>
-          Add Country
-        </Button>
-      </>
-    ),
-    states: (
-      <>
-        <Button variant="secondary" icon={<Upload size={16} />} onClick={() => handleBulkImport('states')}>
-          Import
-        </Button>
-        <Button variant="primary" icon={<Plus size={16} />} onClick={() => setShowCreateState(true)}>
-          Add State
-        </Button>
-      </>
-    ),
-    cities: (
-      <>
-        <Button variant="secondary" icon={<Upload size={16} />} onClick={() => handleBulkImport('cities')}>
-          Import
-        </Button>
-        <Button variant="primary" icon={<Plus size={16} />} onClick={() => setShowCreateCity(true)}>
-          Add City
-        </Button>
-      </>
-    ),
-    pincodes: (
-      <>
-        <Button variant="secondary" icon={<Upload size={16} />} onClick={() => handleBulkImport('pincodes')}>
-          Import
-        </Button>
-        <Button variant="secondary" icon={<Plus size={16} />} onClick={() => setShowCreatePincode(true)}>
-          Quick Add
-        </Button>
-        <Button variant="primary" icon={<Plus size={16} />} onClick={() => setShowCascadingCreatePincode(true)}>
-          Add Pincode
-        </Button>
-      </>
-    ),
-    areas: (
-      <Button variant="primary" icon={<Plus size={16} />} onClick={() => setShowCreateArea(true)}>
-        Add Area
-      </Button>
-    ),
-  };
-
   // const _continents = ['Africa', 'Antarctica', 'Asia', 'Europe', 'North America', 'Oceania', 'South America'];
 
   return (
-    <Page
-      shell
-      title="Location Management"
-      subtitle="Manage cities, states, pincodes, and geographical data."
-      actions={pageActions[activeTab]}
-    >
-      <Section>
-        <Stack gap={5}>
-          <LocationsSummaryCards stats={stats} />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Location Management</h1>
+          <p className="text-gray-600">
+            Manage cities, states, pincodes, and geographical data
+          </p>
+        </div>
+      </div>
 
-          <Card>
-            <CardHeader>
-              <Stack gap={2}>
-                <CardTitle>Location Database</CardTitle>
-                <CardDescription>
-                  Manage countries, states, cities, pincodes, and areas from one operational workspace.
-                </CardDescription>
-              </Stack>
-            </CardHeader>
-            <CardContent>
-              <Tabs
-                value={activeTab}
-                onValueChange={handleTabChange}
-                style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ui-gap-4)' }}
-              >
-                <Stack gap={3}>
-                  <Box style={{ overflowX: 'auto' }}>
-                    <TabsList
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(5, minmax(10rem, 1fr))',
-                        minWidth: '52rem',
-                      }}
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-5">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Countries</CardTitle>
+            <Globe className="h-4 w-4 text-gray-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.countries}</div>
+            <p className="text-xs text-gray-600">
+              Across all continents
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total States</CardTitle>
+            <MapPin className="h-4 w-4 text-gray-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.states}</div>
+            <p className="text-xs text-gray-600">
+              Across all countries
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Cities</CardTitle>
+            <Building className="h-4 w-4 text-gray-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.cities}</div>
+            <p className="text-xs text-gray-600">
+              Across all states and countries
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Pincodes</CardTitle>
+            <MapPin className="h-4 w-4 text-gray-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.pincodes}</div>
+            <p className="text-xs text-gray-600">
+              Postal codes across all cities
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Areas</CardTitle>
+            <Map className="h-4 w-4 text-gray-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.areas}</div>
+            <p className="text-xs text-gray-600">
+              Areas across all pincodes
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Location Database</CardTitle>
+              <CardDescription>
+                Manage geographical data including cities, states, and postal codes
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+            <div className="flex flex-col gap-4">
+              {/* Tab List and Action Buttons Row */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <TabsList className="flex min-w-max space-x-1">
+                    <TabsTrigger value="countries" className="whitespace-nowrap">
+                      Countries
+                      <Badge variant="secondary" className="ml-2">
+                        {stats.countries}
+                      </Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="states" className="whitespace-nowrap">
+                      States
+                      <Badge variant="secondary" className="ml-2">
+                        {stats.states}
+                      </Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="cities" className="whitespace-nowrap">
+                      Cities
+                      <Badge variant="secondary" className="ml-2">
+                        {stats.cities}
+                      </Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="pincodes" className="whitespace-nowrap">
+                      Pincodes
+                      <Badge variant="secondary" className="ml-2">
+                        {stats.pincodes}
+                      </Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="areas" className="whitespace-nowrap">
+                      Areas
+                      <Badge variant="secondary" className="ml-2">
+                        {stats.areas}
+                      </Badge>
+                    </TabsTrigger>
+                  </TabsList>
+
+                <div className="flex flex-wrap gap-2">
+                {activeTab === 'countries' && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBulkImport('countries')}
                     >
-                      {([
-                        ['countries', 'Countries'],
-                        ['states', 'States'],
-                        ['cities', 'Cities'],
-                        ['pincodes', 'Pincodes'],
-                        ['areas', 'Areas'],
-                      ] as Array<[LocationTab, string]>).map(([value, label]) => (
-                        <TabsTrigger
-                          key={value}
-                          value={value}
-                          style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                        >
-                          <Text as="span" variant="label">{label}</Text>
-                          <Badge variant="secondary">{tabCounts[value]}</Badge>
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                  </Box>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setShowCreateCountry(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Country
+                    </Button>
+                  </>
+                )}
 
-                  <UnifiedSearchInput
-                    value={searchValue}
-                    onChange={setSearchValue}
-                    onClear={clearSearch}
-                    isLoading={isDebouncing}
-                    placeholder={`Search ${activeTab}...`}
-                  />
-                </Stack>
+                {activeTab === 'states' && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBulkImport('states')}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setShowCreateState(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add State
+                    </Button>
+                  </>
+                )}
 
-                <TabsContent value="countries">
-                  <LocationsTabPanel
-                    pagination={countriesData?.pagination}
-                    currentPage={currentPage}
-                    pageSize={pageSize}
-                    entityLabel="countries"
-                    onPrev={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    onNext={() => setCurrentPage((prev) => prev + 1)}
+                {activeTab === 'cities' && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBulkImport('cities')}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setShowCreateCity(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add City
+                    </Button>
+                  </>
+                )}
+
+                {activeTab === 'pincodes' && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBulkImport('pincodes')}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowCreatePincode(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Quick Add
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setShowCascadingCreatePincode(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Pincode
+                    </Button>
+                  </>
+                )}
+
+                {activeTab === 'areas' && (
+                  <Button
+                    size="sm"
+                    onClick={() => setShowCreateArea(true)}
                   >
-                    <CountriesTable
-                      data={countriesData?.data || []}
-                      isLoading={countriesLoading}
-                    />
-                  </LocationsTabPanel>
-                </TabsContent>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Area
+                  </Button>
+                )}
+              </div>
+            </div>
 
-                <TabsContent value="states">
-                  <LocationsTabPanel
-                    pagination={statesData?.pagination}
-                    currentPage={currentPage}
-                    pageSize={pageSize}
-                    entityLabel="states"
-                    onPrev={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    onNext={() => setCurrentPage((prev) => prev + 1)}
-                  >
-                    <StatesTable
-                      data={statesData?.data || []}
-                      isLoading={statesLoading}
-                    />
-                  </LocationsTabPanel>
-                </TabsContent>
+            {/* Search Input Row */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <UnifiedSearchInput
+                  value={searchValue}
+                  onChange={setSearchValue}
+                  onClear={clearSearch}
+                  isLoading={isDebouncing}
+                  placeholder={`Search ${activeTab}...`}
+                />
+              </div>
+            </div>
+            </div>
 
-                <TabsContent value="cities">
-                  <LocationsTabPanel
-                    pagination={citiesData?.pagination}
-                    currentPage={currentPage}
-                    pageSize={pageSize}
-                    entityLabel="cities"
-                    onPrev={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    onNext={() => setCurrentPage((prev) => prev + 1)}
-                  >
-                    <CitiesTable
-                      data={citiesData?.data || []}
-                      isLoading={citiesLoading}
-                    />
-                  </LocationsTabPanel>
-                </TabsContent>
+            <TabsContent value="countries" className="space-y-4">
+              <CountriesTable
+                data={countriesData?.data || []}
+                isLoading={countriesLoading}
+              />
+              {countriesData?.pagination && (
+                <div className="flex items-center justify-between px-2">
+                  <div className="text-sm text-gray-600">
+                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, countriesData.pagination.total)} of {countriesData.pagination.total} countries
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {currentPage} of {countriesData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      disabled={currentPage >= (countriesData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
 
-                <TabsContent value="pincodes">
-                  <LocationsTabPanel
-                    pagination={pincodesData?.pagination}
-                    currentPage={currentPage}
-                    pageSize={pageSize}
-                    entityLabel="pincodes"
-                    onPrev={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    onNext={() => setCurrentPage((p) => p + 1)}
-                  >
-                    <PincodesTable
-                      data={pincodesData?.data || []}
-                      isLoading={pincodesLoading}
-                    />
-                  </LocationsTabPanel>
-                </TabsContent>
+            <TabsContent value="states" className="space-y-4">
+              <StatesTable
+                data={statesData?.data || []}
+                isLoading={statesLoading}
+              />
+              {statesData?.pagination && (
+                <div className="flex items-center justify-between px-2">
+                  <div className="text-sm text-gray-600">
+                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, statesData.pagination.total)} of {statesData.pagination.total} states
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {currentPage} of {statesData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      disabled={currentPage >= (statesData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
 
-                <TabsContent value="areas">
-                  <LocationsTabPanel
-                    pagination={areasData?.pagination}
-                    currentPage={currentPage}
-                    pageSize={pageSize}
-                    entityLabel="areas"
-                    onPrev={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    onNext={() => setCurrentPage((p) => p + 1)}
-                  >
-                    <AreasTable
-                      data={(areasData?.data as unknown as PincodeArea[]) || []}
-                      isLoading={areasLoading}
-                    />
-                  </LocationsTabPanel>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+            <TabsContent value="cities" className="space-y-4">
+              <CitiesTable
+                data={citiesData?.data || []}
+                isLoading={citiesLoading}
+              />
+              {citiesData?.pagination && (
+                <div className="flex items-center justify-between px-2">
+                  <div className="text-sm text-gray-600">
+                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, citiesData.pagination.total)} of {citiesData.pagination.total} cities
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {currentPage} of {citiesData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      disabled={currentPage >= (citiesData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
 
+            <TabsContent value="pincodes" className="space-y-4">
+              <PincodesTable
+                data={pincodesData?.data || []}
+                isLoading={pincodesLoading}
+              />
+              {pincodesData?.pagination && (
+                <div className="flex items-center justify-between px-2">
+                  <div className="text-sm text-gray-600">
+                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, pincodesData.pagination.total)} of {pincodesData.pagination.total} pincodes
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {currentPage} of {pincodesData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => p + 1)}
+                      disabled={currentPage >= (pincodesData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="areas" className="space-y-4">
+              <AreasTable
+                data={(areasData?.data as unknown as PincodeArea[]) || []}
+                isLoading={areasLoading}
+              />
+              {areasData?.pagination && (
+                <div className="flex items-center justify-between px-2">
+                  <div className="text-sm text-gray-600">
+                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, areasData.pagination.total)} of {areasData.pagination.total} areas
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {currentPage} of {areasData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => p + 1)}
+                      disabled={currentPage >= (areasData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* Dialogs */}
       <CreateCountryDialog
         open={showCreateCountry}
         onOpenChange={setShowCreateCountry}
@@ -439,8 +647,6 @@ export function LocationsPage() {
         onOpenChange={setShowBulkImport}
         type={bulkImportType}
       />
-        </Stack>
-      </Section>
-    </Page>
+    </div>
   );
 }

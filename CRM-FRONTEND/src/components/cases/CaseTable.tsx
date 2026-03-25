@@ -1,15 +1,25 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MobileTableCard, MobileTableField } from '@/ui/components/ResponsiveTable';
-import { Badge } from '@/ui/components/Badge';
-import { Button } from '@/ui/components/Button';
-import { Card } from '@/ui/components/Card';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  MobileTableCard,
+  MobileTableField,
+} from '@/components/ui/responsive-table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Case } from '@/types/case';
 import {
+  getStatusBadgeStyle,
+  getPriorityBadgeStyle,
   getPriorityLabel,
   getStatusLabel,
 } from '@/lib/badgeStyles';
@@ -23,165 +33,191 @@ export const CaseTable: React.FC<CaseTableProps> = ({
   cases,
   isLoading,
 }) => {
-  const getStatusVariant = (status?: string) => {
-    switch ((status || '').toUpperCase()) {
-      case 'COMPLETED':
-        return 'status-completed' as const;
-      case 'IN_PROGRESS':
-      case 'ASSIGNED':
-        return 'status-progress' as const;
-      case 'REVOKED':
-        return 'status-revoked' as const;
-      default:
-        return 'status-pending' as const;
-    }
-  };
-
-  const getPriorityVariant = (priority?: number | string) => {
-    const value = String(priority ?? '').toUpperCase();
-    if (value === '4' || value === '5' || value === 'URGENT' || value === 'CRITICAL') {
-      return 'danger' as const;
-    }
-    if (value === '3' || value === 'HIGH') {
-      return 'warning' as const;
-    }
-    return 'neutral' as const;
-  };
-
   if (isLoading) {
     return (
-      <Card tone="muted" staticCard>
-        <Stack gap={3}>
-          {[1, 2, 3, 4, 5].map((item) => (
-            <div key={item} {...{ className: "ui-summary-list__item" }}>
-              <div {...{ className: "h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse w-1/4" }} />
-              <div {...{ className: "h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse w-1/3" }} />
-              <div {...{ className: "h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse w-24" }} />
-            </div>
-          ))}
-        </Stack>
-      </Card>
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Case ID</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Client</TableHead>
+              <TableHead>Product</TableHead>
+              <TableHead>Verification Type</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Priority</TableHead>
+              <TableHead>Verification Tasks</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Time</TableHead>
+              <TableHead className="w-[70px]" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[1, 2, 3, 4, 5].map((item) => (
+              <TableRow key={item}>
+                <TableCell>
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-6 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse w-20" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-6 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse w-16" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-6 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse w-16" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
+                </TableCell>
+                <TableCell>
+                  <div className="h-8 w-8 bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse" />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     );
   }
 
   if (cases.length === 0) {
     return (
-      <div {...{ className: "ui-empty-state" }}>
-        <Text as="h3" variant="title">No cases found</Text>
-        <Text tone="muted">No cases found matching your criteria.</Text>
+      <div className="border rounded-lg p-8 text-center">
+        <p className="text-gray-600">No cases found matching your criteria.</p>
       </div>
     );
   }
 
   return (
     <>
-      <div {...{ className: "ui-operational-table hidden md:block" }} data-density="compact">
-        <div {...{ className: "ui-operational-table__scroll" }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Case ID</th>
-                <th>Customer</th>
-                <th>Client</th>
-                <th>Product</th>
-                <th>Verification</th>
-                <th>Status</th>
-                <th>Priority</th>
-                <th>Tasks</th>
-                <th>Updated</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
+      {/* Desktop Table */}
+      <div className="hidden md:block border rounded-lg overflow-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Case ID</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead className="hidden lg:table-cell">Client</TableHead>
+              <TableHead className="hidden xl:table-cell">Product</TableHead>
+              <TableHead className="hidden lg:table-cell">Verification Type</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="hidden lg:table-cell">Priority</TableHead>
+              <TableHead className="hidden lg:table-cell">Verification Tasks</TableHead>
+              <TableHead className="hidden xl:table-cell">Date</TableHead>
+              <TableHead className="hidden xl:table-cell">Time</TableHead>
+              <TableHead className="w-[70px]" />
+            </TableRow>
+          </TableHeader>
+        <TableBody>
           {cases.map((caseItem) => (
-            <tr key={caseItem.id} {...{ className: "ui-operational-row" }} data-risk={(caseItem.priority === 4 || caseItem.priority === 5) ? 'true' : undefined}>
-              <td>
+            <TableRow key={caseItem.id}>
+              <TableCell className="font-medium">
                 <Link
                   to={`/cases/${caseItem.caseId || caseItem.id}`}
-                  style={{ color: 'var(--ui-accent-strong)', fontWeight: 700, textDecoration: 'none' }}
+                  className="text-primary hover:underline"
                 >
                   #{caseItem.caseId || caseItem.id?.slice(-8) || 'N/A'}
                 </Link>
-              </td>
-              <td>
-                <Stack gap={1}>
-                  <Text variant="body-sm">{caseItem.customerName || caseItem.applicantName}</Text>
-                  <Text variant="caption" tone="muted">{caseItem.customerPhone || caseItem.applicantPhone}</Text>
-                </Stack>
-              </td>
-              <td>
-                <Text variant="body-sm">
+              </TableCell>
+              <TableCell>
+                <div>
+                  <div className="font-medium">{caseItem.customerName || caseItem.applicantName}</div>
+                  <div className="text-sm text-gray-600">{caseItem.customerPhone || caseItem.applicantPhone}</div>
+                </div>
+              </TableCell>
+              <TableCell className="hidden lg:table-cell">
+                <div className="text-sm">
                   {caseItem.clientName || caseItem.client?.name}
-                </Text>
-              </td>
-              <td>
-                <Text variant="body-sm">
+                </div>
+              </TableCell>
+              <TableCell className="hidden xl:table-cell">
+                <div className="text-sm">
                   {caseItem.productName || 'N/A'}
-                </Text>
-              </td>
-              <td>
-                <Text variant="body-sm">
+                </div>
+              </TableCell>
+              <TableCell className="hidden lg:table-cell">
+                <div className="text-sm">
                   {caseItem.verificationTypeName || caseItem.verificationType || 'N/A'}
-                </Text>
-              </td>
-              <td>
-                <Badge variant={getStatusVariant(caseItem.status)}>
+                </div>
+              </TableCell>
+              <TableCell>
+                <Badge className={getStatusBadgeStyle(caseItem.status)}>
                   {getStatusLabel(caseItem.status)}
                 </Badge>
-              </td>
-              <td>
-                <Badge variant={getPriorityVariant(caseItem.priority)}>
+              </TableCell>
+              <TableCell className="hidden lg:table-cell">
+                <Badge className={getPriorityBadgeStyle(caseItem.priority)}>
                   {getPriorityLabel(caseItem.priority)}
                 </Badge>
-              </td>
-              <td>
-                <Text variant="caption">
-                  {caseItem.totalTasks || 0} total
-                  {' / '}
-                  {caseItem.completedTasks || 0} done
-                  {' / '}
-                  {(caseItem.pendingTasks || 0) + (caseItem.inProgressTasks || 0)} open
-                </Text>
-              </td>
-              <td>
-                <Text variant="caption" tone="muted">
-                  {format(new Date(caseItem.updatedAt), 'dd MMM yyyy, hh:mm a')}
-                </Text>
-              </td>
-              <td>
-                <div {...{ className: "ui-row-actions" }}>
-                <Button variant="ghost" asChild>
+              </TableCell>
+              <TableCell className="hidden lg:table-cell">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{caseItem.totalTasks || 0}</span>
+                  <div className="flex items-center gap-1 text-xs text-gray-600">
+                    <span className="text-green-600">✓ {caseItem.completedTasks || 0}</span>
+                    <span>|</span>
+                    <span className="text-yellow-600">⏳ {(caseItem.pendingTasks || 0) + (caseItem.inProgressTasks || 0)}</span>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell className="hidden xl:table-cell">
+                <div className="text-sm text-gray-600">
+                  {format(new Date(caseItem.updatedAt), 'dd MMM yyyy')}
+                </div>
+              </TableCell>
+              <TableCell className="hidden xl:table-cell">
+                <div className="text-sm text-gray-600">
+                  {format(new Date(caseItem.updatedAt), 'hh:mm a')}
+                </div>
+              </TableCell>
+              <TableCell>
+                <Button variant="ghost" size="sm" asChild>
                   <Link to={`/cases/${caseItem.caseId || caseItem.id}`}>
-                    <Eye size={14} />
+                    <Eye className="mr-2 h-4 w-4" />
                     View
                   </Link>
                 </Button>
-                </div>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-            </tbody>
-          </table>
-        </div>
+        </TableBody>
+      </Table>
       </div>
 
-      <div {...{ className: "md:hidden space-y-3" }}>
+      {/* Mobile Card Layout */}
+      <div className="md:hidden space-y-3">
         {cases.map((caseItem) => (
           <MobileTableCard key={caseItem.id}>
-            <div {...{ className: "flex justify-between items-start mb-3" }}>
+            <div className="flex justify-between items-start mb-3">
               <Link
                 to={`/cases/${caseItem.caseId || caseItem.id}`}
-                {...{ className: "text-lg font-semibold text-primary hover:underline" }}
+                className="text-lg font-semibold text-primary hover:underline"
               >
                 #{caseItem.caseId || caseItem.id?.slice(-8) || 'N/A'}
               </Link>
-              <div {...{ className: "flex space-x-2" }}>
-                <Badge variant={getStatusVariant(caseItem.status)}>
+              <div className="flex space-x-2">
+                <Badge className={getStatusBadgeStyle(caseItem.status)}>
                   {getStatusLabel(caseItem.status)}
                 </Badge>
-                <Button variant="ghost" asChild>
+                <Button variant="ghost" size="sm" asChild>
                   <Link to={`/cases/${caseItem.caseId || caseItem.id}`}>
-                    <Eye size={14} />
+                    <Eye className="mr-2 h-4 w-4" />
                     View
                   </Link>
                 </Button>
@@ -192,8 +228,8 @@ export const CaseTable: React.FC<CaseTableProps> = ({
               label="Customer"
               value={
                 <div>
-                  <div {...{ className: "font-medium" }}>{caseItem.customerName || caseItem.applicantName}</div>
-                  <div {...{ className: "text-xs text-gray-600" }}>{caseItem.customerPhone || caseItem.applicantPhone}</div>
+                  <div className="font-medium">{caseItem.customerName || caseItem.applicantName}</div>
+                  <div className="text-xs text-gray-600">{caseItem.customerPhone || caseItem.applicantPhone}</div>
                 </div>
               }
             />
@@ -212,7 +248,7 @@ export const CaseTable: React.FC<CaseTableProps> = ({
             <MobileTableField
               label="Priority"
               value={
-                <Badge variant={getPriorityVariant(caseItem.priority)}>
+                <Badge className={getPriorityBadgeStyle(caseItem.priority)}>
                   {getPriorityLabel(caseItem.priority)}
                 </Badge>
               }

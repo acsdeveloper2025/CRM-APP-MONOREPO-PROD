@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/ui/components/Dialog';
-import { Button } from '@/ui/components/Button';
-import { Input } from '@/ui/components/Input';
-import { Label } from '@/ui/components/Label';
-import { Textarea } from '@/ui/components/Textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/Select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertCircle, Edit } from 'lucide-react';
 import { TaskPriority, UpdateVerificationTaskRequest } from '@/types/verificationTask';
 
@@ -115,34 +115,34 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent {...{ className: "max-w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto" }}>
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle {...{ className: "flex items-center space-x-2" }}>
-            <Edit {...{ className: "h-5 w-5" }} />
+          <DialogTitle className="flex items-center space-x-2">
+            <Edit className="h-5 w-5" />
             <span>Edit Task Details</span>
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} {...{ className: "space-y-4" }}>
-          <div {...{ className: "space-y-2" }}>
-            <Label htmlFor="taskTitle">Task Title <span {...{ className: "text-red-500" }}>*</span></Label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="taskTitle">Task Title <span className="text-red-500">*</span></Label>
             <Input
               id="taskTitle"
               value={formData.taskTitle}
               onChange={(e) => handleChange('taskTitle', e.target.value)}
-              {...{ className: errors.taskTitle ? 'border-red-500' : '' }}
+              className={errors.taskTitle ? 'border-red-500' : ''}
               placeholder="Enter task title"
             />
             {errors.taskTitle && (
-              <p {...{ className: "text-sm text-red-500 flex items-center mt-1" }}>
-                <AlertCircle {...{ className: "h-4 w-4 mr-1" }} />
+              <p className="text-sm text-red-500 flex items-center mt-1">
+                <AlertCircle className="h-4 w-4 mr-1" />
                 {errors.taskTitle}
               </p>
             )}
           </div>
 
-          <div {...{ className: "grid grid-cols-1 sm:grid-cols-2 gap-4" }}>
-            <div {...{ className: "space-y-2" }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="priority">Priority</Label>
               <Select
                 value={formData.priority}
@@ -160,43 +160,43 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
               </Select>
             </div>
 
-            <div {...{ className: "space-y-2" }}>
-              <Label htmlFor="pincode">Pincode <span {...{ className: "text-red-500" }}>*</span></Label>
+            <div className="space-y-2">
+              <Label htmlFor="pincode">Pincode <span className="text-red-500">*</span></Label>
               <Input
                 id="pincode"
                 value={formData.pincode}
                 onChange={(e) => handleChange('pincode', e.target.value)}
-                {...{ className: errors.pincode ? 'border-red-500' : '' }}
+                className={errors.pincode ? 'border-red-500' : ''}
                 placeholder="Enter pincode"
               />
                {errors.pincode && (
-                <p {...{ className: "text-sm text-red-500 flex items-center mt-1" }}>
-                  <AlertCircle {...{ className: "h-4 w-4 mr-1" }} />
+                <p className="text-sm text-red-500 flex items-center mt-1">
+                  <AlertCircle className="h-4 w-4 mr-1" />
                   {errors.pincode}
                 </p>
               )}
             </div>
           </div>
 
-          <div {...{ className: "space-y-2" }}>
-            <Label htmlFor="address">Address <span {...{ className: "text-red-500" }}>*</span></Label>
+          <div className="space-y-2">
+            <Label htmlFor="address">Address <span className="text-red-500">*</span></Label>
             <Textarea
               id="address"
               value={formData.address}
               onChange={(e) => handleChange('address', e.target.value)}
-              {...{ className: errors.address ? 'border-red-500' : '' }}
+              className={errors.address ? 'border-red-500' : ''}
               placeholder="Enter full address"
               rows={3}
             />
             {errors.address && (
-              <p {...{ className: "text-sm text-red-500 flex items-center mt-1" }}>
-                <AlertCircle {...{ className: "h-4 w-4 mr-1" }} />
+              <p className="text-sm text-red-500 flex items-center mt-1">
+                <AlertCircle className="h-4 w-4 mr-1" />
                 {errors.address}
               </p>
             )}
           </div>
 
-          <div {...{ className: "space-y-2" }}>
+          <div className="space-y-2">
             <Label htmlFor="taskDescription">Description</Label>
             <Textarea
               id="taskDescription"
@@ -207,8 +207,8 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
             />
           </div>
 
-          <div {...{ className: "grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4" }}>
-             <div {...{ className: "space-y-2" }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
+             <div className="space-y-2">
               <Label htmlFor="documentType">Document Type</Label>
               <Input
                 id="documentType"
@@ -217,7 +217,7 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
                 placeholder="e.g. Aadhaar, PAN"
               />
             </div>
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="documentNumber">Document Number</Label>
               <Input
                 id="documentNumber"
@@ -228,7 +228,7 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
             </div>
           </div>
 
-          <DialogFooter {...{ className: "pt-4" }}>
+          <DialogFooter className="pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancel
             </Button>

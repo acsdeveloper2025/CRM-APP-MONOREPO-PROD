@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Search, CheckSquare, Square } from 'lucide-react';
-import { Input } from '@/ui/components/Input';
-import { Button } from '@/ui/components/Button';
-import { Checkbox } from '@/ui/components/Checkbox';
-import { Badge } from '@/ui/components/Badge';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import type { PincodeWithCity } from '@/types/territoryAssignment';
 
 interface PincodeSelectionTabProps {
@@ -57,22 +57,22 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
   };
 
   return (
-    <div {...{ className: "space-y-4" }}>
+    <div className="space-y-4">
       {/* Header with search and actions */}
-      <div {...{ className: "flex items-center justify-between gap-4" }}>
-        <div {...{ className: "relative flex-1 max-w-md" }}>
-          <Search {...{ className: "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" }} />
+      <div className="flex items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             type="text"
             placeholder="Search by pincode, city, or state..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            {...{ className: "pl-10" }}
+            className="pl-10"
           />
         </div>
 
-        <div {...{ className: "flex items-center gap-2" }}>
-          <Badge variant="secondary" {...{ className: "bg-emerald-50 text-emerald-700 border-emerald-200" }}>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200">
             {selectedPincodeIds.size} selected
           </Badge>
           <Button
@@ -81,7 +81,7 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
             onClick={handleSelectAll}
             disabled={filteredPincodes.length === 0}
           >
-            <CheckSquare {...{ className: "h-4 w-4 mr-2" }} />
+            <CheckSquare className="h-4 w-4 mr-2" />
             Select All
           </Button>
           <Button
@@ -90,16 +90,16 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
             onClick={handleClearAll}
             disabled={selectedPincodeIds.size === 0}
           >
-            <Square {...{ className: "h-4 w-4 mr-2" }} />
+            <Square className="h-4 w-4 mr-2" />
             Clear All
           </Button>
         </div>
       </div>
 
       {/* Pincode list - Scrollable, shows all pincodes */}
-      <div {...{ className: "border rounded-lg divide-y max-h-[500px] overflow-y-auto" }}>
+      <div className="border rounded-lg divide-y max-h-[500px] overflow-y-auto">
         {filteredPincodes.length === 0 ? (
-          <div {...{ className: "p-8 text-center text-gray-500" }}>
+          <div className="p-8 text-center text-gray-500">
             {searchTerm ? 'No pincodes found matching your search' : 'No pincodes available'}
           </div>
         ) : (
@@ -113,26 +113,24 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
               return (
                 <div
                   key={pincode.id}
-                  {...{
-                    className: `flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
-                      isSelected ? 'bg-emerald-50' : ''
-                    }`,
-                  }}
+                  className={`flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+                    isSelected ? 'bg-emerald-50' : ''
+                  }`}
                   onClick={() => onPincodeToggle(pincodeIdNum)}
                 >
                   <Checkbox checked={isSelected} onCheckedChange={() => onPincodeToggle(pincodeIdNum)} />
 
-                  <div {...{ className: "flex-1" }}>
-                    <div {...{ className: "flex items-center gap-2" }}>
-                      <span {...{ className: "font-medium text-gray-900" }}>{pincode.code}</span>
-                      <span {...{ className: "text-gray-500" }}>-</span>
-                      <span {...{ className: "text-gray-700" }}>{pincode.cityName}</span>
-                      <span {...{ className: "text-gray-400 text-sm" }}>({pincode.stateName})</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-900">{pincode.code}</span>
+                      <span className="text-gray-500">-</span>
+                      <span className="text-gray-700">{pincode.cityName}</span>
+                      <span className="text-gray-400 text-sm">({pincode.stateName})</span>
                     </div>
                   </div>
 
                   {areaCount > 0 && (
-                    <Badge variant="outline" {...{ className: "text-xs" }}>
+                    <Badge variant="outline" className="text-xs">
                       {areaCount} {areaCount === 1 ? 'area' : 'areas'}
                     </Badge>
                   )}
@@ -145,7 +143,7 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
 
       {/* Total count display */}
       {filteredPincodes.length > 0 && (
-        <div {...{ className: "text-sm text-gray-600 text-center" }}>
+        <div className="text-sm text-gray-600 text-center">
           Showing {filteredPincodes.length} {filteredPincodes.length === 1 ? 'pincode' : 'pincodes'}
           {searchTerm && ' (filtered)'}
         </div>
@@ -153,7 +151,7 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
 
       {/* Total count display */}
       {filteredPincodes.length > 0 && (
-        <div {...{ className: "text-sm text-gray-600 text-center" }}>
+        <div className="text-sm text-gray-600 text-center">
           Showing {filteredPincodes.length} {filteredPincodes.length === 1 ? 'pincode' : 'pincodes'}
           {searchTerm && ' (filtered)'}
         </div>
@@ -161,3 +159,4 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
     </div>
   );
 };
+

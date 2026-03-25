@@ -1,32 +1,17 @@
-import {
-  AlertCircle,
-  BarChart3,
-  Camera,
-  CheckCircle,
-  Clock,
-  Download,
-  Eye,
-  FileText,
-  Grid,
-  MapPin,
-  Smartphone,
-  User,
-  Wifi,
-  WifiOff,
-} from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { Badge } from '@/ui/components/Badge';
-import { Button } from '@/ui/components/Button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Box } from '@/ui/primitives/Box';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
+ 
+import { FileText, Clock, User, Eye, Camera, Smartphone, Wifi, WifiOff, Download, MapPin, Grid, BarChart3, CheckCircle, AlertCircle } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { FormSubmission } from '@/types/form';
-import { FormAttachmentsViewer } from './FormAttachmentsViewer';
 import { FormFieldViewer } from './FormFieldViewer';
+import { FormAttachmentsViewer } from './FormAttachmentsViewer';
 import { FormLocationViewer } from './FormLocationViewer';
 import { FormPhotosGallery } from './FormPhotosGallery';
 import VerificationImages from '@/components/VerificationImages';
+import { formatDistanceToNow } from 'date-fns';
+import { baseBadgeStyle } from '@/lib/badgeStyles';
 
 interface EnhancedFormViewerProps {
   submission: FormSubmission;
@@ -39,109 +24,6 @@ interface EnhancedFormViewerProps {
   onSectionToggle?: (sectionId: string, expanded: boolean) => void;
 }
 
-const surfaceStyle = {
-  border: '1px solid var(--ui-border)',
-  borderRadius: 'var(--ui-radius-lg)',
-  background: 'var(--ui-surface)',
-};
-
-const subtleSurfaceStyle = {
-  border: '1px solid var(--ui-border)',
-  borderRadius: 'var(--ui-radius-lg)',
-  background: 'var(--ui-surface-muted)',
-};
-
-function getOutcomeTone(outcome: string): 'positive' | 'danger' | 'warning' | 'muted' {
-  switch (outcome.toLowerCase()) {
-    case 'positive':
-      return 'positive';
-    case 'negative':
-      return 'danger';
-    case 'nsp':
-      return 'warning';
-    default:
-      return 'muted';
-  }
-}
-
-function getStatusVariant(status: string) {
-  switch (status) {
-    case 'APPROVED':
-    case 'COMPLETED':
-      return 'status-completed' as const;
-    case 'UNDER_REVIEW':
-    case 'SUBMITTED':
-      return 'status-progress' as const;
-    case 'REJECTED':
-      return 'danger' as const;
-    default:
-      return 'warning' as const;
-  }
-}
-
-function getValidationVariant(status: string) {
-  switch (status) {
-    case 'VALID':
-      return 'positive' as const;
-    case 'INVALID':
-      return 'danger' as const;
-    case 'WARNING':
-      return 'warning' as const;
-    default:
-      return 'neutral' as const;
-  }
-}
-
-function getFormTypeLabel(formType: string) {
-  return formType
-    .split(/[-_]/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
-function getNetworkIcon(type: string) {
-  if (type === 'OFFLINE') {
-    return <WifiOff size={16} style={{ color: 'var(--ui-danger)' }} />;
-  }
-  return <Wifi size={16} style={{ color: 'var(--ui-accent)' }} />;
-}
-
-function MetricCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <Box style={{ ...surfaceStyle, padding: '1rem' }}>
-      <Stack direction="horizontal" gap={3} align="center">
-        <Box
-          style={{
-            width: '2.5rem',
-            height: '2.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '0.9rem',
-            background: 'rgba(17, 116, 110, 0.12)',
-            color: 'var(--ui-accent)',
-            flexShrink: 0,
-          }}
-        >
-          {icon}
-        </Box>
-        <Stack gap={1}>
-          <Text variant="caption" tone="muted">{label}</Text>
-          <Text variant="title">{value}</Text>
-        </Stack>
-      </Stack>
-    </Box>
-  );
-}
-
 export function FormViewer({
   submission,
   readonly = true,
@@ -150,531 +32,618 @@ export function FormViewer({
   showLocation = true,
   showMetadata = true,
   onFieldChange,
+  onSectionToggle: _onSectionToggle,
 }: EnhancedFormViewerProps) {
-  const submittedAt = submission.submittedAt && !isNaN(new Date(submission.submittedAt).getTime())
-    ? new Date(submission.submittedAt)
-    : null;
+
+
+  // Helper functions for styling
+  const getOutcomeColor = (outcome: string) => {
+    switch (outcome.toLowerCase()) {
+      case 'positive':
+        return 'text-green-600 dark:text-green-400';
+      case 'negative':
+        return 'text-red-600 dark:text-red-400';
+      case 'nsp':
+        return 'text-yellow-600 dark:text-yellow-400';
+      default:
+        return 'text-gray-600';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+      case 'draft':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
+      default:
+        return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
+    }
+  };
+
+  const getValidationColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'valid':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
+      case 'invalid':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
+      case 'warning':
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
+      default:
+        return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      DRAFT: { variant: 'secondary' as const, label: 'Draft' },
+      COMPLETED: { variant: 'default' as const, label: 'Completed' },
+    };
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.DRAFT;
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const getFormTypeLabel = (formType: string) => {
+    return formType
+      .split(/[-_]/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  const getValidationBadge = (status: string) => {
+    const statusConfig = {
+      VALID: { variant: 'default' as const, label: 'Valid', color: 'text-green-600' },
+      INVALID: { variant: 'destructive' as const, label: 'Invalid', color: 'text-red-600' },
+      WARNING: { variant: 'outline' as const, label: 'Warning', color: 'text-yellow-600' },
+    };
+
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.VALID;
+    return <Badge variant={config.variant} className={config.color}>{config.label}</Badge>;
+  };
+
+  /* Removed unused _getDeviceIcon function */
+
+  const getNetworkIcon = (type: string) => {
+    switch (type) {
+      case 'WIFI':
+        return <Wifi className="h-4 w-4 text-green-600" />;
+      case 'CELLULAR':
+        return <Wifi className="h-4 w-4 text-green-600" />;
+      case 'OFFLINE':
+        return <WifiOff className="h-4 w-4 text-red-600" />;
+      default:
+        return <Wifi className="h-4 w-4 text-gray-600" />;
+    }
+  };
 
   return (
-    <Stack gap={6}>
-      <Card tone="highlight">
-        <CardHeader>
-          <Box
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              gap: '1rem',
-              flexWrap: 'wrap',
-            }}
-          >
-            <Stack direction="horizontal" gap={4} align="flex-start">
-              <Box
-                style={{
-                  width: '4rem',
-                  height: '4rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '1.25rem',
-                  background: 'rgba(17, 116, 110, 0.12)',
-                  color: 'var(--ui-accent)',
-                  flexShrink: 0,
-                }}
-              >
-                <FileText size={28} />
-              </Box>
-              <Stack gap={2}>
-                <CardTitle>{getFormTypeLabel(submission.formType)} Verification</CardTitle>
-                <CardDescription>{submission.verificationType}</CardDescription>
-                <Stack direction="horizontal" gap={3} align="center" wrap="wrap">
-                  <Text variant="label" tone={getOutcomeTone(submission.outcome)}>{submission.outcome}</Text>
-                  <Stack direction="horizontal" gap={1} align="center">
-                    <User size={14} />
-                    <Text variant="body-sm" tone="muted">Agent: {submission.submittedByName}</Text>
-                  </Stack>
-                  <Stack direction="horizontal" gap={1} align="center">
-                    <Clock size={14} />
-                    <Text variant="body-sm" tone="muted">
-                      {submittedAt ? formatDistanceToNow(submittedAt, { addSuffix: true }) : 'Unknown time'}
-                    </Text>
-                  </Stack>
-                  <Stack direction="horizontal" gap={1} align="center">
-                    <Camera size={14} />
-                    <Text variant="body-sm" tone="muted">{submission.photos?.length || 0} photos</Text>
-                  </Stack>
-                </Stack>
-              </Stack>
-            </Stack>
-
-            <Stack gap={2} align="flex-end">
-              <Stack direction="horizontal" gap={2} wrap="wrap" justify="flex-end">
-                <Badge variant={getStatusVariant(submission.status)}>{submission.status.replaceAll('_', ' ')}</Badge>
-                <Badge variant={getValidationVariant(submission.validationStatus)}>{submission.validationStatus}</Badge>
-              </Stack>
-              <Badge variant="accent">Case #{submission.caseId}</Badge>
-            </Stack>
-          </Box>
+    <div className="space-y-6">
+      {/* Executive Summary Header */}
+      <Card className="border-l-4 border-l-primary bg-linear-to-r from-primary/5 to-transparent">
+        <CardHeader className="pb-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start space-x-4">
+              <div className="p-3 bg-primary/10 rounded-xl">
+                <FileText className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-3xl font-bold text-gray-900">
+                  {getFormTypeLabel(submission.formType)} Verification
+                </CardTitle>
+                <CardDescription className="text-lg mt-2 space-y-2">
+                  <div className="flex items-center space-x-4">
+                    <span className="font-semibold text-gray-900">{submission.verificationType}</span>
+                    <span className="text-gray-600">•</span>
+                    <span className={`font-bold ${getOutcomeColor(submission.outcome)}`}>
+                      {submission.outcome}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-4 text-sm text-gray-600">
+                    <div className="flex items-center space-x-1">
+                      <User className="h-4 w-4" />
+                      <span>Agent: {submission.submittedByName}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Clock className="h-4 w-4" />
+                      <span>
+                        {submission.submittedAt && !isNaN(new Date(submission.submittedAt).getTime())
+                          ? formatDistanceToNow(new Date(submission.submittedAt), { addSuffix: true })
+                          : 'Unknown time'
+                        }
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Camera className="h-4 w-4" />
+                      <span>{submission.photos?.length || 0} photos</span>
+                    </div>
+                  </div>
+                </CardDescription>
+              </div>
+            </div>
+            <div className="flex flex-col items-end space-y-2">
+              <div className="flex items-center space-x-2">
+                {getStatusBadge(submission.status)}
+                {getValidationBadge(submission.validationStatus)}
+              </div>
+              <Badge variant="default" className="bg-primary text-white">
+                Case #{submission.caseId}
+              </Badge>
+            </div>
+          </div>
         </CardHeader>
       </Card>
 
-      <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-        <MetricCard icon={<FileText size={18} />} label="Form Sections" value={submission.sections.length} />
-        <MetricCard icon={<Camera size={18} />} label="Photos Captured" value={submission.photos?.length || 0} />
-        <MetricCard
-          icon={<MapPin size={18} />}
-          label="GPS Accuracy"
-          value={submission.geoLocation?.accuracy ? `±${submission.geoLocation.accuracy}m` : 'N/A'}
-        />
-        <MetricCard
-          icon={<Smartphone size={18} />}
-          label="Platform"
-          value={submission.metadata?.deviceInfo?.platform || 'Unknown'}
-        />
-      </Box>
+      {/* Key Metrics Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <FileText className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <div className="text-sm font-medium text-gray-600">Form Sections</div>
+              <div className="text-2xl font-bold text-gray-900">{submission.sections.length}</div>
+            </div>
+          </div>
+        </Card>
 
-      <Box style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'minmax(0, 2fr) minmax(280px, 1fr)' }}>
-        <Stack gap={6}>
+        <Card className="p-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Camera className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <div className="text-sm font-medium text-gray-600">Photos Captured</div>
+              <div className="text-2xl font-bold text-gray-900">{submission.photos?.length || 0}</div>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <MapPin className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <div className="text-sm font-medium text-gray-600">GPS Accuracy</div>
+              <div className="text-2xl font-bold text-gray-900">
+                {submission.geoLocation?.accuracy ? `±${submission.geoLocation.accuracy}m` : 'N/A'}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <Smartphone className="h-5 w-5 text-yellow-600" />
+            </div>
+            <div>
+              <div className="text-sm font-medium text-gray-600">Platform</div>
+              <div className="text-lg font-bold text-gray-900">
+                {submission.metadata?.deviceInfo?.platform || 'Unknown'}
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Main Content Layout - Two Column */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Left Column - Form Data (2/3 width) */}
+        <div className="xl:col-span-2 space-y-6">
+          {/* Form Sections */}
           <Card>
             <CardHeader>
-              <CardTitle>
-                <Stack direction="horizontal" gap={2} align="center">
-                  <Grid size={18} />
-                  <span>Form Data</span>
-                </Stack>
+              <CardTitle className="flex items-center space-x-2">
+                <Grid className="h-5 w-5" />
+                <span>Form Data</span>
               </CardTitle>
-              <CardDescription>Complete submission values by section</CardDescription>
+              <CardDescription>
+                Complete form submission with all field values
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Stack gap={4}>
-                {submission.sections.map((section, sectionIndex) => (
-                  <Box key={section.id} style={surfaceStyle}>
-                    <Box
-                      style={{
-                        padding: '1rem 1.25rem',
-                        borderBottom: '1px solid var(--ui-border)',
-                        background: 'var(--ui-surface-muted)',
-                      }}
-                    >
-                      <Stack gap={2}>
-                        <Stack direction="horizontal" gap={2} align="center" justify="space-between" wrap="wrap">
-                          <Stack direction="horizontal" gap={2} align="center">
-                            <Box
-                              style={{
-                                width: '1.9rem',
-                                height: '1.9rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                borderRadius: '999px',
-                                background: 'var(--ui-accent)',
-                                color: '#fff',
-                                fontSize: '0.75rem',
-                                fontWeight: 700,
-                              }}
-                            >
-                              {sectionIndex + 1}
-                            </Box>
-                            <Text as="h3" variant="title">{section.title}</Text>
-                          </Stack>
-                          <Badge variant="outline">{section.fields.length} fields</Badge>
-                        </Stack>
-                        {section.description ? <Text variant="body-sm" tone="muted">{section.description}</Text> : null}
-                      </Stack>
-                    </Box>
+            <CardContent className="space-y-6">
+              {submission.sections.map((section, sectionIndex) => (
+                <div key={section.id} className="border rounded-lg overflow-hidden">
+                  {/* Section Header */}
+                  <div className="bg-slate-100 dark:bg-slate-800/60 px-4 py-3 border-b">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
+                        <span className="bg-primary text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold">
+                          {sectionIndex + 1}
+                        </span>
+                        <span>{section.title}</span>
+                      </h3>
+                      <Badge variant="outline" className="text-xs">
+                        {section.fields.length} fields
+                      </Badge>
+                    </div>
+                    {section.description && (
+                      <p className="text-sm text-gray-600 mt-1 ml-9">{section.description}</p>
+                    )}
+                  </div>
 
-                    <Box style={{ padding: '1rem 1.25rem' }}>
-                      <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
-                        {section.fields.map((field, fieldIndex) => (
-                          <Box key={field.id} style={{ ...subtleSurfaceStyle, padding: '1rem' }}>
-                            <Stack gap={3}>
-                              <Box
-                                style={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'flex-start',
-                                  gap: '0.75rem',
-                                  flexWrap: 'wrap',
-                                }}
-                              >
-                                <Stack direction="horizontal" gap={2} align="center">
-                                  <Box
-                                    style={{
-                                      width: '1.5rem',
-                                      height: '1.5rem',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      borderRadius: '999px',
-                                      background: 'var(--ui-surface)',
-                                      border: '1px solid var(--ui-border)',
-                                      fontSize: '0.75rem',
-                                      fontWeight: 600,
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    {fieldIndex + 1}
-                                  </Box>
-                                  <Text as="label" variant="label">
-                                    {field.label}
-                                    {field.isRequired ? (
-                                      <Text as="span" variant="label" tone="danger" style={{ marginLeft: '0.25rem' }}>*</Text>
-                                    ) : null}
-                                  </Text>
-                                </Stack>
-                                <Badge variant="outline">{field.type.toUpperCase()}</Badge>
-                              </Box>
+                  {/* Section Fields in Grid */}
+                  <div className="p-4 bg-white">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {section.fields.map((field, fieldIndex) => (
+                        <div key={field.id} className="space-y-2">
+                          {/* Field Label */}
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm font-medium text-gray-600 flex items-center space-x-2">
+                              <span className="bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200 rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                                {fieldIndex + 1}
+                              </span>
+                              <span>{field.label}</span>
+                              {field.isRequired && <span className="text-red-500">*</span>}
+                            </Label>
+                            <Badge className={baseBadgeStyle}>
+                              {field.type.toUpperCase()}
+                            </Badge>
+                          </div>
 
-                              <Box style={{ ...surfaceStyle, padding: '0.875rem' }}>
-                                <FormFieldViewer
-                                  field={field}
-                                  readonly={true}
-                                  onChange={(value) => onFieldChange?.(field.id, value)}
-                                />
-                              </Box>
+                          {/* Field Value */}
+                          <div className="min-h-10 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                            <FormFieldViewer
+                              field={field}
+                              readonly={true}
+                              onChange={(value) => onFieldChange?.(field.id, value)}
+                            />
+                          </div>
 
-                              {field.validation ? (
-                                <Stack direction="horizontal" gap={1} align="center">
-                                  <Badge variant={field.validation.isValid ? 'positive' : 'danger'}>
-                                    <Stack direction="horizontal" gap={1} align="center">
-                                      {field.validation.isValid ? <CheckCircle size={12} /> : <AlertCircle size={12} />}
-                                      <span>{field.validation.isValid ? 'Valid' : 'Invalid'}</span>
-                                    </Stack>
-                                  </Badge>
-                                </Stack>
-                              ) : null}
-                            </Stack>
-                          </Box>
-                        ))}
-                      </Box>
-                    </Box>
-                  </Box>
-                ))}
-              </Stack>
+                          {/* Validation Status */}
+                          {field.validation && (
+                            <div className="flex items-center space-x-1 text-xs">
+                              {field.validation.isValid ? (
+                                <Badge variant="outline" className="text-green-600 border-green-200">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Valid
+                                </Badge>
+                              ) : (
+                                <Badge variant="destructive" className="text-red-600">
+                                  <AlertCircle className="h-3 w-3 mr-1" />
+                                  Invalid
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </CardContent>
           </Card>
 
-          {showPhotos && submission.photos && submission.photos.length > 0 ? (
+          {/* Photos Gallery */}
+          {showPhotos && submission.photos && submission.photos.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>
-                  <Stack direction="horizontal" gap={2} align="center">
-                    <Camera size={18} />
-                    <span>Verification Photos ({submission.photos.length})</span>
-                  </Stack>
+                <CardTitle className="flex items-center space-x-2">
+                  <Camera className="h-5 w-5" />
+                  <span>Verification Photos ({submission.photos.length})</span>
                 </CardTitle>
-                <CardDescription>Photos captured during verification</CardDescription>
+                <CardDescription>
+                  Photos captured during verification with geo-location data
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <FormPhotosGallery photos={submission.photos} />
               </CardContent>
             </Card>
-          ) : null}
-        </Stack>
+          )}
+        </div>
 
-        <Stack gap={6}>
+        {/* Right Column - Metadata & Summary (1/3 width) */}
+        <div className="space-y-6">
+          {/* Quick Summary */}
           <Card>
             <CardHeader>
-              <CardTitle>
-                <Stack direction="horizontal" gap={2} align="center">
-                  <BarChart3 size={18} />
-                  <span>Summary</span>
-                </Stack>
+              <CardTitle className="flex items-center space-x-2">
+                <BarChart3 className="h-5 w-5" />
+                <span>Summary</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <Stack gap={3}>
-                <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                  <Text variant="body-sm" tone="muted">Status</Text>
-                  <Badge variant={getStatusVariant(submission.status)}>{submission.status.replaceAll('_', ' ')}</Badge>
-                </Box>
-                <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                  <Text variant="body-sm" tone="muted">Outcome</Text>
-                  <Text variant="label" tone={getOutcomeTone(submission.outcome)}>{submission.outcome}</Text>
-                </Box>
-                <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                  <Text variant="body-sm" tone="muted">Validation</Text>
-                  <Badge variant={getValidationVariant(submission.validationStatus)}>{submission.validationStatus}</Badge>
-                </Box>
-                <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-                  <Text variant="body-sm" tone="muted">Sections</Text>
-                  <Text variant="label">{submission.sections.length}</Text>
-                </Box>
-              </Stack>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Status</span>
+                  {getStatusBadge(submission.status)}
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Outcome</span>
+                  <span className={`font-semibold ${getOutcomeColor(submission.outcome)}`}>
+                    {submission.outcome}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Validation</span>
+                  {getValidationBadge(submission.validationStatus)}
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Sections</span>
+                  <span className="font-semibold">{submission.sections.length}</span>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          {showMetadata ? (
+          {/* Device & Network Info */}
+          {showMetadata && (
             <Card>
               <CardHeader>
-                <CardTitle>
-                  <Stack direction="horizontal" gap={2} align="center">
-                    <Smartphone size={18} />
-                    <span>Device Info</span>
-                  </Stack>
+                <CardTitle className="flex items-center space-x-2">
+                  <Smartphone className="h-5 w-5" />
+                  <span>Device Info</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Stack gap={3}>
-                  <Box>
-                    <Text variant="caption" tone="muted">Platform</Text>
-                    <Text variant="body-sm">{submission.metadata?.deviceInfo?.platform || 'Unknown'}</Text>
-                  </Box>
-                  <Box>
-                    <Text variant="caption" tone="muted">App Version</Text>
-                    <Text variant="body-sm">v{submission.metadata?.deviceInfo?.appVersion || 'Unknown'}</Text>
-                  </Box>
-                  <Box>
-                    <Text variant="caption" tone="muted">Network</Text>
-                    <Stack direction="horizontal" gap={2} align="center">
-                      {getNetworkIcon(submission.metadata?.networkInfo?.type || 'WIFI')}
-                      <Text variant="body-sm">{submission.metadata?.networkInfo?.type || 'Unknown'}</Text>
-                    </Stack>
-                  </Box>
-                  <Box>
-                    <Text variant="caption" tone="muted">Form Version</Text>
-                    <Text variant="body-sm">{submission.metadata?.formVersion || 'Unknown'}</Text>
-                  </Box>
-                </Stack>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-sm font-medium text-gray-900 mb-1">Platform</div>
+                    <div className="text-sm text-gray-600">{submission.metadata.deviceInfo.platform}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-900 mb-1">App Version</div>
+                    <div className="text-sm text-gray-600">v{submission.metadata.deviceInfo.appVersion}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-900 mb-1">Network</div>
+                    <div className="flex items-center space-x-2">
+                      {getNetworkIcon(submission.metadata.networkInfo.type)}
+                      <span className="text-sm text-gray-600">{submission.metadata.networkInfo.type}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-gray-900 mb-1">Form Version</div>
+                    <div className="text-sm text-gray-600">{submission.metadata.formVersion}</div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
-          ) : null}
+          )}
 
-          {submission.validationErrors && submission.validationErrors.length > 0 ? (
-            <Card>
+          {/* Validation Errors */}
+          {submission.validationErrors && submission.validationErrors.length > 0 && (
+            <Card className="border-red-200">
               <CardHeader>
-                <CardTitle>
-                  <Stack direction="horizontal" gap={2} align="center">
-                    <AlertCircle size={18} style={{ color: 'var(--ui-danger)' }} />
-                    <span>Validation Issues</span>
-                  </Stack>
+                <CardTitle className="flex items-center space-x-2 text-red-800">
+                  <AlertCircle className="h-5 w-5" />
+                  <span>Validation Issues</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Stack gap={2}>
+                <ul className="text-sm text-red-700 space-y-1">
                   {submission.validationErrors.map((error, index) => (
-                    <Stack key={index} direction="horizontal" gap={2} align="flex-start">
-                      <Text variant="body-sm" tone="danger">•</Text>
-                      <Text variant="body-sm" tone="danger">{error}</Text>
-                    </Stack>
+                    <li key={index} className="flex items-start space-x-2">
+                      <span className="text-red-500 mt-0.5">•</span>
+                      <span>{error}</span>
+                    </li>
                   ))}
-                </Stack>
+                </ul>
               </CardContent>
             </Card>
-          ) : null}
-        </Stack>
-      </Box>
+          )}
+        </div>
+      </div>
 
-      <Card tone="strong">
-        <CardHeader>
-          <CardTitle>
-            <Stack direction="horizontal" gap={2} align="center">
-              <FileText size={20} />
-              <span>Form as Submitted by Field Agent</span>
-            </Stack>
+      {/* Exact Form as Filled by Field Agent */}
+      <Card className="border-2 border-primary/20">
+        <CardHeader className="bg-primary/5">
+          <CardTitle className="text-xl flex items-center space-x-2">
+            <FileText className="h-6 w-6 text-primary" />
+            <span>Form as Submitted by Field Agent</span>
           </CardTitle>
           <CardDescription>
-            Exact submission captured by {submission.submittedByName} on {submittedAt ? submittedAt.toLocaleDateString() : 'Unknown date'}
+            Exact replica of the form filled by {submission.submittedByName} on {
+              submission.submittedAt && !isNaN(new Date(submission.submittedAt).getTime())
+                ? new Date(submission.submittedAt).toLocaleDateString()
+                : 'Unknown date'
+            }
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Stack gap={6}>
-            <Box style={{ ...subtleSurfaceStyle, padding: '1.5rem' }}>
-              <Stack gap={4}>
-                <Text as="h2" variant="headline" style={{ textAlign: 'center' }}>
-                  {getFormTypeLabel(submission.formType)} Verification Form
-                </Text>
-                <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-                  <Box style={{ ...surfaceStyle, padding: '1rem' }}>
-                    <Text variant="caption" tone="muted">Case ID</Text>
-                    <Text variant="title" tone="accent">{submission.caseId}</Text>
-                  </Box>
-                  <Box style={{ ...surfaceStyle, padding: '1rem' }}>
-                    <Text variant="caption" tone="muted">Field Agent</Text>
-                    <Text variant="title">{submission.submittedByName}</Text>
-                  </Box>
-                  <Box style={{ ...surfaceStyle, padding: '1rem' }}>
-                    <Text variant="caption" tone="muted">Verification Outcome</Text>
-                    <Text variant="title" tone={getOutcomeTone(submission.outcome)}>{submission.outcome}</Text>
-                  </Box>
-                  <Box style={{ ...surfaceStyle, padding: '1rem' }}>
-                    <Text variant="caption" tone="muted">Total Images</Text>
-                    <Text variant="title" tone="accent">{submission.photos?.length || 0} photos</Text>
-                  </Box>
-                </Box>
-                <Stack direction="horizontal" gap={2} align="center" justify="center" wrap="wrap">
-                  <Clock size={16} />
-                  <Text variant="body-sm" tone="muted">
-                    Submitted on {submittedAt ? submittedAt.toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    }) : 'Unknown date'} at {submittedAt ? submittedAt.toLocaleTimeString() : 'Unknown time'}
-                  </Text>
-                </Stack>
-              </Stack>
-            </Box>
+        <CardContent className="p-6">
+          {/* Form Header with Key Information */}
+          <div className="mb-8 p-6 bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-green-200">
+            <h2 className="text-2xl font-bold text-center text-gray-900 mb-4">
+              {getFormTypeLabel(submission.formType)} Verification Form
+            </h2>
 
-            <Stack gap={4}>
-              {submission.sections.map((section, sectionIndex) => (
-                <Box key={section.id} style={surfaceStyle}>
-                  <Box
-                    style={{
-                      padding: '1rem 1.25rem',
-                      borderBottom: '1px solid var(--ui-border)',
-                      background: 'linear-gradient(90deg, rgba(17,116,110,0.08), rgba(17,116,110,0.02))',
-                    }}
-                  >
-                    <Stack gap={2}>
-                      <Stack direction="horizontal" gap={2} align="center" justify="space-between" wrap="wrap">
-                        <Stack direction="horizontal" gap={2} align="center">
-                          <Box
-                            style={{
-                              width: '2rem',
-                              height: '2rem',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              borderRadius: '999px',
-                              background: 'var(--ui-accent)',
-                              color: '#fff',
-                              fontWeight: 700,
-                              fontSize: '0.8rem',
-                            }}
-                          >
-                            {sectionIndex + 1}
-                          </Box>
-                          <Text as="h3" variant="title">{section.title}</Text>
-                        </Stack>
-                        <Badge variant="outline">{section.fields.length} fields</Badge>
-                      </Stack>
-                      {section.description ? <Text variant="body-sm" tone="muted">{section.description}</Text> : null}
-                    </Stack>
-                  </Box>
+            {/* Key Form Metadata */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+              <div className="bg-white p-3 rounded-lg border">
+                <div className="font-medium text-gray-600">Case ID</div>
+                <div className="text-lg font-bold text-primary">{submission.caseId}</div>
+              </div>
+              <div className="bg-white p-3 rounded-lg border">
+                <div className="font-medium text-gray-600">Field Agent</div>
+                <div className="text-lg font-semibold text-gray-900">{submission.submittedByName}</div>
+              </div>
+              <div className="bg-white p-3 rounded-lg border">
+                <div className="font-medium text-gray-600">Verification Outcome</div>
+                <div className={`text-lg font-bold ${getOutcomeColor(submission.outcome)}`}>
+                  {submission.outcome}
+                </div>
+              </div>
+              <div className="bg-white p-3 rounded-lg border">
+                <div className="font-medium text-gray-600">Total Images</div>
+                <div className="text-lg font-bold text-green-600">
+                  {submission.photos?.length || 0} photos
+                </div>
+              </div>
+            </div>
 
-                  <Box style={{ padding: '1.25rem' }}>
-                    <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
-                      {section.fields.map((field, fieldIndex) => (
-                        <Box key={field.id} style={{ ...subtleSurfaceStyle, padding: '1rem' }}>
-                          <Stack gap={3}>
-                            <Box
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'flex-start',
-                                gap: '0.75rem',
-                                flexWrap: 'wrap',
-                              }}
-                            >
-                              <Stack direction="horizontal" gap={2} align="center">
-                                <Box
-                                  style={{
-                                    width: '1.65rem',
-                                    height: '1.65rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    borderRadius: '999px',
-                                    background: 'var(--ui-surface)',
-                                    border: '1px solid var(--ui-border)',
-                                    fontSize: '0.75rem',
-                                    fontWeight: 700,
-                                  }}
-                                >
-                                  {fieldIndex + 1}
-                                </Box>
-                                <Text as="label" variant="label">
-                                  {field.label}
-                                  {field.isRequired ? (
-                                    <Text as="span" variant="label" tone="danger" style={{ marginLeft: '0.25rem' }}>*</Text>
-                                  ) : null}
-                                </Text>
-                              </Stack>
-                              <Badge variant="neutral">{field.type}</Badge>
-                            </Box>
+            {/* Submission Timestamp */}
+            <div className="mt-4 text-center">
+              <div className="inline-flex items-center space-x-2 bg-white px-4 py-2 rounded-full border">
+                <Clock className="h-4 w-4 text-gray-600" />
+                <span className="text-sm text-gray-600">
+                  Submitted on {
+                    submission.submittedAt && !isNaN(new Date(submission.submittedAt).getTime())
+                      ? new Date(submission.submittedAt).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })
+                      : 'Unknown date'
+                  } at {
+                    submission.submittedAt && !isNaN(new Date(submission.submittedAt).getTime())
+                      ? new Date(submission.submittedAt).toLocaleTimeString()
+                      : 'Unknown time'
+                  }
+                </span>
+              </div>
+            </div>
+          </div>
 
-                            <Box style={{ ...surfaceStyle, padding: '1rem', minHeight: '3.25rem' }}>
-                              <FormFieldViewer
-                                field={field}
-                                readonly={true}
-                                onChange={(value) => onFieldChange?.(field.id, value)}
-                              />
-                            </Box>
+          {/* Form Sections - Exact Layout */}
+          <div className="space-y-6">
+            {submission.sections.map((section, sectionIndex) => (
+              <div key={section.id} className="border rounded-lg overflow-hidden">
+                {/* Section Header */}
+                <div className="bg-linear-to-r from-gray-100 to-gray-50 px-6 py-4 border-b">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 flex items-center space-x-2">
+                        <span className="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
+                          {sectionIndex + 1}
+                        </span>
+                        <span>{section.title}</span>
+                      </h3>
+                      {section.description && (
+                        <p className="text-sm text-gray-600 mt-1 ml-10">{section.description}</p>
+                      )}
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {section.fields.length} fields
+                    </Badge>
+                  </div>
+                </div>
 
-                            {field.validation ? (
-                              <Badge variant={field.validation.isValid ? 'positive' : 'danger'}>
-                                {field.validation.isValid ? 'Valid' : 'Invalid'}
+                {/* Section Fields */}
+                <div className="p-6 bg-white">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {section.fields.map((field, fieldIndex) => (
+                      <div key={field.id} className="space-y-3">
+                        {/* Field Label with Enhanced Styling */}
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-semibold text-gray-900 flex items-center space-x-2">
+                            <span className="bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                              {fieldIndex + 1}
+                            </span>
+                            <span>{field.label}</span>
+                            {field.isRequired && <span className="text-red-500 text-lg">*</span>}
+                          </Label>
+                          <Badge variant="secondary" className="text-xs">
+                            {field.type}
+                          </Badge>
+                        </div>
+
+                        {/* Field Value Display with Enhanced Styling */}
+                        <div className="min-h-[50px] p-4 bg-slate-100 dark:bg-slate-800/60 border-2 border-border rounded-lg">
+                          <FormFieldViewer
+                            field={field}
+                            readonly={true}
+                            onChange={(value) => onFieldChange?.(field.id, value)}
+                          />
+                        </div>
+
+                        {/* Field Validation Status */}
+                        {field.validation && (
+                          <div className="flex items-center space-x-2 text-xs">
+                            {field.validation.isValid ? (
+                              <Badge variant="outline" className="text-green-600 border-green-200">
+                                ✓ Valid
                               </Badge>
-                            ) : null}
-                          </Stack>
-                        </Box>
-                      ))}
-                    </Box>
-                  </Box>
-                </Box>
-              ))}
-            </Stack>
+                            ) : (
+                              <Badge variant="destructive" className="text-red-600">
+                                ✗ Invalid
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
 
-            <Box style={{ ...subtleSurfaceStyle, padding: '1.5rem' }}>
-              <Stack gap={4}>
-                <Text as="h4" variant="title">
-                  <Stack direction="horizontal" gap={2} align="center">
-                    <FileText size={18} />
-                    <span>Form Submission Summary</span>
-                  </Stack>
-                </Text>
-                <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-                  <Box style={{ ...surfaceStyle, padding: '1rem' }}>
-                    <Text variant="caption" tone="muted">Status</Text>
-                    <Box style={{ marginTop: '0.5rem' }}>
-                      <Badge variant={getStatusVariant(submission.status)}>{submission.status.replaceAll('_', ' ')}</Badge>
-                    </Box>
-                  </Box>
-                  <Box style={{ ...surfaceStyle, padding: '1rem' }}>
-                    <Text variant="caption" tone="muted">Verification Outcome</Text>
-                    <Text variant="title" tone={getOutcomeTone(submission.outcome)}>{submission.outcome}</Text>
-                  </Box>
-                  <Box style={{ ...surfaceStyle, padding: '1rem' }}>
-                    <Text variant="caption" tone="muted">Validation Status</Text>
-                    <Box style={{ marginTop: '0.5rem' }}>
-                      <Badge variant={getValidationVariant(submission.validationStatus)}>{submission.validationStatus}</Badge>
-                    </Box>
-                  </Box>
-                  <Box style={{ ...surfaceStyle, padding: '1rem' }}>
-                    <Text variant="caption" tone="muted">Form Sections</Text>
-                    <Text variant="title" tone="accent">{submission.sections.length} sections</Text>
-                  </Box>
-                </Box>
+          {/* Form Summary Footer */}
+          <div className="mt-8 p-6 bg-linear-to-r from-gray-50 to-gray-100 rounded-xl border-2 border-border">
+            <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
+              <FileText className="h-5 w-5" />
+              <span>Form Submission Summary</span>
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white p-4 rounded-lg border">
+                <div className="text-sm font-medium text-gray-900">Status</div>
+                <Badge className={getStatusColor(submission.status)} variant="outline">
+                  {submission.status.replace('_', ' ')}
+                </Badge>
+              </div>
+              <div className="bg-white p-4 rounded-lg border">
+                <div className="text-sm font-medium text-gray-900">Verification Outcome</div>
+                <span className={`text-lg font-bold ${getOutcomeColor(submission.outcome)}`}>
+                  {submission.outcome}
+                </span>
+              </div>
+              <div className="bg-white p-4 rounded-lg border">
+                <div className="text-sm font-medium text-gray-900">Validation Status</div>
+                <Badge className={getValidationColor(submission.validationStatus)} variant="outline">
+                  {submission.validationStatus}
+                </Badge>
+              </div>
+              <div className="bg-white p-4 rounded-lg border">
+                <div className="text-sm font-medium text-gray-900">Form Sections</div>
+                <div className="text-lg font-bold text-green-600">
+                  {submission.sections.length} sections
+                </div>
+              </div>
+            </div>
 
-                {submission.metadata ? (
-                  <Box style={{ ...surfaceStyle, padding: '1rem' }}>
-                    <Stack gap={3}>
-                      <Text variant="label">Submission Metadata</Text>
-                      <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-                        <Text variant="body-sm" tone="muted">
-                          <strong>Platform:</strong> {submission.metadata.deviceInfo?.platform || 'Unknown'}
-                        </Text>
-                        <Text variant="body-sm" tone="muted">
-                          <strong>App Version:</strong> {submission.metadata.deviceInfo?.appVersion || 'Unknown'}
-                        </Text>
-                        <Text variant="body-sm" tone="muted">
-                          <strong>Network:</strong> {submission.metadata.networkInfo?.type || 'Unknown'}
-                        </Text>
-                        <Text variant="body-sm" tone="muted">
-                          <strong>Submission Attempts:</strong> {submission.metadata.submissionAttempts || 1}
-                        </Text>
-                      </Box>
-                    </Stack>
-                  </Box>
-                ) : null}
-              </Stack>
-            </Box>
-          </Stack>
+            {/* Additional Metadata */}
+            {submission.metadata && (
+              <div className="mt-4 p-4 bg-white rounded-lg border">
+                <h5 className="text-sm font-bold text-gray-900 mb-2">Submission Metadata</h5>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-600">
+                  <div>
+                    <span className="font-medium">Platform:</span> {submission.metadata.deviceInfo?.platform || 'Unknown'}
+                  </div>
+                  <div>
+                    <span className="font-medium">App Version:</span> {submission.metadata.deviceInfo?.appVersion || 'Unknown'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Network:</span> {submission.metadata.networkInfo?.type || 'Unknown'}
+                  </div>
+                  {/* Use intersection type to access extended properties */}
+                  {((submission.metadata as unknown) as { totalImages?: number }).totalImages && (
+                    <div>
+                      <span className="font-medium">Images Captured:</span> {((submission.metadata as unknown) as { totalImages?: number }).totalImages}
+                    </div>
+                  )}
+                  {((submission.metadata as unknown) as { formType?: string }).formType && (
+                    <div>
+                      <span className="font-medium">Form Type:</span> {((submission.metadata as unknown) as { formType?: string }).formType}
+                    </div>
+                  )}
+                  <div>
+                    <span className="font-medium">Submission Attempts:</span> {submission.metadata.submissionAttempts || 1}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
-      {submission.caseId ? (
+      {/* Verification Images - Captured during form submission */}
+      {submission.caseId && (
         <VerificationImages
           caseId={submission.caseId}
           submissionId={submission.id}
@@ -682,81 +651,75 @@ export function FormViewer({
           showStats={true}
           submissionAddress={submission.geoLocation?.address}
         />
-      ) : null}
+      )}
 
-      {showAttachments && submission.attachments.length > 0 ? (
-        <FormAttachmentsViewer attachments={submission.attachments} readonly={readonly} />
-      ) : null}
+      {/* Form Attachments */}
+      {showAttachments && submission.attachments.length > 0 && (
+        <FormAttachmentsViewer
+          attachments={submission.attachments}
+          readonly={readonly}
+        />
+      )}
 
-      {showLocation && submission.geoLocation ? (
-        <FormLocationViewer location={submission.geoLocation} readonly={readonly} />
-      ) : null}
+      {/* Form Location */}
+      {showLocation && submission.geoLocation && (
+        <FormLocationViewer
+          location={submission.geoLocation}
+          readonly={readonly}
+        />
+      )}
 
-      {submission.reviewNotes ? (
+      {/* Review Comments */}
+      {submission.reviewNotes && (
         <Card>
           <CardHeader>
-            <CardTitle>
-              <Stack direction="horizontal" gap={2} align="center">
-                <Eye size={18} />
-                <span>Review Comments</span>
-              </Stack>
+            <CardTitle className="text-lg flex items-center space-x-2">
+              <Eye className="h-5 w-5" />
+              <span>Review Comments</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Box style={{ ...subtleSurfaceStyle, padding: '1rem' }}>
-              <Stack gap={3}>
-                <Text variant="body-sm" style={{ whiteSpace: 'pre-wrap' }}>{submission.reviewNotes}</Text>
-                {submission.reviewedBy && submission.reviewedAt ? (
-                  <Box
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      gap: '1rem',
-                      flexWrap: 'wrap',
-                      paddingTop: '0.75rem',
-                      borderTop: '1px solid var(--ui-border)',
-                    }}
-                  >
-                    <Stack direction="horizontal" gap={1} align="center">
-                      <User size={12} />
-                      <Text variant="caption" tone="muted">Reviewed by {submission.reviewedBy}</Text>
-                    </Stack>
-                    <Stack direction="horizontal" gap={1} align="center">
-                      <Clock size={12} />
-                      <Text variant="caption" tone="muted">{new Date(submission.reviewedAt).toLocaleString()}</Text>
-                    </Stack>
-                  </Box>
-                ) : null}
-              </Stack>
-            </Box>
+            <div className="bg-slate-100/70 dark:bg-slate-800/50 rounded-lg p-4">
+              <p className="text-sm whitespace-pre-wrap">{submission.reviewNotes}</p>
+              {submission.reviewedBy && submission.reviewedAt && (
+                <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                  <div className="flex items-center space-x-2 text-xs text-gray-600">
+                    <User className="h-3 w-3" />
+                    <span>Reviewed by {submission.reviewedBy}</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-xs text-gray-600">
+                    <Clock className="h-3 w-3" />
+                    <span>{new Date(submission.reviewedAt).toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
-      ) : null}
+      )}
 
-      {!readonly ? (
+      {/* Form Actions */}
+      {!readonly && (
         <Card>
-          <CardContent>
-            <Box
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '1rem',
-                flexWrap: 'wrap',
-              }}
-            >
-              <Text variant="body-sm" tone="muted">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-600">
                 Last updated: {new Date(submission.submittedAt).toLocaleString()}
-              </Text>
-              <Stack direction="horizontal" gap={2} wrap="wrap">
-                <Button variant="outline" icon={<Download size={16} />}>Export PDF</Button>
-                <Button variant="outline" icon={<FileText size={16} />}>Print Form</Button>
-              </Stack>
-            </Box>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export PDF
+                </Button>
+                <Button variant="outline" size="sm">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Print Form
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      ) : null}
-    </Stack>
+      )}
+    </div>
   );
 }

@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Button } from '@/ui/components/Button';
-import { Input } from '@/ui/components/Input';
-import { Label } from '@/ui/components/Label';
-import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -20,7 +20,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/Table';
+} from '@/components/ui/table';
 import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { verificationTypesService } from '@/services/verificationTypes';
@@ -161,16 +161,16 @@ export function RateAssignmentTab() {
   const canShowRateTypes = selectedClientId && selectedProductId && selectedVerificationTypeId;
 
   return (
-    <div {...{ className: "space-y-6" }}>
+    <div className="space-y-6">
       {/* Selection Form */}
       <Card>
         <CardHeader>
           <CardTitle>Select Client-Product-Verification Type Combination</CardTitle>
         </CardHeader>
-        <CardContent {...{ className: "space-y-4" }}>
-          <div {...{ className: "grid grid-cols-1 md:grid-cols-3 gap-4" }}>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Client Selection */}
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="client-select">Client *</Label>
               <Select value={selectedClientId ? String(selectedClientId) : ""} onValueChange={handleClientChange}>
                 <SelectTrigger>
@@ -187,7 +187,7 @@ export function RateAssignmentTab() {
             </div>
 
             {/* Product Selection */}
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="product-select">Product *</Label>
               <Select
                 value={selectedProductId ? String(selectedProductId) : ""}
@@ -208,7 +208,7 @@ export function RateAssignmentTab() {
             </div>
 
             {/* Verification Type Selection */}
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="verification-type-select">Verification Type *</Label>
               <Select
                 value={selectedVerificationTypeId ? String(selectedVerificationTypeId) : ""}
@@ -231,9 +231,9 @@ export function RateAssignmentTab() {
 
           {/* Selection Summary */}
           {canShowRateTypes && (
-            <div {...{ className: "mt-4 p-4 rounded-lg border border-green-100 bg-green-50" }}>
-              <h4 {...{ className: "font-medium mb-2" }}>Selected Combination:</h4>
-              <div {...{ className: "flex flex-wrap gap-2" }}>
+            <div className="mt-4 p-4 rounded-lg border border-green-100 bg-green-50">
+              <h4 className="font-medium mb-2">Selected Combination:</h4>
+              <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">
                   Client: {clients.find(c => c.id === selectedClientId)?.name}
                 </Badge>
@@ -257,20 +257,20 @@ export function RateAssignmentTab() {
           </CardHeader>
           <CardContent>
             {rateTypesLoading ? (
-              <div {...{ className: "flex items-center justify-center py-8" }}>
-                <div {...{ className: "animate-spin rounded-full h-8 w-8 border-b-2 border-primary" }} />
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
               </div>
             ) : availableRateTypes.length === 0 ? (
-              <div {...{ className: "text-center py-8" }}>
-                <p {...{ className: "text-gray-600" }}>
+              <div className="text-center py-8">
+                <p className="text-gray-600">
                   No rate types are assigned to this combination.
                 </p>
-                <p {...{ className: "text-sm text-gray-600 mt-2" }}>
+                <p className="text-sm text-gray-600 mt-2">
                   Please assign rate types in the &quot;Rate Type Assignment&quot; tab first.
                 </p>
               </div>
             ) : (
-              <div {...{ className: "space-y-4" }}>
+              <div className="space-y-4">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -292,10 +292,10 @@ export function RateAssignmentTab() {
 
                       return (
                         <TableRow key={rateType.rateTypeId}>
-                          <TableCell {...{ className: "font-medium" }}>
+                          <TableCell className="font-medium">
                             {rateType.rateTypeName}
                           </TableCell>
-                          <TableCell {...{ className: "text-gray-600" }}>
+                          <TableCell className="text-gray-600">
                             {rateType.rateTypeDescription || 'No description'}
                           </TableCell>
                           <TableCell>
@@ -315,7 +315,7 @@ export function RateAssignmentTab() {
                               onChange={(e) =>
                                 handleRateInputChange(rateType.rateTypeId, 'amount', e.target.value)
                               }
-                              {...{ className: "w-32" }}
+                              className="w-32"
                               min="0"
                               step="0.01"
                             />
@@ -327,7 +327,7 @@ export function RateAssignmentTab() {
                                 handleRateInputChange(rateType.rateTypeId, 'currency', value)
                               }
                             >
-                              <SelectTrigger {...{ className: "w-20" }}>
+                              <SelectTrigger className="w-20">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -363,7 +363,7 @@ export function RateAssignmentTab() {
           <CardTitle>Instructions</CardTitle>
         </CardHeader>
         <CardContent>
-          <ol {...{ className: "list-decimal list-inside space-y-2 text-sm text-gray-600" }}>
+          <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
             <li>Select a client, product, and verification type combination</li>
             <li>Only rate types that have been assigned in the previous tab will appear here</li>
             <li>Enter the rate amount for each rate type</li>

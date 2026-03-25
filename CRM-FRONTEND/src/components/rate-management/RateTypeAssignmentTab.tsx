@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Button } from '@/ui/components/Button';
-import { Label } from '@/ui/components/Label';
-import { Checkbox } from '@/ui/components/Checkbox';
-import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
+} from '@/components/ui/select';
 import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { verificationTypesService } from '@/services/verificationTypes';
@@ -131,16 +131,16 @@ export function RateTypeAssignmentTab() {
     JSON.stringify(assignmentStatus.filter(item => item.isAssigned).map(item => String(item.rateTypeId)).sort());
 
   return (
-    <div {...{ className: "space-y-6" }}>
+    <div className="space-y-6">
       {/* Selection Form */}
       <Card>
         <CardHeader>
           <CardTitle>Select Client-Product-Verification Type Combination</CardTitle>
         </CardHeader>
-        <CardContent {...{ className: "space-y-4" }}>
-          <div {...{ className: "grid grid-cols-1 md:grid-cols-3 gap-4" }}>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Client Selection */}
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="client-select">Client *</Label>
               <Select value={selectedClientId} onValueChange={handleClientChange}>
                 <SelectTrigger>
@@ -157,7 +157,7 @@ export function RateTypeAssignmentTab() {
             </div>
 
             {/* Product Selection */}
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="product-select">Product *</Label>
               <Select
                 value={selectedProductId}
@@ -178,7 +178,7 @@ export function RateTypeAssignmentTab() {
             </div>
 
             {/* Verification Type Selection */}
-            <div {...{ className: "space-y-2" }}>
+            <div className="space-y-2">
               <Label htmlFor="verification-type-select">Verification Type *</Label>
               <Select
                 value={selectedVerificationTypeId}
@@ -201,9 +201,9 @@ export function RateTypeAssignmentTab() {
 
           {/* Selection Summary */}
           {canShowAssignments && (
-            <div {...{ className: "mt-4 p-4 rounded-lg border border-green-100 bg-green-50" }}>
-              <h4 {...{ className: "font-medium mb-2" }}>Selected Combination:</h4>
-              <div {...{ className: "flex flex-wrap gap-2" }}>
+            <div className="mt-4 p-4 rounded-lg border border-green-100 bg-green-50">
+              <h4 className="font-medium mb-2">Selected Combination:</h4>
+              <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">
                   Client: {clients.find(c => String(c.id) === selectedClientId)?.name}
                 </Badge>
@@ -227,20 +227,20 @@ export function RateTypeAssignmentTab() {
           </CardHeader>
           <CardContent>
             {assignmentLoading ? (
-              <div {...{ className: "flex items-center justify-center py-8" }}>
-                <div {...{ className: "animate-spin rounded-full h-8 w-8 border-b-2 border-primary" }} />
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
               </div>
             ) : assignmentStatus.length === 0 ? (
-              <p {...{ className: "text-gray-600 text-center py-8" }}>
+              <p className="text-gray-600 text-center py-8">
                 No rate types available for assignment
               </p>
             ) : (
-              <div {...{ className: "space-y-4" }}>
-                <div {...{ className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" }}>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {assignmentStatus.map((rateType) => (
                     <div
                       key={rateType.rateTypeId}
-                      {...{ className: "flex items-center space-x-3 p-3 border rounded-lg" }}
+                      className="flex items-center space-x-3 p-3 border rounded-lg"
                     >
                       <Checkbox
                         id={String(rateType.rateTypeId)}
@@ -249,15 +249,15 @@ export function RateTypeAssignmentTab() {
                           handleRateTypeToggle(String(rateType.rateTypeId), checked as boolean)
                         }
                       />
-                      <div {...{ className: "flex-1" }}>
+                      <div className="flex-1">
                         <Label
                           htmlFor={String(rateType.rateTypeId)}
-                          {...{ className: "font-medium cursor-pointer" }}
+                          className="font-medium cursor-pointer"
                         >
                           {rateType.rateTypeName}
                         </Label>
                         {rateType.rateTypeDescription && (
-                          <p {...{ className: "text-xs text-gray-600 mt-1" }}>
+                          <p className="text-xs text-gray-600 mt-1">
                             {rateType.rateTypeDescription}
                           </p>
                         )}
@@ -267,7 +267,7 @@ export function RateTypeAssignmentTab() {
                 </div>
 
                 {/* Save Button */}
-                <div {...{ className: "flex justify-end pt-4" }}>
+                <div className="flex justify-end pt-4">
                   <Button
                     onClick={handleSaveAssignments}
                     disabled={!hasChanges || saveAssignmentsMutation.isPending}
@@ -277,13 +277,13 @@ export function RateTypeAssignmentTab() {
                 </div>
 
                 {/* Assignment Summary */}
-                <div {...{ className: "mt-4 p-4 rounded-lg border border-green-100 bg-green-50" }}>
-                  <h4 {...{ className: "font-medium mb-2" }}>
+                <div className="mt-4 p-4 rounded-lg border border-green-100 bg-green-50">
+                  <h4 className="font-medium mb-2">
                     Assigned Rate Types ({assignedRateTypeIds.length}):
                   </h4>
-                  <div {...{ className: "flex flex-wrap gap-2" }}>
+                  <div className="flex flex-wrap gap-2">
                     {assignedRateTypeIds.length === 0 ? (
-                      <span {...{ className: "text-gray-600 text-sm" }}>No rate types assigned</span>
+                      <span className="text-gray-600 text-sm">No rate types assigned</span>
                     ) : (
                         assignedRateTypeIds.map(rateTypeId => {
                           const rateType = assignmentStatus.find(rt => String(rt.rateTypeId) === rateTypeId);
@@ -308,7 +308,7 @@ export function RateTypeAssignmentTab() {
           <CardTitle>Instructions</CardTitle>
         </CardHeader>
         <CardContent>
-          <ol {...{ className: "list-decimal list-inside space-y-2 text-sm text-gray-600" }}>
+          <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
             <li>Select a client from the dropdown to see available products and verification types</li>
             <li>Choose a product that is assigned to the selected client</li>
             <li>Select a verification type that is available for the client</li>

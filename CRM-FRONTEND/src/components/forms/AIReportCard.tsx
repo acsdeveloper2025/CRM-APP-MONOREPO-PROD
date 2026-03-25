@@ -1,14 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Button } from '@/ui/components/Button';
-import { Badge } from '@/ui/components/Badge';
-import { Separator } from '@/ui/components/Separator';
-import { Brain, FileText, CheckCircle, Clock, Download, RefreshCw, TrendingUp, Shield, Target } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import {
+  Brain,
+  FileText,
+  CheckCircle,
+  Clock,
+  Download,
+  RefreshCw,
+  TrendingUp,
+  Shield,
+  Target
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { aiReportsService } from '@/services/aiReports';
-import { Box } from '@/ui/primitives/Box';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 interface AIReport {
   id: string;
@@ -19,7 +26,7 @@ interface AIReport {
   recommendations: string[];
   conclusion: string;
   confidence: number;
-  templateReport?: string;
+  templateReport?: string; // Template-based report for residence verification
   templateInsights?: {
     verificationType: string;
     statusCategory: string;
@@ -43,7 +50,11 @@ interface AIReportCardProps {
   className?: string;
 }
 
-export const AIReportCard: React.FC<AIReportCardProps> = ({ caseId, submissionId }) => {
+export const AIReportCard: React.FC<AIReportCardProps> = ({
+  caseId,
+  submissionId,
+  className = ''
+}) => {
   const [report, setReport] = useState<AIReport | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -53,20 +64,24 @@ export const AIReportCard: React.FC<AIReportCardProps> = ({ caseId, submissionId
     try {
       setIsLoading(true);
       setError(null);
+      
       const response = await aiReportsService.getFormSubmissionReport(caseId, submissionId);
       if (response.success && response.data) {
         setReport(response.data.report);
       }
     } catch (err: unknown) {
-      const errorResponse = err as { response?: { status?: number } };
+      // Don't show error for 404 (no report exists yet)
+      const errorResponse = (err as { response?: { status?: number } });
       if (errorResponse.response?.status !== 404) {
         setError('Failed to load AI report');
+        console.error('Error loading AI report:', err);
       }
     } finally {
       setIsLoading(false);
     }
   }, [caseId, submissionId]);
 
+  // Load existing report on component mount
   useEffect(() => {
     loadExistingReport();
   }, [loadExistingReport]);
@@ -75,8 +90,13 @@ export const AIReportCard: React.FC<AIReportCardProps> = ({ caseId, submissionId
     try {
       setIsGenerating(true);
       setError(null);
-      toast.info('Generating AI report...', { description: 'This may take a few moments' });
+      
+      toast.info('Generating AI report...', {
+        description: 'This may take a few moments'
+      });
+
       const response = await aiReportsService.generateFormSubmissionReport(caseId, submissionId);
+      
       if (response.success && response.data) {
         setReport(response.data.report);
         toast.success('AI report generated successfully');
@@ -87,35 +107,37 @@ export const AIReportCard: React.FC<AIReportCardProps> = ({ caseId, submissionId
       const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
       const errorMessage = errorObj.response?.data?.message || errorObj.message || 'Failed to generate AI report';
       setError(errorMessage);
-      toast.error('Failed to generate AI report', { description: errorMessage });
+      toast.error('Failed to generate AI report', {
+        description: errorMessage
+      });
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const getRiskTone = (level: string) => {
+  const getRiskBadgeColor = (level: string) => {
     switch (level) {
-      case 'LOW': return 'positive';
-      case 'MEDIUM': return 'warning';
-      case 'HIGH': return 'danger';
-      default: return 'neutral';
+      case 'LOW': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800';
+      case 'MEDIUM': return 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800';
+      case 'HIGH': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800';
+      default: return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200 border-border';
     }
   };
 
-  const getConfidenceTone = (confidence: number) => {
-    if (confidence >= 85) {return 'positive';}
-    if (confidence >= 70) {return 'warning';}
-    return 'danger';
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 85) {return 'text-green-600 dark:text-green-400';}
+    if (confidence >= 70) {return 'text-yellow-600 dark:text-yellow-400';}
+    return 'text-red-600 dark:text-red-400';
   };
 
   if (isLoading) {
     return (
-      <Card>
-        <CardContent style={{ padding: '1.5rem' }}>
-          <Stack direction="horizontal" gap={2} align="center" justify="center">
-            <RefreshCw size={20} style={{ color: 'var(--ui-accent)' }} />
-            <Text variant="body-sm" tone="muted">Loading AI report...</Text>
-          </Stack>
+      <Card className={`border-l-4 border-l-blue-500 ${className}`}>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center space-x-2">
+            <RefreshCw className="h-5 w-5 animate-spin text-green-600" />
+            <span className="text-sm text-gray-600">Loading AI report...</span>
+          </div>
         </CardContent>
       </Card>
     );
@@ -123,190 +145,229 @@ export const AIReportCard: React.FC<AIReportCardProps> = ({ caseId, submissionId
 
   if (!report) {
     return (
-      <Card>
-        <CardHeader>
-          <Box style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <Stack direction="horizontal" gap={2} align="center">
-              <Brain size={20} style={{ color: 'var(--ui-accent)' }} />
-              <CardTitle>AI Verification Report</CardTitle>
-            </Stack>
-            <Badge variant="outline">Powered by Gemini AI</Badge>
-          </Box>
+      <Card className={`border-l-4 border-l-purple-500 ${className}`}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Brain className="h-5 w-5 text-green-600" />
+              <CardTitle className="text-lg">AI Verification Report</CardTitle>
+            </div>
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-purple-200">
+              Powered by Gemini AI
+            </Badge>
+          </div>
         </CardHeader>
-        <CardContent>
-          <Stack gap={4} align="center" style={{ textAlign: 'center', paddingBlock: '1.5rem' }}>
-            <Brain size={48} style={{ color: 'var(--ui-accent)' }} />
-            <Text as="h3" variant="title">Generate AI-Powered Report</Text>
-            <Text variant="body-sm" tone="muted" style={{ maxWidth: '32rem' }}>
+        <CardContent className="pt-0">
+          <div className="text-center py-6">
+            <Brain className="h-12 w-12 text-purple-400 mx-auto mb-3" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Generate AI-Powered Report
+            </h3>
+            <p className="text-sm text-gray-600 mb-4 max-w-md mx-auto">
               Get comprehensive insights and analysis of this verification using advanced AI technology.
-            </Text>
-            <Button onClick={generateReport} disabled={isGenerating} icon={isGenerating ? <RefreshCw size={16} /> : <Brain size={16} />}>
-              {isGenerating ? 'Generating Report...' : 'Generate AI Report'}
+            </p>
+            <Button 
+              onClick={generateReport}
+              disabled={isGenerating}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {isGenerating ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Generating Report...
+                </>
+              ) : (
+                <>
+                  <Brain className="h-4 w-4 mr-2" />
+                  Generate AI Report
+                </>
+              )}
             </Button>
-            {error ? (
-              <Box style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'color-mix(in srgb, var(--ui-danger) 8%, transparent)', border: '1px solid var(--ui-danger)', borderRadius: 'var(--ui-radius-md)' }}>
-                <Text variant="body-sm" tone="danger">{error}</Text>
-              </Box>
-            ) : null}
-          </Stack>
+            {error && (
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-red-600 text-sm">{error}</p>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <Box style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <Stack direction="horizontal" gap={2} align="center">
-            <Brain size={20} style={{ color: 'var(--ui-accent)' }} />
-            <CardTitle>AI Verification Report</CardTitle>
-          </Stack>
-          <Stack direction="horizontal" gap={2} align="center" wrap="wrap">
-            <Badge variant="outline">Powered by Gemini AI</Badge>
-            <Badge variant={getConfidenceTone(report.confidence)}>{report.confidence}% Confidence</Badge>
-          </Stack>
-        </Box>
+    <Card className={`border-l-4 border-l-purple-500 ${className}`}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Brain className="h-5 w-5 text-green-600" />
+            <CardTitle className="text-lg">AI Verification Report</CardTitle>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-purple-200">
+              Powered by Gemini AI
+            </Badge>
+            <Badge 
+              variant="outline" 
+              className={`${getConfidenceColor(report.confidence)} border-current`}
+            >
+              {report.confidence}% Confidence
+            </Badge>
+          </div>
+        </div>
       </CardHeader>
 
-      <CardContent>
-        <Stack gap={6}>
-          <Stack gap={2}>
-            <Text as="h3" variant="label">
-              <Stack direction="horizontal" gap={2} align="center">
-                <FileText size={16} style={{ color: 'var(--ui-accent)' }} />
-                <span>Executive Summary</span>
-              </Stack>
-            </Text>
-            <Text variant="body-sm">{report.executiveSummary}</Text>
-          </Stack>
+      <CardContent className="space-y-6">
+        {/* Executive Summary */}
+        <div>
+          <div className="flex items-center space-x-2 mb-2">
+            <FileText className="h-4 w-4 text-green-600" />
+            <h3 className="font-semibold text-gray-900">Executive Summary</h3>
+          </div>
+          <p className="text-sm text-gray-900 leading-relaxed">
+            {report.executiveSummary}
+          </p>
+        </div>
 
-          <Separator />
+        <Separator />
 
-          {report.templateInsights?.riskAssessment ? (
-            <>
-              <Stack gap={3}>
-                <Stack direction="horizontal" gap={2} align="center" wrap="wrap">
-                  <Shield size={16} style={{ color: 'var(--ui-warning)' }} />
-                  <Text as="h3" variant="label">Risk Assessment</Text>
-                  <Badge variant={getRiskTone(report.templateInsights.riskAssessment.level)}>{report.templateInsights.riskAssessment.level} RISK</Badge>
-                </Stack>
-                <Text variant="body-sm">{report.riskAssessment}</Text>
-                {report.templateInsights.riskAssessment.factors.length > 0 ? (
-                  <Box style={{ padding: '0.75rem', borderRadius: 'var(--ui-radius-md)', border: '1px solid var(--ui-warning)', background: 'color-mix(in srgb, var(--ui-warning) 10%, transparent)' }}>
-                    <Stack gap={2}>
-                      <Text variant="body-sm" tone="warning" style={{ fontWeight: 600 }}>Risk Factors:</Text>
-                      <Stack gap={1}>
-                        {report.templateInsights.riskAssessment.factors.map((factor, index) => (
-                          <Stack key={index} direction="horizontal" gap={2} align="flex-start">
-                            <Text as="span" tone="warning">•</Text>
-                            <Text variant="body-sm">{factor}</Text>
-                          </Stack>
-                        ))}
-                      </Stack>
-                    </Stack>
-                  </Box>
-                ) : null}
-              </Stack>
-              <Separator />
-            </>
-          ) : null}
+        {/* Risk Assessment */}
+        {report.templateInsights?.riskAssessment && (
+          <div>
+            <div className="flex items-center space-x-2 mb-3">
+              <Shield className="h-4 w-4 text-yellow-600" />
+              <h3 className="font-semibold text-gray-900">Risk Assessment</h3>
+              <Badge className={getRiskBadgeColor(report.templateInsights.riskAssessment.level)}>
+                {report.templateInsights.riskAssessment.level} RISK
+              </Badge>
+            </div>
+            <p className="text-sm text-gray-900 mb-3">
+              {report.riskAssessment}
+            </p>
+            {report.templateInsights.riskAssessment.factors.length > 0 && (
+              <div className="bg-yellow-50 border border-orange-200 rounded-md p-3">
+                <h4 className="text-sm font-medium text-orange-800 mb-2">Risk Factors:</h4>
+                <ul className="text-sm text-orange-700 space-y-1">
+                  {report.templateInsights.riskAssessment.factors.map((factor, index) => (
+                    <li key={index} className="flex items-start space-x-2">
+                      <span className="text-yellow-500 mt-1">•</span>
+                      <span>{factor}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
 
-          <Stack gap={3}>
-            <Text as="h3" variant="label">
-              <Stack direction="horizontal" gap={2} align="center">
-                <Target size={16} style={{ color: 'var(--ui-accent)' }} />
-                <span>Key Findings</span>
-              </Stack>
-            </Text>
-            <Stack gap={2}>
-              {report.keyFindings.map((finding, index) => (
-                <Stack key={index} direction="horizontal" gap={2} align="flex-start">
-                  <CheckCircle size={16} style={{ color: 'var(--ui-success)', marginTop: '0.125rem' }} />
-                  <Text variant="body-sm">{finding}</Text>
-                </Stack>
-              ))}
-            </Stack>
-          </Stack>
+        <Separator />
 
-          <Separator />
+        {/* Key Findings */}
+        <div>
+          <div className="flex items-center space-x-2 mb-3">
+            <Target className="h-4 w-4 text-green-600" />
+            <h3 className="font-semibold text-gray-900">Key Findings</h3>
+          </div>
+          <ul className="space-y-2">
+            {report.keyFindings.map((finding, index) => (
+              <li key={index} className="flex items-start space-x-2 text-sm">
+                <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                <span className="text-gray-900">{finding}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
 
-          <Stack gap={3}>
-            <Text as="h3" variant="label">
-              <Stack direction="horizontal" gap={2} align="center">
-                <TrendingUp size={16} style={{ color: 'var(--ui-accent)' }} />
-                <span>Recommendations</span>
-              </Stack>
-            </Text>
-            <Stack gap={2}>
-              {report.recommendations.map((recommendation, index) => (
-                <Stack key={index} direction="horizontal" gap={2} align="flex-start">
-                  <Text as="span" tone="positive">•</Text>
-                  <Text variant="body-sm">{recommendation}</Text>
-                </Stack>
-              ))}
-            </Stack>
-          </Stack>
+        <Separator />
 
-          <Separator />
+        {/* Recommendations */}
+        <div>
+          <div className="flex items-center space-x-2 mb-3">
+            <TrendingUp className="h-4 w-4 text-green-600" />
+            <h3 className="font-semibold text-gray-900">Recommendations</h3>
+          </div>
+          <ul className="space-y-2">
+            {report.recommendations.map((recommendation, index) => (
+              <li key={index} className="flex items-start space-x-2 text-sm">
+                <span className="text-green-500 mt-1 shrink-0">•</span>
+                <span className="text-gray-900">{recommendation}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
 
-          <Stack gap={2}>
-            <Text as="h3" variant="label">Conclusion</Text>
-            <Text variant="body-sm">{report.conclusion}</Text>
-          </Stack>
+        <Separator />
 
-          {report.templateReport ? (
-            <>
-              <Separator />
-              <Box style={{ background: 'var(--ui-surface-muted)', borderRadius: 'var(--ui-radius-lg)', padding: '1rem' }}>
-                <Stack gap={3}>
-                  <Stack direction="horizontal" gap={2} align="center" wrap="wrap">
-                    <FileText size={16} style={{ color: 'var(--ui-accent)' }} />
-                    <Text as="h3" variant="label">Residence Verification Report</Text>
-                    <Badge variant="outline">Template-Based</Badge>
-                  </Stack>
-                  <Text as="pre" style={{ whiteSpace: 'pre-wrap', fontFamily: 'ui-monospace, SFMono-Regular, monospace', margin: 0 }}>
-                    {report.templateReport}
-                  </Text>
-                </Stack>
-              </Box>
-            </>
-          ) : null}
+        {/* Conclusion */}
+        <div>
+          <h3 className="font-semibold text-gray-900 mb-2">Conclusion</h3>
+          <p className="text-sm text-gray-900 leading-relaxed">
+            {report.conclusion}
+          </p>
+        </div>
 
-          {report.metadata ? (
-            <Box style={{ background: 'var(--ui-surface-muted)', borderRadius: 'var(--ui-radius-lg)', padding: '1rem', border: '1px solid var(--ui-border)' }}>
-              <Stack gap={2}>
-                <Text as="h3" variant="label">
-                  <Stack direction="horizontal" gap={2} align="center">
-                    <Clock size={16} style={{ color: 'var(--ui-text-muted)' }} />
-                    <span>Report Details</span>
-                  </Stack>
-                </Text>
-                <Box style={{ display: 'grid', gap: '0.5rem 1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-                  <Text variant="caption" tone="muted">Generated: {new Date(report.metadata.generatedAt).toLocaleString()}</Text>
-                  <Text variant="caption" tone="muted">Type: {report.metadata.verificationType}</Text>
-                  <Text variant="caption" tone="muted">Outcome: {report.metadata.outcome}</Text>
-                  <Text variant="caption" tone="muted">Confidence: {report.confidence}%</Text>
-                </Box>
-              </Stack>
-            </Box>
-          ) : null}
+        {/* Template Report for Residence Verification */}
+        {report.templateReport && (
+          <>
+            <Separator />
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="h-4 w-4 text-green-600" />
+                <h3 className="font-semibold text-gray-900">Residence Verification Report</h3>
+                <Badge variant="outline" className="text-xs">Template-Based</Badge>
+              </div>
+              <div className="bg-slate-100 dark:bg-slate-800/60 rounded-lg p-4">
+                <pre className="text-sm text-gray-900 whitespace-pre-wrap font-mono leading-relaxed">
+                  {report.templateReport}
+                </pre>
+              </div>
+            </div>
+          </>
+        )}
 
-          <Stack direction="horizontal" justify="space-between" gap={2} wrap="wrap">
-            <Button variant="outline" onClick={generateReport} disabled={isGenerating} icon={<RefreshCw size={16} />}>
-              {isGenerating ? 'Regenerating...' : 'Regenerate Report'}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                toast.info('Download feature coming soon');
-              }}
-              icon={<Download size={16} />}
-            >
-              Download Report
-            </Button>
-          </Stack>
-        </Stack>
+        {/* Metadata */}
+        {report.metadata && (
+          <div className="bg-slate-100 dark:bg-slate-800/60 border border-border rounded-md p-3">
+            <div className="flex items-center space-x-2 mb-2">
+              <Clock className="h-4 w-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-900">Report Details</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+              <div>Generated: {new Date(report.metadata.generatedAt).toLocaleString()}</div>
+              <div>Type: {report.metadata.verificationType}</div>
+              <div>Outcome: {report.metadata.outcome}</div>
+              <div>Confidence: {report.confidence}%</div>
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center justify-between pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={generateReport}
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            Regenerate Report
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              // TODO: Implement download functionality
+              toast.info('Download feature coming soon');
+            }}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Download Report
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

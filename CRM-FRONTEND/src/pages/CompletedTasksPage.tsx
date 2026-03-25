@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/ui/components/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/UnifiedSearchFilterLayout';
-import { Label } from '@/ui/components/Label';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
+} from '@/components/ui/select';
 import {
   CheckCircle,
   RefreshCw,
@@ -23,14 +24,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { VerificationTasksService } from '@/services/verificationTasks';
 import { toast } from 'sonner';
-import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
-import { PaginationStatusCard } from '@/components/shared/PaginationStatusCard';
-import { Card } from '@/ui/components/Card';
-import { Badge } from '@/ui/components/Badge';
-import { Page } from '@/ui/layout/Page';
-import { Section } from '@/ui/layout/Section';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 interface CompletedTaskFilters {
   priority?: string;
@@ -71,12 +64,7 @@ export const CompletedTasksPage: React.FC = () => {
 
   // Reset pagination when search or filters change
   useEffect(() => {
-    setPaginationState((prev) => {
-      if (prev.page === 1) {
-        return prev;
-      }
-      return { ...prev, page: 1 };
-    });
+    setPaginationState(prev => ({ ...prev, page: 1 }));
   }, [debouncedSearchValue, activeFilters]);
 
   const queryFilters = {
@@ -143,116 +131,194 @@ export const CompletedTasksPage: React.FC = () => {
   // Count active filters
   const activeFilterCount = Object.values(activeFilters).filter(Boolean).length;
 
-  const summaryCards = [
-    { title: 'Total Completed', value: totalCompleted, detail: 'All completed tasks', icon: CheckCircle, tone: 'positive' as const },
-    { title: 'This Month', value: pagination.total, detail: 'Current period', icon: Calendar, tone: 'accent' as const },
-    {
-      title: 'Completion Rate',
-      value: `${totalCompleted > 0 ? Math.round((totalCompleted / (totalCompleted + inProgress + pending + assigned)) * 100) : 0}%`,
-      detail: 'Overall completion rate',
-      icon: TrendingUp,
-      tone: 'neutral' as const,
-    },
-    { title: 'Avg TAT', value: `${Math.round(avgTurnaround)} days`, detail: 'Average turnaround', icon: Clock, tone: 'warning' as const },
-    { title: 'Today', value: completedToday, detail: 'Completed today', icon: Award, tone: 'accent' as const },
-  ];
-
   return (
-    <Page
-      title="Completed Tasks"
-      subtitle="Closed work with revisit controls and completion monitoring."
-      shell
-      actions={
-        <Button variant="secondary" icon={<RefreshCw size={16} />} onClick={() => refreshTasks()} disabled={loading}>
-          Refresh
-        </Button>
-      }
-    >
-      <Section>
-        <Stack gap={3}>
-          <Badge variant="positive">Completion Queue</Badge>
-          <Text as="h2" variant="headline">Track output quality after the field work is done.</Text>
-          <Text variant="body-sm" tone="muted">Audit completion rate, create revisits, and keep the finished queue searchable.</Text>
-        </Stack>
-      </Section>
+    <div className="container mx-auto py-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Completed Tasks</h1>
+          <p className="text-gray-600 mt-1">
+            Verification tasks that have been completed
+          </p>
+        </div>
+        {/* Refresh button moved to UnifiedSearchFilterLayout actions */}
+      </div>
 
-      <Section>
-        <MetricCardGrid items={summaryCards} />
-      </Section>
-
-      <Section>
-        <Card tone="strong" {...{ className: "ui-filter-bar" }} staticCard>
-          <UnifiedSearchFilterLayout
-            searchValue={searchValue}
-            onSearchChange={setSearchValue}
-            onSearchClear={clearSearch}
-            isSearchLoading={isDebouncing}
-            searchPlaceholder="Search completed tasks..."
-            hasActiveFilters={hasActiveFilters}
-            activeFilterCount={activeFilterCount}
-            onClearFilters={clearFilters}
-            filterContent={
-              <FilterGrid columns={3}>
-                <div {...{ className: "space-y-2" }}>
-                  <Label htmlFor="priority">Priority</Label>
-                  <Select
-                    value={activeFilters.priority || 'all'}
-                    onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
-                  >
-                    <SelectTrigger id="priority">
-                      <SelectValue placeholder="All priorities" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Priorities</SelectItem>
-                      <SelectItem value="1">Low</SelectItem>
-                      <SelectItem value="2">Medium</SelectItem>
-                      <SelectItem value="3">High</SelectItem>
-                      <SelectItem value="4">Urgent</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </FilterGrid>
-            }
-            actions={
-              <Button variant="outline" onClick={() => refreshTasks()} disabled={loading}>
-                <RefreshCw {...{ className: `h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}` }} />
-                Refresh
-              </Button>
-            }
-          />
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Completed</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalCompleted}</div>
+            <p className="text-xs text-gray-600">
+              All completed
+            </p>
+          </CardContent>
         </Card>
-      </Section>
 
-      {error ? (
-        <Section>
-          <Card>
-            <Text variant="body-sm" tone="danger">Error loading tasks: {error}</Text>
-          </Card>
-        </Section>
-      ) : null}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">This Month</CardTitle>
+            <Calendar className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{pagination.total}</div>
+            <p className="text-xs text-gray-600">
+              Current period
+            </p>
+          </CardContent>
+        </Card>
 
-      <Section>
-        <TasksListFlat
-          tasks={tasks}
-          loading={loading}
-          onAssignTask={() => {}}
-          onViewTask={handleViewTask}
-          onViewCase={handleViewCase}
-          onEditCase={handleEditCase}
-          onRevisitTask={handleRevisitTask}
-        />
-      </Section>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+            <TrendingUp className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {totalCompleted > 0
+                ? Math.round((totalCompleted / (totalCompleted + inProgress + pending + assigned)) * 100)
+                : 0}%
+            </div>
+            <p className="text-xs text-gray-600">
+              Overall rate
+            </p>
+          </CardContent>
+        </Card>
 
-      <Section>
-        <PaginationStatusCard
-          page={pagination.page}
-          limit={pagination.limit}
-          total={pagination.total}
-          totalPages={pagination.totalPages}
-          onPrevious={() => setPaginationState(prev => ({ ...prev, page: prev.page - 1 }))}
-          onNext={() => setPaginationState(prev => ({ ...prev, page: prev.page + 1 }))}
-        />
-      </Section>
-    </Page>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg TAT</CardTitle>
+            <Clock className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {Math.round(avgTurnaround)} days
+            </div>
+            <p className="text-xs text-gray-600">
+              Average turnaround
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Today</CardTitle>
+            <Award className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {completedToday}
+            </div>
+            <p className="text-xs text-gray-600">
+              Completed today
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Unified Search & Filter */}
+      <UnifiedSearchFilterLayout
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        onSearchClear={clearSearch}
+        isSearchLoading={isDebouncing}
+        searchPlaceholder="Search completed tasks..."
+        hasActiveFilters={hasActiveFilters}
+        activeFilterCount={activeFilterCount}
+        onClearFilters={clearFilters}
+        filterContent={
+          <FilterGrid columns={3}>
+            {/* Priority Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Select
+                value={activeFilters.priority || 'all'}
+                onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
+              >
+                <SelectTrigger id="priority">
+                  <SelectValue placeholder="All priorities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="1">Low</SelectItem>
+                  <SelectItem value="2">Medium</SelectItem>
+                  <SelectItem value="3">High</SelectItem>
+                  <SelectItem value="4">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </FilterGrid>
+        }
+        actions={
+          <Button
+            variant="outline"
+            onClick={() => refreshTasks()}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        }
+      />
+
+      {/* Tasks List */}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="py-4">
+            <p className="text-red-600">Error loading tasks: {error}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      <TasksListFlat
+        tasks={tasks}
+        loading={loading}
+        onAssignTask={() => {}}
+        onViewTask={handleViewTask}
+        onViewCase={handleViewCase}
+        onEditCase={handleEditCase}
+        onRevisitTask={handleRevisitTask}
+      />
+
+      {/* Pagination - Always show for better UX */}
+      {pagination.total > 0 && (
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} tasks
+              </p>
+              {pagination.totalPages > 1 && (
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPaginationState(prev => ({ ...prev, page: prev.page - 1 }))}
+                    disabled={pagination.page === 1}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm">
+                    Page {pagination.page} of {pagination.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPaginationState(prev => ({ ...prev, page: prev.page + 1 }))}
+                    disabled={pagination.page === pagination.totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };

@@ -63,6 +63,7 @@ class ApiService {
   constructor() {
     // Smart URL selection based on environment
     const baseURL = this.getOptimalApiUrl();
+    console.warn('🔗 API Service initialized with URL:', baseURL);
 
     this.api = axios.create({
       baseURL,

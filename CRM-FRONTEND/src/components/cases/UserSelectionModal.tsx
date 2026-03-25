@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Search, UserCheck, Loader2 } from 'lucide-react';
 import { useFieldUsers } from '@/hooks/useUsers';
 import { User } from '@/types/user';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/Dialog';
-import { Button } from '@/ui/components/Button';
-import { Input } from '@/ui/components/Input';
-import { Badge } from '@/ui/components/Badge';
-import { Card } from '@/ui/components/Card';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 interface UserSelectionModalProps {
   isOpen: boolean;
@@ -69,106 +67,103 @@ export const UserSelectionModal: React.FC<UserSelectionModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent style={{ maxWidth: 540 }}>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <UserCheck size={18} />
+          <DialogTitle className="flex items-center gap-2">
+            <UserCheck className="h-5 w-5" />
             {title}
           </DialogTitle>
         </DialogHeader>
 
-        <Stack gap={4}>
-          <div style={{ position: 'relative' }}>
-            <Search size={16} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--ui-text-soft)' }} />
+        <div className="space-y-4">
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-600" />
             <Input
               placeholder="Search field agents..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ paddingLeft: 42 }}
+              className="pl-10"
             />
           </div>
 
-          <Stack gap={2} style={{ maxHeight: 320, overflowY: 'auto' }}>
+          {/* User List */}
+          <div className="max-h-80 overflow-y-auto space-y-2">
             {isLoading ? (
-              <div {...{ className: "ui-empty-state" }}>
-                <Loader2 size={22} {...{ className: "animate-spin" }} />
-                <Text variant="body">Loading field agents...</Text>
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="ml-2">Loading field agents...</span>
               </div>
             ) : error ? (
-              <div {...{ className: "ui-empty-state" }}>
-                <Text variant="body">Error loading field agents</Text>
+              <div className="text-center py-8 text-gray-600">
+                <p>Error loading field agents</p>
               </div>
             ) : filteredUsers.length === 0 ? (
-              <div {...{ className: "ui-empty-state" }}>
-                <Text variant="body">No field agents found</Text>
+              <div className="text-center py-8 text-gray-600">
+                <p>No field agents found</p>
                 {searchTerm && (
-                  <Text variant="body-sm" tone="muted">Try adjusting your search terms</Text>
+                  <p className="text-sm">Try adjusting your search terms</p>
                 )}
               </div>
             ) : (
               filteredUsers.map((user) => (
-                <Card
+                <div
                   key={user.id}
-                  tone={selectedUserId === user.id ? 'highlight' : 'muted'}
+                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                    selectedUserId === user.id
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:bg-accent'
+                  }`}
                   onClick={() => handleSelectUser(user)}
-                  style={{ cursor: 'pointer' }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 999,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'var(--ui-accent-soft)',
-                        color: 'var(--ui-accent-strong)',
-                        fontWeight: 700,
-                        flexShrink: 0,
-                      }}
-                    >
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback className="text-sm">
                       {getInitials(user.name)}
-                    </div>
-
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <Text variant="body" style={{ fontWeight: 600 }}>{user.name}</Text>
+                    </AvatarFallback>
+                  </Avatar>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium truncate">{user.name}</p>
                       {currentAssignedUserId === user.id && (
-                        <Badge variant="neutral">
+                        <Badge variant="secondary" className="text-xs">
                           Current
                         </Badge>
                       )}
-                      </div>
-                    {user.email && (
-                      <Text variant="body-sm" tone="muted" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {user.email}
-                      </Text>
-                    )}
                     </div>
+                    {user.email && (
+                      <p className="text-sm text-gray-600 truncate">
+                        {user.email}
+                      </p>
+                    )}
+                  </div>
 
                   {selectedUserId === user.id && (
-                      <UserCheck size={18} style={{ color: 'var(--ui-accent)' }} />
+                    <UserCheck className="h-5 w-5 text-primary" />
                   )}
-                  </div>
-                </Card>
+                </div>
               ))
             )}
-          </Stack>
+          </div>
 
-          <div style={{ display: 'flex', gap: 12, paddingTop: 8 }}>
-            <Button variant="secondary" onClick={onClose} fullWidth>
+          {/* Action Buttons */}
+          <div className="flex gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="flex-1"
+            >
               Cancel
             </Button>
             <Button
               onClick={handleConfirmSelection}
               disabled={!selectedUserId || selectedUserId === currentAssignedUserId}
-              fullWidth
+              className="flex-1"
             >
               {selectedUserId === currentAssignedUserId ? 'No Change' : 'Assign User'}
             </Button>
           </div>
-        </Stack>
+        </div>
       </DialogContent>
     </Dialog>
   );

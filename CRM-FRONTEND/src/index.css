@@ -288,10 +288,9 @@
 }
 
 body {
-  background: var(--ui-bg);
-  background-attachment: fixed;
-  color: var(--ui-text);
-  font-family: var(--ui-font-body);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   margin: 0;
   padding: 0;

@@ -6,10 +6,9 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/Dialog';
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -18,10 +17,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/ui/components/Form';
-import { Input } from '@/ui/components/Input';
-import { Button } from '@/ui/components/Button';
-import { Stack } from '@/ui/primitives/Stack';
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { locationsService } from '@/services/locations';
 
@@ -79,7 +77,7 @@ export function CreateAreaDialog({ open, onOpenChange }: CreateAreaDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent style={{ width: 'min(95vw, 500px)' }}>
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Create New Area</DialogTitle>
           <DialogDescription>
@@ -88,48 +86,46 @@ export function CreateAreaDialog({ open, onOpenChange }: CreateAreaDialogProps) 
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <Stack gap={4}>
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Area Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter area name (e.g., Andheri East, Sector 1, Downtown, etc.)"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      The name of the area or locality. This area can be used across multiple pincodes.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Area Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Enter area name (e.g., Andheri East, Sector 1, Downtown, etc.)"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    The name of the area or locality. This area can be used across multiple pincodes.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <DialogFooter style={{ display: 'flex', gap: 'var(--ui-gap-2)', flexWrap: 'wrap' }}>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleClose}
-                  fullWidth
-                  disabled={createMutation.isPending}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  fullWidth
-                  disabled={createMutation.isPending}
-                  icon={createMutation.isPending ? <Loader2 size={16} /> : undefined}
-                >
-                  Create Area
-                </Button>
-              </DialogFooter>
-            </Stack>
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                disabled={createMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createMutation.isPending}
+              >
+                {createMutation.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Create Area
+              </Button>
+            </div>
           </form>
         </Form>
       </DialogContent>

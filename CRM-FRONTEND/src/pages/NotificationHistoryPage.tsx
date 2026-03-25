@@ -4,18 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
-import { Badge } from '@/ui/components/Badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Button } from '@/ui/components/Button';
-import { Input } from '@/ui/components/Input';
-import { Checkbox } from '@/ui/components/Checkbox';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { notificationService, type AppNotification } from '@/services/notifications';
-import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
-import { PaginationStatusCard } from '@/components/shared/PaginationStatusCard';
-import { Page } from '@/ui/layout/Page';
-import { Section } from '@/ui/layout/Section';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 const PAGE_SIZE = 20;
 
@@ -271,41 +265,43 @@ export function NotificationHistoryPage() {
     markAllReadMutation.isPending ||
     clearAllMutation.isPending;
 
-  const notificationItems = notificationsQuery.data?.items || [];
-  const unreadCount = notificationsQuery.data?.unreadCount || 0;
-
   return (
-    <Page
-      title="Notifications"
-      subtitle="Unified inbox backed by the CRM notification service."
-      shell
-      actions={
-        <Stack direction="horizontal" gap={2} wrap="wrap">
-          <Button variant="secondary" icon={<RefreshCw size={16} />} onClick={() => void notificationsQuery.refetch()} disabled={isBusy}>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
+          <p className="text-gray-600">
+            Unified inbox backed by the CRM notification service.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => void notificationsQuery.refetch()}
+            disabled={isBusy}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
-          <Button variant="secondary" icon={<Eye size={16} />} onClick={() => void markAllReadMutation.mutateAsync()} disabled={isBusy}>
-            Mark all read
+          <Button
+            variant="outline"
+            onClick={() => void markAllReadMutation.mutateAsync()}
+            disabled={isBusy}
+          >
+            <Eye className="mr-2 h-4 w-4" />
+            Mark All Read
           </Button>
-          <Button variant="danger" icon={<Trash2 size={16} />} onClick={() => void clearAllMutation.mutateAsync()} disabled={isBusy}>
-            Clear all
+          <Button
+            variant="destructive"
+            onClick={() => void clearAllMutation.mutateAsync()}
+            disabled={isBusy}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Clear All
           </Button>
-        </Stack>
-      }
-    >
-      <Section>
-        <MetricCardGrid
-          items={[
-            { title: 'Total Notifications', value: notificationItems.length, detail: 'Messages in inbox', icon: Bell, tone: 'accent' },
-            { title: 'Unread', value: unreadCount, detail: 'Need attention', icon: Eye, tone: 'warning' },
-            { title: 'Selected', value: selectedIds.size, detail: 'Current page selection', icon: EyeOff, tone: 'neutral' },
-            { title: 'Filtered Results', value: filteredNotifications.length, detail: 'Matching current filters', icon: Search, tone: 'positive' },
-          ]}
-          min={220}
-        />
-      </Section>
+        </div>
+      </div>
 
-      <Section>
       <Card>
         <CardHeader>
           <CardTitle>Filters</CardTitle>
@@ -358,16 +354,15 @@ export function NotificationHistoryPage() {
           </div>
         </CardContent>
       </Card>
-      </Section>
 
       {selectedIds.size > 0 && (
-        <Section>
-        <Card tone="strong">
-          <Stack direction="horizontal" justify="space-between" align="center" gap={3} wrap="wrap">
-            <Text variant="body-sm" tone="muted">{selectedIds.size} selected</Text>
+        <Card>
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+            <span className="text-sm text-gray-600">{selectedIds.size} selected</span>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => void markReadMutation.mutateAsync(Array.from(selectedIds))}
               >
                 <Eye className="mr-2 h-4 w-4" />
@@ -375,6 +370,7 @@ export function NotificationHistoryPage() {
               </Button>
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => void markUnreadMutation.mutateAsync(Array.from(selectedIds))}
               >
                 <EyeOff className="mr-2 h-4 w-4" />
@@ -382,18 +378,17 @@ export function NotificationHistoryPage() {
               </Button>
               <Button
                 variant="destructive"
+                size="sm"
                 onClick={() => void deleteMutation.mutateAsync(Array.from(selectedIds))}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </Button>
             </div>
-          </Stack>
+          </CardContent>
         </Card>
-        </Section>
       )}
 
-      <Section>
       <Card>
         <CardHeader>
           <CardTitle>History</CardTitle>
@@ -412,15 +407,19 @@ export function NotificationHistoryPage() {
                 />
                 <span className="text-sm text-gray-600">Select page</span>
               </div>
-              <div className="space-y-3 ui-stagger">
+              <div className="space-y-3">
                 {pagedNotifications.map((notification) => (
-                  <Card
+                  <button
                     key={notification.id}
-                    tone={notification.isRead ? 'default' : 'muted'}
+                    type="button"
                     onClick={() => void handleOpenNotification(notification)}
-                    className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                    className={`w-full rounded-xl border p-4 text-left transition ${
+                      notification.isRead
+                        ? 'border-gray-200 bg-white'
+                        : 'border-green-200 bg-green-50'
+                    }`}
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="mb-2 flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <Checkbox
                           checked={selectedIds.has(notification.id)}
@@ -439,32 +438,43 @@ export function NotificationHistoryPage() {
                       </div>
                       <Badge variant="outline">{notification.priority}</Badge>
                     </div>
-                    <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-secondary">
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
                       {notification.caseNumber && <span>Case: {notification.caseNumber}</span>}
                       {notification.taskNumber && <span>Task: {notification.taskNumber}</span>}
                       <span>{formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}</span>
                       {notification.deliveryStatus && <span>{notification.deliveryStatus}</span>}
                     </div>
-                  </Card>
+                  </button>
                 ))}
               </div>
             </>
           )}
 
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(previous => Math.max(1, previous - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(previous => Math.min(totalPages, previous + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
-      </Section>
-
-      <Section>
-        <PaginationStatusCard
-          page={currentPage}
-          limit={PAGE_SIZE}
-          total={filteredNotifications.length}
-          totalPages={totalPages}
-          onPrevious={() => setPage(previous => Math.max(1, previous - 1))}
-          onNext={() => setPage(previous => Math.min(totalPages, previous + 1))}
-        />
-      </Section>
-    </Page>
+    </div>
   );
 }

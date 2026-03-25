@@ -1,41 +1,56 @@
+
 import { useEffect, useState } from 'react';
-import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, } from '@/ui/components/AlertDialog';
-import { Button } from '@/ui/components/Button';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import { sessionManager } from '@/services/sessionManager';
+
 interface SessionTimeoutModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    remainingSeconds: number;
+  isOpen: boolean;
+  onClose: () => void;
+  remainingSeconds: number;
 }
+
 export function SessionTimeoutModal({ isOpen, onClose, remainingSeconds }: SessionTimeoutModalProps) {
-    const [seconds, setSeconds] = useState(remainingSeconds);
-    useEffect(() => {
-        setSeconds(remainingSeconds);
-    }, [remainingSeconds]);
-    const handleStayLoggedIn = async () => {
-        await sessionManager.extendSession();
-        onClose();
-    };
-    const handleLogout = () => {
-        sessionManager.logout();
-        onClose();
-    };
-    // Prevent closing by clicking outside or pressing escape
-    const handleOpenChange = (open: boolean) => {
-        if (!open) {
-            // Only allow closing via buttons
-        }
-    };
-    if (!isOpen) {
-        return null;
+  const [seconds, setSeconds] = useState(remainingSeconds);
+
+  useEffect(() => {
+    setSeconds(remainingSeconds);
+  }, [remainingSeconds]);
+
+  const handleStayLoggedIn = async () => {
+    await sessionManager.extendSession();
+    onClose();
+  };
+
+  const handleLogout = () => {
+    sessionManager.logout();
+    onClose();
+  };
+
+  // Prevent closing by clicking outside or pressing escape
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      // Only allow closing via buttons
     }
-    return (<AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
+  };
+
+  if (!isOpen) {return null;}
+
+  return (
+    <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Session Timeout Warning</AlertDialogTitle>
           <AlertDialogDescription>
             You have been inactive for a while. For your security, you will be automatically logged out in{' '}
-            <span {...{ className: "font-bold text-red-500" }}>{seconds} seconds</span>.
+            <span className="font-bold text-red-500">{seconds} seconds</span>.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -47,5 +62,6 @@ export function SessionTimeoutModal({ isOpen, onClose, remainingSeconds }: Sessi
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
-    </AlertDialog>);
+    </AlertDialog>
+  );
 }

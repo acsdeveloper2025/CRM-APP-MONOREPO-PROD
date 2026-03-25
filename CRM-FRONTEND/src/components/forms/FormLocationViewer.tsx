@@ -1,11 +1,9 @@
+
 import { MapPin, Navigation, Clock, ExternalLink } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Button } from '@/ui/components/Button';
-import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { FormGeoLocation } from '@/types/form';
-import { Box } from '@/ui/primitives/Box';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 interface FormLocationViewerProps {
   location: FormGeoLocation;
@@ -18,11 +16,11 @@ export function FormLocationViewer({ location, readonly: _readonly = true }: For
   const getAccuracyBadge = (accuracy: number) => {
     if (accuracy <= 5) {
       return <Badge variant="default">High Accuracy</Badge>;
-    }
-    if (accuracy <= 20) {
+    } else if (accuracy <= 20) {
       return <Badge variant="secondary">Medium Accuracy</Badge>;
+    } else {
+      return <Badge variant="outline">Low Accuracy</Badge>;
     }
-    return <Badge variant="outline">Low Accuracy</Badge>;
   };
 
   const openInGoogleMaps = () => {
@@ -43,116 +41,138 @@ export function FormLocationViewer({ location, readonly: _readonly = true }: For
   return (
     <Card>
       <CardHeader>
-        <CardTitle>
-          <Stack direction="horizontal" gap={2} align="center">
-            <MapPin size={20} />
-            <span>Location Information</span>
-            {getAccuracyBadge(location.accuracy)}
-          </Stack>
+        <CardTitle className="flex items-center space-x-2">
+          <MapPin className="h-5 w-5" />
+          <span>Location Information</span>
+          {getAccuracyBadge(location.accuracy)}
         </CardTitle>
         <CardDescription>
           GPS coordinates captured during verification
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Stack gap={4}>
-          <Box style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-            <Stack gap={2}>
-              <Text as="h4" variant="label">Coordinates</Text>
-              <Stack gap={1}>
-                <Box style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text as="span" variant="body-sm" tone="muted">Latitude:</Text>
-                  <Text as="span" variant="body-sm" style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>
-                    {location.latitude.toFixed(6)}
-                  </Text>
-                </Box>
-                <Box style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text as="span" variant="body-sm" tone="muted">Longitude:</Text>
-                  <Text as="span" variant="body-sm" style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace' }}>
-                    {location.longitude.toFixed(6)}
-                  </Text>
-                </Box>
-                <Box style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Text as="span" variant="body-sm" tone="muted">Accuracy:</Text>
-                  <Text as="span" variant="body-sm">{location.accuracy}m</Text>
-                </Box>
-              </Stack>
-            </Stack>
+        <div className="space-y-4">
+          {/* Coordinates */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <h4 className="font-medium text-sm mb-2">Coordinates</h4>
+              <div className="space-y-1 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Latitude:</span>
+                  <span className="font-mono">{location.latitude.toFixed(6)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Longitude:</span>
+                  <span className="font-mono">{location.longitude.toFixed(6)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Accuracy:</span>
+                  <span>{location.accuracy}m</span>
+                </div>
+              </div>
+            </div>
 
-            <Stack gap={2}>
-              <Text as="h4" variant="label">Capture Details</Text>
-              <Stack direction="horizontal" gap={2} align="center">
-                <Clock size={12} style={{ color: 'var(--ui-text-muted)' }} />
-                <Text as="span" variant="body-sm" tone="muted">Captured:</Text>
-                <Text as="span" variant="body-sm">{new Date(location.timestamp).toLocaleString()}</Text>
-              </Stack>
-            </Stack>
-          </Box>
+            <div>
+              <h4 className="font-medium text-sm mb-2">Capture Details</h4>
+              <div className="space-y-1 text-sm">
+                <div className="flex items-center space-x-2">
+                  <Clock className="h-3 w-3 text-gray-600" />
+                  <span className="text-gray-600">Captured:</span>
+                  <span>{new Date(location.timestamp).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
+          {/* Address */}
           {location.address && (
-            <Stack gap={2}>
-              <Text as="h4" variant="label">Reverse Geocoded Address</Text>
-              <Box style={{ background: 'var(--ui-surface-muted)', borderRadius: 'var(--ui-radius-lg)', padding: '0.75rem' }}>
-                <Text variant="body-sm">{location.address}</Text>
-              </Box>
-            </Stack>
+            <div>
+              <h4 className="font-medium text-sm mb-2">Reverse Geocoded Address</h4>
+              <div className="bg-slate-100/70 dark:bg-slate-800/50 rounded-lg p-3">
+                <p className="text-sm">{location.address}</p>
+              </div>
+            </div>
           )}
 
-          <Stack gap={2}>
-            <Text as="h4" variant="label">Map Preview</Text>
-            <Box style={{ position: 'relative', background: 'var(--ui-surface-muted)', borderRadius: 'var(--ui-radius-lg)', overflow: 'hidden' }}>
+          {/* Map Preview */}
+          <div>
+            <h4 className="font-medium text-sm mb-2">Map Preview</h4>
+            <div className="relative bg-slate-100 dark:bg-slate-800/60 rounded-lg overflow-hidden">
               <iframe
                 src={`https://www.google.com/maps/embed/v1/place?key=${getGoogleMapsApiKey()}&q=${location.latitude},${location.longitude}&zoom=16`}
                 width="100%"
                 height="200"
-                style={{ border: 0, width: '100%' }}
+                style={{ border: 0 }}
                 allowFullScreen
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
+                className="w-full"
               />
               {!getGoogleMapsApiKey() && (
-                <Box style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ui-surface-muted)' }}>
-                  <Stack gap={2} align="center" style={{ textAlign: 'center' }}>
-                    <MapPin size={32} style={{ color: 'var(--ui-text-muted)' }} />
-                    <Text variant="body-sm" tone="muted">Map preview unavailable</Text>
-                    <Text variant="caption" tone="muted">Google Maps API key not configured</Text>
-                  </Stack>
-                </Box>
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800/60">
+                  <div className="text-center">
+                    <MapPin className="h-8 w-8 mx-auto text-gray-600 mb-2" />
+                    <p className="text-sm text-gray-600">
+                      Map preview unavailable
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Google Maps API key not configured
+                    </p>
+                  </div>
+                </div>
               )}
-            </Box>
-          </Stack>
+            </div>
+          </div>
 
-          <Stack direction="horizontal" gap={2} wrap="wrap">
-            <Button variant="outline" onClick={openInGoogleMaps} icon={<ExternalLink size={12} />}>
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openInGoogleMaps}
+            >
+              <ExternalLink className="h-3 w-3 mr-1" />
               Open in Google Maps
             </Button>
-            <Button variant="outline" onClick={openInAppleMaps} icon={<ExternalLink size={12} />}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openInAppleMaps}
+            >
+              <ExternalLink className="h-3 w-3 mr-1" />
               Open in Apple Maps
             </Button>
-            <Button variant="outline" onClick={copyCoordinates} icon={<Navigation size={12} />}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={copyCoordinates}
+            >
+              <Navigation className="h-3 w-3 mr-1" />
               Copy Coordinates
             </Button>
-          </Stack>
+          </div>
 
-          <Box style={{ background: 'var(--ui-surface-muted)', borderRadius: 'var(--ui-radius-lg)', padding: '0.75rem' }}>
-            <Text as="h4" variant="label" style={{ marginBottom: '0.5rem' }}>Accuracy Information</Text>
-            <Stack gap={1}>
-              <Text variant="caption" tone="muted">
+          {/* Accuracy Information */}
+          <div className="bg-slate-100/50 dark:bg-slate-800/40 rounded-lg p-3">
+            <h4 className="font-medium text-sm mb-2">Accuracy Information</h4>
+            <div className="text-xs text-gray-600 space-y-1">
+              <p>
                 <strong>GPS Accuracy:</strong> ±{location.accuracy} meters
-              </Text>
-              <Text variant="caption" tone="muted">
+              </p>
+              <p>
                 <strong>Quality:</strong> {
                   location.accuracy <= 5 ? 'High - Suitable for precise location verification' :
                   location.accuracy <= 20 ? 'Medium - Good for general location verification' :
                   'Low - May require additional verification'
                 }
-              </Text>
-              <Text variant="caption" tone="muted">
-                <strong>Note:</strong> GPS accuracy can be affected by weather conditions, building structures, and device capabilities.
-              </Text>
-            </Stack>
-          </Box>
-        </Stack>
+              </p>
+              <p>
+                <strong>Note:</strong> GPS accuracy can be affected by weather conditions, 
+                building structures, and device capabilities.
+              </p>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

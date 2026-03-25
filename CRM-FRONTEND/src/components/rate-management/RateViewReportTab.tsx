@@ -3,17 +3,17 @@ import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { Search, Download, Filter, Trash2 } from 'lucide-react';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { toast } from 'sonner';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Button } from '@/ui/components/Button';
-import { Input } from '@/ui/components/Input';
-import { Badge } from '@/ui/components/Badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -21,7 +21,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/Table';
+} from '@/components/ui/table';
 import { ratesService, type Rate } from '@/services/rates';
 import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
@@ -179,34 +179,34 @@ export function RateViewReportTab() {
   };
 
   return (
-    <div {...{ className: "space-y-6" }}>
+    <div className="space-y-6">
       {/* Filters */}
       <Card>
         <CardHeader>
           <CardTitle>Filters & Search</CardTitle>
         </CardHeader>
-        <CardContent {...{ className: "space-y-4" }}>
+        <CardContent className="space-y-4">
           {/* Search */}
-          <div {...{ className: "flex items-center gap-4" }}>
-            <div {...{ className: "relative flex-1" }}>
-              <Search {...{ className: "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 h-4 w-4" }} />
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 h-4 w-4" />
               <Input
                 placeholder="Search rates by client, product, verification type, or rate type..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                {...{ className: "pl-10" }}
+                className="pl-10"
               />
             </div>
             <Button onClick={handleExportRates} variant="outline">
-              <Download {...{ className: "h-4 w-4 mr-2" }} />
+              <Download className="h-4 w-4 mr-2" />
               Export CSV
             </Button>
           </div>
 
           {/* Filter Dropdowns */}
-          <div {...{ className: "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" }}>
-            <div {...{ className: "space-y-2" }}>
-              <label {...{ className: "text-sm font-medium" }}>Client</label>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Client</label>
               <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                 <SelectTrigger>
                   <SelectValue placeholder="All clients" />
@@ -222,8 +222,8 @@ export function RateViewReportTab() {
               </Select>
             </div>
 
-            <div {...{ className: "space-y-2" }}>
-              <label {...{ className: "text-sm font-medium" }}>Product</label>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Product</label>
               <Select value={selectedProductId} onValueChange={setSelectedProductId}>
                 <SelectTrigger>
                   <SelectValue placeholder="All products" />
@@ -239,8 +239,8 @@ export function RateViewReportTab() {
               </Select>
             </div>
 
-            <div {...{ className: "space-y-2" }}>
-              <label {...{ className: "text-sm font-medium" }}>Verification Type</label>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Verification Type</label>
               <Select value={selectedVerificationTypeId} onValueChange={setSelectedVerificationTypeId}>
                 <SelectTrigger>
                   <SelectValue placeholder="All types" />
@@ -256,8 +256,8 @@ export function RateViewReportTab() {
               </Select>
             </div>
 
-            <div {...{ className: "space-y-2" }}>
-              <label {...{ className: "text-sm font-medium" }}>Rate Type</label>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Rate Type</label>
               <Select value={selectedRateTypeId} onValueChange={setSelectedRateTypeId}>
                 <SelectTrigger>
                   <SelectValue placeholder="All rate types" />
@@ -273,8 +273,8 @@ export function RateViewReportTab() {
               </Select>
             </div>
 
-            <div {...{ className: "space-y-2" }}>
-              <label {...{ className: "text-sm font-medium" }}>Status</label>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
               <Select value={isActiveFilter} onValueChange={setIsActiveFilter}>
                 <SelectTrigger>
                   <SelectValue />
@@ -287,10 +287,10 @@ export function RateViewReportTab() {
               </Select>
             </div>
 
-            <div {...{ className: "space-y-2" }}>
-              <label {...{ className: "text-sm font-medium" }}>Actions</label>
-              <Button variant="outline" onClick={clearFilters} {...{ className: "w-full" }}>
-                <Filter {...{ className: "h-4 w-4 mr-2" }} />
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Actions</label>
+              <Button variant="outline" onClick={clearFilters} className="w-full">
+                <Filter className="h-4 w-4 mr-2" />
                 Clear Filters
               </Button>
             </div>
@@ -305,18 +305,18 @@ export function RateViewReportTab() {
         </CardHeader>
         <CardContent>
           {ratesLoading ? (
-            <div {...{ className: "flex items-center justify-center py-8" }}>
-              <div {...{ className: "animate-spin rounded-full h-8 w-8 border-b-2 border-primary" }} />
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
           ) : rates.length === 0 ? (
-            <div {...{ className: "text-center py-8" }}>
-              <p {...{ className: "text-gray-600" }}>No rates found matching the current filters</p>
-              <Button variant="outline" onClick={clearFilters} {...{ className: "mt-4" }}>
+            <div className="text-center py-8">
+              <p className="text-gray-600">No rates found matching the current filters</p>
+              <Button variant="outline" onClick={clearFilters} className="mt-4">
                 Clear Filters
               </Button>
             </div>
           ) : (
-            <div {...{ className: "overflow-x-auto" }}>
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -328,7 +328,7 @@ export function RateViewReportTab() {
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead>Updated</TableHead>
-                    <TableHead {...{ className: "text-right" }}>Actions</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -336,27 +336,27 @@ export function RateViewReportTab() {
                     <TableRow key={rate.id || `${rate.clientId}-${rate.productId}-${rate.verificationTypeId}-${rate.rateTypeId}-${index}`}>
                       <TableCell>
                         <div>
-                          <div {...{ className: "font-medium" }}>{rate.clientName}</div>
-                          <div {...{ className: "text-xs text-gray-600" }}>{rate.clientCode}</div>
+                          <div className="font-medium">{rate.clientName}</div>
+                          <div className="text-xs text-gray-600">{rate.clientCode}</div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div {...{ className: "font-medium" }}>{rate.productName}</div>
-                          <div {...{ className: "text-xs text-gray-600" }}>{rate.productCode}</div>
+                          <div className="font-medium">{rate.productName}</div>
+                          <div className="text-xs text-gray-600">{rate.productCode}</div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div {...{ className: "font-medium" }}>{rate.verificationTypeName}</div>
-                          <div {...{ className: "text-xs text-gray-600" }}>{rate.verificationTypeCode}</div>
+                          <div className="font-medium">{rate.verificationTypeName}</div>
+                          <div className="text-xs text-gray-600">{rate.verificationTypeCode}</div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{rate.rateTypeName}</Badge>
                       </TableCell>
                       <TableCell>
-                        <div {...{ className: "font-medium" }}>
+                        <div className="font-medium">
                           {rate.currency} {Number(rate.amount || 0).toFixed(2)}
                         </div>
                       </TableCell>
@@ -365,21 +365,21 @@ export function RateViewReportTab() {
                           {rate.isActive ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
-                      <TableCell {...{ className: "text-gray-600" }}>
+                      <TableCell className="text-gray-600">
                         {new Date(rate.createdAt).toLocaleDateString()}
                       </TableCell>
-                      <TableCell {...{ className: "text-gray-600" }}>
+                      <TableCell className="text-gray-600">
                         {new Date(rate.updatedAt).toLocaleDateString()}
                       </TableCell>
-                      <TableCell {...{ className: "text-right" }}>
-                        <div {...{ className: "flex items-center justify-end gap-2" }}>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteRate(rate)}
-                            {...{ className: "text-destructive hover:text-destructive" }}
+                            className="text-destructive hover:text-destructive"
                           >
-                            <Trash2 {...{ className: "h-4 w-4" }} />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -392,11 +392,11 @@ export function RateViewReportTab() {
 
           {/* Pagination Controls */}
           {ratesData?.pagination && (
-            <div {...{ className: "flex flex-col sm:flex-row items-center justify-between gap-4 pt-4" }}>
-              <div {...{ className: "text-sm text-gray-600" }}>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+              <div className="text-sm text-gray-600">
                 Showing {rates.length} of {ratesData.pagination.total} rates
               </div>
-              <div {...{ className: "flex items-center gap-2" }}>
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -405,7 +405,7 @@ export function RateViewReportTab() {
                 >
                   Previous
                 </Button>
-                <div {...{ className: "text-sm" }}>
+                <div className="text-sm">
                   Page {currentPage} of {ratesData.pagination.totalPages || 1}
                 </div>
                 <Button
@@ -423,35 +423,35 @@ export function RateViewReportTab() {
       </Card>
 
       {/* Summary Statistics */}
-      <div {...{ className: "grid grid-cols-1 md:grid-cols-4 gap-4" }}>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent {...{ className: "p-4" }}>
-            <div {...{ className: "text-2xl font-bold" }}>{rates.length}</div>
-            <p {...{ className: "text-xs text-gray-600" }}>Total Rates</p>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold">{rates.length}</div>
+            <p className="text-xs text-gray-600">Total Rates</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent {...{ className: "p-4" }}>
-            <div {...{ className: "text-2xl font-bold" }}>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold">
               {rates.filter(r => r.isActive).length}
             </div>
-            <p {...{ className: "text-xs text-gray-600" }}>Active Rates</p>
+            <p className="text-xs text-gray-600">Active Rates</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent {...{ className: "p-4" }}>
-            <div {...{ className: "text-2xl font-bold" }}>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold">
               ₹{rates.length > 0 ? (rates.reduce((sum, r) => sum + Number(r.amount || 0), 0) / rates.length).toFixed(0) : '0'}
             </div>
-            <p {...{ className: "text-xs text-gray-600" }}>Average Rate</p>
+            <p className="text-xs text-gray-600">Average Rate</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent {...{ className: "p-4" }}>
-            <div {...{ className: "text-2xl font-bold" }}>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold">
               {new Set(rates.map(r => r.clientId)).size}
             </div>
-            <p {...{ className: "text-xs text-gray-600" }}>Unique Clients</p>
+            <p className="text-xs text-gray-600">Unique Clients</p>
           </CardContent>
         </Card>
       </div>

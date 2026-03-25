@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Button } from '@/ui/components/Button';
-import { Badge } from '@/ui/components/Badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/ui/components/Collapsible';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   ChevronDown,
   ChevronRight,
@@ -92,16 +92,16 @@ export const TasksGroupedByCase: React.FC<TasksGroupedByCaseProps> = ({
 
   if (loading) {
     return (
-      <div {...{ className: "space-y-4" }}>
+      <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <Card key={i} {...{ className: "animate-pulse" }}>
+          <Card key={i} className="animate-pulse">
             <CardHeader>
-              <div {...{ className: "h-6 bg-gray-200 rounded w-1/3" }} />
+              <div className="h-6 bg-gray-200 rounded w-1/3" />
             </CardHeader>
             <CardContent>
-              <div {...{ className: "space-y-2" }}>
-                <div {...{ className: "h-4 bg-gray-200 rounded w-full" }} />
-                <div {...{ className: "h-4 bg-gray-200 rounded w-2/3" }} />
+              <div className="space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-full" />
+                <div className="h-4 bg-gray-200 rounded w-2/3" />
               </div>
             </CardContent>
           </Card>
@@ -113,15 +113,15 @@ export const TasksGroupedByCase: React.FC<TasksGroupedByCaseProps> = ({
   if (tasks.length === 0) {
     return (
       <Card>
-        <CardContent {...{ className: "py-12 text-center" }}>
-          <p {...{ className: "text-gray-600" }}>No tasks found</p>
+        <CardContent className="py-12 text-center">
+          <p className="text-gray-600">No tasks found</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div {...{ className: "space-y-4" }}>
+    <div className="space-y-4">
       {Object.entries(groupedTasks).map(([caseId, caseData]) => {
         const isExpanded = expandedCases.has(caseId);
         const taskCount = caseData.tasks.length;
@@ -135,40 +135,40 @@ export const TasksGroupedByCase: React.FC<TasksGroupedByCaseProps> = ({
             open={isExpanded}
             onOpenChange={() => toggleCase(caseId)}
           >
-            <Card {...{ className: "hover:shadow-md transition-shadow" }}>
+            <Card className="hover:shadow-md transition-shadow">
               <CollapsibleTrigger asChild>
-                <CardHeader {...{ className: "cursor-pointer hover:bg-gray-50" }}>
-                  <div {...{ className: "flex items-center justify-between" }}>
-                    <div {...{ className: "flex items-center space-x-3" }}>
+                <CardHeader className="cursor-pointer hover:bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
                       {isExpanded ? (
-                        <ChevronDown {...{ className: "h-5 w-5 text-gray-500" }} />
+                        <ChevronDown className="h-5 w-5 text-gray-500" />
                       ) : (
-                        <ChevronRight {...{ className: "h-5 w-5 text-gray-500" }} />
+                        <ChevronRight className="h-5 w-5 text-gray-500" />
                       )}
                       <div>
-                        <CardTitle {...{ className: "text-lg" }}>
+                        <CardTitle className="text-lg">
                           Case #{caseData.caseNumber} - {caseData.customerName}
                         </CardTitle>
-                        <div {...{ className: "flex items-center space-x-4 mt-2 text-sm text-gray-600" }}>
-                          <span {...{ className: "flex items-center" }}>
-                            <Package {...{ className: "h-4 w-4 mr-1" }} />
+                        <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
+                          <span className="flex items-center">
+                            <Package className="h-4 w-4 mr-1" />
                             {taskCount} {taskCount === 1 ? 'Task' : 'Tasks'}
                           </span>
                           {completedCount > 0 && (
-                            <span {...{ className: "flex items-center text-green-600" }}>
-                              <CheckCircle {...{ className: "h-4 w-4 mr-1" }} />
+                            <span className="flex items-center text-green-600">
+                              <CheckCircle className="h-4 w-4 mr-1" />
                               {completedCount} Completed
                             </span>
                           )}
                           {inProgressCount > 0 && (
-                            <span {...{ className: "flex items-center text-green-600" }}>
-                              <Play {...{ className: "h-4 w-4 mr-1" }} />
+                            <span className="flex items-center text-green-600">
+                              <Play className="h-4 w-4 mr-1" />
                               {inProgressCount} In Progress
                             </span>
                           )}
                           {pendingCount > 0 && (
-                            <span {...{ className: "flex items-center text-yellow-600" }}>
-                              <Clock {...{ className: "h-4 w-4 mr-1" }} />
+                            <span className="flex items-center text-yellow-600">
+                              <Clock className="h-4 w-4 mr-1" />
                               {pendingCount} Pending
                             </span>
                           )}
@@ -192,66 +192,66 @@ export const TasksGroupedByCase: React.FC<TasksGroupedByCaseProps> = ({
               </CollapsibleTrigger>
 
               <CollapsibleContent>
-                <CardContent {...{ className: "pt-0" }}>
-                  <div {...{ className: "space-y-3" }}>
+                <CardContent className="pt-0">
+                  <div className="space-y-3">
                     {caseData.tasks.map((task) => {
                       const StatusIcon = getStatusIcon(task.status);
 
                       return (
                         <div
                           key={task.id}
-                          {...{ className: "border rounded-lg p-4 hover:bg-gray-50 transition-colors" }}
+                          className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
                         >
-                          <div {...{ className: "flex items-start justify-between" }}>
-                            <div {...{ className: "flex-1 space-y-2" }}>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 space-y-2">
                               {/* Task Header */}
-                              <div {...{ className: "flex items-center space-x-2" }}>
-                                <Badge {...{ className: getTaskStatusBadgeStyle(task.status) }}>
-                                  <StatusIcon {...{ className: "h-3 w-3 mr-1" }} />
+                              <div className="flex items-center space-x-2">
+                                <Badge className={getTaskStatusBadgeStyle(task.status)}>
+                                  <StatusIcon className="h-3 w-3 mr-1" />
                                   {getStatusLabel(task.status)}
                                 </Badge>
-                                <Badge {...{ className: getTaskPriorityBadgeStyle(task.priority) }}>
+                                <Badge className={getTaskPriorityBadgeStyle(task.priority)}>
                                   {task.priority}
                                 </Badge>
-                                <Badge {...{ className: "bg-green-600 text-white hover:bg-green-700 uppercase font-medium text-xs" }}>
+                                <Badge className="bg-green-600 text-white hover:bg-green-700 uppercase font-medium text-xs">
                                   {task.taskNumber}
                                 </Badge>
                               </div>
 
                               {/* Task Title */}
-                              <h4 {...{ className: "font-medium text-gray-900" }}>
+                              <h4 className="font-medium text-gray-900">
                                 {task.taskTitle}
                               </h4>
 
                               {/* Task Details */}
-                              <div {...{ className: "grid grid-cols-2 gap-2 text-sm text-gray-600" }}>
+                              <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
                                 {task.verificationTypeName && (
-                                  <div {...{ className: "flex items-center" }}>
-                                    <Building2 {...{ className: "h-4 w-4 mr-1" }} />
+                                  <div className="flex items-center">
+                                    <Building2 className="h-4 w-4 mr-1" />
                                     {task.verificationTypeName}
                                   </div>
                                 )}
                                 {task.address && (
-                                  <div {...{ className: "flex items-center" }}>
-                                    <MapPin {...{ className: "h-4 w-4 mr-1" }} />
+                                  <div className="flex items-center">
+                                    <MapPin className="h-4 w-4 mr-1" />
                                     {task.address.substring(0, 30)}...
                                   </div>
                                 )}
                                 {task.assignedToName && (
-                                  <div {...{ className: "flex items-center" }}>
-                                    <User {...{ className: "h-4 w-4 mr-1" }} />
+                                  <div className="flex items-center">
+                                    <User className="h-4 w-4 mr-1" />
                                     {task.assignedToName}
                                   </div>
                                 )}
                                 {task.estimatedAmount && (
-                                  <div {...{ className: "flex items-center" }}>
-                                    <DollarSign {...{ className: "h-4 w-4 mr-1" }} />
+                                  <div className="flex items-center">
+                                    <DollarSign className="h-4 w-4 mr-1" />
                                     ₹{task.estimatedAmount.toFixed(2)}
                                   </div>
                                 )}
                                 {task.assignedAt && (
-                                  <div {...{ className: "flex items-center" }}>
-                                    <Calendar {...{ className: "h-4 w-4 mr-1" }} />
+                                  <div className="flex items-center">
+                                    <Calendar className="h-4 w-4 mr-1" />
                                     Assigned {formatDistanceToNow(new Date(task.assignedAt), { addSuffix: true })}
                                   </div>
                                 )}
@@ -259,13 +259,13 @@ export const TasksGroupedByCase: React.FC<TasksGroupedByCaseProps> = ({
                             </div>
 
                             {/* Actions */}
-                            <div {...{ className: "flex items-center space-x-2 ml-4" }}>
+                            <div className="flex items-center space-x-2 ml-4">
                               {!task.assignedTo && task.status === 'PENDING' && (
                                 <Button
                                   size="sm"
                                   onClick={() => onAssignTask(task.id)}
                                 >
-                                  <UserCheck {...{ className: "h-4 w-4 mr-1" }} />
+                                  <UserCheck className="h-4 w-4 mr-1" />
                                   Assign
                                 </Button>
                               )}
@@ -293,3 +293,4 @@ export const TasksGroupedByCase: React.FC<TasksGroupedByCaseProps> = ({
     </div>
   );
 };
+

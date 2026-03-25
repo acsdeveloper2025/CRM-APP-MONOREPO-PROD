@@ -1,16 +1,11 @@
 import { useState } from 'react';
 import { FileText, Eye, Download, Share2 } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/Select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormViewer } from '@/components/forms/FormViewer';
 import { FormSubmission } from '@/types/form';
-import { Badge } from '@/ui/components/Badge';
-import { Button } from '@/ui/components/Button';
-import { Card } from '@/ui/components/Card';
-import { Page } from '@/ui/layout/Page';
-import { Section } from '@/ui/layout/Section';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 export function FormViewerPage() {
   const [selectedFormType, setSelectedFormType] = useState<string>('residence-positive');
@@ -22,39 +17,40 @@ export function FormViewerPage() {
   const formTypes: { value: string; label: string }[] = [];
 
   return (
-    <Page
-      title="Form Viewer"
-      subtitle="View and inspect verification form submissions."
-      shell
-      actions={
-        <Stack direction="horizontal" gap={2} wrap="wrap">
-          <Button variant="secondary" icon={<Download size={16} />}>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Form Viewer</h1>
+          <p className="text-gray-600">
+            View and interact with verification form submissions
+          </p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
             Export PDF
           </Button>
-          <Button variant="secondary" icon={<Share2 size={16} />}>
+          <Button variant="outline" size="sm">
+            <Share2 className="h-4 w-4 mr-2" />
             Share
           </Button>
-        </Stack>
-      }
-    >
-      <Section>
-        <Stack gap={3}>
-          <Badge variant="accent">Viewer Surface</Badge>
-          <Text as="h2" variant="headline">Keep the viewer controls and raw data side-by-side inside the shared shell.</Text>
-        </Stack>
-      </Section>
+        </div>
+      </div>
 
-      <Section>
-        <Card tone="strong" staticCard>
-          <Stack gap={4}>
-            <Stack direction="horizontal" gap={2} align="center">
-              <Eye size={18} />
-              <Text as="h3" variant="title">Form Viewer Controls</Text>
-            </Stack>
-            <Text variant="body-sm" tone="muted">
-              Configure the form viewer settings and select different form types.
-            </Text>
-            <div className="flex items-center space-x-4">
+      {/* Controls */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Eye className="h-5 w-5" />
+            <span>Form Viewer Controls</span>
+          </CardTitle>
+          <CardDescription>
+            Configure the form viewer settings and select different form types
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center space-x-4">
             <div className="flex-1">
               <label className="text-sm font-medium mb-2 block">Form Type</label>
               <Select value={selectedFormType} onValueChange={setSelectedFormType}>
@@ -83,12 +79,11 @@ export function FormViewerPage() {
               </Select>
             </div>
           </div>
-          </Stack>
-        </Card>
-      </Section>
+        </CardContent>
+      </Card>
 
-      <Section>
-        <Tabs defaultValue="viewer" className="space-y-4">
+      {/* Form Viewer */}
+      <Tabs defaultValue="viewer" className="space-y-4">
         <TabsList>
           <TabsTrigger value="viewer">
             <FileText className="h-4 w-4 mr-2" />
@@ -123,20 +118,21 @@ export function FormViewerPage() {
         </TabsContent>
 
         <TabsContent value="json" className="space-y-4">
-          <Card tone="strong" staticCard>
-            <Stack gap={3}>
-              <Text as="h3" variant="title">Form Submission JSON</Text>
-              <Text variant="body-sm" tone="muted">
-                Raw JSON data structure of the form submission.
-              </Text>
+          <Card>
+            <CardHeader>
+              <CardTitle>Form Submission JSON</CardTitle>
+              <CardDescription>
+                Raw JSON data structure of the form submission
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
               <pre className="bg-slate-100 dark:bg-slate-800/60 p-4 rounded-lg overflow-auto text-xs">
                 {sampleSubmission ? JSON.stringify(sampleSubmission, null, 2) : 'No data available'}
               </pre>
-            </Stack>
+            </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-      </Section>
-    </Page>
+    </div>
   );
 }

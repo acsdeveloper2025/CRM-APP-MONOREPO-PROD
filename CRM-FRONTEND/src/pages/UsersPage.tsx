@@ -2,28 +2,31 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Role } from '@/types/auth';
-import { Plus, Upload, Download } from 'lucide-react';
-import { Card, CardContent, CardHeader } from '@/ui/components/Card';
-import { Badge } from '@/ui/components/Badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/Tabs';
+import { USER_ROLE_OPTIONS } from '@/types/constants';
+import { Plus, Upload, Download, Calendar as CalendarIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usersService } from '@/services/users';
+import { UsersTable } from '@/components/users/UsersTable';
+import { UserActivitiesTable } from '@/components/users/UserActivitiesTable';
+import { UserSessionsTable } from '@/components/users/UserSessionsTable';
 import { CreateUserDialog } from '@/components/users/CreateUserDialog';
 import { BulkImportUsersDialog } from '@/components/users/BulkImportUsersDialog';
 import { UserStatsCards } from '@/components/users/UserStatsCards';
-import { UsersActivitiesTabPanel } from '@/components/users/UsersActivitiesTabPanel';
-import { UsersSessionsTabPanel } from '@/components/users/UsersSessionsTabPanel';
-import { UsersUsersTabPanel } from '@/components/users/UsersUsersTabPanel';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { LoadingState } from '@/ui/components/Loading';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LoadingState } from '@/components/ui/loading';
 import { useUserActivities } from '@/hooks/useUserActivities';
 import { useUserSessions } from '@/hooks/useUserSessions';
+import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { usePermissionContext } from '@/contexts/PermissionContext';
 import { cn } from '@/lib/utils';
-import { Button } from '@/ui/components/Button';
-import { Page } from '@/ui/layout/Page';
-import { Section } from '@/ui/layout/Section';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 interface UserFilters extends Record<string, unknown> {
   role?: Role;
@@ -48,9 +51,9 @@ export function UsersPage() {
 
   const queryTab = searchParams.get('tab');
   const rawTab = tabParam || queryTab || 'users';
-  const activeTab: UserTab = (validTabs.includes(rawTab as any)
-    ? rawTab
-    : 'users') as UserTab;
+  const activeTab: UserTab = validTabs.includes(rawTab as (typeof validTabs)[number])
+    ? (rawTab as UserTab)
+    : 'users';
 
   useEffect(() => {
     if (!tabParam) {
@@ -202,13 +205,9 @@ export function UsersPage() {
   // Early return if critical data is still loading to prevent undefined errors
   if (usersLoading && !usersData) {
     return (
-      <Page shell title="User Management" subtitle="Manage users, roles, permissions, and monitor user activities.">
-        <Section>
-          <div {...{ className: "flex items-center justify-center min-h-[400px]" }}>
-            <LoadingState message="Fetching user data..." size="lg" />
-          </div>
-        </Section>
-      </Page>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <LoadingState message="Fetching user data..." size="lg" />
+      </div>
     );
   }
 
@@ -223,136 +222,334 @@ export function UsersPage() {
     recentLogins: [],
   };
 
-  const headerActions = activeTab === 'users' ? (
-    <>
-      <Button variant="secondary" icon={<Upload size={16} />} onClick={() => setShowBulkImport(true)}>
-        Import
-      </Button>
-      <Button variant="secondary" icon={<Download size={16} />} onClick={() => handleExportUsers('EXCEL')}>
-        Export
-      </Button>
-      <Button variant="secondary" icon={<Plus size={16} />} onClick={() => setShowCreateUser(true)}>
-        Add User
-      </Button>
-    </>
-  ) : undefined;
-
   return (
-    <Page
-      shell
-      title="User Management"
-      subtitle="Manage users, roles, permissions, and monitor user activities."
-      actions={headerActions}
-    >
-      <Section>
-        <div {...{ className: "space-y-6" }}>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">User Management</h1>
+          <p className="text-gray-600">
+            Manage users, roles, permissions, and monitor user activities
+          </p>
+        </div>
+      </div>
 
-          {canViewUsersData && (
-            <UserStatsCards stats={resolvedUserStats} />
-          )}
+      {/* Stats Cards */}
+      {canViewUsersData && (
+        <UserStatsCards stats={resolvedUserStats} />
+      )}
 
-          <Card className="ui-stagger">
-            <CardHeader>
-              <Stack gap={2}>
-                <Text variant="headline">User Management System</Text>
-                <Text variant="body-sm" tone="muted">
-                  Comprehensive user administration and access control
-                </Text>
-              </Stack>
-            </CardHeader>
-            <CardContent {...{ className: "p-4 sm:p-6" }}>
-              <Tabs value={activeTab} onValueChange={handleTabChange} {...{ className: "space-y-4" }}>
-                <div {...{ className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4" }}>
-                  <TabsList
-                    {...{
-                      className: cn(
-                        'grid w-full min-w-max lg:w-auto',
-                        canManageRbac ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-3' : 'grid-cols-1'
-                      ),
-                    }}
-                  >
-                    <TabsTrigger value="users" {...{ className: "text-xs sm:text-sm whitespace-nowrap" }}>
-                      <span {...{ className: "hidden sm:inline" }}>Users</span>
-                      <span {...{ className: "sm:hidden" }}>Users</span>
-                      {stats.users.total > 0 && (
-                        <Badge variant="secondary" {...{ className: "ml-1 sm:ml-2 text-xs" }}>
-                          {stats.users.total}
+      {/* Main Content */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>User Management System</CardTitle>
+              <CardDescription>
+                Comprehensive user administration and access control
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <TabsList
+                className={cn(
+                  'grid w-full min-w-max lg:w-auto',
+                  canManageRbac ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-3' : 'grid-cols-1'
+                )}
+              >
+                <TabsTrigger value="users" className="text-xs sm:text-sm whitespace-nowrap">
+                  <span className="hidden sm:inline">Users</span>
+                  <span className="sm:hidden">Users</span>
+                  {stats.users.total > 0 && (
+                    <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
+                      {stats.users.total}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                
+                {canManageRbac && (
+                  <>
+                    <TabsTrigger value="activities" className="text-xs sm:text-sm whitespace-nowrap">
+                      <span className="hidden sm:inline">Activities</span>
+                      <span className="sm:hidden">Activity</span>
+                      {stats.activities.total > 0 && (
+                        <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
+                          {stats.activities.total}
                         </Badge>
                       )}
                     </TabsTrigger>
+                    <TabsTrigger value="sessions" className="text-xs sm:text-sm whitespace-nowrap">
+                      <span className="hidden sm:inline">Sessions</span>
+                      <span className="sm:hidden">Sessions</span>
+                      {stats.sessions.total > 0 && (
+                        <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
+                          {stats.sessions.total}
+                        </Badge>
+                      )}
+                    </TabsTrigger>
+                  </>
+                )}
+                
+              </TabsList>
 
-                    {canManageRbac && (
-                      <>
-                        <TabsTrigger value="activities" {...{ className: "text-xs sm:text-sm whitespace-nowrap" }}>
-                          <span {...{ className: "hidden sm:inline" }}>Activities</span>
-                          <span {...{ className: "sm:hidden" }}>Activity</span>
-                          {stats.activities.total > 0 && (
-                            <Badge variant="secondary" {...{ className: "ml-1 sm:ml-2 text-xs" }}>
-                              {stats.activities.total}
-                            </Badge>
-                          )}
-                        </TabsTrigger>
-                        <TabsTrigger value="sessions" {...{ className: "text-xs sm:text-sm whitespace-nowrap" }}>
-                          <span {...{ className: "hidden sm:inline" }}>Sessions</span>
-                          <span {...{ className: "sm:hidden" }}>Sessions</span>
-                          {stats.sessions.total > 0 && (
-                            <Badge variant="secondary" {...{ className: "ml-1 sm:ml-2 text-xs" }}>
-                              {stats.sessions.total}
-                            </Badge>
-                          )}
-                        </TabsTrigger>
-                      </>
-                    )}
-                  </TabsList>
+              {/* Actions */}
+              <div className="flex flex-wrap gap-2">
+                {/* Global action buttons moved to layout-specific actions prop for better consistency */}
+              </div>
+            </div>
+
+            <TabsContent value="users" className="space-y-4">
+              <UnifiedSearchFilterLayout
+                searchValue={userSearch.searchValue}
+                onSearchChange={userSearch.setSearchValue}
+                onSearchClear={userSearch.clearSearch}
+                isSearchLoading={userSearch.isDebouncing}
+                searchPlaceholder="Search users by name, email, or phone..."
+                hasActiveFilters={userFilters.hasActiveFilters}
+                activeFilterCount={Object.keys(userFilters.filters).length}
+                onClearFilters={userFilters.clearFilters}
+                actions={
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowBulkImport(true)}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleExportUsers('EXCEL')}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Export
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setShowCreateUser(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add User
+                    </Button>
+                  </div>
+                }
+                filterContent={
+                  <FilterGrid columns={2}>
+                    <div className="space-y-2">
+                      <Label>Role</Label>
+                      <Select
+                        value={userFilters.filters.role || 'all'}
+                        onValueChange={(value) => userFilters.setFilter('role', value === 'all' ? undefined : (value as Role))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Roles" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Roles</SelectItem>
+                          {USER_ROLE_OPTIONS.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <Select
+                        value={userFilters.filters.status || 'all'}
+                        onValueChange={(value) => userFilters.setFilter('status', value === 'all' ? undefined : value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </FilterGrid>
+                }
+              />
+
+              <UsersTable
+                data={Array.isArray(usersData?.data) ? usersData.data : []}
+                isLoading={usersLoading}
+              />
+
+              {/* Pagination Controls */}
+              {usersData?.pagination && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                  <div className="text-sm text-gray-600">
+                    Showing {usersData.data?.length || 0} of {usersData.pagination.total} users
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setUserPage(prev => Math.max(1, prev - 1))}
+                      disabled={userPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {userPage} of {usersData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setUserPage(prev => prev + 1)}
+                      disabled={userPage >= (usersData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
+              )}
+            </TabsContent>
 
-                <TabsContent value="users" {...{ className: "space-y-4" }}>
-                  <UsersUsersTabPanel
-                    userSearch={userSearch}
-                    userFilters={userFilters}
-                    usersData={usersData}
-                    usersLoading={usersLoading}
-                    userPage={userPage}
-                    setUserPage={setUserPage}
-                    onBulkImport={() => setShowBulkImport(true)}
-                    onExport={() => handleExportUsers('EXCEL')}
-                    onAddUser={() => setShowCreateUser(true)}
-                  />
-                </TabsContent>
+            <TabsContent value="activities" className="space-y-4">
+              <UnifiedSearchFilterLayout
+                searchValue={actSearch.searchValue}
+                onSearchChange={actSearch.setSearchValue}
+                onSearchClear={actSearch.clearSearch}
+                isSearchLoading={actSearch.isDebouncing}
+                searchPlaceholder="Search activities by action or details..."
+                hasActiveFilters={actFilters.hasActiveFilters}
+                onClearFilters={actFilters.clearFilters}
+                filterContent={
+                  <FilterGrid columns={2}>
+                    <div className="space-y-2">
+                      <Label>From Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              'w-full justify-start text-left font-normal',
+                              !actFilters.filters.fromDate && 'text-muted-foreground'
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {actFilters.filters.fromDate ? format(new Date(actFilters.filters.fromDate), 'PPP') : 'Pick a date'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={actFilters.filters.fromDate ? new Date(actFilters.filters.fromDate) : undefined}
+                            onSelect={(date) => actFilters.setFilter('fromDate', date ? date.toISOString() : undefined)}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
 
-                <TabsContent value="activities" {...{ className: "space-y-4" }}>
-                  <UsersActivitiesTabPanel
-                    actSearch={actSearch}
-                    actFilters={actFilters}
-                    activitiesData={activitiesData}
-                    activitiesLoading={activitiesLoading}
-                    actPage={actPage}
-                    setActPage={setActPage}
-                  />
-                </TabsContent>
+                    <div className="space-y-2">
+                      <Label>To Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              'w-full justify-start text-left font-normal',
+                              !actFilters.filters.toDate && 'text-muted-foreground'
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {actFilters.filters.toDate ? format(new Date(actFilters.filters.toDate), 'PPP') : 'Pick a date'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={actFilters.filters.toDate ? new Date(actFilters.filters.toDate) : undefined}
+                            onSelect={(date) => actFilters.setFilter('toDate', date ? date.toISOString() : undefined)}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </FilterGrid>
+                }
+              />
 
-                <TabsContent value="sessions" {...{ className: "space-y-4" }}>
-                  <UsersSessionsTabPanel
-                    sessSearch={sessSearch}
-                    sessionsData={sessionsData}
-                    sessionsLoading={sessionsLoading}
-                  />
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+              <UserActivitiesTable
+                data={Array.isArray(activitiesData?.data) ? activitiesData.data : []}
+                isLoading={activitiesLoading}
+              />
 
-          <CreateUserDialog
-            open={showCreateUser}
-            onOpenChange={setShowCreateUser}
-          />
+              {/* Pagination Controls */}
+              {activitiesData?.pagination && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                  <div className="text-sm text-gray-600">
+                    Showing {activitiesData.data?.length || 0} of {activitiesData.pagination.total} activities
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActPage(prev => Math.max(1, prev - 1))}
+                      disabled={actPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {actPage} of {activitiesData.pagination.totalPages || 1}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setActPage(prev => prev + 1)}
+                      disabled={actPage >= (activitiesData.pagination.totalPages || 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
 
-          <BulkImportUsersDialog
-            open={showBulkImport}
-            onOpenChange={setShowBulkImport}
-          />
-        </div>
-      </Section>
-    </Page>
+            <TabsContent value="sessions" className="space-y-4">
+              <UnifiedSearchFilterLayout
+                searchValue={sessSearch.searchValue}
+                onSearchChange={sessSearch.setSearchValue}
+                onSearchClear={sessSearch.clearSearch}
+                isSearchLoading={sessSearch.isDebouncing}
+                searchPlaceholder="Filter sessions by user or IP..."
+                showFilters={false}
+              />
+
+              <UserSessionsTable
+                data={Array.isArray(sessionsData?.data) ? sessionsData.data : []}
+                isLoading={sessionsLoading}
+              />
+
+              {/* Pagination Controls (Placeholder if needed) */}
+            </TabsContent>
+
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* Dialogs */}
+      <CreateUserDialog
+        open={showCreateUser}
+        onOpenChange={setShowCreateUser}
+      />
+      
+      <BulkImportUsersDialog
+        open={showBulkImport}
+        onOpenChange={setShowBulkImport}
+      />
+    </div>
   );
 }

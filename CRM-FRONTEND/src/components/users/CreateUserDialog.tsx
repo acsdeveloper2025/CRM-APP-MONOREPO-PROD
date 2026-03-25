@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
-import { Button } from '@/ui/components/Button';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/Dialog';
+} from '@/components/ui/dialog';
 import {
   Form,
   FormControl,
@@ -21,15 +21,15 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/ui/components/Form';
+} from '@/components/ui/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
-import { Input } from '@/ui/components/Input';
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { PasswordPolicyChecklist } from '@/components/users/PasswordPolicyChecklist';
 import { usersService } from '@/services/users';
 import { rolesService } from '@/services/roles';
@@ -190,7 +190,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent {...{ className: "max-w-[95vw] sm:max-w-[500px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto" }}>
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
           <DialogDescription>
@@ -199,8 +199,8 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} {...{ className: "space-y-4" }}>
-            <div {...{ className: "grid grid-cols-1 sm:grid-cols-2 gap-4" }}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="name"
@@ -276,7 +276,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
               )}
             />
 
-            <div {...{ className: "grid grid-cols-1 sm:grid-cols-2 gap-4" }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="roleId"
@@ -331,7 +331,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
               />
             </div>
 
-            <div {...{ className: "grid grid-cols-1 sm:grid-cols-2 gap-4" }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="designationId"
@@ -410,14 +410,14 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
               />
             </div>
 
-            <div {...{ className: "grid grid-cols-1 sm:grid-cols-2 gap-4" }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="teamLeaderId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Team Leader {requiresTeamLeader ? <span {...{ className: "text-red-500" }}>*</span> : null}
+                      Team Leader {requiresTeamLeader ? <span className="text-red-500">*</span> : null}
                     </FormLabel>
                     <Select
                       onValueChange={field.onChange}
@@ -458,7 +458,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Manager {requiresManager ? <span {...{ className: "text-red-500" }}>*</span> : null}
+                      Manager {requiresManager ? <span className="text-red-500">*</span> : null}
                     </FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} disabled={disableManager}>
                       <FormControl>
@@ -490,20 +490,20 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
 
 
 
-            <DialogFooter {...{ className: "flex-col sm:flex-row gap-2" }}>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={createMutation.isPending}
-                {...{ className: "w-full sm:w-auto" }}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
-                {...{ className: "w-full sm:w-auto" }}
+                className="w-full sm:w-auto"
               >
                 {createMutation.isPending ? 'Creating...' : 'Create User'}
               </Button>

@@ -1,7 +1,11 @@
+
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, User, Shield, Building2, Package } from 'lucide-react';
-import { Alert, AlertDescription } from '@/ui/components/Alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { usersService } from '@/services/users';
 import { ClientAssignmentSection } from '@/components/users/ClientAssignmentSection';
 import { ProductAssignmentSection } from '@/components/users/ProductAssignmentSection';
@@ -13,15 +17,6 @@ import {
   isBackendScopedUser,
   isFieldAgentUser,
 } from '@/utils/userPermissionProfiles';
-import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
-import { Badge } from '@/ui/components/Badge';
-import { Button } from '@/ui/components/Button';
-import { Card } from '@/ui/components/Card';
-import { LoadingSkeleton } from '@/ui/components/Loading';
-import { Page } from '@/ui/layout/Page';
-import { Section } from '@/ui/layout/Section';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 export function UserPermissionsPage() {
   const { userId } = useParams<{ userId: string }>();
@@ -50,48 +45,44 @@ export function UserPermissionsPage() {
 
   if (userLoading) {
     return (
-      <Page
-        title="User Permissions"
-        subtitle="Review access control and assignment scope."
-        shell
-        actions={(
-          <Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => navigate('/users')}>
+      <div className="space-y-6">
+        <div className="flex items-center space-x-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/users')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Users
           </Button>
-        )}
-      >
-        <Section>
-          <Card tone="strong" staticCard>
-            <Stack gap={3}>
-              <Text as="h2" variant="headline">Loading User Permissions...</Text>
-              <LoadingSkeleton variant="text" lines={3} />
-            </Stack>
-          </Card>
-        </Section>
-      </Page>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Loading User Permissions...</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="animate-pulse space-y-4">
+              <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded w-3/4" />
+              <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded w-1/2" />
+              <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded w-2/3" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   if (userError || !userData?.data) {
     return (
-      <Page
-        title="User Permissions"
-        subtitle="Review access control and assignment scope."
-        shell
-        actions={(
-          <Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => navigate('/users')}>
+      <div className="space-y-6">
+        <div className="flex items-center space-x-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/users')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Users
           </Button>
-        )}
-      >
-        <Section>
+        </div>
         <Alert variant="destructive">
           <AlertDescription>
             Failed to load user details. The user may not exist or you may not have permission to view it.
           </AlertDescription>
         </Alert>
-        </Section>
-      </Page>
+      </div>
     );
   }
 
@@ -102,102 +93,98 @@ export function UserPermissionsPage() {
   const roleLabel = getPrimaryRoleLabel(user);
 
   return (
-    <Page
-      title="User Permissions"
-      subtitle={`Manage access control and operational scope for ${user.name}.`}
-      shell
-      actions={(
-        <Button variant="ghost" icon={<ArrowLeft size={16} />} onClick={() => navigate('/users')}>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/users')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Users
-        </Button>
-      )}
-    >
-      <Section>
-        <Stack gap={3}>
-          <Badge variant="accent">Identity & Scope</Badge>
-          <Text as="h2" variant="headline">Keep role scope, assignment access, and territory coverage visible in one place.</Text>
-          <Text variant="body-sm" tone="muted">
-            This page now uses the shared shell while preserving all assignment queries and permission logic.
-          </Text>
-        </Stack>
-      </Section>
+          </Button>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">User Permissions</h1>
+            <p className="text-gray-600">
+              Manage access control and permissions for {user.name}
+            </p>
+          </div>
+        </div>
+      </div>
 
-      <Section>
-        <MetricCardGrid
-          items={[
-            {
-              title: 'User',
-              value: user.name,
-              detail: user.email,
-              icon: User,
-              tone: 'neutral',
-            },
-            {
-              title: 'Role',
-              value: roleLabel,
-              detail: adminLike ? 'Elevated access' : backendScoped ? 'Backend scoped' : fieldAgent ? 'Field scoped' : 'Standard access',
-              icon: Shield,
-              tone: adminLike ? 'accent' : backendScoped ? 'warning' : 'neutral',
-            },
-            {
-              title: 'Client Access',
-              value: adminLike ? 'Full' : backendScoped ? (clientAssignments?.data?.length || 0) : 'Role-based',
-              detail: adminLike ? 'Not assignment restricted' : backendScoped ? 'Assigned clients' : 'Not client scoped',
-              icon: Building2,
-              tone: adminLike ? 'accent' : backendScoped ? 'warning' : 'neutral',
-            },
-            {
-              title: 'Product Access',
-              value: adminLike ? 'Full' : backendScoped ? (productAssignments?.data?.length || 0) : 'Role-based',
-              detail: adminLike ? 'Not assignment restricted' : backendScoped ? 'Assigned products' : 'Not product scoped',
-              icon: Package,
-              tone: user.isActive ? 'positive' : 'danger',
-            },
-          ]}
-        />
-      </Section>
+      {/* User Info Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <User className="h-5 w-5" />
+            <span>User Information</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Name</p>
+              <p className="text-lg font-semibold">{user.name}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-600">Email</p>
+              <p className="text-lg">{user.email}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-600">Role</p>
+              <Badge variant={adminLike ? 'default' : 'secondary'}>
+                {roleLabel}
+              </Badge>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-600">Status</p>
+              <Badge variant={user.isActive ? 'default' : 'destructive'}>
+                {user.isActive ? 'Active' : 'Inactive'}
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      {adminLike ? (
-        <Section>
+      {/* Role-based Access Control Info */}
+      {adminLike && (
         <Alert>
           <Shield className="h-4 w-4" />
           <AlertDescription>
             <strong>Administrative Access:</strong> This user has elevated access and is not restricted by client/product assignment scoping.
           </AlertDescription>
         </Alert>
-        </Section>
-      ) : null}
+      )}
 
-      {!backendScoped && !adminLike ? (
-        <Section>
+      {!backendScoped && !adminLike && (
         <Alert>
           <AlertDescription>
             <strong>Permission-based Access:</strong> Client and product assignment scoping applies only to users with case assignment permissions.
           </AlertDescription>
         </Alert>
-        </Section>
-      ) : null}
+      )}
 
-      {backendScoped ? (
-        <Section>
+      {/* Client Assignment Section */}
+      {backendScoped && (
+        <>
           <ClientAssignmentSection user={user} />
           <ProductAssignmentSection user={user} />
-        </Section>
-      ) : null}
+        </>
+      )}
 
-      {fieldAgent ? (
-        <Section>
-          <TerritoryAssignmentSection user={user} />
-        </Section>
-      ) : null}
+      {/* Territory Assignment Section */}
+      {fieldAgent && <TerritoryAssignmentSection user={user} />}
 
-      <Section>
-        <Card tone="strong" staticCard>
-          <Stack gap={4}>
-            <Stack gap={1}>
-              <Text as="h3" variant="headline">Permission Summary</Text>
-              <Text variant="body-sm" tone="muted">Overview of this user&apos;s access levels and operational restrictions.</Text>
-            </Stack>
+      {/* Additional Permissions Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Shield className="h-5 w-5" />
+            <span>Permission Summary</span>
+          </CardTitle>
+          <CardDescription>
+            Overview of this user&apos;s access levels and restrictions
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div className={`grid grid-cols-1 gap-6 ${backendScoped ? 'md:grid-cols-2' : 'md:grid-cols-1'}`}>
               <div>
                 <h4 className="font-medium mb-2 flex items-center space-x-2">
@@ -272,9 +259,8 @@ export function UserPermissionsPage() {
               )}
             </div>
           </div>
-          </Stack>
-        </Card>
-      </Section>
-    </Page>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

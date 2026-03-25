@@ -1,14 +1,11 @@
 import { Check, X, FileText, Calendar, Hash, Type, List, MessageSquare } from 'lucide-react';
-import { Input } from '@/ui/components/Input';
-import { Textarea } from '@/ui/components/Textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/ui/components/Select';
-import { Checkbox } from '@/ui/components/Checkbox';
-import { Badge } from '@/ui/components/Badge';
-import { Label } from '@/ui/components/Label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { FormField } from '@/types/form';
-import { Box } from '@/ui/primitives/Box';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 interface FormFieldViewerProps {
   field: FormField;
@@ -20,74 +17,99 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
   const getFieldIcon = (type: FormField['type']) => {
     switch (type) {
       case 'text':
-        return <Type size={16} />;
+        return <Type className="h-4 w-4" />;
       case 'number':
-        return <Hash size={16} />;
+        return <Hash className="h-4 w-4" />;
       case 'date':
-        return <Calendar size={16} />;
+        return <Calendar className="h-4 w-4" />;
       case 'select':
       case 'radio':
-        return <List size={16} />;
+        return <List className="h-4 w-4" />;
       case 'textarea':
-        return <MessageSquare size={16} />;
+        return <MessageSquare className="h-4 w-4" />;
       case 'file':
-        return <FileText size={16} />;
+        return <FileText className="h-4 w-4" />;
       default:
-        return <Type size={16} />;
+        return <Type className="h-4 w-4" />;
     }
+  };
+
+  const renderFieldValue = () => {
+    if (readonly) {
+      return renderReadOnlyField();
+    }
+    return renderEditableField();
   };
 
   const renderReadOnlyField = () => {
     switch (field.type) {
       case 'checkbox':
         return (
-          <Stack direction="horizontal" gap={2} align="center">
+          <div className="flex items-center space-x-2">
             {field.value ? (
-              <Check size={16} style={{ color: 'var(--ui-success)' }} />
+              <Check className="h-4 w-4 text-green-600" />
             ) : (
-              <X size={16} style={{ color: 'var(--ui-danger)' }} />
+              <X className="h-4 w-4 text-red-600" />
             )}
-            <Text as="span" variant="body-sm">{field.value ? 'Yes' : 'No'}</Text>
-          </Stack>
+            <span className="text-sm">
+              {field.value ? 'Yes' : 'No'}
+            </span>
+          </div>
         );
 
       case 'select':
       case 'radio': {
-        const selectedOption = field.options?.find((opt) => opt.value === field.value);
-        return <Text>{selectedOption ? selectedOption.label : (field.value as string) || 'Not selected'}</Text>;
+        const selectedOption = field.options?.find(opt => opt.value === field.value);
+        return (
+          <div className="text-sm">
+            {selectedOption ? selectedOption.label : (field.value as string) || 'Not selected'}
+          </div>
+        );
       }
 
       case 'textarea':
         return (
-          <Box style={{ whiteSpace: 'pre-wrap', background: 'var(--ui-surface-muted)', borderRadius: 'var(--ui-radius-md)', padding: '0.75rem', minHeight: '5rem' }}>
-            <Text>{(field.value as string) || 'No value provided'}</Text>
-          </Box>
+          <div className="text-sm whitespace-pre-wrap bg-slate-100/70 dark:bg-slate-800/50 rounded-md p-3 min-h-20">
+            {(field.value as string) || 'No value provided'}
+          </div>
         );
 
       case 'file':
         if (Array.isArray(field.value)) {
           return (
-            <Stack gap={2}>
+            <div className="space-y-2">
               {field.value.map((file: unknown, index: number) => {
                 const fileObj = file as { name?: string; size?: number };
                 return (
-                  <Stack key={index} direction="horizontal" gap={2} align="center">
-                    <FileText size={16} />
-                    <Text as="span" variant="body-sm">{fileObj.name || `File ${index + 1}`}</Text>
-                    {fileObj.size ? <Badge variant="outline">{(fileObj.size / 1024).toFixed(1)} KB</Badge> : null}
-                  </Stack>
+                  <div key={index} className="flex items-center space-x-2 text-sm">
+                    <FileText className="h-4 w-4" />
+                    <span>{fileObj.name || `File ${index + 1}`}</span>
+                    {fileObj.size && (
+                      <Badge variant="outline" className="text-xs">
+                        {(fileObj.size / 1024).toFixed(1)} KB
+                      </Badge>
+                    )}
+                  </div>
                 );
               })}
-            </Stack>
+            </div>
           );
         }
-        return <Text as="span" variant="body-sm" tone="muted">No files</Text>;
+        return <span className="text-sm text-gray-600">No files</span>;
 
       case 'date':
-        return <Text>{field.value ? new Date(field.value as string).toLocaleDateString() : 'No date selected'}</Text>;
+        return (
+          <div className="text-sm">
+            {field.value ? new Date(field.value as string).toLocaleDateString() : 'No date selected'}
+          </div>
+        );
 
       default:
-        return <Text>{(field.value as string) || 'No value provided'}</Text>;
+        return (
+          <div className="text-sm">
+            {(field.value as string) || 'No value provided'}
+          </div>
+        );
     }
   };
 
@@ -98,21 +120,26 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
         return (
           <Input
             type={field.type}
-            value={(field.value as string) || ''}
+            value={field.value as string || ''}
             onChange={(e) => onChange?.(e.target.value)}
           />
         );
+
       case 'textarea':
         return (
           <Textarea
-            value={(field.value as string) || ''}
+            value={field.value as string || ''}
             onChange={(e) => onChange?.(e.target.value)}
             rows={3}
           />
         );
+
       case 'select':
         return (
-          <Select value={(field.value as string) || ''} onValueChange={onChange}>
+          <Select
+            value={field.value as string || ''}
+            onValueChange={onChange}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select an option" />
             </SelectTrigger>
@@ -125,26 +152,34 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
             </SelectContent>
           </Select>
         );
+
       case 'checkbox':
         return (
-          <Stack direction="horizontal" gap={2} align="center">
-            <Checkbox checked={(field.value as boolean) || false} onCheckedChange={onChange} />
-            <Label>{field.label}</Label>
-          </Stack>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              checked={field.value as boolean || false}
+              onCheckedChange={onChange}
+            />
+            <Label className="text-sm">
+              {field.label}
+            </Label>
+          </div>
         );
+
       case 'date':
         return (
           <Input
             type="date"
-            value={(field.value as string) || ''}
+            value={field.value as string || ''}
             onChange={(e) => onChange?.(e.target.value)}
           />
         );
+
       case 'radio':
         return (
-          <Stack gap={2}>
+          <div className="space-y-2">
             {field.options?.map((option) => (
-              <Stack key={option.value} direction="horizontal" gap={2} align="center">
+              <div key={option.value} className="flex items-center space-x-2">
                 <input
                   type="radio"
                   id={`${field.id}-${option.value}`}
@@ -152,36 +187,43 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
                   value={option.value}
                   checked={field.value === option.value}
                   onChange={(e) => onChange?.(e.target.value)}
-                  style={{ width: '1rem', height: '1rem' }}
+                  className="h-4 w-4"
                 />
-                <Label htmlFor={`${field.id}-${option.value}`}>{option.label}</Label>
-              </Stack>
+                <Label htmlFor={`${field.id}-${option.value}`} className="text-sm">
+                  {option.label}
+                </Label>
+              </div>
             ))}
-          </Stack>
+          </div>
         );
+
       default:
         return renderReadOnlyField();
     }
   };
 
   return (
-    <Stack gap={2}>
-      <Stack direction="horizontal" gap={2} align="center">
-        <Box style={{ color: 'var(--ui-text-muted)' }}>{getFieldIcon(field.type)}</Box>
-        <Label>
+    <div className="space-y-2">
+      <div className="flex items-center space-x-2">
+        <div className="text-gray-600">
+          {getFieldIcon(field.type)}
+        </div>
+        <Label className="text-sm font-medium">
           {field.label}
-          {field.isRequired ? <Text as="span" tone="danger" style={{ marginLeft: '0.25rem' }}>*</Text> : null}
-          {readonly ? <Text as="span" variant="caption" tone="muted" style={{ marginLeft: '0.5rem' }}>(Read Only)</Text> : null}
+          {field.isRequired && <span className="text-red-500 ml-1">*</span>}
+          {readonly && <span className="text-xs text-gray-600 ml-2">(Read Only)</span>}
         </Label>
-      </Stack>
+      </div>
 
-      <Box style={readonly ? { background: 'var(--ui-surface-muted)', borderRadius: 'var(--ui-radius-md)', padding: '0.75rem' } : undefined}>
-        {readonly ? renderReadOnlyField() : renderEditableField()}
-      </Box>
+      <div className={`${readonly ? 'bg-slate-100/50 dark:bg-slate-800/40 rounded-md p-3' : ''}`}>
+        {renderFieldValue()}
+      </div>
 
-      {!readonly && field.type === 'file' ? (
-        <Text variant="caption" tone="muted">Supported formats: JPG, PNG, PDF (Max 10MB)</Text>
-      ) : null}
-    </Stack>
+      {!readonly && field.type === 'file' && (
+        <div className="text-xs text-gray-600">
+          Supported formats: JPG, PNG, PDF (Max 10MB)
+        </div>
+      )}
+    </div>
   );
 }

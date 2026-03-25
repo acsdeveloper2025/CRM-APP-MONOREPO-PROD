@@ -1,26 +1,11 @@
-import { BarChart3, CheckCircle, Clock, DollarSign, Minus, TrendingDown, TrendingUp } from 'lucide-react';
-import { LoadingSpinner } from '@/ui/components/Loading';
-import { Card, CardContent, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Box } from '@/ui/primitives/Box';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
+import { TrendingUp, TrendingDown, Minus, Clock, CheckCircle, BarChart3, DollarSign } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ReportSummary } from '@/types/reports';
+import { LoadingSpinner } from '@/components/ui/loading';
 
 interface ReportSummaryCardsProps {
   summaries: ReportSummary[];
 }
-
-const gridStyle = {
-  display: 'grid',
-  gap: '1rem',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-};
-
-const toneMap = {
-  up: 'positive',
-  down: 'danger',
-  stable: 'muted',
-} as const;
 
 export function ReportSummaryCards({ summaries }: ReportSummaryCardsProps) {
   const getIcon = (reportType: string) => {
@@ -41,77 +26,89 @@ export function ReportSummaryCards({ summaries }: ReportSummaryCardsProps) {
   const getTrendIcon = (trend?: 'up' | 'down' | 'stable') => {
     switch (trend) {
       case 'up':
-        return <TrendingUp size={12} style={{ color: 'var(--ui-success)' }} />;
+        return <TrendingUp className="h-3 w-3 text-green-600" />;
       case 'down':
-        return <TrendingDown size={12} style={{ color: 'var(--ui-danger)' }} />;
+        return <TrendingDown className="h-3 w-3 text-red-600" />;
       case 'stable':
-        return <Minus size={12} style={{ color: 'var(--ui-text-muted)' }} />;
+        return <Minus className="h-3 w-3 text-gray-600" />;
       default:
         return null;
     }
   };
 
+  const getTrendColor = (trend?: 'up' | 'down' | 'stable') => {
+    switch (trend) {
+      case 'up':
+        return 'text-green-600';
+      case 'down':
+        return 'text-red-600';
+      case 'stable':
+        return 'text-gray-600';
+      default:
+        return 'text-gray-600';
+    }
+  };
+
   if (!summaries || summaries.length === 0) {
     return (
-      <Box style={gridStyle}>
-        {[...Array(5)].map((_, index) => (
-          <Card key={index}>
-            <CardHeader>
-              <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
-                <Stack direction="horizontal" gap={2} align="center">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        {[...Array(5)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                <div className="flex items-center space-x-2">
                   <LoadingSpinner size="sm" />
-                  <Text variant="label">Loading...</Text>
-                </Stack>
-                <BarChart3 size={16} style={{ color: 'var(--ui-text-muted)' }} />
-              </Box>
+                  <span>Loading...</span>
+                </div>
+              </CardTitle>
+              <BarChart3 className="h-4 w-4 text-gray-600" />
             </CardHeader>
             <CardContent>
-              <Stack gap={1}>
-                <Text variant="headline">--</Text>
-                <Text variant="caption" tone="muted">No data available</Text>
-              </Stack>
+              <div className="text-2xl font-bold">--</div>
+              <p className="text-xs text-gray-600">
+                No data available
+              </p>
             </CardContent>
           </Card>
         ))}
-      </Box>
+      </div>
     );
   }
 
   return (
-    <Box style={gridStyle}>
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
       {summaries.map((summary) => {
         const Icon = getIcon(summary.reportType);
         const primaryMetric = summary.keyMetrics[0];
-        const trendTone = toneMap[primaryMetric?.trend || 'stable'] || 'muted';
-
+        
         return (
           <Card key={summary.reportType}>
-            <CardHeader>
-              <Box style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
-                <CardTitle>{summary.title}</CardTitle>
-                <Icon size={16} style={{ color: 'var(--ui-text-muted)' }} />
-              </Box>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{summary.title}</CardTitle>
+              <Icon className="h-4 w-4 text-gray-600" />
             </CardHeader>
             <CardContent>
-              <Stack gap={2}>
-                <Text variant="headline">{primaryMetric?.value || '--'}</Text>
-                <Stack direction="horizontal" gap={1} align="center" wrap="wrap">
-                  {primaryMetric?.trend ? getTrendIcon(primaryMetric.trend) : null}
-                  <Text variant="caption" tone={trendTone}>
-                    {primaryMetric?.trendPercentage !== undefined
-                      ? `${primaryMetric.trendPercentage > 0 ? '+' : ''}${primaryMetric.trendPercentage}%`
-                      : ''}
-                  </Text>
-                  <Text variant="caption" tone="muted">vs last period</Text>
-                </Stack>
-                <Text variant="caption" tone="muted">
-                  Last updated: {new Date(summary.lastGenerated).toLocaleDateString()}
-                </Text>
-              </Stack>
+              <div className="text-2xl font-bold">
+                {primaryMetric?.value || '--'}
+              </div>
+              <div className="flex items-center space-x-1 text-xs">
+                {primaryMetric?.trend && getTrendIcon(primaryMetric.trend)}
+                <span className={getTrendColor(primaryMetric?.trend)}>
+                  {primaryMetric?.trendPercentage && (
+                    `${primaryMetric.trendPercentage > 0 ? '+' : ''}${primaryMetric.trendPercentage}%`
+                  )}
+                </span>
+                <span className="text-gray-600">
+                  vs last period
+                </span>
+              </div>
+              <p className="text-xs text-gray-600 mt-1">
+                Last updated: {new Date(summary.lastGenerated).toLocaleDateString()}
+              </p>
             </CardContent>
           </Card>
         );
       })}
-    </Box>
+    </div>
   );
 }

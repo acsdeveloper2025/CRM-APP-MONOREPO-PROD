@@ -1,39 +1,33 @@
-import React from 'react';
-import { useLocation } from 'react-router-dom';
-import { AppHeader } from '@/ui/navigation/AppHeader';
-import { AppSidebar } from '@/ui/navigation/AppSidebar';
-import { PageShellProvider, usePageShellContext } from '@/ui/layout/PageShellContext';
+import React, { useState } from 'react';
+import { Header } from './Header';
+import { Sidebar } from './Sidebar';
+
 interface LayoutProps {
-    children: React.ReactNode;
+  children: React.ReactNode;
 }
-const LayoutShell: React.FC<LayoutProps> = ({ children }) => {
-    const { config, actions } = usePageShellContext() ?? { config: {}, actions: null };
-    const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false);
-    const location = useLocation();
-    React.useEffect(() => {
-        setMobileSidebarOpen(false);
-    }, [location.pathname, location.search]);
-    React.useEffect(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-        const shellContent = document.querySelector('.ui-page__content');
-        if (shellContent instanceof HTMLElement) {
-            shellContent.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-        }
-    }, [location.pathname, location.search]);
-    return (<div {...{ className: "ui-page ui-root" }}>
-      <div {...{ className: "ui-page__shell" }}>
-        <AppSidebar mobileOpen={mobileSidebarOpen} onClose={() => setMobileSidebarOpen(false)}/>
-        <div {...{ className: "ui-page__content" }}>
-          <AppHeader title={config.title} subtitle={config.subtitle} actions={actions} onMenuToggle={() => setMobileSidebarOpen((current) => !current)}/>
-          <div {...{ className: "ui-page__inner" }} key={`${location.pathname}${location.search}`}>
+
+export const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handleMenuClick = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const handleSidebarClose = () => {
+    setSidebarOpen(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#FAFAFA] overflow-x-hidden">
+      <Sidebar isOpen={sidebarOpen} onClose={handleSidebarClose} />
+      <div className="lg:pl-64 transition-all duration-300 min-h-screen flex flex-col">
+        <Header onMenuClick={handleMenuClick} />
+        <main className="flex-1 py-3 sm:py-4 lg:py-6 animate-fade-in">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-full max-w-none lg:max-w-7xl">
             {children}
           </div>
-        </div>
+        </main>
       </div>
-    </div>);
-};
-export const Layout: React.FC<LayoutProps> = ({ children }) => {
-    return (<PageShellProvider>
-      <LayoutShell>{children}</LayoutShell>
-    </PageShellProvider>);
+    </div>
+  );
 };

@@ -2,11 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/ui/components/Button';
-import { Input } from '@/ui/components/Input';
-import { Textarea } from '@/ui/components/Textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/Card';
-import { Badge } from '@/ui/components/Badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Form,
   FormControl,
@@ -14,14 +14,14 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/ui/components/Form';
+} from '@/components/ui/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
+} from '@/components/ui/select';
 import { ArrowLeft, Send, Loader2, User, Building2, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { useFieldUsers } from '@/hooks/useUsers';
 import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/useClients';
@@ -70,7 +70,7 @@ const TaskAreaSelect: React.FC<{
 
   return (
     <div>
-      <label {...{ className: "text-sm font-medium" }}>Area *</label>
+      <label className="text-sm font-medium">Area *</label>
       <Select
         value={task.areaId || ''}
         onValueChange={(value) => updateTask(task.id, 'areaId', value)}
@@ -95,8 +95,8 @@ const TaskAreaSelect: React.FC<{
         </SelectContent>
       </Select>
       {!task.areaId && (
-        <p {...{ className: "text-sm text-red-600 mt-1" }}>
-          <AlertCircle {...{ className: "h-3 w-3 inline mr-1" }} />
+        <p className="text-sm text-red-600 mt-1">
+          <AlertCircle className="h-3 w-3 inline mr-1" />
           Area is required
         </p>
       )}
@@ -127,7 +127,7 @@ const TaskRateTypeSelect: React.FC<{
 
   return (
     <div>
-      <label {...{ className: "text-sm font-medium" }}>Rate Type *</label>
+      <label className="text-sm font-medium">Rate Type *</label>
       <Select
         value={task.rateTypeId || ''}
         onValueChange={(value) => updateTask(task.id, 'rateTypeId', value)}
@@ -144,13 +144,13 @@ const TaskRateTypeSelect: React.FC<{
         </SelectContent>
       </Select>
       {!task.rateTypeId && (
-        <p {...{ className: "text-sm text-red-600 mt-1" }}>
-          <AlertCircle {...{ className: "h-3 w-3 inline mr-1" }} />
+        <p className="text-sm text-red-600 mt-1">
+          <AlertCircle className="h-3 w-3 inline mr-1" />
           Rate type is required
         </p>
       )}
       {task.rateTypeId && (
-        <p {...{ className: "text-sm text-green-600 mt-1" }}>
+        <p className="text-sm text-green-600 mt-1">
           Rate: ₹{rateTypes.find(rt => rt.id.toString() === task.rateTypeId)?.amount || '0.00'} INR
         </p>
       )}
@@ -467,37 +467,37 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
   };
 
   return (
-    <div {...{ className: "space-y-6" }}>
+    <div className="space-y-6">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} {...{ className: "space-y-6" }}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
           {/* Case Details Section */}
           <Card>
             <CardHeader>
-              <CardTitle {...{ className: "flex items-center gap-2" }}>
-                <Building2 {...{ className: "h-5 w-5" }} />
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
                 Case Details
               </CardTitle>
               <CardDescription>
                 Basic information about the case and customer
               </CardDescription>
             </CardHeader>
-            <CardContent {...{ className: "space-y-4" }}>
+            <CardContent className="space-y-4">
               {/* Customer Info Display */}
-              <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg" }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg">
                 <div>
-                  <p {...{ className: "text-sm font-medium" }}>Customer Name</p>
-                  <p {...{ className: "text-sm text-gray-600" }}>{customerInfo.customerName}</p>
+                  <p className="text-sm font-medium">Customer Name</p>
+                  <p className="text-sm text-gray-600">{customerInfo.customerName}</p>
                 </div>
                 <div>
-                  <p {...{ className: "text-sm font-medium" }}>Phone</p>
-                  <p {...{ className: "text-sm text-gray-600" }}>
+                  <p className="text-sm font-medium">Phone</p>
+                  <p className="text-sm text-gray-600">
                     {customerInfo.mobileNumber || 'Not provided'}
                   </p>
                 </div>
               </div>
 
               {/* Case Form Fields */}
-              <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Client Selection */}
                 <FormField
                   control={form.control}
@@ -572,53 +572,53 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
           {/* Verification Tasks Section */}
           <Card>
             <CardHeader>
-              <CardTitle {...{ className: "flex items-center gap-2" }}>
-                <User {...{ className: "h-5 w-5" }} />
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
                 Verification Tasks
                 <Badge variant="secondary">{tasks.length}</Badge>
               </CardTitle>
               <CardDescription>
                 Define the verification tasks that need to be completed for this case
               </CardDescription>
-              <div {...{ className: "flex justify-end" }}>
+              <div className="flex justify-end">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={addTask}
-                  {...{ className: "flex items-center gap-2" }}
+                  className="flex items-center gap-2"
                 >
-                  <Plus {...{ className: "h-4 w-4" }} />
+                  <Plus className="h-4 w-4" />
                   Add Task
                 </Button>
               </div>
             </CardHeader>
-            <CardContent {...{ className: "space-y-4" }}>
+            <CardContent className="space-y-4">
               {tasks.map((task, index) => (
-                <Card key={task.id} {...{ className: "border-l-4 border-l-blue-500" }}>
-                  <CardHeader {...{ className: "pb-3" }}>
-                    <div {...{ className: "flex items-center justify-between" }}>
-                      <CardTitle {...{ className: "text-lg" }}>Task {index + 1}</CardTitle>
+                <Card key={task.id} className="border-l-4 border-l-blue-500">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">Task {index + 1}</CardTitle>
                       {tasks.length > 1 && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => removeTask(task.id)}
-                          {...{ className: "text-red-600 hover:text-red-700 hover:bg-red-50" }}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
-                          <Trash2 {...{ className: "h-4 w-4" }} />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
                   </CardHeader>
-                  <CardContent {...{ className: "space-y-4" }}>
+                  <CardContent className="space-y-4">
                     {/* Task Fields in Required Order: Applicant Type, Verification Type, Rate Type, Pincode, Area, Trigger, Priority */}
 
                     {/* Row 1: Applicant Type & Verification Type */}
-                    <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label {...{ className: "text-sm font-medium" }}>Applicant Type *</label>
+                        <label className="text-sm font-medium">Applicant Type *</label>
                         <Select
                           value={task.applicantType || ''}
                           onValueChange={(value) => updateTask(task.id, 'applicantType', value)}
@@ -633,15 +633,15 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
                           </SelectContent>
                         </Select>
                         {!task.applicantType && (
-                          <p {...{ className: "text-sm text-red-600 mt-1" }}>
-                            <AlertCircle {...{ className: "h-3 w-3 inline mr-1" }} />
+                          <p className="text-sm text-red-600 mt-1">
+                            <AlertCircle className="h-3 w-3 inline mr-1" />
                             Applicant type is required
                           </p>
                         )}
                       </div>
 
                       <div>
-                        <label {...{ className: "text-sm font-medium" }}>Verification Type *</label>
+                        <label className="text-sm font-medium">Verification Type *</label>
                         <Select
                           value={task.verificationTypeId?.toString() || ''}
                           onValueChange={(value) => updateTask(task.id, 'verificationTypeId', parseInt(value))}
@@ -658,8 +658,8 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
                           </SelectContent>
                         </Select>
                         {!task.verificationTypeId && (
-                          <p {...{ className: "text-sm text-red-600 mt-1" }}>
-                            <AlertCircle {...{ className: "h-3 w-3 inline mr-1" }} />
+                          <p className="text-sm text-red-600 mt-1">
+                            <AlertCircle className="h-3 w-3 inline mr-1" />
                             Verification type is required
                           </p>
                         )}
@@ -675,9 +675,9 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
                     />
 
                     {/* Row 3: Pincode & Area */}
-                    <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label {...{ className: "text-sm font-medium" }}>Pincode *</label>
+                        <label className="text-sm font-medium">Pincode *</label>
                         <Select
                           value={task.pincode || ''}
                           onValueChange={(value) => {
@@ -704,8 +704,8 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
                           </SelectContent>
                         </Select>
                         {!task.pincode && (
-                          <p {...{ className: "text-sm text-red-600 mt-1" }}>
-                            <AlertCircle {...{ className: "h-3 w-3 inline mr-1" }} />
+                          <p className="text-sm text-red-600 mt-1">
+                            <AlertCircle className="h-3 w-3 inline mr-1" />
                             Pincode is required
                           </p>
                         )}
@@ -718,24 +718,24 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
                     </div>
 
                     {/* Row 4: Trigger & Priority */}
-                    <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label {...{ className: "text-sm font-medium" }}>Trigger *</label>
+                        <label className="text-sm font-medium">Trigger *</label>
                         <Input
                           placeholder="Enter trigger"
                           value={task.trigger || ''}
                           onChange={(e) => updateTask(task.id, 'trigger', e.target.value)}
                         />
                         {!task.trigger && (
-                          <p {...{ className: "text-sm text-red-600 mt-1" }}>
-                            <AlertCircle {...{ className: "h-3 w-3 inline mr-1" }} />
+                          <p className="text-sm text-red-600 mt-1">
+                            <AlertCircle className="h-3 w-3 inline mr-1" />
                             Trigger is required
                           </p>
                         )}
                       </div>
 
                       <div>
-                        <label {...{ className: "text-sm font-medium" }}>Priority *</label>
+                        <label className="text-sm font-medium">Priority *</label>
                         <Select
                           value={task.priority}
                           onValueChange={(value) => updateTask(task.id, 'priority', value as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT')}
@@ -754,9 +754,9 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
                     </div>
 
                     {/* Optional Fields */}
-                    <div {...{ className: "grid grid-cols-1 md:grid-cols-2 gap-4" }}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label {...{ className: "text-sm font-medium" }}>Assign To</label>
+                        <label className="text-sm font-medium">Assign To</label>
                         <Select
                           value={task.assignedTo || 'unassigned'}
                           onValueChange={(value) => updateTask(task.id, 'assignedTo', value)}
@@ -776,7 +776,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
                       </div>
 
                       <div>
-                        <label {...{ className: "text-sm font-medium" }}>Document Type</label>
+                        <label className="text-sm font-medium">Document Type</label>
                         <Input
                           placeholder="Enter document type (e.g., Aadhaar Card, PAN Card)"
                           value={task.documentType || ''}
@@ -786,12 +786,12 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
                     </div>
 
                     <div>
-                      <label {...{ className: "text-sm font-medium" }}>Task Address</label>
+                      <label className="text-sm font-medium">Task Address</label>
                       <Textarea
                         placeholder="Enter task-specific address (if different from case address)"
                         value={task.address || ''}
                         onChange={(e) => updateTask(task.id, 'address', e.target.value)}
-                        {...{ className: "min-h-[60px]" }}
+                        className="min-h-[60px]"
                       />
                     </div>
 
@@ -803,10 +803,10 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
           </Card>
 
           {/* Form Actions */}
-          <div {...{ className: "flex items-center justify-between" }}>
+          <div className="flex items-center justify-between">
             {onBack && (
               <Button type="button" variant="outline" onClick={onBack}>
-                <ArrowLeft {...{ className: "h-4 w-4 mr-2" }} />
+                <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
             )}
@@ -814,16 +814,16 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
             <Button
               type="submit"
               disabled={isSubmitting || createCaseMutation.isPending}
-              {...{ className: "ml-auto" }}
+              className="ml-auto"
             >
               {(isSubmitting || createCaseMutation.isPending) ? (
                 <>
-                  <Loader2 {...{ className: "h-4 w-4 mr-2 animate-spin" }} />
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Creating Case...
                 </>
               ) : (
                 <>
-                  <Send {...{ className: "h-4 w-4 mr-2" }} />
+                  <Send className="h-4 w-4 mr-2" />
                   Create Case with Tasks
                 </>
               )}

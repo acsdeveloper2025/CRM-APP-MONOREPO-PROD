@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/ui/components/Card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Check, User, Target } from 'lucide-react';
 import { CustomerInfoStep, type CustomerInfoData } from './CustomerInfoStep';
 import { FullCaseFormStep, type FullCaseFormData } from './FullCaseFormStep';
@@ -13,9 +13,6 @@ import { usePincodes } from '@/hooks/useLocations';
 import { useVerificationTypes } from '@/hooks/useClients';
 import { toast } from 'sonner';
 import type { CaseFormAttachment } from '@/components/attachments/CaseFormAttachmentsSection';
-import { Badge } from '@/ui/components/Badge';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 // Extended type for case updates that might include task ID
 interface UpdateCasePayload extends CreateCaseData {
@@ -657,7 +654,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           decision,
           deduplicationResult.duplicatesFound,
           deduplicationResult.searchCriteria
-         
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ).catch((error: any) => {
           console.error('Error recording deduplication decision (background):', error);
         });
@@ -719,10 +716,11 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
   };
 
   return (
-    <div {...{ className: "max-w-6xl mx-auto space-y-6" }}>
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Progress Stepper */}
       <Card>
-        <CardContent {...{ className: "p-6" }}>
-          <div {...{ className: "flex items-center justify-between" }}>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
             {steps.map((step, index) => {
               const isActive = currentStep === step.id;
               const isCompleted = step.completed;
@@ -730,50 +728,41 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
               return (
                 <React.Fragment key={step.id}>
-                  <Stack direction="horizontal" align="center" gap={2}>
+                  <div className="flex items-center space-x-3">
                     <div
-                      {...{
-                        className: `
-                          flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors
-                          ${isCompleted
-                            ? 'bg-green-500 border-green-500 text-white'
-                            : isActive
-                              ? 'bg-green-500 border-green-500 text-white'
-                              : 'bg-slate-100 dark:bg-slate-800/60 border-border text-gray-600'
-                          }
-                        `,
-                      }}
+                      className={`
+                        flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors
+                        ${isCompleted 
+                          ? 'bg-green-500 border-green-500 text-white' 
+                          : isActive 
+                            ? 'bg-green-500 border-green-500 text-white' 
+                            : 'bg-slate-100 dark:bg-slate-800/60 border-border text-gray-600'
+                        }
+                      `}
                     >
                       {isCompleted ? (
-                        <Check {...{ className: "h-5 w-5" }} />
+                        <Check className="h-5 w-5" />
                       ) : (
-                        <Icon {...{ className: "h-5 w-5" }} />
+                        <Icon className="h-5 w-5" />
                       )}
                     </div>
-                    <Stack gap={1}>
-                      <Stack direction="horizontal" align="center" gap={2} wrap="wrap">
-                        <Text
-                          as="span"
-                          variant="body-sm"
-                          tone={isActive || isCompleted ? 'accent' : 'muted'}
-                          style={{ fontWeight: 700 }}
-                        >
-                          {step.title}
-                        </Text>
-                        {isCompleted ? <Badge variant="status-completed">Done</Badge> : null}
-                        {!isCompleted && isActive ? <Badge variant="status-progress">Active</Badge> : null}
-                      </Stack>
-                      <Text as="span" variant="caption" tone="muted">{step.description}</Text>
-                    </Stack>
-                  </Stack>
+                    <div className="flex flex-col">
+                      <span
+                        className={`text-sm font-medium ${
+                          isActive ? 'text-green-600' : isCompleted ? 'text-green-600' : 'text-gray-600'
+                        }`}
+                      >
+                        {step.title}
+                      </span>
+                      <span className="text-xs text-gray-600">{step.description}</span>
+                    </div>
+                  </div>
                   
                   {index < steps.length - 1 && (
                     <div
-                      {...{
-                        className: `flex-1 h-0.5 mx-4 ${
-                          isCompleted ? 'bg-green-500' : 'bg-slate-100 dark:bg-slate-800/60'
-                        }`,
-                      }}
+                      className={`flex-1 h-0.5 mx-4 ${
+                        isCompleted ? 'bg-green-500' : 'bg-slate-100 dark:bg-slate-800/60'
+                      }`}
                     />
                   )}
                 </React.Fragment>
@@ -784,7 +773,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       </Card>
 
       {/* Step Content */}
-      <div {...{ className: "min-h-[600px]" }}>
+      <div className="min-h-[600px]">
         {currentStep === 'customer-info' && (
           <CustomerInfoStep
             onSearchExisting={handleSearchExisting}

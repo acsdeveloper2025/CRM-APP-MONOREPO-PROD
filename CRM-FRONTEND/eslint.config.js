@@ -39,9 +39,12 @@ export default tseslint.config(
     },
     rules: {
       // TypeScript specific rules - STRICT MODE ENABLED
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
-      '@typescript-eslint/no-empty-object-type': 'off',
+      '@typescript-eslint/no-explicit-any': 'error', // Changed from 'warn' to 'error'
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      }],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-non-null-assertion': 'error', // Changed from 'warn' to 'error'
@@ -64,10 +67,10 @@ export default tseslint.config(
 
       // React Hooks rules - STRICT MODE ENABLED
       'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'off',
+      'react-hooks/exhaustive-deps': 'error', // Changed from 'warn' to 'error'
 
       // React Refresh rules
-      'react-refresh/only-export-components': 'off',
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
 
       // General JavaScript/TypeScript rules
       'no-console': ['warn', { allow: ['warn', 'error'] }],
@@ -123,21 +126,5 @@ export default tseslint.config(
       'no-restricted-globals': 'off',
       'no-restricted-syntax': 'off',
     }
-  },
-  {
-    files: [
-      'src/pages/CasesPage.tsx',
-      'src/pages/CaseDetailPage.tsx',
-      'src/pages/NewCasePage.tsx',
-      'src/components/cases/**/*.tsx',
-    ],
-    rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [
-          '../**/index',
-          '@/components/ui/*',
-        ],
-      }],
-    },
   }
 )

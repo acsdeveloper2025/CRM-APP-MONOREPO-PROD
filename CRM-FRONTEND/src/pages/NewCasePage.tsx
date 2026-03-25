@@ -5,20 +5,14 @@ import { useCase } from '@/hooks/useCases';
 import { usePincodes } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
 import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
 import { attachmentsService } from '@/services/attachments';
 import type { CustomerInfoData } from '@/components/cases/CustomerInfoStep';
 import type { FullCaseFormData } from '@/components/cases/FullCaseFormStep';
+import { LoadingState } from '@/components/ui/loading';
 import type { VerificationTask } from '@/types/verificationTask';
 import type { TaskFormData, CaseLevelFormData } from '@/components/cases/TaskCaseCreationForm';
 import type { CaseFormAttachment } from '@/components/attachments/CaseFormAttachmentsSection';
-import { Badge } from '@/ui/components/Badge';
-import { Button } from '@/ui/components/Button';
-import { Card } from '@/ui/components/Card';
-import { Skeleton } from '@/ui/components/Skeleton';
-import { Page } from '@/ui/layout/Page';
-import { Section } from '@/ui/layout/Section';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
 
 export const NewCasePage: React.FC = () => {
   const navigate = useNavigate();
@@ -257,59 +251,51 @@ export const NewCasePage: React.FC = () => {
 
   if (isEditMode && loadingCase) {
     return (
-      <Page title="Edit Case" subtitle={`Loading case data... (ID: ${editCaseId})`} shell>
-        <Section>
-          <Stack gap={3} align="center" style={{ padding: '48px 0' }}>
-            <Skeleton style={{ width: 60, height: 60, borderRadius: 999 }} />
-            <Text variant="body" tone="muted">Fetching case data...</Text>
-          </Stack>
-        </Section>
-      </Page>
+      <div className="space-y-6">
+        <div className="text-center">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Edit Case</h1>
+          <p className="text-gray-600">Loading case data... (ID: {editCaseId})</p>
+        </div>
+        <LoadingState message="Fetching case data..." size="lg" />
+      </div>
     );
   }
 
   // Debug: Show if we're in edit mode but have no data
   if (isEditMode && !loadingCase && !caseData?.data) {
     return (
-      <Page title="Edit Case" subtitle="Edit mode could not load case data." shell>
-        <Section>
-          <Card tone="strong" staticCard>
-            <Stack gap={3} style={{ textAlign: 'center' }}>
-              <Text as="h2" variant="headline" tone="danger">Edit Mode - No Data</Text>
-              <Stack gap={2}>
-                <Text tone="muted">Edit Case ID: {editCaseId}</Text>
-                <Text tone="muted">Loading: {loadingCase ? 'Yes' : 'No'}</Text>
-                <Text tone="muted">Has Case Data: {caseData?.data ? 'Yes' : 'No'}</Text>
+      <div className="space-y-6">
+        <div className="text-center">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-red-600">Edit Mode - No Data</h1>
+          <div className="text-gray-600 space-y-2">
+            <p>Edit Case ID: {editCaseId}</p>
+            <p>Loading: {loadingCase ? 'Yes' : 'No'}</p>
+            <p>Has Case Data: {caseData?.data ? 'Yes' : 'No'}</p>
             <div>
-                  <Text variant="body-sm">Case Data:</Text>
-              <pre {...{ className: "bg-slate-100 dark:bg-slate-800/60 p-2 rounded text-xs overflow-auto max-h-40 text-left" }}>
+              <p>Case Data:</p>
+              <pre className="bg-slate-100 dark:bg-slate-800/60 p-2 rounded text-xs overflow-auto max-h-40 text-left">
                 {JSON.stringify(caseData, null, 2) || 'null'}
               </pre>
             </div>
-              </Stack>
-              <div>
-                <Button onClick={() => navigate('/cases')}>
-                  Back to Cases
-                </Button>
-              </div>
-            </Stack>
-          </Card>
-        </Section>
-      </Page>
+          </div>
+          <Button onClick={() => navigate('/cases')} className="mt-4">
+            Back to Cases
+          </Button>
+        </div>
+      </div>
     );
   }
 
   // Don't render the form in edit mode until we have initial data
   if (isEditMode && !initialData) {
     return (
-      <Page title="Edit Case" subtitle={`Preparing form data... (ID: ${editCaseId})`} shell>
-        <Section>
-          <Stack gap={3} align="center" style={{ padding: '48px 0' }}>
-            <Skeleton style={{ width: 60, height: 60, borderRadius: 999 }} />
-            <Text variant="body" tone="muted">Preparing form data...</Text>
-          </Stack>
-        </Section>
-      </Page>
+      <div className="space-y-6">
+        <div className="text-center">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Edit Case</h1>
+          <p className="text-gray-600">Preparing form data... (ID: {editCaseId})</p>
+        </div>
+        <LoadingState message="Preparing form data..." size="lg" />
+      </div>
     );
   }
 
@@ -320,65 +306,56 @@ export const NewCasePage: React.FC = () => {
   
   if (isEditMode && isCompleted) {
     return (
-      <Page title="Edit Case" subtitle="Completed cases can no longer be changed." shell>
-        <Section>
-          <Card tone="strong" staticCard>
-            <Stack gap={3} style={{ textAlign: 'center', maxWidth: '34rem', margin: '0 auto' }}>
-              <div>
-                <Badge variant="status-completed">Completed</Badge>
-              </div>
-              <Text as="h2" variant="headline">Cannot Edit Completed Case</Text>
-              <Text tone="muted">
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <div className="max-w-md mx-auto">
+            <div className="mb-4">
+              <span className="inline-block bg-green-100 text-green-800 text-lg px-4 py-2 rounded-md font-medium">
+                COMPLETED
+              </span>
+            </div>
+            <h2 className="text-xl font-bold mb-2">Cannot Edit Completed Case</h2>
+            <p className="text-gray-600 mb-6">
               This case has been marked as completed and can no longer be edited.
               If you need to make changes, please contact your administrator.
-              </Text>
-              <Stack direction="horizontal" gap={2} justify="center" wrap="wrap">
-                <Button onClick={() => navigate(-1)} variant="secondary">
+            </p>
+            <div className="flex gap-2 justify-center">
+              <Button onClick={() => navigate(-1)} variant="outline">
                 Go Back
               </Button>
               <Button onClick={() => navigate(`/cases/${editCaseId}`)}>
                 View Case Details
               </Button>
-              </Stack>
-            </Stack>
-          </Card>
-        </Section>
-      </Page>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
 
 
   return (
-    <Page
-      title={isEditMode ? 'Edit Case' : 'Create New Case'}
-      subtitle={
-        isEditMode
-          ? 'Update the case details using the form below.'
-          : 'Follow the steps below to create a new verification case with duplicate detection.'
-      }
-      shell
-    >
-      <Section>
-        <Stack gap={3}>
-          <Badge variant={isEditMode ? 'warning' : 'accent'}>
-            {isEditMode ? 'Edit Workflow' : 'Case Intake'}
-          </Badge>
-          <Text as="h2" variant="headline">
-            {isEditMode ? 'Resume case editing in the shared shell.' : 'Create a new case without changing the existing stepper logic.'}
-          </Text>
-        </Stack>
-      </Section>
+    <div className="space-y-6">
+      <div className="text-center">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          {isEditMode ? 'Edit Case' : 'Create New Case'}
+        </h1>
+        <p className="text-gray-600">
+          {isEditMode
+            ? 'Update the case details using the form below.'
+            : 'Follow the steps below to create a new verification case with duplicate detection.'
+          }
+        </p>
+      </div>
 
-      <Section>
-        <CaseCreationStepper
+      <CaseCreationStepper
         onSuccess={handleSuccess}
         onCancel={handleCancel}
         editMode={isEditMode}
         editCaseId={editCaseId || undefined}
         initialData={initialData}
       />
-      </Section>
-    </Page>
+    </div>
   );
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button } from '@/ui/components/Button';
+import { Button } from '@/components/ui/button';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import {
   Dialog,
@@ -8,10 +8,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/ui/components/Dialog';
-import { Input } from '@/ui/components/Input';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { locationsService } from '@/services/locations';
 
 interface Area {
@@ -59,7 +58,7 @@ export function EditAreaDialog({ area, open, onOpenChange }: EditAreaDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent style={{ width: 'min(95vw, 425px)' }}>
+      <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Area</DialogTitle>
           <DialogDescription>
@@ -67,11 +66,9 @@ export function EditAreaDialog({ area, open, onOpenChange }: EditAreaDialogProps
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <Stack gap={4} style={{ paddingBlock: 'var(--ui-gap-4)' }}>
-            <Stack gap={2}>
-              <Text as="label" htmlFor="name" variant="label">
-                Area Name
-              </Text>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Area Name</Label>
               <Input
                 id="name"
                 value={name}
@@ -79,24 +76,24 @@ export function EditAreaDialog({ area, open, onOpenChange }: EditAreaDialogProps
                 placeholder="Enter area name"
                 required
               />
-            </Stack>
+            </div>
             {area.usageCount !== undefined && area.usageCount > 0 && (
-              <Text variant="body-sm" tone="muted">
+              <div className="text-sm text-gray-600">
                 This area is currently used in {area.usageCount} pincode(s).
-              </Text>
+              </div>
             )}
-          </Stack>
-          <DialogFooter style={{ display: 'flex', gap: 'var(--ui-gap-2)', flexWrap: 'wrap' }}>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              fullWidth
+                className="w-full sm:w-auto"
               disabled={updateMutation.isPending}
             >
               Cancel
             </Button>
-            <Button type="submit" fullWidth disabled={updateMutation.isPending}>
+            <Button type="submit" disabled={updateMutation.isPending} className="w-full sm:w-auto">
               {updateMutation.isPending ? 'Updating...' : 'Update Area'}
             </Button>
           </DialogFooter>
@@ -105,3 +102,4 @@ export function EditAreaDialog({ area, open, onOpenChange }: EditAreaDialogProps
     </Dialog>
   );
 }
+

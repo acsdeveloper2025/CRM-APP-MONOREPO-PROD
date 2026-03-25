@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { MoreHorizontal, Edit, Trash2, MapPin, Building } from 'lucide-react';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Button } from '@/ui/components/Button';
-import { Badge } from '@/ui/components/Badge';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,7 +9,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/ui/components/DropdownMenu';
+} from '@/components/ui/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -18,9 +17,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/ui/components/Table';
-import { LoadingState } from '@/ui/components/Loading';
-import { formatBadgeLabel } from '@/lib/badgeStyles';
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { LoadingState } from '@/components/ui/loading';
+import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,10 +30,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/ui/components/AlertDialog';
-import { Box } from '@/ui/primitives/Box';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
+} from '@/components/ui/alert-dialog';
 import { locationsService } from '@/services/locations';
 import { Pincode } from '@/types/location';
 import { CascadingEditPincodeDialog } from './CascadingEditPincodeDialog';
@@ -84,19 +81,19 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
 
   if (!data || data.length === 0) {
     return (
-      <Stack gap={3} align="center" style={{ paddingBlock: '3rem', textAlign: 'center' }}>
-        <MapPin size={48} style={{ color: 'var(--ui-text-soft)', opacity: 0.75 }} />
-        <Text as="h3" variant="title">No pincodes found</Text>
-        <Text tone="muted">
+      <div className="text-center py-12">
+        <MapPin className="mx-auto h-12 w-12 text-gray-600" />
+        <h3 className="mt-4 text-lg font-semibold">No pincodes found</h3>
+        <p className="text-gray-600">
           Get started by adding your first pincode.
-        </Text>
-      </Stack>
+        </p>
+      </div>
     );
   }
 
   return (
     <>
-      <Box style={{ overflowX: 'auto', border: '1px solid var(--ui-border)', borderRadius: 'var(--ui-radius-lg)' }}>
+      <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -105,81 +102,69 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
               <TableHead>City</TableHead>
               <TableHead>State</TableHead>
               <TableHead>Created Date</TableHead>
-              <TableHead style={{ textAlign: 'right' }}>Actions</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.map((pincode) => (
               <TableRow key={pincode.id}>
-                <TableCell style={{ fontWeight: 600 }}>
-                  <Stack direction="horizontal" gap={2} align="center">
-                    <Box
-                      style={{
-                        width: '2rem',
-                        height: '2rem',
-                        borderRadius: '999px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'color-mix(in srgb, var(--ui-accent) 12%, transparent)',
-                        color: 'var(--ui-accent)',
-                      }}
-                    >
-                      <MapPin size={16} />
-                    </Box>
-                    <Badge variant="outline">
+                <TableCell className="font-medium">
+                  <div className="flex items-center space-x-2">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <MapPin className="h-4 w-4 text-primary" />
+                    </div>
+                    <Badge className={baseBadgeStyle}>
                       {formatBadgeLabel(pincode.code)}
                     </Badge>
-                  </Stack>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <EnhancedAreaManager pincode={pincode} />
                 </TableCell>
                 <TableCell>
                   {pincode.cityName ? (
-                    <Stack direction="horizontal" gap={1} align="center">
-                      <Building size={12} style={{ color: 'var(--ui-text-soft)' }} />
-                      <Text as="span" variant="body-sm">{pincode.cityName}</Text>
-                    </Stack>
+                    <div className="flex items-center space-x-1">
+                      <Building className="h-3 w-3 text-gray-600" />
+                      <span>{pincode.cityName}</span>
+                    </div>
                   ) : (
-                    <Text as="span" variant="body-sm" tone="muted">No city</Text>
+                    <span className="text-gray-600">No city</span>
                   )}
                 </TableCell>
                 <TableCell>
                   {(pincode.state || (pincode as Pincode & { stateName?: string }).stateName) ? (
-                    <Badge variant="outline">
+                    <Badge className={baseBadgeStyle}>
                       {formatBadgeLabel(
                         pincode.state || (pincode as Pincode & { stateName?: string }).stateName || ''
                       )}
                     </Badge>
                   ) : (
-                    <Text as="span" variant="body-sm" tone="muted">-</Text>
+                    <span className="text-gray-600">-</span>
                   )}
                 </TableCell>
                 <TableCell>
-                  <Text as="span" variant="body-sm" tone="muted">
-                    {new Date(pincode.createdAt).toLocaleDateString()}
-                  </Text>
+                  {new Date(pincode.createdAt).toLocaleDateString()}
                 </TableCell>
-                <TableCell style={{ textAlign: 'right' }}>
+                <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" aria-label="Open actions menu">
-                        <MoreHorizontal size={16} />
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => handleEdit(pincode)}>
-                        <Edit size={16} style={{ marginRight: '0.5rem' }} />
+                        <Edit className="mr-2 h-4 w-4" />
                         Edit Pincode
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => handleDelete(pincode)}
-                        style={{ color: 'var(--ui-danger)' }}
+                        className="text-destructive"
                       >
-                        <Trash2 size={16} style={{ marginRight: '0.5rem' }} />
+                        <Trash2 className="mr-2 h-4 w-4" />
                         Delete Pincode
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -189,7 +174,7 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
             ))}
           </TableBody>
         </Table>
-      </Box>
+      </div>
 
       {/* Edit Pincode Dialog */}
       {selectedPincode && (
@@ -215,7 +200,7 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              style={{ background: 'var(--ui-danger)', color: 'white' }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending ? 'Deleting...' : 'Delete'}

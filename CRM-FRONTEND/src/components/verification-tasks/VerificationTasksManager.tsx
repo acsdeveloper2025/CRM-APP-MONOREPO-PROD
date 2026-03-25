@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader } from '@/ui/components/Card';
-import { Button } from '@/ui/components/Button';
-import { Tabs, TabsList, TabsTrigger } from '@/ui/components/Tabs';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useVerificationTasks } from '@/hooks/useVerificationTasks';
 import { VerificationTasksService } from '@/services/verificationTasks';
 import { VerificationTasksList } from './VerificationTasksList';
@@ -162,19 +162,19 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
 
   if (error) {
     return (
-      <Card {...{ className: "border-red-200" }}>
-        <CardContent {...{ className: "p-6" }}>
-          <div {...{ className: "flex items-center space-x-2 text-red-600" }}>
-            <AlertCircle {...{ className: "h-5 w-5" }} />
+      <Card className="border-red-200">
+        <CardContent className="p-6">
+          <div className="flex items-center space-x-2 text-red-600">
+            <AlertCircle className="h-5 w-5" />
             <span>Error loading verification tasks: {(error as Error).message}</span>
           </div>
           <Button 
             onClick={handleRefresh} 
             variant="outline" 
             size="sm" 
-            {...{ className: "mt-4" }}
+            className="mt-4"
           >
-            <RefreshCw {...{ className: "h-4 w-4 mr-2" }} />
+            <RefreshCw className="h-4 w-4 mr-2" />
             Retry
           </Button>
         </CardContent>
@@ -183,27 +183,27 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
   }
 
   return (
-    <div {...{ className: "space-y-6" }}>
+    <div className="space-y-6">
       {/* Header */}
-      <div {...{ className: "flex items-center justify-between" }}>
+      <div className="flex items-center justify-between">
         <div>
-          <h2 {...{ className: "text-2xl font-bold text-gray-900" }}>
+          <h2 className="text-2xl font-bold text-gray-900">
             Verification Tasks
           </h2>
           {caseNumber && customerName && (
-            <p {...{ className: "text-sm text-gray-600 mt-1" }}>
+            <p className="text-sm text-gray-600 mt-1">
               Case #{caseNumber} - {customerName}
             </p>
           )}
         </div>
         
-        <div {...{ className: "flex items-center space-x-3" }}>
+        <div className="flex items-center space-x-3">
           <Button
             onClick={() => setShowFilters(!showFilters)}
             variant="outline"
             size="sm"
           >
-            <Filter {...{ className: "h-4 w-4 mr-2" }} />
+            <Filter className="h-4 w-4 mr-2" />
             Filters
           </Button>
           
@@ -213,7 +213,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
             size="sm"
             disabled={loading}
           >
-            <RefreshCw {...{ className: `h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}` }} />
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           
@@ -222,7 +222,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
               onClick={() => setShowCreateModal(true)}
               size="sm"
             >
-              <Plus {...{ className: "h-4 w-4 mr-2" }} />
+              <Plus className="h-4 w-4 mr-2" />
               Add Tasks
             </Button>
           )}
@@ -250,25 +250,25 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
 
       {/* Tasks Tabs */}
       <Card>
-        <CardHeader {...{ className: "pb-3" }}>
+        <CardHeader className="pb-3">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList {...{ className: "grid w-full grid-cols-6" }}>
-              <TabsTrigger value="all" {...{ className: "text-xs" }}>
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="all" className="text-xs">
                 All ({tasks.length})
               </TabsTrigger>
-              <TabsTrigger value="pending" {...{ className: "text-xs" }}>
+              <TabsTrigger value="pending" className="text-xs">
                 Pending ({pendingTasks.length})
               </TabsTrigger>
-              <TabsTrigger value="assigned" {...{ className: "text-xs" }}>
+              <TabsTrigger value="assigned" className="text-xs">
                 Assigned ({assignedTasks.length})
               </TabsTrigger>
-              <TabsTrigger value="in-progress" {...{ className: "text-xs" }}>
+              <TabsTrigger value="in-progress" className="text-xs">
                 In Progress ({inProgressTasks.length})
               </TabsTrigger>
-              <TabsTrigger value="completed" {...{ className: "text-xs" }}>
+              <TabsTrigger value="completed" className="text-xs">
                 Completed ({completedTasks.length})
               </TabsTrigger>
-              <TabsTrigger value="revoked" {...{ className: "text-xs" }}>
+              <TabsTrigger value="revoked" className="text-xs">
                 Revoked ({revokedTasks.length})
               </TabsTrigger>
             </TabsList>

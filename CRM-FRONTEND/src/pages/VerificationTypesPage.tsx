@@ -1,20 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, FileCheck, CheckCircle, XCircle, Layers, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { verificationTypesService } from '@/services/verificationTypes';
 import { VerificationTypesTable } from '@/components/clients/VerificationTypesTable';
 import { CreateVerificationTypeDialog } from '@/components/clients/CreateVerificationTypeDialog';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout } from '@/ui/components/UnifiedSearchFilterLayout';
-import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
-import { PaginationStatusCard } from '@/components/shared/PaginationStatusCard';
-import { Badge } from '@/ui/components/Badge';
-import { Button } from '@/ui/components/Button';
-import { Card } from '@/ui/components/Card';
-import { Page } from '@/ui/layout/Page';
-import { Section } from '@/ui/layout/Section';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
+import { UnifiedSearchFilterLayout } from '@/components/ui/unified-search-filter-layout';
 
 export function VerificationTypesPage() {
   const [showCreateVerificationType, setShowCreateVerificationType] = useState(false);
@@ -56,71 +49,99 @@ export function VerificationTypesPage() {
   const stats = statsData?.data || { total: 0, active: 0, inactive: 0, byCategory: {} };
 
   return (
-    <Page
-      title="Verification Types Management"
-      subtitle="Manage verification types, categories, and configuration coverage."
-      shell
-      actions={(
-        <Button icon={<Plus size={16} />} onClick={() => setShowCreateVerificationType(true)}>
-          Add Type
-        </Button>
-      )}
-    >
-      <Section>
-        <Stack gap={3}>
-          <Badge variant="accent">Verification Catalog</Badge>
-          <Text as="h2" variant="headline">Keep type configuration dense and scannable while preserving the existing CRUD flow.</Text>
-          <Text variant="body-sm" tone="muted">
-            The page now shares the same shell, summary rhythm, and pagination treatment as the other management consoles.
-          </Text>
-        </Stack>
-      </Section>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Verification Types Management</h1>
+          <p className="text-gray-600">
+            Manage verification types, categories, and configurations
+          </p>
+        </div>
+      </div>
 
-      <Section>
-        <MetricCardGrid
-          items={[
-            {
-              title: 'Total Types',
-              value: stats.total,
-              detail: 'All types',
-              icon: FileCheck,
-              tone: 'neutral',
-            },
-            {
-              title: 'Active Types',
-              value: stats.active,
-              detail: 'Currently active',
-              icon: CheckCircle,
-              tone: 'positive',
-            },
-            {
-              title: 'Inactive Types',
-              value: stats.inactive,
-              detail: 'Disabled types',
-              icon: XCircle,
-              tone: 'danger',
-            },
-            {
-              title: 'Categories',
-              value: Object.keys(stats.byCategory || {}).length,
-              detail: 'Type categories',
-              icon: Layers,
-              tone: 'accent',
-            },
-            {
-              title: 'With Rates',
-              value: verificationTypes.filter(v => v.hasRates).length,
-              detail: 'Rate mappings',
-              icon: TrendingUp,
-              tone: 'warning',
-            },
-          ]}
-        />
-      </Section>
+      {/* Stats Cards */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Types</CardTitle>
+            <FileCheck className="h-4 w-4 text-gray-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-gray-600">
+              All types
+            </p>
+          </CardContent>
+        </Card>
 
-      <Section>
-        <Card tone="strong" staticCard>
-          <Stack gap={4}>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Types</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.active}</div>
+            <p className="text-xs text-gray-600">
+              Currently active
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Inactive Types</CardTitle>
+            <XCircle className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.inactive}</div>
+            <p className="text-xs text-gray-600">
+              Disabled types
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Categories</CardTitle>
+            <Layers className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{Object.keys(stats.byCategory || {}).length}</div>
+            <p className="text-xs text-gray-600">
+              Type categories
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">With Rates</CardTitle>
+            <TrendingUp className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{verificationTypes.filter(v => v.hasRates).length}</div>
+            <p className="text-xs text-gray-600">
+              Rate mappings
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Verification Types Console</CardTitle>
+              <CardDescription>
+                Create, edit, and manage verification types and configurations
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
             <UnifiedSearchFilterLayout
               searchValue={searchValue}
               onSearchChange={setSearchValue}
@@ -128,32 +149,61 @@ export function VerificationTypesPage() {
               isSearchLoading={isDebouncing}
               searchPlaceholder="Search verification types by name, code or category..."
               showFilters={false}
-              actions={undefined}
+              actions={
+                <Button
+                  size="sm"
+                  onClick={() => setShowCreateVerificationType(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Type
+                </Button>
+              }
             />
 
+            {/* Verification Types Table */}
             <VerificationTypesTable
               data={verificationTypes}
               isLoading={verificationTypesLoading}
             />
 
-            {verificationTypesData?.pagination ? (
-              <PaginationStatusCard
-                page={currentPage}
-                limit={pageSize}
-                total={verificationTypesData.pagination.total}
-                totalPages={verificationTypesData.pagination.totalPages || 1}
-                onPrevious={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                onNext={() => setCurrentPage(prev => prev + 1)}
-              />
-            ) : null}
-          </Stack>
-        </Card>
-      </Section>
+            {/* Pagination Controls */}
+            {verificationTypesData?.pagination && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                <div className="text-sm text-gray-600">
+                  Showing {verificationTypesData.data?.length || 0} of {verificationTypesData.pagination.total} verification types
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="text-sm">
+                    Page {currentPage} of {verificationTypesData.pagination.totalPages || 1}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    disabled={currentPage >= (verificationTypesData.pagination.totalPages || 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
+      {/* Dialogs */}
       <CreateVerificationTypeDialog
         open={showCreateVerificationType}
         onOpenChange={setShowCreateVerificationType}
       />
-    </Page>
+    </div>
   );
 }

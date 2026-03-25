@@ -1,26 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Page } from '@/ui/layout/Page';
-import { Badge } from '@/ui/components/Badge';
-import { Button as Button } from '@/ui/components/Button';
-import { Card } from '@/ui/components/Card';
-import { Section } from '@/ui/layout/Section';
-import { Stack } from '@/ui/primitives/Stack';
-import { Text } from '@/ui/primitives/Text';
-import { MetricCardGrid } from '@/components/shared/MetricCardGrid';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/ui/components/Select';
+} from '@/components/ui/select';
 import { CaseTable } from '@/components/cases/CaseTable';
 import { CasePagination } from '@/components/cases/CasePagination';
 import { useCases, useRefreshCases } from '@/hooks/useCases';
 import { useClients } from '@/hooks/useClients';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/ui/components/UnifiedSearchFilterLayout';
+import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import { Download, Plus, RefreshCw, FileText, Clock, CheckCircle, PlayCircle, AlertTriangle } from 'lucide-react';
 import { casesService, type CaseListQuery } from '@/services/cases';
 import { usePermissionContext } from '@/contexts/PermissionContext';
@@ -154,59 +149,100 @@ export const CasesPage: React.FC = () => {
   } = statistics;
 
   return (
-    <Page
-      shell
-      title="Cases"
-      subtitle="Manage and track all verification cases."
-      actions={
-        <>
-          <Button variant="secondary" onClick={handleRefresh} disabled={isLoading} icon={<RefreshCw size={16} />}>
-            Refresh
-          </Button>
-          <Button variant="secondary" onClick={handleExport} icon={<Download size={16} />}>
-            Export
-          </Button>
-          <Button variant="primary" onClick={handleNewCase} icon={<Plus size={16} />}>
-            New Case
-          </Button>
-        </>
-      }
-    >
-      <Section>
-        <Stack gap={3}>
-          <Badge variant="accent">Case Operations</Badge>
-          <Text as="h2" variant="headline">Keep intake, filtering, and case status review on one operational surface.</Text>
-          <Text variant="body-sm" tone="muted">The list workflow is unchanged; the presentation now follows the shared shell and metric system.</Text>
-        </Stack>
-      </Section>
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      {/* Page Header */}
+      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Cases</h1>
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
+            Manage and track all verification cases
+          </p>
+        </div>
+      </div>
 
-      <Section>
-        <MetricCardGrid
-          items={[
-            { title: 'Total Cases', value: totalCases, detail: 'All verification cases', icon: FileText, tone: 'neutral' },
-            { title: 'Pending', value: pendingCases, detail: 'Awaiting action', icon: Clock, tone: 'warning' },
-            { title: 'In Progress', value: inProgressCases, detail: 'Currently active', icon: PlayCircle, tone: 'info' },
-            { title: 'Completed', value: completedCases, detail: 'Successfully done', icon: CheckCircle, tone: 'positive' },
-            { title: 'Overdue', value: overdueCases, detail: 'More than 2 days old', icon: AlertTriangle, tone: 'danger' },
-          ]}
-        />
-      </Section>
+      {/* Statistics Cards */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Cases</CardTitle>
+            <FileText className="h-4 w-4 text-gray-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalCases}</div>
+            <p className="text-xs text-gray-600">
+              All verification cases
+            </p>
+          </CardContent>
+        </Card>
 
-      <Section>
-        <UnifiedSearchFilterLayout
-          searchValue={searchValue}
-          onSearchChange={setSearchValue}
-          onSearchClear={clearSearch}
-          isSearchLoading={isDebouncing}
-          searchPlaceholder="Search cases by ID, customer name, or description..."
-          hasActiveFilters={hasActiveFilters}
-          activeFilterCount={activeFilterCount}
-          onClearFilters={clearFilters}
-          filterContent={
-            <FilterGrid columns={3}>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{pendingCases}</div>
+            <p className="text-xs text-gray-600">
+              Awaiting action
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+            <PlayCircle className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{inProgressCases}</div>
+            <p className="text-xs text-gray-600">
+              Currently active
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completed</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{completedCases}</div>
+            <p className="text-xs text-gray-600">
+              Successfully done
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{overdueCases}</div>
+            <p className="text-xs text-gray-600">
+              More than 2 days old
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Unified Search and Filter Layout */}
+      <UnifiedSearchFilterLayout
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        onSearchClear={clearSearch}
+        isSearchLoading={isDebouncing}
+        searchPlaceholder="Search cases by ID, customer name, or description..."
+        hasActiveFilters={hasActiveFilters}
+        activeFilterCount={activeFilterCount}
+        onClearFilters={clearFilters}
+        filterContent={
+          <FilterGrid columns={3}>
             {/* Status Filter */}
-            <div {...{ className: "space-y-2" }}>
-              <Text as="label" htmlFor="status" variant="label" tone="soft">Status</Text>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
               <Select
                 value={activeFilters.status || 'all'}
                 onValueChange={(value) => setFilter('status', value === 'all' ? undefined : value)}
@@ -227,8 +263,8 @@ export const CasesPage: React.FC = () => {
             </div>
 
             {/* Priority Filter */}
-            <div {...{ className: "space-y-2" }}>
-              <Text as="label" htmlFor="priority" variant="label" tone="soft">Priority</Text>
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
               <Select
                 value={activeFilters.priority || 'all'}
                 onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
@@ -248,8 +284,8 @@ export const CasesPage: React.FC = () => {
 
             {/* Client Filter */}
             {canViewClientsFilter && (
-              <div {...{ className: "space-y-2" }}>
-                <Text as="label" htmlFor="client" variant="label" tone="soft">Client</Text>
+              <div className="space-y-2">
+                <Label htmlFor="client">Client</Label>
                 <Select
                   value={activeFilters.clientId || 'all'}
                   onValueChange={(value) =>
@@ -270,43 +306,61 @@ export const CasesPage: React.FC = () => {
                 </Select>
               </div>
             )}
-            </FilterGrid>
-          }
-        />
-      </Section>
+          </FilterGrid>
+        }
+        actions={
+          <>
+            <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button variant="outline" onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button onClick={handleNewCase}>
+              <Plus className="h-4 w-4 mr-2" />
+            New Case
+          </Button>
+        </>
+        }
+      />
 
-      <Section>
-        <Card tone="strong" staticCard bodyClassName="p-0">
-          <Stack gap={3} style={{ padding: '24px 24px 0' }}>
-            <Text as="h3" variant="title">Cases</Text>
-            <Text variant="body-sm" tone="muted">
-              {paginationData.total > 0
-                ? `Showing ${paginationData.total} case${paginationData.total === 1 ? '' : 's'}`
-                : 'No cases found'}
-            </Text>
-          </Stack>
-          <div style={{ paddingTop: '24px' }}>
-            <CaseTable
-              cases={cases}
-              isLoading={isLoading}
-            />
+      {/* Cases Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Cases</CardTitle>
+              <CardDescription>
+                {paginationData.total > 0
+                  ? `Showing ${paginationData.total} case${paginationData.total === 1 ? '' : 's'}`
+                  : 'No cases found'
+                }
+              </CardDescription>
+            </div>
           </div>
-        </Card>
-      </Section>
-
-      {paginationData.total > 0 && (
-        <Section>
-          <CasePagination
-            currentPage={paginationData.page}
-            totalPages={paginationData.totalPages}
-            totalItems={paginationData.total}
-            itemsPerPage={paginationData.limit}
-            onPageChange={handlePageChange}
-            onItemsPerPageChange={handleItemsPerPageChange}
+        </CardHeader>
+        <CardContent className="p-0">
+          <CaseTable
+            cases={cases}
             isLoading={isLoading}
           />
-        </Section>
+        </CardContent>
+      </Card>
+
+      {/* Pagination */}
+      {paginationData.total > 0 && (
+        <CasePagination
+          currentPage={paginationData.page}
+          totalPages={paginationData.totalPages}
+          totalItems={paginationData.total}
+          itemsPerPage={paginationData.limit}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+          isLoading={isLoading}
+        />
       )}
-    </Page>
+    </div>
   );
 };
