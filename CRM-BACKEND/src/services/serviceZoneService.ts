@@ -5,18 +5,13 @@ interface ServiceZoneResult {
   serviceZoneId: number;
   serviceZoneName: string;
   slaHours: number;
-  source: 'Specific Rule' | 'Client Default' | 'Global Default' | 'Fallback';
+  source: 'Specific Rule';
 }
 
 export const serviceZoneService = {
   /**
    * Determine the Service Zone for a given context.
-   * Priority:
-   * 1. Specific Rule (Client + Product + Pincode + Area)
-   * 2. Pincode Rule (Client + Product + Pincode)
-   * 3. Client Default (Client + Pincode)
-   * 4. Global Default (Pincode)
-   * 5. Fallback (Outstation)
+   * Strict exact matching only.
    */
   determineServiceZone: async (
     clientId: number,
@@ -25,116 +20,35 @@ export const serviceZoneService = {
     areaId?: number | null
   ): Promise<ServiceZoneResult> => {
     try {
-      // 1. Specific Rule (Client + Product + Pincode + Area)
-      if (areaId) {
-        const specificRule = await query(
-          `SELECT sz.id, sz.name, sz.sla_hours
-           FROM service_zone_rules szr
-           JOIN service_zones sz ON szr.service_zone_id = sz.id
-           WHERE szr.client_id = $1 
-             AND szr.product_id = $2 
-             AND szr.pincode_id = $3 
-             AND szr.area_id = $4
-             AND szr.is_active = true`,
-          [clientId, productId, pincodeId, areaId]
-        );
-
-        if (specificRule.rows[0]) {
-          return {
-            serviceZoneId: specificRule.rows[0].id,
-            serviceZoneName: specificRule.rows[0].name,
-            slaHours: specificRule.rows[0].sla_hours,
-            source: 'Specific Rule',
-          };
-        }
+      if (!areaId) {
+        throw new Error('Area is required to determine service zone.');
       }
 
-      // 2. Pincode Rule (Client + Product + Pincode) - Ignore Area
-      const pincodeRule = await query(
+      const specificRule = await query(
         `SELECT sz.id, sz.name, sz.sla_hours
          FROM service_zone_rules szr
          JOIN service_zones sz ON szr.service_zone_id = sz.id
          WHERE szr.client_id = $1 
            AND szr.product_id = $2 
            AND szr.pincode_id = $3 
-           AND szr.area_id IS NULL
+           AND szr.area_id = $4
            AND szr.is_active = true`,
-        [clientId, productId, pincodeId]
+        [clientId, productId, pincodeId, areaId]
       );
 
-      if (pincodeRule.rows[0]) {
+      if (specificRule.rows[0]) {
         return {
-          serviceZoneId: pincodeRule.rows[0].id,
-          serviceZoneName: pincodeRule.rows[0].name,
-          slaHours: pincodeRule.rows[0].sla_hours,
+          serviceZoneId: specificRule.rows[0].id,
+          serviceZoneName: specificRule.rows[0].name,
+          slaHours: specificRule.rows[0].sla_hours,
           source: 'Specific Rule',
         };
       }
 
-      // 3. Client Default (Client + Pincode) - Ignore Product
-      const clientRule = await query(
-        `SELECT sz.id, sz.name, sz.sla_hours
-         FROM service_zone_rules szr
-         JOIN service_zones sz ON szr.service_zone_id = sz.id
-         WHERE szr.client_id = $1 
-           AND szr.product_id IS NULL 
-           AND szr.pincode_id = $2 
-           AND szr.area_id IS NULL
-           AND szr.is_active = true`,
-        [clientId, pincodeId]
-      );
-
-      if (clientRule.rows[0]) {
-        return {
-          serviceZoneId: clientRule.rows[0].id,
-          serviceZoneName: clientRule.rows[0].name,
-          slaHours: clientRule.rows[0].sla_hours,
-          source: 'Client Default',
-        };
-      }
-
-      // 4. Global Default (Pincode only) - Ignore Client & Product
-      const globalRule = await query(
-        `SELECT sz.id, sz.name, sz.sla_hours
-         FROM service_zone_rules szr
-         JOIN service_zones sz ON szr.service_zone_id = sz.id
-         WHERE szr.client_id IS NULL 
-           AND szr.product_id IS NULL 
-           AND szr.pincode_id = $1 
-           AND szr.area_id IS NULL
-           AND szr.is_active = true`,
-        [pincodeId]
-      );
-
-      if (globalRule.rows[0]) {
-        return {
-          serviceZoneId: globalRule.rows[0].id,
-          serviceZoneName: globalRule.rows[0].name,
-          slaHours: globalRule.rows[0].sla_hours,
-          source: 'Global Default',
-        };
-      }
-
-      // 5. Fallback: Outstation
-      // Ideally we should log a warning here that no rule was found
       logger.warn(
-        `No Service Zone Rule found for Client:${clientId}, Product:${productId}, Pincode:${pincodeId}. Defaulting to Outstation.`
+        `No Service Zone Rule found for Client:${clientId}, Product:${productId}, Pincode:${pincodeId}, Area:${areaId}.`
       );
-
-      const outstationZone = await query(
-        `SELECT id, name, sla_hours FROM service_zones WHERE name = 'Outstation'`
-      );
-
-      if (outstationZone.rows[0]) {
-        return {
-          serviceZoneId: outstationZone.rows[0].id,
-          serviceZoneName: outstationZone.rows[0].name,
-          slaHours: outstationZone.rows[0].sla_hours,
-          source: 'Fallback',
-        };
-      }
-
-      throw new Error('Service Zone setup is incomplete. "Outstation" zone not found.');
+      throw new Error('Service Zone rule not found for the selected territory.');
     } catch (error) {
       logger.error('Error determining service zone:', error);
       throw error;

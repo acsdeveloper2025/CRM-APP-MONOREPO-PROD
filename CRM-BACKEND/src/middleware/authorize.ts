@@ -157,3 +157,25 @@ export const authorize = (permissionCode: string, options?: AuthorizeOptions) =>
     });
   };
 };
+
+export const authorizeAny = (permissionCodes: string[]) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      const response: ApiResponse = {
+        success: false,
+        message: 'Authentication required',
+        error: { code: 'UNAUTHORIZED' },
+      };
+      res.status(401).json(response);
+      return;
+    }
+
+    const allowed = permissionCodes.some(code => hasPermission(req, code));
+    if (!allowed) {
+      forbidden(res, permissionCodes.join('|'));
+      return;
+    }
+
+    next();
+  };
+};

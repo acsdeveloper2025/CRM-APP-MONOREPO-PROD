@@ -155,7 +155,7 @@ export const financialConfigurationValidator = {
 
   /**
    * Step 1: Validate Service Zone Rule
-   * Checks service_zone_rules with cascading priority (no fallback to Outstation)
+   * Checks service_zone_rules using strict exact matching only.
    */
   validateServiceZoneRule: async (
     clientId: number,
@@ -163,58 +163,18 @@ export const financialConfigurationValidator = {
     pincodeId: number,
     areaId?: number | null
   ): Promise<number | null> => {
-    // Priority 1: Specific Rule (Client + Product + Pincode + Area)
-    if (areaId) {
-      const specificRule = await query(
-        `SELECT service_zone_id FROM service_zone_rules
-         WHERE client_id = $1 AND product_id = $2 AND pincode_id = $3 AND area_id = $4
-           AND is_active = true
-         LIMIT 1`,
-        [clientId, productId, pincodeId, areaId]
-      );
-      if (specificRule.rows[0]) {
-        return specificRule.rows[0].service_zone_id;
-      }
+    if (!areaId) {
+      return null;
     }
 
-    // Priority 2: Pincode Rule (Client + Product + Pincode)
-    const pincodeRule = await query(
+    const exactRule = await query(
       `SELECT service_zone_id FROM service_zone_rules
-       WHERE client_id = $1 AND product_id = $2 AND pincode_id = $3 AND area_id IS NULL
+       WHERE client_id = $1 AND product_id = $2 AND pincode_id = $3 AND area_id = $4
          AND is_active = true
        LIMIT 1`,
-      [clientId, productId, pincodeId]
+      [clientId, productId, pincodeId, areaId]
     );
-    if (pincodeRule.rows[0]) {
-      return pincodeRule.rows[0].service_zone_id;
-    }
-
-    // Priority 3: Client Default (Client + Pincode)
-    const clientRule = await query(
-      `SELECT service_zone_id FROM service_zone_rules
-       WHERE client_id = $1 AND product_id IS NULL AND pincode_id = $2 AND area_id IS NULL
-         AND is_active = true
-       LIMIT 1`,
-      [clientId, pincodeId]
-    );
-    if (clientRule.rows[0]) {
-      return clientRule.rows[0].service_zone_id;
-    }
-
-    // Priority 4: Global Default (Pincode only)
-    const globalRule = await query(
-      `SELECT service_zone_id FROM service_zone_rules
-       WHERE client_id IS NULL AND product_id IS NULL AND pincode_id = $1 AND area_id IS NULL
-         AND is_active = true
-       LIMIT 1`,
-      [pincodeId]
-    );
-    if (globalRule.rows[0]) {
-      return globalRule.rows[0].service_zone_id;
-    }
-
-    // NO FALLBACK - Return null to indicate missing configuration
-    return null;
+    return exactRule.rows[0]?.service_zone_id ?? null;
   },
 
   /**

@@ -20,6 +20,7 @@ import {
   getFieldAgentWorkload,
   exportCases,
   getCaseSummaryWithTasks,
+  validateCaseConfiguration,
 } from '@/controllers/casesController';
 import { searchGlobalDuplicates } from '@/controllers/deduplicationController';
 import { VerificationAttachmentController } from '@/controllers/verificationAttachmentController';
@@ -270,6 +271,31 @@ router.get(
 // UNIFIED CASE CREATION ENDPOINT
 // Replaces: POST /, POST /with-attachments, POST /with-multiple-tasks
 // ============================================================================
+router.post(
+  '/config-validation',
+  authorize('case.create'),
+  EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
+  [
+    body('clientId').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
+    body('productId').isInt({ min: 1 }).withMessage('Product ID must be a positive integer'),
+    body('verificationTypeId')
+      .isInt({ min: 1 })
+      .withMessage('Verification type ID must be a positive integer'),
+    body('areaId').isInt({ min: 1 }).withMessage('Area ID must be a positive integer'),
+    body('pincodeId')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Pincode ID must be a positive integer'),
+    body('pincode').optional().trim().notEmpty().withMessage('Pincode must not be empty'),
+    body('rateTypeId')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Rate type ID must be a positive integer'),
+  ],
+  validate,
+  validateCaseConfiguration
+);
+
 router.post(
   '/create',
   authorize('case.create'),

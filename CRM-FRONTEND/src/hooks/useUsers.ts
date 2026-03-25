@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { usersService, type UserQuery } from '@/services/users';
+import { territoryAssignmentsService } from '@/services/territoryAssignments';
 
 // Query keys
 export const userKeys = {
@@ -9,6 +10,8 @@ export const userKeys = {
   details: () => [...userKeys.all, 'detail'] as const,
   detail: (id: string) => [...userKeys.details(), id] as const,
   fieldUsers: () => [...userKeys.all, 'field'] as const,
+  availableFieldUsers: (pincodeId?: number, areaId?: number) =>
+    [...userKeys.fieldUsers(), 'available', pincodeId ?? null, areaId ?? null] as const,
 };
 
 // Get users with filters
@@ -36,6 +39,16 @@ export const useFieldUsers = () => {
     queryKey: userKeys.fieldUsers(),
     queryFn: () => usersService.getFieldUsers(),
     select: (data) => data.data || [],
+  });
+};
+
+export const useAvailableFieldUsers = (pincodeId?: number, areaId?: number) => {
+  const hasPincodeId = typeof pincodeId === 'number' && Number.isFinite(pincodeId) && pincodeId > 0;
+
+  return useQuery({
+    queryKey: userKeys.availableFieldUsers(pincodeId, areaId),
+    queryFn: () => territoryAssignmentsService.getAvailableFieldAgents(pincodeId as number, areaId),
+    enabled: hasPincodeId,
   });
 };
 

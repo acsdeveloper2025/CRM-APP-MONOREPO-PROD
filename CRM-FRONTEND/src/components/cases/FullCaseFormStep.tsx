@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Form,
@@ -22,8 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ArrowLeft, Send, Loader2, User, Building, Settings } from 'lucide-react';
-import { useFieldUsers } from '@/hooks/useUsers';
-import type { User as UserType } from '@/types/user';
+import { useAvailableFieldUsers } from '@/hooks/useUsers';
 import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/useClients';
 import { usePincodes } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
@@ -32,6 +32,7 @@ import { isBackendScopedUser } from '@/utils/userPermissionProfiles';
 import { CaseFormAttachmentsSection, type CaseFormAttachment } from '@/components/attachments/CaseFormAttachmentsSection';
 import type { CustomerInfoData } from './CustomerInfoStep';
 import { rateTypesService } from '@/services/rateTypes';
+import { casesService } from '@/services/cases';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -76,7 +77,6 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   editMode = false
 }) => {
   const { user } = useAuth();
-  const { data: fieldUsers, isLoading: loadingUsers } = useFieldUsers();
   const { data: clientsResponse, isLoading: loadingClients } = useClients();
   const { data: verificationTypesResponse } = useVerificationTypes();
 
@@ -165,6 +165,12 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   // Watch for pincode selection to fetch areas
   const selectedPincodeId = form.watch('pincodeId');
   const selectedAreaId = form.watch('areaId');
+  const selectedPincodeNumber = selectedPincodeId ? parseInt(selectedPincodeId, 10) : undefined;
+  const selectedAreaNumber = selectedAreaId ? parseInt(selectedAreaId, 10) : undefined;
+  const { data: availableFieldUsers = [], isLoading: loadingUsers } = useAvailableFieldUsers(
+    selectedPincodeNumber,
+    selectedAreaNumber
+  );
   // Fetch all pincodes for dropdown (high limit to get all)
 
   // Fetch all pincodes for dropdown (high limit to get all)
@@ -173,22 +179,6 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   const { data: areasResponse } = useAreasByPincode(selectedPincodeId ? parseInt(selectedPincodeId) : undefined);
   const areas = useMemo(() => areasResponse?.data || [], [areasResponse?.data]);
   const areaIds = useMemo(() => areas.map((area) => area.id.toString()), [areas]);
-
-  // Filter field users based on pincode and area access
-  const filteredFieldUsers = useMemo(() => {
-    if (!selectedPincodeId || !selectedAreaId) {
-      return fieldUsers || []; // Show all if no pincode/area selected, default to empty array
-    }
-
-    const pincodeId = parseInt(selectedPincodeId, 10);
-    const areaId = parseInt(selectedAreaId, 10);
-
-    return (fieldUsers || []).filter((user: UserType) => {
-      const hasPincodeAccess = user.assignedPincodes?.includes(pincodeId) ?? false;
-      const hasAreaAccess = user.assignedAreas?.includes(areaId) ?? false;
-      return hasPincodeAccess && hasAreaAccess;
-    });
-  }, [fieldUsers, selectedPincodeId, selectedAreaId]);
 
   // Fetch available rate types when client, product, and verification type are selected
   const { data: availableRateTypesResponse, isLoading: loadingRateTypes } = useQuery({
@@ -205,6 +195,37 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   // Watch for rate type selection to show rate calculation
   const selectedRateTypeId = form.watch('rateTypeId');
   const selectedRateType = availableRateTypes.find(rt => rt.id.toString() === selectedRateTypeId);
+  const shouldValidateConfiguration = Boolean(
+    selectedClientId &&
+      selectedProductId &&
+      selectedVerificationTypeId &&
+      selectedPincodeId &&
+      selectedAreaId
+  );
+
+  const { data: configurationValidationResponse, isLoading: validatingConfiguration } = useQuery({
+    queryKey: [
+      'case-config-validation',
+      selectedClientId,
+      selectedProductId,
+      selectedVerificationTypeId,
+      selectedPincodeId,
+      selectedAreaId,
+      selectedRateTypeId,
+    ],
+    queryFn: () =>
+      casesService.validateConfiguration({
+        clientId: Number(selectedClientId),
+        productId: Number(selectedProductId),
+        verificationTypeId: Number(selectedVerificationTypeId),
+        pincodeId: Number(selectedPincodeId),
+        areaId: Number(selectedAreaId),
+        rateTypeId: selectedRateTypeId ? Number(selectedRateTypeId) : undefined,
+      }),
+    enabled: shouldValidateConfiguration,
+  });
+  const configurationValidation = configurationValidationResponse?.data;
+  const hasConfigurationError = shouldValidateConfiguration && configurationValidation?.isValid === false;
 
   // Clear rate type when client, product, or verification type changes
   useEffect(() => {
@@ -277,6 +298,10 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   const handleSubmit = (data: FullCaseFormData) => {
     if (hasAttachmentValidationErrors) {
       toast.error('Please add all selected files before submitting the form');
+      return;
+    }
+    if (hasConfigurationError) {
+      toast.error(configurationValidation?.errorMessage || 'Complete pricing configuration before submitting');
       return;
     }
     onSubmit(data, attachments);
@@ -685,6 +710,26 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                   )}
                 />
 
+                {shouldValidateConfiguration && (
+                  <div className="col-span-full">
+                    <Alert
+                      variant={hasConfigurationError ? 'destructive' : 'default'}
+                      className={!hasConfigurationError ? 'border-green-200 bg-green-50 text-green-900' : undefined}
+                    >
+                      <AlertDescription>
+                        {validatingConfiguration
+                          ? 'Checking service zone, billing rule, and amount configuration...'
+                          : hasConfigurationError
+                            ? configurationValidation?.errorMessage
+                            : configurationValidation?.resolved.amount !== null &&
+                                configurationValidation?.resolved.amount !== undefined
+                              ? `Configuration ready. Amount available for this selection: ₹${Number(configurationValidation.resolved.amount).toFixed(2)}`
+                              : 'Configuration ready for this selection.'}
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                )}
+
                 {/* Rate Calculation Display */}
                 {selectedRateType && selectedRateType.hasRate && selectedRateType.amount && (
                   <div className="col-span-full">
@@ -748,7 +793,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                             <SelectValue placeholder={
                               !selectedPincodeId || !selectedAreaId
                                 ? "Select pincode and area first"
-                                : filteredFieldUsers.length === 0
+                                : availableFieldUsers.length === 0
                                   ? "No field users available"
                                   : "Select field user"
                             } />
@@ -757,14 +802,14 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                         <SelectContent>
                           {loadingUsers ? (
                             <SelectItem value="loading" disabled>Loading users...</SelectItem>
-                          ) : filteredFieldUsers.length === 0 ? (
+                          ) : availableFieldUsers.length === 0 ? (
                             <SelectItem value="no-users" disabled>
                               {!selectedPincodeId || !selectedAreaId
                                 ? "Please select pincode and area first"
                                 : "No field users have access to this pincode and area"}
                             </SelectItem>
                           ) : (
-                            filteredFieldUsers.map((user) => (
+                            availableFieldUsers.map((user) => (
                               <SelectItem key={user.id} value={String(user.id)}>
                                 {user.name} ({user.email})
                               </SelectItem>
@@ -773,11 +818,14 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                         </SelectContent>
                       </Select>
                       <FormMessage />
-                      {selectedPincodeId && selectedAreaId && filteredFieldUsers.length === 0 && !loadingUsers && (
+                      {selectedPincodeId &&
+                        selectedAreaId &&
+                        availableFieldUsers.length === 0 &&
+                        !loadingUsers && (
                         <p className="text-sm text-amber-600 mt-1">
                           No field users have access to the selected pincode and area
                         </p>
-                      )}
+                        )}
                     </FormItem>
                   )}
                 />
@@ -828,18 +876,37 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
 
             <Button
               type="submit"
-              disabled={isSubmitting || hasAttachmentValidationErrors}
-              className={hasAttachmentValidationErrors ? 'opacity-50' : ''}
+              disabled={
+                isSubmitting ||
+                hasAttachmentValidationErrors ||
+                (shouldValidateConfiguration && (validatingConfiguration || hasConfigurationError))
+              }
+              className={
+                hasAttachmentValidationErrors ||
+                (shouldValidateConfiguration && (validatingConfiguration || hasConfigurationError))
+                  ? 'opacity-50'
+                  : ''
+              }
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   {editMode ? 'Updating Case...' : 'Creating Case...'}
                 </>
+              ) : shouldValidateConfiguration && validatingConfiguration ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Validating Configuration...
+                </>
               ) : hasAttachmentValidationErrors ? (
                 <>
                   <Send className="h-4 w-4 mr-2" />
                   Add Files First
+                </>
+              ) : shouldValidateConfiguration && hasConfigurationError ? (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Fix Configuration
                 </>
               ) : (
                 <>
