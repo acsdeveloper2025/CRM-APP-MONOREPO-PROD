@@ -170,6 +170,7 @@ $RECYCLE.BIN/
 *.db-journal
 *.db-wal
 *.db-shm
+!CRM-BACKEND/migrations/*.sql
 
 # =====================================================
 # SECURITY & SENSITIVE FILES
@@ -293,11 +294,11 @@ CaseFlow-Mobile-*.apk
 # =====================================================
 # DATABASE MIGRATION FILES
 # =====================================================
-# Database dumps and migration files should not be committed
-# Use proper migration tools and version control for schema changes
+# Database dumps should not be committed. App migrations are versioned.
 *.sql
 *.dump
 *.dump.*
+!CRM-BACKEND/migrations/*.sql
 db/*.sql
 db/*.dump
 db/*.dump.*
