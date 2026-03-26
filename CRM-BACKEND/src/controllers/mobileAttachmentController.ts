@@ -37,7 +37,7 @@ async function generateBase64WithChecksum(
 
     return { base64Data, checksum };
   } catch (error) {
-    console.error(`❌ Failed to generate base64 for file: ${filePath}`, error);
+    logger.error(`❌ Failed to generate base64 for file: ${filePath}`, error);
     throw new Error(`Failed to encode attachment: ${error.message}`);
   }
 }
@@ -294,7 +294,7 @@ export class MobileAttachmentController {
             userAgent: req.get('User-Agent'),
           });
         } catch (fileError) {
-          console.error(`Error processing file ${file.originalname}:`, fileError);
+          logger.error(`Error processing file ${file.originalname}:`, fileError);
           // Clean up the file
           await fs.unlink(file.path).catch(() => {});
         }
@@ -306,7 +306,7 @@ export class MobileAttachmentController {
         data: uploadedAttachments,
       });
     } catch (error) {
-      console.error('Mobile file upload error:', error);
+      logger.error('Mobile file upload error:', error);
 
       // Clean up uploaded files on error
       if (req.files) {
@@ -472,7 +472,7 @@ export class MobileAttachmentController {
               `📦 Included base64 data for attachment ${att.id} (${att.originalName}), size: ${base64Data.length} chars`
             );
           } catch (error) {
-            console.error(`⚠️ Failed to generate base64 for attachment ${att.id}:`, error);
+            logger.error(`⚠️ Failed to generate base64 for attachment ${att.id}:`, error);
             // Continue without base64 data - client can fetch it later if needed
           }
         }
@@ -490,7 +490,7 @@ export class MobileAttachmentController {
         data: mobileAttachments,
       });
     } catch (error) {
-      console.error('Get case attachments error:', error);
+      logger.error('Get case attachments error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -637,7 +637,7 @@ export class MobileAttachmentController {
         userAgent: req.get('User-Agent'),
       });
     } catch (error) {
-      console.error('Get attachment content error:', error);
+      logger.error('Get attachment content error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -756,7 +756,7 @@ export class MobileAttachmentController {
         message: 'Attachment deleted successfully',
       });
     } catch (error) {
-      console.error('Delete attachment error:', error);
+      logger.error('Delete attachment error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -930,7 +930,7 @@ export class MobileAttachmentController {
         },
       });
     } catch (error) {
-      console.error('Batch attachments error:', error);
+      logger.error('Batch attachments error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',

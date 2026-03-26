@@ -5,6 +5,8 @@
  * and database columns for Property APF verification forms.
  */
 
+import { logger } from '@/config/logger';
+
 export interface DatabaseFieldMapping {
   [mobileField: string]: string | null; // null means field should be ignored
 }
@@ -587,7 +589,7 @@ export function ensureAllPropertyApfFieldsPopulated(
     if (completeData[field] === undefined || completeData[field] === null) {
       if (relevantFields.includes(field)) {
         // Field is relevant for this form type but missing - this might indicate an issue
-        console.warn(`⚠️ Missing relevant field for ${formType} Property APF form: ${field}`);
+        logger.warn(`⚠️ Missing relevant field for ${formType} Property APF form: ${field}`);
       }
 
       // Set default value (NULL for all missing fields)

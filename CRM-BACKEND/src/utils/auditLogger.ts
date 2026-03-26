@@ -1,4 +1,5 @@
 import { query } from '@/config/database';
+import { logger } from '@/config/logger';
 
 export interface AuditLogData {
   action: string;
@@ -26,7 +27,7 @@ export const createAuditLog = async (data: AuditLogData): Promise<void> => {
       ]
     );
   } catch (error) {
-    console.error('Failed to create audit log:', error);
+    logger.error('Failed to create audit log:', error);
     // Don't throw error to avoid breaking the main operation
   }
 };

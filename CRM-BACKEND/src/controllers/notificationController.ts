@@ -754,11 +754,11 @@ export class NotificationController {
       });
     } catch (error) {
       logger.error('Register notification token error:', error);
-      console.error(
+      logger.error(
         '❌ REGISTER TOKEN FULL ERROR:',
         JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
       );
-      console.error(
+      logger.error(
         '❌ FULL ERROR DETAILS:',
         JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
       );
@@ -881,7 +881,7 @@ export class NotificationController {
       });
     } catch (error) {
       logger.error('Send test notification error:', error);
-      console.error(
+      logger.error(
         '❌ SEND TEST NOTIFICATION FULL ERROR:',
         JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
       );

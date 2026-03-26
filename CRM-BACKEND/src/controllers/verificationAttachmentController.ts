@@ -35,7 +35,7 @@ const storage = multer.diskStorage({
             caseId = taskResult.rows[0].case_id;
           }
         } catch (error) {
-          console.error('Error resolving caseId from taskId in storage:', error);
+          logger.error('Error resolving caseId from taskId in storage:', error);
         } finally {
           const uploadDir = path.join(
             process.cwd(),
@@ -439,12 +439,12 @@ export class VerificationAttachmentController {
             geoLocation,
           });
         } catch (fileError) {
-          console.error(`Error processing file ${file.originalname}:`, fileError);
+          logger.error(`Error processing file ${file.originalname}:`, fileError);
           // Clean up file on error
           try {
             await fs.unlink(file.path);
           } catch (unlinkError) {
-            console.error('Error cleaning up file:', unlinkError);
+            logger.error('Error cleaning up file:', unlinkError);
           }
         }
       }
@@ -494,7 +494,7 @@ export class VerificationAttachmentController {
         }
       );
     } catch (error) {
-      console.error('Upload verification images error:', error);
+      logger.error('Upload verification images error:', error);
       const retryCount = Number(req.body?.retry_count || req.body?.retryCount || 0);
       if (retryCount > 0) {
         void MobileTelemetryService.increment('retry_count', retryCount, {
@@ -647,7 +647,7 @@ export class VerificationAttachmentController {
         data: attachments,
       });
     } catch (error) {
-      console.error('Get verification images error:', error);
+      logger.error('Get verification images error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -739,7 +739,7 @@ export class VerificationAttachmentController {
           res.setHeader('Content-Length', watermarkedBuffer.length.toString());
           return res.end(watermarkedBuffer);
         } catch (watermarkError) {
-          console.error(
+          logger.error(
             'Watermark generation failed, serving original verification image:',
             watermarkError
           );
@@ -750,7 +750,7 @@ export class VerificationAttachmentController {
       const fileStream = fsSync.createReadStream(filePath);
       fileStream.pipe(res);
     } catch (error) {
-      console.error('Error serving verification image:', error);
+      logger.error('Error serving verification image:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -821,7 +821,7 @@ export class VerificationAttachmentController {
       const fileStream = fsSync.createReadStream(thumbnailPath);
       fileStream.pipe(res);
     } catch (error) {
-      console.error('Error serving verification thumbnail:', error);
+      logger.error('Error serving verification thumbnail:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',

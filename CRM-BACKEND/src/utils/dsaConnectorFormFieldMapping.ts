@@ -5,6 +5,8 @@
  * and database columns for DSA/DST Connector verification forms.
  */
 
+import { logger } from '@/config/logger';
+
 export interface DatabaseFieldMapping {
   [mobileField: string]: string | null; // null means field should be ignored
 }
@@ -595,7 +597,7 @@ export function ensureAllDsaConnectorFieldsPopulated(
     if (completeData[field] === undefined || completeData[field] === null) {
       if (relevantFields.includes(field)) {
         // Field is relevant for this form type but missing - this might indicate an issue
-        console.warn(`⚠️ Missing relevant field for ${formType} DSA Connector form: ${field}`);
+        logger.warn(`⚠️ Missing relevant field for ${formType} DSA Connector form: ${field}`);
       }
 
       // Set default value (NULL for all missing fields)

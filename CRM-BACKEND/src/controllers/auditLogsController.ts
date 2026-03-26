@@ -331,7 +331,7 @@ export const createMobileAuditLogs = (req: AuthenticatedRequest, res: Response) 
       });
     }
 
-    console.info(`📝 Processing ${logs.length} mobile audit logs (batch: ${batchId})`);
+    logger.info(`📝 Processing ${logs.length} mobile audit logs (batch: ${batchId})`);
 
     // Process each log in the batch
     const processedLogs = logs.map(log => ({
@@ -359,7 +359,7 @@ export const createMobileAuditLogs = (req: AuthenticatedRequest, res: Response) 
     // Add to mock storage (replace with actual database operations)
     auditLogs.push(...processedLogs);
 
-    console.info(`✅ Successfully processed ${processedLogs.length} mobile audit logs`);
+    logger.info(`✅ Successfully processed ${processedLogs.length} mobile audit logs`);
 
     res.status(201).json({
       success: true,
@@ -368,7 +368,7 @@ export const createMobileAuditLogs = (req: AuthenticatedRequest, res: Response) 
       processed: processedLogs.length,
     });
   } catch (error) {
-    console.error('Error creating mobile audit logs:', error);
+    logger.error('Error creating mobile audit logs:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create mobile audit logs',

@@ -1,5 +1,6 @@
 import type { Response } from 'express';
 import { query } from '@/config/database';
+import { logger } from '@/config/logger';
 import type {
   MobileLocationCaptureRequest,
   MobileLocationValidationRequest,
@@ -232,7 +233,7 @@ export class MobileLocationController {
         },
       });
     } catch (error) {
-      console.error('Capture location error:', error);
+      logger.error('Capture location error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -305,7 +306,7 @@ export class MobileLocationController {
             };
           }
         } catch (geocodeError) {
-          console.error('Geocoding error:', geocodeError);
+          logger.error('Geocoding error:', geocodeError);
           // Continue with basic validation
         }
       }
@@ -316,7 +317,7 @@ export class MobileLocationController {
         data: validationResult,
       });
     } catch (error) {
-      console.error('Validate location error:', error);
+      logger.error('Validate location error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -384,7 +385,7 @@ export class MobileLocationController {
         },
       });
     } catch (error) {
-      console.error('Reverse geocode error:', error);
+      logger.error('Reverse geocode error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -453,7 +454,7 @@ export class MobileLocationController {
         data: formattedHistory,
       });
     } catch (error) {
-      console.error('Get case location history error:', error);
+      logger.error('Get case location history error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -482,7 +483,7 @@ export class MobileLocationController {
 
       return mockAddresses[Math.floor(Math.random() * mockAddresses.length)];
     } catch (error) {
-      console.error('Reverse geocoding error:', error);
+      logger.error('Reverse geocoding error:', error);
       return null;
     }
   }
@@ -561,7 +562,7 @@ export class MobileLocationController {
         data: formattedTrail,
       });
     } catch (error) {
-      console.error('Get user location trail error:', error);
+      logger.error('Get user location trail error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',

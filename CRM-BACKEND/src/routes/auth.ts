@@ -6,6 +6,7 @@ import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
 import { authRateLimit } from '@/middleware/rateLimiter';
 import { EnterpriseRateLimit } from '@/middleware/enterpriseRateLimit';
+import { logger } from '@/config/logger';
 
 const router = Router();
 
@@ -46,7 +47,7 @@ const resetRateLimit = async (req: Request, res: Response) => {
       });
     }
   } catch (error) {
-    console.error('Rate limit reset error:', error);
+    logger.error('Rate limit reset error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -95,7 +96,7 @@ const resetUserRateLimit = async (req: Request, res: Response) => {
       data: { resetCount, userId },
     });
   } catch (error) {
-    console.error('User rate limit reset error:', error);
+    logger.error('User rate limit reset error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',

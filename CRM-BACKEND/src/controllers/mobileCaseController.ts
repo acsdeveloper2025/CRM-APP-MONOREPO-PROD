@@ -505,7 +505,7 @@ export class MobileCaseController {
         },
       });
     } catch (error) {
-      console.error('Get mobile cases error:', error);
+      logger.error('Get mobile cases error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -725,7 +725,7 @@ export class MobileCaseController {
         data: mobileCase,
       });
     } catch (error) {
-      console.error('Get mobile case error:', error);
+      logger.error('Get mobile case error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -844,7 +844,7 @@ export class MobileCaseController {
           `🔔 WebSocket notifications sent for case ${actualCaseId} status change: ${existingCase.status} -> ${status}`
         );
       } catch (error) {
-        console.error('Error sending WebSocket notifications:', error);
+        logger.error('Error sending WebSocket notifications:', error);
         // Don't fail the case update if WebSocket notification fails
       }
 
@@ -863,7 +863,7 @@ export class MobileCaseController {
         },
       });
     } catch (error) {
-      console.error('Update case status error:', error);
+      logger.error('Update case status error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -947,7 +947,7 @@ export class MobileCaseController {
         },
       });
     } catch (error) {
-      console.error('Update case priority error:', error);
+      logger.error('Update case priority error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -1034,7 +1034,7 @@ export class MobileCaseController {
 
       res.json(response);
     } catch (error) {
-      console.error('Auto-save form error:', error);
+      logger.error('Auto-save form error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -1113,7 +1113,7 @@ export class MobileCaseController {
         },
       });
     } catch (error) {
-      console.error('Get auto-saved form error:', error);
+      logger.error('Get auto-saved form error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -1222,7 +1222,7 @@ export class MobileCaseController {
         },
       });
     } catch (error) {
-      console.error('Add case note error:', error);
+      logger.error('Add case note error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -1382,7 +1382,7 @@ export class MobileCaseController {
         },
       });
     } catch (error) {
-      console.error('Revoke case error:', error);
+      logger.error('Revoke case error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -1462,7 +1462,7 @@ export class MobileCaseController {
         },
       });
     } catch (error) {
-      console.error('Get task status error:', error);
+      logger.error('Get task status error:', error);
       return res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -1583,7 +1583,7 @@ export class MobileCaseController {
         data: updatedTask,
       });
     } catch (error) {
-      console.error('Start task error:', error);
+      logger.error('Start task error:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to start task',
@@ -1737,7 +1737,7 @@ export class MobileCaseController {
         warnings: validation.warnings,
       });
     } catch (error) {
-      console.error('Complete task error:', error);
+      logger.error('Complete task error:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to complete task',
@@ -1957,7 +1957,7 @@ export class MobileCaseController {
         },
       });
     } catch (error) {
-      console.error('Revoke task error:', error);
+      logger.error('Revoke task error:', error);
       res.status(500).json({
         success: false,
         message:

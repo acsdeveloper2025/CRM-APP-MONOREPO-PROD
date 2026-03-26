@@ -1200,7 +1200,7 @@ export const autoCalculateCommissionForCase = async (caseId: string): Promise<bo
 
     return true;
   } catch (error) {
-    console.error(`❌ Error auto-calculating commission for case ${caseId}:`, error);
+    logger.error(`❌ Error auto-calculating commission for case ${caseId}:`, error);
     return false;
   }
 };
@@ -1355,7 +1355,7 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
 
     return true;
   } catch (error) {
-    console.error(`❌ Error auto-calculating commission for task ${taskId}:`, error);
+    logger.error(`❌ Error auto-calculating commission for task ${taskId}:`, error);
     return false;
   }
 };
