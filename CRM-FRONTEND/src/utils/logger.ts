@@ -10,6 +10,7 @@ function noop(..._args: unknown[]): void {
   // intentionally empty — suppresses logs in production
 }
 
+/* eslint-disable no-console -- Logger facade intentionally wraps console methods */
 export const logger = {
   debug: IS_DEV ? console.debug.bind(console) : noop,
   info: IS_DEV ? console.info.bind(console) : noop,
@@ -17,3 +18,4 @@ export const logger = {
   warn: console.warn.bind(console),
   error: console.error.bind(console),
 };
+/* eslint-enable no-console */

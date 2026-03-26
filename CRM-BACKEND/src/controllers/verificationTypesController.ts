@@ -81,7 +81,10 @@ export const getVerificationTypeById = async (req: AuthenticatedRequest, res: Re
   try {
     const { id } = req.params;
 
-    const vtRes2 = await query(`SELECT id, name, code, description, "isActive", "createdAt", "updatedAt" FROM "verificationTypes" WHERE id = $1`, [Number(id)]);
+    const vtRes2 = await query(
+      `SELECT id, name, code, description, "isActive", "createdAt", "updatedAt" FROM "verificationTypes" WHERE id = $1`,
+      [Number(id)]
+    );
     const verificationType = vtRes2.rows[0];
     if (!verificationType) {
       return res.status(404).json({
@@ -159,7 +162,10 @@ export const updateVerificationType = async (req: AuthenticatedRequest, res: Res
     const updateData = req.body;
 
     // Check if verification type exists
-    const exRes2 = await query(`SELECT id, name, code, description, "isActive", "createdAt", "updatedAt" FROM "verificationTypes" WHERE id = $1`, [id]);
+    const exRes2 = await query(
+      `SELECT id, name, code, description, "isActive", "createdAt", "updatedAt" FROM "verificationTypes" WHERE id = $1`,
+      [id]
+    );
     const existingVerificationType = exRes2.rows[0];
 
     if (!existingVerificationType) {
@@ -239,7 +245,10 @@ export const deleteVerificationType = async (req: AuthenticatedRequest, res: Res
     const { id } = req.params;
 
     // Check if verification type exists
-    const exRes3 = await query(`SELECT id, name, code, description, "isActive", "createdAt", "updatedAt" FROM "verificationTypes" WHERE id = $1`, [id]);
+    const exRes3 = await query(
+      `SELECT id, name, code, description, "isActive", "createdAt", "updatedAt" FROM "verificationTypes" WHERE id = $1`,
+      [id]
+    );
     const existingVerificationType = exRes3.rows[0];
 
     if (!existingVerificationType) {

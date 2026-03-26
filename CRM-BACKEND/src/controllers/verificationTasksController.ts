@@ -1521,9 +1521,10 @@ export class VerificationTasksController {
       await client.query('BEGIN');
 
       // Get current task details
-      const taskResult = await client.query('SELECT id, case_id, verification_type_id, status, assigned_to, address, city, state, pincode, latitude, longitude, priority, due_date, completed_at, created_at, updated_at FROM verification_tasks WHERE id = $1', [
-        taskId,
-      ]);
+      const taskResult = await client.query(
+        'SELECT id, case_id, verification_type_id, status, assigned_to, address, city, state, pincode, latitude, longitude, priority, due_date, completed_at, created_at, updated_at FROM verification_tasks WHERE id = $1',
+        [taskId]
+      );
 
       if (taskResult.rows.length === 0) {
         await client.query('ROLLBACK');

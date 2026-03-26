@@ -226,7 +226,10 @@ export const updateDocumentType = async (req: AuthenticatedRequest, res: Respons
     const updateData = req.body;
 
     // Check if document type exists
-    const existingResult = await query(`SELECT id, name, description, "isActive", "createdAt", "updatedAt" FROM "documentTypes" WHERE id = $1`, [Number(id)]);
+    const existingResult = await query(
+      `SELECT id, name, description, "isActive", "createdAt", "updatedAt" FROM "documentTypes" WHERE id = $1`,
+      [Number(id)]
+    );
 
     if (existingResult.rows.length === 0) {
       return res.status(404).json({
@@ -340,7 +343,10 @@ export const deleteDocumentType = async (req: AuthenticatedRequest, res: Respons
     const id = String(req.params.id || '');
 
     // Check if document type exists
-    const existingResult = await query(`SELECT id, name, description, "isActive", "createdAt", "updatedAt" FROM "documentTypes" WHERE id = $1`, [Number(id)]);
+    const existingResult = await query(
+      `SELECT id, name, description, "isActive", "createdAt", "updatedAt" FROM "documentTypes" WHERE id = $1`,
+      [Number(id)]
+    );
 
     if (existingResult.rows.length === 0) {
       return res.status(404).json({
