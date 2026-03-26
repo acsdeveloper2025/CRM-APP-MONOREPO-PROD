@@ -488,6 +488,21 @@ export const startMetricsCleanup = () => {
   }, CLEANUP_INTERVAL);
 };
 
+/**
+ * Stop all monitoring intervals — call during graceful shutdown to prevent
+ * interval leaks and DB writes after pool is closed.
+ */
+export const stopMonitoringIntervals = () => {
+  if (healthMonitoringInterval) {
+    clearInterval(healthMonitoringInterval);
+    healthMonitoringInterval = null;
+  }
+  if (metricsCleanupInterval) {
+    clearInterval(metricsCleanupInterval);
+    metricsCleanupInterval = null;
+  }
+};
+
 export default {
   performanceMonitoring,
   memoryMonitoring,
