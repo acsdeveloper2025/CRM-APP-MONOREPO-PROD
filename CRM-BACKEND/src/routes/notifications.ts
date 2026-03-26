@@ -114,8 +114,8 @@ const notificationIdValidation = [
 const _getNotificationsValidation = [
   body('limit')
     .optional()
-    .isInt({ min: 1, max: 100 })
-    .withMessage('Limit must be between 1 and 100'),
+    .isInt({ min: 1, max: 500 })
+    .withMessage('Limit must be between 1 and 500'),
   body('offset').optional().isInt({ min: 0 }).withMessage('Offset must be a non-negative integer'),
   body('unreadOnly').optional().isBoolean().withMessage('Unread only must be a boolean'),
 ];

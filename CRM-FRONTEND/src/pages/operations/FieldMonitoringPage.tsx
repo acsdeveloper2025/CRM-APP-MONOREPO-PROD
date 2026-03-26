@@ -47,9 +47,9 @@ import {
   type FieldMonitoringRosterItem,
 } from '@/services/fieldMonitoring';
 
-const REFRESH_INTERVAL = 30_000;
+const REFRESH_INTERVAL = 60_000; // 60s refresh for 1000+ field users (was 30s)
 const PAGE_SIZE = 20;
-const MAP_PAGE_SIZE = 500;
+const MAP_PAGE_SIZE = 200; // Reduced from 500 for better map performance at scale
 const STATUS_OPTIONS: FieldMonitoringLiveStatus[] = [
   'Idle',
   'Travelling',

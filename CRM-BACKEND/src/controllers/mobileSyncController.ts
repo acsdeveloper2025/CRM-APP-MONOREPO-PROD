@@ -54,7 +54,7 @@ import { TaskRevocationService } from '../services/taskRevocationService';
 import { MobileTelemetryService } from '@/services/mobileTelemetryService';
 
 export class MobileSyncController {
-  private static readonly MAX_SYNC_PAGE_SIZE = 200;
+  private static readonly MAX_SYNC_PAGE_SIZE = 500;
 
   static async downloadChanges(this: void, req: AuthenticatedRequest, res: Response) {
     const since = (req.query.since as string) || '';

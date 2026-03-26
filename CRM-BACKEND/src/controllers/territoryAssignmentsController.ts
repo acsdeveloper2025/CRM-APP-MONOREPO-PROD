@@ -82,7 +82,7 @@ export const getFieldAgentTerritories = async (req: AuthenticatedRequest, res: R
 
     // Calculate pagination
     const pageNum = Math.max(1, parseInt(page as string));
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string)));
+    const limitNum = Math.min(500, Math.max(1, parseInt(limit as string)));
     const offset = (pageNum - 1) * limitNum;
 
     // Get field agents with territory assignments using the view

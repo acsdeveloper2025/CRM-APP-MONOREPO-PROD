@@ -68,9 +68,10 @@ export function ServiceZoneRulesTab() {
     queryFn: () => productsService.getProductsByClient(formState.clientId),
     enabled: Boolean(formState.clientId),
   });
+  const [pincodeSearchQuery, setPincodeSearchQuery] = useState('');
   const { data: pincodesResponse } = useQuery({
-    queryKey: ['service-zone-pincodes'],
-    queryFn: () => locationsService.getPincodes({ limit: 10000 }),
+    queryKey: ['service-zone-pincodes', pincodeSearchQuery],
+    queryFn: () => locationsService.getPincodes({ search: pincodeSearchQuery || undefined, limit: 30 }),
   });
   const { data: areasResponse } = useQuery({
     queryKey: ['service-zone-areas', formState.pincodeId],
@@ -266,6 +267,15 @@ export function ServiceZoneRulesTab() {
                   <SelectValue placeholder="Select pincode" />
                 </SelectTrigger>
                 <SelectContent>
+                  <div className="px-2 pb-2">
+                    <Input
+                      placeholder="Search pincode..."
+                      value={pincodeSearchQuery}
+                      onChange={(e) => setPincodeSearchQuery(e.target.value)}
+                      className="h-8 text-sm"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
                   {pincodes.map((pincode) => (
                     <SelectItem key={pincode.id} value={String(pincode.id)}>
                       {pincode.code}

@@ -1994,7 +1994,7 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
       WHERE vt.case_id = $1 AND vt.status = 'COMPLETED'
 
       ORDER BY timestamp DESC
-      LIMIT 10
+      LIMIT 50
     `,
       [caseId]
     );

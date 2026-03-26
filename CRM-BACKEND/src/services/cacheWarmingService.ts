@@ -307,7 +307,7 @@ export class CacheWarmingService {
         LEFT JOIN clients cl ON c."clientId" = cl.id
         WHERE c.status = 'PENDING'
         ORDER BY c."createdAt" DESC
-        LIMIT 100
+        LIMIT 500
       `);
 
       await EnterpriseCacheService.set('cases:recent:pending', pendingResult.rows, 300); // 5 minutes
@@ -323,7 +323,7 @@ export class CacheWarmingService {
         LEFT JOIN clients cl ON c."clientId" = cl.id
         WHERE c.status = 'IN_PROGRESS'
         ORDER BY c."createdAt" DESC
-        LIMIT 100
+        LIMIT 500
       `);
 
       await EnterpriseCacheService.set('cases:recent:in-progress', inProgressResult.rows, 300); // 5 minutes

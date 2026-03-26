@@ -2,7 +2,28 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
 
 const GOOGLE_MAPS_SCRIPT_ID = 'crm-google-maps-script';
+const MARKERCLUSTERER_SCRIPT_ID = 'crm-markerclusterer-script';
 const getGoogleMapsApiKey = (): string => import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim() || '';
+
+// Marker clustering for 200+ markers at enterprise scale
+const loadMarkerClustererScript = async (): Promise<void> => {
+  if ((window as Record<string, unknown>).MarkerClusterer) {
+    return;
+  }
+  const existing = document.getElementById(MARKERCLUSTERER_SCRIPT_ID);
+  if (existing) {
+    return;
+  }
+  return new Promise<void>((resolve, reject) => {
+    const script = document.createElement('script');
+    script.id = MARKERCLUSTERER_SCRIPT_ID;
+    script.async = true;
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/js-marker-clusterer/1.0.0/markerclusterer_compiled.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load MarkerClusterer'));
+    document.head.appendChild(script);
+  });
+};
 
 type GoogleMapsWindow = Window & {
   google?: {
@@ -130,6 +151,8 @@ export function GoogleMarkerMap({
   const mapRef = useRef<GoogleMapInstance | null>(null);
   const infoWindowRef = useRef<GoogleInfoWindowInstance | null>(null);
   const markersRef = useRef<MarkerStore>(new Map());
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const clustererRef = useRef<any>(null);
   const [mapError, setMapError] = useState<string | null>(null);
 
   const normalizedItems = useMemo(
@@ -146,7 +169,7 @@ export function GoogleMarkerMap({
       }
 
       try {
-        await loadGoogleMapsScript();
+        await Promise.all([loadGoogleMapsScript(), loadMarkerClustererScript()]);
         if (disposed || !mapContainerRef.current) {
           return;
         }
@@ -187,6 +210,15 @@ export function GoogleMarkerMap({
 
     const activeIds = new Set<string>();
     const infoWindow = infoWindowRef.current;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const MarkerClusterer = (window as Record<string, any>).MarkerClusterer;
+    const useClusterer = normalizedItems.length > 50 && MarkerClusterer;
+
+    // Clear existing clusterer before rebuilding markers
+    if (clustererRef.current) {
+      clustererRef.current.clearMarkers();
+      clustererRef.current = null;
+    }
 
     normalizedItems.forEach((item) => {
       activeIds.add(item.id);
@@ -205,11 +237,18 @@ export function GoogleMarkerMap({
           infoWindowRef.current.setContent(item.infoHtml);
           infoWindowRef.current.open({ anchor: existingMarker, map: mapRef.current });
         });
+        // When clustering, remove direct map attachment — clusterer manages it
+        if (useClusterer) {
+          existingMarker.setMap(null);
+        } else {
+          existingMarker.setMap(map);
+        }
         return;
       }
 
+      // Create marker WITHOUT map when clustering (clusterer will manage placement)
       const marker = new mapsApi.Marker({
-        map,
+        map: useClusterer ? undefined : map,
         position,
         title: item.title,
         icon: getMarkerIcon(mapsApi, item.color),
@@ -226,12 +265,26 @@ export function GoogleMarkerMap({
       markersRef.current.set(item.id, marker);
     });
 
+    // Remove stale markers
     markersRef.current.forEach((marker, itemId) => {
       if (!activeIds.has(itemId)) {
         marker.setMap(null);
         markersRef.current.delete(itemId);
       }
     });
+
+    // Initialize clusterer with all active markers
+    if (useClusterer) {
+      const allMarkers = Array.from(markersRef.current.values());
+      clustererRef.current = new MarkerClusterer(map, allMarkers, {
+        maxZoom: 15,
+        gridSize: 60,
+        minimumClusterSize: 3,
+        styles: [
+          { textColor: '#fff', url: '', height: 40, width: 40, textSize: 12 },
+        ],
+      });
+    }
 
     if (normalizedItems.length === 0) {
       map.setCenter(defaultCenter);

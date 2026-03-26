@@ -104,7 +104,7 @@ export class DeduplicationService {
         LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
         WHERE (${searchConditions.join(' OR ')})
         ORDER BY c."createdAt" DESC
-        LIMIT 50
+        LIMIT 200
       `;
 
       const result = await this.db.query(query, searchParams);

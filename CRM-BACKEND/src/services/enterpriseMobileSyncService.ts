@@ -177,7 +177,7 @@ export class EnterpriseMobileSyncService {
       WHERE cah."toUserId" = $1
         ${syncCondition}
       ORDER BY cah."assignedAt" DESC
-      LIMIT 100
+      LIMIT 500
     `;
 
     const result = await client.query(assignmentsQuery, params);
@@ -215,7 +215,7 @@ export class EnterpriseMobileSyncService {
         AND c."updatedAt" > $2
         AND c.status != 'COMPLETED'
       ORDER BY c."updatedAt" DESC
-      LIMIT 50
+      LIMIT 200
     `;
 
     const result = await client.query(updatesQuery, [userId, lastSyncTimestamp]);
@@ -240,7 +240,7 @@ export class EnterpriseMobileSyncService {
       WHERE "userId" = $1 
         AND status = 'PENDING'
       ORDER BY "createdAt" DESC
-      LIMIT 20
+      LIMIT 100
     `;
 
     const result = await client.query(notificationsQuery, [userId]);

@@ -26,7 +26,7 @@ import {
 import { ArrowLeft, Send, Loader2, Building, Settings, Plus, Trash2, AlertCircle, Paperclip, Upload, FileText, Image } from 'lucide-react';
 import { useAvailableFieldUsers } from '@/hooks/useUsers';
 import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/useClients';
-import { usePincodes } from '@/hooks/useLocations';
+import { usePincodeSearch } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
 import { useAuth } from '@/hooks/useAuth';
 import { isBackendScopedUser } from '@/utils/userPermissionProfiles';
@@ -161,12 +161,11 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   // Fetch data
   const { data: clientsResponse } = useClients();
   const { data: verificationTypesResponse } = useVerificationTypes();
-  // Fetch all pincodes for dropdown (high limit to get all)
-  const { data: pincodesResponse } = usePincodes({ limit: 10000 });
+  // Server-side pincode search (replaces bulk client-side load)
+  const { pincodes, setSearchTerm: setPincodeSearch } = usePincodeSearch();
 
   const allClients = useMemo(() => clientsResponse?.data || [], [clientsResponse?.data]);
   const verificationTypes = useMemo(() => verificationTypesResponse?.data || [], [verificationTypesResponse?.data]);
-  const pincodes = useMemo(() => pincodesResponse?.data || [], [pincodesResponse?.data]);
 
   // Watch for client selection to fetch products
   const selectedClientId = form.watch('clientId');
@@ -818,6 +817,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
               placeholder="Select pincode"
               searchPlaceholder="Search pincode..."
               emptyMessage="No pincodes found"
+              onSearchChange={setPincodeSearch}
             />
             {!task.pincodeId && (
               <p className="text-sm text-red-600 mt-1">
