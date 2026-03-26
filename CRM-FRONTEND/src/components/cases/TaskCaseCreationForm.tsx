@@ -479,6 +479,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                 productId={form.watch('productId')}
                 verificationTypes={verificationTypes}
                 pincodes={pincodes}
+                setPincodeSearch={setPincodeSearch}
               />
             ))}
           </div>
@@ -537,6 +538,7 @@ interface TaskCardProps {
   productId: string;
   verificationTypes: VerificationType[];
   pincodes: Pincode[];
+  setPincodeSearch: (term: string) => void;
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({
@@ -550,6 +552,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   productId,
   verificationTypes,
   pincodes,
+  setPincodeSearch,
 }) => {
   const selectedPincodeNumber = task.pincodeId ? parseInt(task.pincodeId, 10) : undefined;
   const selectedAreaNumber = task.areaId ? parseInt(task.areaId, 10) : undefined;

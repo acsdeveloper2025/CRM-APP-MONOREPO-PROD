@@ -128,6 +128,7 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
                             <img
                               src={attachment.url}
                               alt={attachment.originalName}
+                              loading="lazy"
                               className="w-full h-32 object-cover rounded-md cursor-pointer hover:opacity-80 transition-opacity"
                               onClick={() => handlePreview(attachment)}
                             />

@@ -281,6 +281,7 @@ export class CaseAssignmentService {
       const workloadQuery = `
         SELECT * FROM field_agent_workload
         ORDER BY total_assigned_cases DESC
+        LIMIT 500
       `;
 
       const result = await query(workloadQuery);

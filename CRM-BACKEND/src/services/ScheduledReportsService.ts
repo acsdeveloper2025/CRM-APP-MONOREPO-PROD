@@ -282,7 +282,9 @@ export class ScheduledReportsService {
 
   public async getScheduledReports(userId?: string): Promise<ScheduledReport[]> {
     try {
-      let query = 'SELECT * FROM scheduled_reports';
+      let query = `SELECT id, name, report_type, format, frequency, recipients, filters,
+                          options, is_active, created_by, created_at, last_run, next_run
+                   FROM scheduled_reports`;
       const values = [];
 
       if (userId) {
@@ -290,7 +292,7 @@ export class ScheduledReportsService {
         values.push(userId);
       }
 
-      query += ' ORDER BY created_at DESC';
+      query += ' ORDER BY created_at DESC LIMIT 500';
 
       const result = await pool.query(query, values);
       return result.rows.map(row => this.mapDbRowToScheduledReport(row));

@@ -45,6 +45,19 @@ export const connectRedis = async (): Promise<void> => {
   try {
     await redisClient.connect();
     logger.info('Redis connected successfully');
+
+    // Configure memory limits and eviction policy for enterprise workloads
+    const maxMemory = process.env.REDIS_MAX_MEMORY || '256mb';
+    try {
+      await redisClient.configSet('maxmemory', maxMemory);
+      await redisClient.configSet('maxmemory-policy', 'allkeys-lru');
+      logger.info(`Redis maxmemory set to ${maxMemory} with allkeys-lru eviction policy`);
+    } catch (configError) {
+      // Non-fatal: managed Redis instances (ElastiCache, etc.) may block CONFIG SET
+      logger.warn('Could not set Redis maxmemory policy (managed instance?)', {
+        error: configError,
+      });
+    }
   } catch (error) {
     logger.error('Redis connection failed:', error);
     throw error;

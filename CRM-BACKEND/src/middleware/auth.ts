@@ -207,15 +207,11 @@ export const authenticateTokenFlexible = (
   res: Response,
   next: NextFunction
 ): void => {
-  // Try Authorization header first
+  // Try Authorization header only — query parameter tokens are disabled
+  // (tokens in URLs leak via server logs, browser history, and Referer headers)
   const rawAuthHeader = req.headers.authorization;
   const authHeader = Array.isArray(rawAuthHeader) ? rawAuthHeader[0] : rawAuthHeader;
-  let token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
-  // If no header token, try query parameter (for image serving)
-  if (!token) {
-    token = req.query.token as string;
-  }
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
   if (!token) {
     const response: ApiResponse = {

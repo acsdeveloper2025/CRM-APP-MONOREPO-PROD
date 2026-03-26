@@ -65,6 +65,8 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      staleTime: 2 * 60 * 1000, // 2 minutes — prevents refetch on every render
+      gcTime: 10 * 60 * 1000, // 10 minutes — garbage-collect unused cache entries
     },
   },
 });

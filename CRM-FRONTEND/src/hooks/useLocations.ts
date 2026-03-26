@@ -98,7 +98,9 @@ export const usePincodeSearch = (initialPincodeId?: string) => {
 
   const handleSearchChange = useCallback((term: string) => {
     setSearchTerm(term);
-    if (debounceRef[0]) clearTimeout(debounceRef[0]);
+    if (debounceRef[0]) {
+      clearTimeout(debounceRef[0]);
+    }
     debounceRef[0] = setTimeout(() => {
       setDebouncedSearch(term);
     }, 300);
@@ -146,7 +148,9 @@ export const usePincodeSearch = (initialPincodeId?: string) => {
   }, [defaultData, searchData, selectedData, debouncedSearch, initialPincodeId]);
 
   const selectedPincode = useMemo(() => {
-    if (!initialPincodeId) return null;
+    if (!initialPincodeId) {
+      return null;
+    }
     return pincodes.find(
       (p: { id: string | number }) => String(p.id) === String(initialPincodeId)
     ) || selectedData?.data || null;

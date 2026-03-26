@@ -244,7 +244,13 @@ class SubmissionProgressService {
    * Get submission progress by ID
    */
   async getSubmissionProgress(id: string): Promise<SubmissionProgress | null> {
-    const result = await query('SELECT * FROM submission_progress WHERE id = $1', [id]);
+    const result = await query(
+      `SELECT id, case_id, verification_type, status, overall_progress, current_step,
+              steps, start_time, end_time, estimated_time_remaining, bytes_uploaded,
+              total_bytes, upload_speed, compression_stats, retry_info, created_at, updated_at
+       FROM submission_progress WHERE id = $1`,
+      [id]
+    );
 
     if (result.rows.length === 0) {
       return null;
@@ -258,7 +264,10 @@ class SubmissionProgressService {
    */
   async getSubmissionProgressByCase(caseId: string): Promise<SubmissionProgress[]> {
     const result = await query(
-      'SELECT * FROM submission_progress WHERE case_id = $1 ORDER BY created_at DESC',
+      `SELECT id, case_id, verification_type, status, overall_progress, current_step,
+              steps, start_time, end_time, estimated_time_remaining, bytes_uploaded,
+              total_bytes, upload_speed, compression_stats, retry_info, created_at, updated_at
+       FROM submission_progress WHERE case_id = $1 ORDER BY created_at DESC LIMIT 100`,
       [caseId]
     );
 
@@ -272,7 +281,10 @@ class SubmissionProgressService {
    */
   async getActiveSubmissionProgress(): Promise<SubmissionProgress[]> {
     const result = await query(
-      "SELECT * FROM submission_progress WHERE status NOT IN ('COMPLETED', 'FAILED') ORDER BY created_at DESC"
+      `SELECT id, case_id, verification_type, status, overall_progress, current_step,
+              steps, start_time, end_time, estimated_time_remaining, bytes_uploaded,
+              total_bytes, upload_speed, compression_stats, retry_info, created_at, updated_at
+       FROM submission_progress WHERE status NOT IN ('COMPLETED', 'FAILED') ORDER BY created_at DESC LIMIT 500`
     );
 
     return result.rows.map((row: unknown) =>
