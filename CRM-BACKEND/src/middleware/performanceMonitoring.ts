@@ -354,11 +354,18 @@ async function storeEndpointMetrics(
 }
 
 /**
- * System health monitoring
+ * System health monitoring — returns cleanup function to prevent interval leaks on PM2 reload.
  */
+let healthMonitoringInterval: ReturnType<typeof setInterval> | null = null;
+
 export const systemHealthMonitoring = () => {
+  // Prevent duplicate intervals if called multiple times (PM2 reload)
+  if (healthMonitoringInterval) {
+    clearInterval(healthMonitoringInterval);
+  }
+
   // Monitor system health every 30 seconds
-  setInterval(() => {
+  healthMonitoringInterval = setInterval(() => {
     void (async () => {
       try {
         const memoryUsage = process.memoryUsage();
@@ -451,11 +458,17 @@ export const getPerformanceMetrics = async (timeRange = '1h') => {
  * Cleanup old performance and health metrics to prevent unbounded table growth.
  * Runs every 6 hours — deletes metrics older than 7 days.
  */
+let metricsCleanupInterval: ReturnType<typeof setInterval> | null = null;
+
 export const startMetricsCleanup = () => {
+  if (metricsCleanupInterval) {
+    clearInterval(metricsCleanupInterval);
+  }
+
   const CLEANUP_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
   const RETENTION_DAYS = 7;
 
-  setInterval(() => {
+  metricsCleanupInterval = setInterval(() => {
     void (async () => {
       try {
         const perfResult = await query(
