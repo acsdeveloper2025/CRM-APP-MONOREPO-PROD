@@ -62,8 +62,10 @@ export const connectRedis = async (): Promise<void> => {
     const maxMemory = process.env.REDIS_MAX_MEMORY || '256mb';
     try {
       await redisClient.configSet('maxmemory', maxMemory);
-      await redisClient.configSet('maxmemory-policy', 'allkeys-lru');
-      logger.info(`Redis maxmemory set to ${maxMemory} with allkeys-lru eviction policy`);
+      // Use 'noeviction' policy — required by BullMQ job queues.
+      // Cache eviction is handled application-side via TTLs.
+      await redisClient.configSet('maxmemory-policy', 'noeviction');
+      logger.info(`Redis maxmemory set to ${maxMemory} with noeviction policy`);
     } catch (configError) {
       // Non-fatal: managed Redis instances (ElastiCache, etc.) may block CONFIG SET
       logger.warn('Could not set Redis maxmemory policy (managed instance?)', {
