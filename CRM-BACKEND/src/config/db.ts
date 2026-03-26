@@ -53,28 +53,56 @@ export const query = async <T = any>(
   return pool.query<T>(text, params);
 };
 
-export const withTransaction = async <T>(fn: (client: PoolClient) => Promise<T>): Promise<T> => {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const result = await fn(client);
-    await client.query('COMMIT');
-    return result;
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
+export const withTransaction = async <T>(
+  fn: (client: PoolClient) => Promise<T>,
+  maxRetries = 3
+): Promise<T> => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const result = await fn(client);
+      await client.query('COMMIT');
+      return result;
+    } catch (err) {
+      await client.query('ROLLBACK');
+
+      // Retry on PostgreSQL deadlock (40P01) or serialization failure (40001)
+      const pgCode = (err as { code?: string }).code;
+      if ((pgCode === '40P01' || pgCode === '40001') && attempt < maxRetries) {
+        logger.warn(`Transaction deadlock/serialization failure, retrying (attempt ${attempt}/${maxRetries})`, {
+          code: pgCode,
+        });
+        // Exponential backoff: 100ms, 200ms, 400ms...
+        await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, attempt - 1)));
+        continue;
+      }
+
+      throw err;
+    } finally {
+      client.release();
+    }
   }
+
+  // TypeScript: unreachable but satisfies return type
+  throw new Error('Transaction retry exhausted');
 };
 
-export const connectDatabase = async (): Promise<void> => {
-  try {
-    await pool.query('SELECT 1');
-    logger.info('Database connected successfully');
-  } catch (error) {
-    logger.error('Database connection failed:', error);
-    process.exit(1);
+export const connectDatabase = async (maxRetries = 5, delayMs = 3000): Promise<void> => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await pool.query('SELECT 1');
+      logger.info('Database connected successfully');
+      return;
+    } catch (error) {
+      logger.error(`Database connection attempt ${attempt}/${maxRetries} failed:`, error);
+      if (attempt === maxRetries) {
+        logger.error('All database connection attempts exhausted, exiting');
+        process.exit(1);
+      }
+      logger.info(`Retrying in ${delayMs / 1000}s...`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
   }
 };
 
