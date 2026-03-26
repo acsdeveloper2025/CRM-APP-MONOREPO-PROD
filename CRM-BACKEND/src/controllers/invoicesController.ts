@@ -408,7 +408,7 @@ const getInvoicesFromDb = async (
   const safeSortBy = safeSortByMap[sortByValue] || 'i.issue_date';
   const safeSortOrder = sortOrderValue.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
   const pageNum = Math.max(1, Number(page) || 1);
-  const limitNum = Math.max(1, Math.min(100, Number(limit) || 20));
+  const limitNum = Math.max(1, Math.min(500, Number(limit) || 20));
   const offset = (pageNum - 1) * limitNum;
 
   const countResult = await query<{ total: string }>(

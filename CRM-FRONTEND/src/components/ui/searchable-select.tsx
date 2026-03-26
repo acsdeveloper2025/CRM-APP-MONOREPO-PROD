@@ -20,6 +20,8 @@ interface SearchableSelectProps {
   emptyMessage?: string;
   disabled?: boolean;
   className?: string;
+  /** Optional callback for server-side search. When provided, local filtering is skipped. */
+  onSearchChange?: (query: string) => void;
 }
 
 export function SearchableSelect({
@@ -30,17 +32,21 @@ export function SearchableSelect({
   searchPlaceholder = "Search...",
   emptyMessage = "No options found",
   disabled = false,
-  className
+  className,
+  onSearchChange
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const selectedOption = options.find(option => option.value === value);
 
-  const filteredOptions = options.filter(option =>
-    option.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    option.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // When onSearchChange is provided (server-side search), skip local filtering
+  const filteredOptions = onSearchChange
+    ? options
+    : options.filter(option =>
+        option.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        option.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
 
   const handleSelect = (optionValue: string) => {
     onValueChange(optionValue);
@@ -80,7 +86,10 @@ export function SearchableSelect({
             <Input
               placeholder={searchPlaceholder}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                onSearchChange?.(e.target.value);
+              }}
               className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-900 placeholder:text-gray-500"
               autoFocus
             />

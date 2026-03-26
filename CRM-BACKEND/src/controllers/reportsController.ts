@@ -2226,7 +2226,7 @@ const buildInvoiceReportQuery = async (req: AuthenticatedRequest, includePaginat
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
   const page = Math.max(1, Number(input.page || 1));
-  const limit = Math.max(1, Math.min(100, Number(input.limit || 20)));
+  const limit = Math.max(1, Math.min(500, Number(input.limit || 20)));
   const offset = (page - 1) * limit;
 
   const countQuery = `SELECT COUNT(*)::text as total FROM invoices i ${whereClause}`;

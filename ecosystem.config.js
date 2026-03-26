@@ -5,11 +5,11 @@ module.exports = {
       cwd: './CRM-BACKEND',
       script: 'npm',
       args: 'start',
-      instances: 1,
-      exec_mode: 'fork',
+      instances: 4,
+      exec_mode: 'cluster',
       autorestart: true,
       watch: false,
-      max_memory_restart: '500M',
+      max_memory_restart: '1500M',
       env: {
         NODE_ENV: 'production',
         PORT: 3000

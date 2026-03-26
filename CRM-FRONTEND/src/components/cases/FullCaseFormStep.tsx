@@ -25,7 +25,7 @@ import {
 import { ArrowLeft, Send, Loader2, User, Building, Settings } from 'lucide-react';
 import { useAvailableFieldUsers } from '@/hooks/useUsers';
 import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/useClients';
-import { usePincodes } from '@/hooks/useLocations';
+import { usePincodeSearch } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
 import { useAuth } from '@/hooks/useAuth';
 import { isBackendScopedUser } from '@/utils/userPermissionProfiles';
@@ -171,11 +171,8 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
     selectedPincodeNumber,
     selectedAreaNumber
   );
-  // Fetch all pincodes for dropdown (high limit to get all)
-
-  // Fetch all pincodes for dropdown (high limit to get all)
-  const { data: pincodesResponseAll } = usePincodes({ limit: 10000 });
-  const pincodes = useMemo(() => pincodesResponseAll?.data || [], [pincodesResponseAll?.data]);
+  // Server-side pincode search (replaces bulk client-side load)
+  const { pincodes, setSearchTerm: setPincodeSearch } = usePincodeSearch(selectedPincodeId);
   const { data: areasResponse } = useAreasByPincode(selectedPincodeId ? parseInt(selectedPincodeId) : undefined);
   const areas = useMemo(() => areasResponse?.data || [], [areasResponse?.data]);
   const areaIds = useMemo(() => areas.map((area) => area.id.toString()), [areas]);

@@ -11,6 +11,7 @@ interface PincodeSelectionTabProps {
   selectedPincodeIds: Set<number>;
   onPincodeToggle: (pincodeId: number) => void;
   areaCountByPincode: Record<number, number>;
+  onSearchChange?: (term: string) => void;
 }
 
 export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
@@ -18,8 +19,14 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
   selectedPincodeIds,
   onPincodeToggle,
   areaCountByPincode,
+  onSearchChange,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    onSearchChange?.(value);
+  };
 
   // Filter pincodes by search term
   const filteredPincodes = useMemo(() => {
@@ -66,7 +73,7 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
             type="text"
             placeholder="Search by pincode, city, or state..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -140,14 +147,6 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
           </>
         )}
       </div>
-
-      {/* Total count display */}
-      {filteredPincodes.length > 0 && (
-        <div className="text-sm text-gray-600 text-center">
-          Showing {filteredPincodes.length} {filteredPincodes.length === 1 ? 'pincode' : 'pincodes'}
-          {searchTerm && ' (filtered)'}
-        </div>
-      )}
 
       {/* Total count display */}
       {filteredPincodes.length > 0 && (

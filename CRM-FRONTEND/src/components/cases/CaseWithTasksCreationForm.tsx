@@ -25,7 +25,7 @@ import {
 import { ArrowLeft, Send, Loader2, User, Building2, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { useFieldUsers } from '@/hooks/useUsers';
 import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/useClients';
-import { usePincodes } from '@/hooks/useLocations';
+import { usePincodeSearch } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
 import { useAuth } from '@/hooks/useAuth';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
@@ -244,8 +244,8 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
   const { data: fieldUsers } = useFieldUsers();
   const { data: clientsResponse } = useClients();
   const { data: verificationTypesResponse } = useVerificationTypes();
-  // Fetch all pincodes for dropdown (high limit to get all)
-  const { data: pincodesResponse } = usePincodes({ limit: 10000 });
+  // Server-side pincode search (replaces bulk client-side load)
+  const { pincodes: pincodesList, setSearchTerm: setPincodeSearch } = usePincodeSearch();
 
   // Mutation for creating case with multiple tasks
   const createCaseMutation = useMutationWithInvalidation({
@@ -284,7 +284,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
   const clients = clientsResponse?.data || [];
   const verificationTypes = verificationTypesResponse?.data || [];
   const products = productsResponse?.data || [];
-  const pincodes = pincodesResponse?.data || [];
+  const pincodes = pincodesList || [];
   const users = fieldUsers || []; // fieldUsers is already the array from the select function
 
   // Helper function to get user display name

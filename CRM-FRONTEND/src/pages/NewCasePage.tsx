@@ -33,8 +33,12 @@ export const NewCasePage: React.FC = () => {
   const shouldFetchCase = isEditMode && editCaseId;
   const { data: caseData, isLoading: loadingCase } = useCase(shouldFetchCase ? editCaseId : '');
 
-  // Fetch pincodes for mapping pincode code to ID in edit mode
-  const { data: pincodesResponse } = usePincodes({ limit: 10000 });
+  // In edit mode, fetch only the specific pincode(s) needed for mapping (replaces bulk 10K load)
+  const [editPincodeCode, setEditPincodeCode] = useState<string>('');
+  const { data: pincodesResponse } = usePincodes({
+    search: editPincodeCode,
+    limit: 30,
+  });
   
   // Fetch verification tasks to get address (address is stored at task level, not case level)
   const { data: verificationTasksResponse } = useQuery({
@@ -55,6 +59,21 @@ export const NewCasePage: React.FC = () => {
   // Get pincode ID for fetching areas
   const [pincodeIdForAreas, setPincodeIdForAreas] = useState<number | undefined>();
   const { data: areasResponse } = useAreasByPincode(pincodeIdForAreas);
+
+  // Extract pincode code from case/task data to trigger targeted search
+  useEffect(() => {
+    if (isEditMode && caseData?.data) {
+      const tasks = verificationTasksResponse?.data?.tasks || [];
+      const selectedTask = editTaskId
+        ? tasks.find((t: VerificationTask) => t.id === editTaskId)
+        : tasks[0];
+      const taskPincodeCode = (selectedTask as unknown as Record<string, unknown>)?.pincode as string | undefined;
+      const code = taskPincodeCode || caseData.data.pincode;
+      if (code && code !== editPincodeCode) {
+        setEditPincodeCode(code);
+      }
+    }
+  }, [isEditMode, caseData, verificationTasksResponse, editTaskId, editPincodeCode]);
 
   // First useEffect: Set pincode ID for fetching areas (if pincode exists)
   useEffect(() => {

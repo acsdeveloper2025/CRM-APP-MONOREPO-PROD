@@ -150,8 +150,8 @@ const listCasesValidation = [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
-    .isInt({ min: 1, max: 100 })
-    .withMessage('Limit must be between 1 and 100'),
+    .isInt({ min: 1, max: 500 })
+    .withMessage('Limit must be between 1 and 500'),
   query('status')
     .optional()
     .isIn(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'APPROVED', 'REJECTED', 'REWORK_REQUIRED'])
@@ -321,8 +321,8 @@ router.post(
     query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
     query('limit')
       .optional()
-      .isInt({ min: 1, max: 100 })
-      .withMessage('Limit must be between 1 and 100'),
+      .isInt({ min: 1, max: 500 })
+      .withMessage('Limit must be between 1 and 500'),
   ],
   validate,
   searchGlobalDuplicates

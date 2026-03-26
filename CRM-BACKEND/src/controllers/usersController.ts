@@ -1266,7 +1266,7 @@ export const searchUsers = async (req: AuthenticatedRequest, res: Response) => {
         d.name ILIKE $1 OR
         u.designation ILIKE $1
       ORDER BY u.name
-      LIMIT 50
+      LIMIT 200
     `;
 
     const result = await query(searchQuery, typeof q === 'string' ? [`%${q}%`] : ['%%']);

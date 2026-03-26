@@ -1,5 +1,7 @@
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { createClient } from 'redis';
 import app from './app';
 import { config } from '@/config';
 import { logger } from '@/config/logger';
@@ -39,6 +41,24 @@ const startServer = async (): Promise<void> => {
       await connectRedis();
     } catch (error) {
       logger.warn('Redis connection unavailable, continuing without Redis client', { error });
+    }
+
+    // Socket.IO Redis adapter for PM2 cluster mode broadcasting
+    // Creates dedicated pub/sub clients so Socket.IO events propagate across all instances
+    try {
+      const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+      const redisPassword = process.env.REDIS_PASSWORD || undefined;
+      const pubClient = createClient({ url: redisUrl, password: redisPassword });
+      const subClient = pubClient.duplicate();
+
+      await Promise.all([pubClient.connect(), subClient.connect()]);
+      io.adapter(createAdapter(pubClient, subClient));
+      logger.info('Socket.IO Redis adapter attached (PM2 cluster broadcasting enabled)');
+    } catch (error) {
+      logger.warn(
+        'Socket.IO Redis adapter unavailable, falling back to in-memory (single-instance only)',
+        { error }
+      );
     }
 
     await EnterpriseCacheService.initialize();

@@ -163,7 +163,7 @@ export class PDFExportService {
       LEFT JOIN form_quality_metrics fqm ON fs.id = fqm.form_submission_id
       ${whereClause}
       ORDER BY fs.submitted_at DESC
-      LIMIT 1000
+      LIMIT 5000
     `;
 
     const summaryQuery = `
@@ -279,7 +279,7 @@ export class PDFExportService {
       SELECT * FROM case_completion_analytics
       ${whereClause}
       ORDER BY "createdAt" DESC
-      LIMIT 1000
+      LIMIT 5000
     `;
 
     const summaryQuery = `

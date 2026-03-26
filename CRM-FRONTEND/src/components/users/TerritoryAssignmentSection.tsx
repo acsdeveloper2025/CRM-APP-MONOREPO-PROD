@@ -3,7 +3,8 @@ import { MapPin } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Atom } from 'react-loading-indicators';
-import { usePincodes } from '@/hooks/useLocations';
+import { useQuery } from '@tanstack/react-query';
+import { locationsService } from '@/services/locations';
 import {
   useUserTerritoryAssignments,
   useAreasByPincodes,
@@ -26,8 +27,24 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
     new Map()
   );
 
-  // Fetch all pincodes (limit 10000 to ensure we get all/most for client-side search)
-  const { data: pincodesData, isLoading: pincodesLoading } = usePincodes({ limit: 10000 });
+  // Server-side pincode search (replaces bulk 10K client-side load)
+  const [pincodeSearchTerm, setPincodeSearchTerm] = useState('');
+  const [debouncedPincodeSearch, setDebouncedPincodeSearch] = useState('');
+
+  // Debounce pincode search
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedPincodeSearch(pincodeSearchTerm), 300);
+    return () => clearTimeout(timer);
+  }, [pincodeSearchTerm]);
+
+  const { data: pincodesData, isLoading: pincodesLoading } = useQuery({
+    queryKey: ['pincodes', 'territory-search', debouncedPincodeSearch],
+    queryFn: () => locationsService.getPincodes({
+      search: debouncedPincodeSearch || undefined,
+      limit: 50,
+    }),
+    staleTime: 2 * 60 * 1000,
+  });
 
   // Fetch user's existing territory assignments
   const { data: existingAssignments, isLoading: assignmentsLoading } =
@@ -195,6 +212,7 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
               selectedPincodeIds={selectedPincodeIds}
               onPincodeToggle={handlePincodeToggle}
               areaCountByPincode={areaCountByPincode}
+              onSearchChange={setPincodeSearchTerm}
             />
           </TabsContent>
 
