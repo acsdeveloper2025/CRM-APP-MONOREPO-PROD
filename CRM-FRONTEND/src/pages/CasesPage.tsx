@@ -71,7 +71,7 @@ export const CasesPage: React.FC = () => {
     clientId: activeFilters.clientId || undefined,
   };
 
-  const { data: casesData, isLoading, error: _error } = useCases(query);
+  const { data: casesData, isLoading, error } = useCases(query);
   const { data: clientsData } = useClients({ limit: 100 }, { enabled: canViewClientsFilter });
 
   const { refreshCases } = useRefreshCases();
@@ -343,10 +343,16 @@ export const CasesPage: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <CaseTable
-            cases={cases}
-            isLoading={isLoading}
-          />
+          {error ? (
+            <div className="p-6 text-center text-red-600">
+              Failed to load cases. Please try again.
+            </div>
+          ) : (
+            <CaseTable
+              cases={cases}
+              isLoading={isLoading}
+            />
+          )}
         </CardContent>
       </Card>
 

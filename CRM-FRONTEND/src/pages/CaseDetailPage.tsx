@@ -40,11 +40,9 @@ export const CaseDetailPage: React.FC = () => {
   const { data: caseData, isLoading, refetch } = useCase(safeId);
   const { data: formSubmissionsData, isLoading: formSubmissionsLoading } = useCaseFormSubmissions(safeId);
   const assignCaseMutation = useAssignCase();
-  // const { data: historyData } = useCaseHistory(id!);
 
   const caseItem = caseData?.data;
   const formSubmissions = formSubmissionsData?.data?.submissions || [];
-  // const history = historyData?.data || [];
 
   // Handler functions
   const handleEditCase = () => {

@@ -174,19 +174,19 @@ export const EnterpriseDashboard: React.FC = () => {
             <div className="flex items-center space-x-4">
               {/* Performance indicators */}
               <div className="flex items-center space-x-2 text-sm">
-                <Cpu className={`h-4 w-4 ${renderTimeStatus.color}`} />
+                <Cpu className={`h-4 w-4 ${renderTimeStatus.color}`} aria-label="CPU render time" />
                 <span className={renderTimeStatus.color}>
                   {performanceMetrics.renderTime.toFixed(1)}ms
                 </span>
               </div>
               <div className="flex items-center space-x-2 text-sm">
-                <MemoryStick className={`h-4 w-4 ${memoryStatus.color}`} />
+                <MemoryStick className={`h-4 w-4 ${memoryStatus.color}`} aria-label="Memory usage" />
                 <span className={memoryStatus.color}>
                   {performanceMetrics.memoryUsage.toFixed(1)}%
                 </span>
               </div>
               <div className="flex items-center space-x-2 text-sm">
-                <Activity className={`h-4 w-4 ${systemLoadStatus.color}`} />
+                <Activity className={`h-4 w-4 ${systemLoadStatus.color}`} aria-label="System load" />
                 <span className={systemLoadStatus.color}>
                   {dashboardMetrics.systemLoad}%
                 </span>
