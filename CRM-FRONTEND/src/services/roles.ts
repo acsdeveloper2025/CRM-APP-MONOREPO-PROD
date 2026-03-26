@@ -86,10 +86,11 @@ const rbacCodesToLegacyPermissions = (codes: string[]): RolePermissions => {
   if (set.has('case.update') || set.has('case.assign') || set.has('case.reassign')) {permissions.cases.update = true;}
   if (set.has('case.delete')) {permissions.cases.delete = true;}
 
-  if (set.has('visit.start') || set.has('visit.upload') || set.has('visit.submit') || set.has('visit.revoke') || set.has('visit.revisit')) {
+  if (set.has('visit.start') || set.has('visit.upload') || set.has('visit.submit') || set.has('visit.revoke') || set.has('visit.revisit') || set.has('task.revoke')) {
     permissions.tasks.read = true;
     permissions.tasks.update = true;
   }
+  if (set.has('task.revoke')) {permissions.tasks.delete = true;}
 
   if (set.has('report.generate')) {permissions.reports.create = true;}
   if (set.has('report.download')) {permissions.reports.read = true;}
@@ -141,6 +142,7 @@ const legacyPermissionsToRbacCodes = (permissions?: Partial<RolePermissions>): s
     out.add('visit.submit');
     out.add('visit.revoke');
     out.add('visit.revisit');
+    out.add('task.revoke');
   }
 
   const forms = permissions.forms;

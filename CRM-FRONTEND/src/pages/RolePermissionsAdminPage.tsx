@@ -19,7 +19,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Save, Trash2, Pencil } from 'lucide-react';
+import { Plus, Save, Trash2, Pencil, Smartphone } from 'lucide-react';
 
 type RoleFormState = { name: string; description: string; parentRoleId: string };
 
@@ -217,6 +217,22 @@ export default function RolePermissionsAdminPage() {
 
   const groupedPermissions = permissionsQuery.data?.data || [];
 
+  const MOBILE_PERMISSIONS = RBAC_PERMISSION_MODULES['MOBILE (FIELD AGENT)'];
+  const isMobileOnlyRole = React.useMemo(() => {
+    if (selectedPermissionCodes.length === 0) {return false;}
+    const mobileSet = new Set(MOBILE_PERMISSIONS);
+    return selectedPermissionCodes.every(code => mobileSet.has(code));
+  }, [selectedPermissionCodes, MOBILE_PERMISSIONS]);
+
+  const selectAllMobilePermissions = () => {
+    setSelectedPermissionCodes(prev => {
+      const next = new Set(prev);
+      for (const code of MOBILE_PERMISSIONS) {next.add(code);}
+      return Array.from(next);
+    });
+    setSelectedRoutes(prev => ({ ...prev, 'mobile-app': true }));
+  };
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div>
@@ -273,14 +289,29 @@ export default function RolePermissionsAdminPage() {
 
         <Card className="xl:col-span-5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle>Permission Matrix</CardTitle>
-            <Button
-              size="sm"
-              onClick={() => savePermissionsMutation.mutate()}
-              disabled={!selectedRoleId || savePermissionsMutation.isPending}
-            >
-              <Save className="h-4 w-4 mr-1" /> Save
-            </Button>
+            <div className="flex items-center gap-2">
+              <CardTitle>Permission Matrix</CardTitle>
+              {isMobileOnlyRole && (
+                <Badge className="bg-blue-100 text-blue-800 text-xs"><Smartphone className="h-3 w-3 mr-1" />Mobile Only</Badge>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={selectAllMobilePermissions}
+                disabled={!selectedRoleId}
+              >
+                <Smartphone className="h-4 w-4 mr-1" /> Select Field Agent
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => savePermissionsMutation.mutate()}
+                disabled={!selectedRoleId || savePermissionsMutation.isPending}
+              >
+                <Save className="h-4 w-4 mr-1" /> Save
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {Object.entries(RBAC_PERMISSION_MODULES).map(([moduleName, codes]) => (
