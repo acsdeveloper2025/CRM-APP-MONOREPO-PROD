@@ -67,7 +67,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     editMode ? 'multi-task-details' : 'customer-info'
   );
   // Always using multi-task mode - keeping state for future use
-  const [_caseCreationMode, _setCaseCreationMode] = useState<CaseCreationMode>('multi-task');
+  // CaseCreationMode state removed — multi-task is the only supported mode
   const [customerInfo, setCustomerInfo] = useState<CustomerInfoData | null>(
     initialData?.customerInfo || null
   );
