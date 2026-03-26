@@ -1,4 +1,13 @@
 export const RBAC_PERMISSION_MODULES = {
+  'MOBILE (FIELD AGENT)': [
+    'visit.start',
+    'visit.upload',
+    'visit.submit',
+    'visit.revoke',
+    'visit.revisit',
+    'task.revoke',
+    'case.view',
+  ],
   PAGE: [
     'page.dashboard',
     'page.cases',
@@ -13,7 +22,7 @@ export const RBAC_PERMISSION_MODULES = {
     'page.analytics',
   ],
   CASE: ['case.view', 'case.create', 'case.assign', 'case.reassign', 'case.update', 'case.delete'],
-  VISIT: ['visit.start', 'visit.upload', 'visit.submit', 'visit.revoke', 'visit.revisit'],
+  VISIT: ['visit.start', 'visit.upload', 'visit.submit', 'visit.revoke', 'visit.revisit', 'task.revoke'],
   REVIEW: ['review.view', 'review.approve', 'review.rework'],
   REPORT: ['report.generate', 'report.download'],
   BILLING: ['billing.generate', 'billing.download', 'billing.approve'],
@@ -44,6 +53,7 @@ export const PAGE_PERMISSION_GUIDE = [
 ] as const;
 
 export const ROUTE_ACCESS_OPTIONS = [
+  { key: 'mobile-app', label: 'Mobile App (Field Agent)' },
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'cases', label: 'Cases' },
   { key: 'task-board', label: 'Task Board' },

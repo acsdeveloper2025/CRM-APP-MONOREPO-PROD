@@ -10,6 +10,7 @@ import type { AuthenticatedRequest } from '@/middleware/auth';
 import { emitPermissionsUpdated, getSocketIO } from '@/websocket/server';
 
 const ROUTE_KEYS = [
+  'mobile-app',
   'dashboard',
   'cases',
   'task-board',
