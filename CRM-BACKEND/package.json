@@ -24,6 +24,9 @@
     "lint:fix": "eslint . --ext .ts --fix",
     "format": "prettier --write \"src/**/*.{ts,js,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "type-check": "tsc --noEmit",
     "prepare": "husky"
   },
@@ -118,6 +121,7 @@
     "lint-staged": "^16.2.6",
     "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^4.1.1"
   }
 }
