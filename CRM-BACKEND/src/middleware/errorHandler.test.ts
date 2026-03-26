@@ -1,6 +1,18 @@
 import { describe, it, expect, vi } from 'vitest';
-import { errorHandler, notFoundHandler, createError } from './errorHandler';
-import type { Request, Response, NextFunction } from 'express';
+
+// vi.hoisted runs before vi.mock hoisting — safe to reference in factory
+const mockConfig = vi.hoisted(() => ({
+  nodeEnv: 'test',
+  port: 3000,
+  jwtSecret: 'test-secret',
+  jwtExpiresIn: '24h',
+  corsOrigin: ['http://localhost:3000'],
+  logLevel: 'error',
+}));
+
+vi.mock('@/config', () => ({
+  config: mockConfig,
+}));
 
 // Mock logger to prevent actual log output during tests
 vi.mock('@/config/logger', () => ({
@@ -11,6 +23,9 @@ vi.mock('@/config/logger', () => ({
     debug: vi.fn(),
   },
 }));
+
+import { errorHandler, notFoundHandler, createError } from './errorHandler';
+import type { Request, Response, NextFunction } from 'express';
 
 function createMockReq(overrides: Partial<Request> = {}): Request {
   return {
@@ -92,8 +107,8 @@ describe('errorHandler', () => {
   });
 
   it('hides internal error details in production', () => {
-    const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'production';
+    const originalNodeEnv = mockConfig.nodeEnv;
+    mockConfig.nodeEnv = 'production';
 
     const error = new Error('database connection string leaked');
     const req = createMockReq();
@@ -105,7 +120,7 @@ describe('errorHandler', () => {
     expect((res._json as { message: string }).message).toBe('Internal server error');
     expect((res._json as { error: { code: string } }).error.code).toBe('INTERNAL_ERROR');
 
-    process.env.NODE_ENV = originalEnv;
+    mockConfig.nodeEnv = originalNodeEnv;
   });
 
   it('preserves custom status codes and error codes', () => {
