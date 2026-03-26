@@ -70,9 +70,12 @@ export const withTransaction = async <T>(
       // Retry on PostgreSQL deadlock (40P01) or serialization failure (40001)
       const pgCode = (err as { code?: string }).code;
       if ((pgCode === '40P01' || pgCode === '40001') && attempt < maxRetries) {
-        logger.warn(`Transaction deadlock/serialization failure, retrying (attempt ${attempt}/${maxRetries})`, {
-          code: pgCode,
-        });
+        logger.warn(
+          `Transaction deadlock/serialization failure, retrying (attempt ${attempt}/${maxRetries})`,
+          {
+            code: pgCode,
+          }
+        );
         // Exponential backoff: 100ms, 200ms, 400ms...
         await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, attempt - 1)));
         continue;

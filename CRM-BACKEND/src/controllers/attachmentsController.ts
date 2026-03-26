@@ -249,7 +249,12 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
 
         // Sanitize caseId to prevent path traversal (strip anything except alphanumeric, dash, underscore)
         const safeCaseId = String(caseId).replace(/[^a-zA-Z0-9_-]/g, '');
-        const caseUploadDir = path.join(process.cwd(), 'uploads', 'attachments', `case_${safeCaseId}`);
+        const caseUploadDir = path.join(
+          process.cwd(),
+          'uploads',
+          'attachments',
+          `case_${safeCaseId}`
+        );
         if (!fs.existsSync(caseUploadDir)) {
           fs.mkdirSync(caseUploadDir, { recursive: true });
         }

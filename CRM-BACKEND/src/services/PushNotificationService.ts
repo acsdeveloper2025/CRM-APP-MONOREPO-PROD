@@ -409,7 +409,7 @@ export class PushNotificationService {
       for (const { notification, token, userId, tokenId } of notifications) {
         try {
           const result = await circuitBreakers.apns.execute(() =>
-            this.apnProvider!.send(notification, token)
+            this.apnProvider.send(notification, token)
           );
 
           if (result.sent.length > 0) {
