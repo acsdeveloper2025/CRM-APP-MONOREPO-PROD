@@ -7,6 +7,7 @@ import { Calculator, BarChart3, FileText, HelpCircle, Download, DollarSign, Cloc
 import { CommissionCalculationsTab } from '@/components/commission/CommissionCalculationsTab';
 import { CommissionStatsTab } from '@/components/commission/CommissionStatsTab';
 import { commissionManagementService } from '@/services/commissionManagement';
+import { logger } from '@/utils/logger';
 
 export const CommissionsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('calculations');
@@ -26,7 +27,7 @@ export const CommissionsPage: React.FC = () => {
 
   const exportAllData = () => {
     // This would trigger export from both tabs
-    console.warn('Exporting all commission data...');
+    logger.warn('Exporting all commission data...');
   };
 
   return (

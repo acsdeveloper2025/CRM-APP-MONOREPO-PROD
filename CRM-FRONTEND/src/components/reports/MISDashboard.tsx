@@ -24,6 +24,7 @@ import { useVerificationTypes } from '@/hooks/useVerificationTypes';
 import { useUsers } from '@/hooks/useUsers';
 import { LoadingState } from '@/components/ui/loading';
 import { isBackendScopedUser, isFieldAgentUser } from '@/utils/userPermissionProfiles';
+import { logger } from '@/utils/logger';
 
 interface MISFilterValues {
   dateFrom?: string;
@@ -112,7 +113,7 @@ export function MISDashboard() {
       const response = await reportsService.getMISDashboardData(buildFilters());
       setData(response);
     } catch (error) {
-      console.error('Failed to load MIS data:', error);
+      logger.error('Failed to load MIS data:', error);
       toast.error('Failed to load MIS data');
     } finally {
       setIsLoading(false);
@@ -141,7 +142,7 @@ export function MISDashboard() {
       document.body.removeChild(a);
       toast.success(`MIS data exported successfully as ${format}`);
     } catch (error) {
-      console.error('Failed to export MIS data:', error);
+      logger.error('Failed to export MIS data:', error);
       toast.error('Failed to export MIS data');
     } finally {
       setIsExporting(false);

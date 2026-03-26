@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { apiService } from '@/services/api';
+import { logger } from '@/utils/logger';
 
 interface NotificationPreferences {
   userId: string;
@@ -54,7 +55,7 @@ export function NotificationPreferences() {
         toast.error('Failed to load notification preferences');
       }
     } catch (error) {
-      console.error('Load preferences error:', error);
+      logger.error('Load preferences error:', error);
       toast.error('Failed to load notification preferences');
     } finally {
       setLoading(false);
@@ -84,7 +85,7 @@ export function NotificationPreferences() {
         toast.error('Failed to save notification preferences');
       }
     } catch (error) {
-      console.error('Save preferences error:', error);
+      logger.error('Save preferences error:', error);
       toast.error('Failed to save notification preferences');
     } finally {
       setSaving(false);

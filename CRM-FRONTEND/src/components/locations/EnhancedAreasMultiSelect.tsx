@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { locationsService } from '@/services/locations';
 import { MultiSelectDropdown, MultiSelectOption } from '@/components/ui/multi-select-dropdown';
+import { logger } from '@/utils/logger';
 
 // interface Area {
 //   id: string;
@@ -68,11 +69,11 @@ export function EnhancedAreasMultiSelect({
   // Debug logging for development
   React.useEffect(() => {
     if (queryError) {
-      console.error('EnhancedAreasMultiSelect Error:', queryError);
+      logger.error('EnhancedAreasMultiSelect Error:', queryError);
     }
     if (allAreas.length > 0) {
-      console.warn('🔍 Areas data:', allAreas);
-      console.warn('🔍 Processed options:', areaOptions);
+      logger.warn('🔍 Areas data:', allAreas);
+      logger.warn('🔍 Processed options:', areaOptions);
     }
   }, [queryError, allAreas, areaOptions]);
 

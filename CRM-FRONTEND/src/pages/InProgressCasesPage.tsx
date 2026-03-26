@@ -16,6 +16,7 @@ import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import { Download, RefreshCw, PlayCircle } from 'lucide-react';
 import { casesService, type CaseListQuery } from '@/services/cases';
+import { logger } from '@/utils/logger';
 
 interface InProgressCaseFilters {
   priority?: string;
@@ -93,7 +94,7 @@ export const InProgressCasesPage: React.FC = () => {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to export in progress cases:', error);
+      logger.error('Failed to export in progress cases:', error);
     }
   };
 

@@ -16,6 +16,7 @@ import {
 import { Search, ExternalLink, Eye, Loader2 } from 'lucide-react';
 import { deduplicationService } from '@/services/deduplication';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 interface SearchCriteria {
   mobile: string;
@@ -95,7 +96,7 @@ export const DedupePage: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('Search error:', error);
+      logger.error('Search error:', error);
       toast.error('Failed to search cases. Please try again.');
       setResults([]);
     } finally {

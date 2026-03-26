@@ -22,9 +22,10 @@ import { BulkImportLocationDialog } from '@/components/locations/BulkImportLocat
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 import { PincodeArea } from '@/types/location';
+import { logger } from '@/utils/logger';
 
 export function LocationsPage() {
-  console.warn('LocationsPage component loaded');
+  logger.warn('LocationsPage component loaded');
   const navigate = useNavigate();
   const { tab: tabParam } = useParams<{ tab?: string }>();
   const [searchParams] = useSearchParams();

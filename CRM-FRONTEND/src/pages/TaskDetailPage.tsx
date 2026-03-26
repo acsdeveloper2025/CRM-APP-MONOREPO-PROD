@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { apiService } from '@/services/api';
 import { LoadingState } from '@/components/ui/loading';
 import { EditTaskDetailsModal } from '@/components/verification-tasks/EditTaskDetailsModal';
+import { logger } from '@/utils/logger';
 
 interface TaskDetail {
   id: string;
@@ -166,7 +167,7 @@ export const TaskDetailPage: React.FC = () => {
         setAssignmentHistory(history);
       }
     } catch (err) {
-      console.error('Failed to fetch assignment history:', err);
+      logger.error('Failed to fetch assignment history:', err);
     }
   };
 
@@ -180,7 +181,7 @@ export const TaskDetailPage: React.FC = () => {
         toast.error(response.message || 'Failed to update task');
       }
     } catch (error) {
-       console.error('Failed to update task:', error);
+       logger.error('Failed to update task:', error);
        toast.error('An error occurred while updating the task');
     }
   };

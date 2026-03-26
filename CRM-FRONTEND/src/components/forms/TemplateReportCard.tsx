@@ -9,6 +9,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { apiService } from '@/services/api';
+import { logger } from '@/utils/logger';
 
 interface TemplateReport {
   id: string;
@@ -61,7 +62,7 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
       if (error.response?.status === 404) {
         setReport(null);
       } else {
-        console.error('Error loading template report:', err);
+        logger.error('Error loading template report:', err);
         setError('Failed to load existing template report. You can still generate a new one.');
       }
     } finally {
@@ -99,7 +100,7 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
       }
     } catch (err: unknown) {
       const error = err as Error;
-      console.error('Error generating template report:', error);
+      logger.error('Error generating template report:', error);
       setError(error.message || 'Failed to generate report');
     } finally {
       setGenerating(false);

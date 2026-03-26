@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, XCircle, RotateCcw } from 'lucide-react';
 import type { Case } from '@/types/case';
+import { logger } from '@/utils/logger';
 
 interface ReviewDialogProps {
   isOpen: boolean;
@@ -100,7 +101,7 @@ export const ReviewDialog: React.FC<ReviewDialogProps> = ({
       }
       handleClose();
     } catch (error) {
-      console.error('Review action failed:', error);
+      logger.error('Review action failed:', error);
     } finally {
       setIsSubmitting(false);
     }

@@ -9,6 +9,7 @@ import {
 import { AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { apiService } from '@/services/api';
+import { logger } from '@/utils/logger';
 
 interface TaskValidationBadgeProps {
   taskId: string;
@@ -36,7 +37,7 @@ export function TaskValidationBadge({ taskId, taskStatus, className }: TaskValid
         setValidation(response.data);
       }
     } catch (error) {
-      console.error('Failed to validate task:', error);
+      logger.error('Failed to validate task:', error);
     } finally {
       setIsLoading(false);
     }

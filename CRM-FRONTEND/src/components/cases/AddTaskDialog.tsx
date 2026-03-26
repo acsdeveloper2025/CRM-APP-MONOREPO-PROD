@@ -31,6 +31,7 @@ import {
 import { useCreateVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useVerificationTypes } from '@/hooks/useClients';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 const addTaskSchema = z.object({
   verification_type_id: z.string().min(1, 'Verification type is required'),
@@ -88,7 +89,7 @@ export const AddTaskDialog: React.FC<AddTaskDialogProps> = ({
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('Failed to add task:', error);
+      logger.error('Failed to add task:', error);
       toast.error('Failed to add task');
     }
   };

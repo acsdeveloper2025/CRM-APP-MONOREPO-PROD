@@ -7,6 +7,7 @@
 
 import { lazy, ComponentType, LazyExoticComponent } from 'react';
 import { normalizeUserRole } from '@/types/constants';
+import { logger } from '@/utils/logger';
 
 // ==================== Lazy Loading Utilities ====================
 
@@ -406,7 +407,7 @@ export function preloadOnIdle(): void {
  */
 export function logComponentLoad(componentName: string): void {
   if (import.meta.env.DEV) {
-    console.warn(`🔄 Lazy loading component: ${componentName}`);
+    logger.warn(`🔄 Lazy loading component: ${componentName}`);
   }
 }
 

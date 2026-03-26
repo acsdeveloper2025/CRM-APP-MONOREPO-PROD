@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { logger } from '@/utils/logger';
 // Replaced lodash throttle with local implementation to avoid dependency
 function throttle<T extends (...args: unknown[]) => unknown>(func: T, limit: number): T & { cancel: () => void } {
   let inThrottle: boolean;
@@ -235,12 +236,12 @@ export const usePerformanceMonitor = (componentName: string) => {
       // Log performance warnings in development
       if (process.env.NODE_ENV === 'development') {
         if (renderTime > 16) { // 60fps threshold
-          console.warn(`${componentName} render took ${renderTime.toFixed(2)}ms (>16ms)`);
+          logger.warn(`${componentName} render took ${renderTime.toFixed(2)}ms (>16ms)`);
         }
 
         if (renderCount.current % 50 === 0) {
           const avgRenderTime = renderTimes.current.reduce((a, b) => a + b, 0) / renderTimes.current.length;
-          console.warn(`${componentName} performance stats:`, {
+          logger.warn(`${componentName} performance stats:`, {
             renders: renderCount.current,
             avgRenderTime: avgRenderTime.toFixed(2),
             lastRenderTime: renderTime.toFixed(2),

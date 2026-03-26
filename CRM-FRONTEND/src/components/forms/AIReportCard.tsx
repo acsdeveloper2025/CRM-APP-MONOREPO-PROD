@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { aiReportsService } from '@/services/aiReports';
+import { logger } from '@/utils/logger';
 
 interface AIReport {
   id: string;
@@ -74,7 +75,7 @@ export const AIReportCard: React.FC<AIReportCardProps> = ({
       const errorResponse = (err as { response?: { status?: number } });
       if (errorResponse.response?.status !== 404) {
         setError('Failed to load AI report');
-        console.error('Error loading AI report:', err);
+        logger.error('Error loading AI report:', err);
       }
     } finally {
       setIsLoading(false);

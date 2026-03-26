@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { logger } from '@/utils/logger';
 
 interface Props {
   children: ReactNode;
@@ -39,7 +40,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    logger.error('ErrorBoundary caught an error:', error, errorInfo);
     
     this.setState({
       error,
@@ -73,7 +74,7 @@ export class ErrorBoundary extends Component<Props, State> {
       })(),
     };
 
-    console.error('Error logged:', errorData);
+    logger.error('Error logged:', errorData);
     
     // Example: Send to monitoring service
     // errorMonitoringService.captureException(error, { extra: errorData });
@@ -212,7 +213,7 @@ export class ErrorBoundary extends Component<Props, State> {
 // Hook version for functional components
 export const useErrorHandler = () => {
   const handleError = React.useCallback((error: Error, errorInfo?: unknown) => {
-    console.error('Error caught by useErrorHandler:', error, errorInfo);
+    logger.error('Error caught by useErrorHandler:', error, errorInfo);
     
     // Log to monitoring service
     const errorData = {
@@ -226,7 +227,7 @@ export const useErrorHandler = () => {
         : errorInfo !== undefined ? { info: errorInfo } : {}),
     };
 
-    console.error('Error data:', errorData);
+    logger.error('Error data:', errorData);
   }, []);
 
   return { handleError };

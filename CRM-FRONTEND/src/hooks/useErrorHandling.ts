@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 export interface AppError {
   code: string;
@@ -68,7 +69,7 @@ export function useErrorHandling() {
 
     // Log to console
     if (logToConsole) {
-      console.error('Error handled:', appError, error);
+      logger.error('Error handled:', appError, error);
     }
 
     // Show toast notification
@@ -222,7 +223,7 @@ function logErrorToService(appError: AppError, originalError: unknown) {
 
   // Example: Send to monitoring service
   // Example: Send to monitoring service
-  console.warn('Error logged to service:', _errorData);
+  logger.warn('Error logged to service:', _errorData);
 
   // Uncomment and configure for your monitoring service:
   // Sentry.captureException(originalError, { extra: _errorData });

@@ -10,6 +10,7 @@ import { UserCheck, AlertCircle, User, Loader2 } from 'lucide-react';
 import { AssignVerificationTaskRequest, TaskPriority, VerificationTask } from '@/types/verificationTask';
 import { useFieldUsersByPincode } from '@/hooks/useUsers';
 import { useVerificationTask, useAssignVerificationTask } from '@/hooks/useVerificationTasks';
+import { logger } from '@/utils/logger';
 
 interface TaskAssignmentModalProps {
   taskId: string;
@@ -92,7 +93,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
         onClose();
       }
     } catch (error) {
-      console.error('Failed to assign task:', error);
+      logger.error('Failed to assign task:', error);
       const apiCode =
         typeof error === 'object' &&
         error !== null &&

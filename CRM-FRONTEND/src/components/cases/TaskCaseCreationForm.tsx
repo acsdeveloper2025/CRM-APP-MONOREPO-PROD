@@ -40,6 +40,7 @@ import type { CaseFormAttachment } from '@/components/attachments/CaseFormAttach
 import { VerificationType } from '@/types/client';
 import { Pincode } from '@/types/location';
 import type { CaseConfigValidationResult } from '@/types/rateManagement';
+import { logger } from '@/utils/logger';
 
 // Case-level schema (fields filled once)
 const caseLevelSchema = z.object({
@@ -131,7 +132,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   // Populate form with initial data
   useEffect(() => {
     if (initialData) {
-      console.warn('📝 TaskCaseCreationForm - Populating form with initialData', initialData);
+      logger.warn('📝 TaskCaseCreationForm - Populating form with initialData', initialData);
       
       if (initialData.caseLevelData) {
         form.reset({
@@ -142,12 +143,12 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
         });
       }
       if (initialData.tasks && initialData.tasks.length > 0) {
-        console.warn('📝 TaskCaseCreationForm - Setting tasks', initialData.tasks);
+        logger.warn('📝 TaskCaseCreationForm - Setting tasks', initialData.tasks);
         setTasks(initialData.tasks);
         
         // Verify state was set correctly
         setTimeout(() => {
-          console.warn('📝 TaskCaseCreationForm - Tasks state after setTasks', {
+          logger.warn('📝 TaskCaseCreationForm - Tasks state after setTasks', {
             tasksLength: initialData.tasks?.length,
             firstTask: initialData.tasks?.[0],
             rateTypeId: initialData.tasks?.[0]?.rateTypeId,
@@ -664,7 +665,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
   // Users can manually change these values if needed.
 
   // Debug logging to verify task prop values
-  console.warn(`🎯 TaskCard ${index + 1} - Rendering with task:`, {
+  logger.warn(`🎯 TaskCard ${index + 1} - Rendering with task:`, {
     taskId: task.id,
     rateTypeId: task.rateTypeId,
     assignedTo: task.assignedTo,
@@ -1104,7 +1105,7 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
           });
           attachment.preview = preview;
         } catch (error) {
-          console.error('Failed to generate preview:', error);
+          logger.error('Failed to generate preview:', error);
         }
       }
 

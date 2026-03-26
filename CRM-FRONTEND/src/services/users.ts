@@ -17,6 +17,7 @@ import type {
 import type { FieldAgentAssignment } from '@/types/territoryAssignment';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
 import type { Role } from '@/types/auth';
+import { logger } from '@/utils/logger';
 
 
 
@@ -274,7 +275,7 @@ export class UsersService {
         message: 'No field users found for this pincode'
       };
     } catch (error) {
-      console.error('Error fetching field users by pincode:', error);
+      logger.error('Error fetching field users by pincode:', error);
       throw error;
     }
   }

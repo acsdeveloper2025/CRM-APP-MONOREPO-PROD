@@ -1,6 +1,7 @@
 import { apiService } from './api';
 import { STORAGE_KEYS, SYNC_KEYS } from '@/types/constants';
 import type { LoginRequest, LoginResponse, User } from '@/types/auth';
+import { logger } from '@/utils/logger';
 
 export class AuthService {
   private async ensureAccessToken(): Promise<void> {
@@ -94,7 +95,7 @@ export class AuthService {
       }
       return null;
     } catch (error) {
-      console.error('Failed to refresh user data:', error);
+      logger.error('Failed to refresh user data:', error);
       return null;
     }
   }
@@ -107,7 +108,7 @@ export class AuthService {
         message: response.message || (response.success ? 'Rate limit reset successfully' : 'Failed to reset rate limit'),
       };
     } catch (error) {
-      console.error('Failed to reset rate limit:', error);
+      logger.error('Failed to reset rate limit:', error);
       return {
         success: false,
         message: 'Network error occurred while resetting rate limit',
@@ -123,7 +124,7 @@ export class AuthService {
         message: response.message || (response.success ? 'User rate limit reset successfully' : 'Failed to reset user rate limit'),
       };
     } catch (error) {
-      console.error('Failed to reset user rate limit:', error);
+      logger.error('Failed to reset user rate limit:', error);
       return {
         success: false,
         message: 'Network error occurred while resetting user rate limit',

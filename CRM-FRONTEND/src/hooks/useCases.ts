@@ -4,6 +4,7 @@ import type { CreateCaseWithMultipleTasksPayload } from '@/types/dto/case.dto';
 import { toast } from 'sonner';
 import { useCallback } from 'react';
 import { useMutationWithInvalidation } from './useStandardizedMutation';
+import { logger } from '@/utils/logger';
 
 // Query keys
 export const caseKeys = {
@@ -182,7 +183,7 @@ export const useRefreshCases = () => {
           );
           cacheKeys.forEach(key => localStorage.removeItem(key));
         } catch (error) {
-          console.warn('Failed to clear localStorage:', error);
+          logger.warn('Failed to clear localStorage:', error);
         }
 
         // Clear session storage for cases (if any)
@@ -192,7 +193,7 @@ export const useRefreshCases = () => {
           );
           sessionKeys.forEach(key => sessionStorage.removeItem(key));
         } catch (error) {
-          console.warn('Failed to clear sessionStorage:', error);
+          logger.warn('Failed to clear sessionStorage:', error);
         }
       }
 
@@ -208,7 +209,7 @@ export const useRefreshCases = () => {
 
       return true;
     } catch (error) {
-      console.error('Failed to refresh cases:', error);
+      logger.error('Failed to refresh cases:', error);
       if (showToast) {
         toast.error('Failed to refresh cases', { id: 'refresh-cases' });
       }

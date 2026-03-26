@@ -7,6 +7,7 @@ import { AuthContext, AuthContextType } from './AuthContextObject';
 import { AUTH_LOGOUT_EVENT } from '@/utils/events';
 import { frontendSocketService } from '@/services/socket';
 import { useQueryClient } from '@tanstack/react-query';
+import { logger } from '@/utils/logger';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -66,7 +67,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       void queryClient.refetchQueries({ queryKey: ['dashboard'], type: 'active' });
     } catch (error) {
-      console.error('Permission refresh failed:', error);
+      logger.error('Permission refresh failed:', error);
     }
   }, [normalizeUserPermissions, queryClient]);
 
@@ -100,7 +101,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               });
             }
           } catch (error) {
-            console.warn('Auto-refresh failed during initialization:', error);
+            logger.warn('Auto-refresh failed during initialization:', error);
             await authService.logout();
             setState({
               user: null,
@@ -119,7 +120,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           });
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
+        logger.error('Auth initialization error:', error);
         setState({
           user: null,
           token: null,
@@ -168,7 +169,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }) || undefined;
 
     socket.on('connect_error', (error) => {
-      console.warn('Socket connect error:', error.message);
+      logger.warn('Socket connect error:', error.message);
     });
 
     return () => {
@@ -225,7 +226,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
       toast.success(customMessage || 'Logged out successfully');
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('Logout error:', error);
       // Still clear the state even if logout API fails
       setState({
         user: null,

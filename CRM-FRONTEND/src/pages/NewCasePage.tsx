@@ -13,6 +13,7 @@ import { LoadingState } from '@/components/ui/loading';
 import type { VerificationTask } from '@/types/verificationTask';
 import type { TaskFormData, CaseLevelFormData } from '@/components/cases/TaskCaseCreationForm';
 import type { CaseFormAttachment } from '@/components/attachments/CaseFormAttachmentsSection';
+import { logger } from '@/utils/logger';
 
 export const NewCasePage: React.FC = () => {
   const navigate = useNavigate();
@@ -107,7 +108,7 @@ export const NewCasePage: React.FC = () => {
         
         const tasks = verificationTasksResponse?.data?.tasks || [];
         if (!tasks.length) {
-          console.error('❌ No tasks found for case in edit mode', { editTaskId, caseId: editCaseId });
+          logger.error('❌ No tasks found for case in edit mode', { editTaskId, caseId: editCaseId });
           return;
         }
 
@@ -117,7 +118,7 @@ export const NewCasePage: React.FC = () => {
           : tasks;
 
         if (!selectedTasks.length) {
-          console.error('❌ Task not found', {
+          logger.error('❌ Task not found', {
             editTaskId,
             availableTasks: tasks.map((t: VerificationTask) => t.id),
           });
@@ -127,7 +128,7 @@ export const NewCasePage: React.FC = () => {
         const firstTask = selectedTasks[0] as unknown as Record<string, unknown>;
         const taskAddress = firstTask?.address || '';
 
-        console.warn('🔍 NewCasePage - Mapping case data for edit mode', {
+        logger.warn('🔍 NewCasePage - Mapping case data for edit mode', {
           caseId: editCaseId,
           taskId: editTaskId || firstTask?.id,
           firstTask,
@@ -240,7 +241,7 @@ export const NewCasePage: React.FC = () => {
           tasks: mappedTasks
         };
 
-        console.warn('✅ NewCasePage - Mapped data ready', {
+        logger.warn('✅ NewCasePage - Mapped data ready', {
           mappedTaskCount: mappedData.tasks.length,
           firstTaskRateTypeId: mappedData.tasks[0]?.rateTypeId,
           firstTaskAssignedTo: mappedData.tasks[0]?.assignedTo,
@@ -251,7 +252,7 @@ export const NewCasePage: React.FC = () => {
     } catch (error) {
       // Only log errors in development mode
       if (import.meta.env.DEV) {
-        console.error('Error in NewCasePage useEffect:', error);
+        logger.error('Error in NewCasePage useEffect:', error);
       }
       // Don't redirect on error, just log it
     }

@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { LoginRequest } from '@/types/auth';
 import { LoadingPage } from '@/components/ui/loading';
+import { logger } from '@/utils/logger';
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -57,7 +58,7 @@ export const LoginPage: React.FC = () => {
         navigate('/dashboard');
       }
     } catch (error: unknown) {
-      console.error('Login error:', error);
+      logger.error('Login error:', error);
     } finally {
       setIsSubmitting(false);
     }

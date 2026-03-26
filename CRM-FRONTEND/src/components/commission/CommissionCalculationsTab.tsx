@@ -16,6 +16,7 @@ import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import { commissionManagementApi } from '../../services/commissionManagementApi';
 import { CommissionCalculation } from '../../types/commission';
+import { logger } from '@/utils/logger';
 
 export const CommissionCalculationsTab: React.FC = () => {
   const [calculations, setCalculations] = useState<CommissionCalculation[]>([]);
@@ -46,7 +47,7 @@ export const CommissionCalculationsTab: React.FC = () => {
       setCalculations(response.data || []);
       setTotalPages(response.pagination?.totalPages || 1);
     } catch (error) {
-      console.error('Error loading calculations:', error);
+      logger.error('Error loading calculations:', error);
     } finally {
       setLoading(false);
     }
@@ -88,7 +89,7 @@ export const CommissionCalculationsTab: React.FC = () => {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error exporting calculations:', error);
+      logger.error('Error exporting calculations:', error);
     }
   };
 

@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { locationsService } from '@/services/locations';
+import { logger } from '@/utils/logger';
 
 // interface Area {
 //   id: string;
@@ -63,7 +64,7 @@ export function AreasMultiSelect({
   // Debug logging (reduced)
   React.useEffect(() => {
     if (queryError) {
-      console.error('AreasMultiSelect Error:', queryError);
+      logger.error('AreasMultiSelect Error:', queryError);
     }
   }, [queryError]);
 

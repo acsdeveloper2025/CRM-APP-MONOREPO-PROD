@@ -24,6 +24,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { VerificationTasksService } from '@/services/verificationTasks';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 interface CompletedTaskFilters {
   priority?: string;
@@ -123,7 +124,7 @@ export const CompletedTasksPage: React.FC = () => {
         navigate('/tasks/revisit');
       }, 1500);
     } catch (error) {
-      console.error('Error creating revisit task:', error);
+      logger.error('Error creating revisit task:', error);
       toast.error('Failed to create revisit task. Please try again.');
     }
   };

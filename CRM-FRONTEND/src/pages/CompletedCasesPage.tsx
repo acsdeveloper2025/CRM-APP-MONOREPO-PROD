@@ -7,6 +7,7 @@ import { useCases, useRefreshCases } from '@/hooks/useCases';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { Download, RefreshCw, CheckCircle } from 'lucide-react';
 import { casesService, type CaseListQuery } from '@/services/cases';
+import { logger } from '@/utils/logger';
 
 interface CompletedCaseFilters {
   [key: string]: unknown;
@@ -74,7 +75,7 @@ export const CompletedCasesPage: React.FC = () => {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to export completed cases:', error);
+      logger.error('Failed to export completed cases:', error);
     }
   };
 

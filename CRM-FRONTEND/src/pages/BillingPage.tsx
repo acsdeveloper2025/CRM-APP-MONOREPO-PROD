@@ -11,6 +11,7 @@ import { CommissionsTable } from '@/components/billing/CommissionsTable';
 import { CreateInvoiceDialog } from '@/components/billing/CreateInvoiceDialog';
 import { CommissionSummaryCard } from '@/components/billing/CommissionSummaryCard';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { logger } from '@/utils/logger';
 
 export function BillingPage() {
   const [activeTab, setActiveTab] = useState('invoices');
@@ -80,7 +81,7 @@ export function BillingPage() {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to download report:', error);
+      logger.error('Failed to download report:', error);
     }
   };
 
