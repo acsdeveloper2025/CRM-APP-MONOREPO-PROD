@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { logger } from '@/utils/logger';
 import {
   Select,
   SelectContent,
@@ -175,7 +176,7 @@ export const AllTasksPage: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {/* TODO: Export functionality */}}
+              onClick={() => { logger.warn('Export functionality not yet implemented'); }}
             >
               <Download className="h-4 w-4 mr-2" />
               Export

@@ -1,5 +1,6 @@
 import { apiService } from './api';
 import type { ApiResponse } from '@/types/api';
+import { logger } from '@/utils/logger';
 
 export interface AIReport {
   id: string;
@@ -69,7 +70,7 @@ class AIReportsService {
    * Download AI report as PDF (placeholder for future implementation)
    */
   async downloadReport(caseId: string, submissionId: string, _format: 'PDF' | 'DOCX' = 'PDF'): Promise<Blob> {
-    // TODO: Implement download functionality
+    logger.warn('AI report download not yet implemented');
     throw new Error('Download functionality not yet implemented');
   }
 

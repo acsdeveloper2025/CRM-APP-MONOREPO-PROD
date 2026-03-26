@@ -361,7 +361,7 @@ export const AIReportCard: React.FC<AIReportCardProps> = ({
             variant="outline"
             size="sm"
             onClick={() => {
-              // TODO: Implement download functionality
+              logger.warn('AI report download not yet implemented');
               toast.info('Download feature coming soon');
             }}
           >
