@@ -202,7 +202,10 @@ export const updateDepartment = async (req: AuthenticatedRequest, res: Response)
     const { name, description, departmentHeadId, isActive } = req.body;
 
     // Check if department exists
-    const existingDepartment = await query('SELECT id, name, description, "isActive", "createdAt", "updatedAt" FROM departments WHERE id = $1', [id]);
+    const existingDepartment = await query(
+      'SELECT id, name, description, "isActive", "createdAt", "updatedAt" FROM departments WHERE id = $1',
+      [id]
+    );
     if (existingDepartment.rows.length === 0) {
       return res.status(404).json({
         success: false,
@@ -288,7 +291,10 @@ export const deleteDepartment = async (req: AuthenticatedRequest, res: Response)
     const { id } = req.params;
 
     // Check if department exists
-    const existingDepartment = await query('SELECT id, name, description, "isActive", "createdAt", "updatedAt" FROM departments WHERE id = $1', [id]);
+    const existingDepartment = await query(
+      'SELECT id, name, description, "isActive", "createdAt", "updatedAt" FROM departments WHERE id = $1',
+      [id]
+    );
     if (existingDepartment.rows.length === 0) {
       return res.status(404).json({
         success: false,

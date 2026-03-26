@@ -507,7 +507,10 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     }
 
     // Fetch user to ensure they still exist and get current role
-    const userRes = await query(`SELECT id, name, username, email, "employeeId", designation, department, "profilePhotoUrl", "isActive" FROM users WHERE id = $1`, [decoded.userId]);
+    const userRes = await query(
+      `SELECT id, name, username, email, "employeeId", designation, department, "profilePhotoUrl", "isActive" FROM users WHERE id = $1`,
+      [decoded.userId]
+    );
     const user = userRes.rows[0];
 
     if (!user) {
