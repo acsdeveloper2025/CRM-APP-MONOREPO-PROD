@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
+import { logger } from '@/utils/logger';
 
 /**
  * Utility functions to clear various types of cache and storage
@@ -8,11 +9,11 @@ export const clearBrowserStorage = () => {
   try {
     // Clear localStorage
     localStorage.clear();
-    console.warn('✅ localStorage cleared');
+    logger.warn('✅ localStorage cleared');
     
     // Clear sessionStorage
     sessionStorage.clear();
-    console.warn('✅ sessionStorage cleared');
+    logger.warn('✅ sessionStorage cleared');
     
     // Clear IndexedDB (if used)
     if ('indexedDB' in window) {
@@ -22,7 +23,7 @@ export const clearBrowserStorage = () => {
         databases.forEach(db => {
           if (db.name?.includes('crm') || db.name?.includes('app')) {
             indexedDB.deleteDatabase(db.name);
-            console.warn(`✅ IndexedDB ${db.name} cleared`);
+            logger.warn(`✅ IndexedDB ${db.name} cleared`);
           }
         });
       });
@@ -30,7 +31,7 @@ export const clearBrowserStorage = () => {
     
     return true;
   } catch (error) {
-    console.error('❌ Error clearing browser storage:', error);
+    logger.error('❌ Error clearing browser storage:', error);
     return false;
   }
 };
@@ -39,15 +40,15 @@ export const clearReactQueryCache = (queryClient: QueryClient) => {
   try {
     // Clear all queries
     queryClient.clear();
-    console.warn('✅ React Query cache cleared');
+    logger.warn('✅ React Query cache cleared');
     
     // Invalidate all queries to force refetch
     queryClient.invalidateQueries();
-    console.warn('✅ All queries invalidated');
+    logger.warn('✅ All queries invalidated');
     
     return true;
   } catch (error) {
-    console.error('❌ Error clearing React Query cache:', error);
+    logger.error('❌ Error clearing React Query cache:', error);
     return false;
   }
 };
@@ -59,25 +60,25 @@ export const clearServiceWorkerCache = async () => {
       
       await Promise.all(
         cacheNames.map(cacheName => {
-          console.warn(`🗑️ Deleting cache: ${cacheName}`);
+          logger.warn(`🗑️ Deleting cache: ${cacheName}`);
           return caches.delete(cacheName);
         })
       );
       
-      console.warn('✅ Service Worker caches cleared');
+      logger.warn('✅ Service Worker caches cleared');
       return true;
     } else {
-      console.warn('ℹ️ Service Worker or Cache API not supported');
+      logger.warn('ℹ️ Service Worker or Cache API not supported');
       return true;
     }
   } catch (error) {
-    console.error('❌ Error clearing Service Worker cache:', error);
+    logger.error('❌ Error clearing Service Worker cache:', error);
     return false;
   }
 };
 
 export const clearAllFrontendCache = async (queryClient: QueryClient) => {
-  console.warn('🧹 Starting frontend cache clearing...');
+  logger.warn('🧹 Starting frontend cache clearing...');
   
   const results = {
     browserStorage: false,
@@ -97,10 +98,10 @@ export const clearAllFrontendCache = async (queryClient: QueryClient) => {
   const allSuccessful = Object.values(results).every(result => result);
   
   if (allSuccessful) {
-    console.warn('🎉 All frontend caches cleared successfully!');
-    console.warn('🔄 Please refresh the page to see changes');
+    logger.warn('🎉 All frontend caches cleared successfully!');
+    logger.warn('🔄 Please refresh the page to see changes');
   } else {
-    console.warn('⚠️ Some caches could not be cleared:', results);
+    logger.warn('⚠️ Some caches could not be cleared:', results);
   }
   
   return results;
@@ -112,7 +113,7 @@ export const clearCaseCache = (queryClient: QueryClient) => {
   queryClient.removeQueries({ queryKey: ['case'] });
   queryClient.invalidateQueries({ queryKey: ['cases'] });
   queryClient.invalidateQueries({ queryKey: ['case'] });
-  console.warn('✅ Case cache cleared');
+  logger.warn('✅ Case cache cleared');
 };
 
 export const clearFormCache = (queryClient: QueryClient) => {
@@ -122,13 +123,13 @@ export const clearFormCache = (queryClient: QueryClient) => {
   queryClient.invalidateQueries({ queryKey: ['case-form-submissions'] });
   queryClient.invalidateQueries({ queryKey: ['form-template'] });
   queryClient.invalidateQueries({ queryKey: ['auto-saved-form'] });
-  console.warn('✅ Form cache cleared');
+  logger.warn('✅ Form cache cleared');
 };
 
 export const clearAttachmentCache = (queryClient: QueryClient) => {
   queryClient.removeQueries({ queryKey: ['attachments'] });
   queryClient.invalidateQueries({ queryKey: ['attachments'] });
-  console.warn('✅ Attachment cache cleared');
+  logger.warn('✅ Attachment cache cleared');
 };
 
 export const clearUserCache = (queryClient: QueryClient) => {
@@ -136,12 +137,12 @@ export const clearUserCache = (queryClient: QueryClient) => {
   queryClient.removeQueries({ queryKey: ['users'] });
   queryClient.invalidateQueries({ queryKey: ['user'] });
   queryClient.invalidateQueries({ queryKey: ['users'] });
-  console.warn('✅ User cache cleared');
+  logger.warn('✅ User cache cleared');
 };
 
 // Development helper function
 export const clearAllAppData = async (queryClient: QueryClient) => {
-  console.warn('🚨 CLEARING ALL APPLICATION DATA - USE WITH CAUTION!');
+  logger.warn('🚨 CLEARING ALL APPLICATION DATA - USE WITH CAUTION!');
   
   // Clear all specific caches
   clearCaseCache(queryClient);
@@ -152,8 +153,8 @@ export const clearAllAppData = async (queryClient: QueryClient) => {
   // Clear all frontend cache
   await clearAllFrontendCache(queryClient);
   
-  console.warn('💥 All application data cleared!');
-  console.warn('🔄 Page will reload in 3 seconds...');
+  logger.warn('💥 All application data cleared!');
+  logger.warn('🔄 Page will reload in 3 seconds...');
   
   // Auto-reload after clearing
   setTimeout(() => {

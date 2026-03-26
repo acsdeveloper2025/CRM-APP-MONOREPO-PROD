@@ -23,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { documentTypesService } from '@/services/documentTypes';
 import type { DocumentType } from '@/types/documentType';
+import { logger } from '@/utils/logger';
 
 const editDocumentTypeSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255, 'Name too long'),
@@ -81,7 +82,7 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
     try {
       await updateDocumentTypeMutation.mutateAsync(data);
     } catch (error) {
-      console.error('Failed to update document type:', error);
+      logger.error('Failed to update document type:', error);
     }
   };
 

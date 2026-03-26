@@ -258,7 +258,7 @@ export class SecurityUtils {
       
       localStorage.setItem(key, dataToStore);
     } catch (error) {
-      console.error('Failed to store data securely:', error);
+      logger.error('Failed to store data securely:', error);
     }
   }
 
@@ -274,7 +274,7 @@ export class SecurityUtils {
       
       return JSON.parse(data);
     } catch (error) {
-      console.error('Failed to retrieve data securely:', error);
+      logger.error('Failed to retrieve data securely:', error);
       return null;
     }
   }

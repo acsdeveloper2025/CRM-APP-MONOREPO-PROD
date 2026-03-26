@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { apiService } from '@/services/api';
+import { logger } from '@/utils/logger';
 
 interface ConnectivityStatus {
   fcm: boolean;
@@ -70,7 +71,7 @@ export function NotificationTestingDashboard() {
         setConnectivity(response.data || null);
       }
     } catch (error) {
-      console.error('Failed to load connectivity status:', error);
+      logger.error('Failed to load connectivity status:', error);
     }
   };
 
@@ -81,7 +82,7 @@ export function NotificationTestingDashboard() {
         setAnalytics(response.data || null);
       }
     } catch (error) {
-      console.error('Failed to load analytics:', error);
+      logger.error('Failed to load analytics:', error);
     }
   };
 
@@ -110,7 +111,7 @@ export function NotificationTestingDashboard() {
         toast.error('Failed to send test notification');
       }
     } catch (error) {
-      console.error('Send test notification error:', error);
+      logger.error('Send test notification error:', error);
       toast.error('Failed to send test notification');
     } finally {
       setLoading(false);

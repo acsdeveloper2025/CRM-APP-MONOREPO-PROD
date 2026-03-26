@@ -1,5 +1,6 @@
 import { apiService, authenticatedFetch } from './api';
 import type { ApiResponse } from '@/types/api';
+import { logger } from '@/utils/logger';
 
 // Cache for blob URLs to avoid re-fetching
 const blobUrlCache = new Map<string, string>();
@@ -136,7 +137,7 @@ class VerificationImagesService {
 
         return blobUrl;
       } catch (error) {
-        console.error('Error fetching image:', error);
+        logger.error('Error fetching image:', error);
         const baseUrl = apiService.getRootUrl();
         return `${baseUrl}${imageUrl}`;
       }
@@ -144,7 +145,7 @@ class VerificationImagesService {
 
     // Fallback to direct URL (for backward compatibility)
     const baseUrl = apiService.getRootUrl();
-    console.warn('🖼️ Verification Images - Fallback using base URL:', baseUrl);
+    logger.warn('🖼️ Verification Images - Fallback using base URL:', baseUrl);
     return `${baseUrl}${imageUrl}`;
   }
 
@@ -178,7 +179,7 @@ class VerificationImagesService {
 
         return blobUrl;
       } catch (error) {
-        console.error('Error fetching thumbnail:', error);
+        logger.error('Error fetching thumbnail:', error);
         const baseUrl = apiService.getRootUrl();
         return `${baseUrl}${thumbnailUrl}`;
       }

@@ -34,6 +34,7 @@ import { toast } from 'sonner';
 import { departmentsService } from '@/services/departments';
 import { usersService } from '@/services/users';
 import { CreateDepartmentRequest } from '@/types/user';
+import { logger } from '@/utils/logger';
 
 const createDepartmentSchema = z.object({
   name: z.string().min(1, 'Department name is required').max(100, 'Department name too long'),
@@ -122,7 +123,7 @@ export function CreateDepartmentDialog({ open, onOpenChange }: CreateDepartmentD
         toast.error(errorMessage);
       }
 
-      console.error('Department creation error:', axios.isAxiosError(error) ? error.response?.data : error);
+      logger.error('Department creation error:', axios.isAxiosError(error) ? error.response?.data : error);
     },
   });
 

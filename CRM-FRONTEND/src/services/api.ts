@@ -2,6 +2,7 @@ import axios, { type AxiosInstance, type AxiosResponse, type AxiosRequestConfig,
 import type { ApiResponse } from '@/types/api';
 import { triggerLogout } from '@/utils/events';
 import { STORAGE_KEYS, SYNC_KEYS } from '@/types/constants';
+import { logger } from '@/utils/logger';
 
 // Queue to hold requests while token is refreshing
 let isRefreshing = false;
@@ -90,7 +91,7 @@ class ApiService {
   constructor() {
     // Smart URL selection based on environment
     const baseURL = this.getOptimalApiUrl();
-    console.warn('🔗 API Service initialized with URL:', baseURL);
+    logger.warn('🔗 API Service initialized with URL:', baseURL);
 
     this.api = axios.create({
       baseURL,
@@ -136,7 +137,7 @@ class ApiService {
 
         if (!import.meta.env.DEV && isLocalhostTarget) {
           const sameOriginFallback = `${window.location.origin}/api`;
-          console.warn(
+          logger.warn(
             '⚠️ Ignoring localhost API base URL in production build. Falling back to same-origin API:',
             sameOriginFallback,
           );
@@ -147,7 +148,7 @@ class ApiService {
       } catch {
         if (!import.meta.env.DEV) {
           const sameOriginFallback = `${window.location.origin}/api`;
-          console.warn(
+          logger.warn(
             '⚠️ Invalid VITE_API_BASE_URL in production build. Falling back to same-origin API:',
             sameOriginFallback,
           );
@@ -158,7 +159,7 @@ class ApiService {
 
     if (!import.meta.env.DEV) {
       const sameOriginFallback = `${window.location.origin}/api`;
-      console.warn(
+      logger.warn(
         '⚠️ VITE_API_BASE_URL is missing in production build. Falling back to same-origin API:',
         sameOriginFallback,
       );
@@ -289,7 +290,7 @@ class ApiService {
               throw new Error('Invalid refresh response');
             }
 
-            console.warn('✅ Token refresh successful');
+            logger.warn('✅ Token refresh successful');
 
             // Update in-memory storage
             this.setAccessToken(accessToken);
@@ -306,7 +307,7 @@ class ApiService {
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
             return this.api(originalRequest);
           } catch (refreshError) {
-            console.error('❌ Token refresh failed:', refreshError);
+            logger.error('❌ Token refresh failed:', refreshError);
             isRefreshing = false; // Reset flag on error
             processQueue(refreshError as Error, null);
 
@@ -751,7 +752,7 @@ class ApiService {
             throw new Error('Invalid refresh response');
           }
   
-          console.warn('✅ Token refresh successful (safeFetch)');
+          logger.warn('✅ Token refresh successful (safeFetch)');
   
           this.setAccessToken(accessToken);
           // Do NOT update refresh token

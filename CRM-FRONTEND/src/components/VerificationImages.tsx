@@ -8,6 +8,7 @@ import { useVerificationImages, useVerificationImagesBySubmission } from '@/hook
 import { verificationImagesService, type VerificationImage } from '@/services/verificationImages';
 import { Camera, MapPin, Download, Eye, Image as ImageIcon, ExternalLink, Clock, Home } from 'lucide-react';
 import { format } from 'date-fns';
+import { logger } from '@/utils/logger';
 
 // Custom hook to handle async image URL loading
 const useImageUrl = (imageUrl: string, imageId?: number) => {
@@ -21,7 +22,7 @@ const useImageUrl = (imageUrl: string, imageId?: number) => {
         const displayUrl = await verificationImagesService.getImageDisplayUrl(imageUrl, imageId);
         setUrl(displayUrl);
       } catch (error) {
-        console.error('Error loading image URL:', error);
+        logger.error('Error loading image URL:', error);
         setUrl(''); // Fallback to empty string
       } finally {
         setLoading(false);
@@ -46,7 +47,7 @@ const useThumbnailUrl = (thumbnailUrl: string, imageId?: number) => {
         const displayUrl = await verificationImagesService.getThumbnailDisplayUrl(thumbnailUrl, imageId);
         setUrl(displayUrl);
       } catch (error) {
-        console.error('Error loading thumbnail URL:', error);
+        logger.error('Error loading thumbnail URL:', error);
         setUrl(''); // Fallback to empty string
       } finally {
         setLoading(false);
@@ -188,7 +189,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to download image:', error);
+      logger.error('Failed to download image:', error);
     }
   };
 
@@ -311,7 +312,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
 
       img.src = imageUrl;
     } catch (error) {
-      console.error('Failed to download image with metadata:', error);
+      logger.error('Failed to download image with metadata:', error);
       // Fallback to regular download with case ID format
       const filename = `case-${caseId}-${imageIndex}.jpg`;
       handleDownload(image.id, filename);

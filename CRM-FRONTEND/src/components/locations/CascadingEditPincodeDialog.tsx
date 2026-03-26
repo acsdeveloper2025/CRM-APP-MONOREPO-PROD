@@ -18,6 +18,7 @@ import { locationsService } from '@/services/locations';
 import { Pincode, City, State, Country } from '@/types/location';
 import { ApiResponse } from '@/types/api';
 import { CascadingLocationSelector } from './CascadingLocationSelector';
+import { logger } from '@/utils/logger';
 
 const cascadingEditPincodeSchema = z.object({
   countryId: z.string().min(1, 'Country selection is required'),
@@ -126,7 +127,7 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
       onOpenChange(false);
     },
     onError: (error: unknown) => {
-      console.error('Update pincode error:', error);
+      logger.error('Update pincode error:', error);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const errorMessage = (error as any)?.response?.data?.message || 'Failed to update pincode';
       toast.error(errorMessage);

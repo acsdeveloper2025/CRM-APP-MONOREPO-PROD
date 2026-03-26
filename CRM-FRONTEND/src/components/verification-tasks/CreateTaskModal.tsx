@@ -16,6 +16,7 @@ import { useAreasByPincode } from '@/hooks/useAreas';
 import { useQuery } from '@tanstack/react-query';
 import { rateTypesService } from '@/services/rateTypes';
 import { casesService } from '@/services/cases';
+import { logger } from '@/utils/logger';
 
 interface CreateTaskModalProps {
   caseId: string;
@@ -162,11 +163,11 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   };
 
   const updateTask = (taskId: string, field: keyof TaskFormData, value: unknown) => {
-    console.warn('updateTask called:', { taskId, field, value });
+    logger.warn('updateTask called:', { taskId, field, value });
     setTasks(tasks.map(task => {
       if (task.id === taskId) {
         const updatedTask = { ...task, [field]: value };
-        console.warn('Updated task:', updatedTask);
+        logger.warn('Updated task:', updatedTask);
         return updatedTask;
       }
       return task;
@@ -463,8 +464,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                       <Select
                         value={task.pincode || ''}
                         onValueChange={(value) => {
-                          console.warn('Pincode selection changed:', value, 'for task:', task.id);
-                          console.warn('Current task pincode before update:', task.pincode);
+                          logger.warn('Pincode selection changed:', value, 'for task:', task.id);
+                          logger.warn('Current task pincode before update:', task.pincode);
                           // Update both pincode and reset area in a single state update
                           setTasks(tasks.map(t =>
                             t.id === task.id

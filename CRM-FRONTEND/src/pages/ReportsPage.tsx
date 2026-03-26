@@ -12,6 +12,7 @@ import { GenerateReportDialog } from '@/components/reports/GenerateReportDialog'
 import { TurnaroundTimeChart } from '@/components/reports/TurnaroundTimeChart';
 import { CompletionRateChart } from '@/components/reports/CompletionRateChart';
 import { MISDashboard } from '@/components/reports/MISDashboard';
+import { logger } from '@/utils/logger';
 
 export function ReportsPage() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -69,7 +70,7 @@ export function ReportsPage() {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to export data:', error);
+      logger.error('Failed to export data:', error);
     }
   };
 

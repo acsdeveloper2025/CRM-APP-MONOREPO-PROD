@@ -16,6 +16,7 @@ import { Form } from '@/components/ui/form';
 import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
 import { CascadingLocationSelector } from './CascadingLocationSelector';
+import { logger } from '@/utils/logger';
 
 const cascadingCreatePincodeSchema = z.object({
   countryId: z.string().min(1, 'Country selection is required'),
@@ -70,7 +71,7 @@ export function CascadingCreatePincodeDialog({ open, onOpenChange }: CascadingCr
       onOpenChange(false);
     },
     onError: (error: unknown) => {
-      console.error('Create pincode error:', error);
+      logger.error('Create pincode error:', error);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const errorMessage = (error as any)?.response?.data?.message || 'Failed to create pincode';
       toast.error(errorMessage);

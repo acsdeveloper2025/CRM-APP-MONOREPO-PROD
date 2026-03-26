@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertCircle, Edit } from 'lucide-react';
 import { TaskPriority, UpdateVerificationTaskRequest } from '@/types/verificationTask';
+import { logger } from '@/utils/logger';
 
 interface EditTaskDetailsModalProps {
   task: {
@@ -107,7 +108,7 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
       await onSubmit(task.id, updateData);
       onOpenChange(false);
     } catch (error) {
-      console.error('Failed to update task:', error);
+      logger.error('Failed to update task:', error);
     } finally {
       setLoading(false);
     }

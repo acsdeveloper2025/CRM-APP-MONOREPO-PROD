@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import type { MISFilters } from '@/types/mis';
 import { apiService } from '@/services/api';
 import { isBackendScopedUser, isFieldAgentUser } from '@/utils/userPermissionProfiles';
+import { logger } from '@/utils/logger';
 
 interface MISFiltersProps {
   filters: MISFilters;
@@ -55,7 +56,7 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
       setFieldAgents(users.filter((u: unknown) => isFieldAgentUser(u as never)));
       setBackendUsers(users.filter((u: unknown) => isBackendScopedUser(u as never)));
     } catch (error) {
-      console.error('Failed to load filter options:', error);
+      logger.error('Failed to load filter options:', error);
     }
   };
 

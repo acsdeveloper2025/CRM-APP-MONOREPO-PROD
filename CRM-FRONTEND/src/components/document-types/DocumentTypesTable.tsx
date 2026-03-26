@@ -24,6 +24,7 @@ import { documentTypesService } from '@/services/documentTypes';
 import { EditDocumentTypeDialog } from './EditDocumentTypeDialog';
 import { ViewDocumentTypeDialog } from './ViewDocumentTypeDialog';
 import { type DocumentType } from '@/types/documentType';
+import { logger } from '@/utils/logger';
 
 interface DocumentTypesTableProps {
   data: DocumentType[];
@@ -52,7 +53,7 @@ export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({
       try {
         await deleteDocumentTypeMutation.mutateAsync(documentType.id);
       } catch (error) {
-        console.error('Failed to delete document type:', error);
+        logger.error('Failed to delete document type:', error);
       }
     }
   };

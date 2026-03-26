@@ -18,6 +18,7 @@ import { UnifiedFilterPanel, FilterGrid } from '@/components/ui/unified-filter-p
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { commissionManagementApi } from '../../services/commissionManagementApi';
 import { FieldUserCommissionAssignment, CreateFieldUserCommissionAssignmentData } from '../../types/commission';
+import { logger } from '@/utils/logger';
 import { User } from '../../types/user';
 import { RateType } from '../../types/rateManagement';
 import { userApi } from '../../services/userApi';
@@ -104,7 +105,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
       setUsers(usersResponse.data);
       setRateTypes(rateTypesResponse.data);
     } catch (error) {
-      console.error('Error loading data:', error);
+      logger.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -141,7 +142,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
       resetForm();
       loadData();
     } catch (error) {
-      console.error('Error saving assignment:', error);
+      logger.error('Error saving assignment:', error);
     }
   };
 
@@ -175,7 +176,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
         await commissionManagementApi.deleteFieldUserCommissionAssignment(id);
         loadData();
       } catch (error) {
-        console.error('Error deleting assignment:', error);
+        logger.error('Error deleting assignment:', error);
       }
     }
   };

@@ -19,6 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { locationsService } from '@/services/locations';
+import { logger } from '@/utils/logger';
 
 interface AreaSelectorProps {
   selectedAreas: string[]; // Array of area names
@@ -151,7 +152,7 @@ export function AreaSelector({
                   {uniqueAreaNames.length > 0 && (
                     <CommandGroup heading="Existing Areas">
                       {uniqueAreaNames.map((areaName) => {
-                        console.warn('AreaSelector - Rendering area:', areaName);
+                        logger.warn('AreaSelector - Rendering area:', areaName);
                         const isSelected = selectedAreas.includes(areaName);
                         const areaUsageCount = availableAreas.filter(
                           area => area.name === areaName

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { logger } from '@/utils/logger';
 import {
   Upload,
   FileText,
@@ -158,7 +159,7 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
           });
           attachment.preview = preview;
         } catch (error) {
-          console.error('Failed to generate preview:', error);
+          logger.error('Failed to generate preview:', error);
         }
       }
 

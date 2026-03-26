@@ -38,6 +38,7 @@ import { designationsService } from '@/services/designations';
 import type { CreateUserData } from '@/types/user';
 import { PASSWORD_POLICY_REGEX } from '@/lib/passwordPolicy';
 import { USER_ROLES } from '@/types/constants';
+import { logger } from '@/utils/logger';
 
 const createUserSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
@@ -286,7 +287,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
 
                     <Select
                       onValueChange={(value) => {
-                        console.warn('Role selected:', value);
+                        logger.warn('Role selected:', value);
                         field.onChange(value);
                       }}
                       value={field.value}
@@ -341,7 +342,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
 
                     <Select
                       onValueChange={(value) => {
-                        console.warn('Designation selected:', value);
+                        logger.warn('Designation selected:', value);
                         field.onChange(value);
                       }}
                       value={field.value}
@@ -379,7 +380,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                     <FormLabel>Department</FormLabel>
                     <Select
                       onValueChange={(value) => {
-                        console.warn('Department selected:', value);
+                        logger.warn('Department selected:', value);
                         field.onChange(value);
                       }}
                       value={field.value}

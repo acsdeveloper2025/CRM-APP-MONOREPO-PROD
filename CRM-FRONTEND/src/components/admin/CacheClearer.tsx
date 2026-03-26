@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { logger } from '@/utils/logger';
 import { 
   clearBrowserStorage, 
   clearReactQueryCache, 
@@ -96,7 +97,7 @@ export const CacheClearer: React.FC = () => {
       setLastCleared(new Date().toLocaleTimeString());
       
     } catch (error) {
-      console.error(`Error clearing ${type}:`, error);
+      logger.error(`Error clearing ${type}:`, error);
       setResults(prev => ({
         ...prev,
         [type]: createResult(false)
@@ -119,7 +120,7 @@ export const CacheClearer: React.FC = () => {
       }));
       
     } catch (error) {
-      console.error('Error clearing all data:', error);
+      logger.error('Error clearing all data:', error);
       setResults(prev => ({
         ...prev,
         all: createResult(false)

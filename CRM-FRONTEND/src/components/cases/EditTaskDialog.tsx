@@ -34,6 +34,7 @@ import { useUpdateVerificationTask } from '@/hooks/useVerificationTasks';
 import { useFieldUsers } from '@/hooks/useUsers';
 import { useRateTypes } from '@/hooks/useRateTypes';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 const editTaskSchema = z.object({
   taskTitle: z.string().min(1, 'Task title is required'),
@@ -100,7 +101,7 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
 
   const handleSubmit = async (data: EditTaskFormData) => {
     try {
-      console.warn('🔍 EditTaskDialog - handleSubmit START', {
+      logger.warn('🔍 EditTaskDialog - handleSubmit START', {
         taskId: task.id,
         taskStatus: task.status,
         currentAssignedTo: task.assignedTo,
@@ -136,7 +137,7 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
         ? task.assignedTo.id 
         : (typeof task.assignedTo === 'string' ? task.assignedTo : undefined);
 
-      console.warn('🔍 Assignment Logic Check', {
+      logger.warn('🔍 Assignment Logic Check', {
         'data.assignedTo': data.assignedTo,
         currentAssignedToId,
         'task.assignedTo (raw)': task.assignedTo,
@@ -147,22 +148,22 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
       if (data.assignedTo && data.assignedTo !== 'unassigned') {
         if (data.assignedTo !== currentAssignedToId) {
           submissionData.assignedTo = data.assignedTo;
-          console.warn('✅ Including assignedTo in submission:', data.assignedTo);
+          logger.warn('✅ Including assignedTo in submission:', data.assignedTo);
         } else {
-          console.warn('⏭️ Skipping assignedTo (no change)');
+          logger.warn('⏭️ Skipping assignedTo (no change)');
         }
       } else if (data.assignedTo === 'unassigned' && currentAssignedToId) {
         // Explicitly unassign if it was previously assigned
         submissionData.assignedTo = null;
-        console.warn('🗑️ Unassigning task');
+        logger.warn('🗑️ Unassigning task');
       } else {
-        console.warn('⚠️ No assignment action taken', {
+        logger.warn('⚠️ No assignment action taken', {
           'data.assignedTo': data.assignedTo,
           currentAssignedToId,
         });
       }
 
-      console.warn('📤 Final submission data:', submissionData);
+      logger.warn('📤 Final submission data:', submissionData);
 
       // Debug: Show what we're submitting
       toast.success(`Submitting: Assigned To = ${submissionData.assignedTo || 'NOT SET'}, Rate Type = ${submissionData.rateTypeId || 'NOT SET'}`);
@@ -175,7 +176,7 @@ export const EditTaskDialog: React.FC<EditTaskDialogProps> = ({
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('Failed to update task:', error);
+      logger.error('Failed to update task:', error);
       toast.error('Failed to update task');
     }
   };

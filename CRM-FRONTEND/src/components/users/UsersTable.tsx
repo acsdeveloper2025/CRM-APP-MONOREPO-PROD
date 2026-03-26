@@ -48,6 +48,7 @@ import { ResetPasswordDialog } from './ResetPasswordDialog';
 
 import { getRoleBadge } from '@/utils/roleUtils';
 import { getPrimaryRoleLabel, isBackendScopedUser, isFieldAgentUser } from '@/utils/userPermissionProfiles';
+import { logger } from '@/utils/logger';
 
 interface UsersTableProps {
   data: User[];
@@ -149,7 +150,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
         toast.error(result.message);
       }
     } catch (error) {
-      console.error('Failed to reset rate limit:', error);
+      logger.error('Failed to reset rate limit:', error);
       toast.error('Failed to reset rate limit for user');
     }
   };

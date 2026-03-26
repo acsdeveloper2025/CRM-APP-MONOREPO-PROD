@@ -13,6 +13,7 @@ import { usePincodes } from '@/hooks/useLocations';
 import { useVerificationTypes } from '@/hooks/useClients';
 import { toast } from 'sonner';
 import type { CaseFormAttachment } from '@/components/attachments/CaseFormAttachmentsSection';
+import { logger } from '@/utils/logger';
 
 // Extended type for case updates that might include task ID
 interface UpdateCasePayload extends CreateCaseData {
@@ -154,19 +155,19 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         return;
       }
 
-      console.warn('🔍 Performing deduplication search with criteria:', criteria);
+      logger.warn('🔍 Performing deduplication search with criteria:', criteria);
       const result = await deduplicationService.searchDuplicates(criteria);
-      console.warn('🔍 Deduplication search result:', result);
+      logger.warn('🔍 Deduplication search result:', result);
 
       if (result.success && result.data && result.data.duplicatesFound.length > 0) {
         // CRITICAL FIX: Show ALL duplicates, not just 100% matches
         // Let the user review and decide what to do
-        console.warn(`⚠️ Found ${result.data.duplicatesFound.length} potential duplicate(s)`);
+        logger.warn(`⚠️ Found ${result.data.duplicatesFound.length} potential duplicate(s)`);
 
 /*
         // Show detailed match information in console for debugging
         result.data.duplicatesFound.forEach((dup, index) => {
-          console.warn(`  Duplicate ${index + 1}:`, {
+          logger.warn(`  Duplicate ${index + 1}:`, {
             caseId: dup.caseId,
             customerName: dup.customerName,
             matchScore: dup.matchScore,
@@ -192,14 +193,14 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         });
       } else {
         // No duplicates at all - auto-proceed as "No Duplicates Found"
-        console.warn('✅ No duplicate cases found');
+        logger.warn('✅ No duplicate cases found');
         toast.success('No duplicate cases found. Proceeding to create new case.');
         setDeduplicationRationale('No duplicate cases found during automated check');
         setDeduplicationCompleted(true);
         proceedToCaseDetails(data);
       }
     } catch (error) {
-      console.error('❌ Deduplication search failed:', error);
+      logger.error('❌ Deduplication search failed:', error);
       toast.error('Deduplication search failed. Please try again or contact support.');
       setDeduplicationCompleted(false);
       setIsSearching(false);
@@ -322,12 +323,12 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
               if (uploadResponse.success) {
                 toast.success(`${files.length} attachment(s) uploaded successfully`);
               } else {
-                console.error('Attachment upload failed');
+                logger.error('Attachment upload failed');
                 toast.error('Case updated but attachments failed to upload');
               }
             } catch (error) {
               const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-              console.error('Error uploading attachments:', error);
+              logger.error('Error uploading attachments:', error);
               toast.error(`Case updated but attachments failed: ${errorMessage}`);
             }
           } else {
@@ -433,7 +434,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                 totalAttachments += files.length;
               } catch (error) {
                 const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                console.error('❌ Error uploading task attachments:', {
+                logger.error('❌ Error uploading task attachments:', {
                   taskIndex: i,
                   taskId: backendTask?.id,
                   error: errorMessage,
@@ -459,7 +460,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         toast.error(response.message || 'Failed to create case');
       }
     } catch (error) {
-      console.error('Error creating case:', error);
+      logger.error('Error creating case:', error);
       toast.error('Failed to create case. Please check your input.');
     } finally {
       setIsSubmitting(false);
@@ -538,7 +539,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
               toast.error('Case updated but some attachments failed to upload');
             }
           } catch (uploadError) {
-            console.error('Attachment upload failed:', uploadError);
+            logger.error('Attachment upload failed:', uploadError);
             toast.error('Case updated but attachments failed to upload');
           }
         }
@@ -622,7 +623,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         toast.error(`Failed to ${action} case`);
       }
     } catch (error) {
-      console.error('Error in handleCaseFormSubmit:', error);
+      logger.error('Error in handleCaseFormSubmit:', error);
       toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -633,7 +634,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
 
     if (!customerInfo) {
-      console.error('❌ No customer info available');
+      logger.error('❌ No customer info available');
       toast.error('Customer information is missing');
       return;
     }
@@ -656,7 +657,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           deduplicationResult.searchCriteria
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ).catch((error: any) => {
-          console.error('Error recording deduplication decision (background):', error);
+          logger.error('Error recording deduplication decision (background):', error);
         });
       }
 
@@ -669,7 +670,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       toast.success('Proceeding to create new case despite duplicates');
 
     } catch (error) {
-      console.error('Error in handleCreateNewFromDialog:', error);
+      logger.error('Error in handleCreateNewFromDialog:', error);
       toast.error('An error occurred, but proceeding to create case anyway');
 
       // Still proceed even if there's an error
@@ -705,7 +706,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       // Navigate to the existing case instead of canceling
       onSuccess?.(caseId);
     } catch (error) {
-      console.error('Error recording deduplication decision:', error);
+      logger.error('Error recording deduplication decision:', error);
       toast.error('Failed to record decision, but redirecting to case anyway');
 
       // Still navigate even if recording fails

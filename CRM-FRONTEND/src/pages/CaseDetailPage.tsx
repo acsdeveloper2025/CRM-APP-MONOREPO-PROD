@@ -14,6 +14,7 @@ import { CaseAttachmentsSection } from '@/components/attachments/CaseAttachments
 import { VerificationTasksManager } from '@/components/verification-tasks';
 import { formatDistanceToNow } from 'date-fns';
 import { LoadingState } from '@/components/ui/loading';
+import { logger } from '@/utils/logger';
 
 // Helper function to safely format dates
 const safeFormatDistanceToNow = (dateValue: string | null | undefined): string => {
@@ -60,7 +61,7 @@ export const CaseDetailPage: React.FC = () => {
       setIsReassignModalOpen(false);
       refetch(); // Refresh case data to show updated assignment
     } catch (error) {
-      console.error('Failed to reassign case:', error);
+      logger.error('Failed to reassign case:', error);
     }
   };
 
@@ -325,11 +326,11 @@ export const CaseDetailPage: React.FC = () => {
                 submissionProgress={undefined} // TODO: Connect to real submission progress
                 retryQueueStatus={undefined} // TODO: Connect to real retry queue status
                 onRetrySubmission={() => {
-                  console.warn('Retry submission for case:', id);
+                  logger.warn('Retry submission for case:', id);
                   // TODO: Implement retry logic
                 }}
                 onClearRetryQueue={() => {
-                  console.warn('Clear retry queue for case:', id);
+                  logger.warn('Clear retry queue for case:', id);
                   // TODO: Implement clear retry queue logic
                 }}
               />

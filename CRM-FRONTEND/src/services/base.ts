@@ -9,6 +9,7 @@ import { AxiosRequestConfig, isAxiosError } from 'axios';
 import { ApiResponse, PaginatedResponse, ErrorResponse } from '@/types';
 import { ERROR_CODES } from '@/types/constants';
 import { apiService as coreApiService } from './api';
+import { logger } from '@/utils/logger';
 
 // Environment configuration
 const getApiBaseUrl = (): string => {
@@ -189,7 +190,7 @@ export class BaseApiService {
 
   // Error handling
   private handleError(error: unknown): ErrorResponse {
-    console.error('API Error:', error);
+    logger.error('API Error:', error);
 
     if (isAxiosError(error)) {
       if (error.response) {

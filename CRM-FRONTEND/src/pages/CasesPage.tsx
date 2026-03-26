@@ -19,6 +19,7 @@ import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-s
 import { Download, Plus, RefreshCw, FileText, Clock, CheckCircle, PlayCircle, AlertTriangle } from 'lucide-react';
 import { casesService, type CaseListQuery } from '@/services/cases';
 import { usePermissionContext } from '@/contexts/PermissionContext';
+import { logger } from '@/utils/logger';
 
 interface CaseFilters {
   status?: string;
@@ -118,7 +119,7 @@ export const CasesPage: React.FC = () => {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to export cases:', error);
+      logger.error('Failed to export cases:', error);
     }
   };
 

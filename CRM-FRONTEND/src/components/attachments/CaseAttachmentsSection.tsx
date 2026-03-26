@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 interface CaseAttachmentsSectionProps {
   caseId: string;
@@ -209,7 +210,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
             toast.error('Failed to load image preview');
         }
       } catch (error) {
-        console.error('Error loading preview:', error);
+        logger.error('Error loading preview:', error);
         toast.error('Failed to load image preview');
       }
     }

@@ -36,6 +36,7 @@ import type { CustomerInfoData } from './CustomerInfoStep';
 import type { CreateCaseWithMultipleTasksRequest } from '@/types/verificationTask';
 import type { User as UserType } from '@/types/user';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 // Task Area Select Component
 const TaskAreaSelect: React.FC<{
@@ -306,7 +307,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
 
   // Task management functions
   const updateTask = (taskId: string, field: keyof TaskFormData, value: unknown) => {
-    console.warn('📝 updateTask called:', {
+    logger.warn('📝 updateTask called:', {
       taskId,
       field,
       value,
@@ -316,7 +317,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
     setTasks(tasks.map(task => {
       if (task.id === taskId) {
         const updated = { ...task, [field]: value };
-        console.warn('✅ Task updated:', {
+        logger.warn('✅ Task updated:', {
           taskId,
           field,
           oldValue: task[field],
@@ -452,7 +453,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
     };
 
     // Debug logging
-    console.warn('📤 Case creation request payload:', JSON.stringify(caseData, null, 2));
+    logger.warn('📤 Case creation request payload:', JSON.stringify(caseData, null, 2));
 
     // Create case with tasks using mutation
     createCaseMutation.mutate(caseData, {
@@ -681,7 +682,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
                         <Select
                           value={task.pincode || ''}
                           onValueChange={(value) => {
-                            console.warn('🔍 Pincode onValueChange called:', { taskId: task.id, value, valueType: typeof value, currentPincode: task.pincode });
+                            logger.warn('🔍 Pincode onValueChange called:', { taskId: task.id, value, valueType: typeof value, currentPincode: task.pincode });
                             // Force state update by creating new tasks array
                             setTasks(prevTasks => prevTasks.map(t =>
                               t.id === task.id

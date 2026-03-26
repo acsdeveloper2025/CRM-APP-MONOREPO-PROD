@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, TrendingUp, Users, DollarSign, Calendar, Download } from 'lucide-react';
 import { commissionManagementApi } from '../../services/commissionManagementApi';
 import { CommissionStats } from '../../types/commission';
+import { logger } from '@/utils/logger';
 
 export const CommissionStatsTab: React.FC = () => {
   const [stats, setStats] = useState<CommissionStats | null>(null);
@@ -19,7 +20,7 @@ export const CommissionStatsTab: React.FC = () => {
       const response = await commissionManagementApi.getCommissionStats();
       setStats(response.data ?? null);
     } catch (error) {
-      console.error('Error loading commission stats:', error);
+      logger.error('Error loading commission stats:', error);
     } finally {
       setLoading(false);
     }

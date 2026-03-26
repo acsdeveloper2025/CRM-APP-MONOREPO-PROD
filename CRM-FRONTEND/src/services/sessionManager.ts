@@ -1,6 +1,7 @@
 import { triggerLogout } from '@/utils/events';
 import { STORAGE_KEYS, SYNC_KEYS } from '@/types/constants';
 import { apiService } from './api';
+import { logger } from '@/utils/logger';
 
 // Timeouts in seconds
 const WARNING_TIMEOUT = 540; // 9 minutes
@@ -62,7 +63,7 @@ class SessionManager {
       // Ping backend to keep server session alive if needed
       await apiService.get('/auth/me'); 
     } catch (error) {
-      console.error('Failed to extend backend session', error);
+      logger.error('Failed to extend backend session', error);
       // Even if backend fails, we reset local timer to avoid immediate loop
     }
   }

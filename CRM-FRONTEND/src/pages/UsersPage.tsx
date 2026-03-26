@@ -27,6 +27,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { usePermissionContext } from '@/contexts/PermissionContext';
 import { cn } from '@/lib/utils';
+import { logger } from '@/utils/logger';
 
 interface UserFilters extends Record<string, unknown> {
   role?: Role;
@@ -154,7 +155,7 @@ export function UsersPage() {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to export users:', error);
+      logger.error('Failed to export users:', error);
     }
   };
 
@@ -193,7 +194,7 @@ export function UsersPage() {
         }
       };
     } catch (error) {
-      console.error('Error calculating tab stats:', error);
+      logger.error('Error calculating tab stats:', error);
       return {
         users: { total: 0, active: 0, inactive: 0 },
         activities: { total: 0, today: 0 },

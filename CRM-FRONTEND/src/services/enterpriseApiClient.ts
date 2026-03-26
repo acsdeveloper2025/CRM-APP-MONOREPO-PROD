@@ -1,5 +1,6 @@
 import { type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import { apiService } from './api';
+import { logger } from '@/utils/logger';
 
 // Re-export types if needed, or import from api types
 interface RetryConfig {
@@ -12,7 +13,7 @@ class EnterpriseApiClient {
   // Delegate to apiService
   
   constructor() {
-    console.warn('🏢 Enterprise API Client - Initialized (Delegating to Core API Service)');
+    logger.warn('🏢 Enterprise API Client - Initialized (Delegating to Core API Service)');
   }
 
   // Enhanced GET with caching

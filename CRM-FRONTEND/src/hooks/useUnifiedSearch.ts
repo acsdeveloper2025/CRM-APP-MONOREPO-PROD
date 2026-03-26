@@ -94,7 +94,7 @@ export interface UseUnifiedSearchReturn {
  * ```tsx
  * const { searchValue, debouncedSearchValue, setSearchValue, clearSearch } = useUnifiedSearch({
  *   syncWithUrl: true,
- *   onSearchChange: (value) => console.warn('Search:', value)
+ *   onSearchChange: (value) => logger.warn('Search:', value)
  * });
  * 
  * // Use in query

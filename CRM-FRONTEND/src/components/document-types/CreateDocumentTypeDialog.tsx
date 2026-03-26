@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { documentTypesService } from '@/services/documentTypes';
+import { logger } from '@/utils/logger';
 
 const createDocumentTypeSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255, 'Name too long'),
@@ -67,7 +68,7 @@ export const CreateDocumentTypeDialog: React.FC<CreateDocumentTypeDialogProps> =
     try {
       await createDocumentTypeMutation.mutateAsync(data);
     } catch (error) {
-      console.error('Failed to create document type:', error);
+      logger.error('Failed to create document type:', error);
     }
   };
 

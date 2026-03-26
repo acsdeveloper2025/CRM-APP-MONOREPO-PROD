@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormViewer } from '@/components/forms/FormViewer';
 import { FormSubmission } from '@/types/form';
+import { logger } from '@/utils/logger';
 
 export function FormViewerPage() {
   const [selectedFormType, setSelectedFormType] = useState<string>('residence-positive');
@@ -104,10 +105,10 @@ export function FormViewerPage() {
               showLocation={true}
               showMetadata={true}
               onFieldChange={(fieldId, value) => {
-                console.warn('Field changed:', fieldId, value);
+                logger.warn('Field changed:', fieldId, value);
               }}
               onSectionToggle={(sectionId, expanded) => {
-                console.warn('Section toggled:', sectionId, expanded);
+                logger.warn('Section toggled:', sectionId, expanded);
               }}
             />
           ) : (
