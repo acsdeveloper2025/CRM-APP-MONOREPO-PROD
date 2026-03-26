@@ -380,8 +380,13 @@ class ApiService {
     return true; 
   }
 
+  private cacheCleanupInterval: ReturnType<typeof setInterval> | null = null;
+
   private startCacheCleanup(): void {
-    setInterval(() => {
+    if (this.cacheCleanupInterval) {
+      clearInterval(this.cacheCleanupInterval);
+    }
+    this.cacheCleanupInterval = setInterval(() => {
       const now = Date.now();
       for (const [key, entry] of this.cache.entries()) {
         if (now - entry.timestamp > entry.ttl) {

@@ -9,14 +9,10 @@ const validatePorts = () => {
   const configuredPort = parseInt(process.env.PORT || '3000', 10);
 
   if (configuredPort !== requiredPort) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.error(
-        `❌ Port mismatch: Backend must run on port ${requiredPort}, but PORT=${configuredPort} was configured.`
-      );
-      console.error(
-        `   Please update your environment to use PORT=${requiredPort} or remove the PORT environment variable.`
-      );
-    }
+    // Logger not yet initialized at this point — use stderr directly
+    process.stderr.write(
+      `Port mismatch: Backend must run on port ${requiredPort}, but PORT=${configuredPort} was configured.\n`
+    );
     process.exit(1);
   }
 };

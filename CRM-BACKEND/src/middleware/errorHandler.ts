@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 
+import { config } from '@/config';
 import { logger } from '@/config/logger';
 import type { ApiResponse } from '@/types/api';
 
@@ -77,7 +78,7 @@ export const errorHandler = (
   };
 
   // Don't expose internal errors in production
-  if (process.env.NODE_ENV === 'production' && statusCode === 500) {
+  if (config.nodeEnv === 'production' && statusCode === 500) {
     response.message = 'Internal server error';
     response.error = {
       code: 'INTERNAL_ERROR',
