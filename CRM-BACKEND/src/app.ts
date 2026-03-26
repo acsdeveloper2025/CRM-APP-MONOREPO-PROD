@@ -37,12 +37,10 @@ import rolesRoutes from '@/routes/roles';
 import rbacRoutes from '@/routes/rbac';
 import departmentsRoutes from '@/routes/departments';
 import designationsRoutes from '@/routes/designations';
-
 import reportsRoutes from '@/routes/reports';
 import enhancedAnalyticsRoutes from '@/routes/enhancedAnalytics';
 import exportsRoutes from '@/routes/exports';
 import auditLogsRoutes from '@/routes/audit-logs';
-// Geolocation routes removed for production
 import formRoutes from '@/routes/forms';
 import notificationRoutes from '@/routes/notifications';
 import mobileRoutes from '@/routes/mobile';
@@ -156,12 +154,6 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(performanceMonitoring);
 app.use(memoryMonitoring);
 
-// Request timeout — 30s default for all API routes
-app.use('/api', defaultTimeout);
-
-// Rate limiting
-app.use('/api', generalRateLimit);
-
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
@@ -175,61 +167,75 @@ app.get('/health', (req, res) => {
   });
 });
 
+// ─── API Router ─────────────────────────────────────────────────────────────
+// All API routes are registered on this router, then mounted at both
+// /api (current) and /api/v1 (versioned) so clients can migrate gradually.
+const apiRouter = express.Router();
+
+// Request timeout — 30s default
+apiRouter.use(defaultTimeout);
+
+// Rate limiting
+apiRouter.use(generalRateLimit);
+
 // Health check routes (comprehensive monitoring)
-app.use('/api', healthRoutes);
+apiRouter.use('/', healthRoutes);
 
-// API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/cases', caseRoutes);
-app.use('/api/clients', clientRoutes);
-app.use('/api/clients', clientDocumentTypesRoutes);
-app.use('/api/attachments', attachmentRoutes);
-app.use('/api/user', userRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/users', userTerritoryRoutes);
-app.use('/api/territory-assignments', territoryAssignmentsRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/products', productsRoutes);
-app.use('/api/verification-types', verificationTypesRoutes);
-app.use('/api/document-types', documentTypesRoutes);
-app.use('/api/document-type-rates', documentTypeRatesRoutes);
-app.use('/api/invoices', invoicesRoutes);
-app.use('/api/commissions', commissionsRoutes);
-app.use('/api/commission-management', commissionManagementRoutes);
-app.use('/api/cities', citiesRoutes);
-app.use('/api/states', statesRoutes);
-app.use('/api/countries', countriesRoutes);
-app.use('/api/pincodes', pincodesRoutes);
-app.use('/api/areas', areasRoutes);
-app.use('/api/roles', rolesRoutes);
-app.use('/api/rbac', rbacRoutes);
-app.use('/api/permissions', rbacRoutes);
-app.use('/api/departments', departmentsRoutes);
-app.use('/api/designations', designationsRoutes);
+// Core routes
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/cases', caseRoutes);
+apiRouter.use('/clients', clientRoutes);
+apiRouter.use('/clients', clientDocumentTypesRoutes);
+apiRouter.use('/attachments', attachmentRoutes);
+apiRouter.use('/user', userRoutes);
+apiRouter.use('/users', usersRoutes);
+apiRouter.use('/users', userTerritoryRoutes);
+apiRouter.use('/territory-assignments', territoryAssignmentsRoutes);
+apiRouter.use('/dashboard', dashboardRoutes);
+apiRouter.use('/products', productsRoutes);
+apiRouter.use('/verification-types', verificationTypesRoutes);
+apiRouter.use('/document-types', documentTypesRoutes);
+apiRouter.use('/document-type-rates', documentTypeRatesRoutes);
+apiRouter.use('/invoices', invoicesRoutes);
+apiRouter.use('/commissions', commissionsRoutes);
+apiRouter.use('/commission-management', commissionManagementRoutes);
+apiRouter.use('/cities', citiesRoutes);
+apiRouter.use('/states', statesRoutes);
+apiRouter.use('/countries', countriesRoutes);
+apiRouter.use('/pincodes', pincodesRoutes);
+apiRouter.use('/areas', areasRoutes);
+apiRouter.use('/roles', rolesRoutes);
+apiRouter.use('/rbac', rbacRoutes);
+apiRouter.use('/permissions', rbacRoutes);
+apiRouter.use('/departments', departmentsRoutes);
+apiRouter.use('/designations', designationsRoutes);
 
-// Removed mock locations routes - using individual database-driven routes instead
 // Extended timeout (2min) for heavy report/export operations
-app.use('/api/reports', extendedTimeout, reportsRoutes);
-app.use('/api/enhanced-analytics', extendedTimeout, enhancedAnalyticsRoutes);
-app.use('/api/exports', extendedTimeout, exportsRoutes);
-app.use('/api/audit-logs', auditLogsRoutes);
-app.use('/api/forms', formRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/security', securityRoutes);
-app.use('/api/cases/deduplication', deduplicationRoutes);
-app.use('/api/rate-types', rateTypesRoutes);
-app.use('/api/rate-type-assignments', rateTypeAssignmentsRoutes);
-app.use('/api/rates', ratesRoutes);
-app.use('/api/service-zone-rules', serviceZoneRulesRoutes);
-app.use('/api/ai-reports', extendedTimeout, aiReportsRoutes);
-app.use('/api/template-reports', extendedTimeout, templateReportsRoutes);
-app.use('/api/field-monitoring', fieldMonitoringRoutes);
+apiRouter.use('/reports', extendedTimeout, reportsRoutes);
+apiRouter.use('/enhanced-analytics', extendedTimeout, enhancedAnalyticsRoutes);
+apiRouter.use('/exports', extendedTimeout, exportsRoutes);
+apiRouter.use('/audit-logs', auditLogsRoutes);
+apiRouter.use('/forms', formRoutes);
+apiRouter.use('/notifications', notificationRoutes);
+apiRouter.use('/security', securityRoutes);
+apiRouter.use('/cases/deduplication', deduplicationRoutes);
+apiRouter.use('/rate-types', rateTypesRoutes);
+apiRouter.use('/rate-type-assignments', rateTypeAssignmentsRoutes);
+apiRouter.use('/rates', ratesRoutes);
+apiRouter.use('/service-zone-rules', serviceZoneRulesRoutes);
+apiRouter.use('/ai-reports', extendedTimeout, aiReportsRoutes);
+apiRouter.use('/template-reports', extendedTimeout, templateReportsRoutes);
+apiRouter.use('/field-monitoring', fieldMonitoringRoutes);
 
 // Multi-verification task routes
-app.use('/api', verificationTasksRoutes);
+apiRouter.use('/', verificationTasksRoutes);
 
 // Mobile API routes — extended timeout for slow networks + larger JSON body for mobile sync
-app.use('/api/mobile', extendedTimeout, express.json({ limit: '50mb' }), mobileRoutes);
+apiRouter.use('/mobile', extendedTimeout, express.json({ limit: '50mb' }), mobileRoutes);
+
+// Mount the API router at both /api (backward compat) and /api/v1 (versioned)
+app.use('/api', apiRouter);
+app.use('/api/v1', apiRouter);
 
 // 404 handler
 app.use(notFoundHandler);
