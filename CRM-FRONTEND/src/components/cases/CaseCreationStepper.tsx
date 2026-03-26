@@ -39,7 +39,7 @@ interface CaseCreationStepperProps {
 }
 
 type Step = 'mode-selection' | 'customer-info' | 'case-details' | 'multi-task-details';
-type CaseCreationMode = 'single-task' | 'multi-task';
+type _CaseCreationMode = 'single-task' | 'multi-task';
 
 // Helper function to map verification type names to backend expected values
 const mapVerificationType = (verificationType: string): string => {
