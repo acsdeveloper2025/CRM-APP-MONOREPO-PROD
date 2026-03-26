@@ -215,7 +215,7 @@ export const getFormSubmissionReport = async (req: AuthenticatedRequest, res: Re
     const caseUuid = caseUuidResult.rows[0].id;
 
     const query = `
-      SELECT * FROM ai_reports
+      SELECT id, case_id, report_type, status, content, metadata, created_at, updated_at FROM ai_reports
       WHERE case_id = $1 AND submission_id = $2
       ORDER BY created_at DESC
       LIMIT 1

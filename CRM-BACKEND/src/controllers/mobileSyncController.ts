@@ -780,7 +780,7 @@ export class MobileSyncController {
       const deviceId = String(req.headers['x-device-id'] || 'default');
 
       const devRes = await query(
-        `SELECT * FROM devices WHERE "userId" = $1 AND "deviceId" = $2 LIMIT 1`,
+        `SELECT id, "userId", "deviceId", "deviceName", "platform", "appVersion", "lastActiveAt", "createdAt" FROM devices WHERE "userId" = $1 AND "deviceId" = $2 LIMIT 1`,
         [userId, deviceId]
       );
       const device = devRes.rows[0];

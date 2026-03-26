@@ -618,7 +618,7 @@ export class MobileAuthController {
       const { userId } = req.params;
 
       const devs = await query(
-        `SELECT * FROM devices WHERE "userId" = $1 ORDER BY "lastActiveAt" DESC`,
+        `SELECT id, "userId", "deviceId", "deviceName", "platform", "appVersion", "lastActiveAt", "createdAt" FROM devices WHERE "userId" = $1 ORDER BY "lastActiveAt" DESC`,
         [userId]
       );
       const devices = devs.rows;

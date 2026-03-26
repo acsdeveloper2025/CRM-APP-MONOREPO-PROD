@@ -493,7 +493,7 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
 
     // Check DB for valid, non-expired token
     const result = await query(
-      `SELECT * FROM "refreshTokens" WHERE token = $1 AND "userId" = $2 AND "expiresAt" > CURRENT_TIMESTAMP`,
+      `SELECT id, token, "userId", "expiresAt", "createdAt" FROM "refreshTokens" WHERE token = $1 AND "userId" = $2 AND "expiresAt" > CURRENT_TIMESTAMP`,
       [tokenHash, decoded.userId]
     );
 
@@ -507,7 +507,7 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     }
 
     // Fetch user to ensure they still exist and get current role
-    const userRes = await query(`SELECT * FROM users WHERE id = $1`, [decoded.userId]);
+    const userRes = await query(`SELECT id, name, username, email, "employeeId", designation, department, "profilePhotoUrl", "isActive" FROM users WHERE id = $1`, [decoded.userId]);
     const user = userRes.rows[0];
 
     if (!user) {

@@ -213,7 +213,7 @@ export const getDuplicateClusters = async (req: AuthenticatedRequest, res: Respo
         GROUP BY group_key
         HAVING COUNT(*) > 1
       )
-      SELECT * FROM duplicate_groups
+      SELECT group_key, case_count, cases FROM duplicate_groups
       ORDER BY case_count DESC
       LIMIT $1 OFFSET $2
     `;

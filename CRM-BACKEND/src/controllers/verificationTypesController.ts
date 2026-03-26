@@ -43,7 +43,7 @@ export const getVerificationTypes = async (req: AuthenticatedRequest, res: Respo
     const sortDir =
       typeof sortOrder === 'string' ? sortOrder : 'asc'.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
-    const dataQuery = `SELECT * FROM "verificationTypes" ${whereClause} ORDER BY "${sortCol}" ${sortDir} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    const dataQuery = `SELECT id, name, code, description, "isActive", "createdAt", "updatedAt" FROM "verificationTypes" ${whereClause} ORDER BY "${sortCol}" ${sortDir} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     const dataParams = [...queryParams, Number(limit), (Number(page) - 1) * Number(limit)];
     const vtRes = await query(dataQuery, dataParams);
     const verificationTypes = vtRes.rows;
@@ -81,7 +81,7 @@ export const getVerificationTypeById = async (req: AuthenticatedRequest, res: Re
   try {
     const { id } = req.params;
 
-    const vtRes2 = await query(`SELECT * FROM "verificationTypes" WHERE id = $1`, [Number(id)]);
+    const vtRes2 = await query(`SELECT id, name, code, description, "isActive", "createdAt", "updatedAt" FROM "verificationTypes" WHERE id = $1`, [Number(id)]);
     const verificationType = vtRes2.rows[0];
     if (!verificationType) {
       return res.status(404).json({
@@ -159,7 +159,7 @@ export const updateVerificationType = async (req: AuthenticatedRequest, res: Res
     const updateData = req.body;
 
     // Check if verification type exists
-    const exRes2 = await query(`SELECT * FROM "verificationTypes" WHERE id = $1`, [id]);
+    const exRes2 = await query(`SELECT id, name, code, description, "isActive", "createdAt", "updatedAt" FROM "verificationTypes" WHERE id = $1`, [id]);
     const existingVerificationType = exRes2.rows[0];
 
     if (!existingVerificationType) {
@@ -239,7 +239,7 @@ export const deleteVerificationType = async (req: AuthenticatedRequest, res: Res
     const { id } = req.params;
 
     // Check if verification type exists
-    const exRes3 = await query(`SELECT * FROM "verificationTypes" WHERE id = $1`, [id]);
+    const exRes3 = await query(`SELECT id, name, code, description, "isActive", "createdAt", "updatedAt" FROM "verificationTypes" WHERE id = $1`, [id]);
     const existingVerificationType = exRes3.rows[0];
 
     if (!existingVerificationType) {
