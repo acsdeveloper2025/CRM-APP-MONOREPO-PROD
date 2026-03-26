@@ -51,10 +51,14 @@ class SocketRateLimiter {
 /** Validate latitude/longitude values are within valid ranges */
 const isValidCoordinate = (lat: unknown, lng: unknown): boolean => {
   return (
-    typeof lat === 'number' && typeof lng === 'number' &&
-    lat >= -90 && lat <= 90 &&
-    lng >= -180 && lng <= 180 &&
-    isFinite(lat) && isFinite(lng)
+    typeof lat === 'number' &&
+    typeof lng === 'number' &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180 &&
+    isFinite(lat) &&
+    isFinite(lng)
   );
 };
 
@@ -200,56 +204,83 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
     };
 
     // Handle case updates subscription
-    socket.on('subscribe:case', rateLimited((caseId: unknown) => {
-      if (!isValidString(caseId)) return;
-      void socket.join(`case:${caseId}`);
-      logger.info(`User ${socket.user?.id} subscribed to case ${caseId}`);
-    }));
+    socket.on(
+      'subscribe:case',
+      rateLimited((caseId: unknown) => {
+        if (!isValidString(caseId)) {
+          return;
+        }
+        const id = caseId as string;
+        void socket.join(`case:${id}`);
+        logger.info(`User ${socket.user?.id} subscribed to case ${id}`);
+      })
+    );
 
     // Handle case updates unsubscription
-    socket.on('unsubscribe:case', rateLimited((caseId: unknown) => {
-      if (!isValidString(caseId)) return;
-      void socket.leave(`case:${caseId}`);
-      logger.info(`User ${socket.user?.id} unsubscribed from case ${caseId}`);
-    }));
+    socket.on(
+      'unsubscribe:case',
+      rateLimited((caseId: unknown) => {
+        if (!isValidString(caseId)) {
+          return;
+        }
+        const id = caseId as string;
+        void socket.leave(`case:${id}`);
+        logger.info(`User ${socket.user?.id} unsubscribed from case ${id}`);
+      })
+    );
 
     // Handle real-time location updates
-    socket.on('location:update', rateLimited((data: unknown) => {
-      const d = data as { caseId?: string; latitude?: number; longitude?: number };
-      if (!isValidString(d?.caseId) || !isValidCoordinate(d?.latitude, d?.longitude)) return;
-      socket.to(`case:${d.caseId}`).emit('location:updated', {
-        caseId: d.caseId,
-        userId: socket.user?.id,
-        username: socket.user?.id,
-        latitude: d.latitude,
-        longitude: d.longitude,
-        timestamp: new Date().toISOString(),
-      });
-    }));
+    socket.on(
+      'location:update',
+      rateLimited((data: unknown) => {
+        const d = data as { caseId?: string; latitude?: number; longitude?: number };
+        if (!isValidString(d?.caseId) || !isValidCoordinate(d?.latitude, d?.longitude)) {
+          return;
+        }
+        socket.to(`case:${d.caseId}`).emit('location:updated', {
+          caseId: d.caseId,
+          userId: socket.user?.id,
+          username: socket.user?.id,
+          latitude: d.latitude,
+          longitude: d.longitude,
+          timestamp: new Date().toISOString(),
+        });
+      })
+    );
 
     // Handle case status updates
-    socket.on('case:status', rateLimited((data: unknown) => {
-      const d = data as { caseId?: string; status?: string };
-      if (!isValidString(d?.caseId) || !isValidString(d?.status, 50)) return;
-      socket.to(`case:${d.caseId}`).emit('case:status:updated', {
-        caseId: d.caseId,
-        status: d.status,
-        updatedBy: socket.user?.id,
-        timestamp: new Date().toISOString(),
-      });
-    }));
+    socket.on(
+      'case:status',
+      rateLimited((data: unknown) => {
+        const d = data as { caseId?: string; status?: string };
+        if (!isValidString(d?.caseId) || !isValidString(d?.status, 50)) {
+          return;
+        }
+        socket.to(`case:${d.caseId}`).emit('case:status:updated', {
+          caseId: d.caseId,
+          status: d.status,
+          updatedBy: socket.user?.id,
+          timestamp: new Date().toISOString(),
+        });
+      })
+    );
 
     // Handle typing indicators for case notes
-    socket.on('case:typing', rateLimited((data: unknown) => {
-      const d = data as { caseId?: string; isTyping?: boolean };
-      if (!isValidString(d?.caseId) || typeof d?.isTyping !== 'boolean') return;
-      socket.to(`case:${d.caseId}`).emit('case:typing:update', {
-        caseId: d.caseId,
-        userId: socket.user?.id,
-        username: socket.user?.id,
-        isTyping: d.isTyping,
-      });
-    }));
+    socket.on(
+      'case:typing',
+      rateLimited((data: unknown) => {
+        const d = data as { caseId?: string; isTyping?: boolean };
+        if (!isValidString(d?.caseId) || typeof d?.isTyping !== 'boolean') {
+          return;
+        }
+        socket.to(`case:${d.caseId}`).emit('case:typing:update', {
+          caseId: d.caseId,
+          userId: socket.user?.id,
+          username: socket.user?.id,
+          isTyping: d.isTyping,
+        });
+      })
+    );
 
     // Mobile-specific events
 
@@ -269,22 +300,35 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
     });
 
     // Handle mobile location sharing
-    socket.on('mobile:location:share', rateLimited((data: unknown) => {
-      const d = data as { caseId?: string; latitude?: number; longitude?: number; accuracy?: number; timestamp?: string };
-      if (!isValidString(d?.caseId) || !isValidCoordinate(d?.latitude, d?.longitude)) return;
-      if (typeof d?.accuracy !== 'number' || d.accuracy < 0 || d.accuracy > 10000) return;
-      socket.to(`case:${d.caseId}`).emit('mobile:location:update', {
-        caseId: d.caseId,
-        userId: socket.user?.id,
-        username: socket.user?.id,
-        location: {
-          latitude: d.latitude,
-          longitude: d.longitude,
-          accuracy: d.accuracy,
-          timestamp: d.timestamp || new Date().toISOString(),
-        },
-      });
-    }));
+    socket.on(
+      'mobile:location:share',
+      rateLimited((data: unknown) => {
+        const d = data as {
+          caseId?: string;
+          latitude?: number;
+          longitude?: number;
+          accuracy?: number;
+          timestamp?: string;
+        };
+        if (!isValidString(d?.caseId) || !isValidCoordinate(d?.latitude, d?.longitude)) {
+          return;
+        }
+        if (typeof d?.accuracy !== 'number' || d.accuracy < 0 || d.accuracy > 10000) {
+          return;
+        }
+        socket.to(`case:${d.caseId}`).emit('mobile:location:update', {
+          caseId: d.caseId,
+          userId: socket.user?.id,
+          username: socket.user?.id,
+          location: {
+            latitude: d.latitude,
+            longitude: d.longitude,
+            accuracy: d.accuracy,
+            timestamp: d.timestamp || new Date().toISOString(),
+          },
+        });
+      })
+    );
 
     // Handle mobile form auto-save
     socket.on(

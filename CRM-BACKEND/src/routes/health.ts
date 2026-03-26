@@ -137,7 +137,10 @@ router.get('/health/detailed', authenticateToken, async (req, res) => {
       environment: process.env.NODE_ENV || 'development',
       services: {
         ...services,
-        redisHealthFlag: { status: isRedisHealthy() ? 'OK' : 'ERROR', message: isRedisHealthy() ? 'Redis health flag is up' : 'Redis health flag is down' },
+        redisHealthFlag: {
+          status: isRedisHealthy() ? 'OK' : 'ERROR',
+          message: isRedisHealthy() ? 'Redis health flag is up' : 'Redis health flag is down',
+        },
       },
       performance: performanceData,
       externalServices,

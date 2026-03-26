@@ -157,10 +157,18 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
 
     // Close Socket.IO Redis adapter pub/sub clients
     if (socketPubClient) {
-      try { await socketPubClient.quit(); } catch { /* already closed */ }
+      try {
+        await socketPubClient.quit();
+      } catch {
+        /* already closed */
+      }
     }
     if (socketSubClient) {
-      try { await socketSubClient.quit(); } catch { /* already closed */ }
+      try {
+        await socketSubClient.quit();
+      } catch {
+        /* already closed */
+      }
     }
 
     // Disconnect from Redis

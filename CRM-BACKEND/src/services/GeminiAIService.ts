@@ -96,9 +96,7 @@ Hence the profile is marked as {Final_Status}.`,
 
       const prompt = this.buildReportPrompt(data);
 
-      const result = await circuitBreakers.gemini.execute(() =>
-        this.model.generateContent(prompt)
-      );
+      const result = await circuitBreakers.gemini.execute(() => this.model.generateContent(prompt));
       const response = result.response;
       const text = response.text();
 

@@ -137,7 +137,7 @@ export class MobileAuthController {
         {
           userId: user.id,
         } as JwtPayload,
-        config.jwtSecret!,
+        config.jwtSecret,
         { expiresIn: config.mobile.jwtExpiresIn as unknown as jwt.SignOptions['expiresIn'] }
       );
 
@@ -146,8 +146,10 @@ export class MobileAuthController {
           userId: user.id,
           type: 'refresh',
         },
-        config.jwtSecret!,
-        { expiresIn: config.mobile.refreshTokenExpiresIn as unknown as jwt.SignOptions['expiresIn'] }
+        config.jwtSecret,
+        {
+          expiresIn: config.mobile.refreshTokenExpiresIn as unknown as jwt.SignOptions['expiresIn'],
+        }
       );
 
       // Store refresh token (simplified - no device ID)
@@ -283,7 +285,7 @@ export class MobileAuthController {
         {
           userId: storedToken.userId,
         } as JwtPayload,
-        config.jwtSecret!,
+        config.jwtSecret,
         { expiresIn: config.mobile.jwtExpiresIn as unknown as jwt.SignOptions['expiresIn'] }
       );
 

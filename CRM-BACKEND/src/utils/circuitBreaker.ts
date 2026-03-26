@@ -95,7 +95,7 @@ export class CircuitBreaker {
     this.failureCount++;
     this.lastFailureTime = Date.now();
 
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     if (this.state === 'HALF_OPEN') {
       // Failed during recovery test — go back to OPEN

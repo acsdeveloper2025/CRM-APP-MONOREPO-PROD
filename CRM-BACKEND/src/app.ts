@@ -72,12 +72,7 @@ app.use(
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"], // Required for inline styles (Tailwind)
         imgSrc: ["'self'", 'data:', 'blob:'],
-        connectSrc: [
-          "'self'",
-          'wss:',
-          'ws:',
-          ...(config.corsOrigin || []),
-        ],
+        connectSrc: ["'self'", 'wss:', 'ws:', ...(config.corsOrigin || [])],
         fontSrc: ["'self'", 'data:'],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
@@ -89,9 +84,10 @@ app.use(
       },
     },
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-    hsts: config.nodeEnv === 'production'
-      ? { maxAge: 31536000, includeSubDomains: true, preload: true }
-      : false,
+    hsts:
+      config.nodeEnv === 'production'
+        ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+        : false,
     noSniff: true,
     xssFilter: true,
   })

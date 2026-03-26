@@ -21,7 +21,8 @@ function createMockReq(): Request {
   } as unknown as Request;
 }
 
-function createMockRes(): Response & EventEmitter & { _status: number; _json: unknown; headersSent: boolean } {
+function createMockRes(): Response &
+  EventEmitter & { _status: number; _json: unknown; headersSent: boolean } {
   const emitter = new EventEmitter();
   const res = Object.assign(emitter, {
     _status: 200,
@@ -36,7 +37,8 @@ function createMockRes(): Response & EventEmitter & { _status: number; _json: un
       res.headersSent = true;
       return res;
     },
-  }) as unknown as Response & EventEmitter & { _status: number; _json: unknown; headersSent: boolean };
+  }) as unknown as Response &
+    EventEmitter & { _status: number; _json: unknown; headersSent: boolean };
   return res;
 }
 
