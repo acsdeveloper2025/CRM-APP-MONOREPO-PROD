@@ -85,9 +85,15 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
 
     // Get clients with pagination
     const offset = (Number(page) - 1) * Number(limit);
+    // Safe column mapping — prevents SQL injection by only allowing known column names
+    const SORT_COLUMNS: Record<string, string> = {
+      name: '"name"',
+      createdAt: '"createdAt"',
+      updatedAt: '"updatedAt"',
+    };
     const sortByStr =
       typeof sortBy === 'string' || typeof sortBy === 'number' ? String(sortBy) : 'name';
-    const sortCol = ['name', 'createdAt', 'updatedAt'].includes(sortByStr) ? sortByStr : 'name';
+    const safeSortCol = SORT_COLUMNS[sortByStr] || SORT_COLUMNS.name;
     const sortOrderStr =
       typeof sortOrder === 'string' || typeof sortOrder === 'number' ? String(sortOrder) : 'asc';
     const sortDir = sortOrderStr.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
@@ -96,7 +102,7 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
       `SELECT id, name, code, "createdAt", "updatedAt"
        FROM clients
        ${whereClause}
-       ORDER BY "${sortCol}" ${sortDir}
+       ORDER BY ${safeSortCol} ${sortDir}
        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       [...queryParams, Number(limit), offset]
     );

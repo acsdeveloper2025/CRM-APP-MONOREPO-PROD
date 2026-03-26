@@ -4,6 +4,7 @@ import type { Response } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 import { redisClient } from '@/config/redis';
+import { config } from '@/config';
 import { logger } from '@/config/logger';
 
 /**
@@ -60,12 +61,16 @@ const createRateLimiter = (
     },
     // Dev-token bypass only in development — NEVER in production
     skip: (req: AuthenticatedRequest) => {
-      if (process.env.NODE_ENV !== 'development') {
+      if (config.nodeEnv !== 'development') {
+        return false;
+      }
+      const devToken = process.env.DEV_RATE_LIMIT_BYPASS_TOKEN;
+      if (!devToken) {
         return false;
       }
       const rawAuthHeader = req.headers.authorization;
       const authHeader = Array.isArray(rawAuthHeader) ? rawAuthHeader[0] : rawAuthHeader;
-      return authHeader === 'Bearer dev-token';
+      return authHeader === `Bearer ${devToken}`;
     },
   });
 };
