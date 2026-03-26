@@ -103,34 +103,6 @@ const listProductsValidation = [
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
 ];
 
-// TODO: Implement these validation rules when needed
-// const verificationTypesValidation = [
-//   body('verificationTypes')
-//     .isArray({ min: 1 })
-//     .withMessage('Verification types array is required'),
-//   body('verificationTypes.*')
-//     .isIn(['RESIDENCE', 'OFFICE', 'BUSINESS', 'EMPLOYMENT', 'OTHER'])
-//     .withMessage('Invalid verification type'),
-// ];
-
-// const bulkImportValidation = [
-//   body('products')
-//     .isArray({ min: 1 })
-//     .withMessage('Products array is required'),
-//   body('products.*.name')
-//     .trim()
-//     .isLength({ min: 1, max: 200 })
-//     .withMessage('Product name is required and must be less than 200 characters'),
-//   body('products.*.code')
-//     .trim()
-//     .isLength({ min: 2, max: 20 })
-//     .withMessage('Product code is required and must be between 2 and 20 characters'),
-//   body('products.*.clientId')
-//     .trim()
-//     .notEmpty()
-//     .withMessage('Client ID is required'),
-// ];
-
 const _clientProductsValidation = [
   param('id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
   query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
@@ -147,8 +119,6 @@ router.get(
   getProducts
 );
 
-// TODO: Implement these endpoints
-// router.get('/categories', getProductCategories);
 router.get(
   '/stats',
   authenticateToken,
@@ -165,16 +135,6 @@ router.post(
   handleValidationErrors,
   createProduct
 );
-
-// TODO: Implement bulk import endpoint
-// router.post(
-//   '/bulk-import',
-//   authorize('settings.manage'),
-//   authenticateToken,
-//   bulkImportValidation,
-//   validate,
-//   bulkImportProducts
-// );
 
 router.get(
   '/:id',

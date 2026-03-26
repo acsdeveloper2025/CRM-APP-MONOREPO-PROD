@@ -136,14 +136,6 @@ router.get(
   getMonthlyTrends
 );
 
-// TODO: Implement client stats
-// router.get('/client-stats',
-//   authenticateToken,
-//   dashboardQueryValidation,
-//   validate,
-//   getClientStats
-// );
-
 router.get(
   '/recent-activities',
   authenticateToken,
@@ -200,37 +192,5 @@ router.get(
   EnterpriseCache.create(EnterpriseCacheConfigs.dashboard),
   getTATStats
 );
-
-// TODO: Implement remaining dashboard functions
-// router.get('/turnaround-times',
-//   authenticateToken,
-//   dashboardQueryValidation,
-//   validate,
-//   getTurnaroundTimes
-// );
-
-// router.get('/top-performers',
-//   authenticateToken,
-//   topPerformersValidation,
-//   validate,
-//   getTopPerformers
-// );
-
-// router.get('/upcoming-deadlines',
-//   authenticateToken,
-//   getUpcomingDeadlines
-// );
-
-// router.get('/alerts',
-//   authenticateToken,
-//   getAlerts
-// );
-
-// router.post('/export',
-//   authenticateToken,
-//   exportValidation,
-//   validate,
-//   exportDashboardReport
-// );
 
 export default router;
