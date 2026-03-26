@@ -90,7 +90,18 @@ export class MobileAttachmentController {
       const userId = req.user?.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
       const files = req.files as Express.Multer.File[];
-      const geoLocation = req.body.geoLocation ? JSON.parse(req.body.geoLocation) : null;
+      let geoLocation = null;
+      if (req.body.geoLocation) {
+        try {
+          geoLocation = JSON.parse(req.body.geoLocation);
+        } catch {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid geoLocation JSON format',
+            error: { code: 'INVALID_GEOLOCATION', timestamp: new Date().toISOString() },
+          });
+        }
+      }
 
       if (!files || files.length === 0) {
         return res.status(400).json({

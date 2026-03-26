@@ -16,6 +16,55 @@ import type { NotificationCaseData } from './eventTypes';
 let globalSocketIO: SocketIOServer | null = null;
 let mobileEvents: MobileWebSocketEvents | null = null;
 
+/**
+ * Per-socket rate limiter to prevent event flooding.
+ * Tracks event counts per socket within a sliding window.
+ */
+class SocketRateLimiter {
+  private counts = new Map<string, { count: number; resetAt: number }>();
+  private readonly maxEvents: number;
+  private readonly windowMs: number;
+
+  constructor(maxEvents = 60, windowMs = 60000) {
+    this.maxEvents = maxEvents;
+    this.windowMs = windowMs;
+  }
+
+  isAllowed(socketId: string): boolean {
+    const now = Date.now();
+    const entry = this.counts.get(socketId);
+
+    if (!entry || now > entry.resetAt) {
+      this.counts.set(socketId, { count: 1, resetAt: now + this.windowMs });
+      return true;
+    }
+
+    entry.count++;
+    return entry.count <= this.maxEvents;
+  }
+
+  cleanup(socketId: string): void {
+    this.counts.delete(socketId);
+  }
+}
+
+/** Validate latitude/longitude values are within valid ranges */
+const isValidCoordinate = (lat: unknown, lng: unknown): boolean => {
+  return (
+    typeof lat === 'number' && typeof lng === 'number' &&
+    lat >= -90 && lat <= 90 &&
+    lng >= -180 && lng <= 180 &&
+    isFinite(lat) && isFinite(lng)
+  );
+};
+
+/** Validate a string is non-empty and within length bounds */
+const isValidString = (val: unknown, maxLen = 200): boolean => {
+  return typeof val === 'string' && val.length > 0 && val.length <= maxLen;
+};
+
+const socketRateLimiter = new SocketRateLimiter(120, 60000); // 120 events/min per socket
+
 interface AuthenticatedSocket extends Socket {
   user?: {
     id: string;
@@ -138,54 +187,69 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
       void socket.join(`platform:${socket.user.platform}`);
     }
 
+    // Rate limit wrapper — rejects events if socket exceeds limit
+    const rateLimited = (handler: (...args: unknown[]) => void) => {
+      return (...args: unknown[]) => {
+        if (!socketRateLimiter.isAllowed(socket.id)) {
+          logger.warn(`WebSocket rate limit exceeded for user ${socket.user?.id}`);
+          socket.emit('error', { code: 'RATE_LIMIT', message: 'Too many events, slow down' });
+          return;
+        }
+        handler(...args);
+      };
+    };
+
     // Handle case updates subscription
-    socket.on('subscribe:case', (caseId: string) => {
+    socket.on('subscribe:case', rateLimited((caseId: unknown) => {
+      if (!isValidString(caseId)) return;
       void socket.join(`case:${caseId}`);
       logger.info(`User ${socket.user?.id} subscribed to case ${caseId}`);
-    });
+    }));
 
     // Handle case updates unsubscription
-    socket.on('unsubscribe:case', (caseId: string) => {
+    socket.on('unsubscribe:case', rateLimited((caseId: unknown) => {
+      if (!isValidString(caseId)) return;
       void socket.leave(`case:${caseId}`);
       logger.info(`User ${socket.user?.id} unsubscribed from case ${caseId}`);
-    });
+    }));
 
     // Handle real-time location updates
-    socket.on(
-      'location:update',
-      (data: { caseId: string; latitude: number; longitude: number }) => {
-        // Broadcast location update to case subscribers
-        socket.to(`case:${data.caseId}`).emit('location:updated', {
-          caseId: data.caseId,
-          userId: socket.user?.id,
-          username: socket.user?.id,
-          latitude: data.latitude,
-          longitude: data.longitude,
-          timestamp: new Date().toISOString(),
-        });
-      }
-    );
+    socket.on('location:update', rateLimited((data: unknown) => {
+      const d = data as { caseId?: string; latitude?: number; longitude?: number };
+      if (!isValidString(d?.caseId) || !isValidCoordinate(d?.latitude, d?.longitude)) return;
+      socket.to(`case:${d.caseId}`).emit('location:updated', {
+        caseId: d.caseId,
+        userId: socket.user?.id,
+        username: socket.user?.id,
+        latitude: d.latitude,
+        longitude: d.longitude,
+        timestamp: new Date().toISOString(),
+      });
+    }));
 
     // Handle case status updates
-    socket.on('case:status', (data: { caseId: string; status: string }) => {
-      // Broadcast status update to case subscribers
-      socket.to(`case:${data.caseId}`).emit('case:status:updated', {
-        caseId: data.caseId,
-        status: data.status,
+    socket.on('case:status', rateLimited((data: unknown) => {
+      const d = data as { caseId?: string; status?: string };
+      if (!isValidString(d?.caseId) || !isValidString(d?.status, 50)) return;
+      socket.to(`case:${d.caseId}`).emit('case:status:updated', {
+        caseId: d.caseId,
+        status: d.status,
         updatedBy: socket.user?.id,
         timestamp: new Date().toISOString(),
       });
-    });
+    }));
 
     // Handle typing indicators for case notes
-    socket.on('case:typing', (data: { caseId: string; isTyping: boolean }) => {
-      socket.to(`case:${data.caseId}`).emit('case:typing:update', {
-        caseId: data.caseId,
+    socket.on('case:typing', rateLimited((data: unknown) => {
+      const d = data as { caseId?: string; isTyping?: boolean };
+      if (!isValidString(d?.caseId) || typeof d?.isTyping !== 'boolean') return;
+      socket.to(`case:${d.caseId}`).emit('case:typing:update', {
+        caseId: d.caseId,
         userId: socket.user?.id,
         username: socket.user?.id,
-        isTyping: data.isTyping,
+        isTyping: d.isTyping,
       });
-    });
+    }));
 
     // Mobile-specific events
 
@@ -205,29 +269,22 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
     });
 
     // Handle mobile location sharing
-    socket.on(
-      'mobile:location:share',
-      (data: {
-        caseId: string;
-        latitude: number;
-        longitude: number;
-        accuracy: number;
-        timestamp: string;
-      }) => {
-        // Broadcast real-time location to case watchers
-        socket.to(`case:${data.caseId}`).emit('mobile:location:update', {
-          caseId: data.caseId,
-          userId: socket.user?.id,
-          username: socket.user?.id,
-          location: {
-            latitude: data.latitude,
-            longitude: data.longitude,
-            accuracy: data.accuracy,
-            timestamp: data.timestamp,
-          },
-        });
-      }
-    );
+    socket.on('mobile:location:share', rateLimited((data: unknown) => {
+      const d = data as { caseId?: string; latitude?: number; longitude?: number; accuracy?: number; timestamp?: string };
+      if (!isValidString(d?.caseId) || !isValidCoordinate(d?.latitude, d?.longitude)) return;
+      if (typeof d?.accuracy !== 'number' || d.accuracy < 0 || d.accuracy > 10000) return;
+      socket.to(`case:${d.caseId}`).emit('mobile:location:update', {
+        caseId: d.caseId,
+        userId: socket.user?.id,
+        username: socket.user?.id,
+        location: {
+          latitude: d.latitude,
+          longitude: d.longitude,
+          accuracy: d.accuracy,
+          timestamp: d.timestamp || new Date().toISOString(),
+        },
+      });
+    }));
 
     // Handle mobile form auto-save
     socket.on(
@@ -298,8 +355,9 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
       })();
     });
 
-    // Handle disconnect
+    // Handle disconnect — cleanup rate limiter state
     socket.on('disconnect', reason => {
+      socketRateLimiter.cleanup(socket.id);
       logger.info(`User ${socket.user?.id} disconnected from WebSocket: ${reason}`);
     });
 
