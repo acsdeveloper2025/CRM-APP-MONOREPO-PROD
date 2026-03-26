@@ -70,6 +70,7 @@
     "bcryptjs": "^3.0.2",
     "bull": "^4.16.5",
     "bullmq": "^5.56.9",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "csv-parser": "^3.2.0",
     "dotenv": "^17.2.2",
@@ -104,6 +105,7 @@
   "devDependencies": {
     "@express-rate-limit/tsconfig": "^1.0.2",
     "@types/bcryptjs": "^2.4.6",
+    "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",

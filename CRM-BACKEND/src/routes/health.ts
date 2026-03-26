@@ -5,6 +5,7 @@ import { logger } from '@/config/logger';
 import { performance } from 'perf_hooks';
 import fs from 'fs/promises';
 import { circuitBreakers } from '@/utils/circuitBreaker';
+import { authenticateToken } from '@/middleware/auth';
 
 const router = Router();
 
@@ -78,7 +79,7 @@ router.get('/sync/health', (req, res) => {
  * Detailed health check with all dependencies
  * GET /api/health/detailed
  */
-router.get('/health/detailed', async (req, res) => {
+router.get('/health/detailed', authenticateToken, async (req, res) => {
   const startTime = performance.now();
 
   try {
@@ -403,7 +404,7 @@ router.get('/health/live', (req, res) => {
  * Performance metrics endpoint
  * GET /api/health/metrics
  */
-router.get('/health/metrics', async (req, res) => {
+router.get('/health/metrics', authenticateToken, async (req, res) => {
   try {
     const rawRange = (req.query.range as string) || '1h';
 
