@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
 import { logger } from '../utils/logger';
+import { circuitBreakers } from '../utils/circuitBreaker';
 
 export interface VerificationReportData {
   verificationType: string;
@@ -95,7 +96,9 @@ Hence the profile is marked as {Final_Status}.`,
 
       const prompt = this.buildReportPrompt(data);
 
-      const result = await this.model.generateContent(prompt);
+      const result = await circuitBreakers.gemini.execute(() =>
+        this.model.generateContent(prompt)
+      );
       const response = result.response;
       const text = response.text();
 
@@ -517,8 +520,8 @@ Generate the report now:`;
    */
   async testConnection(): Promise<{ success: boolean; error?: string }> {
     try {
-      const result = await this.model.generateContent(
-        'Test connection. Respond with "Connection successful"'
+      const result = await circuitBreakers.gemini.execute(() =>
+        this.model.generateContent('Test connection. Respond with "Connection successful"')
       );
       const response = result.response;
       const text = response.text();

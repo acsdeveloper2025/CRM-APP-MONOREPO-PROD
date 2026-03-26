@@ -3,6 +3,9 @@ import { logger } from './logger';
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 
+/** Tracks whether Redis is currently healthy and available */
+let redisHealthy = false;
+
 export const redisClient = createClient({
   url: redisUrl,
   password: process.env.REDIS_PASSWORD || undefined,
@@ -26,6 +29,7 @@ export const redisClient = createClient({
 });
 
 redisClient.on('error', err => {
+  redisHealthy = false;
   logger.error('Redis Client Error:', err);
 });
 
@@ -34,12 +38,20 @@ redisClient.on('connect', () => {
 });
 
 redisClient.on('ready', () => {
+  redisHealthy = true;
   logger.info('Redis client ready');
 });
 
 redisClient.on('end', () => {
+  redisHealthy = false;
   logger.info('Redis client disconnected');
 });
+
+/**
+ * Check if Redis is currently healthy and available.
+ * Use this to gracefully degrade (skip caching, use fallbacks) when Redis is down.
+ */
+export const isRedisHealthy = (): boolean => redisHealthy;
 
 export const connectRedis = async (): Promise<void> => {
   try {

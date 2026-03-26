@@ -6,6 +6,7 @@ import apn from 'node-apn';
 import { logger } from '../utils/logger';
 import { config } from '../config';
 import { query } from '../config/database';
+import { circuitBreakers } from '../utils/circuitBreaker';
 
 interface PushNotificationPayload {
   title: string;
@@ -317,7 +318,9 @@ export class PushNotificationService {
         },
       };
 
-      const response = await messaging.sendEachForMulticast(message);
+      const response = await circuitBreakers.firebase.execute(() =>
+        messaging.sendEachForMulticast(message)
+      );
 
       results.success = response.successCount;
       results.failed = response.failureCount;
@@ -405,7 +408,9 @@ export class PushNotificationService {
 
       for (const { notification, token, userId, tokenId } of notifications) {
         try {
-          const result = await this.apnProvider.send(notification, token);
+          const result = await circuitBreakers.apns.execute(() =>
+            this.apnProvider!.send(notification, token)
+          );
 
           if (result.sent.length > 0) {
             results.success++;
