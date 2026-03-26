@@ -119,10 +119,11 @@ check_service_process() {
     # Check if PM2 is available
     if command -v pm2 >/dev/null 2>&1; then
         # Check if process exists in PM2
-        local pm2_status=$(pm2 jlist 2>/dev/null | jq -r ".[] | select(.name==\"$pm2_name\") | .pm2_env.status" 2>/dev/null)
+        # Use 'first' to handle cluster mode (multiple instances return multiple statuses)
+        local pm2_status=$(pm2 jlist 2>/dev/null | jq -r "[.[] | select(.name==\"$pm2_name\") | .pm2_env.status] | first" 2>/dev/null)
 
         if [ "$pm2_status" = "online" ]; then
-            local pid=$(pm2 jlist 2>/dev/null | jq -r ".[] | select(.name==\"$pm2_name\") | .pid" 2>/dev/null)
+            local pid=$(pm2 jlist 2>/dev/null | jq -r "[.[] | select(.name==\"$pm2_name\") | .pid] | first" 2>/dev/null)
             print_status "$service_name process is running via PM2 (PID: $pid)"
             return 0
         elif [ -n "$pm2_status" ]; then
