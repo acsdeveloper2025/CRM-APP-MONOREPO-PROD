@@ -247,8 +247,9 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
         const caseUUID = caseResult.rows[0].id;
         const uploadedAttachments = [];
 
-        // Create case-specific directory
-        const caseUploadDir = path.join(process.cwd(), 'uploads', 'attachments', `case_${caseId}`);
+        // Sanitize caseId to prevent path traversal (strip anything except alphanumeric, dash, underscore)
+        const safeCaseId = String(caseId).replace(/[^a-zA-Z0-9_-]/g, '');
+        const caseUploadDir = path.join(process.cwd(), 'uploads', 'attachments', `case_${safeCaseId}`);
         if (!fs.existsSync(caseUploadDir)) {
           fs.mkdirSync(caseUploadDir, { recursive: true });
         }
