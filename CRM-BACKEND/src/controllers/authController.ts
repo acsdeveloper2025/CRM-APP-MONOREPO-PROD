@@ -16,6 +16,30 @@ import {
   isScopedOperationsUser,
 } from '@/security/rbacAccess';
 
+/**
+ * Parse a duration string (e.g. '7d', '24h', '30m') to milliseconds.
+ * Used to convert config JWT expiry strings into numeric values for DB storage.
+ */
+function parseDurationMs(duration: string): number {
+  const match = duration.match(/^(\d+)(s|m|h|d)$/);
+  if (!match) {
+    return 7 * 24 * 60 * 60 * 1000; // fallback: 7 days
+  }
+  const value = parseInt(match[1], 10);
+  switch (match[2]) {
+    case 's':
+      return value * 1000;
+    case 'm':
+      return value * 60 * 1000;
+    case 'h':
+      return value * 60 * 60 * 1000;
+    case 'd':
+      return value * 24 * 60 * 60 * 1000;
+    default:
+      return 7 * 24 * 60 * 60 * 1000;
+  }
+}
+
 export const login = async (req: Request, res: Response): Promise<void> => {
   // eslint-disable-next-line no-useless-catch
   try {
@@ -93,16 +117,16 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     };
 
     const accessToken = jwt.sign(accessTokenPayload, config.jwtSecret, {
-      expiresIn: '24h',
+      expiresIn: config.jwtExpiresIn as string & jwt.SignOptions['expiresIn'],
     });
 
     const refreshToken = jwt.sign(refreshTokenPayload, config.jwtRefreshSecret, {
-      expiresIn: '7d',
+      expiresIn: config.jwtRefreshExpiresIn as string & jwt.SignOptions['expiresIn'],
     });
 
-    // Store refresh token hash
+    // Store refresh token hash — parse config duration for DB expiry
     const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const expiresAt = new Date(Date.now() + parseDurationMs(config.jwtRefreshExpiresIn));
 
     await query(
       `INSERT INTO "refreshTokens" (token, "userId", "expiresAt", "createdAt", "ipAddress", "userAgent") VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)`,
@@ -502,7 +526,7 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     };
 
     const accessToken = jwt.sign(accessTokenPayload, config.jwtSecret, {
-      expiresIn: '24h',
+      expiresIn: config.jwtExpiresIn as string & jwt.SignOptions['expiresIn'],
     });
 
     res.json({

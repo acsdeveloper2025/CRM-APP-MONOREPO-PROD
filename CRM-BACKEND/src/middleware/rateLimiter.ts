@@ -31,9 +31,11 @@ const createRateLimiter = (
       // Use standard behavior for IP-based limiting (handles IPv6 correctly)
       return ipKeyGenerator(req.ip || 'unknown');
     },
-    // We removed the blanket 'skip' for authenticated users to ensure all activity is capped
+    // Dev-token bypass only in development — NEVER in production
     skip: (req: AuthenticatedRequest) => {
-      // Still skip for dev-token to avoid blocking local development tests
+      if (process.env.NODE_ENV !== 'development') {
+        return false;
+      }
       const rawAuthHeader = req.headers.authorization;
       const authHeader = Array.isArray(rawAuthHeader) ? rawAuthHeader[0] : rawAuthHeader;
       return authHeader === 'Bearer dev-token';

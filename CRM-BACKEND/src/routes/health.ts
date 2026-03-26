@@ -395,10 +395,34 @@ router.get('/health/live', (req, res) => {
  */
 router.get('/health/metrics', async (req, res) => {
   try {
-    const timeRange = (req.query.range as string) || '1h';
+    const rawRange = (req.query.range as string) || '1h';
+
+    // Whitelist allowed time ranges to prevent SQL injection
+    const ALLOWED_RANGES: Record<string, string> = {
+      '5m': '5 minutes',
+      '15m': '15 minutes',
+      '30m': '30 minutes',
+      '1h': '1 hour',
+      '6h': '6 hours',
+      '12h': '12 hours',
+      '24h': '24 hours',
+      '7d': '7 days',
+      '30d': '30 days',
+    };
+
+    const intervalValue = ALLOWED_RANGES[rawRange];
+    if (!intervalValue) {
+      res.status(400).json({
+        success: false,
+        message: `Invalid time range. Allowed values: ${Object.keys(ALLOWED_RANGES).join(', ')}`,
+      });
+      return;
+    }
+
+    const timeRange = rawRange;
 
     const metricsQuery = `
-      SELECT 
+      SELECT
         DATE_TRUNC('minute', timestamp) as minute,
         AVG(response_time) as avg_response_time,
         MAX(response_time) as max_response_time,
@@ -407,7 +431,7 @@ router.get('/health/metrics', async (req, res) => {
         COUNT(CASE WHEN status_code >= 400 THEN 1 END) as error_count,
         COUNT(CASE WHEN response_time > 1000 THEN 1 END) as slow_request_count
       FROM performance_metrics
-      WHERE timestamp > NOW() - INTERVAL '${timeRange}'
+      WHERE timestamp > NOW() - INTERVAL '${intervalValue}'
       GROUP BY DATE_TRUNC('minute', timestamp)
       ORDER BY minute DESC
       LIMIT 60

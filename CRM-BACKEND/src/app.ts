@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from '@/config';
 import { logger } from '@/config/logger';
 import { errorHandler, notFoundHandler } from '@/middleware/errorHandler';
@@ -203,33 +202,6 @@ app.use('/api/field-monitoring', fieldMonitoringRoutes);
 
 // Multi-verification task routes
 app.use('/api', verificationTasksRoutes);
-
-// Temporary AI test endpoint
-app.get('/api/ai-test', async (req, res) => {
-  try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
-    const prompt =
-      'Generate a brief test response to verify the AI integration is working in the CRM system.';
-
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.text();
-
-    res.json({
-      success: true,
-      message: 'AI integration working',
-      data: { response: text },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'AI integration failed',
-      error: error.message,
-    });
-  }
-});
 
 // Mobile API routes
 app.use('/api/mobile', mobileRoutes);

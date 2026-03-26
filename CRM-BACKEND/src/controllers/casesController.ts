@@ -12,6 +12,7 @@ import {
   VerificationTaskCreationError,
   VerificationTaskCreationService,
 } from '../services/verificationTaskCreationService';
+import { CacheKeys, invalidateCachePatterns } from '../services/enterpriseCacheService';
 import {
   financialConfigurationValidator,
   FinancialConfigErrorCode,
@@ -1181,6 +1182,9 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
       updatedCaseFields: updateFields.filter(field => !field.includes('updatedAt')),
       updatedTaskFields: { assignedToId, rateTypeId, address },
     });
+
+    // Invalidate stale cache entries for this case
+    void invalidateCachePatterns(CacheKeys.invalidateCase(id));
 
     res.json({
       success: true,
@@ -2710,6 +2714,9 @@ export const createCase = [
 
       // Explicit commit before returning success
       await client.query('COMMIT');
+
+      // Invalidate analytics/case-stats cache after new case creation
+      void invalidateCachePatterns(CacheKeys.invalidateCase(newCase.id));
 
       // ========== RESPONSE ==========
       res.status(201).json({

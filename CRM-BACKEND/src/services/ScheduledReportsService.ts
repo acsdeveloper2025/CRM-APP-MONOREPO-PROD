@@ -105,17 +105,22 @@ export class ScheduledReportsService {
   private async loadAndScheduleReports(): Promise<void> {
     try {
       const query = `
-        SELECT * FROM scheduled_reports 
-        WHERE is_active = true 
+        SELECT id, name, frequency, report_type, filters, recipients,
+               created_by, is_active, created_at, last_run, next_run
+        FROM scheduled_reports
+        WHERE is_active = true
         ORDER BY created_at DESC
       `;
 
       const result = await pool.query(query);
       const reports = result.rows;
 
-      for (const report of reports) {
-        await this.scheduleReport(this.mapDbRowToScheduledReport(report));
-      }
+      // Schedule all reports in parallel instead of sequentially (N+1 fix)
+      await Promise.all(
+        reports.map((report: unknown) =>
+          this.scheduleReport(this.mapDbRowToScheduledReport(report as ScheduledReportRow))
+        )
+      );
 
       logger.info(`Loaded and scheduled ${reports.length} active reports`);
     } catch (error) {
