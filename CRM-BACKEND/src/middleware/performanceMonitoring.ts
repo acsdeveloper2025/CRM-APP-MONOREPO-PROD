@@ -447,6 +447,34 @@ export const getPerformanceMetrics = async (timeRange = '1h') => {
   return result.rows;
 };
 
+/**
+ * Cleanup old performance and health metrics to prevent unbounded table growth.
+ * Runs every 6 hours — deletes metrics older than 7 days.
+ */
+export const startMetricsCleanup = () => {
+  const CLEANUP_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
+  const RETENTION_DAYS = 7;
+
+  setInterval(() => {
+    void (async () => {
+      try {
+        const perfResult = await query(
+          `DELETE FROM performance_metrics WHERE timestamp < NOW() - INTERVAL '${RETENTION_DAYS} days'`
+        );
+        const healthResult = await query(
+          `DELETE FROM system_health_metrics WHERE timestamp < NOW() - INTERVAL '${RETENTION_DAYS} days'`
+        );
+        logger.info('Metrics cleanup completed', {
+          performanceMetricsDeleted: perfResult.rowCount,
+          systemHealthMetricsDeleted: healthResult.rowCount,
+        });
+      } catch (error) {
+        logger.error('Metrics cleanup failed:', error);
+      }
+    })();
+  }, CLEANUP_INTERVAL);
+};
+
 export default {
   performanceMonitoring,
   memoryMonitoring,
@@ -455,4 +483,5 @@ export default {
   endpointPerformanceTracking,
   systemHealthMonitoring,
   getPerformanceMetrics,
+  startMetricsCleanup,
 };

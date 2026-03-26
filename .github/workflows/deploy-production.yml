@@ -159,7 +159,7 @@ jobs:
         working-directory: ${{ matrix.path }}
         run: |
           echo "🛡️ Running npm audit for ${{ matrix.component }}..."
-          npm audit --audit-level=high --omit=dev || true
+          npm audit --audit-level=high --omit=dev
 
   # Build and test components
   build-and-test:
@@ -175,11 +175,11 @@ jobs:
           - component: backend
             path: CRM-BACKEND
             build_cmd: npm run build
-            test_cmd: echo "Backend tests would run here"
+            test_cmd: npm run test
           - component: frontend
             path: CRM-FRONTEND
             build_cmd: npm run build
-            test_cmd: echo "Frontend tests would run here"
+            test_cmd: echo "Frontend tests pending setup"
 
     steps:
       - name: 📥 Checkout Code

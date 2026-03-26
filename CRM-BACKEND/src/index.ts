@@ -11,18 +11,26 @@ import { initializeQueues, closeQueues } from '@/config/queue';
 import { initializeWebSocket } from '@/websocket/server';
 import { EnterpriseCacheService } from './services/enterpriseCacheService';
 import { CacheWarmingService } from './services/cacheWarmingService';
+import { startMetricsCleanup } from '@/middleware/performanceMonitoring';
 // Migrations removed for production - use database import instead
 
 const server = createServer(app);
 
+// Socket.IO Redis adapter clients — stored at module scope for cleanup on shutdown
+let socketPubClient: ReturnType<typeof createClient> | null = null;
+let socketSubClient: ReturnType<typeof createClient> | null = null;
+
 logger.info('🚀 [LOADED] src/index.ts IS RUNNING!');
 
-// Initialize Socket.IO
+// Initialize Socket.IO with security limits
 const io = new SocketIOServer(server, {
   cors: {
     origin: config.corsOrigin,
     methods: ['GET', 'POST'],
   },
+  maxHttpBufferSize: 1e6, // 1MB max payload — prevents memory spikes from large binary data
+  pingTimeout: 60000,
+  pingInterval: 25000,
 });
 
 // Initialize WebSocket handlers
@@ -48,11 +56,11 @@ const startServer = async (): Promise<void> => {
     try {
       const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
       const redisPassword = process.env.REDIS_PASSWORD || undefined;
-      const pubClient = createClient({ url: redisUrl, password: redisPassword });
-      const subClient = pubClient.duplicate();
+      socketPubClient = createClient({ url: redisUrl, password: redisPassword });
+      socketSubClient = socketPubClient.duplicate();
 
-      await Promise.all([pubClient.connect(), subClient.connect()]);
-      io.adapter(createAdapter(pubClient, subClient));
+      await Promise.all([socketPubClient.connect(), socketSubClient.connect()]);
+      io.adapter(createAdapter(socketPubClient, socketSubClient));
       logger.info('Socket.IO Redis adapter attached (PM2 cluster broadcasting enabled)');
     } catch (error) {
       logger.warn(
@@ -78,6 +86,9 @@ const startServer = async (): Promise<void> => {
       logger.info(`Server accessible on all network interfaces (0.0.0.0:${config.port})`);
       logger.info(`Environment: ${config.nodeEnv}`);
       logger.info(`WebSocket server running on port ${config.port}`);
+
+      // Start periodic cleanup of performance_metrics and system_health_metrics (every 6h, 7-day retention)
+      startMetricsCleanup();
 
       // Schedule periodic cache refresh (every 10 minutes)
       setInterval(
@@ -118,8 +129,17 @@ const startServer = async (): Promise<void> => {
 const gracefulShutdown = async (signal: string): Promise<void> => {
   logger.info(`Received ${signal}. Starting graceful shutdown...`);
 
+  // Hard timeout — force exit if graceful shutdown hangs
+  const shutdownTimeout = setTimeout(() => {
+    logger.error('Graceful shutdown timeout exceeded (30s), force exiting');
+    process.exit(1);
+  }, 30000);
+
   try {
-    // Close server
+    // Notify WebSocket clients before closing
+    io.emit('server:shutdown', { message: 'Server is restarting, please reconnect shortly' });
+
+    // Close HTTP server (stop accepting new connections)
     server.close(() => {
       logger.info('HTTP server closed');
     });
@@ -129,11 +149,19 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
       logger.info('WebSocket server closed');
     });
 
-    // Close job queues
+    // Close job queues (allow in-flight jobs to finish)
     await closeQueues();
 
     // Close enterprise cache service
     await EnterpriseCacheService.close();
+
+    // Close Socket.IO Redis adapter pub/sub clients
+    if (socketPubClient) {
+      try { await socketPubClient.quit(); } catch { /* already closed */ }
+    }
+    if (socketSubClient) {
+      try { await socketSubClient.quit(); } catch { /* already closed */ }
+    }
 
     // Disconnect from Redis
     await disconnectRedis();
@@ -141,9 +169,11 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
     // Disconnect from database
     await disconnectDatabase();
 
+    clearTimeout(shutdownTimeout);
     logger.info('Graceful shutdown completed');
     process.exit(0);
   } catch (error) {
+    clearTimeout(shutdownTimeout);
     logger.error('Error during graceful shutdown:', error);
     process.exit(1);
   }

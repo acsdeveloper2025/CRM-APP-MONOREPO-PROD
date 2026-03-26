@@ -20,6 +20,8 @@ const queueConfig = {
       type: 'exponential',
       delay: 2000,
     },
+    // Timeout per job — prevents hanging when external services (Firebase, SMTP) are unresponsive
+    timeout: 30000, // 30 seconds
   },
 };
 
