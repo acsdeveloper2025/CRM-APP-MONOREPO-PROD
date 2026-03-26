@@ -7,12 +7,7 @@ import { logger } from '@/config/logger';
 import { errorHandler, notFoundHandler } from '@/middleware/errorHandler';
 import { ScheduledReportsService } from '@/services/ScheduledReportsService';
 import { generalRateLimit } from '@/middleware/rateLimiter';
-// Performance monitoring middleware available for future use
-// import {
-//   performanceMonitoring,
-//   memoryMonitoring,
-//   databaseMonitoring,
-// } from '@/middleware/performanceMonitoring';
+import { performanceMonitoring, memoryMonitoring } from '@/middleware/performanceMonitoring';
 
 // Import routes
 import authRoutes from '@/routes/auth';
@@ -129,10 +124,9 @@ app.use(
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
-// Performance monitoring middleware (temporarily disabled)
-// app.use(performanceMonitoring);
-// app.use(memoryMonitoring);
-// app.use(databaseMonitoring);
+// Performance monitoring — request timing + memory tracking
+app.use(performanceMonitoring);
+app.use(memoryMonitoring);
 
 // Rate limiting
 app.use('/api', generalRateLimit);

@@ -155,6 +155,12 @@ jobs:
           echo "🔍 Running ESLint for ${{ matrix.component }}..."
           npm run lint
 
+      - name: 🛡️ Security Audit
+        working-directory: ${{ matrix.path }}
+        run: |
+          echo "🛡️ Running npm audit for ${{ matrix.component }}..."
+          npm audit --audit-level=high --omit=dev || true
+
   # Build and test components
   build-and-test:
     name: 🏗️ Build & Test

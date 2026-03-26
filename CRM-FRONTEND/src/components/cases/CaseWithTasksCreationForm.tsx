@@ -245,7 +245,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
   const { data: clientsResponse } = useClients();
   const { data: verificationTypesResponse } = useVerificationTypes();
   // Server-side pincode search (replaces bulk client-side load)
-  const { pincodes: pincodesList, setSearchTerm: setPincodeSearch } = usePincodeSearch();
+  const { pincodes: pincodesList } = usePincodeSearch();
 
   // Mutation for creating case with multiple tasks
   const createCaseMutation = useMutationWithInvalidation({

@@ -142,6 +142,7 @@ export const FormPhotosGallery: React.FC<FormPhotosGalleryProps> = ({ photos }) 
                 <img
                   src={photo.thumbnailUrl || photo.url}
                   alt="Verification photo"
+                  loading="lazy"
                   className="w-full h-32 object-cover rounded-lg border transition-transform group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity rounded-lg flex items-center justify-center">
@@ -176,6 +177,7 @@ export const FormPhotosGallery: React.FC<FormPhotosGalleryProps> = ({ photos }) 
                 <img
                   src={photo.thumbnailUrl || photo.url}
                   alt="Verification selfie"
+                  loading="lazy"
                   className="w-full h-32 object-cover rounded-lg border transition-transform group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity rounded-lg flex items-center justify-center">

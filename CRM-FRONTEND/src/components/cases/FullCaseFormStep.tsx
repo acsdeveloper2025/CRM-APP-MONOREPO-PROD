@@ -172,7 +172,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
     selectedAreaNumber
   );
   // Server-side pincode search (replaces bulk client-side load)
-  const { pincodes, setSearchTerm: setPincodeSearch } = usePincodeSearch(selectedPincodeId);
+  const { pincodes } = usePincodeSearch(selectedPincodeId);
   const { data: areasResponse } = useAreasByPincode(selectedPincodeId ? parseInt(selectedPincodeId) : undefined);
   const areas = useMemo(() => areasResponse?.data || [], [areasResponse?.data]);
   const areaIds = useMemo(() => areas.map((area) => area.id.toString()), [areas]);

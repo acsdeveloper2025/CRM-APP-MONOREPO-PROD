@@ -331,6 +331,7 @@ export class ExcelExportService {
       SELECT * FROM case_completion_analytics
       ${whereClause}
       ORDER BY "createdAt" DESC
+      LIMIT 5000
     `;
 
     const summaryQuery = `
