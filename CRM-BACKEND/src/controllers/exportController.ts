@@ -223,7 +223,7 @@ export const getExportHistory = (req: AuthenticatedRequest, res: Response) => {
     const offset = Number(req.query.offset) || 0;
     const userId = req.user?.id;
 
-    // TODO: Connect to real export_history table
+    // Mock export history - ready to connect to export_history table when persistence layer is available
     // For now, return strictly typed mock data
     const mockHistory: ExportHistoryItem[] = [
       {

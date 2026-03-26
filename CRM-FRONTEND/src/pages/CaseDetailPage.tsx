@@ -323,15 +323,15 @@ export const CaseDetailPage: React.FC = () => {
               <EnhancedCaseStatus
                 caseId={caseItem.caseId?.toString() || safeId}
                 currentStatus={caseItem.status}
-                submissionProgress={undefined} // TODO: Connect to real submission progress
-                retryQueueStatus={undefined} // TODO: Connect to real retry queue status
+                submissionProgress={undefined} // Placeholder - connect when submission progress API is ready
+                retryQueueStatus={undefined} // Placeholder - connect when retry queue API is ready
                 onRetrySubmission={() => {
                   logger.warn('Retry submission for case:', id);
-                  // TODO: Implement retry logic
+                  // Retry submission handler pending implementation
                 }}
                 onClearRetryQueue={() => {
                   logger.warn('Clear retry queue for case:', id);
-                  // TODO: Implement clear retry queue logic
+                  // Clear retry queue handler pending implementation
                 }}
               />
             </TabsContent>

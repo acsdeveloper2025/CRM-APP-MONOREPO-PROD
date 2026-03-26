@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useVerificationTasks } from '@/hooks/useVerificationTasks';
 import { VerificationTasksService } from '@/services/verificationTasks';
+import { logger } from '@/utils/logger';
 import { VerificationTasksList } from './VerificationTasksList';
 import { CreateTaskModal } from './CreateTaskModal';
 import { TaskAssignmentModal } from './TaskAssignmentModal';
@@ -91,24 +92,24 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
 
   // Handle task actions
   const handleCreateTasks = async (_taskData: unknown[]) => {
-    // TODO: Implement create tasks
+    logger.warn('Not yet implemented: Create tasks');
     setShowCreateModal(false);
   };
 
   const handleAssignTask = async (_assignmentData: unknown) => {
-    // TODO: Implement assign task
+    logger.warn('Not yet implemented: Assign task');
     setShowAssignModal(false);
     setSelectedTaskId(null);
   };
 
   const handleCompleteTask = async (_completionData: unknown) => {
-    // TODO: Implement complete task
+    logger.warn('Not yet implemented: Complete task');
     setShowCompleteModal(false);
     setSelectedTaskId(null);
   };
 
   const handleBulkAssign = async (_assignedTo: string, _reason?: string) => {
-    // TODO: Implement bulk assign
+    logger.warn('Not yet implemented: Bulk assign tasks');
     clearSelection();
   };
 

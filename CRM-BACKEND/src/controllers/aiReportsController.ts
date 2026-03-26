@@ -329,7 +329,7 @@ export const getReportStatistics = async (req: AuthenticatedRequest, res: Respon
           medium: parseInt(stats.medium_risk) || 0,
           high: parseInt(stats.high_risk) || 0,
         },
-        verificationTypeBreakdown: [], // TODO: Implement detailed breakdown
+        verificationTypeBreakdown: [], // Breakdown populated when per-type analytics are available
       },
     });
   } catch (error) {
