@@ -164,7 +164,7 @@ export const removeDocumentTypeFromClient = async (req: AuthenticatedRequest, re
 
     // Check if mapping exists
     const existingMapping = await query(
-      `SELECT * FROM "clientDocumentTypes" WHERE "clientId" = $1 AND "documentTypeId" = $2`,
+      `SELECT id, "clientId", "documentTypeId", "isActive", "createdAt" FROM "clientDocumentTypes" WHERE "clientId" = $1 AND "documentTypeId" = $2`,
       [Number(clientId), Number(documentTypeId)]
     );
 
@@ -223,7 +223,7 @@ export const updateClientDocumentTypeMapping = async (req: AuthenticatedRequest,
 
     // Check if mapping exists
     const existingMapping = await query(
-      `SELECT * FROM "clientDocumentTypes" WHERE "clientId" = $1 AND "documentTypeId" = $2`,
+      `SELECT id, "clientId", "documentTypeId", "isActive", "createdAt" FROM "clientDocumentTypes" WHERE "clientId" = $1 AND "documentTypeId" = $2`,
       [Number(clientId), Number(documentTypeId)]
     );
 

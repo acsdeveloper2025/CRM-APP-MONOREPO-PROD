@@ -2449,7 +2449,7 @@ export class MobileFormController {
         }
 
         // Query for reports with this verification_task_id
-        reportSql = `SELECT * FROM "${reportTableName}" WHERE verification_task_id = $1`;
+        reportSql = `SELECT * FROM "${reportTableName}" WHERE verification_task_id = $1 LIMIT 1`;
         const reportRes = await query(reportSql, [task.task_id]);
 
         logger.info(
@@ -2462,7 +2462,7 @@ export class MobileFormController {
 
           // FIXED: Get verification images for THIS SPECIFIC TASK only
           const imagesSql = `
-            SELECT * FROM verification_attachments
+            SELECT id, verification_task_id, file_name, file_path, file_type, component_type, thumbnail_path, uploaded_at FROM verification_attachments
             WHERE case_id = $1 AND verification_task_id = $2
             ORDER BY "createdAt"
           `;

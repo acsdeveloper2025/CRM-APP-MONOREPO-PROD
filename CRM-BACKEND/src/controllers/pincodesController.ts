@@ -456,7 +456,7 @@ export const updatePincode = async (req: AuthenticatedRequest, res: Response) =>
     const updateData = req.body;
 
     // Check if pincode exists
-    const existingResult = await query('SELECT * FROM pincodes WHERE id = $1', [id]);
+    const existingResult = await query('SELECT id, pincode, area, city, state, "countryId", "isActive", "createdAt", "updatedAt" FROM pincodes WHERE id = $1', [id]);
 
     if (existingResult.rows.length === 0) {
       return res.status(404).json({
@@ -565,7 +565,7 @@ export const deletePincode = async (req: AuthenticatedRequest, res: Response) =>
     const { id } = req.params;
 
     // Check if pincode exists
-    const existingResult = await query('SELECT * FROM pincodes WHERE id = $1', [id]);
+    const existingResult = await query('SELECT id, pincode, area, city, state, "countryId", "isActive", "createdAt", "updatedAt" FROM pincodes WHERE id = $1', [id]);
 
     if (existingResult.rows.length === 0) {
       return res.status(404).json({

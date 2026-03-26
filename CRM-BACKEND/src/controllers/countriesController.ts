@@ -238,7 +238,7 @@ export const updateCountry = async (req: AuthenticatedRequest, res: Response) =>
     const updateData = req.body;
 
     // Check if country exists
-    const countryResult = await query<Country>('SELECT * FROM countries WHERE id = $1', [id]);
+    const countryResult = await query<Country>('SELECT id, name, code, "isActive", "createdAt", "updatedAt" FROM countries WHERE id = $1', [id]);
 
     if (countryResult.rows.length === 0) {
       return res.status(404).json({
@@ -337,7 +337,7 @@ export const deleteCountry = async (req: AuthenticatedRequest, res: Response) =>
     const { id } = req.params;
 
     // Check if country exists
-    const countryResult = await query<Country>('SELECT * FROM countries WHERE id = $1', [id]);
+    const countryResult = await query<Country>('SELECT id, name, code, "isActive", "createdAt", "updatedAt" FROM countries WHERE id = $1', [id]);
 
     if (countryResult.rows.length === 0) {
       return res.status(404).json({

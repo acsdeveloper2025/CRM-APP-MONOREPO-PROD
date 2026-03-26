@@ -1091,7 +1091,7 @@ export class MobileCaseController {
 
       const actualCaseId = existingCase.id; // Use the actual UUID from the database
       const autoRes = await query(
-        `SELECT * FROM "autoSaves" WHERE "caseId" = $1 AND "formType" = $2 LIMIT 1`,
+        `SELECT id, "caseId", "formType", "formData", "savedAt", "userId" FROM "autoSaves" WHERE "caseId" = $1 AND "formType" = $2 LIMIT 1`,
         [actualCaseId, formType.toUpperCase()]
       );
       const autoSaveData = autoRes.rows[0];
