@@ -11,7 +11,7 @@ import { initializeQueues, closeQueues } from '@/config/queue';
 import { initializeWebSocket } from '@/websocket/server';
 import { EnterpriseCacheService } from './services/enterpriseCacheService';
 import { CacheWarmingService } from './services/cacheWarmingService';
-import { startMetricsCleanup } from '@/middleware/performanceMonitoring';
+import { startMetricsCleanup, stopMonitoringIntervals } from '@/middleware/performanceMonitoring';
 // Migrations removed for production - use database import instead
 
 const server = createServer(app);
@@ -19,6 +19,9 @@ const server = createServer(app);
 // Socket.IO Redis adapter clients — stored at module scope for cleanup on shutdown
 let socketPubClient: ReturnType<typeof createClient> | null = null;
 let socketSubClient: ReturnType<typeof createClient> | null = null;
+
+// Cache refresh interval — stored for cleanup on shutdown
+let cacheRefreshInterval: ReturnType<typeof setInterval> | null = null;
 
 logger.info('🚀 [LOADED] src/index.ts IS RUNNING!');
 
@@ -91,7 +94,7 @@ const startServer = async (): Promise<void> => {
       startMetricsCleanup();
 
       // Schedule periodic cache refresh (every 10 minutes)
-      setInterval(
+      cacheRefreshInterval = setInterval(
         () => {
           if (!EnterpriseCacheService.isAvailable()) {
             return;
@@ -136,6 +139,13 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
   }, 30000);
 
   try {
+    // Stop all monitoring intervals before closing connections
+    stopMonitoringIntervals();
+    if (cacheRefreshInterval) {
+      clearInterval(cacheRefreshInterval);
+      cacheRefreshInterval = null;
+    }
+
     // Notify WebSocket clients before closing
     io.emit('server:shutdown', { message: 'Server is restarting, please reconnect shortly' });
 
