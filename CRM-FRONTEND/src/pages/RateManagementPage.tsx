@@ -15,7 +15,7 @@ export function RateManagementPage() {
   const [activeTab, setActiveTab] = useState('rate-types');
 
   // Fetch rate management statistics
-  const { data: statsData, isLoading: statsLoading } = useStandardizedQuery({
+  const { data: statsData, isLoading: _statsLoading } = useStandardizedQuery({
     queryKey: ['rate-management-stats'],
     queryFn: () => rateManagementService.getRateManagementStats(),
     errorContext: 'Loading Rate Management Statistics',
