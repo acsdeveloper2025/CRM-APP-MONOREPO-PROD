@@ -6323,7 +6323,7 @@ export function createComprehensiveFormSections(
     const relevantFields = getRelevantFieldsForFormType(verificationType, formType);
 
     if (relevantFields.length === 0) {
-      console.warn(
+      logger.warn(
         `No field schema found for ${verificationType} - ${formType}, falling back to legacy method`
       );
       // Fallback to old method if no schema found
@@ -6363,7 +6363,7 @@ export function createComprehensiveFormSections(
     logger.info(`Created ${sections.length} sections`);
     return sections;
   } catch (error) {
-    console.error('Error in type-aware form sections:', error);
+    logger.error('Error in type-aware form sections:', error);
     // Fallback to legacy method on error
     return createLegacyFormSections(formData, verificationType, formType);
   }

@@ -5,6 +5,8 @@
  * and database columns for residence-cum-office verification forms.
  */
 
+import { logger } from '@/config/logger';
+
 export interface DatabaseFieldMapping {
   [mobileField: string]: string | null; // null means field should be ignored
 }
@@ -215,7 +217,7 @@ export function mapResidenceCumOfficeFormDataToDatabase(
       mappedData[columnName] = processResidenceCumOfficeFieldValue(mobileField, value);
     } else {
       // Log unmapped fields for debugging but don't include them in database insertion
-      console.warn(
+      logger.warn(
         `⚠️ Unmapped residence-cum-office field: ${mobileField} (value: ${typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value as string | number | boolean | null | undefined)}) - skipping to prevent database errors`
       );
     }
@@ -393,7 +395,7 @@ export function ensureAllResidenceCumOfficeFieldsPopulated(
     if (completeData[field] === undefined || completeData[field] === null) {
       if (relevantFields.includes(field)) {
         // Field is relevant for this form type but missing - this might indicate an issue
-        console.warn(
+        logger.warn(
           `⚠️ Missing relevant field for ${formType} residence-cum-office form: ${field}`
         );
       }

@@ -299,7 +299,7 @@ export class MobileAuthController {
         },
       });
     } catch (error) {
-      console.error('Token refresh error:', error);
+      logger.error('Token refresh error:', error);
       return res.status(401).json({
         success: false,
         message: 'Invalid refresh token',
@@ -424,7 +424,7 @@ export class MobileAuthController {
 
       res.json(response);
     } catch (error) {
-      console.error('Version check error:', error);
+      logger.error('Version check error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -464,7 +464,7 @@ export class MobileAuthController {
 
       res.json(response);
     } catch (error) {
-      console.error('App config error:', error);
+      logger.error('App config error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -562,7 +562,7 @@ export class MobileAuthController {
         data: result.rows[0],
       });
     } catch (error) {
-      console.error('Notification registration error:', error);
+      logger.error('Notification registration error:', error);
       return res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -628,7 +628,7 @@ export class MobileAuthController {
         data: devices,
       });
     } catch (error) {
-      console.error('Get user devices error:', error);
+      logger.error('Get user devices error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',

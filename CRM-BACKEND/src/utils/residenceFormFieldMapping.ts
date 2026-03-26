@@ -5,6 +5,8 @@
  * and database columns for residence verification forms.
  */
 
+import { logger } from '@/config/logger';
+
 export interface DatabaseFieldMapping {
   [mobileField: string]: string | null; // null means field should be ignored
 }
@@ -446,7 +448,7 @@ export function ensureAllFieldsPopulated(
     if (completeData[field] === undefined || completeData[field] === null) {
       if (relevantFields.includes(field)) {
         // Field is relevant for this form type but missing - this might indicate an issue
-        console.warn(`⚠️ Missing relevant field for ${formType} form: ${field}`);
+        logger.warn(`⚠️ Missing relevant field for ${formType} form: ${field}`);
       }
 
       // Set default value based on field type

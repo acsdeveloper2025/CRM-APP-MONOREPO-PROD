@@ -5,6 +5,8 @@
  * and database columns for office verification forms.
  */
 
+import { logger } from '@/config/logger';
+
 export interface DatabaseFieldMapping {
   [mobileField: string]: string | null; // null means field should be ignored
 }
@@ -205,7 +207,7 @@ function processOfficeFieldValue(fieldName: string, value: unknown): unknown {
       case 'HOLD':
         return 'Hold';
       default:
-        console.warn(
+        logger.warn(
           `⚠️ Unknown recommendationStatus value: ${typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value as string | number | boolean | null | undefined)}, defaulting to 'Refer'`
         );
         return 'Refer'; // Safe default
@@ -477,7 +479,7 @@ export function ensureAllOfficeFieldsPopulated(
     if (completeData[field] === undefined || completeData[field] === null) {
       if (relevantFields.includes(field)) {
         // Field is relevant for this form type but missing - this might indicate an issue
-        console.warn(`⚠️ Missing relevant field for ${formType} office form: ${field}`);
+        logger.warn(`⚠️ Missing relevant field for ${formType} office form: ${field}`);
       }
 
       // Set default value (NULL for all missing fields)

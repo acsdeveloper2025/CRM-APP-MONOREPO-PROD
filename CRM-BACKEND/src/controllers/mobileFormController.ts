@@ -366,7 +366,7 @@ export class MobileFormController {
         },
       };
     } catch (error) {
-      console.error('Task submission validation error:', error);
+      logger.error('Task submission validation error:', error);
       return {
         success: false,
         error: { status: 500, message: 'Internal validation error', code: 'VALIDATION_ERROR' },
@@ -478,7 +478,7 @@ export class MobileFormController {
         task,
       };
     } catch (error) {
-      console.error('Error resolving caseId from taskId:', error);
+      logger.error('Error resolving caseId from taskId:', error);
       return {
         success: false,
         error: {
@@ -709,7 +709,7 @@ export class MobileFormController {
           geoLocation: image.geoLocation,
         });
       } catch (error) {
-        console.error(`Error processing verification image ${i + 1}:`, error);
+        logger.error(`Error processing verification image ${i + 1}:`, error);
         // Continue with other images even if one fails
       }
     }
@@ -732,7 +732,7 @@ export class MobileFormController {
         const sections = createComprehensiveFormSections(formData, normalizedType, formType);
         return sections;
       } catch (error) {
-        console.error('Error creating comprehensive form sections:', error);
+        logger.error('Error creating comprehensive form sections:', error);
         // Fall through to basic sections
       }
     }
@@ -1033,7 +1033,7 @@ export class MobileFormController {
       logger.info(`Generated ${sections.length} comprehensive sections from report`);
       return sections;
     } catch (error) {
-      console.error('Error creating comprehensive sections from report:', error);
+      logger.error('Error creating comprehensive sections from report:', error);
 
       // Fallback to basic sections
       return MobileFormController.createBasicFormSectionsFromReport(report, verificationType);
@@ -2301,7 +2301,7 @@ export class MobileFormController {
         },
       });
     } catch (error) {
-      console.error(`Submit ${verificationType.toLowerCase()} verification error:`, error);
+      logger.error(`Submit ${verificationType.toLowerCase()} verification error:`, error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -2442,7 +2442,7 @@ export class MobileFormController {
           reportTableName = 'propertyIndividualVerificationReports';
         } else {
           // Fallback to residence for unknown types
-          console.warn(
+          logger.warn(
             `Unknown verification type: ${verificationType}, falling back to residenceVerificationReports`
           );
           reportTableName = 'residenceVerificationReports';
@@ -2581,8 +2581,8 @@ export class MobileFormController {
         },
       });
     } catch (error) {
-      console.error('Get case form submissions error:', error);
-      console.error('Error details:', {
+      logger.error('Get case form submissions error:', error);
+      logger.error('Error details:', {
         message: error.message,
         stack: error.stack,
         taskId: String(req.params.taskId || ''),
@@ -2793,13 +2793,13 @@ export class MobileFormController {
 
       // Log warnings if any
       if (!validationResult.isValid) {
-        console.warn(
+        logger.warn(
           `⚠️ Missing required fields for ${formType} form:`,
           validationResult.missingFields
         );
       }
       if (validationResult.warnings.length > 0) {
-        console.warn(
+        logger.warn(
           `⚠️ Validation warnings for ${formType} residence form:`,
           validationResult.warnings
         );
@@ -3053,7 +3053,7 @@ export class MobileFormController {
         },
       });
     } catch (error) {
-      console.error('Submit residence verification error:', error);
+      logger.error('Submit residence verification error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -3176,13 +3176,13 @@ export class MobileFormController {
 
       // Log warnings if any
       if (!validationResult.isValid) {
-        console.warn(
+        logger.warn(
           `⚠️ Missing required fields for ${formType} office form:`,
           validationResult.missingFields
         );
       }
       if (validationResult.warnings.length > 0) {
-        console.warn(
+        logger.warn(
           `⚠️ Validation warnings for ${formType} office form:`,
           validationResult.warnings
         );
@@ -3191,13 +3191,13 @@ export class MobileFormController {
       // Validate required fields for the detected form type
       const validation = validateOfficeRequiredFields(formData, formType);
       if (!validation.isValid) {
-        console.warn(
+        logger.warn(
           `⚠️ Missing required fields for ${formType} office form:`,
           validation.missingFields
         );
       }
       if (validation.warnings.length > 0) {
-        console.warn(`⚠️ Office form validation warnings:`, validation.warnings);
+        logger.warn(`⚠️ Office form validation warnings:`, validation.warnings);
       }
 
       logger.info(
@@ -3427,7 +3427,7 @@ export class MobileFormController {
         },
       });
     } catch (error) {
-      console.error('Submit office verification error:', error);
+      logger.error('Submit office verification error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -3561,13 +3561,13 @@ export class MobileFormController {
 
       // Log warnings if any
       if (!validationResult.isValid) {
-        console.warn(
+        logger.warn(
           `⚠️ Missing required fields for ${formType} business form:`,
           validationResult.missingFields
         );
       }
       if (validationResult.warnings.length > 0) {
-        console.warn(
+        logger.warn(
           `⚠️ Validation warnings for ${formType} business form:`,
           validationResult.warnings
         );
@@ -3576,13 +3576,13 @@ export class MobileFormController {
       // Validate required fields for the detected form type
       const validation = validateBusinessRequiredFields(formData, formType);
       if (!validation.isValid) {
-        console.warn(
+        logger.warn(
           `⚠️ Missing required fields for ${formType} business form:`,
           validation.missingFields
         );
       }
       if (validation.warnings.length > 0) {
-        console.warn(`⚠️ Business form validation warnings:`, validation.warnings);
+        logger.warn(`⚠️ Business form validation warnings:`, validation.warnings);
       }
 
       logger.info(
@@ -3839,7 +3839,7 @@ export class MobileFormController {
         },
       });
     } catch (error) {
-      console.error('Submit business verification error:', error);
+      logger.error('Submit business verification error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -3953,13 +3953,13 @@ export class MobileFormController {
 
       // Log warnings if any
       if (!validationResult.isValid) {
-        console.warn(
+        logger.warn(
           `⚠️ Missing required fields for ${formType} builder form:`,
           validationResult.missingFields
         );
       }
       if (validationResult.warnings.length > 0) {
-        console.warn(
+        logger.warn(
           `⚠️ Validation warnings for ${formType} builder form:`,
           validationResult.warnings
         );
@@ -4215,7 +4215,7 @@ export class MobileFormController {
         },
       });
     } catch (error) {
-      console.error('Submit builder verification error:', error);
+      logger.error('Submit builder verification error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -4358,7 +4358,7 @@ export class MobileFormController {
         },
       });
     } catch (error) {
-      console.error('Submit residence-cum-office verification error:', error);
+      logger.error('Submit residence-cum-office verification error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -4494,13 +4494,13 @@ export class MobileFormController {
 
       // Log warnings if any
       if (!validationResult.isValid) {
-        console.warn(
+        logger.warn(
           `⚠️ Missing required fields for ${formType} DSA Connector form:`,
           validationResult.missingFields
         );
       }
       if (validationResult.warnings.length > 0) {
-        console.warn(
+        logger.warn(
           `⚠️ Validation warnings for ${formType} DSA Connector form:`,
           validationResult.warnings
         );
@@ -4759,7 +4759,7 @@ export class MobileFormController {
         },
       });
     } catch (error) {
-      console.error('Submit DSA/DST Connector verification error:', error);
+      logger.error('Submit DSA/DST Connector verification error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -4901,7 +4901,7 @@ export class MobileFormController {
         },
       });
     } catch (error) {
-      console.error('Submit property individual verification error:', error);
+      logger.error('Submit property individual verification error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -5033,13 +5033,13 @@ export class MobileFormController {
 
       // Log warnings if any
       if (!validationResult.isValid) {
-        console.warn(
+        logger.warn(
           `⚠️ Missing required fields for ${formType} Property APF form:`,
           validationResult.missingFields
         );
       }
       if (validationResult.warnings.length > 0) {
-        console.warn(
+        logger.warn(
           `⚠️ Validation warnings for ${formType} Property APF form:`,
           validationResult.warnings
         );
@@ -5292,7 +5292,7 @@ export class MobileFormController {
         },
       });
     } catch (error) {
-      console.error('Submit Property APF verification error:', error);
+      logger.error('Submit Property APF verification error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -5417,13 +5417,13 @@ export class MobileFormController {
 
       // Log warnings if any
       if (!validationResult.isValid) {
-        console.warn(
+        logger.warn(
           `⚠️ Missing required fields for ${formType} NOC form:`,
           validationResult.missingFields
         );
       }
       if (validationResult.warnings.length > 0) {
-        console.warn(`⚠️ Validation warnings for ${formType} NOC form:`, validationResult.warnings);
+        logger.warn(`⚠️ Validation warnings for ${formType} NOC form:`, validationResult.warnings);
       }
 
       // Validate minimum photo requirement (≥5 geo-tagged photos)
@@ -5673,7 +5673,7 @@ export class MobileFormController {
         },
       });
     } catch (error) {
-      console.error('Submit NOC verification error:', error);
+      logger.error('Submit NOC verification error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -5876,7 +5876,7 @@ export class MobileFormController {
         },
       });
     } catch (error) {
-      console.error('Get form template error:', error);
+      logger.error('Get form template error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',

@@ -2302,7 +2302,7 @@ export const createCase = [
       // ========== PARSE AND VALIDATE REQUEST DATA ==========
       let requestData: CreateCaseRequest;
       try {
-        console.info('REQ BODY:', JSON.stringify(req.body, null, 2));
+        logger.info('REQ BODY:', JSON.stringify(req.body, null, 2));
         if (req.body.data) {
           // FormData format (with file uploads)
           requestData = JSON.parse(req.body.data);
@@ -2441,8 +2441,8 @@ export const createCase = [
         applicantsData = Array.from(applicantsMap.values()) as CreateApplicantData[];
       }
 
-      console.info('Parsed applicants:', applicantsData);
-      console.info('Parsed verification_tasks:', verificationTasksFromRequest);
+      logger.info('Parsed applicants:', applicantsData);
+      logger.info('Parsed verification_tasks:', verificationTasksFromRequest);
 
       // ========== COMPREHENSIVE VALIDATION ==========
       if (!caseDetails || typeof caseDetails !== 'object') {

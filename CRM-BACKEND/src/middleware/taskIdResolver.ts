@@ -69,7 +69,7 @@ export async function resolveTaskIdToCaseId(
 
     next();
   } catch (error) {
-    console.error('Error resolving taskId to caseId:', error);
+    logger.error('Error resolving taskId to caseId:', error);
     next(error);
   }
 }

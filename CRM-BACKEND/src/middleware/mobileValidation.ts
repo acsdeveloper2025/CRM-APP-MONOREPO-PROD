@@ -9,7 +9,7 @@ export const validateMobileVersion = (req: Request, res: Response, next: NextFun
     const appVersion = req.headers['x-app-version'] as string;
     const platform = req.headers['x-platform'] as string;
 
-    console.info(`📱 Received headers:`, {
+    logger.info(`📱 Received headers:`, {
       'x-app-version': appVersion,
       'x-platform': platform,
       'user-agent': req.headers['user-agent'],
@@ -28,12 +28,12 @@ export const validateMobileVersion = (req: Request, res: Response, next: NextFun
 
     // Check if force update is required
     const comparisonResult = compareVersions(appVersion, config.mobile.forceUpdateVersion);
-    console.info(
+    logger.info(
       `🔍 Version validation: ${appVersion} vs ${config.mobile.forceUpdateVersion} = ${comparisonResult}`
     );
 
     if (comparisonResult < 0) {
-      console.warn(`❌ Force update required: ${appVersion} < ${config.mobile.forceUpdateVersion}`);
+      logger.warn(`❌ Force update required: ${appVersion} < ${config.mobile.forceUpdateVersion}`);
       return res.status(426).json({
         success: false,
         message: 'App update required',
@@ -73,12 +73,12 @@ export const validateMobileVersion = (req: Request, res: Response, next: NextFun
     }
 
     // Version validation passed
-    console.info(
+    logger.info(
       `✅ Version validation passed: ${appVersion} >= ${config.mobile.forceUpdateVersion}`
     );
     next();
   } catch (error) {
-    console.error('Mobile version validation error:', error);
+    logger.error('Mobile version validation error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -252,7 +252,7 @@ export const validateMobileFileUpload = (req: Request, res: Response, next: Next
 
     next();
   } catch (error) {
-    console.error('File upload validation error:', error);
+    logger.error('File upload validation error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
