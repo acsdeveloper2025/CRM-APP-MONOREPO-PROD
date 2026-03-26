@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { pool, query } from '@/config/database';
-import { redisClient } from '@/config/redis';
+import { redisClient, isRedisHealthy } from '@/config/redis';
 import { logger } from '@/config/logger';
 import { performance } from 'perf_hooks';
 import fs from 'fs/promises';
+import { circuitBreakers } from '@/utils/circuitBreaker';
 
 const router = Router();
 
@@ -122,15 +123,24 @@ router.get('/health/detailed', async (req, res) => {
       overallStatus = 'DEGRADED';
     }
 
+    // Circuit breaker states for external service health
+    const externalServices = Object.fromEntries(
+      Object.entries(circuitBreakers).map(([name, breaker]) => [name, breaker.getState()])
+    );
+
     const healthCheck: HealthCheckResult = {
       status: overallStatus,
       timestamp: new Date().toISOString(),
       uptime: Math.floor(process.uptime()),
       version: process.env.npm_package_version || '1.0.0',
       environment: process.env.NODE_ENV || 'development',
-      services,
+      services: {
+        ...services,
+        redisHealthFlag: { status: isRedisHealthy() ? 'OK' : 'ERROR', message: isRedisHealthy() ? 'Redis health flag is up' : 'Redis health flag is down' },
+      },
       performance: performanceData,
-    };
+      externalServices,
+    } as HealthCheckResult & { externalServices: unknown };
 
     const statusCode = overallStatus === 'ERROR' ? 503 : overallStatus === 'DEGRADED' ? 200 : 200;
 

@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import { logger } from '../utils/logger';
 import path from 'path';
 import fs from 'fs/promises';
+import { circuitBreakers } from '../utils/circuitBreaker';
 
 export interface EmailConfig {
   host: string;
@@ -120,7 +121,10 @@ export class EmailDeliveryService {
         replyTo: options.replyTo || this.config.auth.user,
       };
 
-      const result = await this.transporter.sendMail(mailOptions);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result: any = await circuitBreakers.email.execute(() =>
+        this.transporter.sendMail(mailOptions)
+      );
 
       const recipient = Array.isArray(options.to) ? options.to.join(', ') : options.to;
       const msgId = result.messageId || 'unknown';
