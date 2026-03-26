@@ -457,4 +457,41 @@ export class CacheKeys {
   static notifications(userId: string): string {
     return `notifications:${userId}`;
   }
+
+  // ── Invalidation pattern helpers ──────────────────────────
+  // Returns glob patterns for clearByPattern() to wipe stale data on writes
+
+  /** Invalidate all cache entries related to a specific case */
+  static invalidateCase(caseId: string): string[] {
+    return [`case:${caseId}*`, 'analytics:case-stats'];
+  }
+
+  /** Invalidate all cache entries related to a specific user */
+  static invalidateUser(userId: string): string[] {
+    return [`user:${userId}*`, `users:stats:${userId}`];
+  }
+
+  /** Invalidate field monitoring caches (after location update or assignment change) */
+  static invalidateFieldMonitoring(): string[] {
+    return ['field-monitoring:*', 'analytics:field-agent-workload'];
+  }
+
+  /** Invalidate notification caches for a user */
+  static invalidateNotifications(userId: string): string[] {
+    return [`notifications:${userId}*`];
+  }
+}
+
+/**
+ * Convenience: invalidate multiple cache patterns in one call.
+ * Fire-and-forget safe — logs errors but never throws.
+ */
+export async function invalidateCachePatterns(patterns: string[]): Promise<void> {
+  for (const pattern of patterns) {
+    try {
+      await EnterpriseCacheService.clearByPattern(pattern);
+    } catch (error) {
+      logger.warn('Cache invalidation failed for pattern', { pattern, error });
+    }
+  }
 }

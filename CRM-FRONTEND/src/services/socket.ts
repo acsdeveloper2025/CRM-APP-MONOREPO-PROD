@@ -52,6 +52,12 @@ class FrontendSocketService {
       autoConnect: true,
       withCredentials: true,
       auth: { token },
+      // Enterprise reconnection: aggressive retry for unstable networks
+      reconnection: true,
+      reconnectionAttempts: 20,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 30000,
+      timeout: 20000,
     });
 
     return this.socket;

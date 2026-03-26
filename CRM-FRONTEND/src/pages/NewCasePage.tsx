@@ -6,7 +6,7 @@ import { usePincodes } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { attachmentsService } from '@/services/attachments';
+import { attachmentsService, type Attachment } from '@/services/attachments';
 import type { CustomerInfoData } from '@/components/cases/CustomerInfoStep';
 import type { FullCaseFormData } from '@/components/cases/FullCaseFormStep';
 import { LoadingState } from '@/components/ui/loading';
@@ -172,11 +172,11 @@ export const NewCasePage: React.FC = () => {
           areaId, // Use the found area ID
         };
 
-        const allAttachments = (caseAttachmentsResponse?.data || []) as Record<string, unknown>[];
-        const mapAttachment = (att: Record<string, unknown>): CaseFormAttachment => {
+        const allAttachments = (caseAttachmentsResponse?.data || []) as Attachment[];
+        const mapAttachment = (att: Attachment): CaseFormAttachment => {
           const fileName = String(att.originalName || att.filename || 'attachment');
           const mimeType = String(att.mimeType || 'application/octet-stream');
-          const size = Number(att.size || 0);
+          const size = Number(att.size || att.fileSize || 0);
           const placeholderFile = new File([], fileName, { type: mimeType });
           return {
             id: String(att.id),

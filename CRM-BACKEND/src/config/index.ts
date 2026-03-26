@@ -92,13 +92,23 @@ export const config = {
 
   // WebSocket
   wsPort: parseInt(process.env.WS_PORT || '3000', 10),
-  wsCorsOrigin: process.env.WS_CORS_ORIGIN || '*',
+  wsCorsOrigin: process.env.WS_CORS_ORIGIN
+    ? process.env.WS_CORS_ORIGIN.split(',').map((o: string) => o.trim())
+    : process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',').map((o: string) => o.trim())
+      : ['http://localhost:5173', 'http://localhost:5180', 'capacitor://localhost'],
   wsHeartbeatInterval: parseInt(process.env.WS_HEARTBEAT_INTERVAL || '30000', 10),
   wsConnectionTimeout: parseInt(process.env.WS_CONNECTION_TIMEOUT || '60000', 10),
 
   // Security
   bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS || '12', 10),
-  sessionSecret: process.env.SESSION_SECRET || 'production-session-secret-change-me',
+  sessionSecret: (() => {
+    const secret = process.env.SESSION_SECRET;
+    if (!secret && process.env.NODE_ENV === 'production') {
+      throw new Error('SESSION_SECRET environment variable is required in production');
+    }
+    return secret || 'dev-only-session-secret';
+  })(),
 
   // Email
   smtpHost: process.env.SMTP_HOST || '',
