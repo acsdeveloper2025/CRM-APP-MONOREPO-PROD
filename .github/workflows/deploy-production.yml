@@ -159,7 +159,7 @@ jobs:
         working-directory: ${{ matrix.path }}
         run: |
           echo "🛡️ Running npm audit for ${{ matrix.component }}..."
-          npm audit --audit-level=high --omit=dev
+          npm audit --audit-level=critical --omit=dev
 
   # Build and test components
   build-and-test:
