@@ -80,21 +80,6 @@ const listVerificationTypesValidation = [
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
 ];
 
-// TODO: Implement bulk import validation when needed
-// const bulkImportValidation = [
-//   body('verificationTypes')
-//     .isArray({ min: 1 })
-//     .withMessage('Verification types array is required'),
-//   body('verificationTypes.*.name')
-//     .trim()
-//     .isLength({ min: 1, max: 200 })
-//     .withMessage('Name is required and must be less than 200 characters'),
-//   body('verificationTypes.*.code')
-//     .trim()
-//     .isLength({ min: 2, max: 50 })
-//     .withMessage('Code is required and must be between 2 and 50 characters'),
-// ];
-
 // Core CRUD routes (CACHED)
 router.get(
   '/',
@@ -104,8 +89,6 @@ router.get(
   getVerificationTypes
 );
 
-// TODO: Implement these endpoints
-// router.get('/categories', getVerificationTypeCategories);
 router.get(
   '/stats',
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
@@ -120,15 +103,6 @@ router.post(
   handleValidationErrors,
   createVerificationType
 );
-
-// TODO: Implement bulk import endpoint
-// router.post(
-//   '/bulk-import',
-//   authorize('settings.manage'),
-//   bulkImportValidation,
-//   validate,
-//   bulkImportVerificationTypes
-// );
 
 router.get(
   '/:id',

@@ -326,31 +326,4 @@ router.get(
   exportMISData
 );
 
-// TODO: Implement remaining report functions
-// router.get('/financial',
-//   financialReportValidation,
-//   validate,
-//   getFinancialReport
-// );
-
-// router.get('/productivity',
-//   productivityReportValidation,
-//   validate,
-//   getProductivityReport
-// );
-
-// router.post('/custom',
-//   customReportValidation,
-//   validate,
-//   getCustomReport
-// );
-
-// router.get('/templates', getReportTemplates);
-
-// router.post('/schedule',
-//   scheduleReportValidation,
-//   validate,
-//   scheduleReport
-// );
-
 export default router;

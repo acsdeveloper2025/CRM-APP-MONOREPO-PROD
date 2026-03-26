@@ -8,6 +8,7 @@ import { errorHandler, notFoundHandler } from '@/middleware/errorHandler';
 import { ScheduledReportsService } from '@/services/ScheduledReportsService';
 import { generalRateLimit } from '@/middleware/rateLimiter';
 import { performanceMonitoring, memoryMonitoring } from '@/middleware/performanceMonitoring';
+import { defaultTimeout, extendedTimeout } from '@/middleware/requestTimeout';
 
 // Import routes
 import authRoutes from '@/routes/auth';
@@ -37,7 +38,6 @@ import rbacRoutes from '@/routes/rbac';
 import departmentsRoutes from '@/routes/departments';
 import designationsRoutes from '@/routes/designations';
 
-// Removed mock locations routes - using individual database-driven routes instead
 import reportsRoutes from '@/routes/reports';
 import enhancedAnalyticsRoutes from '@/routes/enhancedAnalytics';
 import exportsRoutes from '@/routes/exports';
@@ -63,10 +63,38 @@ const app = express();
 // Trust proxy for X-Forwarded-For headers from Nginx (specific to localhost)
 app.set('trust proxy', ['127.0.0.1', '::1']);
 
-// Security middleware
+// Security middleware — enterprise-grade headers
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"], // Required for inline styles (Tailwind)
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        connectSrc: [
+          "'self'",
+          'wss:',
+          'ws:',
+          ...(config.corsOrigin || []),
+        ],
+        fontSrc: ["'self'", 'data:'],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'"],
+        frameSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        formAction: ["'self'"],
+        baseUri: ["'self'"],
+        upgradeInsecureRequests: config.nodeEnv === 'production' ? [] : null,
+      },
+    },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    hsts: config.nodeEnv === 'production'
+      ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+      : false,
+    noSniff: true,
+    xssFilter: true,
   })
 );
 
@@ -120,13 +148,16 @@ app.use(
   })
 );
 
-// Body parsing middleware - Increased limits for mobile app form submissions with multiple images
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+// Body parsing middleware — 5MB default for JSON (mobile file uploads use Multer multipart, not JSON body)
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 // Performance monitoring — request timing + memory tracking
 app.use(performanceMonitoring);
 app.use(memoryMonitoring);
+
+// Request timeout — 30s default for all API routes
+app.use('/api', defaultTimeout);
 
 // Rate limiting
 app.use('/api', generalRateLimit);
@@ -177,11 +208,11 @@ app.use('/api/departments', departmentsRoutes);
 app.use('/api/designations', designationsRoutes);
 
 // Removed mock locations routes - using individual database-driven routes instead
-app.use('/api/reports', reportsRoutes);
-app.use('/api/enhanced-analytics', enhancedAnalyticsRoutes);
-app.use('/api/exports', exportsRoutes);
+// Extended timeout (2min) for heavy report/export operations
+app.use('/api/reports', extendedTimeout, reportsRoutes);
+app.use('/api/enhanced-analytics', extendedTimeout, enhancedAnalyticsRoutes);
+app.use('/api/exports', extendedTimeout, exportsRoutes);
 app.use('/api/audit-logs', auditLogsRoutes);
-// Geolocation routes removed for production
 app.use('/api/forms', formRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/security', securityRoutes);
@@ -190,18 +221,15 @@ app.use('/api/rate-types', rateTypesRoutes);
 app.use('/api/rate-type-assignments', rateTypeAssignmentsRoutes);
 app.use('/api/rates', ratesRoutes);
 app.use('/api/service-zone-rules', serviceZoneRulesRoutes);
-app.use('/api/ai-reports', aiReportsRoutes);
-app.use('/api/template-reports', templateReportsRoutes);
+app.use('/api/ai-reports', extendedTimeout, aiReportsRoutes);
+app.use('/api/template-reports', extendedTimeout, templateReportsRoutes);
 app.use('/api/field-monitoring', fieldMonitoringRoutes);
 
 // Multi-verification task routes
 app.use('/api', verificationTasksRoutes);
 
-// Mobile API routes
-app.use('/api/mobile', mobileRoutes);
-
-// NOTE: Uploads are now served through authenticated API endpoints only
-// Removed public static file serving for security: app.use('/uploads', express.static(config.uploadPath));
+// Mobile API routes — extended timeout for slow networks + larger JSON body for mobile sync
+app.use('/api/mobile', extendedTimeout, express.json({ limit: '50mb' }), mobileRoutes);
 
 // 404 handler
 app.use(notFoundHandler);

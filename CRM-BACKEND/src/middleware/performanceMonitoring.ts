@@ -112,11 +112,11 @@ function processPerformanceMetrics(metrics: PerformanceMetrics): void {
     },
   };
 
-  // Log slow requests (>500ms)
-  if (responseTime > 500) {
-    logger.warn('Slow request detected', logData);
-  } else if (responseTime > 1000) {
+  // Log slow requests — check most severe first
+  if (responseTime > 1000) {
     logger.error('Very slow request detected', logData);
+  } else if (responseTime > 500) {
+    logger.warn('Slow request detected', logData);
   } else {
     logger.debug('Request completed', logData);
   }
@@ -413,8 +413,22 @@ export const systemHealthMonitoring = () => {
  * Performance metrics aggregation
  */
 export const getPerformanceMetrics = async (timeRange = '1h') => {
+  // Whitelist valid time ranges to prevent SQL injection via string interpolation
+  const validRanges: Record<string, string> = {
+    '15m': '15 minutes',
+    '30m': '30 minutes',
+    '1h': '1 hour',
+    '6h': '6 hours',
+    '12h': '12 hours',
+    '24h': '24 hours',
+    '7d': '7 days',
+    '30d': '30 days',
+  };
+
+  const interval = validRanges[timeRange] || validRanges['1h'];
+
   const queryText = `
-    SELECT 
+    SELECT
       DATE_TRUNC('minute', timestamp) as minute,
       AVG(response_time) as avg_response_time,
       MAX(response_time) as max_response_time,
@@ -423,7 +437,7 @@ export const getPerformanceMetrics = async (timeRange = '1h') => {
       COUNT(CASE WHEN status_code >= 400 THEN 1 END) as error_count,
       COUNT(CASE WHEN response_time > 1000 THEN 1 END) as slow_request_count
     FROM performance_metrics
-    WHERE timestamp > NOW() - INTERVAL '${timeRange}'
+    WHERE timestamp > NOW() - INTERVAL '${interval}'
     GROUP BY DATE_TRUNC('minute', timestamp)
     ORDER BY minute DESC
     LIMIT 60

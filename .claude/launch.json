@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "crm-backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "CRM-BACKEND",
+      "port": 3000
+    },
+    {
+      "name": "crm-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "CRM-FRONTEND",
+      "port": 5173
+    }
+  ]
+}

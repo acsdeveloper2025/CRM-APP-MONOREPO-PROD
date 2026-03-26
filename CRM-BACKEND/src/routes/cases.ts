@@ -384,72 +384,8 @@ router.put(
   updateCase
 );
 
-// TODO: Implement deleteCase function
-// router.delete('/:id',
-//   [param('id').trim().notEmpty().withMessage('Case ID is required')],
-//   validate,
-//   validateCaseAccess,
-//   deleteCase
-// );
-
-// Case workflow routes - TODO: Implement these functions
-// router.put('/:id/status',
-//   [param('id').trim().notEmpty().withMessage('Case ID is required')],
-//   statusUpdateValidation,
-//   validate,
-//   validateCaseAccess,
-//   updateCaseStatus
-// );
-
-// router.put('/:id/priority',
-//   [param('id').trim().notEmpty().withMessage('Case ID is required')],
-//   priorityUpdateValidation,
-//   validate,
-//   validateCaseAccess,
-//   updateCasePriority
-// );
-
-// DEPRECATED: Case-level assignment routes removed
-// All assignments are now handled at the verification task level
-// Use /api/verification-tasks/:taskId/assign instead
-
-// router.put('/:id/assign',
-//   [param('id').trim().notEmpty().withMessage('Case ID is required')],
-//   assignValidation,
-//   validate,
-//   validateCaseAccess,
-//   assignCase
-// );
-
-// // Bulk assignment routes
-// router.post('/bulk/assign',
-//   bulkAssignValidation,
-//   validate,
-//   bulkAssignCases
-// );
-
-// router.get('/bulk/assign/:batchId/status',
-//   [param('batchId').trim().notEmpty().withMessage('Batch ID is required')],
-//   validate,
-//   getBulkAssignmentStatus
-// );
-
-// // Reassignment route
-// router.post('/:id/reassign',
-//   [param('id').trim().notEmpty().withMessage('Case ID is required')],
-//   reassignValidation,
-//   validate,
-//   validateCaseAccess,
-//   reassignCase
-// );
-
-// // Assignment history route
-// router.get('/:id/assignment-history',
-//   [param('id').trim().notEmpty().withMessage('Case ID is required')],
-//   validate,
-//   validateCaseAccess,
-//   getCaseAssignmentHistory
-// );
+// NOTE: Case-level assignment routes have been moved to verification task level.
+// Use /api/verification-tasks/:taskId/assign instead.
 
 // Analytics routes
 router.get(
@@ -487,53 +423,5 @@ router.get(
   validate,
   VerificationAttachmentController.serveVerificationThumbnail
 );
-
-// TODO: Implement remaining case workflow functions
-// router.post('/:id/notes',
-//   [param('id').trim().notEmpty().withMessage('Case ID is required')],
-//   noteValidation,
-//   validate,
-//   validateCaseAccess,
-//   addCaseNote
-// );
-
-// router.get('/:id/history',
-//   [param('id').trim().notEmpty().withMessage('Case ID is required')],
-//   validate,
-//   validateCaseAccess,
-//   getCaseHistory
-// );
-
-// router.post('/:id/complete',
-//   [param('id').trim().notEmpty().withMessage('Case ID is required')],
-//   completeValidation,
-//   validate,
-//   validateCaseAccess,
-//   completeCase
-// );
-
-// router.post('/:id/approve',
-//   [param('id').trim().notEmpty().withMessage('Case ID is required')],
-//   approveValidation,
-//   validate,
-//   validateCaseAccess,
-//   approveCase
-// );
-
-// router.post('/:id/reject',
-//   [param('id').trim().notEmpty().withMessage('Case ID is required')],
-//   rejectValidation,
-//   validate,
-//   validateCaseAccess,
-//   rejectCase
-// );
-
-// router.post('/:id/rework',
-//   [param('id').trim().notEmpty().withMessage('Case ID is required')],
-//   reworkValidation,
-//   validate,
-//   validateCaseAccess,
-//   requestRework
-// );
 
 export default router;
