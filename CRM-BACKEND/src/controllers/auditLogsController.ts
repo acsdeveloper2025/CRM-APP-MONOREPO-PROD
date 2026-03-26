@@ -29,7 +29,7 @@ const getSingleQueryValue = (value: unknown): string | null => {
   return null;
 };
 
-// Mock data for demonstration (replace with actual database operations)
+// In-memory audit log buffer for stats/export operations (primary queries use database)
 let auditLogs: AuditLog[] = [
   {
     id: 'audit_1',

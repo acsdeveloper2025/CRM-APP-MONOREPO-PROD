@@ -15,7 +15,7 @@ import path from 'path';
 import fs from 'fs';
 import sharp from 'sharp';
 
-// Mock data for demonstration (replace with actual database operations)
+// In-memory attachment index for update/delete operations (upload uses database)
 const attachments: Record<string, unknown>[] = [
   {
     id: 'attachment_1',

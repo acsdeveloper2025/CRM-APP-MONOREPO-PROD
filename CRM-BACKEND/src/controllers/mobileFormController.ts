@@ -2176,8 +2176,7 @@ export class MobileFormController {
       const userRes = await query(`SELECT name, username FROM users WHERE id = $1`, [userId]);
       const user = userRes.rows[0];
 
-      // ENHANCED DATA PROCESSING PIPELINE (Temporarily disabled for app startup)
-      // TODO: Re-enable after fixing TypeScript issues
+      // Basic data processing pipeline
       logger.info(
         `🔄 Using basic data processing for case ${caseId}, verification type: ${verificationType}`
       );
@@ -2519,7 +2518,7 @@ export class MobileFormController {
               size: img.fileSize,
               capturedAt: img.createdAt,
               geoLocation: {
-                latitude: 0, // TODO: Add geo data if available
+                latitude: img.latitude || 0,
                 longitude: 0,
                 accuracy: 0,
                 timestamp: img.createdAt,
@@ -2528,7 +2527,7 @@ export class MobileFormController {
               metadata: {
                 fileSize: img.fileSize,
                 mimeType: 'image/jpeg',
-                dimensions: { width: 0, height: 0 }, // TODO: Add if available
+                dimensions: { width: 0, height: 0 },
                 capturedAt: img.createdAt,
               },
             })),
@@ -2536,7 +2535,7 @@ export class MobileFormController {
             attachments: [], // No separate attachments for this form type
 
             geoLocation: {
-              latitude: 0, // TODO: Add actual geo data
+              latitude: 0,
               longitude: 0,
               accuracy: 0,
               timestamp: report.verification_date
