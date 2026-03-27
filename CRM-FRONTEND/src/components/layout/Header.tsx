@@ -1,5 +1,5 @@
-import React from 'react';
-import { Menu, Moon, Sun, LogOut, User, Settings, Trash2, Bell } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Menu, Moon, Sun, LogOut, User, Settings, Trash2, Bell, Clock } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -73,6 +73,30 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     if (path === '/notifications') {return 'Notifications';}
     return 'Dashboard';
   };
+
+  // Live clock
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatClock = (date: Date) => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const day = days[date.getDay()];
+    const dd = date.getDate();
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    let hours = date.getHours();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    const mins = date.getMinutes().toString().padStart(2, '0');
+    const secs = date.getSeconds().toString().padStart(2, '0');
+    return { day, date: `${dd} ${month} ${year}`, time: `${hours}:${mins}:${secs} ${ampm}` };
+  };
+
+  const clock = formatClock(now);
 
   const unreadCount = notificationsQuery.data?.unreadCount || 0;
   const recentNotifications = notificationsQuery.data?.items || [];
@@ -175,6 +199,17 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-white truncate">
             {getPageTitle()}
           </h1>
+        </div>
+
+        {/* Live Clock */}
+        <div className="hidden md:flex items-center gap-2 text-white/90">
+          <Clock className="h-4 w-4" />
+          <div className="flex items-center gap-1.5 text-sm font-medium tabular-nums">
+            <span>{clock.day},</span>
+            <span>{clock.date}</span>
+            <span className="text-white/60">|</span>
+            <span className="min-w-[5.5rem]">{clock.time}</span>
+          </div>
         </div>
 
         {/* Right side actions */}
