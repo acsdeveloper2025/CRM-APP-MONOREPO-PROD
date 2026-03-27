@@ -5,8 +5,7 @@ import { logger } from '@/config/logger';
  * Financial Configuration Validation Error Codes
  */
 export enum FinancialConfigErrorCode {
-  CONFIG_SERVICE_ZONE_MISSING = 'CONFIG_SERVICE_ZONE_MISSING',
-  CONFIG_RATE_MAPPING_MISSING = 'CONFIG_RATE_MAPPING_MISSING',
+  CONFIG_RATE_TYPE_MISSING = 'CONFIG_RATE_TYPE_MISSING',
   CONFIG_RATE_AMOUNT_MISSING = 'CONFIG_RATE_AMOUNT_MISSING',
 }
 
@@ -17,7 +16,6 @@ export interface FinancialConfigValidationResult {
   isValid: boolean;
   errorCode?: FinancialConfigErrorCode;
   errorMessage?: string;
-  serviceZoneId?: number;
   rateTypeId?: number;
   amount?: number;
 }
@@ -26,9 +24,8 @@ export interface FinancialConfigValidationResult {
  * Financial Configuration Validator
  *
  * Validates the complete financial configuration chain before task creation:
- * 1. Service Zone Rules → serviceZoneId
- * 2. Zone-Rate Mapping → rateTypeId
- * 3. Rates Table → amount
+ * 1. Service Zone Rules → rateTypeId (direct mapping from client+product+pincode+area)
+ * 2. Rates Table → amount
  *
  * NO FALLBACKS. NO DEFAULTS. Strict validation only.
  */
@@ -48,24 +45,7 @@ export const financialConfigurationValidator = {
     preferredRateTypeId?: number | null
   ): Promise<FinancialConfigValidationResult> => {
     try {
-      // Step 1: Validate Service Zone Rule exists
-      const serviceZoneId = await financialConfigurationValidator.validateServiceZoneRule(
-        clientId,
-        productId,
-        pincodeId,
-        areaId
-      );
-
-      if (!serviceZoneId) {
-        return {
-          isValid: false,
-          errorCode: FinancialConfigErrorCode.CONFIG_SERVICE_ZONE_MISSING,
-          errorMessage:
-            'Service configuration missing for selected pincode/area. Service zone rule not defined.',
-        };
-      }
-
-      // Step 2: If the caller explicitly selected a rate type, honor it first.
+      // If the caller explicitly selected a rate type, honor it first.
       if (preferredRateTypeId && Number(preferredRateTypeId) > 0) {
         const preferredAmount = await financialConfigurationValidator.validateRateAmount(
           clientId,
@@ -77,7 +57,6 @@ export const financialConfigurationValidator = {
         if (preferredAmount !== null) {
           return {
             isValid: true,
-            serviceZoneId,
             rateTypeId: Number(preferredRateTypeId),
             amount: preferredAmount,
           };
@@ -91,24 +70,24 @@ export const financialConfigurationValidator = {
         };
       }
 
-      // Step 2: Validate Zone-Rate Mapping exists
-      const rateTypeId = await financialConfigurationValidator.validateZoneRateMapping(
+      // Step 1: Look up rate type directly from service_zone_rules
+      const rateTypeId = await financialConfigurationValidator.validateRateTypeRule(
         clientId,
         productId,
-        verificationTypeId,
-        serviceZoneId
+        pincodeId,
+        areaId
       );
 
       if (!rateTypeId) {
         return {
           isValid: false,
-          errorCode: FinancialConfigErrorCode.CONFIG_RATE_MAPPING_MISSING,
+          errorCode: FinancialConfigErrorCode.CONFIG_RATE_TYPE_MISSING,
           errorMessage:
-            'Service configuration missing for selected pincode/area. Billing rule not defined.',
+            'Service configuration missing for selected pincode/area. Rate type rule not defined.',
         };
       }
 
-      // Step 3: Validate Rate Amount exists
+      // Step 2: Validate Rate Amount exists
       const amount = await financialConfigurationValidator.validateRateAmount(
         clientId,
         productId,
@@ -126,7 +105,6 @@ export const financialConfigurationValidator = {
         if (fallbackRate) {
           return {
             isValid: true,
-            serviceZoneId,
             rateTypeId: fallbackRate.rateTypeId,
             amount: fallbackRate.amount,
           };
@@ -143,7 +121,6 @@ export const financialConfigurationValidator = {
       // All validations passed
       return {
         isValid: true,
-        serviceZoneId,
         rateTypeId,
         amount,
       };
@@ -154,10 +131,10 @@ export const financialConfigurationValidator = {
   },
 
   /**
-   * Step 1: Validate Service Zone Rule
-   * Checks service_zone_rules using strict exact matching only.
+   * Step 1: Validate Rate Type Rule
+   * Queries service_zone_rules for direct rate_type_id mapping.
    */
-  validateServiceZoneRule: async (
+  validateRateTypeRule: async (
     clientId: number,
     productId: number,
     pincodeId: number,
@@ -168,43 +145,17 @@ export const financialConfigurationValidator = {
     }
 
     const exactRule = await query(
-      `SELECT service_zone_id FROM service_zone_rules
+      `SELECT rate_type_id FROM service_zone_rules
        WHERE client_id = $1 AND product_id = $2 AND pincode_id = $3 AND area_id = $4
          AND is_active = true
        LIMIT 1`,
       [clientId, productId, pincodeId, areaId]
     );
-    return exactRule.rows[0]?.service_zone_id ?? null;
+    return exactRule.rows[0]?.rate_type_id ?? null;
   },
 
   /**
-   * Step 2: Validate Zone-Rate Mapping
-   * Checks zone_rate_type_mapping for deterministic rate type
-   */
-  validateZoneRateMapping: async (
-    clientId: number,
-    productId: number,
-    verificationTypeId: number,
-    serviceZoneId: number
-  ): Promise<number | null> => {
-    const result = await query(
-      `SELECT rate_type_id FROM zone_rate_type_mapping
-       WHERE client_id = $1 AND product_id = $2 
-         AND verification_type_id = $3 AND service_zone_id = $4
-         AND is_active = true
-       LIMIT 1`,
-      [clientId, productId, verificationTypeId, serviceZoneId]
-    );
-
-    if (result.rows[0]) {
-      return result.rows[0].rate_type_id;
-    }
-
-    return null;
-  },
-
-  /**
-   * Step 3: Validate Rate Amount
+   * Step 2: Validate Rate Amount
    * Checks rates table for active billing amount
    */
   validateRateAmount: async (
@@ -215,7 +166,7 @@ export const financialConfigurationValidator = {
   ): Promise<number | null> => {
     const result = await query(
       `SELECT amount FROM rates
-       WHERE "clientId" = $1 AND "productId" = $2 
+       WHERE "clientId" = $1 AND "productId" = $2
          AND "verificationTypeId" = $3 AND "rateTypeId" = $4
          AND "isActive" = true
        LIMIT 1`,

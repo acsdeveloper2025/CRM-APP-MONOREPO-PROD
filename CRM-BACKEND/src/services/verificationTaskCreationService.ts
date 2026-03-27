@@ -24,7 +24,6 @@ export interface VerificationTaskCreationResult {
 export interface ValidatedTaskTerritoryContext {
   pincodeDbId: number;
   areaId: number;
-  serviceZoneId: number;
   rateTypeId: number;
   amount: number;
 }
@@ -135,7 +134,6 @@ export class VerificationTaskCreationService {
     return {
       pincodeDbId,
       areaId: normalizedAreaId,
-      serviceZoneId: Number(validationResult.serviceZoneId),
       rateTypeId: Number(validationResult.rateTypeId),
       amount: Number(validationResult.amount),
     };
@@ -187,7 +185,6 @@ export class VerificationTaskCreationService {
       let rateTypeId = initialRateTypeId as number | undefined;
 
       // STRICT VALIDATION: Resolve territory and validate financial configuration
-      let serviceZoneId: number | null = null;
       let actualAmount: number | null = null;
 
       // STRICT VALIDATION: Validate complete financial configuration chain
@@ -213,7 +210,6 @@ export class VerificationTaskCreationService {
         });
 
       // Configuration is valid - use validated values
-      serviceZoneId = territoryValidation.serviceZoneId;
       rateTypeId = territoryValidation.rateTypeId;
       actualAmount = territoryValidation.amount;
 
@@ -246,12 +242,12 @@ export class VerificationTaskCreationService {
               document_type, document_number, document_details,
               estimated_completion_date, status, created_by,
               first_assigned_at, current_assigned_at,
-              service_zone_id, area_id
+              area_id
             ) VALUES (
               $1, $2, $3, $4, $5, $6, $7, NOW(),
               $8, $9, $10, $11, $12, $13, $14, $15,
               $16, $17, NOW(), NOW(),
-              $18, $19
+              $18
             ) RETURNING *
           `;
         insertParams = [
@@ -272,7 +268,6 @@ export class VerificationTaskCreationService {
           estimatedCompletionDate as string | undefined,
           taskStatus,
           userId,
-          serviceZoneId,
           territoryValidation.areaId,
         ];
       } else {
@@ -284,12 +279,12 @@ export class VerificationTaskCreationService {
               document_type, document_number, document_details,
               estimated_completion_date, status, created_by,
               first_assigned_at, current_assigned_at,
-              service_zone_id, area_id
+              area_id
             ) VALUES (
               $1, $2, $3, $4, $5, NULL, NULL, NULL,
               $6, $7, $8, $9, $10, $11, $12, $13,
               $14, $15, NOW(), NOW(),
-              $16, $17
+              $16
             ) RETURNING *
           `;
         insertParams = [
@@ -308,7 +303,6 @@ export class VerificationTaskCreationService {
           estimatedCompletionDate as string | undefined,
           taskStatus,
           userId,
-          serviceZoneId,
           territoryValidation.areaId,
         ];
       }

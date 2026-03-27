@@ -2136,8 +2136,9 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
       });
     }
 
-    const serviceZoneRuleResult = await pool.query(
-      `SELECT service_zone_id
+    // Direct rate type lookup from service_zone_rules (no service zone indirection)
+    const rateTypeRuleResult = await pool.query(
+      `SELECT rate_type_id
        FROM service_zone_rules
        WHERE client_id = $1
          AND product_id = $2
@@ -2148,26 +2149,8 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
       [clientId, productId, resolvedPincodeId, areaId]
     );
 
-    const serviceZoneId = serviceZoneRuleResult.rows[0]?.service_zone_id
-      ? Number(serviceZoneRuleResult.rows[0].service_zone_id)
-      : null;
-
-    const rateMappingResult = serviceZoneId
-      ? await pool.query(
-          `SELECT rate_type_id
-           FROM zone_rate_type_mapping
-           WHERE client_id = $1
-             AND product_id = $2
-             AND verification_type_id = $3
-             AND service_zone_id = $4
-             AND is_active = true
-           LIMIT 1`,
-          [clientId, productId, verificationTypeId, serviceZoneId]
-        )
-      : { rows: [] };
-
-    const mappedRateTypeId = rateMappingResult.rows[0]?.rate_type_id
-      ? Number(rateMappingResult.rows[0].rate_type_id)
+    const mappedRateTypeId = rateTypeRuleResult.rows[0]?.rate_type_id
+      ? Number(rateTypeRuleResult.rows[0].rate_type_id)
       : null;
 
     const validationResult = await financialConfigurationValidator.validateTaskConfiguration(
@@ -2189,8 +2172,7 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
         : 'Configuration validation failed',
       data: {
         isValid: validationResult.isValid,
-        serviceZoneRuleFound: Boolean(serviceZoneId),
-        rateMappingFound: Boolean(mappedRateTypeId),
+        rateTypeRuleFound: Boolean(mappedRateTypeId),
         rateAmountFound:
           validationResult.isValid ||
           validationResult.errorCode === FinancialConfigErrorCode.CONFIG_RATE_AMOUNT_MISSING
@@ -2202,7 +2184,6 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
           pincodeId: resolvedPincodeId,
           pincode: resolvedPincodeCode,
           areaId,
-          serviceZoneId,
           rateTypeId: effectiveRateTypeId,
           amount: validationResult.amount ?? null,
         },

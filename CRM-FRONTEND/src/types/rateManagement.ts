@@ -219,11 +219,10 @@ export interface AvailableRateTypeForCase extends RateType {
   hasRate: boolean;
 }
 
-export interface ServiceZone {
+export interface RateType {
   id: number;
   name: string;
   description?: string;
-  slaHours?: number;
   isActive: boolean;
 }
 
@@ -233,7 +232,7 @@ export interface ServiceZoneRule {
   productId: number;
   pincodeId: number;
   areaId: number;
-  serviceZoneId: number;
+  rateTypeId: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -241,7 +240,7 @@ export interface ServiceZoneRule {
   productName: string;
   pincodeCode: string;
   areaName: string;
-  serviceZoneName: string;
+  rateTypeName: string;
 }
 
 export interface CreateServiceZoneRuleData {
@@ -249,7 +248,7 @@ export interface CreateServiceZoneRuleData {
   productId: number;
   pincodeId: number;
   areaId: number;
-  serviceZoneId: number;
+  rateTypeId: number;
 }
 
 export interface UpdateServiceZoneRuleData extends CreateServiceZoneRuleData {
@@ -258,8 +257,7 @@ export interface UpdateServiceZoneRuleData extends CreateServiceZoneRuleData {
 
 export interface CaseConfigValidationResult {
   isValid: boolean;
-  serviceZoneRuleFound: boolean;
-  rateMappingFound: boolean;
+  rateTypeRuleFound: boolean;
   rateAmountFound: boolean;
   errorCode?: string;
   errorMessage?: string;
@@ -267,7 +265,6 @@ export interface CaseConfigValidationResult {
     pincodeId: number;
     pincode: string;
     areaId: number;
-    serviceZoneId: number | null;
     rateTypeId: number | null;
     amount: number | null;
   };
