@@ -62,8 +62,10 @@ export const resolveDataScope = async (req: RequestLike): Promise<ResolvedDataSc
       getAggregatedProductIds(scopedUserIds),
     ]);
 
-    const cIds = aggregatedClientIds.length > 0 ? aggregatedClientIds : req.user.assignedClientIds;
-    const pIds = aggregatedProductIds.length > 0 ? aggregatedProductIds : req.user.assignedProductIds;
+    const fallbackC = req.user.assignedClientIds;
+    const fallbackP = req.user.assignedProductIds;
+    const cIds = aggregatedClientIds.length > 0 ? aggregatedClientIds : fallbackC;
+    const pIds = aggregatedProductIds.length > 0 ? aggregatedProductIds : fallbackP;
 
     return {
       restricted: true,
