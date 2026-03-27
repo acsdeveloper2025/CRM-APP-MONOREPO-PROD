@@ -12,6 +12,7 @@ import {
   userHasAnyPermission,
   userHasPermission,
 } from '@/security/rbacAccess';
+import { getScopedOperationalUserIds } from '@/security/userScope';
 
 const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
@@ -1435,16 +1436,31 @@ export const getUserActivities = async (req: AuthenticatedRequest, res: Response
       hasSystemScopeBypass(req.user) ||
       userHasPermission(req.user, 'permission.manage') ||
       userHasPermission(req.user, 'role.manage');
-    const targetUserId = canViewAllActivities ? (userId as string) : req.user?.id;
 
     // Build query conditions
     const conditions: string[] = [];
-    const params: (string | number)[] = [];
+    const params: (string | number | string[])[] = [];
     let paramIndex = 1;
 
-    if (targetUserId) {
-      conditions.push(`al."userId" = $${paramIndex++}`);
-      params.push(targetUserId);
+    if (canViewAllActivities) {
+      // Super admin / permission managers: filter by optional userId or see all
+      if (userId && typeof userId === 'string') {
+        conditions.push(`al."userId" = $${paramIndex++}`);
+        params.push(userId);
+      }
+    } else {
+      // Scoped users: see own + subordinates' activities
+      const hierarchyUserIds = req.user?.id
+        ? await getScopedOperationalUserIds(req.user.id)
+        : undefined;
+
+      if (hierarchyUserIds && hierarchyUserIds.length > 0) {
+        conditions.push(`al."userId" = ANY($${paramIndex++}::uuid[])`);
+        params.push(hierarchyUserIds);
+      } else if (req.user?.id) {
+        conditions.push(`al."userId" = $${paramIndex++}`);
+        params.push(req.user.id);
+      }
     }
 
     if (search && typeof search === 'string') {

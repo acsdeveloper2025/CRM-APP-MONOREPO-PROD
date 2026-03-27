@@ -7,6 +7,7 @@ import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
+import { resolveDataScope } from '@/security/dataScope';
 import { CaseAnalyticsRow } from '../types/reports';
 import ExcelJS from 'exceljs';
 
@@ -67,24 +68,17 @@ const getBackendUserReportScope = async (req: AuthenticatedRequest) => {
     };
   }
 
-  const scopedUserIds = await getScopedOperationalUserIds(req.user.id);
-  if (scopedUserIds) {
-    return {
-      clientIds: undefined as number[] | undefined,
-      productIds: undefined as number[] | undefined,
-      scopedUserIds,
-    };
-  }
+  // Use resolveDataScope for hierarchy-aggregated client/product filtering
+  const scope = await resolveDataScope(req);
+  const scopedUserIds = scope.scopedUserIds;
 
-  const [clientIds, productIds] = await Promise.all([
-    getAssignedClientIds(req.user.id),
-    getAssignedProductIds(req.user.id),
-  ]);
+  const clientIds = scope.assignedClientIds;
+  const productIds = scope.assignedProductIds;
 
   return {
     clientIds: clientIds && clientIds.length > 0 ? clientIds : [-1],
     productIds: productIds && productIds.length > 0 ? productIds : [-1],
-    scopedUserIds: undefined as string[] | undefined,
+    scopedUserIds,
   };
 };
 
