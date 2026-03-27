@@ -62,17 +62,14 @@ export const resolveDataScope = async (req: RequestLike): Promise<ResolvedDataSc
       getAggregatedProductIds(scopedUserIds),
     ]);
 
+    const cIds = aggregatedClientIds.length > 0 ? aggregatedClientIds : req.user.assignedClientIds;
+    const pIds = aggregatedProductIds.length > 0 ? aggregatedProductIds : req.user.assignedProductIds;
+
     return {
       restricted: true,
       scopedUserIds,
-      assignedClientIds:
-        aggregatedClientIds.length > 0
-          ? aggregatedClientIds
-          : req.user.assignedClientIds,
-      assignedProductIds:
-        aggregatedProductIds.length > 0
-          ? aggregatedProductIds
-          : req.user.assignedProductIds,
+      assignedClientIds: cIds,
+      assignedProductIds: pIds,
     };
   }
 

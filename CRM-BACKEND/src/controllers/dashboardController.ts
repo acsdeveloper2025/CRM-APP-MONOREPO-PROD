@@ -24,14 +24,9 @@ const getBackendUserScopeFilters = async (req: AuthenticatedRequest) => {
     };
   }
 
-  const safeClientIds =
-    scope.assignedClientIds && scope.assignedClientIds.length > 0
-      ? scope.assignedClientIds
-      : [-1];
-  const safeProductIds =
-    scope.assignedProductIds && scope.assignedProductIds.length > 0
-      ? scope.assignedProductIds
-      : [-1];
+  const { assignedClientIds: ac, assignedProductIds: ap } = scope;
+  const safeClientIds = ac && ac.length > 0 ? ac : [-1];
+  const safeProductIds = ap && ap.length > 0 ? ap : [-1];
 
   return {
     clientIds: safeClientIds,
