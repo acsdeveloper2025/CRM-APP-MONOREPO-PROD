@@ -7,6 +7,7 @@ import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
+import { resolveDataScope } from '@/security/dataScope';
 
 const getBackendUserScopeFilters = async (req: AuthenticatedRequest) => {
   if (!req.user?.id || !isScopedOperationsUser(req.user)) {
@@ -16,15 +17,16 @@ const getBackendUserScopeFilters = async (req: AuthenticatedRequest) => {
     };
   }
 
-  const [assignedClientIds, assignedProductIds] = await Promise.all([
-    getAssignedClientIds(req.user.id),
-    getAssignedProductIds(req.user.id),
-  ]);
+  // Use resolveDataScope which aggregates client/product IDs across hierarchy
+  const scope = await resolveDataScope(req);
+  if (!scope.restricted) {
+    return { clientIds: undefined as number[] | undefined, productIds: undefined as number[] | undefined };
+  }
 
   const safeClientIds =
-    assignedClientIds && assignedClientIds.length > 0 ? assignedClientIds : [-1];
+    scope.assignedClientIds && scope.assignedClientIds.length > 0 ? scope.assignedClientIds : [-1];
   const safeProductIds =
-    assignedProductIds && assignedProductIds.length > 0 ? assignedProductIds : [-1];
+    scope.assignedProductIds && scope.assignedProductIds.length > 0 ? scope.assignedProductIds : [-1];
 
   return {
     clientIds: safeClientIds,

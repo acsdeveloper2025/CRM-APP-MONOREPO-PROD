@@ -106,7 +106,7 @@ export const getUserScope = async (userId: string, db?: Queryable): Promise<User
   const managedTreeIds = subordinates.managedTreeIds.filter(id => id !== userId);
   if (managedTreeIds.length > 0 && !user.teamLeaderId) {
     return {
-      userIds: managedTreeIds,
+      userIds: [userId, ...managedTreeIds],
       scopeRole: 'MANAGER',
     };
   }
@@ -114,12 +114,13 @@ export const getUserScope = async (userId: string, db?: Queryable): Promise<User
   const teamMemberIds = subordinates.teamMemberIds.filter(id => id !== userId);
   if (teamMemberIds.length > 0 && user.managerId) {
     return {
-      userIds: teamMemberIds,
+      userIds: [userId, ...teamMemberIds],
       scopeRole: 'TEAM_LEADER',
     };
   }
 
-  return { userIds: [] };
+  // User has supervisory permissions but no subordinates yet — still include self
+  return { userIds: [userId] };
 };
 
 export const getScopedOperationalUserIds = async (
@@ -127,5 +128,6 @@ export const getScopedOperationalUserIds = async (
   db?: Queryable
 ): Promise<string[] | undefined> => {
   const scope = await getUserScope(userId, db);
-  return scope.scopeRole ? scope.userIds : undefined;
+  // Return user IDs if any scope was resolved (including self-only for supervisory users)
+  return scope.userIds.length > 0 ? scope.userIds : undefined;
 };

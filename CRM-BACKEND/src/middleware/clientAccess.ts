@@ -5,6 +5,7 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from './auth';
 import { getAssignedProductIds } from './productAccess';
 import { hasSystemScopeBypass, isScopedOperationsUser } from '@/security/rbacAccess';
+import { resolveDataScope } from '@/security/dataScope';
 
 interface RequestWithClientFilter extends AuthenticatedRequest {
   clientFilter?: number[];
@@ -276,19 +277,22 @@ export const addClientFiltering = async (
       return next();
     }
 
-    // Get assigned client IDs for the BACKEND_USER user
-    const assignedClientIds = await getAssignedClientIds(userId);
-    logger.info('Retrieved assigned client IDs', { userId, assignedClientIds });
+    // Use resolveDataScope to get hierarchy-aggregated client IDs
+    // For Manager/TL: returns union of own + subordinates' assigned clients
+    // For BACKEND_USER: returns own assigned clients only
+    const scope = await resolveDataScope(req);
+    const scopedClientIds = scope.assignedClientIds ?? [];
+    logger.info('Retrieved scoped client IDs', { userId, scopedClientIds });
 
-    if (assignedClientIds.length === 0) {
+    if (scopedClientIds.length === 0) {
       // User has no client assignments, they should see no data
       (req as RequestWithClientFilter).clientFilter = [];
       logger.info('Set clientFilter to empty array - no assignments');
     } else {
       // Add client filtering to the request
-      (req as RequestWithClientFilter).clientFilter = assignedClientIds;
+      (req as RequestWithClientFilter).clientFilter = scopedClientIds;
       logger.info('Set clientFilter', {
-        assignedClientIds,
+        scopedClientIds,
         clientFilter: (req as RequestWithClientFilter).clientFilter,
       });
     }
