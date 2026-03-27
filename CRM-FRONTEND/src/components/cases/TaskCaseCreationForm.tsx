@@ -488,7 +488,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
           {hasBlockingConfigurationState && (
             <Alert variant="destructive">
               <AlertDescription>
-                Resolve service zone or billing configuration errors in the task cards before creating the case.
+                Resolve rate type or billing configuration errors in the task cards before creating the case.
               </AlertDescription>
             </Alert>
           )}
@@ -795,7 +795,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
           >
             <AlertDescription>
               {validatingConfiguration
-                ? 'Checking service zone, billing rule, and amount configuration...'
+                ? 'Checking rate type, billing rule, and amount configuration...'
                 : configValidation?.isValid === false
                   ? configValidation.errorMessage
                   : configValidation?.resolved.amount !== null &&

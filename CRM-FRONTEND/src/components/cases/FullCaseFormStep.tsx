@@ -715,7 +715,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                     >
                       <AlertDescription>
                         {validatingConfiguration
-                          ? 'Checking service zone, billing rule, and amount configuration...'
+                          ? 'Checking rate type, billing rule, and amount configuration...'
                           : hasConfigurationError
                             ? configurationValidation?.errorMessage
                             : configurationValidation?.resolved.amount !== null &&
