@@ -3,8 +3,8 @@ module.exports = {
     {
       name: 'crm-backend',
       cwd: './CRM-BACKEND',
-      script: 'npm',
-      args: 'start',
+      script: 'dist/index.js',
+      node_args: '-r module-alias/register',
       instances: 4,
       exec_mode: 'cluster',
       autorestart: true,
