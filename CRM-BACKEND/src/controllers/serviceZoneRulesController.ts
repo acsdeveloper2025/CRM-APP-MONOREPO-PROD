@@ -207,26 +207,21 @@ export const createServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
       [payload.clientId, payload.productId, payload.pincodeId, payload.areaId]
     );
     if (duplicateRes.rows[0]) {
+      const dupMsg = 'A rule already exists for this client/product/pincode/area combination';
       return res.status(400).json({
         success: false,
-        message:
-          'A rule already exists for this exact client/product/pincode/area combination',
+        message: dupMsg,
         error: { code: 'DUPLICATE_RULE' },
       });
     }
 
+    const { clientId, productId, pincodeId, areaId, rateTypeId } = payload;
     const insertRes = await query(
       `INSERT INTO service_zone_rules
         (client_id, product_id, pincode_id, area_id, rate_type_id, is_active, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING id`,
-      [
-        payload.clientId,
-        payload.productId,
-        payload.pincodeId,
-        payload.areaId,
-        payload.rateTypeId,
-      ]
+      [clientId, productId, pincodeId, areaId, rateTypeId]
     );
 
     res.status(201).json({
@@ -275,10 +270,10 @@ export const updateServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
       [payload.clientId, payload.productId, payload.pincodeId, payload.areaId, id]
     );
     if (duplicateRes.rows[0]) {
+      const dupMsg = 'A rule already exists for this client/product/pincode/area combination';
       return res.status(400).json({
         success: false,
-        message:
-          'A rule already exists for this exact client/product/pincode/area combination',
+        message: dupMsg,
         error: { code: 'DUPLICATE_RULE' },
       });
     }
