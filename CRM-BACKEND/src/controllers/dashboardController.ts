@@ -3,8 +3,6 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { DashboardKPIService } from '@/services/dashboardKPIService';
 import { pool } from '@/config/database';
-import { getAssignedClientIds } from '@/middleware/clientAccess';
-import { getAssignedProductIds } from '@/middleware/productAccess';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
 import { resolveDataScope } from '@/security/dataScope';
@@ -20,13 +18,20 @@ const getBackendUserScopeFilters = async (req: AuthenticatedRequest) => {
   // Use resolveDataScope which aggregates client/product IDs across hierarchy
   const scope = await resolveDataScope(req);
   if (!scope.restricted) {
-    return { clientIds: undefined as number[] | undefined, productIds: undefined as number[] | undefined };
+    return {
+      clientIds: undefined as number[] | undefined,
+      productIds: undefined as number[] | undefined,
+    };
   }
 
   const safeClientIds =
-    scope.assignedClientIds && scope.assignedClientIds.length > 0 ? scope.assignedClientIds : [-1];
+    scope.assignedClientIds && scope.assignedClientIds.length > 0
+      ? scope.assignedClientIds
+      : [-1];
   const safeProductIds =
-    scope.assignedProductIds && scope.assignedProductIds.length > 0 ? scope.assignedProductIds : [-1];
+    scope.assignedProductIds && scope.assignedProductIds.length > 0
+      ? scope.assignedProductIds
+      : [-1];
 
   return {
     clientIds: safeClientIds,
