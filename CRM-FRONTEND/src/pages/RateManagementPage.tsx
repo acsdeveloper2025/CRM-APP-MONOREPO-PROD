@@ -127,7 +127,7 @@ export function RateManagementPage() {
         <CardHeader>
           <CardTitle>Rate Management System</CardTitle>
           <CardDescription>
-            Configure service zones, assign rate types, set rates, and view comprehensive reports
+            Configure rate type rules, assign rate types, set rates, and view comprehensive reports
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -137,7 +137,7 @@ export function RateManagementPage() {
                 1. Create Rate Types
               </TabsTrigger>
               <TabsTrigger value="service-zone-rules" className="text-sm">
-                2. Service Zone Rules
+                2. Rate Type Rules
               </TabsTrigger>
               <TabsTrigger value="rate-type-assignment" className="text-sm">
                 3. Rate Type Assignment
@@ -166,9 +166,9 @@ export function RateManagementPage() {
 
               <TabsContent value="service-zone-rules" className="space-y-4">
                 <div className="border rounded-lg p-4">
-                  <h3 className="text-lg font-semibold mb-2">Service Zone Rules</h3>
+                  <h3 className="text-lg font-semibold mb-2">Rate Type Rules</h3>
                   <p className="text-sm text-gray-600 mb-4">
-                    Map client, product, pincode, and area combinations to a service zone before pricing is applied
+                    Map client, product, pincode, and area combinations to a rate type before pricing is applied
                   </p>
                   <ServiceZoneRulesTab />
                 </div>
@@ -243,7 +243,7 @@ export function RateManagementPage() {
                 2
               </div>
               <div>
-                <h4 className="font-semibold">Map Service Zones</h4>
+                <h4 className="font-semibold">Map Rate Types</h4>
                 <p className="text-sm text-gray-600">
                   Link territory combinations to the pricing zone they belong to
                 </p>

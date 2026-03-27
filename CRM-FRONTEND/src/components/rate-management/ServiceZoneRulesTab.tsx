@@ -90,8 +90,8 @@ export function ServiceZoneRulesTab() {
       }),
     invalidateKeys: [['service-zone-rules']],
     successMessage: 'Service zone rule created successfully',
-    errorContext: 'Service Zone Rules',
-    errorFallbackMessage: 'Failed to create service zone rule',
+    errorContext: 'Rate Type Rules',
+    errorFallbackMessage: 'Failed to create rate type rule',
     onSuccess: () => {
       setFormState(EMPTY_FORM);
       setEditingRule(null);
@@ -101,7 +101,7 @@ export function ServiceZoneRulesTab() {
   const updateRuleMutation = useMutationWithInvalidation({
     mutationFn: () => {
       if (!editingRule) {
-        throw new Error('No service zone rule selected for update');
+        throw new Error('No rate type rule selected for update');
       }
 
       return serviceZoneRulesService.updateRule(editingRule.id, {
@@ -114,8 +114,8 @@ export function ServiceZoneRulesTab() {
     },
     invalidateKeys: [['service-zone-rules']],
     successMessage: 'Service zone rule updated successfully',
-    errorContext: 'Service Zone Rules',
-    errorFallbackMessage: 'Failed to update service zone rule',
+    errorContext: 'Rate Type Rules',
+    errorFallbackMessage: 'Failed to update rate type rule',
     onSuccess: () => {
       setFormState(EMPTY_FORM);
       setEditingRule(null);
@@ -129,8 +129,8 @@ export function ServiceZoneRulesTab() {
         : serviceZoneRulesService.activateRule(rule.id),
     invalidateKeys: [['service-zone-rules']],
     successMessage: 'Service zone rule status updated',
-    errorContext: 'Service Zone Rules',
-    errorFallbackMessage: 'Failed to update service zone rule status',
+    errorContext: 'Rate Type Rules',
+    errorFallbackMessage: 'Failed to update rate type rule status',
   });
 
   const clients = useMemo(() => clientsResponse?.data || [], [clientsResponse?.data]);
@@ -220,7 +220,7 @@ export function ServiceZoneRulesTab() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{editingRule ? 'Edit Service Zone Rule' : 'Create Service Zone Rule'}</CardTitle>
+          <CardTitle>{editingRule ? 'Edit Rate Type Rule' : 'Create Rate Type Rule'}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -330,7 +330,7 @@ export function ServiceZoneRulesTab() {
               <AlertDescription>
                 {createRuleMutation.error?.message ||
                   updateRuleMutation.error?.message ||
-                  'Unable to save service zone rule'}
+                  'Unable to save rate type rule'}
               </AlertDescription>
             </Alert>
           )}
@@ -387,7 +387,7 @@ export function ServiceZoneRulesTab() {
               <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
             </div>
           ) : filteredRules.length === 0 ? (
-            <p className="py-8 text-center text-gray-600">No service zone rules found</p>
+            <p className="py-8 text-center text-gray-600">No rate type rules found</p>
           ) : (
             <Table>
               <TableHeader>
