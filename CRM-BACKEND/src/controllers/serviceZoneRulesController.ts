@@ -9,13 +9,13 @@ type ServiceZoneRulePayload = {
   productId: number;
   pincodeId: number;
   areaId: number;
-  serviceZoneId: number;
+  rateTypeId: number;
 };
 
 const validateReferences = async (payload: ServiceZoneRulePayload) => {
-  const { clientId, productId, pincodeId, areaId, serviceZoneId } = payload;
+  const { clientId, productId, pincodeId, areaId, rateTypeId } = payload;
 
-  const [clientRes, productRes, pincodeRes, areaRes, mappingRes, zoneRes] = await Promise.all([
+  const [clientRes, productRes, pincodeRes, areaRes, mappingRes, rateTypeRes] = await Promise.all([
     query('SELECT id FROM clients WHERE id = $1 LIMIT 1', [clientId]),
     query('SELECT id FROM products WHERE id = $1 LIMIT 1', [productId]),
     query('SELECT id FROM pincodes WHERE id = $1 LIMIT 1', [pincodeId]),
@@ -24,9 +24,7 @@ const validateReferences = async (payload: ServiceZoneRulePayload) => {
       pincodeId,
       areaId,
     ]),
-    query('SELECT id FROM service_zones WHERE id = $1 AND is_active = true LIMIT 1', [
-      serviceZoneId,
-    ]),
+    query('SELECT id FROM "rateTypes" WHERE id = $1 AND "isActive" = true LIMIT 1', [rateTypeId]),
   ]);
 
   if (!clientRes.rows[0]) {
@@ -48,11 +46,11 @@ const validateReferences = async (payload: ServiceZoneRulePayload) => {
       message: 'Selected area is not mapped to the selected pincode',
     };
   }
-  if (!zoneRes.rows[0]) {
+  if (!rateTypeRes.rows[0]) {
     return {
       ok: false,
       status: 400,
-      message: 'Selected service zone does not exist or is inactive',
+      message: 'Selected rate type does not exist or is inactive',
     };
   }
 
@@ -68,7 +66,7 @@ export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Respo
       productId,
       pincodeId,
       areaId,
-      serviceZoneId,
+      rateTypeId,
       isActive,
       search,
     } = req.query;
@@ -92,9 +90,9 @@ export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Respo
       values.push(Number(areaId));
       whereSql.push(`szr.area_id = $${values.length}`);
     }
-    if (serviceZoneId) {
-      values.push(Number(serviceZoneId));
-      whereSql.push(`szr.service_zone_id = $${values.length}`);
+    if (rateTypeId) {
+      values.push(Number(rateTypeId));
+      whereSql.push(`szr.rate_type_id = $${values.length}`);
     }
     if (typeof isActive !== 'undefined') {
       values.push(typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive));
@@ -107,7 +105,7 @@ export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Respo
       values.push(`%${search}%`);
       values.push(`%${search}%`);
       whereSql.push(
-        `(c.name ILIKE $${values.length - 4} OR p.name ILIKE $${values.length - 3} OR pin.code ILIKE $${values.length - 2} OR a.name ILIKE $${values.length - 1} OR sz.name ILIKE $${values.length})`
+        `(c.name ILIKE $${values.length - 4} OR p.name ILIKE $${values.length - 3} OR pin.code ILIKE $${values.length - 2} OR a.name ILIKE $${values.length - 1} OR rt.name ILIKE $${values.length})`
       );
     }
 
@@ -118,7 +116,7 @@ export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Respo
       JOIN products p ON p.id = szr.product_id
       JOIN pincodes pin ON pin.id = szr.pincode_id
       JOIN areas a ON a.id = szr.area_id
-      JOIN service_zones sz ON sz.id = szr.service_zone_id
+      LEFT JOIN "rateTypes" rt ON rt.id = szr.rate_type_id
     `;
     const countRes = await query<{ count: string }>(
       `SELECT COUNT(*)::text as count ${baseFrom} ${whereClause}`,
@@ -134,7 +132,7 @@ export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Respo
         szr.product_id as "productId",
         szr.pincode_id as "pincodeId",
         szr.area_id as "areaId",
-        szr.service_zone_id as "serviceZoneId",
+        szr.rate_type_id as "rateTypeId",
         szr.is_active as "isActive",
         szr.created_at as "createdAt",
         szr.updated_at as "updatedAt",
@@ -142,8 +140,7 @@ export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Respo
         p.name as "productName",
         pin.code as "pincodeCode",
         a.name as "areaName",
-        sz.name as "serviceZoneName",
-        sz.sla_hours as "slaHours"
+        rt.name as "rateTypeName"
        ${baseFrom}
        ${whereClause}
        ORDER BY c.name, p.name, pin.code, a.name
@@ -173,18 +170,19 @@ export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Respo
 
 export const listServiceZones = async (_req: AuthenticatedRequest, res: Response) => {
   try {
-    const zoneRes = await query(
-      'SELECT id, name, sla_hours as "slaHours", is_active as "isActive" FROM service_zones ORDER BY name'
+    // Now returns rate types instead of service zones
+    const rateTypesRes = await query(
+      'SELECT id, name, description, "isActive" as "isActive" FROM "rateTypes" ORDER BY name'
     );
     res.json({
       success: true,
-      data: zoneRes.rows,
+      data: rateTypesRes.rows,
     });
   } catch (error) {
-    logger.error('Error listing service zones:', error);
+    logger.error('Error listing rate types:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve service zones',
+      message: 'Failed to retrieve rate types',
       error: { code: 'INTERNAL_ERROR' },
     });
   }
@@ -212,14 +210,14 @@ export const createServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
       return res.status(400).json({
         success: false,
         message:
-          'A service zone rule already exists for this exact client/product/pincode/area combination',
+          'A rule already exists for this exact client/product/pincode/area combination',
         error: { code: 'DUPLICATE_RULE' },
       });
     }
 
     const insertRes = await query(
       `INSERT INTO service_zone_rules
-        (client_id, product_id, pincode_id, area_id, service_zone_id, is_active, created_at, updated_at)
+        (client_id, product_id, pincode_id, area_id, rate_type_id, is_active, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING id`,
       [
@@ -227,20 +225,20 @@ export const createServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
         payload.productId,
         payload.pincodeId,
         payload.areaId,
-        payload.serviceZoneId,
+        payload.rateTypeId,
       ]
     );
 
     res.status(201).json({
       success: true,
       data: { id: insertRes.rows[0].id },
-      message: 'Service zone rule created successfully',
+      message: 'Rate type rule created successfully',
     });
   } catch (error) {
-    logger.error('Error creating service zone rule:', error);
+    logger.error('Error creating rate type rule:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to create service zone rule',
+      message: 'Failed to create rate type rule',
       error: { code: 'INTERNAL_ERROR' },
     });
   }
@@ -256,7 +254,7 @@ export const updateServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
     if (!existingRes.rows[0]) {
       return res.status(404).json({
         success: false,
-        message: 'Service zone rule not found',
+        message: 'Rate type rule not found',
         error: { code: 'NOT_FOUND' },
       });
     }
@@ -280,7 +278,7 @@ export const updateServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
       return res.status(400).json({
         success: false,
         message:
-          'A service zone rule already exists for this exact client/product/pincode/area combination',
+          'A rule already exists for this exact client/product/pincode/area combination',
         error: { code: 'DUPLICATE_RULE' },
       });
     }
@@ -291,7 +289,7 @@ export const updateServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
            product_id = $2,
            pincode_id = $3,
            area_id = $4,
-           service_zone_id = $5,
+           rate_type_id = $5,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $6`,
       [
@@ -299,20 +297,20 @@ export const updateServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
         payload.productId,
         payload.pincodeId,
         payload.areaId,
-        payload.serviceZoneId,
+        payload.rateTypeId,
         id,
       ]
     );
 
     res.json({
       success: true,
-      message: 'Service zone rule updated successfully',
+      message: 'Rate type rule updated successfully',
     });
   } catch (error) {
-    logger.error('Error updating service zone rule:', error);
+    logger.error('Error updating rate type rule:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to update service zone rule',
+      message: 'Failed to update rate type rule',
       error: { code: 'INTERNAL_ERROR' },
     });
   }
@@ -331,20 +329,20 @@ const setRuleStatus = async (req: AuthenticatedRequest, res: Response, isActive:
     if (!result.rows[0]) {
       return res.status(404).json({
         success: false,
-        message: 'Service zone rule not found',
+        message: 'Rate type rule not found',
         error: { code: 'NOT_FOUND' },
       });
     }
 
     res.json({
       success: true,
-      message: `Service zone rule ${isActive ? 'activated' : 'deactivated'} successfully`,
+      message: `Rate type rule ${isActive ? 'activated' : 'deactivated'} successfully`,
     });
   } catch (error) {
-    logger.error('Error updating service zone rule status:', error);
+    logger.error('Error updating rate type rule status:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to update service zone rule status',
+      message: 'Failed to update rate type rule status',
       error: { code: 'INTERNAL_ERROR' },
     });
   }

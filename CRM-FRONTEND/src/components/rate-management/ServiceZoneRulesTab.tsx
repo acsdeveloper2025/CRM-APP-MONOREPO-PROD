@@ -35,7 +35,7 @@ interface RuleFormState {
   productId: string;
   pincodeId: string;
   areaId: string;
-  serviceZoneId: string;
+  rateTypeId: string;
 }
 
 const EMPTY_FORM: RuleFormState = {
@@ -43,7 +43,7 @@ const EMPTY_FORM: RuleFormState = {
   productId: '',
   pincodeId: '',
   areaId: '',
-  serviceZoneId: '',
+  rateTypeId: '',
 };
 
 export function ServiceZoneRulesTab() {
@@ -55,7 +55,7 @@ export function ServiceZoneRulesTab() {
     queryKey: ['service-zone-rules'],
     queryFn: () => serviceZoneRulesService.listRules(),
   });
-  const { data: serviceZonesResponse } = useQuery({
+  const { data: rateTypesResponse } = useQuery({
     queryKey: ['service-zones'],
     queryFn: () => serviceZoneRulesService.listServiceZones(),
   });
@@ -86,7 +86,7 @@ export function ServiceZoneRulesTab() {
         productId: Number(formState.productId),
         pincodeId: Number(formState.pincodeId),
         areaId: Number(formState.areaId),
-        serviceZoneId: Number(formState.serviceZoneId),
+        rateTypeId: Number(formState.rateTypeId),
       }),
     invalidateKeys: [['service-zone-rules']],
     successMessage: 'Service zone rule created successfully',
@@ -109,7 +109,7 @@ export function ServiceZoneRulesTab() {
         productId: Number(formState.productId),
         pincodeId: Number(formState.pincodeId),
         areaId: Number(formState.areaId),
-        serviceZoneId: Number(formState.serviceZoneId),
+        rateTypeId: Number(formState.rateTypeId),
       });
     },
     invalidateKeys: [['service-zone-rules']],
@@ -137,9 +137,9 @@ export function ServiceZoneRulesTab() {
   const products = useMemo(() => productsResponse?.data || [], [productsResponse?.data]);
   const pincodes = useMemo(() => pincodesResponse?.data || [], [pincodesResponse?.data]);
   const areas = useMemo(() => areasResponse?.data || [], [areasResponse?.data]);
-  const serviceZones = useMemo(
-    () => serviceZonesResponse?.data || [],
-    [serviceZonesResponse?.data]
+  const rateTypes = useMemo(
+    () => rateTypesResponse?.data || [],
+    [rateTypesResponse?.data]
   );
   const rules = useMemo(() => rulesResponse?.data || [], [rulesResponse?.data]);
 
@@ -167,7 +167,7 @@ export function ServiceZoneRulesTab() {
     }
 
     return rules.filter((rule) =>
-      [rule.clientName, rule.productName, rule.pincodeCode, rule.areaName, rule.serviceZoneName]
+      [rule.clientName, rule.productName, rule.pincodeCode, rule.areaName, rule.rateTypeName]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(normalizedSearch))
     );
@@ -178,7 +178,7 @@ export function ServiceZoneRulesTab() {
     formState.productId &&
     formState.pincodeId &&
     formState.areaId &&
-    formState.serviceZoneId;
+    formState.rateTypeId;
 
   const handleEdit = (rule: ServiceZoneRule) => {
     setEditingRule(rule);
@@ -187,7 +187,7 @@ export function ServiceZoneRulesTab() {
       productId: String(rule.productId),
       pincodeId: String(rule.pincodeId),
       areaId: String(rule.areaId),
-      serviceZoneId: String(rule.serviceZoneId),
+      rateTypeId: String(rule.rateTypeId),
     });
   };
 
@@ -306,18 +306,18 @@ export function ServiceZoneRulesTab() {
             </div>
 
             <div className="space-y-2">
-              <Label>Service Zone *</Label>
+              <Label>Rate Type *</Label>
               <Select
-                value={formState.serviceZoneId}
-                onValueChange={(value) => handleFormChange('serviceZoneId', value)}
+                value={formState.rateTypeId}
+                onValueChange={(value) => handleFormChange('rateTypeId', value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select zone" />
+                  <SelectValue placeholder="Select rate type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {serviceZones.map((zone) => (
-                    <SelectItem key={zone.id} value={String(zone.id)}>
-                      {zone.name}
+                  {rateTypes.map((rt) => (
+                    <SelectItem key={rt.id} value={String(rt.id)}>
+                      {rt.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -396,7 +396,7 @@ export function ServiceZoneRulesTab() {
                   <TableHead>Product</TableHead>
                   <TableHead>Pincode</TableHead>
                   <TableHead>Area</TableHead>
-                  <TableHead>Service Zone</TableHead>
+                  <TableHead>Rate Type</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -408,7 +408,7 @@ export function ServiceZoneRulesTab() {
                     <TableCell>{rule.productName}</TableCell>
                     <TableCell>{rule.pincodeCode}</TableCell>
                     <TableCell>{rule.areaName}</TableCell>
-                    <TableCell>{rule.serviceZoneName}</TableCell>
+                    <TableCell>{rule.rateTypeName}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Switch

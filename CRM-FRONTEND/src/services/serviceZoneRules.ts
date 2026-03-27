@@ -1,7 +1,7 @@
 import { BaseApiService } from './base';
 import type { ApiResponse } from '@/types/api';
 import type {
-  ServiceZone,
+  RateType,
   ServiceZoneRule,
   CreateServiceZoneRuleData,
   UpdateServiceZoneRuleData,
@@ -12,7 +12,7 @@ export interface ServiceZoneRuleListQuery {
   productId?: number;
   pincodeId?: number;
   areaId?: number;
-  serviceZoneId?: number;
+  rateTypeId?: number;
   isActive?: boolean;
 }
 
@@ -25,7 +25,7 @@ class ServiceZoneRulesService extends BaseApiService {
     return this.get('', query as Record<string, unknown>);
   }
 
-  async listServiceZones(): Promise<ApiResponse<ServiceZone[]>> {
+  async listServiceZones(): Promise<ApiResponse<RateType[]>> {
     return this.get('/service-zones');
   }
 
@@ -33,7 +33,10 @@ class ServiceZoneRulesService extends BaseApiService {
     return this.post('', data);
   }
 
-  async updateRule(id: number, data: UpdateServiceZoneRuleData): Promise<ApiResponse<ServiceZoneRule>> {
+  async updateRule(
+    id: number,
+    data: UpdateServiceZoneRuleData
+  ): Promise<ApiResponse<ServiceZoneRule>> {
     return this.put(`/${id}`, data);
   }
 

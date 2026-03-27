@@ -28,7 +28,6 @@ type ReassignableTaskRecord = {
   estimated_amount: number | null;
   address: string | null;
   pincode: string | null;
-  service_zone_id: number | null;
   area_id: number | null;
   document_type: string | null;
   document_number: string | null;
@@ -95,30 +94,12 @@ export class VerificationTasksController {
         areaId: currentTask.area_id,
       });
 
-    if (
-      currentTask.service_zone_id !== null &&
-      Number(currentTask.service_zone_id) !== recreatedTerritory.serviceZoneId
-    ) {
-      throw new VerificationTaskCreationError(422, {
-        success: false,
-        message: 'Current task territory configuration is inconsistent for reassign',
-        error: {
-          code: 'PARENT_TASK_TERRITORY_INVALID',
-          details: {
-            taskId: currentTask.id,
-            parentServiceZoneId: currentTask.service_zone_id,
-            resolvedServiceZoneId: recreatedTerritory.serviceZoneId,
-          },
-        },
-      });
-    }
-
     const newTaskResult = await client.query(
       `
       INSERT INTO verification_tasks (
         case_id, verification_type_id, task_title, task_description,
         priority, rate_type_id, estimated_amount, address, pincode,
-        service_zone_id, area_id,
+        area_id,
         document_type, document_number, document_details,
         assigned_to, assigned_by, assigned_at, current_assigned_at,
         status, created_by, parent_task_id, task_type,
@@ -126,10 +107,10 @@ export class VerificationTasksController {
       ) VALUES (
         $1, $2, $3, $4,
         $5, $6, $7, $8, $9,
-        $10, $11,
-        $12, $13, $14,
-        $15, $16, NOW(), NOW(),
-        'ASSIGNED', $17, $18, $19,
+        $10,
+        $11, $12, $13,
+        $14, $15, NOW(), NOW(),
+        'ASSIGNED', $16, $17, $18,
         NOW()
       ) RETURNING *
     `,
@@ -143,7 +124,6 @@ export class VerificationTasksController {
         currentTask.estimated_amount,
         currentTask.address,
         currentTask.pincode,
-        recreatedTerritory.serviceZoneId,
         recreatedTerritory.areaId,
         currentTask.document_type,
         currentTask.document_number,
@@ -398,31 +378,7 @@ export class VerificationTasksController {
           areaId: originalTask.area_id,
         });
 
-      if (
-        originalTask.service_zone_id !== null &&
-        Number(originalTask.service_zone_id) !== revisitedTerritory.serviceZoneId
-      ) {
-        throw new VerificationTaskCreationError(422, {
-          success: false,
-          message: 'Parent task territory configuration is inconsistent for revisit',
-          error: {
-            code: 'PARENT_TASK_TERRITORY_INVALID',
-            details: {
-              taskId,
-              parentServiceZoneId: originalTask.service_zone_id,
-              resolvedServiceZoneId: revisitedTerritory.serviceZoneId,
-            },
-          },
-        });
-      }
-
       // 2. Create new task (REVISIT type)
-      // Clone details but reset status, dates, and outcome
-      // Photos are NOT cloned here as they are stored in a separate table (verification_attachments)
-      // We will handle photo cloning if needed, but requirements say "photos (marked as historical)"
-      // which implies we might need to copy them or just link them.
-      // For now, we'll create the task first.
-
       const assignedToValue = assignedTo || null;
       const isAssigned = assignedToValue !== null;
       const taskStatus = isAssigned ? 'ASSIGNED' : 'PENDING';
@@ -432,7 +388,7 @@ export class VerificationTasksController {
           case_id, verification_type_id, task_title, task_description,
           priority, assigned_to, assigned_by, assigned_at,
           rate_type_id, estimated_amount, address, pincode,
-          service_zone_id, area_id,
+          area_id,
           document_type, document_number, document_details,
           estimated_completion_date, status, created_by,
           task_type, parent_task_id,
@@ -440,18 +396,18 @@ export class VerificationTasksController {
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7, $8,
           $9, $10, $11, $12,
-          $13, $14,
-          $15, $16, $17,
-          $18, $19, $20,
-          'REVISIT', $21,
-          $22, NOW()
+          $13,
+          $14, $15, $16,
+          $17, $18, $19,
+          'REVISIT', $20,
+          $21, NOW()
         ) RETURNING *
       `;
 
       const insertParams = [
         originalTask.case_id,
         originalTask.verification_type_id,
-        `Revisit: ${originalTask.task_title}`, // Prefix title
+        `Revisit: ${originalTask.task_title}`,
         originalTask.task_description,
         originalTask.priority,
         assignedToValue,
@@ -461,7 +417,6 @@ export class VerificationTasksController {
         originalTask.estimated_amount,
         originalTask.address,
         originalTask.pincode,
-        revisitedTerritory.serviceZoneId,
         revisitedTerritory.areaId,
         originalTask.document_type,
         originalTask.document_number,
@@ -1213,7 +1168,7 @@ export class VerificationTasksController {
     try {
       // First, fetch the current task to check if it's a REVISIT task and validate territory updates
       const currentTaskResult = await pool.query(
-        `SELECT vt.task_type, vt.status, vt.started_at, vt.pincode, vt.area_id, vt.service_zone_id,
+        `SELECT vt.task_type, vt.status, vt.started_at, vt.pincode, vt.area_id,
                 vt.verification_type_id, c."clientId" as client_id, c."productId" as product_id
          FROM verification_tasks vt
          JOIN cases c ON c.id = vt.case_id
@@ -1308,7 +1263,7 @@ export class VerificationTasksController {
         updateDataAny.pincode = String(nextPincode);
         updateDataAny.area_id = territoryValidation.areaId;
         delete updateDataAny.areaId;
-        updateDataAny.service_zone_id = territoryValidation.serviceZoneId;
+        updateDataAny.rate_type_id = territoryValidation.rateTypeId;
       }
 
       logger.info('=== UPDATE TASK DEBUG ===', {
