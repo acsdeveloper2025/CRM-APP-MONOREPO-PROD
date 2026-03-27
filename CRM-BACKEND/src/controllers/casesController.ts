@@ -570,8 +570,10 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
     let caseQuery = `
       SELECT
         c.*,
-        -- Get representative address from tasks
+        -- Get representative address, pincode, area from tasks
         (SELECT address FROM verification_tasks WHERE case_id = c.id LIMIT 1) as address,
+        (SELECT vt2.pincode FROM verification_tasks vt2 WHERE vt2.case_id = c.id AND vt2.pincode IS NOT NULL AND vt2.pincode != '' LIMIT 1) as "taskPincode",
+        (SELECT ar2.name FROM verification_tasks vt2 LEFT JOIN areas ar2 ON ar2.id = vt2.area_id WHERE vt2.case_id = c.id AND vt2.area_id IS NOT NULL LIMIT 1) as "taskAreaName",
         -- Client information (Field 3: Client)
         cl.name as "clientName",
         cl.code as "clientCode",

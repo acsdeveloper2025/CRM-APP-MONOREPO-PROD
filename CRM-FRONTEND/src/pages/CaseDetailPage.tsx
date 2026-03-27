@@ -7,9 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCase, useAssignCase } from '@/hooks/useCases';
 import { useCaseFormSubmissions } from '@/hooks/useForms';
 import { ReassignCaseModal } from '@/components/cases/ReassignCaseModal';
-import { EnhancedCaseStatus } from '@/components/cases/EnhancedCaseStatus';
 import { OptimizedFormSubmissionViewer } from '@/components/forms/OptimizedFormSubmissionViewer';
-import { ArrowLeft, MapPin, Phone, Mail, Calendar, User, Building2, FileText, Edit, UserCheck, FormInput, Camera, Clock, CheckSquare } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Mail, Calendar, User, Building2, FileText, Edit, UserCheck, FormInput, Camera, CheckSquare } from 'lucide-react';
 import { CaseAttachmentsSection } from '@/components/attachments/CaseAttachmentsSection';
 import { VerificationTasksManager } from '@/components/verification-tasks';
 import { formatDistanceToNow } from 'date-fns';
@@ -164,14 +163,10 @@ export const CaseDetailPage: React.FC = () => {
         {/* Main Content */}
         <div className="lg:col-span-2">
           <Tabs defaultValue="details" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="details" className="flex items-center space-x-2">
                 <FileText className="h-4 w-4" />
                 <span>Case Details</span>
-              </TabsTrigger>
-              <TabsTrigger value="status" className="flex items-center space-x-2">
-                <Clock className="h-4 w-4" />
-                <span>Status & Progress</span>
               </TabsTrigger>
               <TabsTrigger value="forms" className="flex items-center space-x-2">
                 <FormInput className="h-4 w-4" />
@@ -204,7 +199,7 @@ export const CaseDetailPage: React.FC = () => {
                       <div className="mt-2 space-y-2">
                         <div className="flex items-center space-x-2">
                           <User className="h-4 w-4 text-gray-600" />
-                          <span className="text-sm">{caseItem.applicantName}</span>
+                          <span className="text-sm">{caseItem.customerName || caseItem.applicantName || 'N/A'}</span>
                         </div>
                         {caseItem.applicantPhone && (
                           <div className="flex items-center space-x-2">
@@ -233,8 +228,13 @@ export const CaseDetailPage: React.FC = () => {
                         <div className="flex items-start space-x-2">
                           <MapPin className="h-4 w-4 text-gray-600 mt-0.5" />
                           <div className="text-sm">
-                            <div>{caseItem.address}</div>
-                            <div>Pincode: {caseItem.pincode}</div>
+                            <div>{caseItem.address || 'N/A'}</div>
+                            {(caseItem.taskPincode || caseItem.pincode) && (
+                              <div>Pincode: {caseItem.taskPincode || caseItem.pincode}</div>
+                            )}
+                            {caseItem.taskAreaName && (
+                              <div>Area: {caseItem.taskAreaName}</div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -315,23 +315,6 @@ export const CaseDetailPage: React.FC = () => {
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            <TabsContent value="status">
-              <EnhancedCaseStatus
-                caseId={caseItem.caseId?.toString() || safeId}
-                currentStatus={caseItem.status}
-                submissionProgress={undefined} // Placeholder - connect when submission progress API is ready
-                retryQueueStatus={undefined} // Placeholder - connect when retry queue API is ready
-                onRetrySubmission={() => {
-                  logger.warn('Retry submission for case:', id);
-                  // Retry submission handler pending implementation
-                }}
-                onClearRetryQueue={() => {
-                  logger.warn('Clear retry queue for case:', id);
-                  // Clear retry queue handler pending implementation
-                }}
-              />
             </TabsContent>
 
             <TabsContent value="forms">
