@@ -26,10 +26,10 @@ const listValidation = [
   query('productId').optional().isInt({ min: 1 }).withMessage('Product ID must be a valid integer'),
   query('pincodeId').optional().isInt({ min: 1 }).withMessage('Pincode ID must be a valid integer'),
   query('areaId').optional().isInt({ min: 1 }).withMessage('Area ID must be a valid integer'),
-  query('serviceZoneId')
+  query('rateTypeId')
     .optional()
     .isInt({ min: 1 })
-    .withMessage('Service zone ID must be a valid integer'),
+    .withMessage('Rate type ID must be a valid integer'),
   query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   query('search').optional().isString().withMessage('Search must be a string'),
 ];
@@ -39,7 +39,7 @@ const ruleValidation = [
   body('productId').isInt({ min: 1 }).withMessage('Product ID must be a valid integer'),
   body('pincodeId').isInt({ min: 1 }).withMessage('Pincode ID must be a valid integer'),
   body('areaId').isInt({ min: 1 }).withMessage('Area ID must be a valid integer'),
-  body('serviceZoneId').isInt({ min: 1 }).withMessage('Service zone ID must be a valid integer'),
+  body('rateTypeId').isInt({ min: 1 }).withMessage('Rate type ID must be a valid integer'),
 ];
 
 router.get('/', listValidation, handleValidationErrors, listServiceZoneRules);
