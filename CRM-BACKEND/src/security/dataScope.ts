@@ -1,3 +1,4 @@
+import { query } from '@/config/database';
 import { getScopedOperationalUserIds } from '@/security/userScope';
 import { isScopedOperationsUser } from '@/security/rbacAccess';
 
@@ -17,12 +18,59 @@ export type ResolvedDataScope = {
   assignedProductIds?: number[];
 };
 
+/**
+ * Aggregate client IDs assigned to any user in the list.
+ * Used so managers/TLs see clients assigned to themselves + subordinates.
+ */
+const getAggregatedClientIds = async (userIds: string[]): Promise<number[]> => {
+  if (userIds.length === 0) {
+    return [];
+  }
+  const result = await query<{ clientId: number }>(
+    `SELECT DISTINCT "clientId" FROM "userClientAssignments" WHERE "userId" = ANY($1::uuid[])`,
+    [userIds]
+  );
+  return result.rows.map(r => r.clientId);
+};
+
+/**
+ * Aggregate product IDs assigned to any user in the list.
+ * Used so managers/TLs see products assigned to themselves + subordinates.
+ */
+const getAggregatedProductIds = async (userIds: string[]): Promise<number[]> => {
+  if (userIds.length === 0) {
+    return [];
+  }
+  const result = await query<{ productId: number }>(
+    `SELECT DISTINCT "productId" FROM "userProductAssignments" WHERE "userId" = ANY($1::uuid[])`,
+    [userIds]
+  );
+  return result.rows.map(r => r.productId);
+};
+
 export const resolveDataScope = async (req: RequestLike): Promise<ResolvedDataScope> => {
   if (!req.user?.id || !isScopedOperationsUser(req.user as never)) {
     return { restricted: false };
   }
 
   const scopedUserIds = await getScopedOperationalUserIds(req.user.id);
+
+  // For hierarchy users (Manager/TL), aggregate client/product access across all subordinates
+  if (scopedUserIds && scopedUserIds.length > 0) {
+    const [aggregatedClientIds, aggregatedProductIds] = await Promise.all([
+      getAggregatedClientIds(scopedUserIds),
+      getAggregatedProductIds(scopedUserIds),
+    ]);
+
+    return {
+      restricted: true,
+      scopedUserIds,
+      assignedClientIds: aggregatedClientIds.length > 0 ? aggregatedClientIds : req.user.assignedClientIds,
+      assignedProductIds: aggregatedProductIds.length > 0 ? aggregatedProductIds : req.user.assignedProductIds,
+    };
+  }
+
+  // Non-hierarchy scoped users (e.g., BACKEND_USER) — use their own assignments
   return {
     restricted: true,
     scopedUserIds,

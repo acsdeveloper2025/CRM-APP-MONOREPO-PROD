@@ -4,6 +4,7 @@ import { query } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/types/auth';
 import { hasSystemScopeBypass, isScopedOperationsUser } from '@/security/rbacAccess';
+import { resolveDataScope } from '@/security/dataScope';
 
 /**
  * Product Access Control Middleware
@@ -235,15 +236,18 @@ export const addProductFiltering = async (
       return next();
     }
 
-    // Get assigned product IDs for the BACKEND_USER user
-    const assignedProductIds = await getAssignedProductIds(userId);
+    // Use resolveDataScope to get hierarchy-aggregated product IDs
+    // For Manager/TL: returns union of own + subordinates' assigned products
+    // For BACKEND_USER: returns own assigned products only
+    const scope = await resolveDataScope(req);
+    const scopedProductIds = scope.assignedProductIds ?? [];
 
-    if (assignedProductIds.length === 0) {
+    if (scopedProductIds.length === 0) {
       // User has no product assignments, they should see no data
       req.query.productIds = '[]';
     } else {
       // Add product filtering to the query
-      req.query.productIds = JSON.stringify(assignedProductIds);
+      req.query.productIds = JSON.stringify(scopedProductIds);
     }
 
     next();
