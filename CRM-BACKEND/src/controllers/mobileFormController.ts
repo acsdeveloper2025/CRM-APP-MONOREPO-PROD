@@ -191,6 +191,7 @@ export class MobileFormController {
     if (processed.totalEarning !== undefined && processed.totalEarningMember === undefined) {
       processed.totalEarningMember = processed.totalEarning;
     }
+    delete processed.totalEarning;
 
     return processed;
   }
