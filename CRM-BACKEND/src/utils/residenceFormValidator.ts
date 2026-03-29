@@ -190,16 +190,16 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
     }
 
     // TPC conditional validation
-    if (formData.tpcMetPerson1 && !formData.tpcName1) {
-      warnings.push('tpcName1 should be specified when tpcMetPerson1 is selected');
+    if (formData.tpcMetPerson1 && !formData.nameOfTpc1) {
+      warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is selected');
     }
-    if (formData.tpcMetPerson1 && formData.tpcName1 && !formData.tpcConfirmation1) {
+    if (formData.tpcMetPerson1 && formData.nameOfTpc1 && !formData.tpcConfirmation1) {
       warnings.push('tpcConfirmation1 should be specified when TPC person 1 is provided');
     }
-    if (formData.tpcMetPerson2 && !formData.tpcName2) {
-      warnings.push('tpcName2 should be specified when tpcMetPerson2 is selected');
+    if (formData.tpcMetPerson2 && !formData.nameOfTpc2) {
+      warnings.push('nameOfTpc2 should be specified when tpcMetPerson2 is selected');
     }
-    if (formData.tpcMetPerson2 && formData.tpcName2 && !formData.tpcConfirmation2) {
+    if (formData.tpcMetPerson2 && formData.nameOfTpc2 && !formData.tpcConfirmation2) {
       warnings.push('tpcConfirmation2 should be specified when TPC person 2 is provided');
     }
 
@@ -226,10 +226,10 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
 
   if (formType === 'SHIFTED') {
     // TPC validation for shifted forms
-    if (formData.tpcMetPerson1 && !formData.tpcName1) {
-      warnings.push('tpcName1 should be specified when tpcMetPerson1 is selected');
+    if (formData.tpcMetPerson1 && !formData.nameOfTpc1) {
+      warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is selected');
     }
-    if (formData.tpcMetPerson1 && formData.tpcName1 && !formData.tpcConfirmation1) {
+    if (formData.tpcMetPerson1 && formData.nameOfTpc1 && !formData.tpcConfirmation1) {
       warnings.push('tpcConfirmation1 should be specified when TPC person 1 is provided');
     }
   }

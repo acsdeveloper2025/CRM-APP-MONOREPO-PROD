@@ -1144,10 +1144,10 @@ export class MobileFormController {
 
       // TPC (Third Party Confirmation) fields
       formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.tpcName1 = report.tpc_name1;
+      formData.nameOfTpc1 = report.tpc_name1;
       formData.tpcConfirmation1 = report.tpc_confirmation1;
       formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.tpcName2 = report.tpc_name2;
+      formData.nameOfTpc2 = report.tpc_name2;
       formData.tpcConfirmation2 = report.tpc_confirmation2;
 
       // Form type specific fields
@@ -1187,12 +1187,12 @@ export class MobileFormController {
       formData.documentType = report.document_type;
       formData.addressFloor = report.address_floor;
       formData.companyNamePlateStatus = report.company_nameplate_status;
-      formData.nameOnCompanyBoard = report.name_on_company_board;
+      formData.nameOnBoard = report.name_on_company_board;
       formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.tpcName1 = report.tpc_name1;
+      formData.nameOfTpc1 = report.tpc_name1;
       formData.tpcConfirmation1 = report.tpc_confirmation1;
       formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.tpcName2 = report.tpc_name2;
+      formData.nameOfTpc2 = report.tpc_name2;
       formData.tpcConfirmation2 = report.tpc_confirmation2;
 
       // Visual details
@@ -1259,14 +1259,14 @@ export class MobileFormController {
       formData.addressStatus = report.address_status;
       formData.premisesStatus = report.premises_status;
       formData.companyNamePlateStatus = report.company_nameplate_status;
-      formData.nameOnCompanyBoard = report.name_on_company_board;
+      formData.nameOnBoard = report.name_on_company_board;
 
       // TPC Details
       formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.tpcName1 = report.tpc_name1;
+      formData.nameOfTpc1 = report.tpc_name1;
       formData.tpcConfirmation1 = report.tpc_confirmation1;
       formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.tpcName2 = report.tpc_name2;
+      formData.nameOfTpc2 = report.tpc_name2;
       formData.tpcConfirmation2 = report.tpc_confirmation2;
       formData.nameOfTpc1 = report.name_of_tpc1;
       formData.nameOfTpc2 = report.name_of_tpc2;
@@ -1367,10 +1367,10 @@ export class MobileFormController {
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.tpcName1 = report.tpc_name1;
+      formData.nameOfTpc1 = report.tpc_name1;
       formData.tpcConfirmation1 = report.tpc_confirmation1;
       formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.tpcName2 = report.tpc_name2;
+      formData.nameOfTpc2 = report.tpc_name2;
       formData.tpcConfirmation2 = report.tpc_confirmation2;
 
       // Builder Information
@@ -1425,10 +1425,10 @@ export class MobileFormController {
       formData.documentType = report.document_type;
       formData.documentVerificationStatus = report.document_verification_status;
       formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.tpcName1 = report.tpc_name1;
+      formData.nameOfTpc1 = report.tpc_name1;
       formData.tpcConfirmation1 = report.tpc_confirmation1;
       formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.tpcName2 = report.tpc_name2;
+      formData.nameOfTpc2 = report.tpc_name2;
       formData.tpcConfirmation2 = report.tpc_confirmation2;
       formData.shiftedPeriod = report.shifted_period;
       formData.currentLocation = report.current_location;
@@ -1546,10 +1546,10 @@ export class MobileFormController {
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.tpcName1 = report.tpc_name1;
+      formData.nameOfTpc1 = report.tpc_name1;
       formData.tpcConfirmation1 = report.tpc_confirmation1;
       formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.tpcName2 = report.tpc_name2;
+      formData.nameOfTpc2 = report.tpc_name2;
       formData.tpcConfirmation2 = report.tpc_confirmation2;
       formData.neighbor1Name = report.neighbor1_name;
       formData.neighbor1Confirmation = report.neighbor1_confirmation;
@@ -1635,10 +1635,10 @@ export class MobileFormController {
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.tpcName1 = report.tpc_name1;
+      formData.nameOfTpc1 = report.tpc_name1;
       formData.tpcConfirmation1 = report.tpc_confirmation1;
       formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.tpcName2 = report.tpc_name2;
+      formData.nameOfTpc2 = report.tpc_name2;
       formData.tpcConfirmation2 = report.tpc_confirmation2;
 
       // Shifting & Contact Details
@@ -1710,7 +1710,7 @@ export class MobileFormController {
       formData.officeExistence = report.office_existence;
       formData.officeApproxArea = report.office_approx_area;
       formData.companyNamePlateStatus = report.company_nameplate_status;
-      formData.nameOnCompanyBoard = report.name_on_company_board;
+      formData.nameOnBoard = report.name_on_company_board;
       formData.addressStructureColor = report.address_structure_color;
       formData.doorColor = report.door_color;
 
@@ -1723,10 +1723,10 @@ export class MobileFormController {
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.tpcName1 = report.tpc_name1;
+      formData.nameOfTpc1 = report.tpc_name1;
       formData.tpcConfirmation1 = report.tpc_confirmation1;
       formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.tpcName2 = report.tpc_name2;
+      formData.nameOfTpc2 = report.tpc_name2;
       formData.tpcConfirmation2 = report.tpc_confirmation2;
 
       // Entry restricted fields
@@ -1834,10 +1834,10 @@ export class MobileFormController {
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.tpcName1 = report.tpc_name1;
+      formData.nameOfTpc1 = report.tpc_name1;
       formData.tpcConfirmation1 = report.tpc_confirmation1;
       formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.tpcName2 = report.tpc_name2;
+      formData.nameOfTpc2 = report.tpc_name2;
       formData.tpcConfirmation2 = report.tpc_confirmation2;
 
       // Shifting & Contact Details
@@ -1924,7 +1924,7 @@ export class MobileFormController {
       formData.sittingLocation = report.sitting_location;
       formData.currentCompanyName = report.current_company_name;
       formData.companyNamePlateStatus = report.company_nameplate_status;
-      formData.nameOnCompanyBoard = report.name_on_company_board;
+      formData.nameOnBoard = report.name_on_company_board;
 
       // Staff Information
       formData.staffStrength = report.staff_strength;
@@ -1936,10 +1936,10 @@ export class MobileFormController {
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.tpcName1 = report.tpc_name1;
+      formData.nameOfTpc1 = report.tpc_name1;
       formData.tpcConfirmation1 = report.tpc_confirmation1;
       formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.tpcName2 = report.tpc_name2;
+      formData.nameOfTpc2 = report.tpc_name2;
       formData.tpcConfirmation2 = report.tpc_confirmation2;
 
       // Entry restricted fields
