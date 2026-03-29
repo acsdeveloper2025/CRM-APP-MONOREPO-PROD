@@ -173,8 +173,8 @@ export const RESIDENCE_FORM_FIELDS: FormFieldDefinition[] = [
     formTypes: ['POSITIVE'],
   },
   {
-    id: 'totalEarning',
-    name: 'totalEarning',
+    id: 'totalEarningMember',
+    name: 'totalEarningMember',
     label: 'Total Earning Members',
     type: 'number',
     isRequired: false,
@@ -5755,9 +5755,9 @@ const RESIDENCE_CUM_OFFICE_FORM_FIELDS: FormFieldDefinition[] = [
     order: 2,
   },
   {
-    id: 'totalEarning',
-    name: 'totalEarning',
-    label: 'Total Earning',
+    id: 'totalEarningMember',
+    name: 'totalEarningMember',
+    label: 'Total Earning Members',
     type: 'number',
     isRequired: false,
     section: 'Residence Information',

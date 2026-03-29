@@ -50,7 +50,7 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   metPersonName: 'met_person_name', // Used in POSITIVE, SHIFTED, NSP forms
   metPersonRelation: 'met_person_relation', // Used in POSITIVE forms
   totalFamilyMembers: 'total_family_members', // Used in POSITIVE forms
-  totalEarning: 'total_earning', // Used in POSITIVE forms
+  totalEarningMember: 'total_earning_member', // How many earning members out of total family
   stayingPeriod: 'staying_period',
   stayingPersonName: 'staying_person_name', // Maps to staying_person_name column
   stayingStatus: 'staying_status',
@@ -146,7 +146,7 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
 
   // Residence related fields
   familyMembers: 'total_family_members', // Maps to family members
-  monthlyIncome: 'total_earning', // Maps to total earning
+  monthlyIncome: 'total_earning_member', // Maps to total earning member
   residenceType: 'house_status', // Maps to house status
   ownershipStatus: 'staying_status', // Maps to staying status
 
@@ -253,7 +253,7 @@ function processResidenceCumOfficeFieldValue(fieldName: string, value: unknown):
   // Handle numeric fields FIRST (before composite string conversion)
   const numericFields = [
     'totalFamilyMembers',
-    'totalEarning',
+    'totalEarningMember',
     'approxArea',
     'staffStrength',
     'staffSeen',
@@ -336,7 +336,7 @@ export function ensureAllResidenceCumOfficeFieldsPopulated(
     'met_person_name',
     'met_person_relation',
     'total_family_members',
-    'total_earning',
+    'total_earning_member',
     'working_status',
     'staying_period',
     'staying_status',
@@ -442,7 +442,7 @@ function getRelevantResidenceCumOfficeFieldsForFormType(formType: string): strin
       'met_person_name',
       'met_person_relation',
       'total_family_members',
-      'total_earning',
+      'total_earning_member',
       'working_status',
       'staying_period',
       'staying_status',
