@@ -2249,7 +2249,6 @@ Hence the profile is marked as {Final_Status}.`,
       Sales_Staff: safeGet(formData, 'salesStaff') || safeGet(formData, 'sales_staff'),
       Support_Staff: safeGet(formData, 'supportStaff') || safeGet(formData, 'support_staff'),
       Office_Area: safeGet(formData, 'officeArea') || safeGet(formData, 'office_area'),
-      Office_Type: safeGet(formData, 'officeType') || safeGet(formData, 'office_type'),
       License_Number: safeGet(formData, 'licenseNumber') || safeGet(formData, 'license_number'),
       License_Status: safeGet(formData, 'licenseStatus') || safeGet(formData, 'license_status'),
       License_Expiry_Date:
