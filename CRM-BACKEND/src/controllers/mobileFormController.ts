@@ -2936,7 +2936,7 @@ export class MobileFormController {
         'RESIDENCE',
         submissionId,
         userId,
-        verificationTaskId, // ✅ Link images to verification task
+        taskId,
         attachmentIds || []
       );
 
@@ -3332,7 +3332,7 @@ export class MobileFormController {
         'OFFICE',
         submissionId,
         userId,
-        verificationTaskId,
+        taskId,
         attachmentIds || []
       );
 
@@ -3739,7 +3739,7 @@ export class MobileFormController {
         'BUSINESS',
         submissionId,
         userId,
-        verificationTaskId,
+        taskId,
         attachmentIds || []
       );
 
@@ -4137,7 +4137,7 @@ export class MobileFormController {
         'BUILDER',
         submissionId,
         userId,
-        verificationTaskId,
+        taskId,
         attachmentIds || []
       );
 
@@ -4782,7 +4782,7 @@ export class MobileFormController {
         'DSA_CONNECTOR',
         submissionId,
         userId,
-        verificationTaskId,
+        taskId,
         attachmentIds || []
       );
 
@@ -5426,7 +5426,7 @@ export class MobileFormController {
         'PROPERTY_APF',
         submissionId,
         userId,
-        verificationTaskId,
+        taskId,
         attachmentIds || []
       );
 
@@ -5828,7 +5828,7 @@ export class MobileFormController {
         'NOC',
         submissionId,
         userId,
-        verificationTaskId,
+        taskId,
         attachmentIds || []
       );
 
