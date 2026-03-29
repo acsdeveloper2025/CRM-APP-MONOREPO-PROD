@@ -6257,8 +6257,8 @@ export function createComprehensiveFormSections(
 
   // Use type-aware schemas (imported at top of file)
   try {
-    // Get only relevant fields for this verification type + form type combination
-    const relevantFields = getRelevantFieldsForFormType(verificationType, formType);
+    // Get ALL fields for this verification type, filtered by form type (POSITIVE/SHIFTED/etc.)
+    const relevantFields = getFormFieldDefinitions(verificationType, formType);
 
     if (relevantFields.length === 0) {
       logger.warn(
