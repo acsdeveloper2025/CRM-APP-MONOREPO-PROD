@@ -66,10 +66,10 @@ export const RESIDENCE_FIELD_MAPPING: DatabaseFieldMapping = {
 
   // Third Party Confirmation (TPC) - Used in POSITIVE, SHIFTED, NSP forms
   tpcMetPerson1: 'tpc_met_person1',
-  tpcName1: 'tpc_name1',
+  nameOfTpc1: 'tpc_name1',
   tpcConfirmation1: 'tpc_confirmation1',
   tpcMetPerson2: 'tpc_met_person2',
-  tpcName2: 'tpc_name2',
+  nameOfTpc2: 'tpc_name2',
   tpcConfirmation2: 'tpc_confirmation2',
 
   // Shifted residence specific fields
@@ -348,8 +348,8 @@ export function validateRequiredFields(
     if (formData.documentShownStatus === 'Showed' && !formData.documentType) {
       warnings.push('documentType should be specified when documentShownStatus is Showed');
     }
-    if (formData.tpcMetPerson1 === 'Yes' && !formData.tpcName1) {
-      warnings.push('tpcName1 should be specified when tpcMetPerson1 is Yes');
+    if (formData.tpcMetPerson1 === 'Yes' && !formData.nameOfTpc1) {
+      warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is Yes');
     }
   }
 
