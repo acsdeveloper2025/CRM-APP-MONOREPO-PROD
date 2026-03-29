@@ -55,7 +55,7 @@ export const BUSINESS_FIELD_MAPPING: DatabaseFieldMapping = {
   staffSeen: 'staff_seen', // Used in POSITIVE forms
 
   // Additional business fields from mobile forms
-  businessAddress: 'full_address', // Map businessAddress to full_address
+  businessAddress: null, // No full_address column — address is on verification_tasks
   operatingHours: null, // Map to other_observation or ignore
   employeeCount: 'staff_strength', // Map employeeCount to staff_strength
 

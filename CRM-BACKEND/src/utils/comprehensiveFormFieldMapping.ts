@@ -1602,15 +1602,6 @@ const PROPERTY_APF_FORM_FIELDS: FormFieldDefinition[] = [
 
   // Address Information
   {
-    id: 'fullAddress',
-    name: 'fullAddress',
-    label: 'Full Address',
-    type: 'textarea',
-    isRequired: false,
-    section: 'Address Information',
-    order: 1,
-  },
-  {
     id: 'locality',
     name: 'locality',
     label: 'Locality',
@@ -2559,15 +2550,6 @@ const PROPERTY_INDIVIDUAL_FORM_FIELDS: FormFieldDefinition[] = [
   },
 
   // Address Information
-  {
-    id: 'fullAddress',
-    name: 'fullAddress',
-    label: 'Full Address',
-    type: 'textarea',
-    isRequired: false,
-    section: 'Address Information',
-    order: 1,
-  },
   {
     id: 'locality',
     name: 'locality',
@@ -3534,15 +3516,6 @@ const NOC_FORM_FIELDS: FormFieldDefinition[] = [
 
   // Address Information
   {
-    id: 'fullAddress',
-    name: 'fullAddress',
-    label: 'Full Address',
-    type: 'textarea',
-    isRequired: false,
-    section: 'Address Information',
-    order: 1,
-  },
-  {
     id: 'locality',
     name: 'locality',
     label: 'Locality',
@@ -4207,15 +4180,6 @@ const BUILDER_FORM_FIELDS: FormFieldDefinition[] = [
 
   // Address Information
   {
-    id: 'fullAddress',
-    name: 'fullAddress',
-    label: 'Full Address',
-    type: 'textarea',
-    isRequired: false,
-    section: 'Address Information',
-    order: 1,
-  },
-  {
     id: 'locality',
     name: 'locality',
     label: 'Locality',
@@ -4769,15 +4733,6 @@ const DSA_CONNECTOR_FORM_FIELDS: FormFieldDefinition[] = [
   },
 
   // Address Information
-  {
-    id: 'fullAddress',
-    name: 'fullAddress',
-    label: 'Full Address',
-    type: 'textarea',
-    isRequired: false,
-    section: 'Address Information',
-    order: 1,
-  },
   {
     id: 'locality',
     name: 'locality',
@@ -5608,15 +5563,6 @@ const RESIDENCE_CUM_OFFICE_FORM_FIELDS: FormFieldDefinition[] = [
   },
 
   // Address Information
-  {
-    id: 'fullAddress',
-    name: 'fullAddress',
-    label: 'Full Address',
-    type: 'textarea',
-    isRequired: false,
-    section: 'Address Information',
-    order: 1,
-  },
   {
     id: 'locality',
     name: 'locality',
