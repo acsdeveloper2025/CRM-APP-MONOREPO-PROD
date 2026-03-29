@@ -2534,7 +2534,7 @@ export class MobileFormController {
 
           // FIXED: Get verification images for THIS SPECIFIC TASK only
           const imagesSql = `
-            SELECT id, verification_task_id, file_name, file_path, file_type, component_type, thumbnail_path, uploaded_at FROM verification_attachments
+            SELECT id, verification_task_id, filename, "filePath", "fileSize", "mimeType", "photoType", "thumbnailPath", "geoLocation", "submissionId", "createdAt" FROM verification_attachments
             WHERE case_id = $1 AND verification_task_id = $2
             ORDER BY "createdAt"
           `;
