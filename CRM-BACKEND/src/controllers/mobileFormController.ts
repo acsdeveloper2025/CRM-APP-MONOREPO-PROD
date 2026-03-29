@@ -1132,6 +1132,7 @@ export class MobileFormController {
       formData.societyNamePlateStatus = report.society_nameplate_status;
       formData.nameOnSocietyBoard = report.name_on_society_board;
       formData.addressStructureColor = report.address_structure_color;
+      formData.applicantStayingFloor = report.applicant_staying_floor;
       formData.addressFloor = report.address_floor;
 
       // Nameplate fields
