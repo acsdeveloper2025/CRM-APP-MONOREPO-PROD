@@ -278,8 +278,8 @@ function processFieldValue(fieldName: string, value: unknown): unknown {
     return isNaN(num) ? null : num;
   }
 
-  // Handle date fields
-  const dateFields = ['establishmentPeriod', 'businessPeriod'];
+  // Handle date fields (NOT period/duration fields like businessPeriod)
+  const dateFields: string[] = [];
   if (dateFields.includes(fieldName)) {
     if (typeof value === 'string' && value.trim() !== '') {
       const date = new Date(value);
