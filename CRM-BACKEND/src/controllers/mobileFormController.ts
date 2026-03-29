@@ -2999,7 +2999,7 @@ export class MobileFormController {
       const dbInsertData = {
         // Core case information
         case_id: caseId,
-        verification_task_id: targetTaskId, // ✅ Link to verification task
+        verification_task_id: taskId,
         caseId: caseNumber,
         form_type: formType,
         verification_outcome: verificationOutcome,
@@ -3398,7 +3398,7 @@ export class MobileFormController {
       const dbInsertData = {
         // Core case information
         case_id: caseId,
-        verification_task_id: targetTaskId,
+        verification_task_id: taskId,
         caseId: caseNumber,
         form_type: formType,
         verification_outcome: verificationOutcome,
@@ -3796,7 +3796,7 @@ export class MobileFormController {
       const dbInsertData = {
         // Core case information
         case_id: caseId,
-        verification_task_id: targetTaskId,
+        verification_task_id: taskId,
         caseId: caseNumber,
         form_type: formType,
         verification_outcome: verificationOutcome,
@@ -4187,7 +4187,7 @@ export class MobileFormController {
       const dbInsertData = {
         // Core case information
         case_id: caseId,
-        verification_task_id: verificationTaskId,
+        verification_task_id: taskId,
         caseId: parseInt(updatedCase.caseId) || null,
         form_type: formType,
         verification_outcome: verificationOutcome,
@@ -4823,7 +4823,7 @@ export class MobileFormController {
       const dbInsertData = {
         // Core case information
         case_id: caseId,
-        verification_task_id: verificationTaskId,
+        verification_task_id: taskId,
         caseId: parseInt(updatedCase.caseId) || null,
         form_type: formType,
         verification_outcome: verificationOutcome,
@@ -5455,7 +5455,7 @@ export class MobileFormController {
       const dbInsertData = {
         // Core case information
         case_id: caseId,
-        verification_task_id: verificationTaskId,
+        verification_task_id: taskId,
         caseId: parseInt(updatedCase.caseId) || null,
         form_type: formType,
         verification_outcome: verificationOutcome,
@@ -5850,7 +5850,7 @@ export class MobileFormController {
       const dbInsertData = {
         // Core case information
         case_id: caseId,
-        verification_task_id: verificationTaskId,
+        verification_task_id: taskId,
         caseId: parseInt(updatedCase.caseId) || null,
         form_type: formType,
         verification_outcome: verificationOutcome,
