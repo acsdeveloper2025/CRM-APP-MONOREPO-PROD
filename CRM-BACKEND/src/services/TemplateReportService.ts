@@ -205,7 +205,7 @@ VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), who confirmed that {Customer_Name} has been working at the given office since the last {Working_Period} as {Applicant_Designation}.
 
 EMPLOYMENT & OFFICE DETAILS:
-{Customer_Name} works as {Applicant_Designation} and sits at {Applicant_Working_Premises} {Sitting_Location}. It is a {Office_Type} office and the nature of business is {Company_Nature_Of_Business}. Total staff strength is {Staff_Strength} and {Staff_Seen} were seen during the visit. Office area is approximately {Office_Approx_Area} sq. feet. Company nameplate {Company_Name_Plate_Text}.
+{Customer_Name} works as {Applicant_Designation} and sits at {Applicant_Working_Premises} {Sitting_Location}. It is a {Office_Type} office and the nature of business is {Company_Nature_Of_Business}. Total staff strength is {Staff_Strength} and {Staff_Seen} were seen during the visit. Office area is approximately {Office_Approx_Area}. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -229,7 +229,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who {TPC_Confirmation_1} {Customer_Name}'s employment and office existence. They informed that {Customer_Name} has been working at the given office since the last {Working_Period}.
 
 OFFICE & COMPANY DETAILS:
-Company nameplate {Company_Name_Plate_Text}. Office area is approximately {Office_Approx_Area} sq. feet. The nature of business is {Company_Nature_Of_Business}.
+Company nameplate {Company_Name_Plate_Text}. Office area is approximately {Office_Approx_Area}. The nature of business is {Company_Nature_Of_Business}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -325,7 +325,7 @@ EMPLOYMENT VERIFICATION:
 The met person informed that no such person is working at the given address. As per the current office staff, {Customer_Name} has never worked at this office.
 
 OFFICE DETAILS:
-Company nameplate {Company_Name_Plate_Text}. Office area is approximately {Office_Approx_Area} sq. feet.
+Company nameplate {Company_Name_Plate_Text}. Office area is approximately {Office_Approx_Area}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -369,7 +369,7 @@ VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was {Business_Status}. Met with {Met_Person_Name} ({Designation}), who confirmed that {Customer_Name} has been running the business at the given address since the last {Business_Period}.
 
 BUSINESS & ESTABLISHMENT DETAILS:
-Business type is {Business_Type} ({Ownership_Type}) and the nature of business is {Company_Nature_Of_Business}. The business area is approximately {Business_Approx_Area} sq. feet. Establishment period is {Establishment_Period}. Business owner: {Business_Owner_Name}. Company nameplate {Company_Name_Plate_Text}. Total staff strength is {Staff_Strength} and {Staff_Seen} were seen during the visit.
+Business type is {Business_Type} ({Ownership_Type}) and the nature of business is {Company_Nature_Of_Business}. The business area is approximately {Business_Approx_Area}. Establishment period is {Establishment_Period}. Business owner: {Business_Owner_Name}. Company nameplate {Company_Name_Plate_Text}. Total staff strength is {Staff_Strength} and {Staff_Seen} were seen during the visit.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -393,7 +393,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who {TPC_Confirmation_1} {Customer_Name}'s business existence. They informed that the business has been operating at the given address since the last {Business_Period}.
 
 BUSINESS & ESTABLISHMENT DETAILS:
-Business type is {Business_Type} and the nature of business is {Company_Nature_Of_Business}. The business area is approximately {Business_Approx_Area} sq. feet. Establishment period is {Establishment_Period}. Company nameplate {Company_Name_Plate_Text}.
+Business type is {Business_Type} and the nature of business is {Company_Nature_Of_Business}. The business area is approximately {Business_Approx_Area}. Establishment period is {Establishment_Period}. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -456,7 +456,7 @@ BUSINESS VERIFICATION:
 The met person informed that no such person is running a business at the given address. As per the current business owner, {Customer_Name} has never operated a business at this address.
 
 CURRENT BUSINESS DETAILS:
-Company nameplate {Company_Name_Plate_Text}. The business area is approximately {Business_Approx_Area} sq. feet.
+Company nameplate {Company_Name_Plate_Text}. The business area is approximately {Business_Approx_Area}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -712,7 +712,7 @@ VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit builder office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), confirmed {Customer_Name} is working as builder at given address since last {Working_Period}.
 
 BUILDER & PROJECT DETAILS:
-Builder type is {Business_Type} and nature of business is {Company_Nature_Of_Business}. Office area approx. {Office_Approx_Area} sq. feet. Builder establishment period is {Establishment_Period}. Current projects include {Business_Activity}. Company Name board {Company_Name_Plate} {Name_On_Board}.
+Builder type is {Business_Type} and nature of business is {Company_Nature_Of_Business}. Office area approx. {Office_Approx_Area}. Builder establishment period is {Establishment_Period}. Current projects include {Business_Activity}. Company Name board {Company_Name_Plate} {Name_On_Board}.
 
 LOCALITY INFORMATION:
 Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
@@ -736,7 +736,7 @@ THIRD PARTY CONFIRMATION:
 TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} {TPC_Confirmation_1} and {TPC_Met_Person_2} {Name_of_TPC_2} {TPC_Confirmation_2} {Customer_Name} & builder office existence. They informed that given builder office at given address since last {Working_Period}.
 
 BUILDER & PROJECT DETAILS:
-Builder type is {Business_Type} and nature of business is {Company_Nature_Of_Business}. Office area approx. {Office_Approx_Area} sq. feet. Company Name board {Company_Name_Plate} {Name_On_Board}.
+Builder type is {Business_Type} and nature of business is {Company_Nature_Of_Business}. Office area approx. {Office_Approx_Area}. Company Name board {Company_Name_Plate} {Name_On_Board}.
 
 LOCALITY INFORMATION:
 Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
@@ -799,7 +799,7 @@ BUILDER VERIFICATION:
 Met person informed that there is no such person working as builder at given address. As per current office staff, {Customer_Name} has never worked as builder at this office.
 
 CURRENT OFFICE DETAILS:
-Company name board is {Company_Name_Plate} {Name_On_Board}. Office area approx. {Office_Approx_Area} sq. feet.
+Company name board is {Company_Name_Plate} {Name_On_Board}. Office area approx. {Office_Approx_Area}.
 
 LOCALITY INFORMATION:
 Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
@@ -953,7 +953,7 @@ VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit DSA/Connector office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), confirmed {Customer_Name} is working as DSA/Connector at given address since last {Working_Period}.
 
 DSA/CONNECTOR DETAILS:
-DSA/Connector type is {Business_Type} and nature of business is {Company_Nature_Of_Business}. Office area approx. {Office_Approx_Area} sq. feet. Working period is {Working_Period}. Company Name board {Company_Name_Plate} {Name_On_Board}.
+DSA/Connector type is {Business_Type} and nature of business is {Company_Nature_Of_Business}. Office area approx. {Office_Approx_Area}. Working period is {Working_Period}. Company Name board {Company_Name_Plate} {Name_On_Board}.
 
 LOCALITY INFORMATION:
 Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
@@ -977,7 +977,7 @@ THIRD PARTY CONFIRMATION:
 TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} {TPC_Confirmation_1} and {TPC_Met_Person_2} {Name_of_TPC_2} {TPC_Confirmation_2} {Customer_Name} & DSA/Connector office existence. They informed that given DSA/Connector office at given address since last {Working_Period}.
 
 DSA/CONNECTOR DETAILS:
-DSA/Connector type is {Business_Type} and nature of business is {Company_Nature_Of_Business}. Office area approx. {Office_Approx_Area} sq. feet. Company Name board {Company_Name_Plate} {Name_On_Board}.
+DSA/Connector type is {Business_Type} and nature of business is {Company_Nature_Of_Business}. Office area approx. {Office_Approx_Area}. Company Name board {Company_Name_Plate} {Name_On_Board}.
 
 LOCALITY INFORMATION:
 Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
@@ -1040,7 +1040,7 @@ DSA/CONNECTOR VERIFICATION:
 Met person informed that there is no such person working as DSA/Connector at given address. As per current office staff, {Customer_Name} has never worked as DSA/Connector at this office.
 
 CURRENT OFFICE DETAILS:
-Company name board is {Company_Name_Plate} {Name_On_Board}. Office area approx. {Office_Approx_Area} sq. feet.
+Company name board is {Company_Name_Plate} {Name_On_Board}. Office area approx. {Office_Approx_Area}.
 
 LOCALITY INFORMATION:
 Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
@@ -1120,7 +1120,7 @@ PROPERTY VERIFICATION:
 Property verification completed for APF (Approved Project Financing) assessment. Property details verified against project documentation. Property status confirmed as per APF requirements.
 
 PROPERTY DETAILS:
-Property type is {Business_Type} and project nature is {Company_Nature_Of_Business}. Property area approx. {Business_Approx_Area} sq. feet. Project establishment period is {Establishment_Period}. Developer/Builder name is {Business_Owner_Name}.
+Property type is {Business_Type} and project nature is {Company_Nature_Of_Business}. Property area approx. {Business_Approx_Area}. Project establishment period is {Establishment_Period}. Developer/Builder name is {Business_Owner_Name}.
 
 LOCALITY INFORMATION:
 Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and access point color is {Door_Color}.
@@ -1176,7 +1176,7 @@ VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit property was {Business_Status}. Met with {Met_Person_Name} ({Designation}), confirmed {Customer_Name} property ownership at given address since last {Business_Period}.
 
 PROPERTY OWNERSHIP DETAILS:
-Property type is {Business_Type} and nature of property is {Company_Nature_Of_Business}. Property area approx. {Business_Approx_Area} sq. feet. Property ownership period is {Establishment_Period}. Property owner name is {Business_Owner_Name}. Property name board {Company_Name_Plate} {Name_On_Board}.
+Property type is {Business_Type} and nature of property is {Company_Nature_Of_Business}. Property area approx. {Business_Approx_Area}. Property ownership period is {Establishment_Period}. Property owner name is {Business_Owner_Name}. Property name board {Company_Name_Plate} {Name_On_Board}.
 
 PROPERTY STATUS:
 Property activity includes {Business_Activity}. Property setup is {Business_Setup}. Property existence confirmed as {Business_Existence}. Current property status is verified and confirmed.
@@ -1203,7 +1203,7 @@ THIRD PARTY CONFIRMATION:
 TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} {TPC_Confirmation_1} and {TPC_Met_Person_2} {Name_of_TPC_2} {TPC_Confirmation_2} {Customer_Name} & property ownership. They informed that given property owned by {Customer_Name} at given address since last {Business_Period}.
 
 PROPERTY OWNERSHIP DETAILS:
-Property type is {Business_Type} and nature of property is {Company_Nature_Of_Business}. Property area approx. {Business_Approx_Area} sq. feet. Property ownership period is {Establishment_Period}. Property name board {Company_Name_Plate} {Name_On_Board}.
+Property type is {Business_Type} and nature of property is {Company_Nature_Of_Business}. Property area approx. {Business_Approx_Area}. Property ownership period is {Establishment_Period}. Property name board {Company_Name_Plate} {Name_On_Board}.
 
 LOCALITY INFORMATION:
 Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
@@ -1266,7 +1266,7 @@ PROPERTY VERIFICATION:
 Met person informed that there is no such person owning property at given address. As per current property owner, {Customer_Name} has never owned property at this address.
 
 CURRENT PROPERTY DETAILS:
-Property name board is {Company_Name_Plate} {Name_On_Board}. Property area approx. {Business_Approx_Area} sq. feet.
+Property name board is {Company_Name_Plate} {Name_On_Board}. Property area approx. {Business_Approx_Area}.
 
 LOCALITY INFORMATION:
 Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
