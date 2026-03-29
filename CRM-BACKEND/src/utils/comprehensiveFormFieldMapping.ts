@@ -6272,56 +6272,184 @@ export function getFieldsForSection(
 }
 
 /**
- * Create comprehensive form sections from form data
- * NOW WITH TYPE-AWARE AND VALUE-AWARE FILTERING
+ * Create form sections directly from formData — no predefined schema needed.
+ * Groups fields by category, converts camelCase to labels, skips system fields.
  */
 export function createComprehensiveFormSections(
   formData: Record<string, unknown>,
-  verificationType: string,
-  formType: string
+  _verificationType: string,
+  _formType: string
 ): FormSection[] {
-  logger.info(`Creating type-aware sections for ${verificationType} - ${formType}`);
-  logger.info('Form data keys:', Object.keys(formData));
+  // System fields that should NOT be displayed (set by controller, not by mobile)
+  const SKIP_FIELDS = new Set([
+    'outcome',
+    'customerName',
+    'callRemark',
+    'finalStatus',
+    'remarks',
+    'holdReason',
+    'recommendationStatus',
+  ]);
 
-  // Use type-aware schemas (imported at top of file)
-  try {
-    // Get ALL fields for this verification type, filtered by form type (POSITIVE/SHIFTED/etc.)
-    const relevantFields = getFormFieldDefinitions(verificationType, formType);
+  // Field → Section mapping based on field name patterns
+  const getSectionForField = (name: string): string => {
+    if (/^address|^locality|^landmark|^door(Color|Name)|^society|^company.*Plate|^nameOn/.test(name))
+      return 'Address & Location';
+    if (/^metPerson|^nameOfMet|^applicant(Staying|Working)|^stayingPerson/.test(name))
+      return 'Person Details';
+    if (/^house|^room|^premises|^office(Status|Existence|Type|Area)|^building|^flat/.test(name))
+      return 'Premises Details';
+    if (/^total(Family|Earning|Staff)|^staff|^earning|^family|^staying(Period|Status)|^working|^company(?!Name)/.test(name))
+      return 'Personal & Work Details';
+    if (/^document|^property(Doc|Documents)/.test(name)) return 'Document Verification';
+    if (/^tpc|^nameOfTpc|^neighbor/.test(name)) return 'Third Party Confirmation';
+    if (/^shifted|^current(Location|Company)|^old(Office|Business)|^previous/.test(name))
+      return 'Shifting Details';
+    if (/^entry|^security|^access/.test(name)) return 'Entry Restriction';
+    if (/^contact|^alternate|^callRemark/.test(name)) return 'Contact Details';
+    if (/^political|^dominated|^feedback|^other(Observation|Extra)|^infrastructure|^road/.test(name))
+      return 'Area Assessment';
+    if (/^connector|^business(Name|Type|Reg|Est|Operational|Hours)|^license|^compliance|^audit|^training/.test(name))
+      return 'Business & Connector Details';
+    if (/^noc|^project|^builder|^developer|^rera|^apf|^property|^owner|^individual|^loan|^bank|^emi/.test(name))
+      return 'Property & Project Details';
+    if (/^monthly|^annual|^commission|^payment|^market|^competitor|^customer(Footfall|Feedback)|^commercial|^growth|^risk/.test(name))
+      return 'Financial & Market Details';
+    if (/^computer|^internet|^software|^pos|^printer|^office(Rent|Area(?!$))/.test(name))
+      return 'Technology & Infrastructure';
+    if (/^electric|^water|^gas|^fire|^pollution|^environmental|^safety/.test(name))
+      return 'Utilities & Clearances';
+    return 'Other Details';
+  };
 
-    if (relevantFields.length === 0) {
-      logger.warn(
-        `No field schema found for ${verificationType} - ${formType}, falling back to legacy method`
-      );
-      // Fallback to old method if no schema found
-      return createLegacyFormSections(formData, verificationType, formType);
-    }
+  // Convert camelCase to label: "metPersonName" → "Met Person Name"
+  const toLabel = (name: string): string =>
+    name
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, s => s.toUpperCase())
+      .replace(/\bTpc\b/g, 'TPC')
+      .replace(/\bNoc\b/g, 'NOC')
+      .replace(/\bApf\b/g, 'APF')
+      .replace(/\bDsa\b/g, 'DSA')
+      .trim();
 
-    logger.info(
-      `Found ${relevantFields.length} relevant fields for ${verificationType} - ${formType}`
-    );
+  // Build sections from formData
+  const sectionMap = new Map<string, FormField[]>();
+  let order = 0;
 
-    // Filter fields based on:
-    // 1. Has value (not null/empty)
-    // 2. Passes conditional visibility rules
-    // For DISPLAY: show ALL fields that have data. Conditional rules are for
-    // form INPUT (hiding fields while filling), not for viewing submitted data.
-    const visibleFields = relevantFields.filter(fieldDef => {
-      const value = formData[fieldDef.name];
-      return value !== null && value !== undefined && value !== '';
+  for (const [key, value] of Object.entries(formData)) {
+    if (SKIP_FIELDS.has(key)) continue;
+    if (value === null || value === undefined || value === '') continue;
+
+    const section = getSectionForField(key);
+    if (!sectionMap.has(section)) sectionMap.set(section, []);
+
+    sectionMap.get(section)!.push({
+      id: key,
+      name: key,
+      label: toLabel(key),
+      type: typeof value === 'number' ? 'number' : 'text',
+      value,
+      isRequired: false,
     });
-
-    logger.info(`Filtered to ${visibleFields.length} visible fields with values`);
-
-    // Group fields into sections
-    const sections = groupFieldsIntoSections(visibleFields, formData);
-
-    logger.info(`Created ${sections.length} sections`);
-    return sections;
-  } catch (error) {
-    logger.error('Error in type-aware form sections:', error);
-    // Fallback to legacy method on error
-    return createLegacyFormSections(formData, verificationType, formType);
   }
+
+  // Add final assessment section with the skipped fields that have values
+  const assessmentFields: FormField[] = [];
+  const assessmentKeys = [
+    'finalStatus',
+    'recommendationStatus',
+    'holdReason',
+    'remarks',
+    'callRemark',
+  ];
+  for (const key of assessmentKeys) {
+    const val = formData[key];
+    if (val !== null && val !== undefined && val !== '') {
+      assessmentFields.push({
+        id: key,
+        name: key,
+        label: toLabel(key),
+        type: 'text',
+        value: val,
+        isRequired: false,
+      });
+    }
+  }
+  if (assessmentFields.length > 0) sectionMap.set('Final Assessment', assessmentFields);
+
+  // Add customer info at the top
+  const basicFields: FormField[] = [];
+  if (formData.customerName) {
+    basicFields.push({
+      id: 'customerName',
+      name: 'customerName',
+      label: 'Customer Name',
+      type: 'text',
+      value: formData.customerName,
+      isRequired: false,
+    });
+  }
+  if (formData.outcome) {
+    basicFields.push({
+      id: 'outcome',
+      name: 'outcome',
+      label: 'Verification Outcome',
+      type: 'text',
+      value: formData.outcome,
+      isRequired: false,
+    });
+  }
+
+  // Build final sections array
+  const sections: FormSection[] = [];
+
+  if (basicFields.length > 0) {
+    sections.push({
+      id: 'basic_info',
+      title: 'Basic Information',
+      order: order++,
+      fields: basicFields,
+    });
+  }
+
+  // Preferred section order
+  const sectionOrder = [
+    'Address & Location',
+    'Premises Details',
+    'Person Details',
+    'Personal & Work Details',
+    'Document Verification',
+    'Business & Connector Details',
+    'Property & Project Details',
+    'Financial & Market Details',
+    'Technology & Infrastructure',
+    'Utilities & Clearances',
+    'Third Party Confirmation',
+    'Shifting Details',
+    'Entry Restriction',
+    'Contact Details',
+    'Area Assessment',
+    'Other Details',
+    'Final Assessment',
+  ];
+
+  for (const sectionName of sectionOrder) {
+    const fields = sectionMap.get(sectionName);
+    if (fields && fields.length > 0) {
+      sections.push({
+        id: sectionName.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+        title: sectionName,
+        order: order++,
+        fields,
+      });
+    }
+  }
+
+  logger.info(
+    `Generated ${sections.length} sections with ${sections.reduce((n, s) => n + s.fields.length, 0)} fields from formData`
+  );
+  return sections;
 }
 
 /**
