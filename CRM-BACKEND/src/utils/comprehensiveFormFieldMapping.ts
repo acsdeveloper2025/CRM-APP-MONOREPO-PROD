@@ -605,13 +605,41 @@ export const RESIDENCE_FORM_FIELDS: FormFieldDefinition[] = [
     order: 4,
   },
   {
+    id: 'approxArea',
+    name: 'approxArea',
+    label: 'Approximate Area (sq ft)',
+    type: 'number',
+    isRequired: false,
+    section: 'Property Details',
+    order: 10,
+    formTypes: ['POSITIVE'],
+  },
+  {
+    id: 'holdReason',
+    name: 'holdReason',
+    label: 'Hold Reason',
+    type: 'textarea',
+    isRequired: false,
+    section: 'Area Assessment',
+    order: 5,
+  },
+  {
+    id: 'recommendationStatus',
+    name: 'recommendationStatus',
+    label: 'Recommendation Status',
+    type: 'select',
+    isRequired: false,
+    section: 'Area Assessment',
+    order: 6,
+  },
+  {
     id: 'finalStatus',
     name: 'finalStatus',
     label: 'Final Status',
     type: 'select',
     isRequired: true,
     section: 'Area Assessment',
-    order: 5,
+    order: 7,
   },
 ];
 
@@ -6275,22 +6303,11 @@ export function createComprehensiveFormSections(
     // Filter fields based on:
     // 1. Has value (not null/empty)
     // 2. Passes conditional visibility rules
+    // For DISPLAY: show ALL fields that have data. Conditional rules are for
+    // form INPUT (hiding fields while filling), not for viewing submitted data.
     const visibleFields = relevantFields.filter(fieldDef => {
       const value = formData[fieldDef.name];
-      const hasValue = value !== null && value !== undefined && value !== '';
-
-      if (!hasValue) {
-        return false; // Hide fields with no value
-      }
-
-      // Check conditional visibility
-      const shouldShow = shouldShowField(fieldDef.name, formData, CONDITIONAL_FIELD_RULES);
-
-      if (!shouldShow) {
-        logger.info(`Hiding conditional field: ${fieldDef.name} (condition not met)`);
-      }
-
-      return shouldShow;
+      return value !== null && value !== undefined && value !== '';
     });
 
     logger.info(`Filtered to ${visibleFields.length} visible fields with values`);
