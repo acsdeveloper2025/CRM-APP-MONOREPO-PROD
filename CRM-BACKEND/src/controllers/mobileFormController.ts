@@ -137,6 +137,64 @@ import { MobileOperationService } from '@/services/mobileOperationService';
 // Enhanced services temporarily disabled for debugging
 
 export class MobileFormController {
+  /**
+   * Combines composite Value+Unit field pairs into single fields.
+   * Mobile sends: stayingPeriodValue: "5", stayingPeriodUnit: "Years"
+   * Backend needs: stayingPeriod: "5 Years"
+   */
+  private static preprocessCompositeFields(
+    formData: Record<string, unknown>
+  ): Record<string, unknown> {
+    const compositeFieldPairs = [
+      { value: 'stayingPeriodValue', unit: 'stayingPeriodUnit', target: 'stayingPeriod' },
+      { value: 'businessPeriodValue', unit: 'businessPeriodUnit', target: 'businessPeriod' },
+      {
+        value: 'establishmentPeriodValue',
+        unit: 'establishmentPeriodUnit',
+        target: 'establishmentPeriod',
+      },
+      {
+        value: 'currentCompanyPeriodValue',
+        unit: 'currentCompanyPeriodUnit',
+        target: 'currentCompanyPeriod',
+      },
+      {
+        value: 'oldOfficeShiftedPeriodValue',
+        unit: 'oldOfficeShiftedPeriodUnit',
+        target: 'oldOfficeShiftedPeriod',
+      },
+      {
+        value: 'oldBusinessShiftedPeriodValue',
+        unit: 'oldBusinessShiftedPeriodUnit',
+        target: 'oldBusinessShiftedPeriod',
+      },
+      { value: 'shiftedPeriodValue', unit: 'shiftedPeriodUnit', target: 'shiftedPeriod' },
+      { value: 'workingPeriodValue', unit: 'workingPeriodUnit', target: 'workingPeriod' },
+    ];
+
+    const processed = { ...formData };
+
+    for (const pair of compositeFieldPairs) {
+      const val = processed[pair.value];
+      const unit = processed[pair.unit];
+
+      if (val !== undefined && val !== null && val !== '') {
+        // Combine value + unit into target field (e.g., "5 Years")
+        processed[pair.target] = unit ? `${val} ${unit}` : String(val);
+        // Remove the separate fields so they don't get mapped individually
+        delete processed[pair.value];
+        delete processed[pair.unit];
+      }
+    }
+
+    // Also handle totalEarning → totalEarningMember alias
+    if (processed.totalEarning !== undefined && processed.totalEarningMember === undefined) {
+      processed.totalEarningMember = processed.totalEarning;
+    }
+
+    return processed;
+  }
+
   private static getOperationId(req: Request): string | null {
     const headerValue = req.header('Idempotency-Key');
     if (!headerValue) {
@@ -2707,6 +2765,8 @@ export class MobileFormController {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
       const taskId = String(req.params.taskId || '');
+      // Preprocess composite Value+Unit fields from mobile into single fields
+      req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
       const {
         verificationTaskId,
         formData,
@@ -3093,6 +3153,8 @@ export class MobileFormController {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
       const taskId = String(req.params.taskId || '');
+      // Preprocess composite Value+Unit fields from mobile into single fields
+      req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
       const {
         verificationTaskId,
         formData,
@@ -3488,6 +3550,8 @@ export class MobileFormController {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
       const taskId = String(req.params.taskId || '');
+      // Preprocess composite Value+Unit fields from mobile into single fields
+      req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
       const {
         verificationTaskId,
         formData,
@@ -3921,6 +3985,8 @@ export class MobileFormController {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
       const taskId = String(req.params.taskId || '');
+      // Preprocess composite Value+Unit fields from mobile into single fields
+      req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
       const {
         verificationTaskId,
         formData,
@@ -4321,6 +4387,8 @@ export class MobileFormController {
   ) {
     try {
       const taskId = String(req.params.taskId || '');
+      // Preprocess composite Value+Unit fields from mobile into single fields
+      req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
       const submissionData: MobileFormSubmissionRequest = req.body;
       const userId = req.user?.id;
 
@@ -4547,6 +4615,8 @@ export class MobileFormController {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
       const taskId = String(req.params.taskId || '');
+      // Preprocess composite Value+Unit fields from mobile into single fields
+      req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
       const {
         verificationTaskId,
         formData,
@@ -4968,6 +5038,8 @@ export class MobileFormController {
   ) {
     try {
       const taskId = String(req.params.taskId || '');
+      // Preprocess composite Value+Unit fields from mobile into single fields
+      req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
       const submissionData: MobileFormSubmissionRequest = req.body;
       const userId = req.user?.id;
 
@@ -5190,6 +5262,8 @@ export class MobileFormController {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
       const taskId = String(req.params.taskId || '');
+      // Preprocess composite Value+Unit fields from mobile into single fields
+      req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
       const {
         verificationTaskId,
         formData,
@@ -5602,6 +5676,8 @@ export class MobileFormController {
     try {
       // UPDATED: Accept taskId from URL params (this is verificationTaskId)
       const taskId = String(req.params.taskId || '');
+      // Preprocess composite Value+Unit fields from mobile into single fields
+      req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
       const {
         verificationTaskId,
         formData,
