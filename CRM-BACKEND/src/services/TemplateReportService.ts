@@ -38,19 +38,19 @@ export class TemplateReportService {
     POSITIVE: `Residence Remark: POSITIVE.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit met with {Met_Person_Name} ({Met_Person_Relation}), confirmed {Customer_Name} stay and provide the details and also confirmed {Customer_Name} is staying at given address since {Staying_Period} {Staying_Status}.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Met_Person_Name} ({Met_Person_Relation}), who confirmed {Customer_Name}'s stay and provided the details. {Customer_Name} has been staying at the given address since {Staying_Period} as {Staying_Status}.
 
 PROPERTY & PERSONAL DETAILS:
-The area of premises is approx. {Approx_Area_Sq_Feet}. Total family members are {Total_Family_Members} and earning members are {Total_Earning}. {Customer_Name} works as {Working_Status} at {Company_Name}. The door name plate is {Door_Name_Plate} {Name_on_Door_Plate} and also name on Society board is {Society_Name_Plate} {Name_on_Society_Board}.
+The approximate area of the premises is {Approx_Area_Sq_Feet}. Total family members are {Total_Family_Members} and earning members are {Total_Earning_Members}. {Customer_Name} is {Working_Status} at {Company_Name}. The door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-Locality is Residential & type of locality is {Locality}. {Locality} is of {Address_Structure_G_Plus} and {Customer_Name} is staying on {Applicant_Staying_Floor} floor. {Locality} color is {Address_Structure_Color}. The Door color is {Door_Color}. Residence set up is sighted at the time of visit. During visit met person shown {Document_Type}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. {Customer_Name} is staying on the {Applicant_Staying_Floor} floor. The building color is {Address_Structure_Color} and door color is {Door_Color}. During the visit, the met person showed {Document_Type} as identity proof.
 
 THIRD PARTY CONFIRMATION:
-TPC {TPC_Met_Person_1} {Name_of_TPC_1} {TPC_Confirmation_1} {Customer_Name} name and stay. TPC {TPC_Met_Person_2} {Name_of_TPC_2} {TPC_Confirmation_2} {Customer_Name} name and stay.
+TPC was conducted with {Name_of_TPC_1}, who {TPC_Confirmation_1} {Customer_Name}'s name and stay. Second TPC was done with {Name_of_TPC_2}, who also {TPC_Confirmation_2} {Customer_Name}'s residence.
 
 AREA ASSESSMENT:
-Landmarks: {Landmark_1} and {Landmark_2}. It is {Dominated_Area} area. {Feedback_from_Neighbour} feedback received from neighbors. Field executive also confirmed {Customer_Name} is {Political_Connection}. {Customer_Name} stay is confirmed by our executive's observation as well as from TPC.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}. {Customer_Name}'s stay is confirmed by the field executive's observation as well as from TPC.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -80,19 +80,19 @@ Hence the profile is marked as {Final_Status}.`,
     SHIFTED: `Residence Remark: SHIFTED.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit door was {House_Status}. Met with {Met_Person_Name} ({Met_Person_Relation}) informed that {Customer_Name} is shifted to another address since last {Shifted_Period}.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the door was {House_Status}. Met with {Met_Person_Name} ({Met_Person_Relation}), who informed that {Customer_Name} has shifted to another address since the last {Shifted_Period}.
 
 PROPERTY DETAILS:
-The door name plate is {Door_Name_Plate_Status} {Name_on_Door_Plate} and also name on Society board is {Society_Name_Plate_Status} {Name_on_Society_Board}. At present given premises is {Premises_Status}.
+The door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}. At present, the given premises is {Premises_Status}.
 
 LOCALITY INFORMATION:
-Locality is Residential & type of locality is {Locality_Type}. {Locality_Type} is of {Address_Structure} and address located on {Address_Floor} floor. {Locality_Type} color is {Address_Structure_Color}. The Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} and {TPC_Met_Person_2} {Name_of_TPC_2} they have informed that {Customer_Name} is shifted from the given address.
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who informed that {Customer_Name} has shifted from the given address.
 
 AREA ASSESSMENT:
-It's a {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback received from neighbors. Field executive also confirmed {Customer_Name} is {Political_Connection}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -101,59 +101,76 @@ Hence the profile is marked as {Final_Status}.`,
     SHIFTED_DOOR_LOCKED: `Residence Remark: SHIFTED & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit door was {House_Status}.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the door was locked.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} and {TPC_Met_Person_2} {Name_of_TPC_2} they have informed that {Customer_Name} is shifted from the given address from last {Shifted_Period}.
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who informed that {Customer_Name} has shifted from the given address since the last {Shifted_Period}.
 
 PROPERTY DETAILS:
-At present given premises is {Premises_Status}. The door name plate is {Door_Name_Plate_Status} {Name_on_Door_Plate} and also Society board is {Society_Name_Plate_Status} {Name_on_Society_Board}.
+At present, the given premises is {Premises_Status}. The door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-Locality is Residential & type of locality is {Locality_Type}. {Locality_Type} is of {Address_Structure} and address located on {Address_Floor} floor. {Locality_Type} color is {Address_Structure_Color}. The Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 AREA ASSESSMENT:
-It's a {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback received from neighbors. Field executive also confirmed {Customer_Name} is {Political_Connection}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    ERT: `Residence Entry Restricted Remark (ERT):-
-Visited at the given address {ADDRESS}. The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. It is {Customer_Name} address. At the time of visit met with {Met_Person_Name} {Name_of_Met_Person} informed that in given premises entry is not allowed. {Met_Person_Name} {Met_Person_Confirmation} {Applicant_Staying_Status} given address. Society board is {Society_Name_Plate_Status} {Name_on_Society_Board}. Locality is Residential & type of locality is {Locality_Type}.
-{Locality_Type} is of {Address_Structure} and address located on {Applicant_Staying_Floor}.
-{Locality_Type} color is {Address_Structure_Color}.
-It's a {Address_Structure_Color} area.
-Landmarks: {Landmark_1} and {Landmark_2}.
-{Feedback_from_Neighbour} feedback received from met person.
-Also executive confirmed about customer {Feedback_from_Neighbour}.
-Field Executive Observation :- {Other_Observation}
-Hence the profile is marked as {Final_Status}`,
+    ERT: `Residence Remark: ENTRY RESTRICTED.
 
-    UNTRACEABLE: `Residence Untraceable Remark (UT):-
-Visited at the given address {ADDRESS}. The given address is incorrect and untraceable. At the time of visit met with {Met_Person_Name}, Met person informed that provided address is short. We called {Customer_Name} but {Customer_Name} {Call_Remark}. We required proper guidance to trace the address. Type of Locality is {Locality_Type}. Field executive reached up to {Landmark_1}, {Landmark_2}, {Landmark_3}, {Landmark_4}. It's a {Dominated_Area} area.
-Field Executive Observation :- {Other_Observation}.
+VERIFICATION DETAILS:
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
+
+ENTRY RESTRICTION DETAILS:
+{Name_of_Met_Person} {Met_Person_Confirmation} that {Customer_Name} is {Applicant_Staying_Status} at the given address. Society board {Society_Name_Plate_Text}.
+
+LOCALITY INFORMATION:
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
+
+AREA ASSESSMENT:
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from the met person. {Political_Connection_Text}.
+
+CONCLUSION:
+Field Executive Observation: {Other_Observation}
+Hence the profile is marked as {Final_Status}.`,
+
+    UNTRACEABLE: `Residence Remark: UNTRACEABLE.
+
+VERIFICATION DETAILS:
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is incorrect and untraceable.
+
+CONTACT ATTEMPT:
+We called {Customer_Name}, but {Call_Remark}. Proper guidance is required to trace the address.
+
+LOCALITY INFORMATION:
+The locality type is {Locality}. Field executive reached up to the following landmarks: {Landmark_1}, {Landmark_2}, {Landmark_3}, {Landmark_4}. {Dominated_Area_Text}.
+
+CONCLUSION:
+Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
     NSP: `Residence Remark: NSP (No Such Person).
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit door was {House_Status}. Met with {Met_Person_Name} ({Met_Person_Status}) informed that there is no such person staying at given address.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the door was {House_Status}. Met with {Met_Person_Name} ({Met_Person_Status}), who informed that there is no such person staying at the given address.
 
 CURRENT RESIDENT INFORMATION:
-Met person staying at given address from last {Staying_Period}. As per current resident, {Customer_Name} has never stayed at this address.
+The met person has been staying at the given address for the last {Staying_Period}. As per the current resident, {Customer_Name} has never stayed at this address.
 
 PROPERTY DETAILS:
-The door name plate is {Door_Name_Plate_Status} {Name_on_Door_Plate} and Society board is {Society_Name_Plate_Status} {Name_on_Society_Board}.
+The door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-Locality is Residential & type of locality is {Locality_Type}. {Locality_Type} is of {Address_Structure} and address is on {Applicant_Staying_Floor} floor. {Locality_Type} color is {Address_Structure_Color}. The Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} and {TPC_Met_Person_2} {Name_of_TPC_2} they have informed there is no such person staying at given address.
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who confirmed that no such person is staying at the given address.
 
 AREA ASSESSMENT:
-Landmarks: {Landmark_1} and {Landmark_2}. It's a {Dominated_Area} area. Applicant's stability is not confirmed from our executive's observation as well as from TPC.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Customer_Name}'s presence at this address is not confirmed by the field executive's observation or from TPC.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -162,19 +179,19 @@ Hence the profile is marked as {Final_Status}.`,
     NSP_DOOR_LOCKED: `Residence Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit door was {House_Status}.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the door was locked.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} and {TPC_Met_Person_2} {Name_of_TPC_2} they have informed that there is no such person staying at given address. As per TPC confirmation {Staying_Person_Name} is staying at given address.
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who informed that no such person ({Customer_Name}) is staying at the given address. As per TPC confirmation, {Staying_Person_Name} is currently staying at the given address.
 
 PROPERTY DETAILS:
-The door name plate is {Door_Name_Plate_Status} {Name_on_Door_Plate} and a Society board is {Society_Name_Plate_Status} {Name_on_Society_Board}.
+The door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-Locality is Residential & type of locality is {Locality_Type}. {Locality_Type} is of {Address_Structure} and the address is on {Applicant_Staying_Floor} floor. {Locality_Type} color is {Address_Structure_Color}. The Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 AREA ASSESSMENT:
-Landmarks: {Landmark_1} and {Landmark_2}. It's a {Dominated_Area} area. Applicant's stability is not confirmed from our executive's observation as well as from TPC.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Customer_Name}'s presence at this address is not confirmed by the field executive's observation or from TPC.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
