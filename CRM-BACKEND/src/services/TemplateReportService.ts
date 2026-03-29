@@ -2075,11 +2075,6 @@ Hence the profile is marked as {Final_Status}.`,
       Staff_Strength: safeGet(formData, 'staffStrength') || safeGet(formData, 'staff_strength'),
       Staff_Seen: safeGet(formData, 'staffSeen') || safeGet(formData, 'staff_seen'),
       Office_Approx_Area: this.formatAreaSqFeet(formData, 'office'),
-      Company_Name_Plate:
-        safeGet(formData, 'companyNamePlateStatus') ||
-        safeGet(formData, 'company_nameplate_status'),
-      Name_On_Board:
-        safeGet(formData, 'nameOnCompanyBoard') || safeGet(formData, 'name_on_company_board'),
 
       // Office SHIFTED-specific variables
       Old_Office_Shifted_Period:
