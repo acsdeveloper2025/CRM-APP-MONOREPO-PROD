@@ -2085,10 +2085,14 @@ Hence the profile is marked as {Final_Status}.`,
         safeGet(formData, 'current_company_period') ||
         safeGet(formData, 'establishmentPeriod'),
 
-      // Office ERT-specific variables
+      // ERT-specific variables (Entry Restricted)
       Met_Person_Type:
         safeGet(formData, 'metPersonType') || safeGet(formData, 'met_person_type') || 'Security',
       Name_Of_Met_Person:
+        safeGet(formData, 'nameOfMetPerson') ||
+        safeGet(formData, 'name_of_met_person') ||
+        safeGet(formData, 'metPersonName'),
+      Name_of_Met_Person:
         safeGet(formData, 'nameOfMetPerson') ||
         safeGet(formData, 'name_of_met_person') ||
         safeGet(formData, 'metPersonName'),
@@ -2096,6 +2100,10 @@ Hence the profile is marked as {Final_Status}.`,
         safeGet(formData, 'metPersonConfirmation') ||
         safeGet(formData, 'met_person_confirmation') ||
         'confirmed',
+      Met_Person_Status:
+        safeGet(formData, 'metPersonStatus') || safeGet(formData, 'met_person_status'),
+      Applicant_Staying_Status:
+        safeGet(formData, 'applicantStayingStatus') || safeGet(formData, 'applicant_staying_status'),
       Office_Exist_Floor:
         safeGet(formData, 'officeExistFloor') ||
         safeGet(formData, 'office_exist_floor') ||
