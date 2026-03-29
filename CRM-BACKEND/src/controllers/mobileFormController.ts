@@ -1134,6 +1134,13 @@ export class MobileFormController {
       formData.addressStructureColor = report.address_structure_color;
       formData.addressFloor = report.address_floor;
 
+      // Nameplate fields
+      formData.companyNamePlateStatus = report.company_nameplate_status;
+      formData.nameOnCompanyBoard = report.name_on_company_board;
+
+      // Area and accommodation
+      formData.approxArea = report.approx_area;
+
       // TPC (Third Party Confirmation) fields
       formData.tpcMetPerson1 = report.tpc_met_person1;
       formData.tpcName1 = report.tpc_name1;
@@ -1150,12 +1157,17 @@ export class MobileFormController {
       formData.stayingPersonName = report.staying_person_name;
       formData.entryRestrictionReason = report.entry_restriction_reason;
       formData.securityPersonName = report.security_person_name;
+      formData.metPersonConfirmation = report.met_person_confirmation;
       formData.accessDenied = report.access_denied;
       formData.nameOfMetPerson = report.name_of_met_person;
       formData.metPersonType = report.met_person_type;
       formData.applicantStayingStatus = report.applicant_staying_status;
       formData.contactPerson = report.contact_person;
       formData.alternateContact = report.alternate_contact;
+
+      // Assessment
+      formData.holdReason = report.hold_reason;
+      formData.recommendationStatus = report.recommendation_status;
     } else if (normalizedType === 'OFFICE') {
       formData.designation = report.designation;
       formData.applicantDesignation = report.applicant_designation;
@@ -1180,6 +1192,34 @@ export class MobileFormController {
       formData.tpcMetPerson2 = report.tpc_met_person2;
       formData.tpcName2 = report.tpc_name2;
       formData.tpcConfirmation2 = report.tpc_confirmation2;
+
+      // Visual details
+      formData.addressStructureColor = report.address_structure_color;
+      formData.doorColor = report.door_color;
+      formData.applicantWorkingPremises = report.applicant_working_premises;
+      formData.sittingLocation = report.sitting_location;
+      formData.currentCompanyName = report.current_company_name;
+
+      // Shifted fields
+      formData.shiftedPeriod = report.shifted_period;
+      formData.oldOfficeShiftedPeriod = report.old_office_shifted_period;
+      formData.currentCompanyPeriod = report.current_company_period;
+      formData.premisesStatus = report.premises_status;
+
+      // Entry restricted fields
+      formData.nameOfMetPerson = report.name_of_met_person;
+      formData.metPersonType = report.met_person_type;
+      formData.metPersonConfirmation = report.met_person_confirmation;
+      formData.applicantWorkingStatus = report.applicant_working_status;
+
+      // Untraceable fields
+      formData.contactPerson = report.contact_person;
+
+      // Assessment
+      formData.otherExtraRemark = report.other_extra_remark;
+      formData.holdReason = report.hold_reason;
+      formData.recommendationStatus = report.recommendation_status;
+      formData.remarks = report.remarks;
     } else if (normalizedType === 'BUSINESS') {
       // Basic Information
       formData.designation = report.designation;
@@ -1667,8 +1707,10 @@ export class MobileFormController {
       formData.officeStatus = report.office_status;
       formData.officeExistence = report.office_existence;
       formData.officeApproxArea = report.office_approx_area;
-      formData.companyNameplateStatus = report.company_nameplate_status;
+      formData.companyNamePlateStatus = report.company_nameplate_status;
       formData.nameOnCompanyBoard = report.name_on_company_board;
+      formData.addressStructureColor = report.address_structure_color;
+      formData.doorColor = report.door_color;
 
       // Staff Information
       formData.staffStrength = report.staff_strength;
@@ -1684,6 +1726,8 @@ export class MobileFormController {
       formData.tpcMetPerson2 = report.tpc_met_person2;
       formData.tpcName2 = report.tpc_name2;
       formData.tpcConfirmation2 = report.tpc_confirmation2;
+
+      // Entry restricted fields
       formData.nameOfMetPerson = report.name_of_met_person;
       formData.metPersonType = report.met_person_type;
       formData.metPersonConfirmation = report.met_person_confirmation;
@@ -1853,9 +1897,9 @@ export class MobileFormController {
       formData.stayingPeriod = report.staying_period;
       formData.stayingStatus = report.staying_status;
       formData.stayingPersonName = report.staying_person_name;
-      formData.doorNameplateStatus = report.door_nameplate_status;
+      formData.doorNamePlateStatus = report.door_nameplate_status;
       formData.nameOnDoorPlate = report.name_on_door_plate;
-      formData.societyNameplateStatus = report.society_nameplate_status;
+      formData.societyNamePlateStatus = report.society_nameplate_status;
       formData.nameOnSocietyBoard = report.name_on_society_board;
 
       // Applicant Information
@@ -1876,7 +1920,8 @@ export class MobileFormController {
       formData.workingStatus = report.working_status;
       formData.approxArea = report.approx_area;
       formData.sittingLocation = report.sitting_location;
-      formData.companyNameplateStatus = report.company_nameplate_status;
+      formData.currentCompanyName = report.current_company_name;
+      formData.companyNamePlateStatus = report.company_nameplate_status;
       formData.nameOnCompanyBoard = report.name_on_company_board;
 
       // Staff Information
@@ -1894,6 +1939,8 @@ export class MobileFormController {
       formData.tpcMetPerson2 = report.tpc_met_person2;
       formData.tpcName2 = report.tpc_name2;
       formData.tpcConfirmation2 = report.tpc_confirmation2;
+
+      // Entry restricted fields
       formData.nameOfMetPerson = report.name_of_met_person;
       formData.metPersonType = report.met_person_type;
       formData.metPersonConfirmation = report.met_person_confirmation;
