@@ -3014,7 +3014,6 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null, // Not available from case data
-        full_address: 'Address not provided',
 
         // Verification metadata
         verification_date: new Date().toISOString().split('T')[0],
@@ -3414,7 +3413,6 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null, // Not available from case data
-        full_address: 'Address not provided',
 
         // Verification metadata
         verification_date: new Date().toISOString().split('T')[0],
@@ -3820,7 +3818,6 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null, // Not available from case data
-        full_address: 'Address not provided',
 
         // Verification metadata
         verification_date: new Date().toISOString().split('T')[0],
@@ -4219,7 +4216,6 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null, // Not available from case data
-        full_address: 'Address not provided',
 
         // Verification metadata
         verification_date: new Date().toISOString().split('T')[0],
@@ -4867,7 +4863,6 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null, // Not available from case data
-        full_address: 'Address not provided',
 
         // Verification metadata
         verification_date: new Date().toISOString().split('T')[0],
@@ -5511,7 +5506,6 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null, // Not available from case data
-        full_address: 'Address not provided',
 
         // Verification metadata
         verification_date: new Date().toISOString().split('T')[0],
@@ -5915,7 +5909,6 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null, // Not available from case data
-        full_address: 'Address not provided',
 
         // Verification metadata
         verification_date: new Date().toISOString().split('T')[0],
