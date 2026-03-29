@@ -53,7 +53,7 @@ export const RESIDENCE_FIELD_MAPPING: DatabaseFieldMapping = {
   metPersonStatus: 'met_person_status', // Used in SHIFTED and NSP forms
   stayingPersonName: 'staying_person_name', // Used in NSP forms when house is closed
   totalFamilyMembers: 'total_family_members', // Used in POSITIVE forms
-  totalEarning: 'total_earning', // Used in POSITIVE forms
+  totalEarningMember: 'total_earning_member', // How many earning members out of total family
   workingStatus: 'working_status', // Used in POSITIVE forms
   companyName: 'company_name', // Used in POSITIVE forms
   stayingPeriod: 'staying_period', // Used in POSITIVE and NSP forms
@@ -170,7 +170,7 @@ function processFieldValue(fieldName: string, value: unknown): unknown {
   // Handle numeric fields FIRST (before composite string conversion)
   const numericFields = [
     'totalFamilyMembers',
-    'totalEarning',
+    'totalEarningMember',
     'approxArea',
     'applicantStayingFloor',
     'addressFloor',
@@ -408,7 +408,7 @@ export function ensureAllFieldsPopulated(
     'met_person_status',
     'staying_person_name',
     'total_family_members',
-    'total_earning',
+    'total_earning_member',
     'working_status',
     'company_name',
     'staying_period',
@@ -496,7 +496,7 @@ function getRelevantFieldsForFormType(formType: string): string[] {
       'feedback_from_neighbour',
       'other_observation',
       'final_status',
-      'total_earning',
+      'total_earning_member',
       'company_name',
       'approx_area',
       'document_type',

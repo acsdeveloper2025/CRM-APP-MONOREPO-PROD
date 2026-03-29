@@ -1119,7 +1119,7 @@ export class MobileFormController {
       formData.metPersonRelation = report.met_person_relation;
       formData.metPersonStatus = report.met_person_status;
       formData.totalFamilyMembers = report.total_family_members;
-      formData.totalEarning = report.total_earning;
+      formData.totalEarningMember = report.total_earning_member;
       formData.workingStatus = report.working_status;
       formData.companyName = report.company_name;
       formData.stayingPeriod = report.staying_period;
@@ -1894,7 +1894,7 @@ export class MobileFormController {
       // Residence Information
       formData.houseStatus = report.house_status;
       formData.totalFamilyMembers = report.total_family_members;
-      formData.totalEarning = report.total_earning;
+      formData.totalEarningMember = report.total_earning_member;
       formData.stayingPeriod = report.staying_period;
       formData.stayingStatus = report.staying_status;
       formData.stayingPersonName = report.staying_person_name;

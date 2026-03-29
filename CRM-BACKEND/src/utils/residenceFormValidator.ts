@@ -288,7 +288,7 @@ function processFieldValue(fieldName: string, value: unknown): unknown {
   // Handle numeric fields
   const numericFields = [
     'totalFamilyMembers',
-    'totalEarning',
+    'totalEarningMember',
     'approxArea',
     'applicantStayingFloor',
     'addressFloor',
