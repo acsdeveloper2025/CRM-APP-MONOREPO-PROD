@@ -4006,7 +4006,7 @@ export class MobileFormController {
         });
       }
 
-      if (!verificationTaskId) {
+      if (!verificationTaskId && !taskId) {
         return res.status(400).json({
           success: false,
           message: 'Verification task ID is required',
@@ -4633,7 +4633,7 @@ export class MobileFormController {
         });
       }
 
-      if (!verificationTaskId) {
+      if (!verificationTaskId && !taskId) {
         return res.status(400).json({
           success: false,
           message: 'Verification task ID is required',
@@ -5277,7 +5277,7 @@ export class MobileFormController {
         });
       }
 
-      if (!verificationTaskId) {
+      if (!verificationTaskId && !taskId) {
         return res.status(400).json({
           success: false,
           message: 'Verification task ID is required',
@@ -5689,7 +5689,7 @@ export class MobileFormController {
         });
       }
 
-      if (!verificationTaskId) {
+      if (!verificationTaskId && !taskId) {
         return res.status(400).json({
           success: false,
           message: 'Verification task ID is required',
