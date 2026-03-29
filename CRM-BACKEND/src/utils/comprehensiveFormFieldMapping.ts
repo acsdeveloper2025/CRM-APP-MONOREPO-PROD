@@ -327,9 +327,9 @@ export const RESIDENCE_FORM_FIELDS: FormFieldDefinition[] = [
     formTypes: ['POSITIVE', 'NSP'],
   },
   {
-    id: 'addressFloor',
-    name: 'addressFloor',
-    label: 'Address Floor',
+    id: 'applicantStayingFloor',
+    name: 'applicantStayingFloor',
+    label: 'Applicant Staying Floor',
     type: 'text',
     isRequired: false,
     section: 'Property Details',

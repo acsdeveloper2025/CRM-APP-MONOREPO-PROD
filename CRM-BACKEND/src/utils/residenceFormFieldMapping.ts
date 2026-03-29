@@ -26,8 +26,8 @@ export const RESIDENCE_FIELD_MAPPING: DatabaseFieldMapping = {
   addressRating: 'address_rating',
   locality: 'locality',
   addressStructure: 'address_structure',
-  applicantStayingFloor: 'address_floor',
-  addressFloor: 'address_floor', // Alternative field name for shifted forms
+  applicantStayingFloor: 'applicant_staying_floor',
+  addressFloor: 'address_floor', // Alternative/generic field name
   addressStructureColor: 'address_structure_color',
   doorColor: 'door_color',
   doorNamePlateStatus: 'door_nameplate_status',
@@ -381,6 +381,7 @@ export function ensureAllFieldsPopulated(
     'locality',
     'address_structure',
     'address_floor',
+    'applicant_staying_floor',
     'address_structure_color',
     'door_color',
     'door_nameplate_status',
@@ -500,7 +501,7 @@ function getRelevantFieldsForFormType(formType: string): string[] {
       'document_type',
       'tpc_name1',
       'tpc_confirmation1',
-      'address_floor',
+      'applicant_staying_floor',
       'address_structure_color',
       'door_color',
       'door_nameplate_status',
