@@ -1260,6 +1260,8 @@ export class MobileFormController {
       formData.premisesStatus = report.premises_status;
       formData.companyNamePlateStatus = report.company_nameplate_status;
       formData.nameOnBoard = report.name_on_company_board;
+      formData.addressStructureColor = report.address_structure_color;
+      formData.doorColor = report.door_color;
 
       // TPC Details
       formData.tpcMetPerson1 = report.tpc_met_person1;
@@ -1268,8 +1270,6 @@ export class MobileFormController {
       formData.tpcMetPerson2 = report.tpc_met_person2;
       formData.nameOfTpc2 = report.tpc_name2;
       formData.tpcConfirmation2 = report.tpc_confirmation2;
-      formData.nameOfTpc1 = report.name_of_tpc1;
-      formData.nameOfTpc2 = report.name_of_tpc2;
 
       // Shifting Details
       formData.shiftedPeriod = report.shifted_period;
