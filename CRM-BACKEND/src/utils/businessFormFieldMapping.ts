@@ -179,16 +179,7 @@ function processBusinessFieldValue(fieldName: string, value: unknown): unknown {
     return value;
   }
 
-  // Handle composite objects (e.g., { value: 3, unit: 'Years' } from mobile dropdowns)
-  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    const obj = value as Record<string, unknown>;
-    if ('value' in obj && 'unit' in obj) {
-      return `${obj.value} ${obj.unit}`.trim();
-    }
-    return JSON.stringify(value);
-  }
-
-  // Handle numeric fields
+  // Handle numeric fields FIRST (before composite string conversion)
   const numericFields = [
     'staffStrength',
     'staffSeen',
@@ -201,6 +192,15 @@ function processBusinessFieldValue(fieldName: string, value: unknown): unknown {
     const raw = typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>) ? (value as Record<string, unknown>).value : value;
     const num = Number(raw);
     return isNaN(num) ? null : num;
+  }
+
+  // Handle composite objects (e.g., { value: 3, unit: 'Years' } from mobile dropdowns)
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    const obj = value as Record<string, unknown>;
+    if ('value' in obj && 'unit' in obj) {
+      return `${obj.value} ${obj.unit}`.trim();
+    }
+    return JSON.stringify(value);
   }
 
   // Default: convert to string and trim
