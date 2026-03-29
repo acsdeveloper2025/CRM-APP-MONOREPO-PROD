@@ -23,7 +23,7 @@ export interface ResidenceVerificationData extends BaseFormData {
   addressRating?: string;
   houseStatus?: string;
   totalFamilyMembers?: number;
-  totalEarning?: number;
+  totalEarningMember?: number;
   workingStatus?: string;
   companyName?: string;
   stayingPeriod?: string;
@@ -343,7 +343,7 @@ export interface ResidenceCumOfficeVerificationData extends BaseFormData {
   metPersonName?: string;
   metPersonRelation?: string;
   totalFamilyMembers?: number;
-  totalEarning?: number;
+  totalEarningMember?: number;
   stayingPeriod?: string;
   stayingStatus?: string;
   approxArea?: number;

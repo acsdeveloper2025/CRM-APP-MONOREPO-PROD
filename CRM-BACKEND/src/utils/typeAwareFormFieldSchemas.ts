@@ -197,7 +197,7 @@ export const CONDITIONAL_FIELD_RULES: Record<string, ConditionalRule[]> = {
       parentField: 'applicantStayingStatus',
       operator: 'in',
       value: ['Staying', 'Residing'],
-      showFields: ['stayingPeriod', 'houseStatus', 'totalFamilyMembers', 'totalEarning'],
+      showFields: ['stayingPeriod', 'houseStatus', 'totalFamilyMembers', 'totalEarningMember'],
     },
     {
       parentField: 'applicantStayingStatus',
@@ -921,8 +921,8 @@ const RESIDENCE_POSITIVE_FIELDS: FormFieldDefinition[] = [
     order: 1,
   },
   {
-    id: 'totalEarning',
-    name: 'totalEarning',
+    id: 'totalEarningMember',
+    name: 'totalEarningMember',
     label: 'Total Earning Members',
     type: 'number',
     isRequired: false,

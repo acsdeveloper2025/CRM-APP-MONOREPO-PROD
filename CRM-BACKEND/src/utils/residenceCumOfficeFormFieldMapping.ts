@@ -131,7 +131,7 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   // Additional form-specific fields from mobile components (avoiding duplicates)
   metPersonStatus: 'met_person_type', // Maps to met person type
   addressTraceable: 'address_locatable', // Alternative name for address locatable
-  fullAddress: 'full_address', // Maps to full address
+  fullAddress: null, // No full_address column — address is on verification_tasks
   customerName: 'customer_name', // Maps to customer name
   customerPhone: 'customer_phone', // Maps to customer phone
   customerEmail: 'customer_email', // Maps to customer email

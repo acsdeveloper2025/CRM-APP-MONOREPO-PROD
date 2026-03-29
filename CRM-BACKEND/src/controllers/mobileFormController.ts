@@ -934,16 +934,12 @@ export class MobileFormController {
                 : undefined,
           },
           {
-            id: 'totalEarning',
-            name: 'totalEarning',
-            label: 'Total Earning (₹)',
+            id: 'totalEarningMember',
+            name: 'totalEarningMember',
+            label: 'Total Earning Members',
             type: 'number' as const,
-            value: formData.totalEarning,
+            value: formData.totalEarningMember,
             isRequired: false,
-            displayValue:
-              typeof formData.totalEarning === 'number' || typeof formData.totalEarning === 'string'
-                ? `₹${String(formData.totalEarning)}`
-                : undefined,
           },
           {
             id: 'workingStatus',
@@ -1356,7 +1352,6 @@ export class MobileFormController {
       formData.metPersonContact = report.met_person_contact;
 
       // Address Information
-      formData.fullAddress = report.full_address;
       formData.locality = report.locality;
       formData.addressLocatable = report.address_locatable;
       formData.addressRating = report.address_rating;
@@ -1492,7 +1487,6 @@ export class MobileFormController {
       formData.metPersonContact = report.met_person_contact;
 
       // Address Information
-      formData.fullAddress = report.full_address;
       formData.locality = report.locality;
       formData.addressLocatable = report.address_locatable;
       formData.addressRating = report.address_rating;
@@ -1622,7 +1616,6 @@ export class MobileFormController {
       formData.metPersonContact = report.met_person_contact;
 
       // Address Information
-      formData.fullAddress = report.full_address;
       formData.locality = report.locality;
       formData.addressLocatable = report.address_locatable;
       formData.addressRating = report.address_rating;
@@ -1715,7 +1708,6 @@ export class MobileFormController {
       formData.applicantDesignation = report.applicant_designation;
 
       // Address Information
-      formData.fullAddress = report.full_address;
       formData.locality = report.locality;
       formData.addressLocatable = report.address_locatable;
       formData.addressRating = report.address_rating;
@@ -1798,7 +1790,6 @@ export class MobileFormController {
       formData.metPersonContact = report.met_person_contact;
 
       // Address Information
-      formData.fullAddress = report.full_address;
       formData.locality = report.locality;
       formData.addressLocatable = report.address_locatable;
       formData.addressRating = report.address_rating;
@@ -1913,7 +1904,6 @@ export class MobileFormController {
       formData.applicantDesignation = report.applicant_designation;
 
       // Address Information
-      formData.fullAddress = report.full_address;
       formData.locality = report.locality;
       formData.addressLocatable = report.address_locatable;
       formData.addressRating = report.address_rating;
@@ -4241,7 +4231,6 @@ export class MobileFormController {
         'customer_name',
         'customer_phone',
         'customer_email',
-        'full_address',
         'verification_date',
         'verification_time',
         'verified_by',
@@ -4504,7 +4493,6 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null,
-        full_address: 'Address not provided',
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
@@ -4888,7 +4876,6 @@ export class MobileFormController {
         'customer_name',
         'customer_phone',
         'customer_email',
-        'full_address',
         'verification_date',
         'verification_time',
         'verified_by',
@@ -5154,7 +5141,6 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null,
-        full_address: 'Address not provided',
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
@@ -5531,7 +5517,6 @@ export class MobileFormController {
         'customer_name',
         'customer_phone',
         'customer_email',
-        'full_address',
         'verification_date',
         'verification_time',
         'verified_by',
@@ -5934,7 +5919,6 @@ export class MobileFormController {
         'customer_name',
         'customer_phone',
         'customer_email',
-        'full_address',
         'verification_date',
         'verification_time',
         'verified_by',

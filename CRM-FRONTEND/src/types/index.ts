@@ -242,7 +242,6 @@ export interface Address {
   state?: string;
   pincode?: string;
   country?: string;
-  fullAddress?: string;
 }
 
 // Notification Types

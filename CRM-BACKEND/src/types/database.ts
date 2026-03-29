@@ -212,7 +212,7 @@ export interface ResidenceVerificationRow {
   address_rating?: string;
   house_status?: string;
   total_family_members?: number;
-  total_earning?: number;
+  total_earning_member?: number;
   working_status?: string;
   company_name?: string;
   staying_period?: string;
