@@ -3013,7 +3013,7 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null, // Not available from case data
-        full_address: updatedCase.address || 'Address not provided',
+        full_address: 'Address not provided',
 
         // Verification metadata
         verification_date: new Date().toISOString().split('T')[0],
@@ -3413,7 +3413,7 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null, // Not available from case data
-        full_address: updatedCase.address || 'Address not provided',
+        full_address: 'Address not provided',
 
         // Verification metadata
         verification_date: new Date().toISOString().split('T')[0],
@@ -3819,7 +3819,7 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null, // Not available from case data
-        full_address: updatedCase.address || 'Address not provided',
+        full_address: 'Address not provided',
 
         // Verification metadata
         verification_date: new Date().toISOString().split('T')[0],
@@ -4218,7 +4218,7 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null, // Not available from case data
-        full_address: updatedCase.address || 'Address not provided',
+        full_address: 'Address not provided',
 
         // Verification metadata
         verification_date: new Date().toISOString().split('T')[0],
@@ -4491,7 +4491,7 @@ export class MobileFormController {
         [JSON.stringify(verificationData), verificationOutcome, caseId]
       );
       const caseUpd = await query(
-        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber", address FROM cases WHERE id = $1`,
+        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
         [caseId]
       );
       const updatedCase = caseUpd.rows[0];
@@ -4507,7 +4507,7 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null,
-        full_address: updatedCase.address || 'Address not provided',
+        full_address: 'Address not provided',
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
@@ -4866,7 +4866,7 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null, // Not available from case data
-        full_address: updatedCase.address || 'Address not provided',
+        full_address: 'Address not provided',
 
         // Verification metadata
         verification_date: new Date().toISOString().split('T')[0],
@@ -5142,7 +5142,7 @@ export class MobileFormController {
         [JSON.stringify(verificationData), verificationOutcome, caseId]
       );
       const caseUpd = await query(
-        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber", address FROM cases WHERE id = $1`,
+        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
         [caseId]
       );
       const updatedCase = caseUpd.rows[0];
@@ -5158,7 +5158,7 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null,
-        full_address: updatedCase.address || 'Address not provided',
+        full_address: 'Address not provided',
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
@@ -5510,7 +5510,7 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null, // Not available from case data
-        full_address: updatedCase.address || 'Address not provided',
+        full_address: 'Address not provided',
 
         // Verification metadata
         verification_date: new Date().toISOString().split('T')[0],
@@ -5914,7 +5914,7 @@ export class MobileFormController {
         customer_name: updatedCase.customerName || 'Unknown',
         customer_phone: updatedCase.backendContactNumber || null,
         customer_email: null, // Not available from case data
-        full_address: updatedCase.address || 'Address not provided',
+        full_address: 'Address not provided',
 
         // Verification metadata
         verification_date: new Date().toISOString().split('T')[0],
