@@ -366,22 +366,19 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE: `Business Remark: POSITIVE.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit business was {Business_Status}. Met with {Met_Person_Name} ({Designation}), confirmed {Customer_Name} is running business at given address since last {Business_Period}.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was {Business_Status}. Met with {Met_Person_Name} ({Designation}), who confirmed that {Customer_Name} has been running the business at the given address since the last {Business_Period}.
 
 BUSINESS & ESTABLISHMENT DETAILS:
-Business type is {Business_Type} and nature of business is {Company_Nature_Of_Business}. Business area approx. {Business_Approx_Area} sq. feet. Business establishment period is {Establishment_Period}. Business owner name is {Business_Owner_Name}. Company Name board {Company_Name_Plate} {Name_On_Board}.
-
-BUSINESS OPERATIONS:
-Business activity includes {Business_Activity}. Business setup is {Business_Setup}. Total staff strength is {Staff_Strength} & seen {Staff_Seen}. Business existence confirmed as {Business_Existence}.
+Business type is {Business_Type} ({Ownership_Type}) and the nature of business is {Company_Nature_Of_Business}. The business area is approximately {Business_Approx_Area} sq. feet. Establishment period is {Establishment_Period}. Business owner: {Business_Owner_Name}. Company nameplate {Company_Name_Plate_Text}. Total staff strength is {Staff_Strength} and {Staff_Seen} were seen during the visit.
 
 LOCALITY INFORMATION:
-Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} {TPC_Confirmation_1} and {TPC_Met_Person_2} {Name_of_TPC_2} {TPC_Confirmation_2} {Customer_Name} & business existence.
+TPC was conducted with {Name_of_TPC_1}, who {TPC_Confirmation_1} {Customer_Name}'s business existence. Second TPC was done with {Name_of_TPC_2}, who also {TPC_Confirmation_2} the same.
 
 AREA ASSESSMENT:
-It is {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback found against {Customer_Name} & his business. Field executive also confirmed {Customer_Name} is {Political_Connection}. {Customer_Name} business stability is confirmed by our executive's observation as well as from TPC.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received regarding {Customer_Name} and the business. {Political_Connection_Text}. {Customer_Name}'s business stability is confirmed by the field executive's observation as well as from TPC.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -390,19 +387,19 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE_DOOR_LOCKED: `Business Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit business was {Business_Status}.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was {Business_Status}.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} {TPC_Confirmation_1} and {TPC_Met_Person_2} {Name_of_TPC_2} {TPC_Confirmation_2} {Customer_Name} & business existence. They informed that given business at given address since last {Business_Period}.
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who {TPC_Confirmation_1} {Customer_Name}'s business existence. They informed that the business has been operating at the given address since the last {Business_Period}.
 
 BUSINESS & ESTABLISHMENT DETAILS:
-Business type is {Business_Type} and nature of business is {Company_Nature_Of_Business}. Business area approx. {Business_Approx_Area} sq. feet. Business establishment period is {Establishment_Period}. Company Name board {Company_Name_Plate} {Name_On_Board}.
+Business type is {Business_Type} and the nature of business is {Company_Nature_Of_Business}. The business area is approximately {Business_Approx_Area} sq. feet. Establishment period is {Establishment_Period}. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 AREA ASSESSMENT:
-It is {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback received from neighbors. Field executive also confirmed {Customer_Name} is {Political_Connection}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -411,19 +408,19 @@ Hence the profile is marked as {Final_Status}.`,
     SHIFTED: `Business Remark: SHIFTED.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit business was {Business_Status}. Met with {Met_Person_Name} ({Designation}) confirmed that business shifted from the given address {Old_Business_Shifted_Period} ago.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was {Business_Status}. Met with {Met_Person_Name} ({Designation}), who confirmed that the business has shifted from the given address {Old_Business_Shifted_Period} ago.
 
 CURRENT BUSINESS STATUS:
-{Current_Company_Name} business operating at given address from last {Current_Company_Period}. Company name board is {Company_Name_Plate} {Name_On_Board}.
+{Current_Company_Name} is currently operating at the given address since the last {Current_Company_Period}. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} and {TPC_Met_Person_2} {Name_of_TPC_2} they confirmed that business is shifted from the given address.
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who confirmed that the business has shifted from the given address.
 
 AREA ASSESSMENT:
-It is {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback received from neighbors. Field executive also confirmed {Customer_Name} is {Political_Connection}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -432,19 +429,19 @@ Hence the profile is marked as {Final_Status}.`,
     SHIFTED_DOOR_LOCKED: `Business Remark: SHIFTED & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit business was {Business_Status}.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was closed.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} and {TPC_Met_Person_2} {Name_of_TPC_2} they confirmed that business shifted from the given address {Old_Business_Shifted_Period} ago.
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who confirmed that the business has shifted from the given address {Old_Business_Shifted_Period} ago.
 
 CURRENT BUSINESS STATUS:
-{Current_Company_Name} business operating at given address. Company name board is {Company_Name_Plate} {Name_On_Board}.
+{Current_Company_Name} is currently operating at the given address. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 AREA ASSESSMENT:
-It is {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback from neighbors. Field executive also confirmed {Customer_Name} is {Political_Connection}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -453,22 +450,22 @@ Hence the profile is marked as {Final_Status}.`,
     NSP: `Business Remark: NSP (No Such Person).
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit business was {Business_Status}. Met with {Met_Person_Name} ({Designation}).
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was {Business_Status}. Met with {Met_Person_Name} ({Designation}).
 
 BUSINESS VERIFICATION:
-Met person informed that there is no such person running business at given address. As per current business owner, {Customer_Name} has never operated business at this address.
+The met person informed that no such person is running a business at the given address. As per the current business owner, {Customer_Name} has never operated a business at this address.
 
 CURRENT BUSINESS DETAILS:
-Company name board is {Company_Name_Plate} {Name_On_Board}. Business area approx. {Business_Approx_Area} sq. feet.
+Company nameplate {Company_Name_Plate_Text}. The business area is approximately {Business_Approx_Area} sq. feet.
 
 LOCALITY INFORMATION:
-Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} and {TPC_Met_Person_2} {Name_of_TPC_2} {Third_Party_Confirmation} there is no such person running business at given address.
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who confirmed that no such person is running a business at the given address.
 
 AREA ASSESSMENT:
-It is {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback received from neighbors. Applicant's business stability is not confirmed by our executive's observation as well as from TPC.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Customer_Name}'s business presence is not confirmed by the field executive's observation or from TPC.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -477,52 +474,52 @@ Hence the profile is marked as {Final_Status}.`,
     NSP_DOOR_LOCKED: `Business Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit business was {Business_Status}.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was closed.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} {TPC_Confirmation_1} and {TPC_Met_Person_2} {Name_of_TPC_2} {TPC_Confirmation_2} Business {Business_Existence} at given address. As per TPC confirmation, there is no such person running business at this address.
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who confirmed that the business exists at the given address but no such person ({Customer_Name}) is running it.
 
 CURRENT BUSINESS STATUS:
-{Current_Company_Name} business operating at given address. Company name board is {Company_Name_Plate} {Name_On_Board}.
+{Current_Company_Name} is currently operating at the given address. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 AREA ASSESSMENT:
-It is {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback received from neighbors. Applicant's business stability is not confirmed by our executive's observation as well as from TPC.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Customer_Name}'s business presence is not confirmed by the field executive's observation or from TPC.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    ERT: `Business Entry Restricted Remark (ERT):-
+    ERT: `Business Remark: ENTRY RESTRICTED.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. It is {Customer_Name} business address. At the time of visit met with {Met_Person_Type} {Name_Of_Met_Person} informed that given premises entry not allowed.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Met_Person_Type} {Met_Person_Confirmation} {Business_Status} given address. Entry is restricted due to security protocols or business policies.
+{Name_of_Met_Person} {Met_Person_Confirmation} the business existence at the given address. Entry is restricted due to security protocols or business policies.
 
 LOCALITY INFORMATION:
-Locality is {Locality}. {Locality} is of {Locality} and address located on {Office_Exist_Floor} floor. {Locality} color is {Address_Structure_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 AREA ASSESSMENT:
-It's a {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback received from neighbors. Field executive also confirmed {Customer_Name} is {Political_Connection}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    UNTRACEABLE: `Business Untraceable Remark (UT):-
+    UNTRACEABLE: `Business Remark: UNTRACEABLE.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is incorrect and untraceable. At the time of visit met with {Met_Person_Name}, Met person informed that provided address is short.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is incorrect and untraceable.
 
 CONTACT ATTEMPT:
-We called {Customer_Name} but {Customer_Name} {Call_Remark}. We required proper guidance to trace the address.
+We called {Customer_Name}, but {Call_Remark}. Proper guidance is required to trace the address.
 
 SEARCH EFFORTS:
-Type of Locality is {Locality}. Field executive reached up to {Landmark_1}, {Landmark_2}, {Landmark_3}, {Landmark_4}. It's a {Dominated_Area} area.
+The locality type is {Locality}. Field executive reached up to the following landmarks: {Landmark_1}, {Landmark_2}, {Landmark_3}, {Landmark_4}. {Dominated_Area_Text}.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -2129,6 +2126,7 @@ Hence the profile is marked as {Final_Status}.`,
       // Business-specific variables
       Business_Status: safeGet(formData, 'businessStatus') || safeGet(formData, 'business_status'),
       Business_Type: safeGet(formData, 'businessType') || safeGet(formData, 'business_type'),
+      Ownership_Type: safeGet(formData, 'ownershipType') || safeGet(formData, 'ownership_type'),
       Business_Period: safeGet(formData, 'businessPeriod') || safeGet(formData, 'business_period'),
       Business_Approx_Area: this.formatAreaSqFeet(formData, 'business'),
       Business_Owner_Name:
