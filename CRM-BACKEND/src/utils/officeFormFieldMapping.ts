@@ -221,7 +221,8 @@ function processOfficeFieldValue(fieldName: string, value: unknown): unknown {
   const numericFields = ['staffStrength', 'staffSeen', 'officeApproxArea', 'totalEmployees'];
 
   if (numericFields.includes(fieldName)) {
-    const num = Number(value);
+    const raw = typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>) ? (value as Record<string, unknown>).value : value;
+    const num = Number(raw);
     return isNaN(num) ? null : num;
   }
 
