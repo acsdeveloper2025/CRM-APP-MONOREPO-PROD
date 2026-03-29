@@ -149,6 +149,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           nameOnSocietyBoard: residenceData.name_on_society_board,
           localityType: residenceData.locality,
           addressStructure: residenceData.address_structure,
+          applicantStayingFloor: residenceData.applicant_staying_floor,
           addressFloor: residenceData.address_floor,
           addressStructureColor: residenceData.address_structure_color,
           doorColor: residenceData.door_color,
