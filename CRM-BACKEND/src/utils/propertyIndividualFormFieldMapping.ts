@@ -243,16 +243,7 @@ function processPropertyIndividualFieldValue(fieldName: string, value: unknown):
     return value;
   }
 
-  // Handle composite objects (e.g., { value: 3, unit: 'Years' } from mobile dropdowns)
-  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    const obj = value as Record<string, unknown>;
-    if ('value' in obj && 'unit' in obj) {
-      return `${obj.value} ${obj.unit}`.trim();
-    }
-    return JSON.stringify(value);
-  }
-
-  // Handle numeric fields
+  // Handle numeric fields FIRST (before composite string conversion)
   const numericFields = [
     'propertyAge',
     'ownerAge',
@@ -265,6 +256,15 @@ function processPropertyIndividualFieldValue(fieldName: string, value: unknown):
     const raw = typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>) ? (value as Record<string, unknown>).value : value;
     const num = Number(raw);
     return isNaN(num) ? null : num;
+  }
+
+  // Handle composite objects (e.g., { value: 3, unit: 'Years' } from mobile dropdowns)
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    const obj = value as Record<string, unknown>;
+    if ('value' in obj && 'unit' in obj) {
+      return `${obj.value} ${obj.unit}`.trim();
+    }
+    return JSON.stringify(value);
   }
 
   // Handle decimal fields
