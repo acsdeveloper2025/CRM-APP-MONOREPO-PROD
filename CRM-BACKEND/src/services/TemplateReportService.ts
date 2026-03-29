@@ -873,19 +873,22 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE: `NOC Remark: POSITIVE.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit NOC office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), confirmed {Customer_Name} NOC verification is positive.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the NOC office was accessible. Met with {Met_Person_Name} ({Designation}), who confirmed {Customer_Name}'s NOC verification is positive.
 
 NOC VERIFICATION DETAILS:
-NOC document verification completed successfully. All required documents are available and verified. NOC status is confirmed as valid and authentic.
+NOC Type: {NOC_Type}. NOC Number: {NOC_Number}. Issued by {NOC_Issuing_Authority} on {NOC_Issue_Date}, valid until {NOC_Expiry_Date}. NOC validity status: {NOC_Validity_Status}. Project: {Project_Name} ({Project_Status}). Total units: {Total_Units}, completed: {Completed_Units}, sold: {Sold_Units}. Builder: {Builder_Name} (RERA: {Builder_Registration_Number}).
+
+CLEARANCES:
+Environmental: {Environmental_Clearance}. Fire Safety: {Fire_Safety_Clearance}. Pollution: {Pollution_Clearance}. Water: {Water_Connection_Status}. Electricity: {Electricity_Connection_Status}.
 
 LOCALITY INFORMATION:
-Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} {TPC_Confirmation_1} and {TPC_Met_Person_2} {Name_of_TPC_2} {TPC_Confirmation_2} NOC verification details.
+TPC was conducted with {Name_of_TPC_1}, who {TPC_Confirmation_1} the NOC details. Second TPC was done with {Name_of_TPC_2}, who also {TPC_Confirmation_2} the same.
 
 AREA ASSESSMENT:
-It is {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback received from neighbors. Field executive also confirmed {Customer_Name} is {Political_Connection}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -894,52 +897,130 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE_DOOR_LOCKED: `NOC Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit NOC office was {Office_Status}.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the NOC office was closed.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} {TPC_Confirmation_1} and {TPC_Met_Person_2} {Name_of_TPC_2} {TPC_Confirmation_2} NOC verification details. They confirmed NOC document verification is positive.
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who {TPC_Confirmation_1} the NOC verification details and confirmed all documents are valid.
 
 NOC VERIFICATION DETAILS:
-NOC document verification completed through TPC. All required documents are confirmed as available and verified through third party confirmation.
+NOC Type: {NOC_Type}. NOC Number: {NOC_Number}. Issued by {NOC_Issuing_Authority}. NOC validity status: {NOC_Validity_Status}. Project: {Project_Name}. Builder: {Builder_Name}.
 
 LOCALITY INFORMATION:
-Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 AREA ASSESSMENT:
-It is {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback received from neighbors. Field executive also confirmed {Customer_Name} is {Political_Connection}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    ERT: `NOC Entry Restricted Remark (ERT):-
+    SHIFTED: `NOC Remark: SHIFTED.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. It is {Customer_Name} NOC verification address. At the time of visit met with {Met_Person_Type} {Name_Of_Met_Person} informed that given premises entry not allowed.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. Met with {Met_Person_Name} ({Designation}), who informed that the NOC office has shifted from the given address {Shifted_Period} ago.
+
+CURRENT STATUS:
+The premises status is {Premises_Status}. The current location is {Current_Location}.
+
+LOCALITY INFORMATION:
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
+
+THIRD PARTY CONFIRMATION:
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who confirmed that the NOC office has shifted from the given address.
+
+AREA ASSESSMENT:
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
+
+CONCLUSION:
+Field Executive Observation: {Other_Observation}
+Hence the profile is marked as {Final_Status}.`,
+
+    SHIFTED_DOOR_LOCKED: `NOC Remark: SHIFTED & DOOR LOCKED.
+
+VERIFICATION DETAILS:
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the premises were closed.
+
+THIRD PARTY CONFIRMATION:
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who confirmed that the NOC office has shifted from the given address {Shifted_Period} ago. The premises status is {Premises_Status}.
+
+LOCALITY INFORMATION:
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
+
+AREA ASSESSMENT:
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
+
+CONCLUSION:
+Field Executive Observation: {Other_Observation}
+Hence the profile is marked as {Final_Status}.`,
+
+    NSP: `NOC Remark: NSP (No Such Person).
+
+VERIFICATION DETAILS:
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. Met with {Met_Person_Name} ({Designation}), who informed that no such person is associated with the NOC at the given address.
+
+NOC VERIFICATION:
+As per the met person, {Customer_Name} has no connection with the NOC or the project at this address.
+
+LOCALITY INFORMATION:
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
+
+THIRD PARTY CONFIRMATION:
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who confirmed that no such person ({Customer_Name}) is associated with the NOC at the given address.
+
+AREA ASSESSMENT:
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Customer_Name}'s association with the NOC is not confirmed by the field executive's observation or from TPC.
+
+CONCLUSION:
+Field Executive Observation: {Other_Observation}
+Hence the profile is marked as {Final_Status}.`,
+
+    NSP_DOOR_LOCKED: `NOC Remark: NSP & DOOR LOCKED.
+
+VERIFICATION DETAILS:
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the premises were closed.
+
+THIRD PARTY CONFIRMATION:
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who confirmed that the NOC office exists at the given address but no such person ({Customer_Name}) is associated with it.
+
+LOCALITY INFORMATION:
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
+
+AREA ASSESSMENT:
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Customer_Name}'s association with the NOC is not confirmed by the field executive's observation or from TPC.
+
+CONCLUSION:
+Field Executive Observation: {Other_Observation}
+Hence the profile is marked as {Final_Status}.`,
+
+    ERT: `NOC Remark: ENTRY RESTRICTED.
+
+VERIFICATION DETAILS:
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Met_Person_Type} {Met_Person_Confirmation} NOC office existence at given address. Entry is restricted due to security protocols or office policies.
+{Name_of_Met_Person} {Met_Person_Confirmation} the NOC office existence at the given address. Entry is restricted due to security protocols or office policies.
 
 LOCALITY INFORMATION:
-Locality is {Locality}. {Locality} is of {Locality} and address located on {Office_Exist_Floor} floor. {Locality} color is {Address_Structure_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 AREA ASSESSMENT:
-It's a {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback received from neighbors. Field executive also confirmed {Customer_Name} is {Political_Connection}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    UNTRACEABLE: `NOC Untraceable Remark (UT):-
+    UNTRACEABLE: `NOC Remark: UNTRACEABLE.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is incorrect and untraceable. At the time of visit met with {Met_Person_Name}, Met person informed that provided address is short.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is incorrect and untraceable.
 
 CONTACT ATTEMPT:
-We called {Customer_Name} but {Customer_Name} {Call_Remark}. We required proper guidance to trace the address.
+We called {Customer_Name}, but {Call_Remark}. Proper guidance is required to trace the address.
 
 SEARCH EFFORTS:
-Type of Locality is {Locality}. Field executive reached up to {Landmark_1}, {Landmark_2}, {Landmark_3}, {Landmark_4}. It's a {Dominated_Area} area.
+The locality type is {Locality}. Field executive reached up to the following landmarks: {Landmark_1}, {Landmark_2}, {Landmark_3}, {Landmark_4}. {Dominated_Area_Text}.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -2122,6 +2203,39 @@ Hence the profile is marked as {Final_Status}.`,
         'confirmed',
       Office_Existence:
         safeGet(formData, 'officeExistence') || safeGet(formData, 'office_existence') || 'exists',
+
+      // NOC-specific variables
+      NOC_Type: safeGet(formData, 'nocType') || safeGet(formData, 'noc_type'),
+      NOC_Number: safeGet(formData, 'nocNumber') || safeGet(formData, 'noc_number'),
+      NOC_Status: safeGet(formData, 'nocStatus') || safeGet(formData, 'noc_status'),
+      NOC_Issue_Date: safeGet(formData, 'nocIssueDate') || safeGet(formData, 'noc_issue_date'),
+      NOC_Expiry_Date: safeGet(formData, 'nocExpiryDate') || safeGet(formData, 'noc_expiry_date'),
+      NOC_Issuing_Authority:
+        safeGet(formData, 'nocIssuingAuthority') || safeGet(formData, 'noc_issuing_authority'),
+      NOC_Validity_Status:
+        safeGet(formData, 'nocValidityStatus') || safeGet(formData, 'noc_validity_status'),
+      Project_Name: safeGet(formData, 'projectName') || safeGet(formData, 'project_name'),
+      Project_Status: safeGet(formData, 'projectStatus') || safeGet(formData, 'project_status'),
+      Construction_Status:
+        safeGet(formData, 'constructionStatus') || safeGet(formData, 'construction_status'),
+      Total_Units: safeGet(formData, 'totalUnits') || safeGet(formData, 'total_units'),
+      Completed_Units: safeGet(formData, 'completedUnits') || safeGet(formData, 'completed_units'),
+      Sold_Units: safeGet(formData, 'soldUnits') || safeGet(formData, 'sold_units'),
+      Builder_Registration_Number:
+        safeGet(formData, 'builderRegistrationNumber') ||
+        safeGet(formData, 'reraRegistrationNumber'),
+      Environmental_Clearance:
+        safeGet(formData, 'environmentalClearance') || safeGet(formData, 'environmental_clearance'),
+      Fire_Safety_Clearance:
+        safeGet(formData, 'fireSafetyClearance') || safeGet(formData, 'fire_safety_clearance'),
+      Pollution_Clearance:
+        safeGet(formData, 'pollutionClearance') || safeGet(formData, 'pollution_clearance'),
+      Water_Connection_Status:
+        safeGet(formData, 'waterConnectionStatus') || safeGet(formData, 'water_connection_status'),
+      Electricity_Connection_Status:
+        safeGet(formData, 'electricityConnectionStatus') ||
+        safeGet(formData, 'electricity_connection_status'),
+      Current_Location: safeGet(formData, 'currentLocation') || safeGet(formData, 'current_location'),
 
       // Builder-specific variables
       Builder_Type: safeGet(formData, 'builderType') || safeGet(formData, 'builder_type'),
