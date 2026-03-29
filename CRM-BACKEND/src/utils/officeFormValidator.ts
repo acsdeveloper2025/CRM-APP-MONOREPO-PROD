@@ -256,7 +256,10 @@ function processFieldValue(fieldName: string, value: unknown): unknown {
   ];
 
   if (numericFields.includes(fieldName)) {
-    const raw = typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>) ? (value as Record<string, unknown>).value : value;
+    const raw =
+      typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>)
+        ? (value as Record<string, unknown>).value
+        : value;
     const num = Number(raw);
     return isNaN(num) ? null : num;
   }
@@ -275,7 +278,7 @@ function processFieldValue(fieldName: string, value: unknown): unknown {
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     const obj = value as Record<string, unknown>;
     if ('value' in obj && 'unit' in obj) {
-      return `${String(obj.value)} ${String(obj.unit)}`.trim() || null;
+      return `${String(obj.value as string)} ${String(obj.unit as string)}`.trim() || null;
     }
   }
 
