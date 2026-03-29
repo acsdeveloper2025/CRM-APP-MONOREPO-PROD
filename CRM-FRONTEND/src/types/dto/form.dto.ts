@@ -83,82 +83,310 @@ export interface BusinessVerificationData extends BaseFormData {
   otherObservation?: string;
 }
 
-// Site Visit
-export interface SiteVisitData extends BaseFormData {
-  siteLocation?: string;
-  siteCondition?: string;
-  constructionStatus?: string;
-  accessibilityRating?: string;
-  nearbyLandmarks?: string;
-  observations?: string;
-}
-
-// Telecom Verification
-export interface TelecomVerificationData extends BaseFormData {
-  phoneNumber?: string;
-  connectionType?: string;
-  connectionStatus?: string;
-  registeredName?: string;
-  addressOnRecord?: string;
-  verificationMethod?: string;
-}
-
-// Reference Check
-export interface ReferenceCheckData extends BaseFormData {
-  referenceName?: string;
-  referenceRelation?: string;
-  referencePhone?: string;
-  referenceAddress?: string;
-  feedbackReceived?: string;
-  referenceRating?: string;
-}
-
-// Document Verification
-export interface DocumentVerificationData extends BaseFormData {
-  documentType?: string;
-  documentNumber?: string;
-  issueDate?: string;
-  expiryDate?: string;
-  issuingAuthority?: string;
-  documentStatus?: string;
-  verificationMethod?: string;
-  discrepanciesFound?: string;
-}
-
-// Employment Verification
-export interface EmploymentVerificationData extends BaseFormData {
-  employerName?: string;
+// Builder Verification
+export interface BuilderVerificationData extends BaseFormData {
+  officeStatus?: string;
+  officeExistence?: string;
+  builderType?: string;
+  companyNatureOfBusiness?: string;
+  businessPeriod?: string;
+  establishmentPeriod?: string;
+  officeApproxArea?: number;
+  staffStrength?: number;
+  staffSeen?: number;
+  metPersonName?: string;
   designation?: string;
-  employmentType?: string;
-  joiningDate?: string;
-  salary?: number;
-  hrContactName?: string;
-  hrContactPhone?: string;
-  verificationMethod?: string;
+  applicantDesignation?: string;
+  builderName?: string;
+  builderOwnerName?: string;
+  workingPeriod?: string;
+  workingStatus?: string;
+  documentShown?: string;
+  addressLocatable?: string;
+  addressRating?: string;
+  locality?: string;
+  addressStructure?: string;
+  landmark1?: string;
+  landmark2?: string;
+  landmark3?: string;
+  landmark4?: string;
+  politicalConnection?: string;
+  dominatedArea?: string;
+  feedbackFromNeighbour?: string;
+  otherObservation?: string;
 }
 
-// Bank Account Verification
-export interface BankAccountVerificationData extends BaseFormData {
+// DSA/DST Connector Verification
+export interface DsaConnectorVerificationData extends BaseFormData {
+  connectorType?: string;
+  connectorCode?: string;
+  connectorName?: string;
+  connectorDesignation?: string;
+  connectorExperience?: number;
+  connectorStatus?: string;
+  businessName?: string;
+  businessType?: string;
+  businessRegistrationNumber?: string;
+  businessEstablishmentYear?: number;
+  officeType?: string;
+  officeArea?: number;
+  officeRent?: number;
+  totalStaff?: number;
+  salesStaff?: number;
+  supportStaff?: number;
+  teamSize?: number;
+  monthlyBusinessVolume?: number;
+  averageMonthlySales?: number;
+  annualTurnover?: number;
+  monthlyIncome?: number;
+  commissionStructure?: string;
+  paymentTerms?: string;
+  bankAccountDetails?: string;
+  computerSystems?: number;
+  internetConnection?: string;
+  softwareSystems?: string;
+  posTerminals?: number;
+  printerScanner?: string;
+  licenseStatus?: string;
+  licenseNumber?: string;
+  licenseExpiryDate?: string;
+  complianceStatus?: string;
+  auditStatus?: string;
+  trainingStatus?: string;
+  metPersonName?: string;
+  metPersonDesignation?: string;
+  metPersonRelation?: string;
+  metPersonContact?: string;
+  businessOperational?: string;
+  customerFootfall?: string;
+  businessHours?: string;
+  weekendOperations?: string;
+  marketPresence?: string;
+  competitorAnalysis?: string;
+  marketReputation?: string;
+  customerFeedback?: string;
+  riskAssessment?: string;
+  addressLocatable?: string;
+  addressRating?: string;
+  locality?: string;
+  addressStructure?: string;
+  landmark1?: string;
+  landmark2?: string;
+  landmark3?: string;
+  landmark4?: string;
+  politicalConnection?: string;
+  dominatedArea?: string;
+  feedbackFromNeighbour?: string;
+  otherObservation?: string;
+}
+
+// NOC Verification
+export interface NocVerificationData extends BaseFormData {
+  nocStatus?: string;
+  nocType?: string;
+  nocNumber?: string;
+  nocIssueDate?: string;
+  nocExpiryDate?: string;
+  nocIssuingAuthority?: string;
+  nocValidityStatus?: string;
+  propertyType?: string;
+  projectName?: string;
+  projectStatus?: string;
+  constructionStatus?: string;
+  projectApprovalStatus?: string;
+  totalUnits?: number;
+  completedUnits?: number;
+  soldUnits?: number;
+  possessionStatus?: string;
+  builderName?: string;
+  builderContact?: string;
+  developerName?: string;
+  developerContact?: string;
+  builderRegistrationNumber?: string;
+  metPersonName?: string;
+  metPersonDesignation?: string;
+  metPersonRelation?: string;
+  metPersonContact?: string;
+  documentShownStatus?: string;
+  documentType?: string;
+  documentVerificationStatus?: string;
+  environmentalClearance?: string;
+  fireSafetyClearance?: string;
+  pollutionClearance?: string;
+  waterConnectionStatus?: string;
+  electricityConnectionStatus?: string;
+  addressLocatable?: string;
+  addressRating?: string;
+  locality?: string;
+  addressStructure?: string;
+  landmark1?: string;
+  landmark2?: string;
+  landmark3?: string;
+  landmark4?: string;
+  politicalConnection?: string;
+  dominatedArea?: string;
+  feedbackFromNeighbour?: string;
+  otherObservation?: string;
+}
+
+// Property APF Verification
+export interface PropertyApfVerificationData extends BaseFormData {
+  propertyType?: string;
+  propertyStatus?: string;
+  propertyOwnership?: string;
+  propertyAge?: number;
+  propertyCondition?: string;
+  propertyArea?: number;
+  propertyValue?: number;
+  marketValue?: number;
+  apfStatus?: string;
+  apfNumber?: string;
+  apfIssueDate?: string;
+  apfExpiryDate?: string;
+  apfIssuingAuthority?: string;
+  apfValidityStatus?: string;
+  apfAmount?: number;
+  apfUtilizedAmount?: number;
+  apfBalanceAmount?: number;
+  projectName?: string;
+  projectStatus?: string;
+  projectApprovalStatus?: string;
+  projectCompletionPercentage?: number;
+  totalUnits?: number;
+  completedUnits?: number;
+  soldUnits?: number;
+  availableUnits?: number;
+  possessionStatus?: string;
+  builderName?: string;
+  builderContact?: string;
+  developerName?: string;
+  developerContact?: string;
+  builderRegistrationNumber?: string;
+  reraRegistrationNumber?: string;
+  loanAmount?: number;
+  loanPurpose?: string;
+  loanStatus?: string;
   bankName?: string;
-  branchName?: string;
-  accountNumber?: string;
-  accountType?: string;
-  accountHolderName?: string;
-  accountStatus?: string;
-  verificationMethod?: string;
+  emiAmount?: number;
+  metPersonName?: string;
+  metPersonDesignation?: string;
+  metPersonRelation?: string;
+  metPersonContact?: string;
+  documentShownStatus?: string;
+  documentType?: string;
+  addressLocatable?: string;
+  addressRating?: string;
+  locality?: string;
+  addressStructure?: string;
+  landmark1?: string;
+  landmark2?: string;
+  landmark3?: string;
+  landmark4?: string;
+  politicalConnection?: string;
+  dominatedArea?: string;
+  feedbackFromNeighbour?: string;
+  otherObservation?: string;
 }
 
-// Union type for all form data
+// Property Individual Verification
+export interface PropertyIndividualVerificationData extends BaseFormData {
+  propertyType?: string;
+  propertyStatus?: string;
+  propertyOwnership?: string;
+  propertyAge?: number;
+  propertyCondition?: string;
+  propertyArea?: number;
+  propertyValue?: number;
+  marketValue?: number;
+  constructionType?: string;
+  ownerName?: string;
+  ownerRelation?: string;
+  ownerAge?: number;
+  ownerOccupation?: string;
+  ownerIncome?: number;
+  yearsOfResidence?: number;
+  familyMembers?: number;
+  earningMembers?: number;
+  individualName?: string;
+  individualAge?: number;
+  individualOccupation?: string;
+  individualIncome?: number;
+  employmentType?: string;
+  monthlyIncome?: number;
+  annualIncome?: number;
+  propertyDocuments?: string;
+  documentVerificationStatus?: string;
+  titleClearStatus?: string;
+  mutationStatus?: string;
+  taxPaymentStatus?: string;
+  metPersonName?: string;
+  metPersonDesignation?: string;
+  metPersonRelation?: string;
+  metPersonContact?: string;
+  addressLocatable?: string;
+  addressRating?: string;
+  locality?: string;
+  addressStructure?: string;
+  landmark1?: string;
+  landmark2?: string;
+  landmark3?: string;
+  landmark4?: string;
+  politicalConnection?: string;
+  dominatedArea?: string;
+  feedbackFromNeighbour?: string;
+  otherObservation?: string;
+}
+
+// Residence Cum Office Verification
+export interface ResidenceCumOfficeVerificationData extends BaseFormData {
+  houseStatus?: string;
+  metPersonName?: string;
+  metPersonRelation?: string;
+  totalFamilyMembers?: number;
+  totalEarning?: number;
+  stayingPeriod?: string;
+  stayingStatus?: string;
+  approxArea?: number;
+  documentShownStatus?: string;
+  documentType?: string;
+  officeStatus?: string;
+  officeExistence?: string;
+  officeType?: string;
+  designation?: string;
+  applicantDesignation?: string;
+  workingPeriod?: string;
+  workingStatus?: string;
+  currentCompanyName?: string;
+  companyNatureOfBusiness?: string;
+  businessPeriod?: string;
+  establishmentPeriod?: string;
+  staffStrength?: number;
+  staffSeen?: number;
+  addressLocatable?: string;
+  addressRating?: string;
+  locality?: string;
+  addressStructure?: string;
+  landmark1?: string;
+  landmark2?: string;
+  landmark3?: string;
+  landmark4?: string;
+  politicalConnection?: string;
+  dominatedArea?: string;
+  feedbackFromNeighbour?: string;
+  otherObservation?: string;
+}
+
+// Union type for all verification form data
 export type VerificationFormData =
   | ResidenceVerificationData
   | OfficeVerificationData
   | BusinessVerificationData
-  | SiteVisitData
-  | TelecomVerificationData
-  | ReferenceCheckData
-  | DocumentVerificationData
-  | EmploymentVerificationData
-  | BankAccountVerificationData;
+  | BuilderVerificationData
+  | DsaConnectorVerificationData
+  | NocVerificationData
+  | PropertyApfVerificationData
+  | PropertyIndividualVerificationData
+  | ResidenceCumOfficeVerificationData;
 
 // Form submission request
 export interface FormSubmissionRequest {
