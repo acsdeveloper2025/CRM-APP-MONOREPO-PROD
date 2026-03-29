@@ -1321,6 +1321,7 @@ export class MobileFormController {
       formData.marketValue = report.market_value;
       formData.buildingStatus = report.building_status;
       formData.constructionActivity = report.construction_activity;
+      formData.activityStopReason = report.activity_stop_reason;
 
       // APF Details
       formData.apfStatus = report.apf_status;
@@ -1418,37 +1419,11 @@ export class MobileFormController {
       formData.holdReason = report.hold_reason;
       formData.recommendationStatus = report.recommendation_status;
       formData.remarks = report.remarks;
-      formData.metPersonDesignation = report.met_person_designation;
-      formData.metPersonRelation = report.met_person_relation;
-      formData.metPersonContact = report.met_person_contact;
-      formData.documentShownStatus = report.document_shown_status;
-      formData.documentType = report.document_type;
-      formData.documentVerificationStatus = report.document_verification_status;
-      formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.nameOfTpc1 = report.tpc_name1;
-      formData.tpcConfirmation1 = report.tpc_confirmation1;
-      formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.nameOfTpc2 = report.tpc_name2;
-      formData.tpcConfirmation2 = report.tpc_confirmation2;
-      formData.shiftedPeriod = report.shifted_period;
-      formData.currentLocation = report.current_location;
-      formData.premisesStatus = report.premises_status;
-      formData.entryRestrictionReason = report.entry_restriction_reason;
-      formData.securityPersonName = report.security_person_name;
-      formData.securityConfirmation = report.security_confirmation;
-      formData.contactPerson = report.contact_person;
-      formData.callRemark = report.call_remark;
-      formData.legalClearance = report.legal_clearance;
-      formData.titleClearance = report.title_clearance;
-      formData.encumbranceStatus = report.encumbrance_status;
-      formData.litigationStatus = report.litigation_status;
-      formData.infrastructureStatus = report.infrastructure_status;
-      formData.roadConnectivity = report.road_connectivity;
-      formData.propertyConcerns = report.property_concerns;
-      formData.financialConcerns = report.financial_concerns;
-      formData.recommendationStatus = report.recommendation_status;
-      formData.doorColor = report.door_color;
-      formData.holdReason = report.hold_reason;
+
+      // Entry restricted fields (additional)
+      formData.nameOfMetPerson = report.name_of_met_person;
+      formData.metPersonConfirmation = report.met_person_confirmation;
+      formData.designation = report.designation;
     } else if (normalizedType === 'PROPERTY_INDIVIDUAL') {
       // Basic Information
       formData.customerName = report.customer_name;
