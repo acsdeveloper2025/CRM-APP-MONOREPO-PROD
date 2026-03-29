@@ -1955,32 +1955,31 @@ Hence the profile is marked as {Final_Status}.`,
 
       // Name plates and boards
       Door_Name_Plate:
-        /sighted/i.test(safeGet(formData, 'doorNamePlateStatus') || '') ? 'Available' : 'Not Available',
+        /^sighted/i.test(safeGet(formData, 'doorNamePlateStatus') || '') ? 'Available' : 'Not Available',
       Name_on_Door_Plate:
         safeGet(formData, 'nameOnDoorPlate') || safeGet(formData, 'doorNamePlate'),
-      Door_Name_Plate_Text: /sighted/i.test(safeGet(formData, 'doorNamePlateStatus') || '')
+      Door_Name_Plate_Text: /^sighted/i.test(safeGet(formData, 'doorNamePlateStatus') || '')
         ? `shows the name "${safeGet(formData, 'nameOnDoorPlate') || 'N/A'}"`
         : 'is not sighted',
       // Company nameplate (for Office/Business/Builder forms)
       Company_Name_Plate:
-        /sighted/i.test(safeGet(formData, 'companyNamePlateStatus') || '') ? 'Available' : 'Not Available',
-      Company_Name_Plate_Text: /sighted/i.test(safeGet(formData, 'companyNamePlateStatus') || '')
+        /^sighted/i.test(safeGet(formData, 'companyNamePlateStatus') || '') ? 'Available' : 'Not Available',
+      Company_Name_Plate_Text: /^sighted/i.test(safeGet(formData, 'companyNamePlateStatus') || '')
         ? `displays "${safeGet(formData, 'nameOnBoard') || safeGet(formData, 'nameOnCompanyBoard') || 'N/A'}"`
         : 'is not sighted',
       Name_On_Board:
         safeGet(formData, 'nameOnBoard') || safeGet(formData, 'nameOnCompanyBoard'),
 
       Society_Name_Plate:
-        /sighted/i.test(safeGet(formData, 'societyNamePlateStatus') || '') ? 'Available' : 'Not Available',
+        /^sighted/i.test(safeGet(formData, 'societyNamePlateStatus') || '') ? 'Available' : 'Not Available',
       Name_on_Society_Board:
         safeGet(formData, 'nameOnSocietyBoard') || safeGet(formData, 'societyNamePlate'),
-      Society_Name_Plate_Text: /sighted/i.test(safeGet(formData, 'societyNamePlateStatus') || '')
+      Society_Name_Plate_Text: /^sighted/i.test(safeGet(formData, 'societyNamePlateStatus') || '')
         ? `displays "${safeGet(formData, 'nameOnSocietyBoard') || 'N/A'}"`
         : 'is not sighted',
 
       // Locality details
-      Locality:
-        safeGet(formData, 'localityType') || safeGet(formData, 'locality') || 'Tower / Building',
+      Locality: (formData.locality as string) || (formData.localityType as string) || 'Not provided',
       Address_Structure_G_Plus:
         safeGet(formData, 'addressStructure') || safeGet(formData, 'addressStructureGPlus'),
       Applicant_Staying_Floor:
