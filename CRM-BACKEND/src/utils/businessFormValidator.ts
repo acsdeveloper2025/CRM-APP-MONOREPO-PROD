@@ -284,6 +284,14 @@ function processFieldValue(fieldName: string, value: unknown): unknown {
     return null;
   }
 
+  // Handle composite objects (e.g., { value: 3, unit: 'Years' } from mobile dropdowns)
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    const obj = value as Record<string, unknown>;
+    if ('value' in obj && 'unit' in obj) {
+      return `${obj.value} ${obj.unit}`.trim() || null;
+    }
+  }
+
   // Default: convert to string and trim, return null if empty
   const trimmedValue = (
     typeof value === 'object' && value !== null
