@@ -1173,6 +1173,7 @@ export class MobileFormController {
       formData.designation = report.designation;
       formData.applicantDesignation = report.applicant_designation;
       formData.officeStatus = report.office_status;
+      formData.officeExistence = report.office_existence;
       formData.officeType = report.office_type;
       formData.companyNatureOfBusiness = report.company_nature_of_business;
       formData.businessPeriod = report.business_period;
