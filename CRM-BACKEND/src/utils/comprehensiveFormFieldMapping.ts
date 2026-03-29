@@ -6299,7 +6299,7 @@ export function createComprehensiveFormSections(
       return 'Person Details';
     if (/^house|^room|^premises|^office(Status|Existence|Type|Area)|^building|^flat/.test(name))
       return 'Premises Details';
-    if (/^total(Family|Earning|Staff)|^staff|^earning|^family|^staying(Period|Status)|^working|^company(?!Name)/.test(name))
+    if (/^total(Family|Earning|Staff)|^staff|^earning|^family|^staying(Period|Status)|^working|^companyName$|^approxArea/.test(name))
       return 'Personal & Work Details';
     if (/^document|^property(Doc|Documents)/.test(name)) return 'Document Verification';
     if (/^tpc|^nameOfTpc|^neighbor/.test(name)) return 'Third Party Confirmation';
@@ -6325,12 +6325,15 @@ export function createComprehensiveFormSections(
   // Convert camelCase to label: "metPersonName" → "Met Person Name"
   const toLabel = (name: string): string =>
     name
+      .replace(/(\d+)/g, ' $1') // "landmark1" → "landmark 1"
       .replace(/([A-Z])/g, ' $1')
       .replace(/^./, s => s.toUpperCase())
-      .replace(/\bTpc\b/g, 'TPC')
-      .replace(/\bNoc\b/g, 'NOC')
-      .replace(/\bApf\b/g, 'APF')
-      .replace(/\bDsa\b/g, 'DSA')
+      .replace(/\bTpc\b/gi, 'TPC')
+      .replace(/\bNoc\b/gi, 'NOC')
+      .replace(/\bApf\b/gi, 'APF')
+      .replace(/\bDsa\b/gi, 'DSA')
+      .replace(/\bRera\b/gi, 'RERA')
+      .replace(/\bEmi\b/gi, 'EMI')
       .trim();
 
   // Build sections from formData
