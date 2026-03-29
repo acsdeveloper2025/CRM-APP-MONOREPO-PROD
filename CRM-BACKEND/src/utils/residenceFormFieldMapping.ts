@@ -172,7 +172,6 @@ function processFieldValue(fieldName: string, value: unknown): unknown {
     'totalFamilyMembers',
     'totalEarningMember',
     'approxArea',
-    'applicantStayingFloor',
     'addressFloor',
     'familyMembers',
   ];
