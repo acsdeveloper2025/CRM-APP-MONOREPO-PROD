@@ -59,19 +59,19 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE_DOOR_LOCKED: `Residence Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit door was {House_Status}.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the door was {House_Status}.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} who {TPC_Confirmation_1} {Customer_Name} name and stay. TPC {TPC_Met_Person_2} {Name_of_TPC_2} also {TPC_Confirmation_2} {Customer_Name} name and stay. Confirmed {Customer_Name} is staying at given address since {Staying_Period} {Staying_Status}.
+TPC was conducted with {Name_of_TPC_1}, who {TPC_Confirmation_1} {Customer_Name}'s name and stay at the given address. Second TPC was done with {Name_of_TPC_2}, who also {TPC_Confirmation_2} {Customer_Name}'s residence. It is confirmed that {Customer_Name} has been staying at the given address since {Staying_Period} as {Staying_Status}.
 
 PROPERTY & PERSONAL DETAILS:
-The area of premises is approx. {Approx_Area_Sq_Feet}. Total family members are {Total_Family_Members} and earning members are {Total_Earning}. {Customer_Name} works as {Working_Status} at {Company_Name}. The door name plate is {Door_Name_Plate} {Name_on_Door_Plate} and also name on Society board is {Society_Name_Plate} {Name_on_Society_Board}.
+The approximate area of the premises is {Approx_Area_Sq_Feet}. Total family members are {Total_Family_Members} and earning members are {Total_Earning_Members}. {Customer_Name} is {Working_Status} at {Company_Name}. The door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-Locality is Residential & type of locality is {Locality}. {Locality} is of {Address_Structure_G_Plus} and {Customer_Name} is staying on {Applicant_Staying_Floor} floor. {Locality} color is {Address_Structure_Color}. The Door color is {Door_Color}. Residence set up is sighted at the time of visit. During visit met person shown {Document_Type}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. {Customer_Name} is staying on the {Applicant_Staying_Floor} floor. The building color is {Address_Structure_Color} and door color is {Door_Color}. During the visit, the met person showed {Document_Type} as identity proof.
 
 AREA ASSESSMENT:
-Landmarks: {Landmark_1} and {Landmark_2}. It is {Dominated_Area} area. {Feedback_from_Neighbour} feedback received from neighbors. Field executive also confirmed {Customer_Name} is {Political_Connection}. {Customer_Name} stay is confirmed by our executive's observation as well as from TPC.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}. {Customer_Name}'s stay is confirmed by the field executive's observation as well as from TPC.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -1937,13 +1937,19 @@ Hence the profile is marked as {Final_Status}.`,
 
       // Name plates and boards
       Door_Name_Plate:
-        safeGet(formData, 'doorNamePlateStatus') === 'Sighted' ? 'Available' : 'Not Available',
+        /sighted/i.test(safeGet(formData, 'doorNamePlateStatus') || '') ? 'Available' : 'Not Available',
       Name_on_Door_Plate:
         safeGet(formData, 'nameOnDoorPlate') || safeGet(formData, 'doorNamePlate'),
+      Door_Name_Plate_Text: /sighted/i.test(safeGet(formData, 'doorNamePlateStatus') || '')
+        ? `shows the name "${safeGet(formData, 'nameOnDoorPlate') || 'N/A'}"`
+        : 'is not sighted',
       Society_Name_Plate:
-        safeGet(formData, 'societyNamePlateStatus') === 'Sighted' ? 'Available' : 'Not Available',
+        /sighted/i.test(safeGet(formData, 'societyNamePlateStatus') || '') ? 'Available' : 'Not Available',
       Name_on_Society_Board:
         safeGet(formData, 'nameOnSocietyBoard') || safeGet(formData, 'societyNamePlate'),
+      Society_Name_Plate_Text: /sighted/i.test(safeGet(formData, 'societyNamePlateStatus') || '')
+        ? `displays "${safeGet(formData, 'nameOnSocietyBoard') || 'N/A'}"`
+        : 'is not sighted',
 
       // Locality details
       Locality:
@@ -1951,9 +1957,10 @@ Hence the profile is marked as {Final_Status}.`,
       Address_Structure_G_Plus:
         safeGet(formData, 'addressStructure') || safeGet(formData, 'addressStructureGPlus'),
       Applicant_Staying_Floor:
-        safeGet(formData, 'addressFloor') ||
         safeGet(formData, 'applicantStayingFloor') ||
-        safeGet(formData, 'floor'),
+        safeGet(formData, 'addressFloor') ||
+        safeGet(formData, 'floor') ||
+        'Ground',
       Address_Structure_Color:
         safeGet(formData, 'addressStructureColor') || safeGet(formData, 'buildingColor'),
       Door_Color: safeGet(formData, 'doorColor'),
@@ -1980,9 +1987,17 @@ Hence the profile is marked as {Final_Status}.`,
 
       // Area assessment
       Dominated_Area: safeGet(formData, 'dominatedArea'),
+      Dominated_Area_Text:
+        safeGet(formData, 'dominatedArea') === 'No'
+          ? 'The area is not dominated by any particular community'
+          : `The area is ${safeGet(formData, 'dominatedArea') || 'mixed'} dominated`,
       Feedback_from_Neighbour:
         safeGet(formData, 'feedbackFromNeighbour') || safeGet(formData, 'neighborFeedback'),
       Political_Connection: safeGet(formData, 'politicalConnection'),
+      Political_Connection_Text:
+        safeGet(formData, 'politicalConnection') === 'No'
+          ? 'No political connections were found'
+          : `Political connection: ${safeGet(formData, 'politicalConnection') || 'Unknown'}`,
       Other_Observation:
         safeGet(formData, 'otherObservation') ||
         safeGet(formData, 'remarks') ||
