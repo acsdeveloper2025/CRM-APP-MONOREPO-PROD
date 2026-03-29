@@ -3373,6 +3373,27 @@ export class MobileFormController {
 
       await query(insertQuery, values);
 
+      // Populate task_form_submissions for duplicate prevention
+      try {
+        await query(
+          `INSERT INTO task_form_submissions (
+            id, verification_task_id, case_id, form_submission_id, form_type,
+            submitted_by, submitted_at, validation_status
+          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          [
+            uuidv4(),
+            targetTaskId,
+            caseId,
+            uuidv4(),
+            'OFFICE_VERIFICATION',
+            userId,
+          ]
+        );
+        logger.info(`✅ Linked office form submission to task ${targetTaskId}`);
+      } catch (linkError) {
+        logger.error('Failed to link office form submission to task:', linkError);
+      }
+
       // Remove auto-save data
       await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);
 
@@ -3785,6 +3806,27 @@ export class MobileFormController {
 
       await query(insertQuery, values);
 
+      // Populate task_form_submissions for duplicate prevention
+      try {
+        await query(
+          `INSERT INTO task_form_submissions (
+            id, verification_task_id, case_id, form_submission_id, form_type,
+            submitted_by, submitted_at, validation_status
+          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          [
+            uuidv4(),
+            targetTaskId,
+            caseId,
+            uuidv4(),
+            'BUSINESS_VERIFICATION',
+            userId,
+          ]
+        );
+        logger.info(`✅ Linked business form submission to task ${targetTaskId}`);
+      } catch (linkError) {
+        logger.error('Failed to link business form submission to task:', linkError);
+      }
+
       // Remove auto-save data
       await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);
 
@@ -4161,6 +4203,27 @@ export class MobileFormController {
 
       await query(insertQuery, values);
 
+      // Populate task_form_submissions for duplicate prevention
+      try {
+        await query(
+          `INSERT INTO task_form_submissions (
+            id, verification_task_id, case_id, form_submission_id, form_type,
+            submitted_by, submitted_at, validation_status
+          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          [
+            uuidv4(),
+            verificationTaskId,
+            caseId,
+            uuidv4(),
+            'BUILDER_VERIFICATION',
+            userId,
+          ]
+        );
+        logger.info(`✅ Linked builder form submission to task ${verificationTaskId}`);
+      } catch (linkError) {
+        logger.error('Failed to link builder form submission to task:', linkError);
+      }
+
       // Remove auto-save data
       await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);
 
@@ -4283,13 +4346,13 @@ export class MobileFormController {
         });
       }
 
-      const submissionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const submissionId = `residence_cum_office_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
       await query(
         `INSERT INTO form_submissions (
-          id, case_id, verification_task_id, form_type, form_data, 
-          submission_time, location_latitude, location_longitude, 
-          location_accuracy, location_address, device_info, app_version, 
+          id, case_id, verification_task_id, form_type, form_data,
+          submission_time, location_latitude, location_longitude,
+          location_accuracy, location_address, device_info, app_version,
           created_at, updated_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())`,
         [
@@ -4330,6 +4393,64 @@ export class MobileFormController {
 
       await CaseStatusSyncService.recalculateCaseStatus(caseId);
 
+      // Prepare verification data for cases table
+      const verificationData = {
+        formType: 'RESIDENCE_CUM_OFFICE',
+        submissionId,
+        submittedAt: new Date().toISOString(),
+        submittedBy: userId,
+        geoLocation: submissionData.geoLocation,
+        formData: submissionData.formData,
+        verificationImages: uploadedImages.map(img => ({
+          id: img.id,
+          url: img.url,
+          thumbnailUrl: img.thumbnailUrl,
+          photoType: img.photoType,
+          geoLocation: img.geoLocation,
+        })),
+        verification: {
+          ...submissionData.formData,
+          imageCount: uploadedImages.length,
+          geoTaggedImages: uploadedImages.filter(img => img.geoLocation).length,
+          submissionLocation: submissionData.geoLocation,
+        },
+      };
+
+      // Update case with verification data
+      await query(
+        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'RESIDENCE_CUM_OFFICE', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        [JSON.stringify(verificationData), verificationOutcome, caseId]
+      );
+      const caseUpd = await query(
+        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        [caseId]
+      );
+      const updatedCase = caseUpd.rows[0];
+
+      // Populate task_form_submissions for duplicate prevention
+      try {
+        await query(
+          `INSERT INTO task_form_submissions (
+            id, verification_task_id, case_id, form_submission_id, form_type,
+            submitted_by, submitted_at, validation_status
+          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          [
+            uuidv4(),
+            taskId,
+            caseId,
+            uuidv4(),
+            'RESIDENCE_CUM_OFFICE_VERIFICATION',
+            userId,
+          ]
+        );
+        logger.info(`✅ Linked residence-cum-office form submission to task ${taskId}`);
+      } catch (linkError) {
+        logger.error('Failed to link residence-cum-office form submission to task:', linkError);
+      }
+
+      // Remove auto-save data
+      await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);
+
       await createAuditLog({
         action: 'RESIDENCE_CUM_OFFICE_VERIFICATION_SUBMITTED',
         entityType: 'VERIFICATION_TASK',
@@ -4345,13 +4466,24 @@ export class MobileFormController {
         userAgent: req.get('User-Agent'),
       });
 
+      // Send case completion notification
+      await MobileFormController.sendCaseCompletionNotification(
+        caseId,
+        updatedCase?.caseId,
+        updatedCase?.customerName || 'Unknown Customer',
+        userId,
+        'COMPLETED',
+        verificationOutcome
+      );
+
       res.json({
         success: true,
         message: 'Residence-cum-office verification submitted successfully',
         data: {
           submissionId,
-          taskId, // ✅ Already present, but confirming explicit field
-          caseId, // ✅ ADDED for consistency (though taskId is what mobile needs)
+          taskId,
+          caseId,
+          caseNumber: updatedCase?.caseId,
           status: 'COMPLETED',
           completedAt: new Date().toISOString(),
         },
@@ -4705,6 +4837,27 @@ export class MobileFormController {
 
       await query(insertQuery, values);
 
+      // Populate task_form_submissions for duplicate prevention
+      try {
+        await query(
+          `INSERT INTO task_form_submissions (
+            id, verification_task_id, case_id, form_submission_id, form_type,
+            submitted_by, submitted_at, validation_status
+          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          [
+            uuidv4(),
+            verificationTaskId,
+            caseId,
+            uuidv4(),
+            'DSA_CONNECTOR_VERIFICATION',
+            userId,
+          ]
+        );
+        logger.info(`✅ Linked DSA Connector form submission to task ${verificationTaskId}`);
+      } catch (linkError) {
+        logger.error('Failed to link DSA Connector form submission to task:', linkError);
+      }
+
       // Remove auto-save data
       await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);
 
@@ -4827,7 +4980,7 @@ export class MobileFormController {
         });
       }
 
-      const submissionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const submissionId = `property_individual_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
       await query(
         `INSERT INTO form_submissions (
@@ -4874,6 +5027,64 @@ export class MobileFormController {
 
       await CaseStatusSyncService.recalculateCaseStatus(caseId);
 
+      // Prepare verification data for cases table
+      const verificationData = {
+        formType: 'PROPERTY_INDIVIDUAL',
+        submissionId,
+        submittedAt: new Date().toISOString(),
+        submittedBy: userId,
+        geoLocation: submissionData.geoLocation,
+        formData: submissionData.formData,
+        verificationImages: uploadedImages.map(img => ({
+          id: img.id,
+          url: img.url,
+          thumbnailUrl: img.thumbnailUrl,
+          photoType: img.photoType,
+          geoLocation: img.geoLocation,
+        })),
+        verification: {
+          ...submissionData.formData,
+          imageCount: uploadedImages.length,
+          geoTaggedImages: uploadedImages.filter(img => img.geoLocation).length,
+          submissionLocation: submissionData.geoLocation,
+        },
+      };
+
+      // Update case with verification data
+      await query(
+        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'PROPERTY_INDIVIDUAL', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        [JSON.stringify(verificationData), verificationOutcome, caseId]
+      );
+      const caseUpd = await query(
+        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        [caseId]
+      );
+      const updatedCase = caseUpd.rows[0];
+
+      // Populate task_form_submissions for duplicate prevention
+      try {
+        await query(
+          `INSERT INTO task_form_submissions (
+            id, verification_task_id, case_id, form_submission_id, form_type,
+            submitted_by, submitted_at, validation_status
+          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          [
+            uuidv4(),
+            taskId,
+            caseId,
+            uuidv4(),
+            'PROPERTY_INDIVIDUAL_VERIFICATION',
+            userId,
+          ]
+        );
+        logger.info(`✅ Linked Property Individual form submission to task ${taskId}`);
+      } catch (linkError) {
+        logger.error('Failed to link Property Individual form submission to task:', linkError);
+      }
+
+      // Remove auto-save data
+      await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);
+
       await createAuditLog({
         action: 'PROPERTY_INDIVIDUAL_VERIFICATION_SUBMITTED',
         entityType: 'VERIFICATION_TASK',
@@ -4889,12 +5100,24 @@ export class MobileFormController {
         userAgent: req.get('User-Agent'),
       });
 
+      // Send case completion notification
+      await MobileFormController.sendCaseCompletionNotification(
+        caseId,
+        updatedCase?.caseId,
+        updatedCase?.customerName || 'Unknown Customer',
+        userId,
+        'COMPLETED',
+        verificationOutcome
+      );
+
       res.json({
         success: true,
         message: 'Property Individual verification submitted successfully',
         data: {
           submissionId,
           taskId,
+          caseId,
+          caseNumber: updatedCase?.caseId,
           status: 'COMPLETED',
           completedAt: new Date().toISOString(),
         },
@@ -5237,6 +5460,27 @@ export class MobileFormController {
       logger.info(`📝 Inserting Property APF verification with ${columns.length} fields:`, columns);
 
       await query(insertQuery, values);
+
+      // Populate task_form_submissions for duplicate prevention
+      try {
+        await query(
+          `INSERT INTO task_form_submissions (
+            id, verification_task_id, case_id, form_submission_id, form_type,
+            submitted_by, submitted_at, validation_status
+          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          [
+            uuidv4(),
+            verificationTaskId,
+            caseId,
+            uuidv4(),
+            'PROPERTY_APF_VERIFICATION',
+            userId,
+          ]
+        );
+        logger.info(`✅ Linked Property APF form submission to task ${verificationTaskId}`);
+      } catch (linkError) {
+        logger.error('Failed to link Property APF form submission to task:', linkError);
+      }
 
       // Remove auto-save data
       await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);
@@ -5618,6 +5862,27 @@ export class MobileFormController {
       logger.info(`📝 Inserting NOC verification with ${columns.length} fields:`, columns);
 
       await query(insertQuery, values);
+
+      // Populate task_form_submissions for duplicate prevention
+      try {
+        await query(
+          `INSERT INTO task_form_submissions (
+            id, verification_task_id, case_id, form_submission_id, form_type,
+            submitted_by, submitted_at, validation_status
+          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          [
+            uuidv4(),
+            verificationTaskId,
+            caseId,
+            uuidv4(),
+            'NOC_VERIFICATION',
+            userId,
+          ]
+        );
+        logger.info(`✅ Linked NOC form submission to task ${verificationTaskId}`);
+      } catch (linkError) {
+        logger.error('Failed to link NOC form submission to task:', linkError);
+      }
 
       // Remove auto-save data
       await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);

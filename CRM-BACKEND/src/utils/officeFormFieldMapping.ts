@@ -98,22 +98,22 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
 
   // Legacy/alternative field names
   companyName: 'company_nature_of_business', // Maps to company nature
-  employeeId: 'met_person_name', // Maps to met person
+  employeeId: null, // Legacy field, no direct DB mapping
   workingHours: 'working_period', // Maps to working period
   hrVerification: null, // Derived field, ignore
   salaryConfirmed: null, // Derived field, ignore
   department: 'applicant_designation', // Maps to applicant designation
-  joiningDate: 'establishment_period', // Maps to establishment period
-  monthlySalary: 'working_status', // Maps to working status
-  hrContactName: 'tpc_name1', // Maps to TPC1
-  hrContactPhone: 'tpc_name2', // Maps to TPC2
-  officeAddress: 'address_structure', // Maps to address structure
+  joiningDate: null, // Legacy field, no direct DB mapping
+  monthlySalary: null, // Legacy field, no direct DB mapping
+  hrContactName: null, // Legacy field, no direct DB mapping
+  hrContactPhone: null, // Legacy field, no direct DB mapping
+  officeAddress: null, // Legacy field, no direct DB mapping
   totalEmployees: 'staff_strength', // Maps to staff strength
   businessNature: 'company_nature_of_business', // Maps to business nature
   verificationMethod: null, // Derived field, ignore
   documentsSeen: 'document_shown', // Maps to document shown
   verificationNotes: 'other_observation', // Maps to other observation
-  recommendationStatus: 'final_status', // Maps to final status (required field)
+  recommendationStatus: 'recommendation_status', // Maps to recommendation_status column
 
   // Fields to ignore (UI state, images, etc.)
   images: null,
@@ -186,7 +186,8 @@ function processOfficeFieldValue(fieldName: string, value: unknown): unknown {
   }
 
   // Handle final_status field - convert case to match database constraint
-  if (fieldName === 'recommendationStatus') {
+  // DB CHECK: final_status IN ('Positive', 'Negative', 'Refer', 'Fraud', 'Hold')
+  if (fieldName === 'finalStatus') {
     const statusValue = (
       typeof value === 'object' && value !== null
         ? JSON.stringify(value)
@@ -194,7 +195,6 @@ function processOfficeFieldValue(fieldName: string, value: unknown): unknown {
     )
       .trim()
       .toUpperCase();
-    // Convert to proper case format expected by database constraint
     switch (statusValue) {
       case 'POSITIVE':
         return 'Positive';
@@ -208,7 +208,7 @@ function processOfficeFieldValue(fieldName: string, value: unknown): unknown {
         return 'Hold';
       default:
         logger.warn(
-          `⚠️ Unknown recommendationStatus value: ${typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value as string | number | boolean | null | undefined)}, defaulting to 'Refer'`
+          `⚠️ Unknown finalStatus value: ${typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value as string | number | boolean | null | undefined)}, defaulting to 'Refer'`
         );
         return 'Refer'; // Safe default
     }

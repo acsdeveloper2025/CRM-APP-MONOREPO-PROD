@@ -54,6 +54,7 @@ export const BUILDER_FIELD_MAPPING: DatabaseFieldMapping = {
   metPerson: 'met_person_name', // Used in POSITIVE, SHIFTED, NSP forms
   metPersonName: 'met_person_name', // Alternative field name
   designation: 'designation',
+  applicantDesignation: 'applicant_designation',
   builderName: 'builder_name',
   builderOwnerName: 'builder_owner_name',
   workingPeriod: 'working_period',
