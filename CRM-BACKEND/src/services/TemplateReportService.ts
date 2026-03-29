@@ -2263,6 +2263,9 @@ Hence the profile is marked as {Final_Status}.`,
       Customer_Feedback:
         safeGet(formData, 'customerFeedback') || safeGet(formData, 'customer_feedback'),
       Risk_Assessment: safeGet(formData, 'riskAssessment') || safeGet(formData, 'risk_assessment'),
+      Business_Name: safeGet(formData, 'businessName') || safeGet(formData, 'business_name'),
+      Business_Registration_Number: safeGet(formData, 'businessRegistrationNumber') || safeGet(formData, 'business_registration_number'),
+      Business_Establishment_Year: safeGet(formData, 'businessEstablishmentYear') || safeGet(formData, 'business_establishment_year'),
       Previous_Business_Name:
         safeGet(formData, 'previousBusinessName') || safeGet(formData, 'previous_business_name'),
       Met_Person_Designation:
