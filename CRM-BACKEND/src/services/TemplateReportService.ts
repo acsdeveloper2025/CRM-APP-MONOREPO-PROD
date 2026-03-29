@@ -1031,19 +1031,22 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE: `DSA/Connector Remark: POSITIVE.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit DSA/Connector office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), confirmed {Customer_Name} is working as DSA/Connector at given address since last {Working_Period}.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the DSA/Connector office was operational. Met with {Met_Person_Name} ({Met_Person_Designation}), who confirmed {Customer_Name}'s DSA/Connector operations at the given address.
 
 DSA/CONNECTOR DETAILS:
-DSA/Connector type is {Business_Type} and nature of business is {Company_Nature_Of_Business}. Office area approx. {Office_Approx_Area}. Working period is {Working_Period}. Company Name board {Company_Name_Plate} {Name_On_Board}.
+Connector Type: {Connector_Type}. Connector Name: {Connector_Name} (Code: {Connector_Code}). Experience: {Connector_Experience} years. Status: {Connector_Status}. Business: {Business_Name} ({Business_Type}). Registration: {Business_Registration_Number}. Established: {Business_Establishment_Year}. Annual turnover: {Annual_Turnover}. Total staff: {Total_Staff} (Sales: {Sales_Staff}, Support: {Support_Staff}). Office type: {Office_Type}, area: {Office_Area} sq ft.
+
+COMPLIANCE & LICENSING:
+License: {License_Number} ({License_Status}), expires {License_Expiry_Date}. Compliance: {Compliance_Status}. Audit: {Audit_Status}. Training: {Training_Status}.
 
 LOCALITY INFORMATION:
-Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} {TPC_Confirmation_1} and {TPC_Met_Person_2} {Name_of_TPC_2} {TPC_Confirmation_2} {Customer_Name} & DSA/Connector office existence.
+TPC was conducted with {Name_of_TPC_1}, who {TPC_Confirmation_1} {Customer_Name}'s DSA/Connector office existence. Second TPC was done with {Name_of_TPC_2}, who also {TPC_Confirmation_2} the same.
 
-AREA ASSESSMENT:
-It is {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback received from neighbors. Field executive also confirmed {Customer_Name} is {Political_Connection}. {Customer_Name} DSA/Connector stability is confirmed by our executive's observation as well as from TPC.
+MARKET & RISK ASSESSMENT:
+Market presence: {Market_Presence}. Market reputation: {Market_Reputation}. Customer feedback: {Customer_Feedback}. Risk assessment: {Risk_Assessment}. Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received. {Political_Connection_Text}.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -1052,19 +1055,19 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE_DOOR_LOCKED: `DSA/Connector Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit DSA/Connector office was {Office_Status}.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the DSA/Connector office was closed.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} {TPC_Confirmation_1} and {TPC_Met_Person_2} {Name_of_TPC_2} {TPC_Confirmation_2} {Customer_Name} & DSA/Connector office existence. They informed that given DSA/Connector office at given address since last {Working_Period}.
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who {TPC_Confirmation_1} {Customer_Name}'s DSA/Connector office existence and operations.
 
 DSA/CONNECTOR DETAILS:
-DSA/Connector type is {Business_Type} and nature of business is {Company_Nature_Of_Business}. Office area approx. {Office_Approx_Area}. Company Name board {Company_Name_Plate} {Name_On_Board}.
+Connector: {Connector_Name} ({Connector_Type}). Business: {Business_Name}. Status: {Connector_Status}. Annual turnover: {Annual_Turnover}.
 
 LOCALITY INFORMATION:
-Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 AREA ASSESSMENT:
-It is {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback received from neighbors. Field executive also confirmed {Customer_Name} is {Political_Connection}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -1073,19 +1076,19 @@ Hence the profile is marked as {Final_Status}.`,
     SHIFTED: `DSA/Connector Remark: SHIFTED.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit DSA/Connector office was {Office_Status}. Met with {Met_Person_Name} ({Designation}) confirmed that DSA/Connector office shifted from the given address {Old_Office_Shifted_Period} ago.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. Met with {Met_Person_Name} ({Met_Person_Designation}), who informed that the DSA/Connector office has shifted from the given address {Shifted_Period} ago.
 
-CURRENT OFFICE STATUS:
-{Current_Company_Name} DSA/Connector office operating at given address from last {Current_Company_Period}. Company name board is {Company_Name_Plate} {Name_On_Board}.
+CURRENT STATUS:
+Previous business: {Previous_Business_Name}. The premises status is {Premises_Status}. Current location: {Current_Location}.
 
 LOCALITY INFORMATION:
-Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} and {TPC_Met_Person_2} {Name_of_TPC_2} they confirmed that DSA/Connector office is shifted from the given address.
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who confirmed that the DSA/Connector office has shifted from the given address.
 
 AREA ASSESSMENT:
-It is {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback received from neighbors. Field executive also confirmed {Customer_Name} is {Political_Connection}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -1094,19 +1097,19 @@ Hence the profile is marked as {Final_Status}.`,
     SHIFTED_DOOR_LOCKED: `DSA/Connector Remark: SHIFTED & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit DSA/Connector office was {Office_Status}.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the DSA/Connector office was closed.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} and {TPC_Met_Person_2} {Name_of_TPC_2} they confirmed that DSA/Connector office shifted from the given address {Old_Office_Shifted_Period} ago.
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who confirmed that the DSA/Connector office has shifted from the given address {Shifted_Period} ago.
 
-CURRENT OFFICE STATUS:
-{Current_Company_Name} DSA/Connector office operating at given address. Company name board is {Company_Name_Plate} {Name_On_Board}.
+CURRENT STATUS:
+Previous business: {Previous_Business_Name}. The premises status is {Premises_Status}.
 
 LOCALITY INFORMATION:
-Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 AREA ASSESSMENT:
-It is {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback from neighbors. Field executive also confirmed {Customer_Name} is {Political_Connection}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -1115,22 +1118,19 @@ Hence the profile is marked as {Final_Status}.`,
     NSP: `DSA/Connector Remark: NSP (No Such Person).
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit DSA/Connector office was {Office_Status}. Met with {Met_Person_Name} ({Designation}).
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. Met with {Met_Person_Name} ({Met_Person_Designation}).
 
 DSA/CONNECTOR VERIFICATION:
-Met person informed that there is no such person working as DSA/Connector at given address. As per current office staff, {Customer_Name} has never worked as DSA/Connector at this office.
-
-CURRENT OFFICE DETAILS:
-Company name board is {Company_Name_Plate} {Name_On_Board}. Office area approx. {Office_Approx_Area}.
+The met person informed that no such person is operating as a DSA/Connector at the given address. As per the current office staff, {Customer_Name} has never worked as a DSA/Connector at this location.
 
 LOCALITY INFORMATION:
-Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} and {TPC_Met_Person_2} {Name_of_TPC_2} {Third_Party_Confirmation} there is no such person working as DSA/Connector at given address.
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who confirmed that no such person is operating as a DSA/Connector at the given address.
 
 AREA ASSESSMENT:
-It is {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback received from neighbors. Applicant's DSA/Connector stability is not confirmed by our executive's observation as well as from TPC.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Customer_Name}'s DSA/Connector presence is not confirmed by the field executive's observation or from TPC.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -1139,52 +1139,49 @@ Hence the profile is marked as {Final_Status}.`,
     NSP_DOOR_LOCKED: `DSA/Connector Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. At the time of visit DSA/Connector office was {Office_Status}.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the DSA/Connector office was closed.
 
 THIRD PARTY CONFIRMATION:
-TPC done with {TPC_Met_Person_1} {Name_of_TPC_1} {TPC_Confirmation_1} and {TPC_Met_Person_2} {Name_of_TPC_2} {TPC_Confirmation_2} DSA/Connector office {Office_Existence} at given address. As per TPC confirmation, there is no such person working as DSA/Connector at this office.
-
-CURRENT OFFICE STATUS:
-{Current_Company_Name} DSA/Connector office operating at given address. Company name board is {Company_Name_Plate} {Name_On_Board}.
+TPC was conducted with {Name_of_TPC_1} and {Name_of_TPC_2}, who confirmed that the DSA/Connector office exists at the given address but no such person ({Customer_Name}) is operating there.
 
 LOCALITY INFORMATION:
-Locality is {Locality}. {Locality} is of {Address_Structure}. {Locality} color is {Address_Structure_Color} and Door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 AREA ASSESSMENT:
-It is {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback received from neighbors. Applicant's DSA/Connector stability is not confirmed by our executive's observation as well as from TPC.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Customer_Name}'s DSA/Connector presence is not confirmed by the field executive's observation or from TPC.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    ERT: `DSA/Connector Entry Restricted Remark (ERT):-
+    ERT: `DSA/Connector Remark: ENTRY RESTRICTED.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is traceable and {Address_Locatable}. Address locality is {Address_Rating}. It is {Customer_Name} DSA/Connector office address. At the time of visit met with {Met_Person_Type} {Name_Of_Met_Person} informed that given premises entry not allowed.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Met_Person_Type} {Met_Person_Confirmation} DSA/Connector office existence at given address. Entry is restricted due to security protocols or office policies.
+{Name_of_Met_Person} {Met_Person_Confirmation} the DSA/Connector office existence at the given address. Entry is restricted due to security protocols or office policies.
 
 LOCALITY INFORMATION:
-Locality is {Locality}. {Locality} is of {Locality} and address located on {Office_Exist_Floor} floor. {Locality} color is {Address_Structure_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color} and door color is {Door_Color}.
 
 AREA ASSESSMENT:
-It's a {Dominated_Area} area. Landmarks: {Landmark_1} and {Landmark_2}. {Feedback_From_Neighbour} feedback received from neighbors. Field executive also confirmed {Customer_Name} is {Political_Connection}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
 Hence the profile is marked as {Final_Status}.`,
 
-    UNTRACEABLE: `DSA/Connector Untraceable Remark (UT):-
+    UNTRACEABLE: `DSA/Connector Remark: UNTRACEABLE.
 
 VERIFICATION DETAILS:
-Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is incorrect and untraceable. At the time of visit met with {Met_Person_Name}, Met person informed that provided address is short.
+Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is incorrect and untraceable.
 
 CONTACT ATTEMPT:
-We called {Customer_Name} but {Customer_Name} {Call_Remark}. We required proper guidance to trace the address.
+We called {Customer_Name}, but {Call_Remark}. Proper guidance is required to trace the address.
 
 SEARCH EFFORTS:
-Type of Locality is {Locality}. Field executive reached up to {Landmark_1}, {Landmark_2}, {Landmark_3}, {Landmark_4}. It's a {Dominated_Area} area.
+The locality type is {Locality}. Field executive reached up to the following landmarks: {Landmark_1}, {Landmark_2}, {Landmark_3}, {Landmark_4}. {Dominated_Area_Text}.
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -2237,6 +2234,40 @@ Hence the profile is marked as {Final_Status}.`,
         safeGet(formData, 'electricityConnectionStatus') ||
         safeGet(formData, 'electricity_connection_status'),
       Current_Location: safeGet(formData, 'currentLocation') || safeGet(formData, 'current_location'),
+
+      // DSA/Connector-specific variables
+      Connector_Type: safeGet(formData, 'connectorType') || safeGet(formData, 'connector_type'),
+      Connector_Code: safeGet(formData, 'connectorCode') || safeGet(formData, 'connector_code'),
+      Connector_Name: safeGet(formData, 'connectorName') || safeGet(formData, 'connector_name'),
+      Connector_Designation:
+        safeGet(formData, 'connectorDesignation') || safeGet(formData, 'connector_designation'),
+      Connector_Experience:
+        safeGet(formData, 'connectorExperience') || safeGet(formData, 'connector_experience'),
+      Connector_Status: safeGet(formData, 'connectorStatus') || safeGet(formData, 'connector_status'),
+      Annual_Turnover: safeGet(formData, 'annualTurnover') || safeGet(formData, 'annual_turnover'),
+      Total_Staff: safeGet(formData, 'totalStaff') || safeGet(formData, 'total_staff'),
+      Sales_Staff: safeGet(formData, 'salesStaff') || safeGet(formData, 'sales_staff'),
+      Support_Staff: safeGet(formData, 'supportStaff') || safeGet(formData, 'support_staff'),
+      Office_Area: safeGet(formData, 'officeArea') || safeGet(formData, 'office_area'),
+      Office_Type: safeGet(formData, 'officeType') || safeGet(formData, 'office_type'),
+      License_Number: safeGet(formData, 'licenseNumber') || safeGet(formData, 'license_number'),
+      License_Status: safeGet(formData, 'licenseStatus') || safeGet(formData, 'license_status'),
+      License_Expiry_Date:
+        safeGet(formData, 'licenseExpiryDate') || safeGet(formData, 'license_expiry_date'),
+      Compliance_Status:
+        safeGet(formData, 'complianceStatus') || safeGet(formData, 'compliance_status'),
+      Audit_Status: safeGet(formData, 'auditStatus') || safeGet(formData, 'audit_status'),
+      Training_Status: safeGet(formData, 'trainingStatus') || safeGet(formData, 'training_status'),
+      Market_Presence: safeGet(formData, 'marketPresence') || safeGet(formData, 'market_presence'),
+      Market_Reputation:
+        safeGet(formData, 'marketReputation') || safeGet(formData, 'market_reputation'),
+      Customer_Feedback:
+        safeGet(formData, 'customerFeedback') || safeGet(formData, 'customer_feedback'),
+      Risk_Assessment: safeGet(formData, 'riskAssessment') || safeGet(formData, 'risk_assessment'),
+      Previous_Business_Name:
+        safeGet(formData, 'previousBusinessName') || safeGet(formData, 'previous_business_name'),
+      Met_Person_Designation:
+        safeGet(formData, 'metPersonDesignation') || safeGet(formData, 'met_person_designation'),
 
       // Builder-specific variables
       Builder_Type: safeGet(formData, 'builderType') || safeGet(formData, 'builder_type'),
