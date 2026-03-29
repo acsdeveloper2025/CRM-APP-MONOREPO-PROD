@@ -1785,25 +1785,30 @@ Hence the profile is marked as {Final_Status}.`,
     }
 
     if (verificationType.toUpperCase() === 'NOC') {
-      // NOC has simplified logic - only POSITIVE, ERT, and UNTRACEABLE
+      if (outcomeNormalized.includes('shifted')) {
+        if (outcomeNormalized.includes('door lock') || outcomeNormalized.includes('locked')) {
+          return 'SHIFTED_DOOR_LOCKED';
+        }
+        return 'SHIFTED';
+      }
       if (outcomeNormalized.includes('ert') || outcomeNormalized === 'ert') {
         return 'ERT';
       }
-
       if (outcomeNormalized.includes('untraceable') || outcomeNormalized === 'untraceable') {
         return 'UNTRACEABLE';
       }
-
-      // Handle Positive scenarios - use office status to determine template
-      if (outcomeNormalized.includes('positive')) {
-        const officeStatus = (formData?.officeStatus || formData?.office_status) as
-          | string
-          | undefined;
-        if (officeStatus && officeStatus.toLowerCase() === 'opened') {
-          return 'POSITIVE'; // NOC office was open, person was met
-        } else {
-          return 'POSITIVE_DOOR_LOCKED'; // NOC office was closed, only TPC
+      if (outcomeNormalized.includes('nsp') || outcomeNormalized.includes('no such person')) {
+        if (outcomeNormalized.includes('door lock') || outcomeNormalized.includes('locked')) {
+          return 'NSP_DOOR_LOCKED';
         }
+        return 'NSP';
+      }
+      if (outcomeNormalized.includes('positive')) {
+        const officeStatus = (formData?.officeStatus || formData?.office_status) as string | undefined;
+        if (officeStatus && officeStatus.toLowerCase() === 'opened') {
+          return 'POSITIVE';
+        }
+        return 'POSITIVE_DOOR_LOCKED';
       }
     }
 
