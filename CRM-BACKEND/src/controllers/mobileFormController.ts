@@ -4348,29 +4348,6 @@ export class MobileFormController {
 
       const submissionId = `residence_cum_office_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
-      await query(
-        `INSERT INTO form_submissions (
-          id, case_id, verification_task_id, form_type, form_data,
-          submission_time, location_latitude, location_longitude,
-          location_accuracy, location_address, device_info, app_version,
-          created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())`,
-        [
-          submissionId,
-          caseId,
-          taskId,
-          'RESIDENCE_CUM_OFFICE',
-          JSON.stringify(preparedData),
-          new Date(submissionData.metadata.submissionTimestamp),
-          submissionData.geoLocation?.latitude,
-          submissionData.geoLocation?.longitude,
-          submissionData.geoLocation?.accuracy,
-          submissionData.geoLocation?.address,
-          JSON.stringify(submissionData.metadata.deviceInfo),
-          submissionData.metadata?.deviceInfo?.appVersion || 'Unknown',
-        ]
-      );
-
       const uploadedImages = await MobileFormController.processVerificationImages(
         submissionData.images || [],
         caseId,
@@ -4381,14 +4358,14 @@ export class MobileFormController {
         submissionData.attachmentIds || []
       );
 
+      // Update verification task status to COMPLETED
       await query(
-        `UPDATE verification_tasks 
-         SET status = 'COMPLETED', 
-             completed_at = NOW(), 
-             verification_outcome = $1,
-             updated_at = NOW() 
-         WHERE id = $2`,
-        [verificationOutcome || 'VERIFIED', taskId]
+        `UPDATE verification_tasks
+         SET status = 'COMPLETED',
+             completed_at = CURRENT_TIMESTAMP,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [taskId]
       );
 
       await CaseStatusSyncService.recalculateCaseStatus(caseId);
@@ -4422,10 +4399,46 @@ export class MobileFormController {
         [JSON.stringify(verificationData), verificationOutcome, caseId]
       );
       const caseUpd = await query(
-        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber", address FROM cases WHERE id = $1`,
         [caseId]
       );
       const updatedCase = caseUpd.rows[0];
+
+      // Build the report data using mapped fields
+      const mappedFormData = preparedData;
+      const dbInsertData = {
+        case_id: caseId,
+        verification_task_id: taskId,
+        caseId: parseInt(updatedCase.caseId) || null,
+        form_type: formType,
+        verification_outcome: verificationOutcome,
+        customer_name: updatedCase.customerName || 'Unknown',
+        customer_phone: updatedCase.backendContactNumber || null,
+        customer_email: null,
+        full_address: updatedCase.address || 'Address not provided',
+        verification_date: new Date().toISOString().split('T')[0],
+        verification_time: new Date().toTimeString().split(' ')[0],
+        verified_by: userId,
+        total_images: uploadedImages.length || 0,
+        total_selfies: uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        remarks: submissionData.formData.remarks || `${formType} residence-cum-office verification completed`,
+        ...mappedFormData,
+      };
+
+      // Build dynamic INSERT query
+      const columns = Object.keys(dbInsertData).filter(key => dbInsertData[key] !== undefined);
+      const values = columns.map(key => dbInsertData[key]);
+      const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
+      const columnNames = columns.map(col => `"${col}"`).join(', ');
+
+      const insertQuery = `
+        INSERT INTO "residenceCumOfficeVerificationReports" (${columnNames})
+        VALUES (${placeholders})
+      `;
+
+      logger.info(`📝 Inserting residence-cum-office verification with ${columns.length} fields:`, columns);
+
+      await query(insertQuery, values);
 
       // Populate task_form_submissions for duplicate prevention
       try {
@@ -4982,29 +4995,6 @@ export class MobileFormController {
 
       const submissionId = `property_individual_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
-      await query(
-        `INSERT INTO form_submissions (
-          id, case_id, verification_task_id, form_type, form_data, 
-          submission_time, location_latitude, location_longitude, 
-          location_accuracy, location_address, device_info, app_version, 
-          created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())`,
-        [
-          submissionId,
-          caseId,
-          taskId,
-          'PROPERTY_INDIVIDUAL',
-          JSON.stringify(preparedData),
-          new Date(submissionData.metadata.submissionTimestamp),
-          submissionData.geoLocation?.latitude,
-          submissionData.geoLocation?.longitude,
-          submissionData.geoLocation?.accuracy,
-          submissionData.geoLocation?.address,
-          JSON.stringify(submissionData.metadata.deviceInfo),
-          submissionData.metadata?.deviceInfo?.appVersion || 'Unknown',
-        ]
-      );
-
       const uploadedImages = await MobileFormController.processVerificationImages(
         submissionData.images || [],
         caseId,
@@ -5015,14 +5005,14 @@ export class MobileFormController {
         submissionData.attachmentIds || []
       );
 
+      // Update verification task status to COMPLETED
       await query(
-        `UPDATE verification_tasks 
-         SET status = 'COMPLETED', 
-             completed_at = NOW(), 
-             verification_outcome = $1,
-             updated_at = NOW() 
-         WHERE id = $2`,
-        [verificationOutcome || 'VERIFIED', taskId]
+        `UPDATE verification_tasks
+         SET status = 'COMPLETED',
+             completed_at = CURRENT_TIMESTAMP,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [taskId]
       );
 
       await CaseStatusSyncService.recalculateCaseStatus(caseId);
@@ -5056,10 +5046,46 @@ export class MobileFormController {
         [JSON.stringify(verificationData), verificationOutcome, caseId]
       );
       const caseUpd = await query(
-        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber", address FROM cases WHERE id = $1`,
         [caseId]
       );
       const updatedCase = caseUpd.rows[0];
+
+      // Build the report data using mapped fields
+      const mappedFormData = preparedData;
+      const dbInsertData = {
+        case_id: caseId,
+        verification_task_id: taskId,
+        caseId: parseInt(updatedCase.caseId) || null,
+        form_type: formType,
+        verification_outcome: verificationOutcome,
+        customer_name: updatedCase.customerName || 'Unknown',
+        customer_phone: updatedCase.backendContactNumber || null,
+        customer_email: null,
+        full_address: updatedCase.address || 'Address not provided',
+        verification_date: new Date().toISOString().split('T')[0],
+        verification_time: new Date().toTimeString().split(' ')[0],
+        verified_by: userId,
+        total_images: uploadedImages.length || 0,
+        total_selfies: uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        remarks: submissionData.formData.remarks || `${formType} property individual verification completed`,
+        ...mappedFormData,
+      };
+
+      // Build dynamic INSERT query
+      const columns = Object.keys(dbInsertData).filter(key => dbInsertData[key] !== undefined);
+      const values = columns.map(key => dbInsertData[key]);
+      const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
+      const columnNames = columns.map(col => `"${col}"`).join(', ');
+
+      const insertQuery = `
+        INSERT INTO "propertyIndividualVerificationReports" (${columnNames})
+        VALUES (${placeholders})
+      `;
+
+      logger.info(`📝 Inserting property individual verification with ${columns.length} fields:`, columns);
+
+      await query(insertQuery, values);
 
       // Populate task_form_submissions for duplicate prevention
       try {
