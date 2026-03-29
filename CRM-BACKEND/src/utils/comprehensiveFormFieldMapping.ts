@@ -349,13 +349,23 @@ export const RESIDENCE_FORM_FIELDS: FormFieldDefinition[] = [
     formTypes: ['SHIFTED'],
   },
   {
+    id: 'currentLocation',
+    name: 'currentLocation',
+    label: 'Current Location',
+    type: 'text',
+    isRequired: false,
+    section: 'Shifting Details',
+    order: 2,
+    formTypes: ['SHIFTED'],
+  },
+  {
     id: 'premisesStatus',
     name: 'premisesStatus',
     label: 'Premises Status',
     type: 'select',
     isRequired: false,
     section: 'Shifting Details',
-    order: 2,
+    order: 3,
     formTypes: ['SHIFTED'],
   },
   {
@@ -365,7 +375,7 @@ export const RESIDENCE_FORM_FIELDS: FormFieldDefinition[] = [
     type: 'select',
     isRequired: false,
     section: 'Shifting Details',
-    order: 3,
+    order: 4,
     formTypes: ['SHIFTED'],
   },
   {

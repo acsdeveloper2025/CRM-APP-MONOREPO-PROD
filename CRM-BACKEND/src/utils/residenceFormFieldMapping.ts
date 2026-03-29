@@ -74,6 +74,7 @@ export const RESIDENCE_FIELD_MAPPING: DatabaseFieldMapping = {
 
   // Shifted residence specific fields
   shiftedPeriod: 'shifted_period',
+  currentLocation: 'current_location',
   premisesStatus: 'premises_status',
 
   // Entry restricted specific fields
@@ -84,6 +85,7 @@ export const RESIDENCE_FIELD_MAPPING: DatabaseFieldMapping = {
   applicantStayingStatus: 'applicant_staying_status',
 
   // Untraceable specific fields
+  contactPerson: 'contact_person',
   callRemark: 'call_remark',
 
   // Environment and area details (Common to all forms)
@@ -425,11 +427,13 @@ export function ensureAllFieldsPopulated(
 
     // Form specific fields
     'shifted_period',
+    'current_location',
     'premises_status',
     'name_of_met_person',
     'met_person_type',
     'met_person_confirmation',
     'applicant_staying_status',
+    'contact_person',
     'call_remark',
 
     // Environment and area details
@@ -513,6 +517,7 @@ function getRelevantFieldsForFormType(formType: string): string[] {
       'met_person_name',
       'met_person_status',
       'shifted_period',
+      'current_location',
       'tpc_met_person1',
       'premises_status',
       'locality',
@@ -580,6 +585,7 @@ function getRelevantFieldsForFormType(formType: string): string[] {
       'landmark2',
     ],
     UNTRACEABLE: [
+      'contact_person',
       'call_remark',
       'locality',
       'landmark1',
