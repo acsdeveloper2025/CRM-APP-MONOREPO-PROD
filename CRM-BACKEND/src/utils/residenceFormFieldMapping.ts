@@ -338,8 +338,8 @@ export function validateRequiredFields(
 
   // Check for conditional fields
   if (formType === 'POSITIVE') {
-    if (formData.documentShownStatus === 'Yes' && !formData.documentType) {
-      warnings.push('documentType should be specified when documentShownStatus is Yes');
+    if (formData.documentShownStatus === 'Showed' && !formData.documentType) {
+      warnings.push('documentType should be specified when documentShownStatus is Showed');
     }
     if (formData.tpcMetPerson1 === 'Yes' && !formData.tpcName1) {
       warnings.push('tpcName1 should be specified when tpcMetPerson1 is Yes');

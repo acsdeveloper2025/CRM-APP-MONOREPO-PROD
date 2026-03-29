@@ -150,7 +150,7 @@ function getRequiredFieldsByFormType(formType: string): string[] {
       'addressLocatable',
       'addressRating',
       'nameOfMetPerson',
-      'metPerson',
+      'metPersonType',
       'metPersonConfirmation',
       'applicantStayingStatus',
       'locality',
