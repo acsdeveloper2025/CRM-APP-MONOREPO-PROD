@@ -37,6 +37,9 @@ export const DSA_CONNECTOR_FIELD_MAPPING: DatabaseFieldMapping = {
   landmark3: 'landmark3', // Used in untraceable forms
   landmark4: 'landmark4', // Used in untraceable forms
 
+  // Office/premises status
+  officeStatus: 'office_status', // Used to determine door open/locked
+
   // DSA/DST Connector specific fields (Form specific)
   connectorType: 'connector_type', // Used in POSITIVE forms
   connectorCode: 'connector_code', // Used in POSITIVE forms

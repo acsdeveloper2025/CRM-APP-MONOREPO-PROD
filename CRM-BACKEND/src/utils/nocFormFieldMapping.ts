@@ -37,6 +37,9 @@ export const NOC_FIELD_MAPPING: DatabaseFieldMapping = {
   landmark3: 'landmark3', // Used in untraceable forms
   landmark4: 'landmark4', // Used in untraceable forms
 
+  // Office/premises status
+  officeStatus: 'office_status', // Used to determine door open/locked
+
   // NOC-specific fields (Form specific)
   nocStatus: 'noc_status', // Used in POSITIVE, NSP forms
   nocType: 'noc_type', // Used in POSITIVE forms

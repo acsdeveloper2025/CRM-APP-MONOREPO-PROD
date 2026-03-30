@@ -184,6 +184,13 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           // Extra landmarks
           landmark3: residenceData.landmark3,
           landmark4: residenceData.landmark4,
+          // Nameplates & documents
+          companyNamePlateStatus: residenceData.company_nameplate_status,
+          nameOnCompanyBoard: residenceData.name_on_company_board,
+          documentShownStatus: residenceData.document_shown_status,
+          // Status fields
+          holdReason: residenceData.hold_reason,
+          recommendationStatus: residenceData.recommendation_status,
         };
       }
     } else if (typeUpper.includes('OFFICE') && !typeUpper.includes('RESIDENCE')) {
@@ -247,15 +254,29 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           oldOfficeShiftedPeriod: officeData.old_office_shifted_period,
           currentCompanyName: officeData.current_company_name,
           currentCompanyPeriod: officeData.current_company_period,
+          shiftedPeriod: officeData.shifted_period,
+          premisesStatus: officeData.premises_status,
 
           // UNTRACEABLE-specific fields
           callRemark: officeData.call_remark,
+          contactPerson: officeData.contact_person,
           landmark3: officeData.landmark3,
           landmark4: officeData.landmark4,
 
           // NSP-specific fields
-          thirdPartyConfirmation: officeData.third_party_confirmation,
           officeExistence: officeData.office_existence,
+
+          // Document & work fields
+          documentType: officeData.document_type,
+          documentShown: officeData.document_shown,
+          workingStatus: officeData.working_status,
+          businessPeriod: officeData.business_period,
+          establishmentPeriod: officeData.establishment_period,
+          applicantWorkingStatus: officeData.applicant_working_status,
+
+          // Status fields
+          holdReason: officeData.hold_reason,
+          recommendationStatus: officeData.recommendation_status,
         };
       }
     } else if (typeUpper.includes('BUSINESS')) {
@@ -289,8 +310,9 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           // Business details
           businessStatus: businessData.business_status,
           businessType: businessData.business_type,
-          businessName: businessData.business_name,
+          addressStatus: businessData.address_status,
           ownershipType: businessData.ownership_type,
+          businessExistence: businessData.business_existence,
           companyNatureOfBusiness: businessData.company_nature_of_business,
           businessPeriod: businessData.business_period,
           establishmentPeriod: businessData.establishment_period,
@@ -380,8 +402,8 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           totalEarningMember: rcData.total_earning_member,
           workingStatus: rcData.working_status,
           workingPeriod: rcData.working_period,
-          companyName: rcData.company_name,
           approxArea: rcData.approx_area,
+          companyName: rcData.company_name,
           // Office fields
           officeType: rcData.office_type,
           designation: rcData.designation,
@@ -428,6 +450,9 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           shiftedPeriod: rcData.shifted_period,
           oldOfficeShiftedPeriod: rcData.old_office_shifted_period,
           premisesStatus: rcData.premises_status,
+          currentLocation: rcData.current_location,
+          // NSP
+          officeExistence: rcData.office_existence,
           // Untraceable
           contactPerson: rcData.contact_person,
           callRemark: rcData.call_remark,
@@ -809,6 +834,16 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           possessionStatus: propertyData.possession_status,
           staffStrength: propertyData.staff_strength,
           staffSeen: propertyData.staff_seen,
+          // Project details
+          projectStartedDate: propertyData.project_started_date,
+          projectCompletionDate: propertyData.project_completion_date,
+          totalWing: propertyData.total_wing,
+          totalFlats: propertyData.total_flats,
+          totalBuildingsInProject: propertyData.total_buildings_in_project,
+          totalFlatsInBuilding: propertyData.total_flats_in_building,
+          activityStopReason: propertyData.activity_stop_reason,
+          companyNameBoard: propertyData.company_name_board,
+          nameOnBoard: propertyData.name_on_board,
           // Builder
           builderName: propertyData.builder_name,
           builderContact: propertyData.builder_contact,
@@ -822,14 +857,19 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           loanStatus: propertyData.loan_status,
           bankName: propertyData.bank_name,
           emiAmount: propertyData.emi_amount,
+          loanAccountNumber: propertyData.loan_account_number,
           // Met person
           metPersonName: propertyData.met_person_name,
           metPersonDesignation: propertyData.met_person_designation,
           metPersonRelation: propertyData.met_person_relation,
           metPersonContact: propertyData.met_person_contact,
+          designation: propertyData.designation,
+          nameOfMetPerson: propertyData.name_of_met_person,
+          metPersonConfirmation: propertyData.met_person_confirmation,
           // Document
           documentShownStatus: propertyData.document_shown_status,
           documentType: propertyData.document_type,
+          documentVerificationStatus: propertyData.document_verification_status,
           // TPC
           tpcMetPerson1: propertyData.tpc_met_person1,
           nameOfTpc1: propertyData.tpc_name1,
@@ -888,17 +928,67 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           addressRating: propertyData.address_rating,
           propertyStatus: propertyData.property_status,
           propertyType: propertyData.property_type,
-          metPersonName: propertyData.met_person_name,
-          metPersonRelation: propertyData.met_person_relation,
-          metPersonStatus: propertyData.met_person_status,
-          ownershipStatus: propertyData.property_ownership,
-          propertyAge: propertyData.property_age,
-          approxArea: propertyData.property_area,
           locality: propertyData.locality,
           addressStructure: propertyData.address_structure,
           addressFloor: propertyData.address_floor,
           addressStructureColor: propertyData.address_structure_color,
           doorColor: propertyData.door_color,
+          // Property details
+          ownershipStatus: propertyData.property_ownership,
+          propertyAge: propertyData.property_age,
+          approxArea: propertyData.property_area,
+          propertyCondition: propertyData.property_condition,
+          propertyValue: propertyData.property_value,
+          marketValue: propertyData.market_value,
+          constructionType: propertyData.construction_type,
+          constructionYear: propertyData.construction_year,
+          renovationYear: propertyData.renovation_year,
+          propertyAmenities: propertyData.property_amenities,
+          propertyLocation: propertyData.property_location,
+          propertyDescription: propertyData.property_description,
+          propertyConcerns: propertyData.property_concerns,
+          propertyDocuments: propertyData.property_documents,
+          // Owner details
+          ownerName: propertyData.owner_name,
+          ownerRelation: propertyData.owner_relation,
+          ownerAge: propertyData.owner_age,
+          ownerOccupation: propertyData.owner_occupation,
+          ownerIncome: propertyData.owner_income,
+          yearsOfResidence: propertyData.years_of_residence,
+          familyMembers: propertyData.family_members,
+          earningMembers: propertyData.earning_members,
+          previousOwnerName: propertyData.previous_owner_name,
+          // Individual details
+          individualName: propertyData.individual_name,
+          individualAge: propertyData.individual_age,
+          individualOccupation: propertyData.individual_occupation,
+          individualIncome: propertyData.individual_income,
+          individualEducation: propertyData.individual_education,
+          individualMaritalStatus: propertyData.individual_marital_status,
+          individualExperience: propertyData.individual_experience,
+          // Employment
+          employmentType: propertyData.employment_type,
+          employerName: propertyData.employer_name,
+          employmentDuration: propertyData.employment_duration,
+          monthlyIncome: propertyData.monthly_income,
+          annualIncome: propertyData.annual_income,
+          incomeSource: propertyData.income_source,
+          // Business
+          businessName: propertyData.business_name,
+          businessType: propertyData.business_type,
+          businessExperience: propertyData.business_experience,
+          businessIncome: propertyData.business_income,
+          // Met person
+          metPersonName: propertyData.met_person_name,
+          metPersonDesignation: propertyData.met_person_designation,
+          metPersonRelation: propertyData.met_person_relation,
+          metPersonContact: propertyData.met_person_contact,
+          // Neighbors
+          neighbor1Name: propertyData.neighbor1_name,
+          neighbor1Confirmation: propertyData.neighbor1_confirmation,
+          neighbor2Name: propertyData.neighbor2_name,
+          neighbor2Confirmation: propertyData.neighbor2_confirmation,
+          localityReputation: propertyData.locality_reputation,
           // TPC
           tpcMetPerson1: propertyData.tpc_met_person1,
           nameOfTpc1: propertyData.tpc_name1,
@@ -911,6 +1001,25 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           landmark2: propertyData.landmark2,
           landmark3: propertyData.landmark3,
           landmark4: propertyData.landmark4,
+          // Document & Legal
+          documentVerificationStatus: propertyData.document_verification_status,
+          titleClearStatus: propertyData.title_clear_status,
+          mutationStatus: propertyData.mutation_status,
+          taxPaymentStatus: propertyData.tax_payment_status,
+          legalIssues: propertyData.legal_issues,
+          loanAgainstProperty: propertyData.loan_against_property,
+          bankName: propertyData.bank_name,
+          loanAmount: propertyData.loan_amount,
+          emiAmount: propertyData.emi_amount,
+          // Utilities
+          electricityConnection: propertyData.electricity_connection,
+          waterConnection: propertyData.water_connection,
+          gasConnection: propertyData.gas_connection,
+          internetConnection: propertyData.internet_connection,
+          roadConnectivity: propertyData.road_connectivity,
+          publicTransport: propertyData.public_transport,
+          safetySecurity: propertyData.safety_security,
+          infrastructureStatus: propertyData.infrastructure_status,
           // Shifted/Contact
           shiftedPeriod: propertyData.shifted_period,
           currentLocation: propertyData.current_location,
@@ -927,7 +1036,9 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           feedbackFromNeighbour: propertyData.feedback_from_neighbour,
           politicalConnection: propertyData.political_connection,
           otherObservation: propertyData.other_observation,
+          verificationChallenges: propertyData.verification_challenges,
           holdReason: propertyData.hold_reason,
+          recommendationStatus: propertyData.recommendation_status,
           finalStatus: propertyData.final_status,
         };
       }
