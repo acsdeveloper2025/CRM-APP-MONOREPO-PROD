@@ -204,7 +204,8 @@ Hence the profile is marked as {Final_Status}.`,
         safeGet(formData, 'approxAreaSqFeet') || safeGet(formData, 'approximateArea'),
       Total_Family_Members:
         safeGet(formData, 'totalFamilyMembers') || safeGet(formData, 'familyMembers'),
-      Total_Earning_Members: safeGet(formData, 'totalEarningMember') || safeGet(formData, 'earningMembers'),
+      Total_Earning_Members:
+        safeGet(formData, 'totalEarningMember') || safeGet(formData, 'earningMembers'),
 
       // Work details
       Working_Status: safeGet(formData, 'workingStatus'),

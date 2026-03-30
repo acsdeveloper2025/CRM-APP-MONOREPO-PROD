@@ -90,6 +90,7 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   shiftedPeriod: 'shifted_period',
   oldOfficeShiftedPeriod: 'old_office_shifted_period',
   currentCompanyPeriod: 'current_company_period',
+  currentLocation: 'current_location',
   premisesStatus: 'premises_status',
 
   // Entry restricted specific fields
@@ -261,7 +262,10 @@ function processResidenceCumOfficeFieldValue(fieldName: string, value: unknown):
   ];
 
   if (numericFields.includes(fieldName)) {
-    const raw = typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>) ? (value as Record<string, unknown>).value : value;
+    const raw =
+      typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>)
+        ? (value as Record<string, unknown>).value
+        : value;
     const num = Number(raw);
     return isNaN(num) ? null : num;
   }
@@ -270,7 +274,7 @@ function processResidenceCumOfficeFieldValue(fieldName: string, value: unknown):
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     const obj = value as Record<string, unknown>;
     if ('value' in obj && 'unit' in obj) {
-      return `${String(obj.value)} ${String(obj.unit)}`.trim();
+      return `${String(obj.value as string | number)} ${String(obj.unit as string | number)}`.trim();
     }
     return JSON.stringify(value);
   }

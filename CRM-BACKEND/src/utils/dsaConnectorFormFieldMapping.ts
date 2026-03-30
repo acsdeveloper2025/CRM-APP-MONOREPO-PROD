@@ -18,6 +18,7 @@ export interface DatabaseFieldMapping {
 export const DSA_CONNECTOR_FIELD_MAPPING: DatabaseFieldMapping = {
   // Basic form information
   outcome: null, // Handled separately as verification_outcome
+  verificationOutcome: null, // Handled separately as verification_outcome
   remarks: 'remarks',
   finalStatus: 'final_status',
 
@@ -224,7 +225,10 @@ function processDsaConnectorFieldValue(fieldName: string, value: unknown): unkno
   ];
 
   if (numericFields.includes(fieldName)) {
-    const raw = typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>) ? (value as Record<string, unknown>).value : value;
+    const raw =
+      typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>)
+        ? (value as Record<string, unknown>).value
+        : value;
     const num = Number(raw);
     return isNaN(num) ? null : num;
   }
@@ -258,7 +262,7 @@ function processDsaConnectorFieldValue(fieldName: string, value: unknown): unkno
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     const obj = value as Record<string, unknown>;
     if ('value' in obj && 'unit' in obj) {
-      return `${String(obj.value)} ${String(obj.unit)}`.trim();
+      return `${String(obj.value as string | number)} ${String(obj.unit as string | number)}`.trim();
     }
     return JSON.stringify(value);
   }

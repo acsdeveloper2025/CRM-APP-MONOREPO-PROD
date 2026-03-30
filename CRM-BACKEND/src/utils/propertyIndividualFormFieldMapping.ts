@@ -18,6 +18,7 @@ export interface DatabaseFieldMapping {
 export const PROPERTY_INDIVIDUAL_FIELD_MAPPING: DatabaseFieldMapping = {
   // Basic form information
   outcome: null, // Handled separately as verification_outcome
+  verificationOutcome: null, // Handled separately as verification_outcome
   remarks: 'remarks',
   finalStatus: 'final_status',
 
@@ -169,12 +170,19 @@ export const PROPERTY_INDIVIDUAL_FIELD_MAPPING: DatabaseFieldMapping = {
   relationship: 'met_person_relation', // Maps to met person relation
   approxArea: 'property_area', // Maps to property area
 
+  // Mobile app specific fields mapped to DB equivalents
+  ownershipStatus: 'property_ownership', // Maps to property_ownership
+  metPersonStatus: null, // No direct DB column, ignore
+  metPersonType: null, // Entry restricted met person type (not stored separately)
+
   // Mobile app specific fields that don't have database equivalents
   addressExistAt: null, // No database equivalent, ignore
   doorNamePlateStatus: null, // No database equivalent, ignore
   nameOnDoorPlate: null, // No database equivalent, ignore
   societyNamePlateStatus: null, // No database equivalent, ignore
   nameOnSocietyBoard: null, // No database equivalent, ignore
+  companyNamePlateStatus: null, // No database equivalent, ignore
+  nameOnBoard: null, // No database equivalent, ignore
 
   // Fields to ignore (UI state, images, etc.)
   images: null,
@@ -184,6 +192,9 @@ export const PROPERTY_INDIVIDUAL_FIELD_MAPPING: DatabaseFieldMapping = {
   timestamp: null,
   isValid: null,
   errors: null,
+  formType: null, // Handled separately
+  attachmentIds: null, // Handled separately
+  geoLocation: null, // Handled separately
 };
 
 /**
@@ -253,7 +264,10 @@ function processPropertyIndividualFieldValue(fieldName: string, value: unknown):
   ];
 
   if (numericFields.includes(fieldName)) {
-    const raw = typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>) ? (value as Record<string, unknown>).value : value;
+    const raw =
+      typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>)
+        ? (value as Record<string, unknown>).value
+        : value;
     const num = Number(raw);
     return isNaN(num) ? null : num;
   }
@@ -262,7 +276,7 @@ function processPropertyIndividualFieldValue(fieldName: string, value: unknown):
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     const obj = value as Record<string, unknown>;
     if ('value' in obj && 'unit' in obj) {
-      return `${String(obj.value)} ${String(obj.unit)}`.trim();
+      return `${String(obj.value as string | number)} ${String(obj.unit as string | number)}`.trim();
     }
     return JSON.stringify(value);
   }
