@@ -7,9 +7,9 @@
 
 import type { FormSection, FormField } from '../types/mobile';
 import {
-  getRelevantFieldsForFormType,
-  shouldShowField,
-  CONDITIONAL_FIELD_RULES,
+  getRelevantFieldsForFormType as _getRelevantFieldsForFormType,
+  shouldShowField as _shouldShowField,
+  CONDITIONAL_FIELD_RULES as _CONDITIONAL_FIELD_RULES,
 } from './typeAwareFormFieldSchemas';
 import { logger } from './logger';
 
@@ -5785,24 +5785,6 @@ const RESIDENCE_CUM_OFFICE_FORM_FIELDS: FormFieldDefinition[] = [
 
   // Applicant Information
   {
-    id: 'applicantAge',
-    name: 'applicantAge',
-    label: 'Applicant Age',
-    type: 'number',
-    isRequired: false,
-    section: 'Applicant Information',
-    order: 1,
-  },
-  {
-    id: 'applicantDob',
-    name: 'applicantDob',
-    label: 'Applicant Date of Birth',
-    type: 'date',
-    isRequired: false,
-    section: 'Applicant Information',
-    order: 2,
-  },
-  {
     id: 'applicantStayingStatus',
     name: 'applicantStayingStatus',
     label: 'Applicant Staying Status',
@@ -6293,32 +6275,71 @@ export function createComprehensiveFormSections(
 
   // Field → Section mapping based on field name patterns
   const getSectionForField = (name: string): string => {
-    if (/^address|^locality|^landmark|^door(Color|Name)|^society|^company.*Plate|^nameOn/.test(name))
+    if (
+      /^address|^locality|^landmark|^door(Color|Name)|^society|^company.*Plate|^nameOn/.test(name)
+    ) {
       return 'Address & Location';
-    if (/^metPerson|^nameOfMet|^applicant(Staying|Working)|^stayingPerson/.test(name))
+    }
+    if (/^metPerson|^nameOfMet|^applicant(Staying|Working)|^stayingPerson/.test(name)) {
       return 'Person Details';
-    if (/^house|^room|^premises|^office(Status|Existence|Type|Area)|^building|^flat/.test(name))
+    }
+    if (/^house|^room|^premises|^office(Status|Existence|Type|Area)|^building|^flat/.test(name)) {
       return 'Premises Details';
-    if (/^total(Family|Earning|Staff)|^staff|^earning|^family|^staying(Period|Status)|^working|^companyName$|^approxArea/.test(name))
+    }
+    if (
+      /^total(Family|Earning|Staff)|^staff|^earning|^family|^staying(Period|Status)|^working|^companyName$|^approxArea/.test(
+        name
+      )
+    ) {
       return 'Personal & Work Details';
-    if (/^document|^property(Doc|Documents)/.test(name)) return 'Document Verification';
-    if (/^tpc|^nameOfTpc|^neighbor/.test(name)) return 'Third Party Confirmation';
-    if (/^shifted|^current(Location|Company)|^old(Office|Business)|^previous/.test(name))
+    }
+    if (/^document|^property(Doc|Documents)/.test(name)) {
+      return 'Document Verification';
+    }
+    if (/^tpc|^nameOfTpc|^neighbor/.test(name)) {
+      return 'Third Party Confirmation';
+    }
+    if (/^shifted|^current(Location|Company)|^old(Office|Business)|^previous/.test(name)) {
       return 'Shifting Details';
-    if (/^entry|^security|^access/.test(name)) return 'Entry Restriction';
-    if (/^contact|^alternate|^callRemark/.test(name)) return 'Contact Details';
-    if (/^political|^dominated|^feedback|^other(Observation|Extra)|^infrastructure|^road/.test(name))
+    }
+    if (/^entry|^security|^access/.test(name)) {
+      return 'Entry Restriction';
+    }
+    if (/^contact|^alternate|^callRemark/.test(name)) {
+      return 'Contact Details';
+    }
+    if (
+      /^political|^dominated|^feedback|^other(Observation|Extra)|^infrastructure|^road/.test(name)
+    ) {
       return 'Area Assessment';
-    if (/^connector|^business(Name|Type|Reg|Est|Operational|Hours)|^license|^compliance|^audit|^training/.test(name))
+    }
+    if (
+      /^connector|^business(Name|Type|Reg|Est|Operational|Hours)|^license|^compliance|^audit|^training/.test(
+        name
+      )
+    ) {
       return 'Business & Connector Details';
-    if (/^noc|^project|^builder|^developer|^rera|^apf|^property|^owner|^individual|^loan|^bank|^emi/.test(name))
+    }
+    if (
+      /^noc|^project|^builder|^developer|^rera|^apf|^property|^owner|^individual|^loan|^bank|^emi/.test(
+        name
+      )
+    ) {
       return 'Property & Project Details';
-    if (/^monthly|^annual|^commission|^payment|^market|^competitor|^customer(Footfall|Feedback)|^commercial|^growth|^risk/.test(name))
+    }
+    if (
+      /^monthly|^annual|^commission|^payment|^market|^competitor|^customer(Footfall|Feedback)|^commercial|^growth|^risk/.test(
+        name
+      )
+    ) {
       return 'Financial & Market Details';
-    if (/^computer|^internet|^software|^pos|^printer|^office(Rent|Area(?!$))/.test(name))
+    }
+    if (/^computer|^internet|^software|^pos|^printer|^office(Rent|Area(?!$))/.test(name)) {
       return 'Technology & Infrastructure';
-    if (/^electric|^water|^gas|^fire|^pollution|^environmental|^safety/.test(name))
+    }
+    if (/^electric|^water|^gas|^fire|^pollution|^environmental|^safety/.test(name)) {
       return 'Utilities & Clearances';
+    }
     return 'Other Details';
   };
 
@@ -6341,13 +6362,19 @@ export function createComprehensiveFormSections(
   let order = 0;
 
   for (const [key, value] of Object.entries(formData)) {
-    if (SKIP_FIELDS.has(key)) continue;
-    if (value === null || value === undefined || value === '') continue;
+    if (SKIP_FIELDS.has(key)) {
+      continue;
+    }
+    if (value === null || value === undefined || value === '') {
+      continue;
+    }
 
     const section = getSectionForField(key);
-    if (!sectionMap.has(section)) sectionMap.set(section, []);
+    if (!sectionMap.has(section)) {
+      sectionMap.set(section, []);
+    }
 
-    sectionMap.get(section)!.push({
+    sectionMap.get(section).push({
       id: key,
       name: key,
       label: toLabel(key),
@@ -6379,7 +6406,9 @@ export function createComprehensiveFormSections(
       });
     }
   }
-  if (assessmentFields.length > 0) sectionMap.set('Final Assessment', assessmentFields);
+  if (assessmentFields.length > 0) {
+    sectionMap.set('Final Assessment', assessmentFields);
+  }
 
   // Add customer info at the top
   const basicFields: FormField[] = [];
@@ -6458,7 +6487,7 @@ export function createComprehensiveFormSections(
 /**
  * Group fields into sections based on their section property
  */
-function groupFieldsIntoSections(
+function _groupFieldsIntoSections(
   fields: FormFieldDefinition[],
   formData: Record<string, unknown>
 ): FormSection[] {
@@ -6513,7 +6542,7 @@ function groupFieldsIntoSections(
  * Legacy form sections creation (fallback)
  * Uses the old method of showing all fields
  */
-function createLegacyFormSections(
+function _createLegacyFormSections(
   formData: Record<string, unknown>,
   verificationType: string,
   formType: string

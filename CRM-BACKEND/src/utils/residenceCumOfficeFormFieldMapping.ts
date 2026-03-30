@@ -90,6 +90,7 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   shiftedPeriod: 'shifted_period',
   oldOfficeShiftedPeriod: 'old_office_shifted_period',
   currentCompanyPeriod: 'current_company_period',
+  currentLocation: 'current_location',
   premisesStatus: 'premises_status',
 
   // Entry restricted specific fields
@@ -114,7 +115,7 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
 
   // Legacy/alternative field names
   metPerson: 'met_person_name', // Maps to met person name
-  companyName: 'company_nature_of_business', // Maps to company nature
+  companyName: 'company_name', // Maps to company name
   totalEmployees: 'staff_strength', // Maps to staff strength
 
   // Additional mobile form fields that need mapping or ignoring
@@ -129,7 +130,7 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   verificationMethod: null, // Derived field, ignore
 
   // Additional form-specific fields from mobile components (avoiding duplicates)
-  metPersonStatus: 'met_person_type', // Maps to met person type
+  metPersonStatus: 'met_person_status', // Maps to met person status
   addressTraceable: 'address_locatable', // Alternative name for address locatable
   fullAddress: null, // No full_address column — address is on verification_tasks
   customerName: 'customer_name', // Maps to customer name
@@ -273,7 +274,7 @@ function processResidenceCumOfficeFieldValue(fieldName: string, value: unknown):
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     const obj = value as Record<string, unknown>;
     if ('value' in obj && 'unit' in obj) {
-      return `${String(obj.value as string)} ${String(obj.unit as string)}`.trim();
+      return `${String(obj.value as string | number)} ${String(obj.unit as string | number)}`.trim();
     }
     return JSON.stringify(value);
   }

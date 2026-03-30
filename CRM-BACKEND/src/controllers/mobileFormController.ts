@@ -181,8 +181,8 @@ export class MobileFormController {
       if (val !== undefined && val !== null && val !== '') {
         // Combine value + unit into target field (e.g., "5 Years")
         processed[pair.target] = unit
-          ? `${String(val as string)} ${String(unit as string)}`
-          : String(val as string);
+          ? `${String(val as string | number)} ${String(unit as string | number)}`
+          : String(val as string | number);
         // Remove the separate fields so they don't get mapped individually
         delete processed[pair.value];
         delete processed[pair.unit];
@@ -1395,8 +1395,8 @@ export class MobileFormController {
       formData.projectStatus = report.project_status;
       formData.projectApprovalStatus = report.project_approval_status;
       formData.projectCompletionPercentage = report.project_completion_percentage;
-      formData.projectStartDate = report.project_start_date;
-      formData.projectEndDate = report.project_end_date;
+      formData.projectStartDate = report.project_started_date;
+      formData.projectEndDate = report.project_completion_date;
       formData.projectStartedDate = report.project_started_date;
       formData.projectCompletionDate = report.project_completion_date;
       formData.totalUnits = report.total_units;
@@ -1931,8 +1931,6 @@ export class MobileFormController {
       formData.nameOnSocietyBoard = report.name_on_society_board;
 
       // Applicant Information
-      formData.applicantAge = report.applicant_age;
-      formData.applicantDob = report.applicant_dob;
       formData.applicantStayingStatus = report.applicant_staying_status;
       formData.applicantWorkingStatus = report.applicant_working_status;
       formData.applicantWorkingPremises = report.applicant_working_premises;
@@ -2978,7 +2976,7 @@ export class MobileFormController {
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
       `,
-        [verificationTaskId]
+        [taskId || verificationTaskId]
       );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
@@ -3374,7 +3372,7 @@ export class MobileFormController {
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
       `,
-        [verificationTaskId]
+        [taskId || verificationTaskId]
       );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
@@ -3772,7 +3770,7 @@ export class MobileFormController {
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
       `,
-        [verificationTaskId]
+        [taskId || verificationTaskId]
       );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
@@ -4163,7 +4161,7 @@ export class MobileFormController {
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
       `,
-        [verificationTaskId]
+        [taskId || verificationTaskId]
       );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
@@ -4274,7 +4272,7 @@ export class MobileFormController {
             id, verification_task_id, case_id, form_submission_id, form_type,
             submitted_by, submitted_at, validation_status
           ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
-          [uuidv4(), verificationTaskId, caseId, uuidv4(), 'BUILDER_VERIFICATION', userId]
+          [uuidv4(), taskId || verificationTaskId, caseId, uuidv4(), 'BUILDER_VERIFICATION', userId]
         );
         logger.info(`✅ Linked builder form submission to task ${verificationTaskId}`);
       } catch (linkError) {
@@ -4799,7 +4797,7 @@ export class MobileFormController {
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
       `,
-        [verificationTaskId]
+        [taskId || verificationTaskId]
       );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
@@ -4913,7 +4911,14 @@ export class MobileFormController {
             id, verification_task_id, case_id, form_submission_id, form_type,
             submitted_by, submitted_at, validation_status
           ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
-          [uuidv4(), verificationTaskId, caseId, uuidv4(), 'DSA_CONNECTOR_VERIFICATION', userId]
+          [
+            uuidv4(),
+            taskId || verificationTaskId,
+            caseId,
+            uuidv4(),
+            'DSA_CONNECTOR_VERIFICATION',
+            userId,
+          ]
         );
         logger.info(`✅ Linked DSA Connector form submission to task ${verificationTaskId}`);
       } catch (linkError) {
@@ -5434,7 +5439,7 @@ export class MobileFormController {
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
       `,
-        [verificationTaskId]
+        [taskId || verificationTaskId]
       );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
@@ -5542,7 +5547,14 @@ export class MobileFormController {
             id, verification_task_id, case_id, form_submission_id, form_type,
             submitted_by, submitted_at, validation_status
           ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
-          [uuidv4(), verificationTaskId, caseId, uuidv4(), 'PROPERTY_APF_VERIFICATION', userId]
+          [
+            uuidv4(),
+            taskId || verificationTaskId,
+            caseId,
+            uuidv4(),
+            'PROPERTY_APF_VERIFICATION',
+            userId,
+          ]
         );
         logger.info(`✅ Linked Property APF form submission to task ${verificationTaskId}`);
       } catch (linkError) {
@@ -5829,7 +5841,7 @@ export class MobileFormController {
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
       `,
-        [verificationTaskId]
+        [taskId || verificationTaskId]
       );
 
       // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
@@ -5937,7 +5949,7 @@ export class MobileFormController {
             id, verification_task_id, case_id, form_submission_id, form_type,
             submitted_by, submitted_at, validation_status
           ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
-          [uuidv4(), verificationTaskId, caseId, uuidv4(), 'NOC_VERIFICATION', userId]
+          [uuidv4(), taskId || verificationTaskId, caseId, uuidv4(), 'NOC_VERIFICATION', userId]
         );
         logger.info(`✅ Linked NOC form submission to task ${verificationTaskId}`);
       } catch (linkError) {

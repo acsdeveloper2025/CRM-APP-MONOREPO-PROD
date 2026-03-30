@@ -18,6 +18,7 @@ export interface DatabaseFieldMapping {
 export const NOC_FIELD_MAPPING: DatabaseFieldMapping = {
   // Basic form information
   outcome: null, // Handled separately as verification_outcome
+  verificationOutcome: null, // Handled separately as verification_outcome
   remarks: 'remarks',
   finalStatus: 'final_status',
 
@@ -35,6 +36,9 @@ export const NOC_FIELD_MAPPING: DatabaseFieldMapping = {
   landmark2: 'landmark2',
   landmark3: 'landmark3', // Used in untraceable forms
   landmark4: 'landmark4', // Used in untraceable forms
+
+  // Office/premises status
+  officeStatus: 'office_status', // Used to determine door open/locked
 
   // NOC-specific fields (Form specific)
   nocStatus: 'noc_status', // Used in POSITIVE, NSP forms
@@ -157,8 +161,11 @@ export function mapNocFormDataToDatabase(
       continue;
     }
 
-    // Use the mapped column name or the original field name if no mapping exists
-    const columnName = dbColumn || mobileField;
+    // Skip fields that have no DB mapping (undefined = not in mapping)
+    if (dbColumn === undefined) {
+      continue;
+    }
+    const columnName = dbColumn;
 
     // Process the value based on type
     mappedData[columnName] = processNocFieldValue(mobileField, value);
@@ -214,7 +221,7 @@ function processNocFieldValue(fieldName: string, value: unknown): unknown {
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     const obj = value as Record<string, unknown>;
     if ('value' in obj && 'unit' in obj) {
-      return `${String(obj.value as string)} ${String(obj.unit as string)}`.trim();
+      return `${String(obj.value as string | number)} ${String(obj.unit as string | number)}`.trim();
     }
     return JSON.stringify(value);
   }
