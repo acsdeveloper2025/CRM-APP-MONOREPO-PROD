@@ -181,8 +181,11 @@ export function mapDsaConnectorFormDataToDatabase(
       continue;
     }
 
-    // Use the mapped column name or the original field name if no mapping exists
-    const columnName = dbColumn || mobileField;
+    // Skip fields that have no DB mapping (undefined = not in mapping)
+    if (dbColumn === undefined) {
+      continue;
+    }
+    const columnName = dbColumn;
 
     // Process the value based on type
     mappedData[columnName] = processDsaConnectorFieldValue(mobileField, value);

@@ -5785,24 +5785,6 @@ const RESIDENCE_CUM_OFFICE_FORM_FIELDS: FormFieldDefinition[] = [
 
   // Applicant Information
   {
-    id: 'applicantAge',
-    name: 'applicantAge',
-    label: 'Applicant Age',
-    type: 'number',
-    isRequired: false,
-    section: 'Applicant Information',
-    order: 1,
-  },
-  {
-    id: 'applicantDob',
-    name: 'applicantDob',
-    label: 'Applicant Date of Birth',
-    type: 'date',
-    isRequired: false,
-    section: 'Applicant Information',
-    order: 2,
-  },
-  {
     id: 'applicantStayingStatus',
     name: 'applicantStayingStatus',
     label: 'Applicant Staying Status',

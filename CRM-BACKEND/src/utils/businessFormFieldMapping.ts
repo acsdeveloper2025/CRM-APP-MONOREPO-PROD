@@ -52,6 +52,10 @@ export const BUSINESS_FIELD_MAPPING: DatabaseFieldMapping = {
   establishmentPeriod: 'establishment_period', // Used in POSITIVE forms
   businessApproxArea: 'business_approx_area', // Used in POSITIVE forms
   officeApproxArea: 'business_approx_area', // Alternative field name
+  businessActivity: 'business_activity', // Used in POSITIVE forms
+  businessSetup: 'business_setup', // Used in POSITIVE forms
+  documentType: 'document_type',
+  documentShownStatus: 'document_shown',
   staffStrength: 'staff_strength', // Used in POSITIVE forms
   staffSeen: 'staff_seen', // Used in POSITIVE forms
 
@@ -149,8 +153,11 @@ export function mapBusinessFormDataToDatabase(
       continue;
     }
 
-    // Use the mapped column name or the original field name if no mapping exists
-    const columnName = dbColumn || mobileField;
+    // Skip fields that have no DB mapping (undefined = not in mapping)
+    if (dbColumn === undefined) {
+      continue;
+    }
+    const columnName = dbColumn;
 
     // Process the value based on type
     mappedData[columnName] = processBusinessFieldValue(mobileField, value);

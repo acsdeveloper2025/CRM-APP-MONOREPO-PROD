@@ -116,9 +116,9 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   verificationNotes: 'other_observation', // Maps to other observation
   recommendationStatus: 'recommendation_status', // Maps to recommendation_status column
 
-  // Fields that don't have DB columns in office table - ignore
-  documentType: null,
-  documentShownStatus: null,
+  // Document fields
+  documentType: 'document_type',
+  documentShownStatus: 'document_shown',
   officeExistFloor: null,
   metPersonStatus: null,
   applicantStayingFloor: null,
@@ -163,8 +163,11 @@ export function mapOfficeFormDataToDatabase(
       continue;
     }
 
-    // Use the mapped column name or the original field name if no mapping exists
-    const columnName = dbColumn || mobileField;
+    // Skip fields that have no DB mapping (undefined = not in mapping)
+    if (dbColumn === undefined) {
+      continue;
+    }
+    const columnName = dbColumn;
 
     // Process the value based on type
     mappedData[columnName] = processOfficeFieldValue(mobileField, value);

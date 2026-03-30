@@ -1395,8 +1395,8 @@ export class MobileFormController {
       formData.projectStatus = report.project_status;
       formData.projectApprovalStatus = report.project_approval_status;
       formData.projectCompletionPercentage = report.project_completion_percentage;
-      formData.projectStartDate = report.project_start_date;
-      formData.projectEndDate = report.project_end_date;
+      formData.projectStartDate = report.project_started_date;
+      formData.projectEndDate = report.project_completion_date;
       formData.projectStartedDate = report.project_started_date;
       formData.projectCompletionDate = report.project_completion_date;
       formData.totalUnits = report.total_units;
@@ -1931,8 +1931,6 @@ export class MobileFormController {
       formData.nameOnSocietyBoard = report.name_on_society_board;
 
       // Applicant Information
-      formData.applicantAge = report.applicant_age;
-      formData.applicantDob = report.applicant_dob;
       formData.applicantStayingStatus = report.applicant_staying_status;
       formData.applicantWorkingStatus = report.applicant_working_status;
       formData.applicantWorkingPremises = report.applicant_working_premises;

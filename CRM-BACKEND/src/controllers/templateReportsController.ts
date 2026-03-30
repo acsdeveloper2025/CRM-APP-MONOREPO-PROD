@@ -307,6 +307,8 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           ownerName: businessData.owner_name,
           businessOwnerName: businessData.business_owner_name,
           nameOfCompanyOwners: businessData.name_of_company_owners,
+          businessActivity: businessData.business_activity,
+          businessSetup: businessData.business_setup,
           // Nameplate
           companyNamePlateStatus: businessData.company_nameplate_status,
           nameOnBoard: businessData.name_on_company_board,
