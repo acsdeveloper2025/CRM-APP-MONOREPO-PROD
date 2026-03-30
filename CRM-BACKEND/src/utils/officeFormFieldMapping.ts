@@ -18,6 +18,7 @@ export interface DatabaseFieldMapping {
 export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   // Basic form information
   outcome: null, // Handled separately as verification_outcome
+  verificationOutcome: null, // Handled separately as verification_outcome
   remarks: 'remarks',
   finalStatus: 'final_status',
 
@@ -115,6 +116,20 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   verificationNotes: 'other_observation', // Maps to other observation
   recommendationStatus: 'recommendation_status', // Maps to recommendation_status column
 
+  // Document fields
+  documentType: 'document_type',
+  documentShownStatus: 'document_shown',
+  officeExistFloor: null,
+  metPersonStatus: null,
+  applicantStayingFloor: null,
+  doorNamePlateStatus: null,
+  nameOnDoorPlate: null,
+  societyNamePlateStatus: null,
+  nameOnSocietyBoard: null,
+  formType: null,
+  attachmentIds: null,
+  geoLocation: null,
+
   // Fields to ignore (UI state, images, etc.)
   images: null,
   selfieImages: null,
@@ -148,8 +163,11 @@ export function mapOfficeFormDataToDatabase(
       continue;
     }
 
-    // Use the mapped column name or the original field name if no mapping exists
-    const columnName = dbColumn || mobileField;
+    // Skip fields that have no DB mapping (undefined = not in mapping)
+    if (dbColumn === undefined) {
+      continue;
+    }
+    const columnName = dbColumn;
 
     // Process the value based on type
     mappedData[columnName] = processOfficeFieldValue(mobileField, value);
@@ -194,7 +212,7 @@ function processOfficeFieldValue(fieldName: string, value: unknown): unknown {
   // Handle final_status field - convert case to match database constraint
   // DB CHECK: final_status IN ('Positive', 'Negative', 'Refer', 'Fraud', 'Hold')
   if (fieldName === 'finalStatus') {
-    const statusValue = String(value as string)
+    const statusValue = String(value as string | number)
       .trim()
       .toUpperCase();
     switch (statusValue) {
@@ -210,7 +228,7 @@ function processOfficeFieldValue(fieldName: string, value: unknown): unknown {
         return 'Hold';
       default:
         logger.warn(
-          `⚠️ Unknown finalStatus value: ${String(value as string)}, defaulting to 'Refer'`
+          `⚠️ Unknown finalStatus value: ${String(value as string | number)}, defaulting to 'Refer'`
         );
         return 'Refer';
     }
@@ -221,7 +239,7 @@ function processOfficeFieldValue(fieldName: string, value: unknown): unknown {
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     const obj = value as Record<string, unknown>;
     if ('value' in obj && 'unit' in obj) {
-      return `${String(obj.value as string)} ${String(obj.unit as string)}`.trim();
+      return `${String(obj.value as string | number)} ${String(obj.unit as string | number)}`.trim();
     }
     return JSON.stringify(value);
   }

@@ -314,7 +314,10 @@ function processFieldValue(fieldName: string, value: unknown): unknown {
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     const obj = value as Record<string, unknown>;
     if ('value' in obj && 'unit' in obj) {
-      return `${String(obj.value as string)} ${String(obj.unit as string)}`.trim() || null;
+      return (
+        `${String(obj.value as string | number)} ${String(obj.unit as string | number)}`.trim() ||
+        null
+      );
     }
   }
 

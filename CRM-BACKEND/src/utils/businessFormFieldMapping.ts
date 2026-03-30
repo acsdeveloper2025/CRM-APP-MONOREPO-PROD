@@ -18,6 +18,7 @@ export interface DatabaseFieldMapping {
 export const BUSINESS_FIELD_MAPPING: DatabaseFieldMapping = {
   // Basic form information
   outcome: null, // Handled separately as verification_outcome
+  verificationOutcome: null, // Handled separately as verification_outcome
   remarks: 'remarks',
   finalStatus: 'final_status',
 
@@ -51,6 +52,10 @@ export const BUSINESS_FIELD_MAPPING: DatabaseFieldMapping = {
   establishmentPeriod: 'establishment_period', // Used in POSITIVE forms
   businessApproxArea: 'business_approx_area', // Used in POSITIVE forms
   officeApproxArea: 'business_approx_area', // Alternative field name
+  businessActivity: 'business_activity', // Used in POSITIVE forms
+  businessSetup: 'business_setup', // Used in POSITIVE forms
+  documentType: 'document_type',
+  documentShownStatus: 'document_shown',
   staffStrength: 'staff_strength', // Used in POSITIVE forms
   staffSeen: 'staff_seen', // Used in POSITIVE forms
 
@@ -148,8 +153,11 @@ export function mapBusinessFormDataToDatabase(
       continue;
     }
 
-    // Use the mapped column name or the original field name if no mapping exists
-    const columnName = dbColumn || mobileField;
+    // Skip fields that have no DB mapping (undefined = not in mapping)
+    if (dbColumn === undefined) {
+      continue;
+    }
+    const columnName = dbColumn;
 
     // Process the value based on type
     mappedData[columnName] = processBusinessFieldValue(mobileField, value);
@@ -201,7 +209,7 @@ function processBusinessFieldValue(fieldName: string, value: unknown): unknown {
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     const obj = value as Record<string, unknown>;
     if ('value' in obj && 'unit' in obj) {
-      return `${String(obj.value as string)} ${String(obj.unit as string)}`.trim();
+      return `${String(obj.value as string | number)} ${String(obj.unit as string | number)}`.trim();
     }
     return JSON.stringify(value);
   }
