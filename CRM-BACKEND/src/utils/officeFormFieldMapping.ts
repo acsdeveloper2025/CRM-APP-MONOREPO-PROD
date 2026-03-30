@@ -18,6 +18,7 @@ export interface DatabaseFieldMapping {
 export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   // Basic form information
   outcome: null, // Handled separately as verification_outcome
+  verificationOutcome: null, // Handled separately as verification_outcome
   remarks: 'remarks',
   finalStatus: 'final_status',
 
@@ -115,6 +116,20 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   verificationNotes: 'other_observation', // Maps to other observation
   recommendationStatus: 'recommendation_status', // Maps to recommendation_status column
 
+  // Fields that don't have DB columns in office table - ignore
+  documentType: null,
+  documentShownStatus: null,
+  officeExistFloor: null,
+  metPersonStatus: null,
+  applicantStayingFloor: null,
+  doorNamePlateStatus: null,
+  nameOnDoorPlate: null,
+  societyNamePlateStatus: null,
+  nameOnSocietyBoard: null,
+  formType: null,
+  attachmentIds: null,
+  geoLocation: null,
+
   // Fields to ignore (UI state, images, etc.)
   images: null,
   selfieImages: null,
@@ -183,7 +198,10 @@ function processOfficeFieldValue(fieldName: string, value: unknown): unknown {
   const numericFields = ['staffStrength', 'staffSeen', 'officeApproxArea', 'totalEmployees'];
 
   if (numericFields.includes(fieldName)) {
-    const raw = typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>) ? (value as Record<string, unknown>).value : value;
+    const raw =
+      typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>)
+        ? (value as Record<string, unknown>).value
+        : value;
     const num = Number(raw);
     return isNaN(num) ? null : num;
   }
@@ -191,7 +209,9 @@ function processOfficeFieldValue(fieldName: string, value: unknown): unknown {
   // Handle final_status field - convert case to match database constraint
   // DB CHECK: final_status IN ('Positive', 'Negative', 'Refer', 'Fraud', 'Hold')
   if (fieldName === 'finalStatus') {
-    const statusValue = String(value).trim().toUpperCase();
+    const statusValue = String(value as string | number)
+      .trim()
+      .toUpperCase();
     switch (statusValue) {
       case 'POSITIVE':
         return 'Positive';
@@ -204,7 +224,9 @@ function processOfficeFieldValue(fieldName: string, value: unknown): unknown {
       case 'HOLD':
         return 'Hold';
       default:
-        logger.warn(`⚠️ Unknown finalStatus value: ${String(value)}, defaulting to 'Refer'`);
+        logger.warn(
+          `⚠️ Unknown finalStatus value: ${String(value as string | number)}, defaulting to 'Refer'`
+        );
         return 'Refer';
     }
   }
@@ -214,7 +236,7 @@ function processOfficeFieldValue(fieldName: string, value: unknown): unknown {
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     const obj = value as Record<string, unknown>;
     if ('value' in obj && 'unit' in obj) {
-      return `${String(obj.value)} ${String(obj.unit)}`.trim();
+      return `${String(obj.value as string | number)} ${String(obj.unit as string | number)}`.trim();
     }
     return JSON.stringify(value);
   }

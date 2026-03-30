@@ -62,10 +62,28 @@ export const UNIVERSAL_OUTCOME_MAPPING: Record<string, FormTypeResult> = {
     confidence: 95,
     detectionMethod: 'outcome_mapping',
   },
+  Positive: {
+    formType: 'POSITIVE',
+    verificationOutcome: 'Positive & Door Open',
+    confidence: 95,
+    detectionMethod: 'outcome_mapping',
+  },
+  'Positive & Door Open': {
+    formType: 'POSITIVE',
+    verificationOutcome: 'Positive & Door Open',
+    confidence: 100,
+    detectionMethod: 'outcome_mapping',
+  },
   'Positive & Door Locked': {
     formType: 'POSITIVE',
     verificationOutcome: 'Positive & Door Locked',
     confidence: 100,
+    detectionMethod: 'outcome_mapping',
+  },
+  Negative: {
+    formType: 'NEGATIVE',
+    verificationOutcome: 'Negative',
+    confidence: 95,
     detectionMethod: 'outcome_mapping',
   },
   SUCCESSFUL: {
@@ -85,6 +103,18 @@ export const UNIVERSAL_OUTCOME_MAPPING: Record<string, FormTypeResult> = {
     formType: 'SHIFTED',
     verificationOutcome: 'Shifted & Door Lock',
     confidence: 95,
+    detectionMethod: 'outcome_mapping',
+  },
+  Shifted: {
+    formType: 'SHIFTED',
+    verificationOutcome: 'Shifted & Door Open',
+    confidence: 95,
+    detectionMethod: 'outcome_mapping',
+  },
+  'Shifted & Door Open': {
+    formType: 'SHIFTED',
+    verificationOutcome: 'Shifted & Door Open',
+    confidence: 100,
     detectionMethod: 'outcome_mapping',
   },
   'Shifted & Door Lock': {
@@ -114,8 +144,20 @@ export const UNIVERSAL_OUTCOME_MAPPING: Record<string, FormTypeResult> = {
 
   NSP: {
     formType: 'NSP',
-    verificationOutcome: 'NSP & Door Lock',
+    verificationOutcome: 'NSP & Door Open',
     confidence: 95,
+    detectionMethod: 'outcome_mapping',
+  },
+  'NSP & Door Open': {
+    formType: 'NSP',
+    verificationOutcome: 'NSP & Door Open',
+    confidence: 100,
+    detectionMethod: 'outcome_mapping',
+  },
+  'NSP & Door Locked': {
+    formType: 'NSP',
+    verificationOutcome: 'NSP & Door Locked',
+    confidence: 100,
     detectionMethod: 'outcome_mapping',
   },
   'NSP & Door Lock': {
@@ -201,10 +243,10 @@ export const UNIVERSAL_OUTCOME_MAPPING: Record<string, FormTypeResult> = {
     detectionMethod: 'legacy_mapping',
   },
   NEGATIVE: {
-    formType: 'NSP',
-    verificationOutcome: 'NSP & Door Lock',
-    confidence: 75,
-    detectionMethod: 'legacy_mapping',
+    formType: 'NEGATIVE',
+    verificationOutcome: 'Negative',
+    confidence: 95,
+    detectionMethod: 'outcome_mapping',
   },
   FRAUD: {
     formType: 'NSP',
@@ -405,7 +447,7 @@ export function detectFormTypeEnhanced(
   formData: DetectedFormData,
   verificationType = 'RESIDENCE'
 ): FormTypeResult {
-  const outcome = formData.outcome || formData.finalStatus || formData.verificationOutcome;
+  const outcome = formData.verificationOutcome || formData.outcome || formData.finalStatus;
   const normalizedType = verificationType.toUpperCase();
 
   logger.info(`🔍 Enhanced form type detection for ${normalizedType}:`, {
@@ -417,9 +459,38 @@ export function detectFormTypeEnhanced(
 
   // Method 1: Direct outcome mapping (highest confidence)
   if (outcome && UNIVERSAL_OUTCOME_MAPPING[outcome]) {
-    const result = UNIVERSAL_OUTCOME_MAPPING[outcome];
+    const result = { ...UNIVERSAL_OUTCOME_MAPPING[outcome] };
+
+    // Refine verificationOutcome based on door/status fields
+    // When houseStatus/officeStatus/businessStatus/propertyStatus is "Opened", use non-locked variant
+    const statusField =
+      formData.houseStatus ||
+      formData.officeStatus ||
+      formData.businessStatus ||
+      formData.propertyStatus;
+    const isOpened = typeof statusField === 'string' && statusField.toLowerCase() === 'opened';
+
+    if (isOpened) {
+      if (result.formType === 'POSITIVE') {
+        result.verificationOutcome = 'Positive & Door Open';
+      } else if (result.formType === 'SHIFTED') {
+        result.verificationOutcome = 'Shifted & Door Open';
+      } else if (result.formType === 'NSP') {
+        result.verificationOutcome = 'NSP & Door Open';
+      }
+    } else if (statusField) {
+      // Status exists but not opened → door locked variant
+      if (result.formType === 'POSITIVE') {
+        result.verificationOutcome = 'Positive & Door Locked';
+      } else if (result.formType === 'SHIFTED') {
+        result.verificationOutcome = 'Shifted & Door Locked';
+      } else if (result.formType === 'NSP') {
+        result.verificationOutcome = 'NSP & Door Locked';
+      }
+    }
+
     logger.info(
-      `✅ Direct outcome mapping: ${outcome} -> ${result.formType} (confidence: ${result.confidence}%)`
+      `✅ Direct outcome mapping: ${outcome} -> ${result.formType} / ${result.verificationOutcome} (confidence: ${result.confidence}%)`
     );
     return result;
   }
@@ -446,10 +517,19 @@ export function detectFormTypeEnhanced(
   }
 
   // Method 4: Default fallback with low confidence
+  const statusField =
+    formData.houseStatus ||
+    formData.officeStatus ||
+    formData.businessStatus ||
+    formData.propertyStatus;
+  const isOpenedFallback =
+    typeof statusField === 'string' && statusField.toLowerCase() === 'opened';
+  const fallbackOutcome = isOpenedFallback ? 'Positive & Door Open' : 'Positive & Door Locked';
+
   logger.info(`⚠️ No specific indicators found, defaulting to POSITIVE form (confidence: 50%)`);
   return {
     formType: 'POSITIVE',
-    verificationOutcome: 'Positive & Door Locked',
+    verificationOutcome: fallbackOutcome,
     confidence: 50,
     detectionMethod: 'default_fallback',
   };
@@ -739,7 +819,7 @@ export function analyzeFormTypeDetection(
     confidenceFactors: string[];
   };
 } {
-  const outcome = formData.outcome || formData.finalStatus || formData.verificationOutcome;
+  const outcome = formData.verificationOutcome || formData.outcome || formData.finalStatus;
   const normalizedType = verificationType.toUpperCase();
   const indicators = FORM_TYPE_INDICATORS[normalizedType];
 
