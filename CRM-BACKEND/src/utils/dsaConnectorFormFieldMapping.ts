@@ -48,6 +48,17 @@ export const DSA_CONNECTOR_FIELD_MAPPING: DatabaseFieldMapping = {
   connectorExperience: 'connector_experience', // Used in POSITIVE forms
   connectorStatus: 'connector_status', // Used in POSITIVE, NSP forms
 
+  // Mobile field aliases (mobile sends these for DSA forms)
+  designation: 'met_person_designation',
+  approxArea: 'office_area',
+  officeApproxArea: 'office_area',
+  staffStrength: 'total_staff',
+  staffSeen: 'team_size',
+  nameOfMetPerson: 'security_person_name',
+  metPersonConfirmation: 'security_confirmation',
+  businessExistance: 'business_operational',
+  oldOfficeShiftedPeriod: 'shifted_period',
+
   // Business/Office details (Form specific)
   businessName: 'business_name', // Used in POSITIVE forms
   businessType: 'business_type', // Used in POSITIVE forms

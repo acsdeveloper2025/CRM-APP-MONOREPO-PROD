@@ -44,6 +44,14 @@ export const BUILDER_FIELD_MAPPING: DatabaseFieldMapping = {
   officeStatus: 'office_status', // Used in POSITIVE, SHIFTED, NSP forms
   officeExistence: 'office_existence', // Used in NSP forms
   builderType: 'builder_type', // Used in POSITIVE forms
+  businessType: 'builder_type', // Mobile sends businessType for Builder (maps to builder_type)
+  ownershipType: 'ownership_type', // Used in POSITIVE forms
+  addressStatus: 'address_status', // Used in POSITIVE forms
+  nameOfCompanyOwners: 'builder_owner_name', // Maps to builder_owner_name
+  approxArea: 'office_approx_area', // Alias for officeApproxArea
+  businessExistance: 'office_existence', // Mobile variant (maps to office_existence)
+  businessExistStatus: 'office_existence', // ERT variant (maps to office_existence)
+  applicantExistance: 'applicant_working_status', // Mobile variant
   companyNatureOfBusiness: 'company_nature_of_business', // Used in POSITIVE forms
   businessPeriod: 'business_period', // Used in POSITIVE forms
   establishmentPeriod: 'establishment_period', // Used in POSITIVE forms
