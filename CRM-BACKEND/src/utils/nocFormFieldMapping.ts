@@ -40,7 +40,21 @@ export const NOC_FIELD_MAPPING: DatabaseFieldMapping = {
   // Office/premises status
   officeStatus: 'office_status', // Used to determine door open/locked
 
-  // NOC-specific fields (Form specific)
+  // NOC-specific fields (mobile sends these)
+  authorisedSignature: 'authorised_signature',
+  nameOnNoc: 'name_on_noc',
+  flatNo: 'flat_no',
+  designation: 'met_person_designation',
+  companyNamePlateStatus: 'company_nameplate_status',
+  nameOnBoard: 'name_on_company_board',
+  currentCompanyName: 'current_company_name',
+  officeApproxArea: 'office_approx_area',
+  otherExtraRemark: 'other_extra_remark',
+  nameOfMetPerson: 'security_person_name',
+  metPersonConfirmation: 'security_confirmation',
+  applicantExistance: 'applicant_existence',
+  businessExistance: 'business_existence',
+
   nocStatus: 'noc_status', // Used in POSITIVE, NSP forms
   nocType: 'noc_type', // Used in POSITIVE forms
   nocNumber: 'noc_number', // Used in POSITIVE forms

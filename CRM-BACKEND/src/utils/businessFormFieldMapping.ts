@@ -87,6 +87,15 @@ export const BUSINESS_FIELD_MAPPING: DatabaseFieldMapping = {
   nameOfTpc2: 'tpc_name2',
   tpcConfirmation2: 'tpc_confirmation2',
 
+  // Mobile sends officeStatus for Business forms (maps to business_status)
+  officeStatus: 'business_status',
+  // Alias: mobile sends approxArea for Business (maps to business_approx_area)
+  approxArea: 'business_approx_area',
+  // Mobile field variants
+  applicantExistance: 'applicant_working_status',
+  businessExistStatus: 'business_existence',
+  oldOfficeShiftedPeriod: 'old_business_shifted_period',
+
   // Shifted business specific fields
   shiftedPeriod: 'shifted_period',
   oldBusinessShiftedPeriod: 'old_business_shifted_period',
