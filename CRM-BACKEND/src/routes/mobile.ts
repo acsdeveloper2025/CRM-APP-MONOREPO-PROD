@@ -41,7 +41,7 @@ router.get('/health', (req, res) => {
     status: 'OK',
     service: 'mobile-api',
     timestamp: new Date().toISOString(),
-    version: '4.0.1',
+    version: '1.0.0',
     environment: process.env.NODE_ENV || 'development',
   };
 
