@@ -2625,7 +2625,7 @@ export class MobileFormController {
                 platform: 'ANDROID' as const, // Default for mobile submissions
                 model: 'Mobile Device',
                 osVersion: 'Unknown',
-                appVersion: '4.0.0',
+                appVersion: '1.0.0',
               },
               networkInfo: {
                 type: 'WIFI' as const,
