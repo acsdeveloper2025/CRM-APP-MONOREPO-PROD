@@ -10,6 +10,7 @@ import { MobileFormController } from '../controllers/mobileFormController';
 import { MobileLocationController } from '../controllers/mobileLocationController';
 import { MobileSyncController } from '../controllers/mobileSyncController';
 import { MobileTelemetryController } from '../controllers/mobileTelemetryController';
+import { NotificationController } from '../controllers/notificationController';
 import { authenticateToken } from '../middleware/auth';
 import { authorize } from '../middleware/authorize';
 import { validateMobileVersion, mobileRateLimit } from '../middleware/mobileValidation';
@@ -72,6 +73,13 @@ router.post(
   authenticateToken,
   authorize('visit.start'),
   MobileAuthController.registerNotifications
+);
+
+// Mobile Notifications
+router.get(
+  '/notifications',
+  authenticateToken,
+  NotificationController.getNotifications.bind(NotificationController)
 );
 
 // Mobile Case Management Routes (CACHED)
