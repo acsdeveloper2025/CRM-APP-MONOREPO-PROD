@@ -338,7 +338,10 @@ export class VerificationTasksController {
 
       // 1. Fetch original task details
       const originalTaskQuery = `
-        SELECT id, case_id, verification_type_id, status, assigned_to, address, city, state, pincode, latitude, longitude, priority, due_date, completed_at, created_at, updated_at FROM verification_tasks WHERE id = $1
+        SELECT id, case_id, verification_type_id, status, assigned_to, address, pincode, latitude, longitude, priority, area_id,
+               task_title, task_description, rate_type_id, estimated_amount, document_type, document_number, document_details,
+               first_assigned_at, assigned_at, completed_at, created_at, updated_at
+        FROM verification_tasks WHERE id = $1
       `;
       const originalTaskResult = await client.query(originalTaskQuery, [taskId]);
 
@@ -368,7 +371,7 @@ export class VerificationTasksController {
         return;
       }
 
-      // Enforce territory integrity on child task creation; reject if parent territory is invalid.
+      // Enforce territory integrity on child task creation
       const revisitedTerritory =
         await VerificationTaskCreationService.validateTerritoryAndFinancialConfig(client, {
           clientId: Number(caseScopeResult.rows[0].clientId),

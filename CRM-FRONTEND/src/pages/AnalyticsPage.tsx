@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CasesAnalytics } from '@/components/analytics/CasesAnalytics';
 import { TasksAnalytics } from '@/components/analytics/TasksAnalytics';
 import { AgentPerformanceCharts } from '@/components/analytics/AgentPerformanceCharts';
-import { MISDashboard } from '@/components/reports/MISDashboard';
+// MISDashboard removed from analytics — has its own dedicated page
 import { useCaseAnalytics } from '@/hooks/useAnalytics';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '@/services/api';
@@ -14,7 +14,6 @@ import {
   Users,
   CheckSquare,
   TrendingUp,
-  Database,
   Clock
 } from 'lucide-react';
 
@@ -101,10 +100,7 @@ export const AnalyticsPage: React.FC = () => {
                 <Users className="h-4 w-4 shrink-0" />
                 <span>Agents</span>
               </TabsTrigger>
-              <TabsTrigger value="mis" className="flex items-center justify-center gap-2 whitespace-nowrap px-3 sm:px-4">
-                <Database className="h-4 w-4 shrink-0" />
-                <span>MIS</span>
-              </TabsTrigger>
+              {/* MIS tab removed — has its own dedicated page */}
             </TabsList>
           </div>
         </div>
@@ -267,13 +263,6 @@ export const AnalyticsPage: React.FC = () => {
                   </p>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
-                  <Database className="mx-auto h-8 w-8 text-green-600 mb-2" />
-                  <h3 className="font-semibold">MIS Dashboard</h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Management Information System with detailed case and task data
-                  </p>
-                </div>
-                <div className="text-center p-4 border rounded-lg">
                   <TrendingUp className="mx-auto h-8 w-8 text-yellow-600 mb-2" />
                   <h3 className="font-semibold">Interactive Charts</h3>
                   <p className="text-sm text-gray-600 mt-1">
@@ -297,9 +286,7 @@ export const AnalyticsPage: React.FC = () => {
           <AgentPerformanceCharts />
         </TabsContent>
 
-        <TabsContent value="mis">
-          <MISDashboard />
-        </TabsContent>
+        {/* MIS content removed — accessible via dedicated MIS Reports page */}
       </Tabs>
     </div>
   );

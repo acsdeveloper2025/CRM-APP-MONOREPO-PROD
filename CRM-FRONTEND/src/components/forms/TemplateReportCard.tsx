@@ -70,10 +70,12 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
     }
   }, [caseId, submissionId]);
 
-  // Load existing report on component mount
+  // Load existing report on component mount (skip if no submission ID)
   useEffect(() => {
-    loadExistingReport();
-  }, [loadExistingReport]);
+    if (submissionId) {
+      loadExistingReport();
+    }
+  }, [loadExistingReport, submissionId]);
 
   const generateReport = async () => {
     try {
@@ -86,7 +88,7 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
         report: string;
         metadata: TemplateReport['metadata'];
         error?: string;
-      }>(`/template-reports/cases/${caseId}/submissions/${submissionId}/generate`);
+      }>(`/template-reports/cases/${caseId}/submissions/${submissionId || 'latest'}/generate`);
 
       if (response.success && response.data) {
         setReport({

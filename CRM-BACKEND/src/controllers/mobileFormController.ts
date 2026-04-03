@@ -322,13 +322,13 @@ export class MobileFormController {
         };
       }
 
-      // CRITICAL: Block submission if task is superseded or completed
-      if (task.status === 'COMPLETED') {
+      // Block submission only if task is REVOKED (not COMPLETED — allow resubmission)
+      if (task.status === 'REVOKED') {
         return {
           success: false,
           error: {
             status: 409,
-            message: 'Task is superseded or revoked. Submission is not allowed.',
+            message: 'Task is revoked. Submission is not allowed.',
             code: 'TASK_SUPERSEDED_OR_REVOKED',
           },
         };
@@ -362,59 +362,15 @@ export class MobileFormController {
         };
       }
 
-      // 3. Location Existence Check & 90-Minute Rule
-      // Require a task-specific location so one case visit cannot satisfy another task.
-      const locQuery = await query(
-        `SELECT id, "recordedAt"
-         FROM locations
-         WHERE verification_task_id = $1
-         ORDER BY "recordedAt" DESC
-         LIMIT 1`,
-        [taskId]
-      );
+      // 3. Location validation removed — GPS is captured in photo watermarks (source of truth)
 
-      if (locQuery.rows.length === 0) {
-        return {
-          success: false,
-          error: {
-            status: 412,
-            message: 'Location capture required before form submission',
-            code: 'LOCATION_REQUIRED_BEFORE_FORM',
-          },
-        };
-      }
-
-      const locationTime = new Date(locQuery.rows[0].recordedAt).getTime();
-      const now = Date.now();
-      const diffMinutes = (now - locationTime) / (1000 * 60);
-
-      if (diffMinutes > 90) {
-        return {
-          success: false,
-          error: {
-            status: 412,
-            message: 'Visit session expired (90 min limit). Please recapture location.',
-            code: 'VISIT_SESSION_EXPIRED',
-          },
-        };
-      }
-
-      // 4. Duplicate Submission Check (Task Form Submissions table)
+      // 4. Duplicate Submission Check — allow resubmission (previous data will be updated)
       const subQuery = await query(
         `SELECT id FROM task_form_submissions WHERE verification_task_id = $1`,
         [taskId]
       );
-
-      if (subQuery.rows.length > 0) {
-        return {
-          success: false,
-          error: {
-            status: 409,
-            message: 'Form already submitted for this task',
-            code: 'FORM_ALREADY_SUBMITTED_FOR_TASK',
-          },
-        };
-      }
+      // Flag for handlers to know if this is a resubmission
+      const isResubmission = subQuery.rows.length > 0;
 
       return {
         success: true,
@@ -635,10 +591,13 @@ export class MobileFormController {
       return [];
     }
 
+    // attachment IDs from mobile are UUIDs but may also be stored as submissionId or filename references.
+    // Query by submissionId (UUID) which is what the mobile sends, falling back to string match.
     const attachmentResult = await query(
       `SELECT id, filename, "filePath", "thumbnailPath", "createdAt", "photoType", "geoLocation"
        FROM verification_attachments
-       WHERE id = ANY($1::uuid[])
+       WHERE "submissionId" = ANY($1::text[])
+          OR filename = ANY($1::text[])
        ORDER BY "createdAt" ASC`,
       [attachmentIds]
     );
@@ -663,6 +622,20 @@ export class MobileFormController {
         geoLocation,
       };
     });
+  }
+
+  private static async countTaskAttachments(taskId: string): Promise<{ totalImages: number; totalSelfies: number }> {
+    const result = await query(
+      `SELECT
+        COUNT(*) FILTER (WHERE "photoType" = 'verification') as total_images,
+        COUNT(*) FILTER (WHERE "photoType" = 'selfie') as total_selfies
+       FROM verification_attachments WHERE verification_task_id = $1`,
+      [taskId]
+    );
+    return {
+      totalImages: parseInt(result.rows[0]?.total_images || '0', 10),
+      totalSelfies: parseInt(result.rows[0]?.total_selfies || '0', 10),
+    };
   }
 
   private static async processVerificationImages(
@@ -2545,11 +2518,15 @@ export class MobileFormController {
           const userRes = await query(userSql, [report.verified_by]);
           const userName = userRes.rows[0]?.name || userRes.rows[0]?.username || 'Unknown User';
 
-          // Get the actual submission ID from verification images
+          // Get the actual submission ID from task_form_submissions first, then fall back to images
+          const tfsRes = await query(
+            `SELECT form_submission_id FROM task_form_submissions WHERE verification_task_id = $1 LIMIT 1`,
+            [task.task_id]
+          );
           const actualSubmissionId =
-            imagesRes.rows.length > 0
-              ? imagesRes.rows[0].submissionId
-              : `${verificationType.toLowerCase()}_${task.task_id}_${Date.now()}`;
+            tfsRes.rows[0]?.form_submission_id
+            || (imagesRes.rows.length > 0 ? imagesRes.rows[0].submissionId : null)
+            || `${verificationType.toLowerCase()}_${task.task_id}_${Date.now()}`;
 
           // Create comprehensive form submission WITH TASK INFORMATION
           const submission: FormSubmissionData = {
@@ -3009,8 +2986,8 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: uploadedImages.length || 0,
-        total_selfies: uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
+        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
         remarks: formData.remarks || `${formType} residence verification completed`,
 
         // Merge all mapped form data (already includes defaults for missing fields)
@@ -3408,8 +3385,8 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: uploadedImages.length || 0,
-        total_selfies: uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
+        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
         remarks: formData.remarks || `${formType} office verification completed`,
 
         // Merge all mapped form data
@@ -3806,8 +3783,8 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: uploadedImages.length || 0,
-        total_selfies: uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
+        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
         remarks: formData.remarks || `${formType} business verification completed`,
 
         // Merge all mapped form data
@@ -4197,8 +4174,8 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: uploadedImages.length || 0,
-        total_selfies: uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
+        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
         remarks: formData.remarks || `${formType} builder verification completed`,
 
         // Merge all mapped form data
@@ -4475,8 +4452,8 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: uploadedImages.length || 0,
-        total_selfies: uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
+        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
         remarks:
           submissionData.formData.remarks ||
           `${formType} residence-cum-office verification completed`,
@@ -4833,8 +4810,8 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: uploadedImages.length || 0,
-        total_selfies: uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
+        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
         remarks: formData.remarks || `${formType} DSA/DST Connector verification completed`,
 
         // Merge all mapped form data
@@ -5121,8 +5098,8 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: uploadedImages.length || 0,
-        total_selfies: uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
+        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
         remarks:
           submissionData.formData.remarks ||
           `${formType} property individual verification completed`,
@@ -5472,8 +5449,8 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: uploadedImages.length || 0,
-        total_selfies: uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
+        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
         remarks: formData.remarks || `${formType} Property APF verification completed`,
 
         // Merge all mapped form data
@@ -5874,8 +5851,8 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: uploadedImages.length || 0,
-        total_selfies: uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
+        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
         remarks: formData.remarks || `${formType} NOC verification completed`,
 
         // Merge all mapped form data

@@ -149,7 +149,7 @@ export const config = {
     ],
 
     // Mobile Location Services
-    locationAccuracyThreshold: parseInt(process.env.MOBILE_LOCATION_ACCURACY_THRESHOLD || '10', 10),
+    locationAccuracyThreshold: parseInt(process.env.MOBILE_LOCATION_ACCURACY_THRESHOLD || '100', 10),
     locationTimeout: parseInt(process.env.MOBILE_LOCATION_TIMEOUT || '30000', 10),
     enableLocationValidation: process.env.MOBILE_ENABLE_LOCATION_VALIDATION === 'true',
     reverseGeocodingEnabled: process.env.MOBILE_REVERSE_GEOCODING_ENABLED === 'true',

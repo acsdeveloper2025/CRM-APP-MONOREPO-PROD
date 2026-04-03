@@ -67,12 +67,12 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
     });
 
     // Get case details
-    const caseQuery = `
-      SELECT id, "customerName", "verificationData", "verificationType", "verificationOutcome", status
-      FROM cases
-      WHERE "caseId" = $1
-    `;
-    const caseResult = await pool.query(caseQuery, [parseInt(caseId)]);
+    // Handle both UUID and integer caseId
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
+    const caseQuery = isUuid
+      ? `SELECT id, "customerName", "verificationData", "verificationType", "verificationOutcome", status FROM cases WHERE id = $1`
+      : `SELECT id, "customerName", "verificationData", "verificationType", "verificationOutcome", status FROM cases WHERE "caseId" = $1`;
+    const caseResult = await pool.query(caseQuery, [isUuid ? caseId : parseInt(caseId)]);
 
     if (caseResult.rows.length === 0) {
       return res.status(404).json({ error: 'Case not found' });
@@ -80,20 +80,34 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
 
     const caseData = caseResult.rows[0];
 
-    // FIXED: Find the verification task ID using the submissionId from verification_attachments
+    // Find verification task via task_form_submissions (submissionId = form_submission_id)
+    // Falls back to verification_attachments.submissionId for legacy data
     const taskQuery = `
       SELECT DISTINCT vt.id as task_id, vt.verification_type_id, vtype.name as verification_type_name
       FROM verification_tasks vt
       LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
-      LEFT JOIN verification_attachments va ON va.verification_task_id = vt.id
-      WHERE vt.case_id = $1 AND va."submissionId" = $2
+      WHERE vt.case_id = $1 AND (
+        vt.id IN (SELECT verification_task_id FROM task_form_submissions WHERE form_submission_id::text = $2)
+        OR vt.id IN (SELECT verification_task_id FROM verification_attachments WHERE "submissionId" = $2)
+      )
       LIMIT 1
     `;
     const taskResult = await pool.query(taskQuery, [caseData.id, submissionId]);
 
     if (taskResult.rows.length === 0) {
-      logger.error('Verification task not found for submission', { caseId, submissionId });
-      return res.status(404).json({ error: 'Verification task not found for this submission' });
+      // Last resort: just get the first task for this case
+      const fallbackResult = await pool.query(
+        `SELECT vt.id as task_id, vt.verification_type_id, vtype.name as verification_type_name
+         FROM verification_tasks vt
+         LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+         WHERE vt.case_id = $1 LIMIT 1`,
+        [caseData.id]
+      );
+      if (fallbackResult.rows.length === 0) {
+        logger.error('Verification task not found for submission', { caseId, submissionId });
+        return res.status(404).json({ error: 'Verification task not found for this submission' });
+      }
+      taskResult.rows = fallbackResult.rows;
     }
 
     const taskData = taskResult.rows[0];
@@ -1128,9 +1142,12 @@ export async function getTemplateReport(req: Request, res: Response) {
       submissionId,
     });
 
-    // Get case UUID
-    const caseQuery = `SELECT id FROM cases WHERE "caseId" = $1`;
-    const caseResult = await pool.query(caseQuery, [parseInt(caseId)]);
+    // Get case UUID — handle both UUID and integer caseId
+    const isUuidLookup = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
+    const caseQuery = isUuidLookup
+      ? `SELECT id FROM cases WHERE id = $1`
+      : `SELECT id FROM cases WHERE "caseId" = $1`;
+    const caseResult = await pool.query(caseQuery, [isUuidLookup ? caseId : parseInt(caseId)]);
 
     if (caseResult.rows.length === 0) {
       return res.status(404).json({ error: 'Case not found' });
@@ -1180,9 +1197,12 @@ export async function getCaseTemplateReports(req: Request, res: Response) {
 
     logger.info('Retrieving all template reports for case', { caseId });
 
-    // Get case UUID
-    const caseQuery = `SELECT id FROM cases WHERE "caseId" = $1`;
-    const caseResult = await pool.query(caseQuery, [parseInt(caseId)]);
+    // Get case UUID — handle both UUID and integer caseId
+    const isUuidLookup = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
+    const caseQuery = isUuidLookup
+      ? `SELECT id FROM cases WHERE id = $1`
+      : `SELECT id FROM cases WHERE "caseId" = $1`;
+    const caseResult = await pool.query(caseQuery, [isUuidLookup ? caseId : parseInt(caseId)]);
 
     if (caseResult.rows.length === 0) {
       return res.status(404).json({ error: 'Case not found' });

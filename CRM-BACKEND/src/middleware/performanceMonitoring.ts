@@ -135,11 +135,15 @@ function processPerformanceMetrics(metrics: PerformanceMetrics): void {
 /**
  * Store performance metrics in database
  */
+let lastCleanupAt = 0;
+const CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000; // Every 6 hours
+const RETENTION_HOURS = 24;
+
 async function storePerformanceMetrics(metrics: PerformanceMetrics): Promise<void> {
   try {
     await query(
       `
-      INSERT INTO performance_metrics 
+      INSERT INTO performance_metrics
       (request_id, method, url, status_code, response_time, memory_usage, user_id, timestamp)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     `,
@@ -154,6 +158,14 @@ async function storePerformanceMetrics(metrics: PerformanceMetrics): Promise<voi
         metrics.timestamp,
       ]
     );
+
+    // Periodic cleanup — delete rows older than 24 hours (runs every 6 hours)
+    const now = Date.now();
+    if (now - lastCleanupAt > CLEANUP_INTERVAL_MS) {
+      lastCleanupAt = now;
+      query(`DELETE FROM performance_metrics WHERE "timestamp" < NOW() - INTERVAL '${RETENTION_HOURS} hours'`)
+        .catch(err => logger.warn('Performance metrics cleanup failed:', err));
+    }
   } catch (error) {
     logger.error('Failed to store performance metrics:', error);
   }

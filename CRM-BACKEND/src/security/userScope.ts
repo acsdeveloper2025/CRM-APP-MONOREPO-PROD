@@ -6,7 +6,7 @@ type Queryable = Pick<PoolClient, 'query'>;
 
 export type UserHierarchyScope = {
   userIds: string[];
-  scopeRole?: 'MANAGER' | 'TEAM_LEADER';
+  scopeRole?: 'SYSTEM' | 'MANAGER' | 'TEAM_LEADER';
 };
 
 type ScopeUserRow = {
@@ -99,6 +99,11 @@ export const getUserScope = async (userId: string, db?: Queryable): Promise<User
     return { userIds: [] };
   }
 
+  // System-scope users (SUPER_ADMIN with settings.manage) see everything
+  if (capabilityProfile.capabilities.systemScopeBypass) {
+    return { userIds: [], scopeRole: 'SYSTEM' };
+  }
+
   if (!capabilityProfile.capabilities.supervisoryOrGlobal) {
     return { userIds: [] };
   }
@@ -128,6 +133,10 @@ export const getScopedOperationalUserIds = async (
   db?: Queryable
 ): Promise<string[] | undefined> => {
   const scope = await getUserScope(userId, db);
+  // System scope (SUPER_ADMIN) sees everything — return undefined (no filter)
+  if (scope.scopeRole === 'SYSTEM') {
+    return undefined;
+  }
   // Return user IDs if any scope was resolved (including self-only for supervisory users)
   return scope.userIds.length > 0 ? scope.userIds : undefined;
 };
