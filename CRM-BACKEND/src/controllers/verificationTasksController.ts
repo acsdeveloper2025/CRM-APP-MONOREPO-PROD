@@ -703,6 +703,20 @@ export class VerificationTasksController {
         paramIndex++;
       }
 
+      // Exclude task type filter (e.g., exclude REVISIT from pending page)
+      const excludeTaskType = req.query.excludeTaskType;
+      if (excludeTaskType) {
+        conditions.push(`(vt.task_type IS NULL OR vt.task_type != $${paramIndex})`);
+        params.push(excludeTaskType as string);
+        paramIndex++;
+      }
+
+      // Exclude unassigned revisit tasks (they have their own Revisit tab)
+      // Assigned revisit tasks should flow through normal tabs
+      if (req.query.excludeUnassignedRevisit === 'true') {
+        conditions.push(`NOT (vt.task_type = 'REVISIT' AND vt.assigned_to IS NULL)`);
+      }
+
       // Client filter
       if (clientId) {
         conditions.push(`c."clientId" = $${paramIndex}`);
@@ -1461,7 +1475,10 @@ export class VerificationTasksController {
     }
     const rawTaskId = String(req.params.taskId || '');
     const taskId = Array.isArray(rawTaskId) ? String(rawTaskId[0]) : String(rawTaskId || '');
-    const { assignedTo, assignmentReason, priority }: AssignVerificationTaskData = req.body;
+    const body = req.body;
+    const assignedTo = body.assignedTo || body.assigned_to;
+    const assignmentReason = body.assignmentReason || body.assignment_reason;
+    const priority = body.priority;
     const userId = req.user?.id;
 
     if (!assignedTo) {
@@ -1480,7 +1497,7 @@ export class VerificationTasksController {
 
       // Get current task details
       const taskResult = await client.query(
-        'SELECT id, case_id, verification_type_id, status, assigned_to, address, city, state, pincode, latitude, longitude, priority, due_date, completed_at, created_at, updated_at FROM verification_tasks WHERE id = $1',
+        'SELECT id, case_id, verification_type_id, status, assigned_to, address, pincode, latitude, longitude, priority, area_id, rate_type_id, started_at, completed_at, created_at, updated_at FROM verification_tasks WHERE id = $1',
         [taskId]
       );
 

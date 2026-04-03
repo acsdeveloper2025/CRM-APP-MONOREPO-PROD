@@ -24,7 +24,8 @@ import {
   X,
   Eye,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react';
 import { VerificationTask, TaskStatus } from '@/types/verificationTask';
 import { formatDistanceToNow } from 'date-fns';
@@ -132,6 +133,7 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
             <TableHead>Address</TableHead>
             <TableHead>Rate Type</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Type</TableHead>
             <TableHead>Priority</TableHead>
             <TableHead>Assigned To</TableHead>
             <TableHead>Created</TableHead>
@@ -207,6 +209,19 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
                   {React.createElement(getStatusIcon(task.status), { className: 'h-3 w-3 mr-1 inline' })}
                   {getStatusLabel(task.status)}
                 </Badge>
+              </TableCell>
+
+              <TableCell>
+                {task.taskType === 'REVISIT' ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-semibold text-purple-700 border border-purple-200">
+                    <RefreshCw className="h-3 w-3" />
+                    REVISIT
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700 border border-blue-200">
+                    NEW
+                  </span>
+                )}
               </TableCell>
 
               <TableCell>

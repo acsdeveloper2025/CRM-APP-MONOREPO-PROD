@@ -144,15 +144,25 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-6">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-5">
         <StatsCard
-          title="Total Cases"
-          value={stats.totalCases}
-          description="from last month"
+          title="Pending Tasks"
+          value={(stats.pendingCases || 0)}
+          description="Pending & Assigned tasks"
           icon={FileText}
           trend={cardTrends?.totalCases}
-          color="text-green-600"
-          onClick={() => navigate('/cases')}
+          color="text-blue-600"
+          onClick={() => navigate('/tasks/pending')}
+          className="cursor-pointer"
+        />
+        <StatsCard
+          title="In Progress"
+          value={stats.inProgressCases}
+          description="from last month"
+          icon={CheckSquare}
+          trend={cardTrends?.inProgress}
+          color="text-yellow-600"
+          onClick={() => navigate('/tasks/in-progress')}
           className="cursor-pointer"
         />
         <StatsCard
@@ -167,21 +177,11 @@ export const DashboardPage: React.FC = () => {
         <StatsCard
           title="Revoked Tasks"
           value={stats.revokedTasks || 0}
-          description="Tasks revoked by field agents"
+          description="Tasks revoked"
           icon={XCircle}
           trend={cardTrends?.revokedTasks}
           color="text-red-600"
           onClick={() => navigate('/tasks/revoked')}
-          className="cursor-pointer"
-        />
-        <StatsCard
-          title="In Progress"
-          value={stats.inProgressCases}
-          description="from last month"
-          icon={CheckSquare}
-          trend={cardTrends?.inProgress}
-          color="text-yellow-600"
-          onClick={() => navigate('/tasks/in-progress')}
           className="cursor-pointer"
         />
         <StatsCard
@@ -192,16 +192,6 @@ export const DashboardPage: React.FC = () => {
           trend={cardTrends?.completed}
           color="text-green-600"
           onClick={() => navigate('/tasks/completed')}
-          className="cursor-pointer"
-        />
-        <StatsCard
-          title="Total Clients"
-          value={stats.totalClients || 0}
-          description="from last month" // This description might need update if not actually diffing from last month
-          icon={Users}
-          trend={cardTrends?.totalClients}
-          color="text-green-600"
-          onClick={() => navigate('/clients')}
           className="cursor-pointer"
         />
       </div>

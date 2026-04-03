@@ -48,8 +48,15 @@ export const getFieldAgentTerritories = async (req: AuthenticatedRequest, res: R
     }
 
     if (pincodeId) {
-      conditions.push(`upa."pincodeId" = $${paramIndex}`);
-      params.push(pincodeId as string);
+      // Support both numeric pincode ID and string pincode code
+      const isNumericId = /^\d+$/.test(String(pincodeId)) && Number(pincodeId) < 10000;
+      if (isNumericId) {
+        conditions.push(`upa."pincodeId" = $${paramIndex}`);
+        params.push(Number(pincodeId));
+      } else {
+        conditions.push(`p.code = $${paramIndex}`);
+        params.push(String(pincodeId));
+      }
       paramIndex++;
     }
 

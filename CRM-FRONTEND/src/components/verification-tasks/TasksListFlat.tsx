@@ -13,7 +13,8 @@ import {
   ExternalLink,
   MoreHorizontal,
   Copy,
-  Edit
+  Edit,
+  RefreshCw
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -130,6 +131,9 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                   Status
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Type
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Priority
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
@@ -215,6 +219,20 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                         <StatusIcon className="h-3 w-3 mr-1" />
                         {getStatusLabel(task.status)}
                       </Badge>
+                    </td>
+
+                    {/* Type */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      {task.taskType === 'REVISIT' ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-semibold text-purple-700 border border-purple-200">
+                          <RefreshCw className="h-3 w-3" />
+                          REVISIT
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700 border border-blue-200">
+                          NEW
+                        </span>
+                      )}
                     </td>
 
                     {/* Priority */}
