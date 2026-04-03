@@ -400,9 +400,9 @@ export class VerificationAttachmentController {
               "mimeType", "fileSize", "filePath", "thumbnailPath", "uploadedBy", 
               "geoLocation", "photoType", "submissionId", verification_task_id, operation_id
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-            ON CONFLICT (operation_id)
+            ON CONFLICT (operation_id) WHERE operation_id IS NOT NULL
             DO UPDATE SET operation_id = EXCLUDED.operation_id
-            RETURNING id, filename, "originalName", "mimeType", "fileSize", "filePath", 
+            RETURNING id, filename, "originalName", "mimeType", "fileSize", "filePath",
                      "thumbnailPath", "createdAt", "photoType", verification_task_id`,
             [
               targetCaseId,
@@ -412,9 +412,9 @@ export class VerificationAttachmentController {
               file.originalname,
               file.mimetype,
               file.size,
-              `/uploads/verification/${verificationTypeToUse.toLowerCase()}/${targetCaseId}/${file.filename}`,
+              `/uploads/${path.relative(path.join(process.cwd(), 'uploads'), file.path).replace(/\\/g, '/')}`,
               thumbnailPath
-                ? `/uploads/verification/${verificationTypeToUse.toLowerCase()}/${targetCaseId}/thumbnails/thumb_${path.basename(file.path)}`
+                ? `/uploads/${path.relative(path.join(process.cwd(), 'uploads'), thumbnailPath).replace(/\\/g, '/')}`
                 : null,
               userId,
               geoLocation ? JSON.stringify(geoLocation) : null,
@@ -540,8 +540,11 @@ export class VerificationAttachmentController {
         submissionId
       );
 
-      // First get the case UUID from the case number
-      const caseResult = await query(`SELECT id FROM cases WHERE "caseId" = $1`, [caseId]);
+      // Resolve case UUID — caseId param may be a UUID or integer case number
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
+      const caseResult = isUuid
+        ? await query(`SELECT id FROM cases WHERE id = $1`, [caseId])
+        : await query(`SELECT id FROM cases WHERE "caseId" = $1`, [parseInt(caseId, 10)]);
 
       if (caseResult.rows.length === 0) {
         return res.status(404).json({
@@ -601,10 +604,10 @@ export class VerificationAttachmentController {
       if (attachments.length === 0) {
         logger.info('🔄 No images in verification_attachments, checking case verificationData...');
 
-        const caseDataResult = await query(
-          `SELECT "verificationData" FROM cases WHERE "caseId" = $1`,
-          [caseId]
-        );
+        const isUuid2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
+        const caseDataResult = isUuid2
+          ? await query(`SELECT "verificationData" FROM cases WHERE id = $1`, [caseId])
+          : await query(`SELECT "verificationData" FROM cases WHERE "caseId" = $1`, [parseInt(caseId, 10)]);
 
         if (caseDataResult.rows.length > 0) {
           const verificationData = caseDataResult.rows[0].verificationData;
@@ -691,15 +694,11 @@ export class VerificationAttachmentController {
         return res.status(access.status || 403).json(access.body || { success: false });
       }
 
-      // Construct file path
-      const filePath = path.join(
-        process.cwd(),
-        'uploads',
-        'verification',
-        image.verification_type.toLowerCase(),
-        image.case_id,
-        image.filename
-      );
+      // Use DB filePath to resolve actual disk location
+      const dbFilePath = image.filePath || '';
+      const filePath = dbFilePath.startsWith('/')
+        ? path.join(process.cwd(), dbFilePath)
+        : path.join(process.cwd(), 'uploads', 'verification', image.case_id, image.filename);
 
       // Check if file exists
       if (!fsSync.existsSync(filePath)) {

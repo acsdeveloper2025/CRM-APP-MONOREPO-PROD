@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -145,6 +146,9 @@ app.use(
 
 // Gzip compression — reduces response size by 60-80% for JSON/text payloads
 app.use(compression());
+
+// Serve uploaded files (verification photos, attachments)
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Body parsing middleware — 5MB default for JSON (mobile file uploads use Multer multipart, not JSON body)
 app.use(express.json({ limit: '5mb' }));

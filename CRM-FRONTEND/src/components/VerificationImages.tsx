@@ -247,7 +247,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
         }
 
         // Draw location coordinates
-        if (image.geoLocation) {
+        if (image.geoLocation && typeof image.geoLocation.latitude === 'number') {
           ctx.fillStyle = '#94a3b8';
           ctx.fillText('📍 Location:', 20, currentY);
           ctx.fillStyle = '#f8fafc';
@@ -431,7 +431,8 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {verificationPhotos.map((image, index) => {
-                    const location = image.geoLocation;
+                    const rawGeo = image.geoLocation;
+                    const location = rawGeo && typeof rawGeo === 'object' && typeof rawGeo.latitude === 'number' ? rawGeo : null;
                     return (
                       <div key={image.id} className="group relative">
                         {/* Attachment Card Format */}
@@ -541,7 +542,8 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {selfiePhotos.map((image, index) => {
-                    const location = image.geoLocation;
+                    const rawGeo = image.geoLocation;
+                    const location = rawGeo && typeof rawGeo === 'object' && typeof rawGeo.latitude === 'number' ? rawGeo : null;
                     return (
                       <div key={image.id} className="group relative">
                         {/* Attachment Card Format */}

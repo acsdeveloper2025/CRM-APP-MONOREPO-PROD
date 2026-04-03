@@ -187,7 +187,7 @@ export class MobileLocationController {
            $1, $2, $3, 
            $4, $5, $6, $7, $8, $9
          )
-         ON CONFLICT (operation_id)
+         ON CONFLICT (operation_id) WHERE operation_id IS NOT NULL
          DO UPDATE SET operation_id = EXCLUDED.operation_id
          RETURNING id, "recordedAt" as timestamp`,
         [

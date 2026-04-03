@@ -129,10 +129,10 @@ export const authorize = (permissionCode: string, options?: AuthorizeOptions) =>
         return;
       }
 
-      const requiresStrictOwnership = STRICT_OWNERSHIP_PERMISSIONS.includes(
-        permissionCode as (typeof STRICT_OWNERSHIP_PERMISSIONS)[number]
-      );
-      const canBypassOwnership = hasPermission(req, '*') && !requiresStrictOwnership;
+      // Users with settings.manage (SUPER_ADMIN, MANAGER) bypass ownership checks
+      // including strict ones — they need full system access for operations like revisit
+      const hasAdminAccess = hasPermission(req, 'settings.manage');
+      const canBypassOwnership = hasAdminAccess;
 
       if (options?.ownership && !canBypassOwnership) {
         const ok =

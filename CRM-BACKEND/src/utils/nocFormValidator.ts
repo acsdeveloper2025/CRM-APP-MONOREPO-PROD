@@ -64,7 +64,8 @@ export function validateAndPrepareNocForm(
     }
 
     // Use the mapped column name or the original field name if no mapping exists
-    const columnName = dbColumn || mobileField;
+    if (dbColumn === undefined) continue; // Skip unmapped fields
+    const columnName = dbColumn;
     mappedData[columnName] = processFieldValue(mobileField, value);
   }
 
