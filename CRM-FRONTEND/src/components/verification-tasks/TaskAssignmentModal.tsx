@@ -146,17 +146,17 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
           <Card className="bg-gray-50 border-gray-200">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
+                <div className="space-y-1">
+                  <span className="text-sm font-medium text-gray-900 block">
                     Task ID: {taskId.slice(0, 8)}...
-                  </p>
-                  <p className="text-xs text-gray-600 mt-1">
+                  </span>
+                  <span className="text-xs text-gray-600 block">
                     {task?.pincode ? `Pincode: ${task.pincode}` : 'Assigning task to field user'}
-                  </p>
+                  </span>
                 </div>
-                <Badge className={getPriorityColor(priority)}>
+                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getPriorityColor(priority)}`}>
                   {priority}
-                </Badge>
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -321,12 +321,12 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                         (typeof user.id === 'string' ? user.id : String(user.id)) === assignedTo
                       )?.name}
                     </p>
-                    <p>
-                      <span className="font-medium">Priority:</span>{' '}
-                      <Badge className={getPriorityColor(priority)}>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">Priority:</span>
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getPriorityColor(priority)}`}>
                         {priority}
-                      </Badge>
-                    </p>
+                      </span>
+                    </div>
                   </div>
                 </div>
               </CardContent>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
+import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
@@ -31,6 +32,7 @@ interface RevisitTaskFilters {
 
 export const RevisitTasksPage: React.FC = () => {
   const navigate = useNavigate();
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   // Unified search with 800ms debounce
   const {
@@ -60,7 +62,7 @@ export const RevisitTasksPage: React.FC = () => {
     sortOrder: 'desc' as 'asc' | 'desc',
     task_type: 'REVISIT',
     // Exclude completed tasks - they should only show in Completed Tasks page
-    status: activeFilters.status || 'PENDING,ASSIGNED,IN_PROGRESS',
+    status: activeFilters.status || 'PENDING',
   });
 
   // Reset pagination when search or filters change
@@ -272,7 +274,7 @@ export const RevisitTasksPage: React.FC = () => {
       <TasksListFlat
         tasks={tasks}
         loading={loading}
-        onAssignTask={() => {}}
+        onAssignTask={(taskId) => setSelectedTaskId(taskId)}
         onViewTask={handleViewTask}
         onViewCase={handleViewCase}
         onEditCase={handleEditCase}
@@ -312,6 +314,18 @@ export const RevisitTasksPage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+      )}
+      {/* Task Assignment Modal */}
+      {selectedTaskId && (
+        <TaskAssignmentModal
+          taskId={selectedTaskId}
+          isOpen={!!selectedTaskId}
+          onClose={() => setSelectedTaskId(null)}
+          onSuccess={() => {
+            setSelectedTaskId(null);
+            refreshTasks();
+          }}
+        />
       )}
     </div>
   );

@@ -72,6 +72,8 @@ export const PendingTasksPage: React.FC = () => {
     ...paginationState,
     search: debouncedSearchValue || undefined,
     priority: activeFilters.priority || undefined,
+    status: 'PENDING,ASSIGNED',
+    excludeUnassignedRevisit: 'true',
   };
 
   const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);

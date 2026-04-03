@@ -32,6 +32,8 @@ export interface VerificationTask {
   
   // Status and Progress
   status: TaskStatus;
+  taskType?: 'REVISIT' | null; // null or undefined = NEW task
+  parentTaskId?: string | null;
   verificationOutcome?: string;
   
   // Billing Information

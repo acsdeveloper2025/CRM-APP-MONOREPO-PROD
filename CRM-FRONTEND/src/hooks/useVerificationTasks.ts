@@ -102,6 +102,14 @@ const normalizeTaskForUi = (task: Record<string, unknown>): VerificationTask => 
         : typeof task.assigned_at === 'string'
           ? task.assigned_at
           : undefined,
+    taskType:
+      task.taskType === 'REVISIT' || task.task_type === 'REVISIT' ? 'REVISIT' : null,
+    parentTaskId:
+      typeof task.parentTaskId === 'string'
+        ? task.parentTaskId
+        : typeof task.parent_task_id === 'string'
+          ? task.parent_task_id
+          : null,
     rateTypeId:
       typeof task.rateTypeId === 'number'
         ? task.rateTypeId
@@ -234,7 +242,7 @@ export const useVerificationTask = (taskId: string) => {
     queryKey: ['verification-task', taskId],
     queryFn: async () => {
       const response = await VerificationTasksService.getTaskById(taskId);
-      return response.data;
+      return response.data ?? response ?? null;
     },
     enabled: !!taskId,
   });
