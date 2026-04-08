@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -133,13 +133,37 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
     }
   };
 
-  const handleViewTask = (taskId: string) => {
+  const handleViewTask = useCallback((taskId: string) => {
     navigate(`/tasks/${taskId}`);
-  };
+  }, [navigate]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     refetch();
-  };
+  }, [refetch]);
+
+  const handleOpenAssignModal = useCallback((taskId: string) => {
+    setSelectedTaskId(taskId);
+    setShowAssignModal(true);
+  }, []);
+
+  const handleOpenCompleteModal = useCallback((taskId: string) => {
+    setSelectedTaskId(taskId);
+    setShowCompleteModal(true);
+  }, []);
+
+  const handleCloseCreateModal = useCallback(() => {
+    setShowCreateModal(false);
+  }, []);
+
+  const handleCloseAssignModal = useCallback(() => {
+    setShowAssignModal(false);
+    setSelectedTaskId(null);
+  }, []);
+
+  const handleCloseCompleteModal = useCallback(() => {
+    setShowCompleteModal(false);
+    setSelectedTaskId(null);
+  }, []);
 
   // Filter tasks based on active tab
   const getFilteredTasks = () => {
@@ -284,14 +308,8 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
             readonly={readonly}
             onSelectTask={selectTask}
             onSelectAll={selectAllTasks}
-            onAssignTask={(taskId) => {
-              setSelectedTaskId(taskId);
-              setShowAssignModal(true);
-            }}
-            onCompleteTask={(taskId) => {
-              setSelectedTaskId(taskId);
-              setShowCompleteModal(true);
-            }}
+            onAssignTask={handleOpenAssignModal}
+            onCompleteTask={handleOpenCompleteModal}
             onStartTask={handleStartTask}
             onCancelTask={handleCancelTask}
             onViewTask={handleViewTask}
@@ -303,7 +321,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
       {showCreateModal && (
         <CreateTaskModal
           caseId={caseId}
-          onClose={() => setShowCreateModal(false)}
+          onClose={handleCloseCreateModal}
           onSubmit={handleCreateTasks}
         />
       )}
@@ -311,10 +329,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
       {showAssignModal && selectedTaskId && (
         <TaskAssignmentModal
           taskId={selectedTaskId}
-          onClose={() => {
-            setShowAssignModal(false);
-            setSelectedTaskId(null);
-          }}
+          onClose={handleCloseAssignModal}
           onSubmit={handleAssignTask}
         />
       )}
@@ -322,10 +337,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
       {showCompleteModal && selectedTaskId && (
         <TaskCompletionModal
           taskId={selectedTaskId}
-          onClose={() => {
-            setShowCompleteModal(false);
-            setSelectedTaskId(null);
-          }}
+          onClose={handleCloseCompleteModal}
           onSubmit={handleCompleteTask}
         />
       )}
