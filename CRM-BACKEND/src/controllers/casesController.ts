@@ -2737,13 +2737,33 @@ export const createCase = [
       if (kycDocuments && kycDocuments.length > 0) {
         for (const doc of kycDocuments) {
           const hasAssignment = !!doc.assigned_to;
+
+          // Look up KYC rate from documentTypeRates (client + product + kyc_document_type)
+          let rateAmount: number | null = null;
+          const kycDocTypeRes = await client.query(
+            `SELECT id FROM kyc_document_types WHERE code = $1`,
+            [doc.document_type]
+          );
+          if (kycDocTypeRes.rows.length > 0) {
+            const kycDocTypeId = kycDocTypeRes.rows[0].id;
+            const rateRes = await client.query(
+              `SELECT amount FROM "documentTypeRates"
+               WHERE "clientId" = $1 AND "productId" = $2 AND "documentTypeId" = $3 AND "isActive" = true
+               LIMIT 1`,
+              [newCase.clientId, newCase.productId, kycDocTypeId]
+            );
+            if (rateRes.rows.length > 0) {
+              rateAmount = parseFloat(rateRes.rows[0].amount);
+            }
+          }
+
           // Create a verification_task with task_type = 'KYC'
           const kycTaskResult = await client.query(
             `INSERT INTO verification_tasks (
               case_id, task_title, task_description, priority, status,
-              task_type, created_by,
+              task_type, created_by, estimated_amount,
               assigned_to, assigned_by, assigned_at
-            ) VALUES ($1, $2, $3, 'MEDIUM', $4, 'KYC', $5, $6, $7, $8)
+            ) VALUES ($1, $2, $3, 'MEDIUM', $4, 'KYC', $5, $6, $7, $8, $9)
             RETURNING id`,
             [
               newCase.id,
@@ -2751,6 +2771,7 @@ export const createCase = [
               `KYC document verification for ${doc.document_type}`,
               hasAssignment ? 'ASSIGNED' : 'PENDING',
               userId,
+              rateAmount,
               doc.assigned_to || null,
               hasAssignment ? userId : null,
               hasAssignment ? new Date() : null,
@@ -2764,8 +2785,8 @@ export const createCase = [
             `INSERT INTO kyc_document_verifications (
               verification_task_id, case_id, document_type, document_number,
               document_holder_name, verification_status, document_details, description,
-              assigned_to, assigned_by, assigned_at
-            ) VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, $7, $8, $9, $10)`,
+              assigned_to, assigned_by, assigned_at, rate_amount
+            ) VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, $7, $8, $9, $10, $11)`,
             [
               kycTaskId,
               newCase.id,
@@ -2777,6 +2798,7 @@ export const createCase = [
               doc.assigned_to || null,
               hasAssignment ? userId : null,
               hasAssignment ? new Date() : null,
+              rateAmount,
             ]
           );
         }
