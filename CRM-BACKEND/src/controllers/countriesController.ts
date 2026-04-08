@@ -3,6 +3,7 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/db';
 import type { QueryParams } from '@/types/database';
+import { sendError, errors } from '@/utils/apiResponse';
 
 interface Country {
   id: string;
@@ -123,11 +124,7 @@ export const getCountries = async (req: AuthenticatedRequest, res: Response) => 
     });
   } catch (error) {
     logger.error('Error retrieving countries:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve countries',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to retrieve countries');
   }
 };
 
@@ -150,11 +147,7 @@ export const getCountryById = async (req: AuthenticatedRequest, res: Response) =
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Country not found',
-        error: { code: 'NOT_FOUND' },
-      });
+      return errors.notFound(res, 'Country');
     }
 
     const country = result.rows[0];
@@ -173,11 +166,7 @@ export const getCountryById = async (req: AuthenticatedRequest, res: Response) =
     });
   } catch (error) {
     logger.error('Error retrieving country:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve country',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to retrieve country');
   }
 };
 
@@ -193,11 +182,7 @@ export const createCountry = async (req: AuthenticatedRequest, res: Response) =>
     );
 
     if (existingResult.rows.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Country code or name already exists',
-        error: { code: 'DUPLICATE_ENTRY' },
-      });
+      return sendError(res, 400, 'Country code or name already exists', 'DUPLICATE_ENTRY');
     }
 
     // Create new country
@@ -223,11 +208,7 @@ export const createCountry = async (req: AuthenticatedRequest, res: Response) =>
     });
   } catch (error) {
     logger.error('Error creating country:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create country',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to create country');
   }
 };
 
@@ -244,11 +225,7 @@ export const updateCountry = async (req: AuthenticatedRequest, res: Response) =>
     );
 
     if (countryResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Country not found',
-        error: { code: 'NOT_FOUND' },
-      });
+      return errors.notFound(res, 'Country');
     }
 
     // Check for duplicate code if being updated
@@ -259,11 +236,7 @@ export const updateCountry = async (req: AuthenticatedRequest, res: Response) =>
       );
 
       if (existingResult.rows.length > 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Country code already exists',
-          error: { code: 'DUPLICATE_CODE' },
-        });
+        return sendError(res, 400, 'Country code already exists', 'DUPLICATE_CODE');
       }
     }
 
@@ -291,11 +264,7 @@ export const updateCountry = async (req: AuthenticatedRequest, res: Response) =>
     }
 
     if (updateFields.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No valid fields to update',
-        error: { code: 'NO_UPDATE_FIELDS' },
-      });
+      return sendError(res, 400, 'No valid fields to update', 'NO_UPDATE_FIELDS');
     }
 
     // Add updatedAt
@@ -326,11 +295,7 @@ export const updateCountry = async (req: AuthenticatedRequest, res: Response) =>
     });
   } catch (error) {
     logger.error('Error updating country:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update country',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to update country');
   }
 };
 
@@ -346,11 +311,7 @@ export const deleteCountry = async (req: AuthenticatedRequest, res: Response) =>
     );
 
     if (countryResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Country not found',
-        error: { code: 'NOT_FOUND' },
-      });
+      return errors.notFound(res, 'Country');
     }
 
     // Check for associated states before deletion
@@ -361,11 +322,12 @@ export const deleteCountry = async (req: AuthenticatedRequest, res: Response) =>
 
     const statesCount = parseInt(statesResult.rows[0].count, 10);
     if (statesCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot delete country. This country has ${statesCount} associated state(s).`,
-        error: { code: 'HAS_DEPENDENCIES' },
-      });
+      return sendError(
+        res,
+        400,
+        `Cannot delete country. This country has ${statesCount} associated state(s).`,
+        'HAS_DEPENDENCIES'
+      );
     }
 
     const deletedCountry = countryResult.rows[0];
@@ -384,11 +346,7 @@ export const deleteCountry = async (req: AuthenticatedRequest, res: Response) =>
     });
   } catch (error) {
     logger.error('Error deleting country:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete country',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to delete country');
   }
 };
 
@@ -424,11 +382,7 @@ export const getCountriesStats = async (req: AuthenticatedRequest, res: Response
     });
   } catch (error) {
     logger.error('Error getting countries stats:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get countries statistics',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to get countries statistics');
   }
 };
 
@@ -439,11 +393,7 @@ export const bulkImportCountries = async (
 ) => {
   try {
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'No file uploaded',
-        error: { code: 'NO_FILE' },
-      });
+      return sendError(res, 400, 'No file uploaded', 'NO_FILE');
     }
 
     const { parseCSV, validateCSVRow } = await import('@/utils/csvParser');
@@ -543,10 +493,6 @@ export const bulkImportCountries = async (
     });
   } catch (error) {
     logger.error('Error bulk importing countries:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to bulk import countries',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to bulk import countries');
   }
 };

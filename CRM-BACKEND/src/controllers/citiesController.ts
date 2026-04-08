@@ -3,6 +3,7 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/db';
 import type { QueryParams } from '@/types/database';
+import { sendError, errors } from '@/utils/apiResponse';
 
 interface City {
   id: string;
@@ -155,11 +156,7 @@ export const getCities = async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error retrieving cities:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve cities',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to retrieve cities');
   }
 };
 
@@ -184,11 +181,7 @@ export const getCityById = async (req: AuthenticatedRequest, res: Response) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'City not found',
-        error: { code: 'NOT_FOUND' },
-      });
+      return errors.notFound(res, 'City');
     }
 
     const city = result.rows[0];
@@ -203,11 +196,7 @@ export const getCityById = async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error retrieving city:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve city',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to retrieve city');
   }
 };
 
@@ -219,11 +208,12 @@ export const createCity = async (req: AuthenticatedRequest, res: Response) => {
 
     if (!name || !state || !country) {
       logger.error('Missing required fields:', { name, state, country });
-      return res.status(400).json({
-        success: false,
-        message: 'Name, state, and country are required',
-        error: { code: 'MISSING_REQUIRED_FIELDS' },
-      });
+      return sendError(
+        res,
+        400,
+        'Name, state, and country are required',
+        'MISSING_REQUIRED_FIELDS'
+      );
     }
 
     // Get stateId and countryId
@@ -234,11 +224,7 @@ export const createCity = async (req: AuthenticatedRequest, res: Response) => {
 
     if (stateResult.rows.length === 0) {
       logger.error('State not found:', { state });
-      return res.status(400).json({
-        success: false,
-        message: 'State not found',
-        error: { code: 'STATE_NOT_FOUND' },
-      });
+      return sendError(res, 400, 'State not found', 'STATE_NOT_FOUND');
     }
 
     logger.info('Looking up country:', { country });
@@ -248,11 +234,7 @@ export const createCity = async (req: AuthenticatedRequest, res: Response) => {
 
     if (countryResult.rows.length === 0) {
       logger.error('Country not found:', { country });
-      return res.status(400).json({
-        success: false,
-        message: 'Country not found',
-        error: { code: 'COUNTRY_NOT_FOUND' },
-      });
+      return sendError(res, 400, 'Country not found', 'COUNTRY_NOT_FOUND');
     }
 
     const stateId = stateResult.rows[0].id;
@@ -265,11 +247,7 @@ export const createCity = async (req: AuthenticatedRequest, res: Response) => {
     );
 
     if (existingCity.rows.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'City already exists in this state',
-        error: { code: 'DUPLICATE_CITY' },
-      });
+      return errors.conflict(res, 'City already exists in this state');
     }
 
     // Insert new city
@@ -315,11 +293,7 @@ export const createCity = async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error creating city:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create city',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to create city');
   }
 };
 
@@ -330,22 +304,19 @@ export const updateCity = async (req: AuthenticatedRequest, res: Response) => {
     const { name, state, country } = req.body;
 
     if (!name || !state || !country) {
-      return res.status(400).json({
-        success: false,
-        message: 'Name, state, and country are required',
-        error: { code: 'MISSING_REQUIRED_FIELDS' },
-      });
+      return sendError(
+        res,
+        400,
+        'Name, state, and country are required',
+        'MISSING_REQUIRED_FIELDS'
+      );
     }
 
     // Check if city exists
     const existingCity = await query<{ id: string }>('SELECT id FROM cities WHERE id = $1', [id]);
 
     if (existingCity.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'City not found',
-        error: { code: 'NOT_FOUND' },
-      });
+      return errors.notFound(res, 'City');
     }
 
     // Get stateId and countryId
@@ -354,11 +325,7 @@ export const updateCity = async (req: AuthenticatedRequest, res: Response) => {
     ]);
 
     if (stateResult.rows.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'State not found',
-        error: { code: 'STATE_NOT_FOUND' },
-      });
+      return sendError(res, 400, 'State not found', 'STATE_NOT_FOUND');
     }
 
     const countryResult = await query<{ id: string }>('SELECT id FROM countries WHERE name = $1', [
@@ -366,11 +333,7 @@ export const updateCity = async (req: AuthenticatedRequest, res: Response) => {
     ]);
 
     if (countryResult.rows.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Country not found',
-        error: { code: 'COUNTRY_NOT_FOUND' },
-      });
+      return sendError(res, 400, 'Country not found', 'COUNTRY_NOT_FOUND');
     }
 
     const stateId = stateResult.rows[0].id;
@@ -416,11 +379,7 @@ export const updateCity = async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error updating city:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update city',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to update city');
   }
 };
 
@@ -444,11 +403,7 @@ export const deleteCity = async (req: AuthenticatedRequest, res: Response) => {
     );
 
     if (cityResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'City not found',
-        error: { code: 'NOT_FOUND' },
-      });
+      return errors.notFound(res, 'City');
     }
 
     const cityToDelete = cityResult.rows[0];
@@ -472,11 +427,7 @@ export const deleteCity = async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error deleting city:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete city',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to delete city');
   }
 };
 
@@ -531,11 +482,7 @@ export const getCitiesStats = async (req: AuthenticatedRequest, res: Response) =
     });
   } catch (error) {
     logger.error('Error getting cities stats:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get cities statistics',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to get cities statistics');
   }
 };
 
@@ -546,11 +493,7 @@ export const bulkImportCities = async (
 ) => {
   try {
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'No file uploaded',
-        error: { code: 'NO_FILE' },
-      });
+      return errors.badRequest(res, 'No file uploaded');
     }
 
     const { parseCSV, validateCSVRow } = await import('@/utils/csvParser');
@@ -664,10 +607,6 @@ export const bulkImportCities = async (
     });
   } catch (error) {
     logger.error('Error bulk importing cities:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to bulk import cities',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to bulk import cities');
   }
 };

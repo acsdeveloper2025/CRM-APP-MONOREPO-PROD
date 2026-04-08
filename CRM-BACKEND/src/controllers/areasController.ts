@@ -3,6 +3,7 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
 import type { QueryParams } from '@/types/database';
+import { sendError, errors } from '@/utils/apiResponse';
 
 // GET /api/areas - List areas with pagination and filters
 export const getAreas = async (req: AuthenticatedRequest, res: Response) => {
@@ -128,11 +129,7 @@ export const getAreas = async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error retrieving areas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve areas',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to retrieve areas');
   }
 };
 
@@ -155,11 +152,7 @@ export const getStandaloneAreas = async (req: AuthenticatedRequest, res: Respons
     });
   } catch (error) {
     logger.error('Error retrieving standalone areas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve standalone areas',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to retrieve standalone areas');
   }
 };
 
@@ -185,11 +178,7 @@ export const getAreaById = async (req: AuthenticatedRequest, res: Response) => {
     const result = await query(sql, [id]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Area not found',
-        error: { code: 'NOT_FOUND' },
-      });
+      return errors.notFound(res, 'Area');
     }
 
     logger.info(`Retrieved area ${id}`, { userId: req.user?.id });
@@ -200,11 +189,7 @@ export const getAreaById = async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error retrieving area:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve area',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to retrieve area');
   }
 };
 
@@ -214,11 +199,12 @@ export const createArea = async (req: AuthenticatedRequest, res: Response) => {
     const { name } = req.body;
 
     if (!name || typeof name !== 'string' || name.trim().length < 2) {
-      return res.status(400).json({
-        success: false,
-        message: 'Valid area name is required (minimum 2 characters)',
-        error: { code: 'VALIDATION_ERROR' },
-      });
+      return sendError(
+        res,
+        400,
+        'Valid area name is required (minimum 2 characters)',
+        'VALIDATION_ERROR'
+      );
     }
 
     // Check if area name already exists (case-insensitive)
@@ -228,11 +214,7 @@ export const createArea = async (req: AuthenticatedRequest, res: Response) => {
     );
 
     if (existingAreaCheck.rows.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Area with this name already exists',
-        error: { code: 'DUPLICATE_AREA' },
-      });
+      return sendError(res, 400, 'Area with this name already exists', 'DUPLICATE_AREA');
     }
 
     // Create a standalone area entry
@@ -262,19 +244,11 @@ export const createArea = async (req: AuthenticatedRequest, res: Response) => {
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
       // Unique constraint violation
-      return res.status(400).json({
-        success: false,
-        message: 'Area with this name already exists',
-        error: { code: 'DUPLICATE_AREA' },
-      });
+      return sendError(res, 400, 'Area with this name already exists', 'DUPLICATE_AREA');
     }
 
     logger.error('Error creating area:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create area',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to create area');
   }
 };
 
@@ -285,22 +259,19 @@ export const updateArea = async (req: AuthenticatedRequest, res: Response) => {
     const { name } = req.body;
 
     if (!name || typeof name !== 'string' || name.trim().length < 2) {
-      return res.status(400).json({
-        success: false,
-        message: 'Valid area name is required (minimum 2 characters)',
-        error: { code: 'VALIDATION_ERROR' },
-      });
+      return sendError(
+        res,
+        400,
+        'Valid area name is required (minimum 2 characters)',
+        'VALIDATION_ERROR'
+      );
     }
 
     // Check if area exists
     const areaCheck = await query('SELECT id, name FROM areas WHERE id = $1', [id]);
 
     if (areaCheck.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Area not found',
-        error: { code: 'NOT_FOUND' },
-      });
+      return errors.notFound(res, 'Area');
     }
 
     // Check for duplicate area name
@@ -310,11 +281,7 @@ export const updateArea = async (req: AuthenticatedRequest, res: Response) => {
     ]);
 
     if (duplicateCheck.rows.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Area name already exists',
-        error: { code: 'DUPLICATE_AREA' },
-      });
+      return sendError(res, 400, 'Area name already exists', 'DUPLICATE_AREA');
     }
 
     // Update the area
@@ -342,11 +309,7 @@ export const updateArea = async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error updating area:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update area',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to update area');
   }
 };
 
@@ -359,11 +322,7 @@ export const deleteArea = async (req: AuthenticatedRequest, res: Response) => {
     const areaCheck = await query('SELECT id, name FROM areas WHERE id = $1', [id]);
 
     if (areaCheck.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Area not found',
-        error: { code: 'NOT_FOUND' },
-      });
+      return errors.notFound(res, 'Area');
     }
 
     const areaName = areaCheck.rows[0].name;
@@ -376,11 +335,12 @@ export const deleteArea = async (req: AuthenticatedRequest, res: Response) => {
     const usageCount = parseInt(usageCheck.rows[0].count, 10);
 
     if (usageCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot delete area "${areaName}" as it is assigned to ${usageCount} pincode(s)`,
-        error: { code: 'AREA_IN_USE' },
-      });
+      return sendError(
+        res,
+        400,
+        `Cannot delete area "${areaName}" as it is assigned to ${usageCount} pincode(s)`,
+        'AREA_IN_USE'
+      );
     }
 
     // Delete the area
@@ -399,11 +359,7 @@ export const deleteArea = async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error deleting area:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete area',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to delete area');
   }
 };
 
@@ -417,21 +373,13 @@ export const getAreasByPincodes = async (req: AuthenticatedRequest, res: Respons
     const { pincodeIds } = req.query;
 
     if (!pincodeIds || typeof pincodeIds !== 'string') {
-      return res.status(400).json({
-        success: false,
-        message: 'pincodeIds query parameter is required',
-        error: { code: 'VALIDATION_ERROR' },
-      });
+      return sendError(res, 400, 'pincodeIds query parameter is required', 'VALIDATION_ERROR');
     }
 
     const pincodeIdArray = pincodeIds.split(',').map(id => parseInt(id.trim(), 10));
 
     if (pincodeIdArray.some(isNaN)) {
-      return res.status(400).json({
-        success: false,
-        message: 'All pincodeIds must be valid integers',
-        error: { code: 'VALIDATION_ERROR' },
-      });
+      return sendError(res, 400, 'All pincodeIds must be valid integers', 'VALIDATION_ERROR');
     }
 
     // Fetch areas grouped by pincode
@@ -475,10 +423,6 @@ export const getAreasByPincodes = async (req: AuthenticatedRequest, res: Respons
     });
   } catch (error) {
     logger.error('Error fetching areas by pincodes:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch areas',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to fetch areas');
   }
 };
