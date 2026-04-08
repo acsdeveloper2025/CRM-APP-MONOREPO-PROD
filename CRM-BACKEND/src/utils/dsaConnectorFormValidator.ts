@@ -67,7 +67,7 @@ export function validateAndPrepareDsaConnectorForm(
     }
 
     // Use the mapped column name or the original field name if no mapping exists
-    if (dbColumn === undefined) continue; // Skip unmapped fields
+    if (dbColumn === undefined) { continue; } // Skip unmapped fields
     const columnName = dbColumn;
     mappedData[columnName] = processFieldValue(mobileField, value);
   }
