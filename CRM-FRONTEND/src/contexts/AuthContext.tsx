@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AuthState, LoginRequest } from '@/types/auth';
 import { authService } from '@/services/auth';
 import { toast } from 'sonner';
@@ -143,7 +143,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       window.removeEventListener(AUTH_LOGOUT_EVENT, handleLogoutEvent);
     };
-  }, [normalizeUserPermissions]);
+  }, [normalizeUserPermissions, logout]);
 
   useEffect(() => {
     if (!state.isAuthenticated || !state.token) {
@@ -180,7 +180,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, [state.isAuthenticated, state.token, refreshUserPermissions, queryClient]);
 
-  const login = async (credentials: LoginRequest): Promise<boolean> => {
+  const login = useCallback(async (credentials: LoginRequest): Promise<boolean> => {
     setState(prev => ({ ...prev, isLoading: true }));
     
     try {
@@ -211,9 +211,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setState(prev => ({ ...prev, isLoading: false }));
       return false;
     }
-  };
+  }, [normalizeUserPermissions]);
 
-  const logout = async (customMessage?: string): Promise<void> => {
+  const logout = useCallback(async (customMessage?: string): Promise<void> => {
     setState(prev => ({ ...prev, isLoading: true }));
 
     try {
@@ -238,13 +238,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         toast.info(customMessage);
       }
     }
-  };
-  const value: AuthContextType = {
-    ...state,
-    login,
-    logout,
-    refreshUserPermissions,
-  };
+  }, []);
+
+  const value = useMemo<AuthContextType>(
+    () => ({ ...state, login, logout, refreshUserPermissions }),
+    [state, login, logout, refreshUserPermissions]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ReactNode } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { LayoutContext } from './LayoutContextDefinition';
 import { logger } from '@/utils/logger';
 
@@ -23,20 +23,25 @@ export const LayoutProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   }, [expandedMenus]);
 
-  const setExpandedMenus = (menus: string[]) => {
+  const setExpandedMenus = useCallback((menus: string[]) => {
     setExpandedMenusState(menus);
-  };
+  }, []);
 
-  const toggleMenu = (menuId: string) => {
-    setExpandedMenusState(prev => 
-      prev.includes(menuId) 
-        ? prev.filter(id => id !== menuId) 
+  const toggleMenu = useCallback((menuId: string) => {
+    setExpandedMenusState(prev =>
+      prev.includes(menuId)
+        ? prev.filter(id => id !== menuId)
         : [...prev, menuId]
     );
-  };
+  }, []);
+
+  const value = useMemo(
+    () => ({ expandedMenus, setExpandedMenus, toggleMenu }),
+    [expandedMenus, setExpandedMenus, toggleMenu]
+  );
 
   return (
-    <LayoutContext.Provider value={{ expandedMenus, setExpandedMenus, toggleMenu }}>
+    <LayoutContext.Provider value={value}>
       {children}
     </LayoutContext.Provider>
   );

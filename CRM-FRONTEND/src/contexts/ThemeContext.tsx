@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ThemeContext, Theme, ThemeContextType } from './ThemeContextObject';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -60,27 +60,23 @@ export function ThemeProvider({
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [theme]);
 
-  const handleSetTheme = (newTheme: Theme) => {
+  const handleSetTheme = useCallback((newTheme: Theme) => {
     localStorage.setItem(storageKey, newTheme);
     setTheme(newTheme);
-  };
+  }, [storageKey]);
 
-  const toggleTheme = () => {
-    if (theme === 'light') {
-      handleSetTheme('dark');
-    } else if (theme === 'dark') {
-      handleSetTheme('system');
-    } else {
-      handleSetTheme('light');
-    }
-  };
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => {
+      const next = prev === 'light' ? 'dark' : prev === 'dark' ? 'system' : 'light';
+      localStorage.setItem(storageKey, next);
+      return next;
+    });
+  }, [storageKey]);
 
-  const value: ThemeContextType = {
-    theme,
-    actualTheme,
-    setTheme: handleSetTheme,
-    toggleTheme,
-  };
+  const value = useMemo<ThemeContextType>(
+    () => ({ theme, actualTheme, setTheme: handleSetTheme, toggleTheme }),
+    [theme, actualTheme, handleSetTheme, toggleTheme]
+  );
 
   return (
     <ThemeContext.Provider value={value}>
