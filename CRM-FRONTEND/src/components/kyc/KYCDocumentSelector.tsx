@@ -66,8 +66,17 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
   });
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedDocs, setExpandedDocs] = useState<Set<string>>(new Set());
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const toggleExpanded = (code: string) => {
+    setExpandedDocs(prev => {
+      const next = new Set(prev);
+      if (next.has(code)) {next.delete(code);} else {next.add(code);}
+      return next;
+    });
+  };
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -249,142 +258,159 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
           )}
         </div>
 
-        {/* Selected document forms */}
-        {selectedDocuments.map(doc => {
-          const docType = documentTypes.find(dt => dt.code === doc.documentTypeCode);
-          const customFields: KYCCustomField[] = docType?.custom_fields || [];
-
-          return (
-            <div key={doc.documentTypeCode} className="border rounded-lg bg-white p-4 space-y-3">
-              {/* Header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-amber-600" />
-                  <span className="text-sm font-semibold">{doc.documentTypeName}</span>
-                  <Badge variant="outline" className="text-[10px]">{CATEGORY_LABELS[doc.documentCategory] || doc.documentCategory}</Badge>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 text-gray-400 hover:text-red-500"
-                  onClick={() => removeDocument(doc.documentTypeCode)}
-                >
-                  <X className="h-4 w-4" />
+        {/* Selected document forms — compact collapsible cards */}
+        {selectedDocuments.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-gray-500">
+                {selectedDocuments.length} document{selectedDocuments.length > 1 ? 's' : ''} selected — click to expand details
+              </p>
+              <div className="flex gap-1">
+                <Button type="button" variant="ghost" size="sm" className="h-6 text-xs px-2"
+                  onClick={() => setExpandedDocs(new Set(selectedDocuments.map(d => d.documentTypeCode)))}>
+                  Expand All
+                </Button>
+                <Button type="button" variant="ghost" size="sm" className="h-6 text-xs px-2"
+                  onClick={() => setExpandedDocs(new Set())}>
+                  Collapse All
                 </Button>
               </div>
+            </div>
 
-              {/* Custom fields from LOS */}
-              {customFields.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {customFields.map(field => (
-                    <div key={field.key}>
-                      <Label className="text-xs text-gray-500">
-                        {field.label}
-                        {field.required && <span className="text-red-500 ml-0.5">*</span>}
-                      </Label>
-                      <Input
-                        type={field.type === 'date' ? 'date' : 'text'}
-                        placeholder={`Enter ${field.label.toLowerCase()}`}
-                        className="h-8 text-sm mt-1"
-                        value={doc.documentDetails[field.key] || ''}
-                        onChange={(e) => updateCustomField(doc.documentTypeCode, field.key, e.target.value)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
+            {selectedDocuments.map(doc => {
+              const docType = documentTypes.find(dt => dt.code === doc.documentTypeCode);
+              const customFields: KYCCustomField[] = docType?.custom_fields || [];
+              const isExpanded = expandedDocs.has(doc.documentTypeCode);
 
-              {/* Common fields */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <div>
-                  <Label className="text-xs text-gray-500">Document Number</Label>
-                  <Input
-                    placeholder={`Enter ${doc.documentTypeName} number`}
-                    className="h-8 text-sm mt-1"
-                    value={doc.documentNumber || ''}
-                    onChange={(e) => updateDocField(doc.documentTypeCode, 'documentNumber', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-500">Holder Name</Label>
-                  <Input
-                    placeholder="Document holder name"
-                    className="h-8 text-sm mt-1"
-                    value={doc.documentHolderName || ''}
-                    onChange={(e) => updateDocField(doc.documentTypeCode, 'documentHolderName', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-500">Assign To</Label>
-                  <Select
-                    value={doc.assignedTo || ''}
-                    onValueChange={(v) => updateDocField(doc.documentTypeCode, 'assignedTo', v)}
+              return (
+                <div key={doc.documentTypeCode} className="border rounded-lg bg-white overflow-hidden">
+                  {/* Compact header row — always visible */}
+                  <div
+                    className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => toggleExpanded(doc.documentTypeCode)}
                   >
-                    <SelectTrigger className="h-8 text-sm mt-1">
-                      <SelectValue placeholder="Select verifier..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {kycUsers.map(u => (
-                        <SelectItem key={u.id} value={u.id}>
-                          {u.name} ({u.employeeId})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <Label className="text-xs text-gray-500">Description</Label>
-                <Textarea
-                  placeholder="Add notes..."
-                  className="text-sm min-h-[50px] resize-none mt-1"
-                  value={doc.description || ''}
-                  onChange={(e) => updateDocField(doc.documentTypeCode, 'description', e.target.value)}
-                />
-              </div>
-
-              {/* File upload */}
-              <div>
-                <Label className="text-xs text-gray-500">Document File</Label>
-                {doc.file ? (
-                  <div className="flex items-center gap-2 mt-1 p-2 bg-gray-50 rounded border text-sm">
-                    <FileText className="h-4 w-4 text-gray-400 shrink-0" />
-                    <span className="truncate flex-1">{doc.file.name}</span>
-                    <span className="text-gray-400 text-xs shrink-0">
-                      {(doc.file.size / 1024).toFixed(0)} KB
-                    </span>
+                    <ChevronDown className={`h-3.5 w-3.5 text-gray-400 shrink-0 transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`} />
+                    <FileText className="h-4 w-4 text-amber-600 shrink-0" />
+                    <span className="text-sm font-medium flex-1 truncate">{doc.documentTypeName}</span>
+                    <Badge variant="outline" className="text-[10px] shrink-0">{CATEGORY_LABELS[doc.documentCategory] || doc.documentCategory}</Badge>
+                    {doc.documentNumber && (
+                      <span className="text-xs text-gray-400 hidden sm:inline">#{doc.documentNumber}</span>
+                    )}
+                    {doc.file && (
+                      <Badge variant="secondary" className="text-[10px] shrink-0">File attached</Badge>
+                    )}
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0"
-                      onClick={() => updateFile(doc.documentTypeCode, undefined)}
+                      className="h-6 w-6 p-0 text-gray-400 hover:text-red-500 shrink-0"
+                      onClick={(e) => { e.stopPropagation(); removeDocument(doc.documentTypeCode); }}
                     >
                       <X className="h-3.5 w-3.5" />
                     </Button>
                   </div>
-                ) : (
-                  <label className="flex items-center gap-2 mt-1 p-2 bg-gray-50 rounded border border-dashed cursor-pointer hover:bg-gray-100 transition-colors text-sm text-gray-500">
-                    <Upload className="h-4 w-4" />
-                    <span>Click to upload</span>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {updateFile(doc.documentTypeCode, file);}
-                      }}
-                    />
-                  </label>
-                )}
-              </div>
-            </div>
-          );
-        })}
+
+                  {/* Expandable detail section */}
+                  {isExpanded && (
+                    <div className="px-3 pb-3 pt-1 border-t space-y-3">
+                      {/* Custom fields from LOS */}
+                      {customFields.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          {customFields.map(field => (
+                            <div key={field.key}>
+                              <Label className="text-xs text-gray-500">
+                                {field.label}
+                                {field.required && <span className="text-red-500 ml-0.5">*</span>}
+                              </Label>
+                              <Input
+                                type={field.type === 'date' ? 'date' : 'text'}
+                                placeholder={`Enter ${field.label.toLowerCase()}`}
+                                className="h-7 text-xs mt-0.5"
+                                value={doc.documentDetails[field.key] || ''}
+                                onChange={(e) => updateCustomField(doc.documentTypeCode, field.key, e.target.value)}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Common fields — single compact row */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <div>
+                          <Label className="text-xs text-gray-500">Document Number</Label>
+                          <Input
+                            placeholder="Enter number"
+                            className="h-7 text-xs mt-0.5"
+                            value={doc.documentNumber || ''}
+                            onChange={(e) => updateDocField(doc.documentTypeCode, 'documentNumber', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-500">Holder Name</Label>
+                          <Input
+                            placeholder="Holder name"
+                            className="h-7 text-xs mt-0.5"
+                            value={doc.documentHolderName || ''}
+                            onChange={(e) => updateDocField(doc.documentTypeCode, 'documentHolderName', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-500">Assign To</Label>
+                          <Select
+                            value={doc.assignedTo || ''}
+                            onValueChange={(v) => updateDocField(doc.documentTypeCode, 'assignedTo', v)}
+                          >
+                            <SelectTrigger className="h-7 text-xs mt-0.5">
+                              <SelectValue placeholder="Select verifier..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {kycUsers.map(u => (
+                                <SelectItem key={u.id} value={u.id}>
+                                  {u.name} ({u.employeeId})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-gray-500">File</Label>
+                          {doc.file ? (
+                            <div className="flex items-center gap-1 mt-0.5 h-7 px-2 bg-gray-50 rounded border text-xs">
+                              <FileText className="h-3 w-3 text-gray-400 shrink-0" />
+                              <span className="truncate flex-1">{doc.file.name}</span>
+                              <Button type="button" variant="ghost" size="sm" className="h-5 w-5 p-0 shrink-0"
+                                onClick={() => updateFile(doc.documentTypeCode, undefined)}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <label className="flex items-center gap-1 mt-0.5 h-7 px-2 bg-gray-50 rounded border border-dashed cursor-pointer hover:bg-gray-100 transition-colors text-xs text-gray-500">
+                              <Upload className="h-3 w-3" />
+                              <span>Upload</span>
+                              <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                onChange={(e) => { const file = e.target.files?.[0]; if (file) {updateFile(doc.documentTypeCode, file);} }} />
+                            </label>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Description — compact */}
+                      <div>
+                        <Label className="text-xs text-gray-500">Notes</Label>
+                        <Input
+                          placeholder="Optional notes..."
+                          className="h-7 text-xs mt-0.5"
+                          value={doc.description || ''}
+                          onChange={(e) => updateDocField(doc.documentTypeCode, 'description', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
