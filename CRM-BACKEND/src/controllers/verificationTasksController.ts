@@ -5,7 +5,6 @@ import ExcelJS from 'exceljs';
 import type {
   VerificationTask,
   UpdateVerificationTaskData,
-  AssignVerificationTaskData,
   CompleteVerificationTaskData,
 } from '../types/verificationTask';
 import { createAuditLog } from '../utils/auditLogger';
