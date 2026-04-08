@@ -780,9 +780,9 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
 
       const createUserQuery = `
         INSERT INTO users (
-          name, username, email, password, "passwordHash", role, "departmentId", "designationId",
+          name, username, email, "passwordHash", role, "departmentId", "designationId",
           "employeeId", designation, phone, team_leader_id, manager_id, "isActive", "createdAt", "updatedAt"
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         RETURNING id, name, username, email, role, "departmentId", "designationId",
                   "employeeId", designation, phone, team_leader_id as "teamLeaderId",
                   manager_id as "managerId", "isActive", "createdAt", "updatedAt"
@@ -792,7 +792,6 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
         name,
         username,
         email,
-        hashedPassword,
         hashedPassword,
         finalRole,
         cleanDepartmentId,
@@ -2077,7 +2076,7 @@ export const generateTemporaryPassword = async (req: AuthenticatedRequest, res: 
 
     // Update user's password
     await query(
-      'UPDATE users SET "passwordHash" = $1, password = $1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $2',
+      'UPDATE users SET "passwordHash" = $1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $2',
       [hashedPassword, id]
     );
 
@@ -2210,7 +2209,7 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response) =
 
     // Update password
     await query(
-      'UPDATE users SET "passwordHash" = $1, password = $1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $2',
+      'UPDATE users SET "passwordHash" = $1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $2',
       [hashedNewPassword, id]
     );
 
@@ -2277,7 +2276,7 @@ export const resetPassword = async (req: AuthenticatedRequest, res: Response) =>
 
     // Update password
     await query(
-      'UPDATE users SET "passwordHash" = $1, password = $1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $2',
+      'UPDATE users SET "passwordHash" = $1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $2',
       [hashedPassword, user.id]
     );
 
