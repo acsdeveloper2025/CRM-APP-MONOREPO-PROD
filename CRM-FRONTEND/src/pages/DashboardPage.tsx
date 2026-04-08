@@ -8,7 +8,6 @@ import { RecentActivities } from '@/components/dashboard/RecentActivities';
 import { useDashboardKPI } from '@/hooks/useDashboardKPI';
 import { usePermission } from '@/hooks/usePermissions';
 import {
-  Users,
   XCircle,
   CheckSquare,
   Plus,
