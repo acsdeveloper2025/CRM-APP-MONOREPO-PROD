@@ -6,7 +6,7 @@ import { CaseStatusChart } from '@/components/dashboard/CaseStatusChart';
 import { MonthlyTrendsChart } from '@/components/dashboard/MonthlyTrendsChart';
 import { RecentActivities } from '@/components/dashboard/RecentActivities';
 import { useDashboardKPI } from '@/hooks/useDashboardKPI';
-import { usePermission } from '@/hooks/usePermission';
+import { usePermission } from '@/hooks/usePermissions';
 import {
   Users,
   XCircle,
