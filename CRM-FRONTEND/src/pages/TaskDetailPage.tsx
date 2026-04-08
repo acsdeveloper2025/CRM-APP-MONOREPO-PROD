@@ -50,8 +50,6 @@ interface TaskDetail {
   verificationOutcome?: string;
   commissionStatus?: string;
   calculatedCommission?: number;
-  documentType?: string;
-  documentNumber?: string;
   taskType?: 'REVISIT' | 'KYC' | null;
   createdAt: string;
   updatedAt: string;
@@ -137,8 +135,6 @@ export const TaskDetailPage: React.FC = () => {
           verificationOutcome: taskData.verification_outcome,
           commissionStatus: taskData.commission_status,
           calculatedCommission: taskData.calculated_commission,
-          documentType: taskData.document_type,
-          documentNumber: taskData.document_number,
           taskType: taskData.task_type || null,
           createdAt: taskData.created_at,
           updatedAt: taskData.updated_at,
@@ -297,9 +293,6 @@ export const TaskDetailPage: React.FC = () => {
             priority: task.priority,
             address: task.address,
             pincode: task.pincode,
-            // Add if available in task object, otherwise defaults to empty
-            documentType: task.documentType,
-            documentNumber: task.documentNumber
         }}
         onSubmit={handleUpdateTask}
       />

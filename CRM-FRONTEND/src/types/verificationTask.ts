@@ -50,11 +50,6 @@ export interface VerificationTask {
   trigger?: string;
   applicantType?: string;
 
-  // Document Information (for document verification tasks)
-  documentType?: string;
-  documentNumber?: string;
-  documentDetails?: Record<string, unknown>;
-  
   // Timing and Completion
   estimatedCompletionDate?: string;
   startedAt?: string; // When task moved to IN_PROGRESS
@@ -105,9 +100,6 @@ export interface CreateVerificationTaskRequest {
   area_id?: number;
   applicant_type?: string;
   trigger?: string;
-  document_type?: string;
-  document_number?: string;
-  document_details?: Record<string, unknown>;
   estimated_completion_date?: string;
 }
 
@@ -124,9 +116,6 @@ export interface UpdateVerificationTaskRequest {
   pincode?: string;
   trigger?: string;
   applicantType?: string;
-  documentType?: string;
-  documentNumber?: string;
-  documentDetails?: Record<string, unknown>;
   estimatedCompletionDate?: string;
   caseId?: string;
   // Legacy snake_case keys kept for backward compatibility in older callers

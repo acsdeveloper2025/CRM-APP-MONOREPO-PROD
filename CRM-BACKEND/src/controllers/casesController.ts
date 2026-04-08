@@ -2741,17 +2741,15 @@ export const createCase = [
           const kycTaskResult = await client.query(
             `INSERT INTO verification_tasks (
               case_id, task_title, task_description, priority, status,
-              task_type, document_type, document_number, created_by,
+              task_type, created_by,
               assigned_to, assigned_by, assigned_at
-            ) VALUES ($1, $2, $3, 'MEDIUM', $4, 'KYC', $5, $6, $7, $8, $9, $10)
+            ) VALUES ($1, $2, $3, 'MEDIUM', $4, 'KYC', $5, $6, $7, $8)
             RETURNING id`,
             [
               newCase.id,
               `KYC: ${doc.document_type.replace(/_/g, ' ')}`,
               `KYC document verification for ${doc.document_type}`,
               hasAssignment ? 'ASSIGNED' : 'PENDING',
-              doc.document_type,
-              doc.document_number || null,
               userId,
               doc.assigned_to || null,
               hasAssignment ? userId : null,

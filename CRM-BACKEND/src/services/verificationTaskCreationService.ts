@@ -175,9 +175,6 @@ export class VerificationTaskCreationService {
         estimated_amount: _estimatedAmount,
         address,
         pincode,
-        document_type: documentType,
-        document_number: documentNumber,
-        document_details: documentDetails,
         estimated_completion_date: estimatedCompletionDate,
         area_id: areaId, // Assuming area_id is passed in taskData
       } = taskData;
@@ -239,15 +236,14 @@ export class VerificationTaskCreationService {
               case_id, verification_type_id, task_title, task_description,
               priority, assigned_to, assigned_by, assigned_at,
               rate_type_id, estimated_amount, address, pincode,
-              document_type, document_number, document_details,
               estimated_completion_date, status, created_by,
               first_assigned_at, current_assigned_at,
               area_id
             ) VALUES (
               $1, $2, $3, $4, $5, $6, $7, NOW(),
-              $8, $9, $10, $11, $12, $13, $14, $15,
-              $16, $17, NOW(), NOW(),
-              $18
+              $8, $9, $10, $11, $12,
+              $13, $14, NOW(), NOW(),
+              $15
             ) RETURNING *
           `;
         insertParams = [
@@ -262,9 +258,6 @@ export class VerificationTaskCreationService {
           actualAmount,
           address as string | undefined,
           String(pincode as string),
-          documentType as string | undefined,
-          documentNumber as string | undefined,
-          JSON.stringify(documentDetails),
           estimatedCompletionDate as string | undefined,
           taskStatus,
           userId,
@@ -276,15 +269,14 @@ export class VerificationTaskCreationService {
               case_id, verification_type_id, task_title, task_description,
               priority, assigned_to, assigned_by, assigned_at,
               rate_type_id, estimated_amount, address, pincode,
-              document_type, document_number, document_details,
               estimated_completion_date, status, created_by,
               first_assigned_at, current_assigned_at,
               area_id
             ) VALUES (
               $1, $2, $3, $4, $5, NULL, NULL, NULL,
-              $6, $7, $8, $9, $10, $11, $12, $13,
-              $14, $15, NOW(), NOW(),
-              $16
+              $6, $7, $8, $9, $10,
+              $11, $12, NOW(), NOW(),
+              $13
             ) RETURNING *
           `;
         insertParams = [
@@ -297,9 +289,6 @@ export class VerificationTaskCreationService {
           actualAmount,
           address as string | undefined,
           String(pincode as string),
-          documentType as string | undefined,
-          documentNumber as string | undefined,
-          JSON.stringify(documentDetails),
           estimatedCompletionDate as string | undefined,
           taskStatus,
           userId,

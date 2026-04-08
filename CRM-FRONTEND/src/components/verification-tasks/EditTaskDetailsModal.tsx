@@ -17,8 +17,6 @@ interface EditTaskDetailsModalProps {
     priority: string;
     address?: string;
     pincode?: string;
-    documentType?: string;
-    documentNumber?: string;
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -38,8 +36,6 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
     priority: 'MEDIUM' as TaskPriority,
     address: '',
     pincode: '',
-    documentType: '',
-    documentNumber: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -51,8 +47,6 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
         priority: (task.priority as TaskPriority) || 'MEDIUM',
         address: task.address || '',
         pincode: task.pincode || '',
-        documentType: task.documentType || '',
-        documentNumber: task.documentNumber || ''
       });
       setErrors({});
     }
@@ -101,8 +95,6 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
         priority: formData.priority,
         address: formData.address,
         pincode: formData.pincode,
-        documentType: formData.documentType || undefined,
-        documentNumber: formData.documentNumber || undefined
       };
 
       await onSubmit(task.id, updateData);
@@ -206,27 +198,6 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
               placeholder="Enter task description"
               rows={3}
             />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
-             <div className="space-y-2">
-              <Label htmlFor="documentType">Document Type</Label>
-              <Input
-                id="documentType"
-                value={formData.documentType}
-                onChange={(e) => handleChange('documentType', e.target.value)}
-                placeholder="e.g. Aadhaar, PAN"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="documentNumber">Document Number</Label>
-              <Input
-                id="documentNumber"
-                value={formData.documentNumber}
-                onChange={(e) => handleChange('documentNumber', e.target.value)}
-                placeholder="Optional document number"
-              />
-            </div>
           </div>
 
           <DialogFooter className="pt-4">

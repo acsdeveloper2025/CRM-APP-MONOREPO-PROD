@@ -181,8 +181,7 @@ const caseDetailsSchema = z.object({
 //   areaId: z.string().min(1, 'Area is required'),
 //   applicantType: z.string().min(1, 'Applicant type is required'),
 //   trigger: z.string().min(1, 'Trigger is required'),
-//   documentType: z.string().optional(),
-//   documentNumber: z.string().optional(),
+//
 // });
 
 const formSchema = z.object({
@@ -204,8 +203,6 @@ interface TaskFormData {
   areaId?: string;
   applicantType?: string;
   trigger?: string;
-  documentType?: string;
-  documentNumber?: string;
 }
 
 interface CaseWithTasksCreationFormProps {
@@ -236,8 +233,6 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
       areaId: '',
       applicantType: '',
       trigger: '',
-      documentType: '',
-      documentNumber: '',
     }
   ]);
 
@@ -345,8 +340,6 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
       areaId: '',
       applicantType: '',
       trigger: '',
-      documentType: '',
-      documentNumber: '',
     };
     setTasks([...tasks, newTask]);
   };
@@ -446,9 +439,7 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
           area_id: parseInt(task.areaId as string),
           applicant_type: task.applicantType as string,
           trigger: task.trigger as string,
-          document_type: task.documentType || undefined,
-          document_number: task.documentNumber || undefined,
-        };
+};
       }),
     };
 
@@ -776,14 +767,6 @@ export const CaseWithTasksCreationForm: React.FC<CaseWithTasksCreationFormProps>
                         </Select>
                       </div>
 
-                      <div>
-                        <label className="text-sm font-medium">Document Type</label>
-                        <Input
-                          placeholder="Enter document type (e.g., Aadhaar Card, PAN Card)"
-                          value={task.documentType || ''}
-                          onChange={(e) => updateTask(task.id, 'documentType', e.target.value)}
-                        />
-                      </div>
                     </div>
 
                     <div>
