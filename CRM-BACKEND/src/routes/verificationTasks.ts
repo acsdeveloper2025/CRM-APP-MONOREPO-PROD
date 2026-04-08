@@ -1,6 +1,9 @@
 // Disabled unbound-method rule for this file as it uses method references in routes
 import express from 'express';
-import { VerificationTasksController } from '../controllers/verificationTasksController';
+import {
+  VerificationTasksController,
+  exportTasksToExcel,
+} from '../controllers/verificationTasksController';
 import { authenticateToken, type AuthenticatedRequest } from '../middleware/auth';
 import { getAssignedClientIds, validateCaseAccess } from '@/middleware/clientAccess';
 import { getAssignedProductIds, validateCaseProductAccess } from '@/middleware/productAccess';
@@ -60,6 +63,18 @@ router.get(
   validateCaseAccess,
   validateCaseProductAccess,
   VerificationTasksController.getTasksForCase.bind(VerificationTasksController)
+);
+
+/**
+ * Export verification tasks to Excel
+ * GET /api/verification-tasks/export
+ * IMPORTANT: Must come before generic /verification-tasks/:taskId routes
+ */
+router.get(
+  '/verification-tasks/export',
+  authenticateToken,
+  authorize('case.view'),
+  exportTasksToExcel
 );
 
 /**

@@ -2508,7 +2508,9 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
         { header: 'Department', key: 'departmentName', width: 20 },
         { header: 'Employee ID', key: 'employeeId', width: 15 },
         { header: 'Phone', key: 'phone', width: 15 },
+        { header: 'Designation', key: 'designation', width: 18 },
         { header: 'Status', key: 'isActive', width: 10 },
+        { header: 'Last Login', key: 'lastLogin', width: 20 },
         { header: 'Created At', key: 'createdAt', width: 20 },
       ];
 

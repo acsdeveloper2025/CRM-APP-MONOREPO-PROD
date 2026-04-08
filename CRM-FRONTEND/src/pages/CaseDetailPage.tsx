@@ -11,6 +11,8 @@ import { OptimizedFormSubmissionViewer } from '@/components/forms/OptimizedFormS
 import { ArrowLeft, MapPin, Phone, Mail, Calendar, User, Building2, FileText, Edit, UserCheck, FormInput, Camera, CheckSquare } from 'lucide-react';
 import { CaseAttachmentsSection } from '@/components/attachments/CaseAttachmentsSection';
 import { VerificationTasksManager } from '@/components/verification-tasks';
+import { KYCTaskVerificationSection } from '@/components/kyc/KYCTaskVerificationSection';
+import { useKYCTasksForCase } from '@/hooks/useKYC';
 import { formatDistanceToNow } from 'date-fns';
 import { LoadingState } from '@/components/ui/loading';
 import { logger } from '@/utils/logger';
@@ -38,6 +40,7 @@ export const CaseDetailPage: React.FC = () => {
   const safeId = id || '';
   const { data: caseData, isLoading, refetch } = useCase(safeId);
   const { data: formSubmissionsData, isLoading: formSubmissionsLoading } = useCaseFormSubmissions(safeId);
+  const { data: kycTasks = [] } = useKYCTasksForCase(safeId);
   const assignCaseMutation = useAssignCase();
 
   const caseItem = caseData?.data;
@@ -336,7 +339,7 @@ export const CaseDetailPage: React.FC = () => {
                       caseId={safeId}
                     />
                   ))
-                ) : (
+                ) : kycTasks.length === 0 ? (
                   <Card>
                     <CardContent className="p-6 text-center">
                       <FormInput className="h-12 w-12 text-gray-600 mx-auto mb-4" />
@@ -346,6 +349,11 @@ export const CaseDetailPage: React.FC = () => {
                       </p>
                     </CardContent>
                   </Card>
+                ) : null}
+
+                {/* KYC Document Verification Results */}
+                {kycTasks.length > 0 && (
+                  <KYCTaskVerificationSection caseId={safeId} taskId="" readonly />
                 )}
               </div>
             </TabsContent>

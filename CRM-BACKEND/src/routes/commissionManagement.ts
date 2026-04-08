@@ -19,6 +19,8 @@ import {
   calculateCommissionForCompletedCase,
   // Commission Statistics
   getCommissionStats,
+  // Export
+  exportCommissionsToExcel,
 } from '@/controllers/commissionManagementController';
 
 const router = express.Router();
@@ -220,5 +222,12 @@ router.post(
 
 // Commission Statistics Route
 router.get('/stats', authorize('billing.download'), getCommissionStats as express.RequestHandler);
+
+// Export Route
+router.get(
+  '/export',
+  authorize('billing.download'),
+  exportCommissionsToExcel as express.RequestHandler
+);
 
 export default router;

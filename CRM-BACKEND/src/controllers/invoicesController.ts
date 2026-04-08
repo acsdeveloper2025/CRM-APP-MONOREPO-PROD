@@ -1612,6 +1612,110 @@ export const downloadInvoice = async (req: AuthenticatedRequest, res: Response) 
   }
 };
 
+// GET /api/invoices/export - Export all invoices to Excel
+export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const scope = await resolveDataScope(req);
+    const { status, clientId, dateFrom, dateTo } = req.query;
+
+    const conditions: string[] = [];
+    const params: (string | number)[] = [];
+    let idx = 1;
+
+    if (status) {
+      conditions.push(`i.status = $${idx++}`);
+      params.push(status as string);
+    }
+    if (clientId) {
+      conditions.push(`i.client_id = $${idx++}`);
+      params.push(Number(clientId));
+    }
+    if (dateFrom) {
+      conditions.push(`i.issue_date >= $${idx++}`);
+      params.push(dateFrom as string);
+    }
+    if (dateTo) {
+      conditions.push(`i.issue_date <= $${idx++}`);
+      params.push(`${dateTo as string} 23:59:59`);
+    }
+
+    if (scope.assignedClientIds && scope.assignedClientIds.length > 0) {
+      conditions.push(`i.client_id = ANY($${idx++}::int[])`);
+      params.push(scope.assignedClientIds as unknown as number);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const result = await query(
+      `
+      SELECT
+        i.invoice_number,
+        c.name as client_name,
+        i.status,
+        i.issue_date,
+        i.due_date,
+        i.subtotal_amount as subtotal,
+        i.tax_amount,
+        i.total_amount,
+        i.notes,
+        i.created_at
+      FROM invoices i
+      LEFT JOIN clients c ON i.client_id = c.id
+      ${whereClause}
+      ORDER BY i.created_at DESC
+    `,
+      params
+    );
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Invoices');
+
+    worksheet.columns = [
+      { header: 'Invoice #', key: 'invoice_number', width: 22 },
+      { header: 'Client', key: 'client_name', width: 25 },
+      { header: 'Status', key: 'status', width: 14 },
+      { header: 'Issue Date', key: 'issue_date', width: 18 },
+      { header: 'Due Date', key: 'due_date', width: 18 },
+      { header: 'Subtotal', key: 'subtotal', width: 14 },
+      { header: 'Tax Amount', key: 'tax_amount', width: 14 },
+      { header: 'Total Amount', key: 'total_amount', width: 16 },
+      { header: 'Notes', key: 'notes', width: 30 },
+      { header: 'Created At', key: 'created_at', width: 20 },
+    ];
+
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+
+    result.rows.forEach((row: Record<string, unknown>) => {
+      worksheet.addRow({
+        ...row,
+        subtotal: row.subtotal ? Number(row.subtotal) : 0,
+        tax_amount: row.tax_amount ? Number(row.tax_amount) : 0,
+        total_amount: row.total_amount ? Number(row.total_amount) : 0,
+        issue_date: row.issue_date ? new Date(row.issue_date as string).toLocaleDateString() : '',
+        due_date: row.due_date ? new Date(row.due_date as string).toLocaleDateString() : '',
+        created_at: row.created_at ? new Date(row.created_at as string).toLocaleString() : '',
+      });
+    });
+
+    worksheet.autoFilter = { from: 'A1', to: `J${result.rows.length + 1}` };
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=invoices_export_${new Date().toISOString().split('T')[0]}.xlsx`
+    );
+    await workbook.xlsx.write(res);
+    return res.end();
+  } catch (error) {
+    logger.error('Error exporting invoices:', error);
+    return res.status(500).json({ success: false, message: 'Failed to export invoices' });
+  }
+};
+
 // GET /api/invoices/stats - Get invoice statistics
 export const getInvoiceStats = async (req: AuthenticatedRequest, res: Response) => {
   try {

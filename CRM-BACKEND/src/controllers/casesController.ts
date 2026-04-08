@@ -1643,7 +1643,10 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
           WHEN c.status = 'PENDING' OR c.status = 'IN_PROGRESS' THEN
             EXTRACT(EPOCH FROM (NOW() - c."createdAt"))
           ELSE NULL
-        END as pending_duration_seconds
+        END as pending_duration_seconds,
+        (SELECT COUNT(*) FROM verification_tasks vtc WHERE vtc.case_id = c.id) as total_tasks,
+        (SELECT COUNT(*) FROM verification_tasks vtc WHERE vtc.case_id = c.id AND vtc.status = 'COMPLETED') as completed_tasks,
+        (SELECT COUNT(*) FROM verification_tasks vtc WHERE vtc.case_id = c.id AND vtc.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS')) as pending_tasks
       FROM cases c
       LEFT JOIN clients cl ON c."clientId" = cl.id
       LEFT JOIN products p ON c."productId" = p.id
@@ -1691,6 +1694,9 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
       { header: 'Pincode', key: 'pincode', width: 10 },
       { header: 'Created At', key: 'created_at', width: 20 },
       { header: 'Updated At', key: 'updated_at', width: 20 },
+      { header: 'Total Tasks', key: 'total_tasks', width: 12 },
+      { header: 'Completed Tasks', key: 'completed_tasks', width: 15 },
+      { header: 'Pending Tasks', key: 'pending_tasks', width: 14 },
     ];
 
     // Add specific columns based on export type
@@ -1754,6 +1760,9 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
         pending_duration_hours: caseItem.pending_duration_seconds
           ? Math.round(((caseItem.pending_duration_seconds as number) / 3600) * 100) / 100
           : '',
+        total_tasks: Number(caseItem.total_tasks) || 0,
+        completed_tasks: Number(caseItem.completed_tasks) || 0,
+        pending_tasks: Number(caseItem.pending_tasks) || 0,
       };
 
       worksheet.addRow(rowData);
@@ -2508,23 +2517,31 @@ export const createCase = [
         backendContactNumber !== undefined && backendContactNumber !== null
           ? String(backendContactNumber).trim()
           : '';
+      // For KYC-only cases, verificationTypeId and trigger are optional
+      const kycDocumentsForValidation = (requestData as unknown as Record<string, unknown>)
+        .kyc_documents as unknown[] | undefined;
+      const isKYCOnlyCase =
+        kycDocumentsForValidation &&
+        kycDocumentsForValidation.length > 0 &&
+        (!verificationTasksFromRequest || (verificationTasksFromRequest as unknown[]).length === 0);
+
       if (
         !resolvedClientId ||
         !resolvedProductId ||
         !resolvedBackendContactNumber ||
         !resolvedCaseCustomerName ||
-        !resolvedCaseVerificationTypeId ||
+        (!isKYCOnlyCase && !resolvedCaseVerificationTypeId) ||
         !resolvedCaseApplicantType ||
-        !resolvedCaseTrigger
+        (!isKYCOnlyCase && !resolvedCaseTrigger)
       ) {
         const missingFields = [
           !resolvedClientId ? 'clientId' : null,
           !resolvedProductId ? 'productId' : null,
           !resolvedBackendContactNumber ? 'backendContactNumber' : null,
           !resolvedCaseCustomerName ? 'customerName' : null,
-          !resolvedCaseVerificationTypeId ? 'verificationTypeId' : null,
+          !isKYCOnlyCase && !resolvedCaseVerificationTypeId ? 'verificationTypeId' : null,
           !resolvedCaseApplicantType ? 'applicantType' : null,
-          !resolvedCaseTrigger ? 'trigger' : null,
+          !isKYCOnlyCase && !resolvedCaseTrigger ? 'trigger' : null,
         ].filter(Boolean);
         const validationError = new Error(
           `Missing required case fields: ${missingFields.join(', ')}`
@@ -2548,9 +2565,9 @@ export const createCase = [
           customerCallingCode || null,
           priority,
           resolvedBackendContactNumber,
-          resolvedCaseVerificationTypeId,
+          resolvedCaseVerificationTypeId || null,
           resolvedCaseApplicantType,
-          resolvedCaseTrigger,
+          resolvedCaseTrigger || (isKYCOnlyCase ? 'KYC Document Verification' : null),
           userId,
         ]
       );
@@ -2680,20 +2697,96 @@ export const createCase = [
         }
       }
 
-      if (!tasksToCreate || tasksToCreate.length === 0) {
-        const validationError = new Error('At least one verification task is required');
+      // Allow empty field tasks if KYC documents are provided
+      const kycDocumentsFromRequest = (requestData as unknown as Record<string, unknown>)
+        .kyc_documents as unknown[] | undefined;
+      const hasKYCDocuments = kycDocumentsFromRequest && kycDocumentsFromRequest.length > 0;
+
+      if ((!tasksToCreate || tasksToCreate.length === 0) && !hasKYCDocuments) {
+        const validationError = new Error(
+          'At least one verification task or KYC document is required'
+        );
         (validationError as DatabaseError).code = 'VALIDATION_ERROR';
         throw validationError;
       }
 
       // Atomic requirement:
       // case + hierarchy + verification tasks must all succeed in one transaction
-      const taskCreationResult = await VerificationTaskCreationService.createForCase(
-        client,
-        newCase.id,
-        tasksToCreate,
-        userId
-      );
+      let taskCreationResult: { createdTasks: unknown[] } = { createdTasks: [] };
+      if (tasksToCreate && tasksToCreate.length > 0) {
+        taskCreationResult = await VerificationTaskCreationService.createForCase(
+          client,
+          newCase.id,
+          tasksToCreate,
+          userId
+        );
+      }
+
+      // Create KYC document verification tasks if provided
+      const kycDocuments = kycDocumentsFromRequest as
+        | Array<{
+            document_type: string;
+            document_number?: string;
+            document_holder_name?: string;
+            document_details?: Record<string, string>;
+            description?: string;
+            assigned_to?: string;
+          }>
+        | undefined;
+
+      if (kycDocuments && kycDocuments.length > 0) {
+        for (const doc of kycDocuments) {
+          const hasAssignment = !!doc.assigned_to;
+          // Create a verification_task with task_type = 'KYC'
+          const kycTaskResult = await client.query(
+            `INSERT INTO verification_tasks (
+              case_id, task_title, task_description, priority, status,
+              task_type, document_type, document_number, created_by,
+              assigned_to, assigned_by, assigned_at
+            ) VALUES ($1, $2, $3, 'MEDIUM', $4, 'KYC', $5, $6, $7, $8, $9, $10)
+            RETURNING id`,
+            [
+              newCase.id,
+              `KYC: ${doc.document_type.replace(/_/g, ' ')}`,
+              `KYC document verification for ${doc.document_type}`,
+              hasAssignment ? 'ASSIGNED' : 'PENDING',
+              doc.document_type,
+              doc.document_number || null,
+              userId,
+              doc.assigned_to || null,
+              hasAssignment ? userId : null,
+              hasAssignment ? new Date() : null,
+            ]
+          );
+
+          const kycTaskId = kycTaskResult.rows[0].id;
+
+          // Create the KYC document verification record
+          await client.query(
+            `INSERT INTO kyc_document_verifications (
+              verification_task_id, case_id, document_type, document_number,
+              document_holder_name, verification_status, document_details, description,
+              assigned_to, assigned_by, assigned_at
+            ) VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, $7, $8, $9, $10)`,
+            [
+              kycTaskId,
+              newCase.id,
+              doc.document_type,
+              doc.document_number || null,
+              doc.document_holder_name || requestData.case_details.customerName || null,
+              JSON.stringify(doc.document_details || {}),
+              doc.description || null,
+              doc.assigned_to || null,
+              hasAssignment ? userId : null,
+              hasAssignment ? new Date() : null,
+            ]
+          );
+        }
+
+        logger.info(
+          `Created ${kycDocuments.length} KYC verification tasks for case ${newCase.caseId}`
+        );
+      }
 
       // Explicit commit before returning success
       await client.query('COMMIT');

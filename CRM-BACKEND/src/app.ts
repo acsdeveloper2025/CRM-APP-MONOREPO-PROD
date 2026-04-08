@@ -56,6 +56,7 @@ import aiReportsRoutes from '@/routes/aiReports';
 import verificationTasksRoutes from '@/routes/verificationTasks';
 import templateReportsRoutes from '@/routes/templateReports';
 import fieldMonitoringRoutes from '@/routes/fieldMonitoring';
+import kycRoutes from '@/routes/kyc';
 
 const app = express();
 
@@ -226,6 +227,7 @@ apiRouter.use('/service-zone-rules', serviceZoneRulesRoutes);
 apiRouter.use('/ai-reports', extendedTimeout, aiReportsRoutes);
 apiRouter.use('/template-reports', extendedTimeout, templateReportsRoutes);
 apiRouter.use('/field-monitoring', fieldMonitoringRoutes);
+apiRouter.use('/kyc', kycRoutes);
 
 // Multi-verification task routes
 apiRouter.use('/', verificationTasksRoutes);

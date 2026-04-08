@@ -1922,6 +1922,7 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
         { header: 'Field Agent ID', key: 'field_user_employee_id', width: 15 },
         { header: 'Address', key: 'address', width: 40 },
         { header: 'Pincode', key: 'pincode', width: 10 },
+        { header: 'Area', key: 'area_name', width: 20 },
         { header: 'Rate Type', key: 'rate_type', width: 15 },
         { header: 'Estimated Amount', key: 'estimated_amount', width: 18 },
         { header: 'Actual Amount', key: 'actual_amount', width: 15 },

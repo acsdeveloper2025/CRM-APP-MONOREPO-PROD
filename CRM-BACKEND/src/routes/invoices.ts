@@ -13,6 +13,7 @@ import {
   cancelInvoice,
   downloadInvoice,
   getInvoiceStats,
+  exportInvoicesToExcel,
 } from '@/controllers/invoicesController';
 
 const router = express.Router();
@@ -124,6 +125,8 @@ const listInvoicesValidation = [
 router.get('/', authorize('billing.download'), listInvoicesValidation, validate, getInvoices);
 
 router.get('/stats', authorize('billing.download'), getInvoiceStats);
+
+router.get('/export', authorize('billing.download'), exportInvoicesToExcel);
 
 router.post('/', authorize('billing.generate'), createInvoiceValidation, validate, createInvoice);
 

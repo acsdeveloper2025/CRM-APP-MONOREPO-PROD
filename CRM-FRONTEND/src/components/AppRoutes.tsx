@@ -125,6 +125,12 @@ const RateManagementPage = React.lazy(() =>
 const DedupePage = React.lazy(() =>
   import('@/pages/DedupePage').then((module) => ({ default: module.DedupePage }))
 );
+const KYCDashboardPage = React.lazy(() =>
+  import('@/pages/KYCDashboardPage').then((module) => ({ default: module.KYCDashboardPage }))
+);
+const KYCVerificationPage = React.lazy(() =>
+  import('@/pages/KYCVerificationPage').then((module) => ({ default: module.KYCVerificationPage }))
+);
 
 const resolveFirstAccessibleRoute = (permissionSet: Set<string>): string => {
   const candidates: Array<{ permission: string; path: string }> = [
@@ -136,6 +142,7 @@ const resolveFirstAccessibleRoute = (permissionSet: Set<string>): string => {
     { permission: 'page.billing', path: '/billing' },
     { permission: 'page.masterdata', path: '/clients' },
     { permission: 'page.users', path: '/users' },
+    { permission: 'page.kyc', path: '/kyc' },
     { permission: 'page.field_monitoring', path: '/operations/field-monitoring' },
     { permission: 'page.rbac', path: '/admin/rbac' },
     { permission: 'page.settings', path: '/settings' },
@@ -517,6 +524,24 @@ export const AppRoutes: React.FC = () => {
             element={
               <ProtectedRoute permission="page.rbac">
                 <RBACAdminPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* KYC Verification routes */}
+          <Route
+            path="/kyc"
+            element={
+              <ProtectedRoute permission="page.kyc">
+                <KYCDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/kyc/verify/:taskId"
+            element={
+              <ProtectedRoute permission="page.kyc">
+                <KYCVerificationPage />
               </ProtectedRoute>
             }
           />

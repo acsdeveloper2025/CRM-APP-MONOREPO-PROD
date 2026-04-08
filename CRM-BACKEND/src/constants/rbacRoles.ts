@@ -4,6 +4,7 @@ export const CANONICAL_RBAC_ROLE_NAMES = [
   'TEAM_LEADER',
   'BACKEND_USER',
   'FIELD_AGENT',
+  'KYC_VERIFIER',
 ] as const;
 
 export type CanonicalRbacRoleName = (typeof CANONICAL_RBAC_ROLE_NAMES)[number];
