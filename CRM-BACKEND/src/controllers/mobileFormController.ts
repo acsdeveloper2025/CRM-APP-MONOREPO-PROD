@@ -624,7 +624,9 @@ export class MobileFormController {
     });
   }
 
-  private static async countTaskAttachments(taskId: string): Promise<{ totalImages: number; totalSelfies: number }> {
+  private static async countTaskAttachments(
+    taskId: string
+  ): Promise<{ totalImages: number; totalSelfies: number }> {
     const result = await query(
       `SELECT
         COUNT(*) FILTER (WHERE "photoType" = 'verification') as total_images,
@@ -2524,9 +2526,9 @@ export class MobileFormController {
             [task.task_id]
           );
           const actualSubmissionId =
-            tfsRes.rows[0]?.form_submission_id
-            || (imagesRes.rows.length > 0 ? imagesRes.rows[0].submissionId : null)
-            || `${verificationType.toLowerCase()}_${task.task_id}_${Date.now()}`;
+            tfsRes.rows[0]?.form_submission_id ||
+            (imagesRes.rows.length > 0 ? imagesRes.rows[0].submissionId : null) ||
+            `${verificationType.toLowerCase()}_${task.task_id}_${Date.now()}`;
 
           // Create comprehensive form submission WITH TASK INFORMATION
           const submission: FormSubmissionData = {
@@ -2986,8 +2988,14 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
-        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images:
+          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+          uploadedImages.length ||
+          0,
+        total_selfies:
+          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+          uploadedImages.filter(img => img.photoType === 'selfie').length ||
+          0,
         remarks: formData.remarks || `${formType} residence verification completed`,
 
         // Merge all mapped form data (already includes defaults for missing fields)
@@ -3385,8 +3393,14 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
-        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images:
+          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+          uploadedImages.length ||
+          0,
+        total_selfies:
+          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+          uploadedImages.filter(img => img.photoType === 'selfie').length ||
+          0,
         remarks: formData.remarks || `${formType} office verification completed`,
 
         // Merge all mapped form data
@@ -3783,8 +3797,14 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
-        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images:
+          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+          uploadedImages.length ||
+          0,
+        total_selfies:
+          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+          uploadedImages.filter(img => img.photoType === 'selfie').length ||
+          0,
         remarks: formData.remarks || `${formType} business verification completed`,
 
         // Merge all mapped form data
@@ -4174,8 +4194,14 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
-        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images:
+          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+          uploadedImages.length ||
+          0,
+        total_selfies:
+          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+          uploadedImages.filter(img => img.photoType === 'selfie').length ||
+          0,
         remarks: formData.remarks || `${formType} builder verification completed`,
 
         // Merge all mapped form data
@@ -4452,8 +4478,14 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
-        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images:
+          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+          uploadedImages.length ||
+          0,
+        total_selfies:
+          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+          uploadedImages.filter(img => img.photoType === 'selfie').length ||
+          0,
         remarks:
           submissionData.formData.remarks ||
           `${formType} residence-cum-office verification completed`,
@@ -4810,8 +4842,14 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
-        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images:
+          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+          uploadedImages.length ||
+          0,
+        total_selfies:
+          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+          uploadedImages.filter(img => img.photoType === 'selfie').length ||
+          0,
         remarks: formData.remarks || `${formType} DSA/DST Connector verification completed`,
 
         // Merge all mapped form data
@@ -5098,8 +5136,14 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
-        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images:
+          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+          uploadedImages.length ||
+          0,
+        total_selfies:
+          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+          uploadedImages.filter(img => img.photoType === 'selfie').length ||
+          0,
         remarks:
           submissionData.formData.remarks ||
           `${formType} property individual verification completed`,
@@ -5449,8 +5493,14 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
-        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images:
+          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+          uploadedImages.length ||
+          0,
+        total_selfies:
+          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+          uploadedImages.filter(img => img.photoType === 'selfie').length ||
+          0,
         remarks: formData.remarks || `${formType} Property APF verification completed`,
 
         // Merge all mapped form data
@@ -5851,8 +5901,14 @@ export class MobileFormController {
         verification_date: new Date().toISOString().split('T')[0],
         verification_time: new Date().toTimeString().split(' ')[0],
         verified_by: userId,
-        total_images: (await MobileFormController.countTaskAttachments(taskId)).totalImages || uploadedImages.length || 0,
-        total_selfies: (await MobileFormController.countTaskAttachments(taskId)).totalSelfies || uploadedImages.filter(img => img.photoType === 'selfie').length || 0,
+        total_images:
+          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+          uploadedImages.length ||
+          0,
+        total_selfies:
+          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+          uploadedImages.filter(img => img.photoType === 'selfie').length ||
+          0,
         remarks: formData.remarks || `${formType} NOC verification completed`,
 
         // Merge all mapped form data
