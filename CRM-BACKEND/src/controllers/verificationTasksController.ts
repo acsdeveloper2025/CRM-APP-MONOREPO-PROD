@@ -1,6 +1,7 @@
 import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { PoolClient } from 'pg';
+import ExcelJS from 'exceljs';
 import type {
   VerificationTask,
   UpdateVerificationTaskData,
@@ -29,9 +30,6 @@ type ReassignableTaskRecord = {
   address: string | null;
   pincode: string | null;
   area_id: number | null;
-  document_type: string | null;
-  document_number: string | null;
-  document_details: string | null;
   task_type: string | null;
   assigned_to: string | null;
 };
@@ -100,7 +98,6 @@ export class VerificationTasksController {
         case_id, verification_type_id, task_title, task_description,
         priority, rate_type_id, estimated_amount, address, pincode,
         area_id,
-        document_type, document_number, document_details,
         assigned_to, assigned_by, assigned_at, current_assigned_at,
         status, created_by, parent_task_id, task_type,
         first_assigned_at
@@ -108,9 +105,8 @@ export class VerificationTasksController {
         $1, $2, $3, $4,
         $5, $6, $7, $8, $9,
         $10,
-        $11, $12, $13,
-        $14, $15, NOW(), NOW(),
-        'ASSIGNED', $16, $17, $18,
+        $11, $12, NOW(), NOW(),
+        'ASSIGNED', $13, $14, $15,
         NOW()
       ) RETURNING *
     `,
@@ -125,9 +121,6 @@ export class VerificationTasksController {
         currentTask.address,
         currentTask.pincode,
         recreatedTerritory.areaId,
-        currentTask.document_type,
-        currentTask.document_number,
-        currentTask.document_details,
         assignedTo,
         assignedBy,
         assignedBy,
@@ -392,7 +385,6 @@ export class VerificationTasksController {
           priority, assigned_to, assigned_by, assigned_at,
           rate_type_id, estimated_amount, address, pincode,
           area_id,
-          document_type, document_number, document_details,
           estimated_completion_date, status, created_by,
           task_type, parent_task_id,
           first_assigned_at, current_assigned_at
@@ -401,9 +393,8 @@ export class VerificationTasksController {
           $9, $10, $11, $12,
           $13,
           $14, $15, $16,
-          $17, $18, $19,
-          'REVISIT', $20,
-          $21, NOW()
+          'REVISIT', $17,
+          $18, NOW()
         ) RETURNING *
       `;
 
@@ -421,9 +412,6 @@ export class VerificationTasksController {
         originalTask.address,
         originalTask.pincode,
         revisitedTerritory.areaId,
-        originalTask.document_type,
-        originalTask.document_number,
-        originalTask.document_details,
         null, // Reset estimated completion date
         taskStatus,
         userId,
@@ -871,9 +859,6 @@ export class VerificationTasksController {
         pincode: row.pincode,
         trigger: row.trigger,
         applicantType: row.applicant_type,
-        documentType: row.document_type,
-        documentNumber: row.document_number,
-        documentDetails: row.document_details,
         assignedAt: row.assigned_at,
         startedAt: row.started_at,
         completedAt: row.completed_at,
@@ -1134,9 +1119,6 @@ export class VerificationTasksController {
         // Use task-level trigger/applicant_type if available, otherwise fall back to case-level
         trigger: row.trigger || caseInfo.trigger,
         applicant_type: row.applicant_type || caseInfo.applicant_type,
-        document_type: row.document_type,
-        document_number: row.document_number,
-        document_details: row.document_details,
         assigned_at: row.assigned_at,
         started_at: row.started_at,
         completed_at: row.completed_at,
@@ -2107,7 +2089,6 @@ export class VerificationTasksController {
           vt.id, vt.task_number, vt.case_id, vt.task_title,
           vt.status, vt.priority, vt.address, vt.estimated_amount,
           vt.assigned_at, vt.estimated_completion_date,
-          vt.document_type, vt.document_details,
           vt.task_type, vt.parent_task_id,
           c."caseId" as case_number, c."customerName" as customer_name,
           vtype.name as verification_type
@@ -2295,3 +2276,249 @@ export class VerificationTasksController {
     return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
   }
 }
+
+// Export verification tasks to Excel
+export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const {
+      status,
+      priority,
+      assignedTo,
+      verificationTypeId,
+      clientId,
+      productId,
+      search,
+      dateFrom,
+      dateTo,
+      task_type: taskType,
+    } = req.query;
+
+    const conditions: string[] = [];
+    const params: (string | number | boolean | null | string[] | number[])[] = [];
+    let paramIndex = 1;
+    const userId = req.user?.id;
+    const isScopedOps = isScopedOperationsUser(req.user);
+    const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
+
+    // Scoped access
+    if (isScopedOps && userId) {
+      if (hierarchyUserIds && hierarchyUserIds.length > 0) {
+        conditions.push(`vt.assigned_to = ANY($${paramIndex}::uuid[])`);
+        params.push(hierarchyUserIds);
+        paramIndex++;
+      } else {
+        const [assignedClientIds, assignedProductIds] = await Promise.all([
+          getAssignedClientIds(userId),
+          getAssignedProductIds(userId),
+        ]);
+        if (assignedClientIds && assignedClientIds.length > 0) {
+          conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
+          params.push(assignedClientIds);
+          paramIndex++;
+        }
+        if (assignedProductIds && assignedProductIds.length > 0) {
+          conditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
+          params.push(assignedProductIds);
+          paramIndex++;
+        }
+      }
+    }
+
+    if (status && status !== 'all') {
+      const statuses = (status as string).split(',');
+      const placeholders = statuses.map((_, idx) => `$${paramIndex + idx}`).join(',');
+      conditions.push(`vt.status IN (${placeholders})`);
+      params.push(...statuses);
+      paramIndex += statuses.length;
+    }
+    if (priority) {
+      conditions.push(`vt.priority = $${paramIndex}`);
+      params.push(priority as string);
+      paramIndex++;
+    }
+    if (assignedTo) {
+      conditions.push(`vt.assigned_to = $${paramIndex}`);
+      params.push(assignedTo as string);
+      paramIndex++;
+    }
+    if (verificationTypeId) {
+      conditions.push(`vt.verification_type_id = $${paramIndex}`);
+      params.push(verificationTypeId as string);
+      paramIndex++;
+    }
+    if (clientId) {
+      conditions.push(`c."clientId" = $${paramIndex}`);
+      params.push(parseInt(clientId as string));
+      paramIndex++;
+    }
+    if (productId) {
+      conditions.push(`c."productId" = $${paramIndex}`);
+      params.push(parseInt(productId as string));
+      paramIndex++;
+    }
+    if (taskType) {
+      conditions.push(`vt.task_type = $${paramIndex}`);
+      params.push(taskType as string);
+      paramIndex++;
+    }
+    if (search) {
+      conditions.push(
+        `(c."customerName" ILIKE $${paramIndex} OR vt.task_title ILIKE $${paramIndex} OR vt.address ILIKE $${paramIndex} OR vt.task_number ILIKE $${paramIndex})`
+      );
+      params.push(`%${search as string}%`);
+      paramIndex++;
+    }
+    if (dateFrom) {
+      conditions.push(`vt.created_at >= $${paramIndex}`);
+      params.push(dateFrom as string);
+      paramIndex++;
+    }
+    if (dateTo) {
+      conditions.push(`vt.created_at <= $${paramIndex}`);
+      params.push(`${dateTo as string} 23:59:59`);
+      paramIndex++;
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const result = await pool.query(
+      `
+      SELECT
+        vt.task_number,
+        c."caseId" as case_number,
+        c."customerName" as customer_name,
+        c."customerPhone" as customer_phone,
+        vt.task_title,
+        vt.task_type,
+        vtype.name as verification_type_name,
+        cl.name as client_name,
+        p.name as product_name,
+        vt.address,
+        vt.pincode,
+        a.name as area_name,
+        vt.status,
+        vt.priority,
+        u_assigned.name as assigned_to_name,
+        u_assigned."employeeId" as assigned_to_employee_id,
+        u_created.name as assigned_by_name,
+        rt.name as rate_type_name,
+        vt.estimated_amount,
+        vt.actual_amount,
+        vt.trigger,
+        vt.applicant_type,
+        vt.created_at,
+        vt.assigned_at,
+        vt.started_at,
+        vt.completed_at,
+        CASE WHEN vt.completed_at IS NOT NULL AND vt.created_at IS NOT NULL
+          THEN ROUND(EXTRACT(EPOCH FROM (vt.completed_at - vt.created_at)) / 86400.0, 1)
+          ELSE NULL END as tat_days
+      FROM verification_tasks vt
+      LEFT JOIN cases c ON vt.case_id = c.id
+      LEFT JOIN clients cl ON c."clientId" = cl.id
+      LEFT JOIN products p ON c."productId" = p.id
+      LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+      LEFT JOIN users u_assigned ON vt.assigned_to = u_assigned.id
+      LEFT JOIN users u_created ON vt.assigned_by = u_created.id
+      LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
+      LEFT JOIN areas a ON vt.area_id = a.id
+      ${whereClause}
+      ORDER BY vt.created_at DESC
+    `,
+      params
+    );
+
+    const tasks = result.rows;
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'CRM System';
+    workbook.created = new Date();
+    const worksheet = workbook.addWorksheet('Tasks Export');
+
+    worksheet.columns = [
+      { header: 'Task #', key: 'task_number', width: 15 },
+      { header: 'Case #', key: 'case_number', width: 12 },
+      { header: 'Customer Name', key: 'customer_name', width: 25 },
+      { header: 'Customer Phone', key: 'customer_phone', width: 15 },
+      { header: 'Task Title', key: 'task_title', width: 25 },
+      { header: 'Task Type', key: 'task_type', width: 12 },
+      { header: 'Verification Type', key: 'verification_type_name', width: 22 },
+      { header: 'Client', key: 'client_name', width: 20 },
+      { header: 'Product', key: 'product_name', width: 20 },
+      { header: 'Address', key: 'address', width: 35 },
+      { header: 'Pincode', key: 'pincode', width: 10 },
+      { header: 'Area', key: 'area_name', width: 15 },
+      { header: 'Status', key: 'status', width: 15 },
+      { header: 'Priority', key: 'priority', width: 12 },
+      { header: 'Assigned To', key: 'assigned_to_name', width: 20 },
+      { header: 'Assigned To (Emp ID)', key: 'assigned_to_employee_id', width: 18 },
+      { header: 'Assigned By', key: 'assigned_by_name', width: 20 },
+      { header: 'Rate Type', key: 'rate_type_name', width: 18 },
+      { header: 'Estimated Amount', key: 'estimated_amount', width: 18 },
+      { header: 'Actual Amount', key: 'actual_amount', width: 15 },
+      { header: 'Trigger', key: 'trigger', width: 15 },
+      { header: 'Applicant Type', key: 'applicant_type', width: 15 },
+      { header: 'Created At', key: 'created_at', width: 20 },
+      { header: 'Assigned At', key: 'assigned_at', width: 20 },
+      { header: 'Started At', key: 'started_at', width: 20 },
+      { header: 'Completed At', key: 'completed_at', width: 20 },
+      { header: 'TAT (Days)', key: 'tat_days', width: 12 },
+    ];
+
+    // Style header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+
+    tasks.forEach((task: Record<string, unknown>) => {
+      worksheet.addRow({
+        task_number: task.task_number,
+        case_number: task.case_number,
+        customer_name: task.customer_name,
+        customer_phone: task.customer_phone,
+        task_title: task.task_title,
+        task_type: task.task_type || 'NORMAL',
+        verification_type_name: task.verification_type_name,
+        client_name: task.client_name,
+        product_name: task.product_name,
+        address: task.address,
+        pincode: task.pincode,
+        area_name: task.area_name,
+        status: task.status,
+        priority: task.priority,
+        assigned_to_name: task.assigned_to_name || 'Unassigned',
+        assigned_to_employee_id: task.assigned_to_employee_id,
+        assigned_by_name: task.assigned_by_name,
+        rate_type_name: task.rate_type_name,
+        estimated_amount: task.estimated_amount ? Number(task.estimated_amount) : null,
+        actual_amount: task.actual_amount ? Number(task.actual_amount) : null,
+        trigger: task.trigger,
+        applicant_type: task.applicant_type,
+        created_at: task.created_at ? new Date(task.created_at as string).toLocaleString() : '',
+        assigned_at: task.assigned_at ? new Date(task.assigned_at as string).toLocaleString() : '',
+        started_at: task.started_at ? new Date(task.started_at as string).toLocaleString() : '',
+        completed_at: task.completed_at
+          ? new Date(task.completed_at as string).toLocaleString()
+          : '',
+        tat_days: task.tat_days ? Number(task.tat_days) : null,
+      });
+    });
+
+    worksheet.autoFilter = { from: 'A1', to: `AA${tasks.length + 1}` };
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=tasks_export_${new Date().toISOString().split('T')[0]}.xlsx`
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    logger.error('Error exporting tasks to Excel:', error);
+    res.status(500).json({ success: false, message: 'Failed to export tasks' });
+  }
+};

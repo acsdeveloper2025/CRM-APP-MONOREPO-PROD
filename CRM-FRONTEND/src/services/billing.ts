@@ -134,6 +134,17 @@ export class BillingService {
     });
     return response.data;
   }
+
+  async exportInvoicesToExcel(filters?: { status?: string; clientId?: string; dateFrom?: string; dateTo?: string }): Promise<Blob> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) {params.append(key, value);}
+      });
+    }
+    const response = await apiService.getRaw<Blob>(`/invoices/export?${params.toString()}`, undefined, { responseType: 'blob' });
+    return response.data;
+  }
 }
 
 export const billingService = new BillingService();

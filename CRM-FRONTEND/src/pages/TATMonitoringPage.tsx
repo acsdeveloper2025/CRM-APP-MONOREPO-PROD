@@ -23,7 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Clock, AlertTriangle, User, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle, TrendingUp, RefreshCw } from 'lucide-react';
+import { Clock, AlertTriangle, User, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle, TrendingUp, RefreshCw, Download } from 'lucide-react';
+import { VerificationTasksService } from '@/services/verificationTasks';
+import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 import { cn } from '@/lib/utils';
 import type { OverdueTask, OverdueTasksResponse } from '@/types/dto/dashboard.dto';
 
@@ -428,14 +431,18 @@ export const TATMonitoringPage: React.FC = () => {
           </FilterGrid>
         }
         actions={
-          <Button
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={criticalLoading || allLoading}
-          >
-            <RefreshCw className={cn("h-4 w-4 mr-2", (criticalLoading || allLoading) && "animate-spin")} />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={async () => {
+              try {
+ toast.info('Generating Excel export...'); const blob = await VerificationTasksService.exportToExcel({}); const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `tat_monitoring_${new Date().toISOString().split('T')[0]}.xlsx`; a.click(); window.URL.revokeObjectURL(url); toast.success('Export downloaded');
+              } catch (err) { logger.error('Export failed:', err); toast.error('Export failed'); }
+            }}>
+              <Download className="h-4 w-4 mr-2" />Export
+            </Button>
+            <Button variant="outline" onClick={handleRefresh} disabled={criticalLoading || allLoading}>
+              <RefreshCw className={cn("h-4 w-4 mr-2", (criticalLoading || allLoading) && "animate-spin")} />Refresh
+            </Button>
+          </div>
         }
       />
 

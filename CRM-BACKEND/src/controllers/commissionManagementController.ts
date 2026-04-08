@@ -1,6 +1,7 @@
 import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../types/auth';
 import { query } from '../config/database';
+import ExcelJS from 'exceljs';
 import { logger } from '../utils/logger';
 import type {
   CommissionRateType,
@@ -1564,5 +1565,123 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       success: false,
       message: 'Failed to retrieve commission statistics',
     });
+  }
+};
+
+// GET /api/commission-management/export - Export commissions to Excel
+export const exportCommissionsToExcel = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!requireControllerPermission(req as never, res, 'billing.download')) {
+      return;
+    }
+
+    const { status, startDate, endDate } = req.query;
+    const conditions: string[] = [];
+    const params: QueryParams = [];
+    let idx = 1;
+
+    if (status) {
+      conditions.push(`cc.status = $${idx++}`);
+      params.push(status as string);
+    }
+    if (startDate) {
+      conditions.push(`cc.created_at >= $${idx++}`);
+      params.push(startDate as string);
+    }
+    if (endDate) {
+      conditions.push(`cc.created_at <= $${idx++}`);
+      params.push(`${endDate as string} 23:59:59`);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const result = await query(
+      `
+      SELECT
+        cases."caseId" as case_number,
+        cases."customerName" as customer_name,
+        vt.task_number,
+        vt.task_title,
+        vtype.name as verification_type_name,
+        u.name as field_agent_name,
+        u."employeeId" as field_agent_id,
+        c.name as client_name,
+        p.name as product_name,
+        rt.name as rate_type_name,
+        cc.base_amount,
+        cc.calculated_commission,
+        cc.status as commission_status,
+        cc.transaction_id as payment_reference,
+        vt.verification_outcome,
+        vt.completed_at as task_completed_at,
+        cc.created_at,
+        cc.updated_at
+      FROM commission_calculations cc
+      LEFT JOIN users u ON cc.user_id = u.id
+      LEFT JOIN clients c ON cc.client_id = c.id
+      LEFT JOIN "rateTypes" rt ON cc.rate_type_id = rt.id
+      LEFT JOIN cases ON cc.case_id = cases.id
+      LEFT JOIN products p ON cases."productId" = p.id
+      LEFT JOIN verification_tasks vt ON cc.verification_task_id = vt.id
+      LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+      ${whereClause}
+      ORDER BY cc.created_at DESC
+    `,
+      params
+    );
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Commissions');
+
+    worksheet.columns = [
+      { header: 'Case #', key: 'case_number', width: 12 },
+      { header: 'Customer', key: 'customer_name', width: 25 },
+      { header: 'Task #', key: 'task_number', width: 15 },
+      { header: 'Task Title', key: 'task_title', width: 22 },
+      { header: 'Verification Type', key: 'verification_type_name', width: 20 },
+      { header: 'Field Agent', key: 'field_agent_name', width: 20 },
+      { header: 'Agent ID', key: 'field_agent_id', width: 12 },
+      { header: 'Client', key: 'client_name', width: 20 },
+      { header: 'Product', key: 'product_name', width: 18 },
+      { header: 'Rate Type', key: 'rate_type_name', width: 15 },
+      { header: 'Base Amount', key: 'base_amount', width: 12 },
+      { header: 'Commission Amount', key: 'calculated_commission', width: 18 },
+      { header: 'Status', key: 'commission_status', width: 12 },
+      { header: 'Payment Reference', key: 'payment_reference', width: 20 },
+      { header: 'Verification Outcome', key: 'verification_outcome', width: 18 },
+      { header: 'Task Completed', key: 'task_completed_at', width: 20 },
+      { header: 'Created At', key: 'created_at', width: 20 },
+    ];
+
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
+
+    result.rows.forEach((row: Record<string, unknown>) => {
+      worksheet.addRow({
+        ...row,
+        base_amount: row.base_amount ? Number(row.base_amount) : null,
+        calculated_commission: row.calculated_commission ? Number(row.calculated_commission) : null,
+        task_completed_at: row.task_completed_at
+          ? new Date(row.task_completed_at as string).toLocaleString()
+          : '',
+        created_at: row.created_at ? new Date(row.created_at as string).toLocaleString() : '',
+      });
+    });
+
+    worksheet.autoFilter = { from: 'A1', to: `Q${result.rows.length + 1}` };
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=commissions_export_${new Date().toISOString().split('T')[0]}.xlsx`
+    );
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    logger.error('Error exporting commissions:', error);
+    res.status(500).json({ success: false, message: 'Failed to export commissions' });
   }
 };

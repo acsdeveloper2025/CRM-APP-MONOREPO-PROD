@@ -108,8 +108,8 @@ const resetUserRateLimit = async (req: Request, res: Response) => {
 // ... (skip lines) ...
 router.post('/login', authRateLimit, validate(loginValidation), login);
 router.post('/refresh-token', authRateLimit, refreshToken);
-router.post('/logout', authenticateToken, authorize('dashboard.view'), logout);
-router.get('/me', authenticateToken, authorize('dashboard.view'), getCurrentUser);
+router.post('/logout', authenticateToken, logout);
+router.get('/me', authenticateToken, getCurrentUser);
 router.post('/reset-rate-limit', authenticateToken, authorize('settings.manage'), resetRateLimit);
 router.post(
   '/reset-user-rate-limit/:userId',

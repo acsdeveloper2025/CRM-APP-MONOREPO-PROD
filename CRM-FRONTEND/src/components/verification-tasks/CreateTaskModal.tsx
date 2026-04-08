@@ -35,8 +35,6 @@ interface TaskFormData {
   address?: string;
   pincode?: string;
   areaId?: string;
-  documentType?: string;
-  documentNumber?: string;
 }
 
 // Component to handle area selection per task
@@ -98,8 +96,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       address: undefined,
       pincode: undefined,
       areaId: undefined,
-      documentType: undefined,
-      documentNumber: undefined
     }
   ]);
   const [loading, setLoading] = useState(false);
@@ -150,8 +146,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       address: undefined,
       pincode: undefined,
       areaId: undefined,
-      documentType: undefined,
-      documentNumber: undefined
     };
     setTasks([...tasks, newTask]);
   };
@@ -209,9 +203,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       if (!task.areaId?.trim()) {
         newErrors[`${task.id}.areaId`] = 'Area is required';
       }
-      if (!task.documentType?.trim()) {
-        newErrors[`${task.id}.documentType`] = 'Document type is required';
-      }
     });
 
     setErrors(newErrors);
@@ -235,8 +226,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       address: task.address || undefined,
       pincode: task.pincode || undefined,
       area_id: task.areaId ? parseInt(task.areaId) : undefined,
-      document_type: task.documentType || undefined,
-      document_number: task.documentNumber || undefined
     }));
 
     try {
@@ -541,34 +530,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                       )}
                     </div>
 
-                    {/* Document Type */}
-                    <div className="space-y-2">
-                      <Label htmlFor={`doctype-${task.id}`}>Document Type *</Label>
-                      <Input
-                        id={`doctype-${task.id}`}
-                        value={task.documentType || ''}
-                        onChange={(e) => updateTask(task.id, 'documentType', e.target.value || undefined)}
-                        placeholder="e.g., Aadhaar, PAN"
-                        className={getFieldError(task.id, 'documentType') ? 'border-red-500' : ''}
-                      />
-                      {getFieldError(task.id, 'documentType') && (
-                        <p className="text-sm text-red-600 flex items-center space-x-1">
-                          <AlertCircle className="h-4 w-4" />
-                          <span>{getFieldError(task.id, 'documentType')}</span>
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Document Number */}
-                    <div className="space-y-2">
-                      <Label htmlFor={`docnumber-${task.id}`}>Document Number</Label>
-                      <Input
-                        id={`docnumber-${task.id}`}
-                        value={task.documentNumber || ''}
-                        onChange={(e) => updateTask(task.id, 'documentNumber', e.target.value || undefined)}
-                        placeholder="Document number (optional)"
-                      />
-                    </div>
                   </div>
                   </div>
                 </CardContent>

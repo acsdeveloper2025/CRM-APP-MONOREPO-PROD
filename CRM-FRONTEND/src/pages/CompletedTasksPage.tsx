@@ -19,12 +19,13 @@ import {
   TrendingUp,
   Calendar,
   Clock,
-  Award
+  Award,
+  Download
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { VerificationTasksService } from '@/services/verificationTasks';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { useNavigate } from 'react-router-dom';
 
 interface CompletedTaskFilters {
   priority?: string;
@@ -255,14 +256,18 @@ export const CompletedTasksPage: React.FC = () => {
           </FilterGrid>
         }
         actions={
-          <Button
-            variant="outline"
-            onClick={() => refreshTasks()}
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={async () => {
+              try {
+ toast.info('Generating Excel export...'); const blob = await VerificationTasksService.exportToExcel({ status: 'COMPLETED' }); const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `completed_tasks_${new Date().toISOString().split('T')[0]}.xlsx`; a.click(); window.URL.revokeObjectURL(url); toast.success('Export downloaded');
+              } catch (err) { logger.error('Export failed:', err); toast.error('Export failed'); }
+            }}>
+              <Download className="h-4 w-4 mr-2" />Export
+            </Button>
+            <Button variant="outline" onClick={() => refreshTasks()} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />Refresh
+            </Button>
+          </div>
         }
       />
 

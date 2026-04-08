@@ -60,6 +60,16 @@ export interface VerificationOperationsKPI {
     collection_efficiency_percent: MetricWithTrend;
   };
 
+  // --- KYC VERIFICATION METRICS ---
+  kyc: {
+    total: number;
+    pending: number;
+    passed: number;
+    failed: number;
+    referred: number;
+    verified_today: number;
+  };
+
   // --- LEGACY COMPATIBILITY (For Existing Frontend Cards) ---
   legacy_compatibility: {
     cases: {
@@ -303,7 +313,19 @@ export class DashboardKPIService {
     // ----------------------------------------------------------------------
 
     // Using simple parallel execution.
-    const [taskRes, casesRes, clientsRes, agentsRes, perfRes] = await Promise.all([
+    // KYC stats query
+    const kycQuery = `
+      SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE verification_status = 'PENDING') as pending,
+        COUNT(*) FILTER (WHERE verification_status = 'PASS') as passed,
+        COUNT(*) FILTER (WHERE verification_status = 'FAIL') as failed,
+        COUNT(*) FILTER (WHERE verification_status = 'REFER') as referred,
+        COUNT(*) FILTER (WHERE verified_at >= CURRENT_DATE) as verified_today
+      FROM kyc_document_verifications
+    `;
+
+    const [taskRes, casesRes, clientsRes, agentsRes, perfRes, kycRes] = await Promise.all([
       pool.query(coreQuery, params),
       pool.query(casesQuery, clientId ? [clientId] : []),
       pool.query(clientsQuery),
@@ -331,6 +353,7 @@ export class DashboardKPIService {
       FROM filtered_tasks`,
         params
       ),
+      pool.query(kycQuery),
     ]);
 
     const stats = taskRes.rows[0];
@@ -345,6 +368,14 @@ export class DashboardKPIService {
     const clientStats = clientsRes.rows[0] || { total: 0, active: 0 };
     const agentStats = agentsRes.rows[0] || { total_agents: 0, active_today: 0 };
     const perfStats = perfRes.rows[0] || { cp_avg_tat: 0, pp_avg_tat: 0 };
+    const kycStats = kycRes.rows[0] || {
+      total: 0,
+      pending: 0,
+      passed: 0,
+      failed: 0,
+      referred: 0,
+      verified_today: 0,
+    };
 
     // Helper to build Metric (no trend for static entities unless we track history, using flat value for now)
     const buildMetric = (curr: string | number, prev: string | number): MetricWithTrend => {
@@ -402,6 +433,15 @@ export class DashboardKPIService {
           (Number(stats.cp_act_amt) / (Number(stats.cp_est_amt) || 1)) * 100,
           (Number(stats.pp_act_amt) / (Number(stats.pp_est_amt) || 1)) * 100
         ),
+      },
+
+      kyc: {
+        total: Number(kycStats.total) || 0,
+        pending: Number(kycStats.pending) || 0,
+        passed: Number(kycStats.passed) || 0,
+        failed: Number(kycStats.failed) || 0,
+        referred: Number(kycStats.referred) || 0,
+        verified_today: Number(kycStats.verified_today) || 0,
       },
 
       legacy_compatibility: {

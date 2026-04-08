@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { apiService } from '@/services/api';
 import { LoadingState } from '@/components/ui/loading';
 import { EditTaskDetailsModal } from '@/components/verification-tasks/EditTaskDetailsModal';
+import { KYCTaskVerificationSection } from '@/components/kyc/KYCTaskVerificationSection';
 import { logger } from '@/utils/logger';
 
 interface TaskDetail {
@@ -49,8 +50,7 @@ interface TaskDetail {
   verificationOutcome?: string;
   commissionStatus?: string;
   calculatedCommission?: number;
-  documentType?: string;
-  documentNumber?: string;
+  taskType?: 'REVISIT' | 'KYC' | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -135,8 +135,7 @@ export const TaskDetailPage: React.FC = () => {
           verificationOutcome: taskData.verification_outcome,
           commissionStatus: taskData.commission_status,
           calculatedCommission: taskData.calculated_commission,
-          documentType: taskData.document_type,
-          documentNumber: taskData.document_number,
+          taskType: taskData.task_type || null,
           createdAt: taskData.created_at,
           updatedAt: taskData.updated_at,
         });
@@ -270,6 +269,15 @@ export const TaskDetailPage: React.FC = () => {
             <Edit className="h-4 w-4 mr-2" />
             Edit Task
           </Button>
+          {task.taskType && (
+            <Badge className={
+              task.taskType === 'KYC' ? 'bg-amber-100 text-amber-800 border-amber-200' :
+              task.taskType === 'REVISIT' ? 'bg-purple-100 text-purple-800 border-purple-200' :
+              'bg-blue-100 text-blue-800 border-blue-200'
+            }>
+              {task.taskType}
+            </Badge>
+          )}
           {getStatusBadge(task.status)}
           {getPriorityBadge(task.priority)}
         </div>
@@ -285,9 +293,6 @@ export const TaskDetailPage: React.FC = () => {
             priority: task.priority,
             address: task.address,
             pincode: task.pincode,
-            // Add if available in task object, otherwise defaults to empty
-            documentType: task.documentType,
-            documentNumber: task.documentNumber
         }}
         onSubmit={handleUpdateTask}
       />
@@ -363,6 +368,11 @@ export const TaskDetailPage: React.FC = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* KYC Document Verification (only for KYC tasks) */}
+          {task.taskType === 'KYC' && (
+            <KYCTaskVerificationSection caseId={task.caseId} taskId={task.id} />
+          )}
 
           {/* Assignment History */}
           {assignmentHistory.length > 0 && (

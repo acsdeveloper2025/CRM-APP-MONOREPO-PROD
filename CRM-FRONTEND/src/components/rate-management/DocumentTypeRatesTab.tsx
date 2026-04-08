@@ -57,11 +57,11 @@ export function DocumentTypeRatesTab() {
     enabled: !!selectedClientId,
   });
 
-  // Fetch document types
+  // Fetch KYC document types
   const { data: documentTypesData } = useQuery({
-    queryKey: ['document-types'],
+    queryKey: ['kyc-document-types'],
     queryFn: async () => {
-      const response = await apiService.get<DocumentType[]>('/document-types', { limit: 100 });
+      const response = await apiService.get<DocumentType[]>('/kyc/document-types');
       return response;
     },
   });
@@ -175,7 +175,7 @@ export function DocumentTypeRatesTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5" />
-            {editingRateId ? 'Edit Document Type Rate' : 'Add Document Type Rate'}
+            {editingRateId ? 'Edit KYC Rate' : 'Add KYC Rate'}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -218,21 +218,21 @@ export function DocumentTypeRatesTab() {
               </Select>
             </div>
 
-            {/* Document Type Selection */}
+            {/* KYC Document Type Selection */}
             <div className="space-y-2">
-              <Label htmlFor="document-type-select">Document Type *</Label>
+              <Label htmlFor="document-type-select">KYC Document Type *</Label>
               <Select
                 value={selectedDocumentTypeId ? String(selectedDocumentTypeId) : ""}
                 onValueChange={handleDocumentTypeChange}
                 disabled={!selectedProductId}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a document type" />
+                  <SelectValue placeholder="Select a KYC document type" />
                 </SelectTrigger>
                 <SelectContent>
                   {documentTypes.map((docType) => (
                     <SelectItem key={docType.id} value={String(docType.id)}>
-                      {docType.name} ({docType.code})
+                      {docType.name} {docType.category ? `[${docType.category}]` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -300,14 +300,14 @@ export function DocumentTypeRatesTab() {
       {/* Configured Rates Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Configured Document Type Rates</CardTitle>
+          <CardTitle>Configured KYC Rates</CardTitle>
         </CardHeader>
         <CardContent>
           {ratesLoading ? (
             <div className="text-center py-8 text-gray-500">Loading rates...</div>
           ) : rates.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              No document type rates configured yet. Add your first rate above.
+              No KYC rates configured yet. Add your first rate above.
             </div>
           ) : (
             <Table>
@@ -315,7 +315,8 @@ export function DocumentTypeRatesTab() {
                 <TableRow>
                   <TableHead>Client</TableHead>
                   <TableHead>Product</TableHead>
-                  <TableHead>Document Type</TableHead>
+                  <TableHead>KYC Document Type</TableHead>
+                  <TableHead>Category</TableHead>
                   <TableHead className="text-right">Rate</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -327,6 +328,11 @@ export function DocumentTypeRatesTab() {
                     <TableCell className="font-medium">{rate.clientName}</TableCell>
                     <TableCell>{rate.productName}</TableCell>
                     <TableCell>{rate.documentTypeName}</TableCell>
+                    <TableCell>
+                      {rate.documentTypeCategory && (
+                        <Badge variant="outline" className="text-xs">{rate.documentTypeCategory}</Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right font-mono">
                       {rate.currency} {Number(rate.amount).toFixed(2)}
                     </TableCell>
@@ -364,7 +370,7 @@ export function DocumentTypeRatesTab() {
           {ratesData?.pagination && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
               <div className="text-sm text-gray-600">
-                Showing {rates.length} of {ratesData.pagination.total} document type rates
+                Showing {rates.length} of {ratesData.pagination.total} KYC rates
               </div>
               <div className="flex items-center gap-2">
                 <Button
