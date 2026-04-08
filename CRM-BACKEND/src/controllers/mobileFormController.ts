@@ -370,7 +370,7 @@ export class MobileFormController {
         [taskId]
       );
       // Flag for handlers to know if this is a resubmission
-      const isResubmission = subQuery.rows.length > 0;
+      const _isResubmission = subQuery.rows.length > 0;
 
       return {
         success: true,

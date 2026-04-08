@@ -9,7 +9,7 @@ interface AuthorizeOptions {
   ownership?: OwnershipType;
 }
 
-const STRICT_OWNERSHIP_PERMISSIONS = [
+const _STRICT_OWNERSHIP_PERMISSIONS = [
   'visit.start',
   'visit.upload',
   'visit.submit',
