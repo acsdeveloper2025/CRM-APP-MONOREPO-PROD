@@ -5,15 +5,15 @@ module.exports = {
       cwd: './CRM-BACKEND',
       script: 'npm',
       args: 'start',
-      instances: 1,
-      exec_mode: 'fork',
+      instances: 'max',
+      exec_mode: 'cluster',
       autorestart: true,
       watch: false,
       max_memory_restart: '1500M',
       // Graceful shutdown — wait 5s for in-flight requests before force-kill
       kill_timeout: 5000,
-      wait_ready: false,
-      listen_timeout: 8000,
+      wait_ready: true,
+      listen_timeout: 10000,
       env: {
         NODE_ENV: 'production',
         PORT: 3000
