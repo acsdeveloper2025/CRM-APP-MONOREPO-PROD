@@ -278,6 +278,37 @@ export class VerificationTasksService {
     };
   }
 
+  /**
+   * Export tasks to Excel with current filters
+   */
+  static async exportToExcel(filters?: {
+    status?: string;
+    priority?: string;
+    assignedTo?: string;
+    verificationTypeId?: number;
+    clientId?: number;
+    productId?: number;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    task_type?: string;
+  }): Promise<Blob> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+    }
+    const response = await apiService.getRaw<Blob>(
+      `/verification-tasks/export?${params.toString()}`,
+      undefined,
+      { responseType: 'blob' }
+    );
+    return response.data;
+  }
+
 }
 
 /**

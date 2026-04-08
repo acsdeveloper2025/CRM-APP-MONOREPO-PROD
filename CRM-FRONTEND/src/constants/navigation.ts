@@ -18,6 +18,7 @@ import {
   List,
   XCircle,
   Copy,
+  FileCheck,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -143,6 +144,14 @@ export const navigationItems: NavigationItem[] = [
         permission: { resource: 'tasks', action: 'read' },
       },
     ],
+  },
+  {
+    id: 'kyc',
+    label: 'KYC Verification',
+    href: '/kyc',
+    icon: FileCheck,
+    permissionCode: 'page.kyc',
+    permission: { resource: 'kyc', action: 'read' },
   },
   {
     id: 'clients',

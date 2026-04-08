@@ -6,7 +6,8 @@ import { CaseStatusChart } from '@/components/dashboard/CaseStatusChart';
 import { MonthlyTrendsChart } from '@/components/dashboard/MonthlyTrendsChart';
 import { RecentActivities } from '@/components/dashboard/RecentActivities';
 import { useDashboardKPI } from '@/hooks/useDashboardKPI';
-import { 
+import { usePermission } from '@/hooks/usePermission';
+import {
   Users,
   XCircle,
   CheckSquare,
@@ -14,22 +15,32 @@ import {
   CheckCircle,
   FileText,
   Download,
-  AlertTriangle
+  AlertTriangle,
+  FileCheck,
+  Clock,
+  ShieldCheck,
+  ShieldX,
+  AlertCircle
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const hasKYCAccess = usePermission('page.kyc');
+  const hasCasesAccess = usePermission('page.cases');
+  const hasTasksAccess = usePermission('page.tasks');
+  const hasBillingAccess = usePermission('page.billing');
 
   // Fetch dashboard data via Unified KPI Engine
-  const { 
-    stats: kpiStats, 
-    tatStats: tatStatsRaw, 
-    caseDistributionData: distData, 
-    trendsData: trData, 
+  const {
+    stats: kpiStats,
+    tatStats: tatStatsRaw,
+    kycStats: kycStatsRaw,
+    caseDistributionData: distData,
+    trendsData: trData,
     activitiesData: actData,
     cardTrends,
-    isLoading 
+    isLoading
   } = useDashboardKPI();
 
   // Adapters for legacy JSX compatibility
@@ -70,6 +81,8 @@ export const DashboardPage: React.FC = () => {
     overduePercentage: 0
   };
 
+  const kycStats = kycStatsRaw || { total: 0, pending: 0, passed: 0, failed: 0, referred: 0, verified_today: 0 };
+
   // Mock data removed - using real API data only
 
 
@@ -93,38 +106,60 @@ export const DashboardPage: React.FC = () => {
   // Activities handled by kpiStats or actData
 
   const quickActions = [
-    {
-      title: 'Create New Case',
-      description: 'Assign new case to field user',
-      href: '/cases/new',
-      icon: Plus,
-      count: null,
-      color: 'bg-green-500',
-    },
-    {
-      title: 'Completed Cases',
-      description: 'View finished verifications',
-      href: '/cases/completed',
-      icon: CheckCircle,
-      count: stats.completedCases,
-      color: 'bg-green-500',
-    },
-    {
-      title: 'Pending Reviews',
-      description: 'Cases waiting for approval',
-      href: '/tasks/pending',
-      icon: CheckSquare,
-      count: stats.pendingReviewCases,
-      color: 'bg-yellow-500',
-    },
-    {
-      title: 'All Cases',
-      description: 'View all case statuses',
-      href: '/cases',
-      icon: FileText,
-      count: stats.totalCases,
-      color: 'bg-green-500',
-    },
+    ...(hasCasesAccess ? [
+      {
+        title: 'Create New Case',
+        description: 'Assign new case to field user',
+        href: '/cases/new',
+        icon: Plus,
+        count: null as number | null,
+        color: 'bg-green-500',
+      },
+      {
+        title: 'All Cases',
+        description: 'View all case statuses',
+        href: '/cases',
+        icon: FileText,
+        count: stats.totalCases,
+        color: 'bg-green-500',
+      },
+    ] : []),
+    ...(hasTasksAccess ? [
+      {
+        title: 'Pending Reviews',
+        description: 'Cases waiting for approval',
+        href: '/tasks/pending',
+        icon: CheckSquare,
+        count: stats.pendingReviewCases,
+        color: 'bg-yellow-500',
+      },
+      {
+        title: 'Completed Tasks',
+        description: 'View finished verifications',
+        href: '/tasks/completed',
+        icon: CheckCircle,
+        count: stats.completedCases,
+        color: 'bg-green-500',
+      },
+    ] : []),
+    ...(hasKYCAccess ? [
+      {
+        title: 'KYC Dashboard',
+        description: 'View all KYC verifications',
+        href: '/kyc',
+        icon: FileCheck,
+        count: kycStats.total,
+        color: 'bg-blue-500',
+      },
+      {
+        title: 'Pending KYC',
+        description: 'Documents awaiting verification',
+        href: '/kyc',
+        icon: Clock,
+        count: kycStats.pending,
+        color: 'bg-amber-500',
+      },
+    ] : []),
   ];
 
   return (
@@ -206,6 +241,60 @@ export const DashboardPage: React.FC = () => {
         />
       </div>
 
+      {/* KYC Verification Stats */}
+      {hasKYCAccess && (
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">KYC Document Verification</h2>
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-5">
+            <StatsCard
+              title="Total KYC"
+              value={kycStats.total}
+              description="All documents"
+              icon={FileCheck}
+              color="text-blue-600"
+              onClick={() => navigate('/kyc')}
+              className="cursor-pointer"
+            />
+            <StatsCard
+              title="Pending"
+              value={kycStats.pending}
+              description="Awaiting verification"
+              icon={Clock}
+              color="text-amber-600"
+              onClick={() => navigate('/kyc')}
+              className="cursor-pointer"
+            />
+            <StatsCard
+              title="Passed"
+              value={kycStats.passed}
+              description="Verified successfully"
+              icon={ShieldCheck}
+              color="text-green-600"
+              onClick={() => navigate('/kyc')}
+              className="cursor-pointer"
+            />
+            <StatsCard
+              title="Failed"
+              value={kycStats.failed}
+              description="Verification failed"
+              icon={ShieldX}
+              color="text-red-600"
+              onClick={() => navigate('/kyc')}
+              className="cursor-pointer"
+            />
+            <StatsCard
+              title="Referred"
+              value={kycStats.referred}
+              description="Needs further review"
+              icon={AlertCircle}
+              color="text-purple-600"
+              onClick={() => navigate('/kyc')}
+              className="cursor-pointer"
+            />
+          </div>
+        </div>
+      )}
+
       {/* Charts Section */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <CaseStatusChart
@@ -267,27 +356,29 @@ export const DashboardPage: React.FC = () => {
 
         <div className="space-y-6">
           {/* Additional KPIs */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Financial Overview</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Monthly Revenue</span>
-                <span className="font-bold text-green-600">
-                  ${stats.monthlyRevenue?.toLocaleString() || '0'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Total Invoices</span>
-                <span className="font-bold text-gray-900">{stats.totalInvoices || 0}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Pending Commissions</span>
-                <span className="font-bold text-yellow-600">{stats.pendingCommissions || 0}</span>
-              </div>
-            </CardContent>
-          </Card>
+          {hasBillingAccess && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Financial Overview</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Monthly Revenue</span>
+                  <span className="font-bold text-green-600">
+                    ${stats.monthlyRevenue?.toLocaleString() || '0'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Total Invoices</span>
+                  <span className="font-bold text-gray-900">{stats.totalInvoices || 0}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Pending Commissions</span>
+                  <span className="font-bold text-yellow-600">{stats.pendingCommissions || 0}</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Performance Metrics */}
           <Card>

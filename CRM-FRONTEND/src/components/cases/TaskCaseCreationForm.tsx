@@ -69,6 +69,8 @@ export interface TaskFormData {
   attachments: CaseFormAttachment[];
 }
 
+export type CaseType = 'field' | 'kyc' | 'both';
+
 interface TaskCaseCreationFormProps {
   customerInfo: CustomerInfoData;
   onSubmit: (caseLevelData: CaseLevelFormData, tasks: TaskFormData[]) => void;
@@ -79,6 +81,9 @@ interface TaskCaseCreationFormProps {
     tasks?: TaskFormData[];
   };
   editMode?: boolean;
+  renderAfterTasks?: React.ReactNode;
+  caseType: CaseType;
+  onCaseTypeChange?: (caseType: CaseType) => void;
 }
 
 interface TaskValidationState {
@@ -95,6 +100,9 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   isSubmitting = false,
   initialData,
   editMode = false,
+  renderAfterTasks,
+  caseType,
+  onCaseTypeChange,
 }) => {
   const { user } = useAuth();
   
@@ -272,33 +280,36 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
 
   // Handle form submission
   const handleSubmit = (caseLevelData: CaseLevelFormData) => {
-    // Validate all tasks
-    const invalidTasks = tasks.filter(task =>
-      !task.applicantType ||
-      !task.verificationTypeId ||
-      !task.pincodeId ||
-      !task.areaId ||
-      !task.address ||
-      !task.trigger ||
-      !task.rateTypeId ||
-      !task.assignedTo
-    );
+    // Only validate field tasks when caseType includes field verification
+    if (caseType === 'field' || caseType === 'both') {
+      const invalidTasks = tasks.filter(task =>
+        !task.applicantType ||
+        !task.verificationTypeId ||
+        !task.pincodeId ||
+        !task.areaId ||
+        !task.address ||
+        !task.trigger ||
+        !task.rateTypeId ||
+        !task.assignedTo
+      );
 
-    if (invalidTasks.length > 0) {
-      toast.error(`Please fill all required fields for all ${tasks.length} tasks`);
-      return;
+      if (invalidTasks.length > 0) {
+        toast.error(`Please fill all required fields for all ${tasks.length} tasks`);
+        return;
+      }
+
+      const firstConfigError = tasks
+        .map((task) => taskValidationState[task.id])
+        .find((state) => state?.isReady && !state.isValid);
+
+      if (firstConfigError) {
+        toast.error(firstConfigError.message || 'Complete pricing configuration for all tasks before submitting');
+        return;
+      }
     }
 
-    const firstConfigError = tasks
-      .map((task) => taskValidationState[task.id])
-      .find((state) => state?.isReady && !state.isValid);
-
-    if (firstConfigError) {
-      toast.error(firstConfigError.message || 'Complete pricing configuration for all tasks before submitting');
-      return;
-    }
-
-    onSubmit(caseLevelData, tasks);
+    // Pass empty tasks array for KYC-only cases
+    onSubmit(caseLevelData, caseType === 'kyc' ? [] : tasks);
   };
 
   return (
@@ -453,7 +464,45 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
             </Card>
           </div>
 
-          {/* TASK-LEVEL SECTION */}
+          {/* CASE TYPE SELECTOR */}
+          {!editMode && onCaseTypeChange && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Settings className="h-4 w-4 text-primary" />
+                  Task Type
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-3">
+                  {([
+                    { value: 'field' as CaseType, label: 'Field Verification', desc: 'Physical site visit by field agent' },
+                    { value: 'kyc' as CaseType, label: 'KYC Verification', desc: 'Document verification by central team' },
+                    { value: 'both' as CaseType, label: 'Both', desc: 'Field visit + document verification' },
+                  ]).map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => onCaseTypeChange(option.value)}
+                      className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                        caseType === option.value
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/40'
+                      }`}
+                    >
+                      <p className={`text-sm font-medium ${caseType === option.value ? 'text-primary' : ''}`}>
+                        {option.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{option.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* TASK-LEVEL SECTION — only for field or both */}
+          {(caseType === 'field' || caseType === 'both') && (
           <div className="space-y-4">
             <div className="flex items-center justify-between pb-2 border-b">
               <div className="flex items-center gap-2">
@@ -484,6 +533,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
               />
             ))}
           </div>
+          )}
 
           {hasBlockingConfigurationState && (
             <Alert variant="destructive">
@@ -492,6 +542,9 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
               </AlertDescription>
             </Alert>
           )}
+
+          {/* KYC / Extra content injected by parent */}
+          {renderAfterTasks}
 
           {/* Form Actions */}
           <div className={`flex items-center ${onBack ? 'justify-between' : 'justify-end'} pt-6 border-t`}>
@@ -516,7 +569,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-2" />
-                  {editMode ? 'Update Case' : `Create Case with ${tasks.length} ${tasks.length === 1 ? 'Task' : 'Tasks'}`}
+                  {editMode ? 'Update Case' : caseType === 'kyc' ? 'Create Case with KYC Tasks' : `Create Case with ${tasks.length} ${tasks.length === 1 ? 'Task' : 'Tasks'}${caseType === 'both' ? ' + KYC' : ''}`}
                 </>
               )}
             </Button>
