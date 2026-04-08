@@ -46,7 +46,7 @@ export const LoginPage: React.FC = () => {
     }
 
     if (isAuthenticated) {
-      navigate('/dashboard');
+      navigate('/');
     }
   }, [isAuthenticated, navigate]);
 
@@ -55,7 +55,7 @@ export const LoginPage: React.FC = () => {
     try {
       const success = await login(data as LoginRequest);
       if (success) {
-        navigate('/dashboard');
+        navigate('/');
       }
     } catch (error: unknown) {
       logger.error('Login error:', error);

@@ -487,6 +487,7 @@ export class MobileSyncController {
            LEFT JOIN users u ON u.id = vt.assigned_to
            LEFT JOIN users revoked_user ON revoked_user.id = vt.revoked_by
            WHERE vt.case_id = c.id
+             AND (vt.task_type IS NULL OR vt.task_type != 'KYC')
              AND (
                $${userIdParamIndex}::uuid IS NULL
                OR vt.assigned_to = $${userIdParamIndex}::uuid

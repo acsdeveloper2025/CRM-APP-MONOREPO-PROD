@@ -48,6 +48,15 @@ export interface VerificationOperationsKPI {
     collection_efficiency_percent: MetricWithTrend;
   };
 
+  kyc: {
+    total: number;
+    pending: number;
+    passed: number;
+    failed: number;
+    referred: number;
+    verified_today: number;
+  };
+
   legacy_compatibility: {
     cases: {
       total: MetricWithTrend;
@@ -181,11 +190,15 @@ export const useDashboardKPI = () => {
     }
   } : undefined;
 
+  // 7. KYC stats
+  const kycStats = kpi?.kyc || { total: 0, pending: 0, passed: 0, failed: 0, referred: 0, verified_today: 0 };
+
   return {
     isLoading: query.isLoading,
     error: query.error,
     stats,
     tatStats,
+    kycStats,
     caseDistributionData,
     trendsData,
     activitiesData,

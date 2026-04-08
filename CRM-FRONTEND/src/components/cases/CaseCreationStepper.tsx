@@ -3,7 +3,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Check, User, Target } from 'lucide-react';
 import { CustomerInfoStep, type CustomerInfoData } from './CustomerInfoStep';
 import { FullCaseFormStep, type FullCaseFormData } from './FullCaseFormStep';
-import { TaskCaseCreationForm, type CaseLevelFormData, type TaskFormData } from './TaskCaseCreationForm';
+import { TaskCaseCreationForm, type CaseLevelFormData, type TaskFormData, type CaseType } from './TaskCaseCreationForm';
+import { KYCDocumentSelector, type KYCDocumentSelection } from '@/components/kyc/KYCDocumentSelector';
 
 import { DeduplicationDialog } from './DeduplicationDialog';
 import { deduplicationService, type DeduplicationResult } from '@/services/deduplication';
@@ -74,6 +75,10 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
   const [caseFormData, setCaseFormData] = useState<FullCaseFormData | null>(
     initialData?.caseFormData || null
   );
+
+  // Case type and KYC document state
+  const [caseType, setCaseType] = useState<CaseType>('field');
+  const [kycDocuments, setKYCDocuments] = useState<KYCDocumentSelection[]>([]);
 
   // Deduplication state
   const [isSearching, setIsSearching] = useState(false);
@@ -246,6 +251,12 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       return;
     }
 
+    // Validate KYC documents are selected when case type requires them
+    if ((caseType === 'kyc' || caseType === 'both') && kycDocuments.length === 0) {
+      toast.error('Please select at least one KYC document for verification');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -344,6 +355,9 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         return;
       }
 
+      // Build applicants and verification_tasks only if we have field tasks
+      const hasFieldTasks = tasks.length > 0;
+
       const applicantsByType = new Map<string, TaskFormData[]>();
       for (const task of tasks) {
         const applicantType = task.applicantType || 'APPLICANT';
@@ -352,23 +366,31 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         applicantsByType.set(applicantType, existingTasks);
       }
 
-      const applicants = Array.from(applicantsByType.entries()).map(([role, applicantTasks]) => ({
-        name: customerInfo.customerName,
-        mobile: customerInfo.mobileNumber || '',
-        role,
-        pan_number: customerInfo.panNumber || undefined,
-        verifications: applicantTasks.map(applicantTask => ({
-          verification_type_id: applicantTask.verificationTypeId ?? null,
-          address: applicantTask.address,
-          pincode_id: Number.isNaN(parseInt(applicantTask.pincodeId, 10))
-            ? undefined
-            : parseInt(applicantTask.pincodeId, 10),
-          area_id: Number.isNaN(parseInt(applicantTask.areaId, 10))
-            ? undefined
-            : parseInt(applicantTask.areaId, 10),
-          assigned_to: applicantTask.assignedTo || undefined,
-        })),
-      }));
+      const applicants = hasFieldTasks
+        ? Array.from(applicantsByType.entries()).map(([role, applicantTasks]) => ({
+            name: customerInfo.customerName,
+            mobile: customerInfo.mobileNumber || '',
+            role,
+            pan_number: customerInfo.panNumber || undefined,
+            verifications: applicantTasks.map(applicantTask => ({
+              verification_type_id: applicantTask.verificationTypeId ?? null,
+              address: applicantTask.address,
+              pincode_id: Number.isNaN(parseInt(applicantTask.pincodeId, 10))
+                ? undefined
+                : parseInt(applicantTask.pincodeId, 10),
+              area_id: Number.isNaN(parseInt(applicantTask.areaId, 10))
+                ? undefined
+                : parseInt(applicantTask.areaId, 10),
+              assigned_to: applicantTask.assignedTo || undefined,
+            })),
+          }))
+        : [{
+            name: customerInfo.customerName,
+            mobile: customerInfo.mobileNumber || '',
+            role: 'APPLICANT',
+            pan_number: customerInfo.panNumber || undefined,
+            verifications: [],
+          }];
 
       const firstTask = tasks[0];
       const payload = {
@@ -379,8 +401,8 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           clientId: parsedClientId,
           productId: parsedProductId,
           verificationTypeId: firstTask?.verificationTypeId ?? undefined,
-          applicantType: firstTask?.applicantType,
-          trigger: firstTask?.trigger,
+          applicantType: firstTask?.applicantType || 'APPLICANT',
+          trigger: firstTask?.trigger || (caseType === 'kyc' ? 'KYC Document Verification' : ''),
           backendContactNumber: caseLevelData.backendContactNumber,
           priority: firstTask?.priority || 'MEDIUM',
           pincode: firstTask ? getPincodeCode(firstTask.pincodeId) : '',
@@ -389,28 +411,37 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           deduplicationRationale,
         },
         applicants,
-        verification_tasks: tasks.map((task, index) => {
-          if (!task.verificationTypeId) {
-            throw new Error(`Verification type missing for task ${index + 1}`);
-          }
-          return {
-            verification_type_id: task.verificationTypeId as number,
-            task_title: `${getVerificationTypeName(task.verificationTypeId as number)} - Task ${index + 1}`,
-            task_description: task.trigger,
-            priority: task.priority,
-            assigned_to: task.assignedTo || undefined,
-            rate_type_id: task.rateTypeId ? parseInt(task.rateTypeId, 10) : undefined,
-            address: task.address,
-            pincode: getPincodeCode(task.pincodeId),
-            area_id: Number.isNaN(parseInt(task.areaId, 10))
-              ? undefined
-              : parseInt(task.areaId, 10),
-            applicant_type: task.applicantType,
-            trigger: task.trigger,
-            document_type: task.documentType || undefined,
-            document_number: task.documentNumber || undefined,
-          };
-        })
+        verification_tasks: hasFieldTasks
+          ? tasks.map((task, index) => {
+              if (!task.verificationTypeId) {
+                throw new Error(`Verification type missing for task ${index + 1}`);
+              }
+              return {
+                verification_type_id: task.verificationTypeId as number,
+                task_title: `${getVerificationTypeName(task.verificationTypeId as number)} - Task ${index + 1}`,
+                task_description: task.trigger,
+                priority: task.priority,
+                assigned_to: task.assignedTo || undefined,
+                rate_type_id: task.rateTypeId ? parseInt(task.rateTypeId, 10) : undefined,
+                address: task.address,
+                pincode: getPincodeCode(task.pincodeId),
+                area_id: Number.isNaN(parseInt(task.areaId, 10))
+                  ? undefined
+                  : parseInt(task.areaId, 10),
+                applicant_type: task.applicantType,
+                trigger: task.trigger,
+              };
+            })
+          : [],
+        // KYC document verification tasks (processed separately by backend)
+        kyc_documents: kycDocuments.length > 0 ? kycDocuments.map(doc => ({
+          document_type: doc.documentTypeCode,
+          document_number: doc.documentNumber || undefined,
+          document_holder_name: doc.documentHolderName || undefined,
+          document_details: doc.documentDetails || {},
+          description: doc.description || undefined,
+          assigned_to: doc.assignedTo || undefined,
+        })) : undefined
       };
 
 
@@ -447,11 +478,13 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           toast.error('Case created but caseId/tasks not found for attachment upload');
         }
 
-        if (totalAttachments > 0) {
-          toast.success(`Case created successfully with ${tasks.length} tasks and ${totalAttachments} attachment(s)!`);
-        } else {
-          toast.success(`Case created successfully with ${tasks.length} tasks!`);
-        }
+        const taskSummary = [
+          tasks.length > 0 ? `${tasks.length} field task(s)` : null,
+          kycDocuments.length > 0 ? `${kycDocuments.length} KYC task(s)` : null,
+          totalAttachments > 0 ? `${totalAttachments} attachment(s)` : null,
+        ].filter(Boolean).join(' + ');
+
+        toast.success(`Case created successfully with ${taskSummary || 'tasks'}!`);
 
         if (onSuccess && response.data?.case?.caseId) {
           onSuccess(response.data.case.caseId.toString());
@@ -807,9 +840,18 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             isSubmitting={isSubmitting}
             initialData={editMode && initialData ? {
               caseLevelData: initialData.caseLevelData || initialData.caseFormData,
-              tasks: initialData.tasks // ✅ Use tasks directly from NewCasePage
+              tasks: initialData.tasks
             } : undefined}
             editMode={editMode}
+            caseType={caseType}
+            onCaseTypeChange={!editMode ? setCaseType : undefined}
+            renderAfterTasks={!editMode && (caseType === 'kyc' || caseType === 'both') ? (
+              <KYCDocumentSelector
+                selectedDocuments={kycDocuments}
+                onChange={setKYCDocuments}
+                customerName={customerInfo?.customerName}
+              />
+            ) : undefined}
           />
         )}
       </div>

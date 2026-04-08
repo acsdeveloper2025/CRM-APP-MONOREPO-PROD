@@ -25,9 +25,18 @@ export const CommissionsPage: React.FC = () => {
   const pendingAmount = stats.pendingAmount ?? 0;
   const approvedCommissions = stats.approvedCommissions ?? 0;
 
-  const exportAllData = () => {
-    // This would trigger export from both tabs
-    logger.warn('Exporting all commission data...');
+  const exportAllData = async () => {
+    try {
+      const blob = await commissionManagementService.exportToExcel();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `commissions_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      logger.error('Failed to export commissions:', error);
+    }
   };
 
   return (

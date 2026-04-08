@@ -290,6 +290,17 @@ class CommissionManagementService {
       sortOrder: 'desc'
     });
   }
+
+  async exportToExcel(filters?: { userId?: string; clientId?: string; status?: string; dateFrom?: string; dateTo?: string }): Promise<Blob> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) {params.append(key, value);}
+      });
+    }
+    const response = await apiService.getRaw<Blob>(`${this.baseUrl}/export?${params.toString()}`, undefined, { responseType: 'blob' });
+    return response.data;
+  }
 }
 
 export const commissionManagementService = new CommissionManagementService();

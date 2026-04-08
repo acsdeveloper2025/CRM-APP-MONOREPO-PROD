@@ -63,8 +63,8 @@ export function BillingPage() {
       let filename: string;
 
       if (activeTab === 'invoices') {
-        blob = await billingService.downloadInvoiceReport({});
-        filename = `invoices_report_${new Date().toISOString().split('T')[0]}.pdf`;
+        blob = await billingService.exportInvoicesToExcel({});
+        filename = `invoices_${new Date().toISOString().split('T')[0]}.xlsx`;
       } else {
         blob = await billingService.downloadCommissionReport({});
         filename = `commissions_report_${new Date().toISOString().split('T')[0]}.pdf`;

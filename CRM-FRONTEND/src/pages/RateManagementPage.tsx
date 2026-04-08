@@ -149,7 +149,7 @@ export function RateManagementPage() {
                 5. Rate View/Report
               </TabsTrigger>
               <TabsTrigger value="document-type-rates" className="text-sm">
-                6. Document Type Rates
+                6. KYC Rates
               </TabsTrigger>
             </TabsList>
 
@@ -206,9 +206,9 @@ export function RateManagementPage() {
 
               <TabsContent value="document-type-rates" className="space-y-4">
                 <div className="border rounded-lg p-4">
-                  <h3 className="text-lg font-semibold mb-2">Document Type Rates</h3>
+                  <h3 className="text-lg font-semibold mb-2">KYC Rates</h3>
                   <p className="text-sm text-gray-600 mb-4">
-                    Configure pricing for document verification services (independent of rate types)
+                    Configure pricing for KYC document verification per client and product
                   </p>
                   <DocumentTypeRatesTab />
                 </div>
@@ -303,9 +303,9 @@ export function RateManagementPage() {
                 5
               </div>
               <div>
-                <h4 className="font-semibold">Document Type Rates</h4>
+                <h4 className="font-semibold">KYC Rates</h4>
                 <p className="text-sm text-gray-600">
-                  Set pricing for document verification (simpler, no rate types)
+                  Set pricing for KYC document verification per client and product
                 </p>
               </div>
             </div>
