@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
+import { sendError, errors } from '@/utils/apiResponse';
 
 // Database-driven states controller - no more mock data
 
@@ -122,11 +123,7 @@ export const getStates = async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error retrieving states:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve states',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to retrieve states');
   }
 };
 
@@ -144,11 +141,7 @@ export const getStateById = async (req: AuthenticatedRequest, res: Response) => 
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'State not found',
-        error: { code: 'NOT_FOUND' },
-      });
+      return errors.notFound(res, 'State');
     }
 
     const state = result.rows[0];
@@ -167,11 +160,7 @@ export const getStateById = async (req: AuthenticatedRequest, res: Response) => 
     });
   } catch (error) {
     logger.error('Error retrieving state:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve state',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to retrieve state');
   }
 };
 
@@ -187,11 +176,7 @@ export const createState = async (req: AuthenticatedRequest, res: Response) => {
 
     if (countryResult.rows.length === 0) {
       logger.warn('Country not found:', { country });
-      return res.status(400).json({
-        success: false,
-        message: 'Country not found',
-        error: { code: 'COUNTRY_NOT_FOUND' },
-      });
+      return sendError(res, 400, 'Country not found', 'COUNTRY_NOT_FOUND');
     }
 
     const countryId = countryResult.rows[0].id;
@@ -204,11 +189,7 @@ export const createState = async (req: AuthenticatedRequest, res: Response) => {
 
     if (existingStateResult.rows.length > 0) {
       logger.warn('Duplicate state code:', { code, country });
-      return res.status(400).json({
-        success: false,
-        message: 'State code already exists in this country',
-        error: { code: 'DUPLICATE_CODE' },
-      });
+      return sendError(res, 400, 'State code already exists in this country', 'DUPLICATE_CODE');
     }
 
     // Create new state in database
@@ -239,11 +220,7 @@ export const createState = async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error creating state:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create state',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to create state');
   }
 };
 
@@ -260,11 +237,7 @@ export const updateState = async (req: AuthenticatedRequest, res: Response) => {
     );
 
     if (existingResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'State not found',
-        error: { code: 'NOT_FOUND' },
-      });
+      return errors.notFound(res, 'State');
     }
 
     const existingState = existingResult.rows[0];
@@ -279,11 +252,7 @@ export const updateState = async (req: AuthenticatedRequest, res: Response) => {
           updateData.country,
         ]);
         if (countryResult.rows.length === 0) {
-          return res.status(400).json({
-            success: false,
-            message: 'Country not found',
-            error: { code: 'COUNTRY_NOT_FOUND' },
-          });
+          return sendError(res, 400, 'Country not found', 'COUNTRY_NOT_FOUND');
         }
         countryId = countryResult.rows[0].id;
       }
@@ -294,11 +263,7 @@ export const updateState = async (req: AuthenticatedRequest, res: Response) => {
       );
 
       if (duplicateResult.rows.length > 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'State code already exists in this country',
-          error: { code: 'DUPLICATE_CODE' },
-        });
+        return sendError(res, 400, 'State code already exists in this country', 'DUPLICATE_CODE');
       }
     }
 
@@ -331,11 +296,7 @@ export const updateState = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     if (updateFields.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No valid fields to update',
-        error: { code: 'NO_UPDATE_FIELDS' },
-      });
+      return sendError(res, 400, 'No valid fields to update', 'NO_UPDATE_FIELDS');
     }
 
     // Add updatedAt
@@ -379,11 +340,7 @@ export const updateState = async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error updating state:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update state',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to update state');
   }
 };
 
@@ -402,11 +359,7 @@ export const deleteState = async (req: AuthenticatedRequest, res: Response) => {
     );
 
     if (existingResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'State not found',
-        error: { code: 'NOT_FOUND' },
-      });
+      return errors.notFound(res, 'State');
     }
 
     const stateToDelete = existingResult.rows[0];
@@ -418,11 +371,12 @@ export const deleteState = async (req: AuthenticatedRequest, res: Response) => {
 
     const citiesCount = parseInt(citiesResult.rows[0].count);
     if (citiesCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot delete state. It has ${citiesCount} cities associated with it.`,
-        error: { code: 'STATE_HAS_CITIES' },
-      });
+      return sendError(
+        res,
+        400,
+        `Cannot delete state. It has ${citiesCount} cities associated with it.`,
+        'STATE_HAS_CITIES'
+      );
     }
 
     // Delete the state
@@ -440,11 +394,7 @@ export const deleteState = async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error deleting state:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete state',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to delete state');
   }
 };
 
@@ -490,11 +440,7 @@ export const getStatesStats = async (req: AuthenticatedRequest, res: Response) =
     });
   } catch (error) {
     logger.error('Error getting states stats:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get states statistics',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to get states statistics');
   }
 };
 
@@ -505,11 +451,7 @@ export const bulkImportStates = async (
 ) => {
   try {
     if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'No file uploaded',
-        error: { code: 'NO_FILE' },
-      });
+      return sendError(res, 400, 'No file uploaded', 'NO_FILE');
     }
 
     const { parseCSV, validateCSVRow } = await import('@/utils/csvParser');
@@ -607,10 +549,6 @@ export const bulkImportStates = async (
     });
   } catch (error) {
     logger.error('Error bulk importing states:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to bulk import states',
-      error: { code: 'INTERNAL_ERROR' },
-    });
+    errors.internal(res, 'Failed to bulk import states');
   }
 };
