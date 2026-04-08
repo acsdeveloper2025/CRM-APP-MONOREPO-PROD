@@ -64,8 +64,6 @@ export interface TaskFormData {
   trigger: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   assignedTo: string;
-  documentType: string;
-  documentNumber: string;
   attachments: CaseFormAttachment[];
 }
 
@@ -130,8 +128,6 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
       trigger: '',
       priority: 'MEDIUM',
       assignedTo: '',
-      documentType: '',
-      documentNumber: '',
       attachments: [],
     },
   ]);
@@ -224,8 +220,6 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
       trigger: '',
       priority: 'MEDIUM',
       assignedTo: '',
-      documentType: '',
-      documentNumber: '',
       attachments: [],
     };
     setTasks([...tasks, newTask]);
@@ -1026,28 +1020,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
           </div>
         </div>
 
-        {/* Row 7: Document Type & Number */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm font-medium">Document Type</label>
-            <Input
-              value={task.documentType}
-              onChange={(e) => updateTask(task.id, 'documentType', e.target.value)}
-              placeholder="e.g., Aadhaar Card, PAN Card"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium">Document Number</label>
-            <Input
-              value={task.documentNumber}
-              onChange={(e) => updateTask(task.id, 'documentNumber', e.target.value)}
-              placeholder="Enter document number"
-            />
-          </div>
-        </div>
-
-        {/* Row 8: Attachments */}
+        {/* Row 7: Attachments */}
         <div className="border-t pt-4">
           <TaskAttachmentsSection
             taskId={task.id}

@@ -30,9 +30,6 @@ type ReassignableTaskRecord = {
   address: string | null;
   pincode: string | null;
   area_id: number | null;
-  document_type: string | null;
-  document_number: string | null;
-  document_details: string | null;
   task_type: string | null;
   assigned_to: string | null;
 };
@@ -101,7 +98,6 @@ export class VerificationTasksController {
         case_id, verification_type_id, task_title, task_description,
         priority, rate_type_id, estimated_amount, address, pincode,
         area_id,
-        document_type, document_number, document_details,
         assigned_to, assigned_by, assigned_at, current_assigned_at,
         status, created_by, parent_task_id, task_type,
         first_assigned_at
@@ -109,9 +105,8 @@ export class VerificationTasksController {
         $1, $2, $3, $4,
         $5, $6, $7, $8, $9,
         $10,
-        $11, $12, $13,
-        $14, $15, NOW(), NOW(),
-        'ASSIGNED', $16, $17, $18,
+        $11, $12, NOW(), NOW(),
+        'ASSIGNED', $13, $14, $15,
         NOW()
       ) RETURNING *
     `,
@@ -126,9 +121,6 @@ export class VerificationTasksController {
         currentTask.address,
         currentTask.pincode,
         recreatedTerritory.areaId,
-        currentTask.document_type,
-        currentTask.document_number,
-        currentTask.document_details,
         assignedTo,
         assignedBy,
         assignedBy,
@@ -390,7 +382,6 @@ export class VerificationTasksController {
           priority, assigned_to, assigned_by, assigned_at,
           rate_type_id, estimated_amount, address, pincode,
           area_id,
-          document_type, document_number, document_details,
           estimated_completion_date, status, created_by,
           task_type, parent_task_id,
           first_assigned_at, current_assigned_at
@@ -399,9 +390,8 @@ export class VerificationTasksController {
           $9, $10, $11, $12,
           $13,
           $14, $15, $16,
-          $17, $18, $19,
-          'REVISIT', $20,
-          $21, NOW()
+          'REVISIT', $17,
+          $18, NOW()
         ) RETURNING *
       `;
 
@@ -419,9 +409,6 @@ export class VerificationTasksController {
         originalTask.address,
         originalTask.pincode,
         revisitedTerritory.areaId,
-        originalTask.document_type,
-        originalTask.document_number,
-        originalTask.document_details,
         null, // Reset estimated completion date
         taskStatus,
         userId,
@@ -855,9 +842,6 @@ export class VerificationTasksController {
         pincode: row.pincode,
         trigger: row.trigger,
         applicantType: row.applicant_type,
-        documentType: row.document_type,
-        documentNumber: row.document_number,
-        documentDetails: row.document_details,
         assignedAt: row.assigned_at,
         startedAt: row.started_at,
         completedAt: row.completed_at,
@@ -1118,9 +1102,6 @@ export class VerificationTasksController {
         // Use task-level trigger/applicant_type if available, otherwise fall back to case-level
         trigger: row.trigger || caseInfo.trigger,
         applicant_type: row.applicant_type || caseInfo.applicant_type,
-        document_type: row.document_type,
-        document_number: row.document_number,
-        document_details: row.document_details,
         assigned_at: row.assigned_at,
         started_at: row.started_at,
         completed_at: row.completed_at,
@@ -2088,7 +2069,6 @@ export class VerificationTasksController {
           vt.id, vt.task_number, vt.case_id, vt.task_title,
           vt.status, vt.priority, vt.address, vt.estimated_amount,
           vt.assigned_at, vt.estimated_completion_date,
-          vt.document_type, vt.document_details,
           vt.task_type, vt.parent_task_id,
           c."caseId" as case_number, c."customerName" as customer_name,
           vtype.name as verification_type

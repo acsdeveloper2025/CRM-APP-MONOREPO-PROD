@@ -430,8 +430,6 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                   : parseInt(task.areaId, 10),
                 applicant_type: task.applicantType,
                 trigger: task.trigger,
-                document_type: task.documentType || undefined,
-                document_number: task.documentNumber || undefined,
               };
             })
           : [],
