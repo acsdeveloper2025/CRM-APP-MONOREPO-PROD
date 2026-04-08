@@ -604,10 +604,14 @@ export class VerificationAttachmentController {
       if (attachments.length === 0) {
         logger.info('🔄 No images in verification_attachments, checking case verificationData...');
 
-        const isUuid2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
+        const isUuid2 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          caseId
+        );
         const caseDataResult = isUuid2
           ? await query(`SELECT "verificationData" FROM cases WHERE id = $1`, [caseId])
-          : await query(`SELECT "verificationData" FROM cases WHERE "caseId" = $1`, [parseInt(caseId, 10)]);
+          : await query(`SELECT "verificationData" FROM cases WHERE "caseId" = $1`, [
+              parseInt(caseId, 10),
+            ]);
 
         if (caseDataResult.rows.length > 0) {
           const verificationData = caseDataResult.rows[0].verificationData;

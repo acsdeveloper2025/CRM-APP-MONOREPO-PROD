@@ -163,8 +163,9 @@ async function storePerformanceMetrics(metrics: PerformanceMetrics): Promise<voi
     const now = Date.now();
     if (now - lastCleanupAt > CLEANUP_INTERVAL_MS) {
       lastCleanupAt = now;
-      query(`DELETE FROM performance_metrics WHERE "timestamp" < NOW() - INTERVAL '${RETENTION_HOURS} hours'`)
-        .catch(err => logger.warn('Performance metrics cleanup failed:', err));
+      query(
+        `DELETE FROM performance_metrics WHERE "timestamp" < NOW() - INTERVAL '${RETENTION_HOURS} hours'`
+      ).catch(err => logger.warn('Performance metrics cleanup failed:', err));
     }
   } catch (error) {
     logger.error('Failed to store performance metrics:', error);

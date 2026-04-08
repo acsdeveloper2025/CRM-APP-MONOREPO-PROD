@@ -1143,7 +1143,9 @@ export async function getTemplateReport(req: Request, res: Response) {
     });
 
     // Get case UUID — handle both UUID and integer caseId
-    const isUuidLookup = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
+    const isUuidLookup = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      caseId
+    );
     const caseQuery = isUuidLookup
       ? `SELECT id FROM cases WHERE id = $1`
       : `SELECT id FROM cases WHERE "caseId" = $1`;
@@ -1198,7 +1200,9 @@ export async function getCaseTemplateReports(req: Request, res: Response) {
     logger.info('Retrieving all template reports for case', { caseId });
 
     // Get case UUID — handle both UUID and integer caseId
-    const isUuidLookup = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
+    const isUuidLookup = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      caseId
+    );
     const caseQuery = isUuidLookup
       ? `SELECT id FROM cases WHERE id = $1`
       : `SELECT id FROM cases WHERE "caseId" = $1`;
