@@ -131,7 +131,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     initializeAuth();
+  }, [normalizeUserPermissions]);
 
+  const logout = useCallback(async (customMessage?: string): Promise<void> => {
+    setState(prev => ({ ...prev, isLoading: true }));
+
+    try {
+      await authService.logout();
+      setState({
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+      toast.success(customMessage || 'Logged out successfully');
+    } catch (error) {
+      logger.error('Logout error:', error);
+      setState({
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+      if (customMessage) {
+        toast.info(customMessage);
+      }
+    }
+  }, []);
+
+  // Logout event listener (separate effect — logout must be defined first)
+  useEffect(() => {
     // Listen for logout events (e.g. from 401 responses)
     const handleLogoutEvent = (event: Event) => {
       const message = (event as CustomEvent).detail?.message;
@@ -143,7 +172,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       window.removeEventListener(AUTH_LOGOUT_EVENT, handleLogoutEvent);
     };
-  }, [normalizeUserPermissions, logout]);
+  }, [logout]);
 
   useEffect(() => {
     if (!state.isAuthenticated || !state.token) {
@@ -212,33 +241,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return false;
     }
   }, [normalizeUserPermissions]);
-
-  const logout = useCallback(async (customMessage?: string): Promise<void> => {
-    setState(prev => ({ ...prev, isLoading: true }));
-
-    try {
-      await authService.logout();
-      setState({
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
-      toast.success(customMessage || 'Logged out successfully');
-    } catch (error) {
-      logger.error('Logout error:', error);
-      // Still clear the state even if logout API fails
-      setState({
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
-      if (customMessage) {
-        toast.info(customMessage);
-      }
-    }
-  }, []);
 
   const value = useMemo<AuthContextType>(
     () => ({ ...state, login, logout, refreshUserPermissions }),
