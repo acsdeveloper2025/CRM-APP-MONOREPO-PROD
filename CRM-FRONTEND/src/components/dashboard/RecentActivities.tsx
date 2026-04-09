@@ -39,7 +39,7 @@ const getActivityIcon = (type: string) => {
 
 
 
-export const RecentActivities: React.FC<RecentActivitiesProps> = ({ activities, isLoading }) => {
+export const RecentActivities: React.FC<RecentActivitiesProps> = React.memo(({ activities, isLoading }) => {
   if (isLoading) {
     return (
       <Card>
@@ -117,4 +117,6 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = ({ activities, 
       </CardContent>
     </Card>
   );
-};
+});
+
+RecentActivities.displayName = 'RecentActivities';

@@ -19,65 +19,65 @@ export interface MISFilters {
 // Each row represents ONE verification task (not one case)
 export interface MISTaskRowData {
   // Task-Level Data (PRIMARY)
-  task_id: number;
-  task_number: string;
-  task_title: string;
-  verification_type_name: string;
-  task_status: string;
-  task_priority: string;
+  taskId: number;
+  taskNumber: string;
+  taskTitle: string;
+  verificationTypeName: string;
+  taskStatus: string;
+  taskPriority: string;
   address: string;
   pincode: string;
-  area_name?: string | null;
-  rate_type: string;
-  estimated_amount: number;
-  actual_amount: number;
-  task_created_date: string;
-  task_started_date: string | null;
-  task_completion_date: string | null;
-  task_tat_days: number | null;
+  areaName?: string | null;
+  rateType: string;
+  estimatedAmount: number;
+  actualAmount: number;
+  taskCreatedDate: string;
+  taskStartedDate: string | null;
+  taskCompletionDate: string | null;
+  taskTatDays: number | null;
   trigger: string;
-  applicant_type: string;
+  applicantType: string;
 
   // Field User Data
-  assigned_field_user: string;
-  field_user_employee_id: string;
+  assignedFieldUser: string;
+  fieldUserEmployeeId: string;
 
   // Case-Level Data (SECONDARY/REFERENCE)
-  case_id: number;
-  case_number: string;
+  caseId: number;
+  caseNumber: string;
   customerName: string;
   customerPhone: string;
   customerCallingCode: string;
-  case_status: string;
-  case_priority: string;
-  case_created_date: string;
-  total_tasks_count: number;
-  completed_tasks_count: number;
-  case_completion_percentage: number;
+  caseStatus: string;
+  casePriority: string;
+  caseCreatedDate: string;
+  totalTasksCount: number;
+  completedTasksCount: number;
+  caseCompletionPercentage: number;
 
   // Client and Product Data
-  client_name: string;
-  client_code: string;
-  product_name: string;
+  clientName: string;
+  clientCode: string;
+  productName: string;
 
   // Backend User Data
-  backend_user_name: string;
-  backend_user_employee_id: string;
+  backendUserName: string;
+  backendUserEmployeeId: string;
 
   // Form Submission Data
-  form_submission_id: string | null;
-  form_type: string | null;
-  form_submitted_date: string | null;
-  form_validation_status: string | null;
+  formSubmissionId: string | null;
+  formType: string | null;
+  formSubmittedDate: string | null;
+  formValidationStatus: string | null;
 }
 
 export interface MISSummary {
-  total_tasks: number;
-  total_estimated_amount: number;
-  total_actual_amount: number;
-  completed_tasks: number;
-  task_completion_rate: number;
-  avg_tat_days: number;
+  totalTasks: number;
+  totalEstimatedAmount: number;
+  totalActualAmount: number;
+  completedTasks: number;
+  taskCompletionRate: number;
+  avgTatDays: number;
 }
 
 export interface MISPagination {

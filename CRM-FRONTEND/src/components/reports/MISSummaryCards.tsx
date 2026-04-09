@@ -28,44 +28,44 @@ export function MISSummaryCards({ summary, isLoading }: MISSummaryCardsProps) {
   const num = (value: unknown): number => (typeof value === 'number' && Number.isFinite(value) ? value : 0);
 
   const safeSummary = {
-    total_tasks: num(summary?.total_tasks),
-    total_estimated_amount: num(summary?.total_estimated_amount),
-    total_actual_amount: num(summary?.total_actual_amount),
-    completed_tasks: num(summary?.completed_tasks),
-    task_completion_rate: num(summary?.task_completion_rate),
-    avg_tat_days: num(summary?.avg_tat_days),
+    totalTasks: num(summary?.totalTasks),
+    totalEstimatedAmount: num(summary?.totalEstimatedAmount),
+    totalActualAmount: num(summary?.totalActualAmount),
+    completedTasks: num(summary?.completedTasks),
+    taskCompletionRate: num(summary?.taskCompletionRate),
+    avgTatDays: num(summary?.avgTatDays),
   };
-  const openTasks = Math.max(safeSummary.total_tasks - safeSummary.completed_tasks, 0);
+  const openTasks = Math.max(safeSummary.totalTasks - safeSummary.completedTasks, 0);
 
   // TASK-BASED SUMMARY CARDS
   const cards = [
     {
       title: 'Total Tasks',
-      value: safeSummary.total_tasks.toLocaleString(),
-      subtitle: `${safeSummary.completed_tasks} completed`,
+      value: safeSummary.totalTasks.toLocaleString(),
+      subtitle: `${safeSummary.completedTasks} completed`,
       icon: FileText,
       color: 'text-blue-600 dark:text-blue-400',
       bgColor: 'bg-blue-100 dark:bg-blue-900/20',
     },
     {
       title: 'Total Amount',
-      value: `₹${safeSummary.total_actual_amount.toLocaleString()}`,
-      subtitle: `Est: ₹${safeSummary.total_estimated_amount.toLocaleString()}`,
+      value: `₹${safeSummary.totalActualAmount.toLocaleString()}`,
+      subtitle: `Est: ₹${safeSummary.totalEstimatedAmount.toLocaleString()}`,
       icon: DollarSign,
       color: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-green-100 dark:bg-green-900/20',
     },
     {
       title: 'Completion Rate',
-      value: `${safeSummary.task_completion_rate}%`,
-      subtitle: `${safeSummary.completed_tasks} completed`,
+      value: `${safeSummary.taskCompletionRate}%`,
+      subtitle: `${safeSummary.completedTasks} completed`,
       icon: CheckCircle,
       color: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-green-100 dark:bg-green-900/20',
     },
     {
       title: 'Avg TAT',
-      value: `${safeSummary.avg_tat_days.toFixed(1)} days`,
+      value: `${safeSummary.avgTatDays.toFixed(1)} days`,
       subtitle: 'Turnaround time',
       icon: Clock,
       color: 'text-yellow-600 dark:text-orange-400',
@@ -74,7 +74,7 @@ export function MISSummaryCards({ summary, isLoading }: MISSummaryCardsProps) {
     {
       title: 'Open Tasks',
       value: openTasks.toLocaleString(),
-      subtitle: `${((openTasks / Math.max(safeSummary.total_tasks, 1)) * 100).toFixed(1)}% of total`,
+      subtitle: `${((openTasks / Math.max(safeSummary.totalTasks, 1)) * 100).toFixed(1)}% of total`,
       icon: TrendingUp,
       color: 'text-red-600 dark:text-red-400',
       bgColor: 'bg-red-100 dark:bg-red-900/20',

@@ -9,7 +9,7 @@ export interface CompleteCaseData {
 }
 
 export interface CreateCaseWithMultipleTasksPayload {
-  case_details: {
+  caseDetails: {
     customerName: string;
     customerPhone?: string;
     customerCallingCode?: string;
@@ -29,26 +29,26 @@ export interface CreateCaseWithMultipleTasksPayload {
     name: string;
     mobile?: string;
     role?: string;
-    pan_number?: string;
+    panNumber?: string;
     verifications?: Array<{
-      verification_type_id: number | null;
+      verificationTypeId: number | null;
       address?: string;
-      pincode_id?: number;
-      area_id?: number;
-      assigned_to?: string;
+      pincodeId?: number;
+      areaId?: number;
+      assignedTo?: string;
     }>;
   }>;
-  verification_tasks: Array<{
-    verification_type_id: number;
-    task_title: string;
-    task_description?: string;
+  verificationTasks: Array<{
+    verificationTypeId: number;
+    taskTitle: string;
+    taskDescription?: string;
     priority: string;
-    assigned_to?: string;
-    rate_type_id?: number;
+    assignedTo?: string;
+    rateTypeId?: number;
     address: string;
     pincode: string;
-    area_id?: number;
-    applicant_type?: string;
+    areaId?: number;
+    applicantType?: string;
     trigger?: string;
   }>;
 }
@@ -64,9 +64,9 @@ export interface CreateCaseWithMultipleTasksResponse {
   };
   tasks: Array<{
     id: string;
-    task_number: string;
-    case_id: string;
-    verification_type_id: number;
+    taskNumber: string;
+    caseId: string;
+    verificationTypeId: number;
     status: string;
     priority: string;
   }>;

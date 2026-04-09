@@ -62,7 +62,7 @@ export const PendingTasksPage: React.FC = () => {
   const [paginationState, setPaginationState] = useState({
     page: 1,
     limit: 20,
-    sortBy: 'created_at',
+    sortBy: 'createdAt',
     sortOrder: 'desc' as 'asc' | 'desc',
     status: 'PENDING,ASSIGNED',
   });
@@ -241,7 +241,7 @@ export const PendingTasksPage: React.FC = () => {
                   const url = window.URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
-                  a.download = `pending_tasks_${new Date().toISOString().split('T')[0]}.xlsx`;
+                  a.download = `pendingTasks_${new Date().toISOString().split('T')[0]}.xlsx`;
                   a.click();
                   window.URL.revokeObjectURL(url);
                   toast.success('Export downloaded');

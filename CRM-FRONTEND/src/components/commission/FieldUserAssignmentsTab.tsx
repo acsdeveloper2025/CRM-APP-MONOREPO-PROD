@@ -158,13 +158,13 @@ export const FieldUserAssignmentsTab: React.FC = () => {
   const handleEdit = (assignment: FieldUserCommissionAssignment) => {
     setEditingAssignment(assignment);
     setFormData({
-      userId: assignment.user_id,
-      rateTypeId: assignment.rate_type_id,
-      commissionAmount: Number(assignment.commission_amount),
+      userId: assignment.userId,
+      rateTypeId: assignment.rateTypeId,
+      commissionAmount: Number(assignment.commissionAmount),
       currency: assignment.currency,
-      clientId: assignment.client_id || undefined,
-      effectiveFrom: assignment.effective_from ? new Date(assignment.effective_from).toISOString().split('T')[0] : undefined,
-      effectiveTo: assignment.effective_to ? new Date(assignment.effective_to).toISOString().split('T')[0] : undefined
+      clientId: assignment.clientId || undefined,
+      effectiveFrom: assignment.effectiveFrom ? new Date(assignment.effectiveFrom).toISOString().split('T')[0] : undefined,
+      effectiveTo: assignment.effectiveTo ? new Date(assignment.effectiveTo).toISOString().split('T')[0] : undefined
     });
     setShowForm(true);
   };
@@ -185,13 +185,13 @@ export const FieldUserAssignmentsTab: React.FC = () => {
     const csvContent = [
       ['User Name', 'Rate Type', 'Commission Amount', 'Currency', 'Effective From', 'Effective To', 'Status'].join(','),
       ...assignments.map(assignment => [
-        assignment.user_name || '',
-        assignment.rate_type_name || '',
-        assignment.commission_amount,
+        assignment.userName || '',
+        assignment.rateTypeName || '',
+        assignment.commissionAmount,
         assignment.currency,
-        assignment.effective_from ? new Date(assignment.effective_from).toLocaleDateString() : '',
-        assignment.effective_to ? new Date(assignment.effective_to).toLocaleDateString() : '',
-        assignment.is_active ? 'Active' : 'Inactive'
+        assignment.effectiveFrom ? new Date(assignment.effectiveFrom).toLocaleDateString() : '',
+        assignment.effectiveTo ? new Date(assignment.effectiveTo).toLocaleDateString() : '',
+        assignment.isActive ? 'Active' : 'Inactive'
       ].join(','))
     ].join('\n');
 
@@ -222,7 +222,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
       ...(rateTypes || []).map((rateType) => ({
         value: rateType.id.toString(),
         label: rateType.name,
-        description: `Rate: ${(rateType as unknown as { rate_amount?: string }).rate_amount || 'Not set'}`,
+        description: `Rate: ${(rateType as unknown as { rateAmount?: string }).rateAmount || 'Not set'}`,
       })),
     ],
     [rateTypes]
@@ -331,25 +331,25 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                   <TableRow key={assignment.id}>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{assignment.user_name}</div>
-                        <div className="text-sm text-gray-600">{assignment.user_email}</div>
+                        <div className="font-medium">{assignment.userName}</div>
+                        <div className="text-sm text-gray-600">{assignment.userEmail}</div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{assignment.rate_type_name}</Badge>
+                      <Badge variant="outline">{assignment.rateTypeName}</Badge>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell font-medium">
-                      {assignment.currency} {assignment.commission_amount}
+                      {assignment.currency} {assignment.commissionAmount}
                     </TableCell>
                     <TableCell className="hidden xl:table-cell">
                       <div className="text-sm">
-                        <div>From: {assignment.effective_from ? new Date(assignment.effective_from).toLocaleDateString() : 'N/A'}</div>
-                        <div>To: {assignment.effective_to ? new Date(assignment.effective_to).toLocaleDateString() : 'Ongoing'}</div>
+                        <div>From: {assignment.effectiveFrom ? new Date(assignment.effectiveFrom).toLocaleDateString() : 'N/A'}</div>
+                        <div>To: {assignment.effectiveTo ? new Date(assignment.effectiveTo).toLocaleDateString() : 'Ongoing'}</div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={assignment.is_active ? "default" : "secondary"}>
-                        {assignment.is_active ? 'Active' : 'Inactive'}
+                      <Badge variant={assignment.isActive ? "default" : "secondary"}>
+                        {assignment.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -384,12 +384,12 @@ export const FieldUserAssignmentsTab: React.FC = () => {
               <MobileTableCard key={assignment.id}>
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <div className="font-semibold text-base">{assignment.user_name}</div>
-                    <div className="text-sm text-gray-600">{assignment.user_email}</div>
+                    <div className="font-semibold text-base">{assignment.userName}</div>
+                    <div className="text-sm text-gray-600">{assignment.userEmail}</div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Badge variant={assignment.is_active ? "default" : "secondary"}>
-                      {assignment.is_active ? 'Active' : 'Inactive'}
+                    <Badge variant={assignment.isActive ? "default" : "secondary"}>
+                      {assignment.isActive ? 'Active' : 'Inactive'}
                     </Badge>
                     <div className="flex gap-1">
                       <Button
@@ -413,19 +413,19 @@ export const FieldUserAssignmentsTab: React.FC = () => {
 
                 <MobileTableField
                   label="Rate Type"
-                  value={<Badge variant="outline">{assignment.rate_type_name}</Badge>}
+                  value={<Badge variant="outline">{assignment.rateTypeName}</Badge>}
                 />
                 <MobileTableField
                   label="Commission"
-                  value={`${assignment.currency} ${assignment.commission_amount}`}
+                  value={`${assignment.currency} ${assignment.commissionAmount}`}
                 />
                 <MobileTableField
                   label="Effective From"
-                  value={assignment.effective_from ? new Date(assignment.effective_from).toLocaleDateString() : 'N/A'}
+                  value={assignment.effectiveFrom ? new Date(assignment.effectiveFrom).toLocaleDateString() : 'N/A'}
                 />
                 <MobileTableField
                   label="Effective To"
-                  value={assignment.effective_to ? new Date(assignment.effective_to).toLocaleDateString() : 'Ongoing'}
+                  value={assignment.effectiveTo ? new Date(assignment.effectiveTo).toLocaleDateString() : 'Ongoing'}
                 />
               </MobileTableCard>
             ))}
@@ -499,7 +499,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                   options={(rateTypes || []).map(rateType => ({
                     value: rateType.id.toString(),
                     label: rateType.name,
-                                        description: `Rate: ${(rateType as unknown).rate_amount || 'Not set'}`
+                                        description: `Rate: ${(rateType as unknown).rateAmount || 'Not set'}`
                   }))}
                   value={formData.rateTypeId ? formData.rateTypeId.toString() : ''}
                   onValueChange={(value) => setFormData({ ...formData, rateTypeId: value ? Number(value) : 0 })}

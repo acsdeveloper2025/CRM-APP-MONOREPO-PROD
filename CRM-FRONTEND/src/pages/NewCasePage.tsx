@@ -132,8 +132,8 @@ export const NewCasePage: React.FC = () => {
           caseId: editCaseId,
           taskId: editTaskId || firstTask?.id,
           firstTask,
-          rate_type_id: firstTask?.rate_type_id,
-          assigned_to: firstTask?.assigned_to,
+          rateTypeId: firstTask?.rateTypeId,
+          assignedTo: firstTask?.assignedTo,
         });
 
         const taskPincodeCode = firstTask?.pincode as string | undefined;
@@ -143,8 +143,8 @@ export const NewCasePage: React.FC = () => {
         const foundPincode = pincodes.find(p => p.code === effectivePincodeCode);
         const pincodeId = foundPincode?.id?.toString() || '';
 
-        // Use task-level area_id directly when available
-        const taskAreaId = firstTask?.area_id || firstTask?.areaId;
+        // Use task-level areaId directly when available
+        const taskAreaId = firstTask?.areaId || firstTask?.areaId;
         const areaId = taskAreaId ? String(taskAreaId) : '';
 
         // Map case data to CustomerInfoData format
@@ -191,14 +191,14 @@ export const NewCasePage: React.FC = () => {
 
         const mappedTasks: TaskFormData[] = selectedTasks.map((task: VerificationTask) => {
           const taskRecord = task as unknown as Record<string, unknown>;
-          const rawAssignedTo = taskRecord.assigned_to || taskRecord.assignedTo;
+          const rawAssignedTo = taskRecord.assignedTo || taskRecord.assignedTo;
           const assignedToId = typeof rawAssignedTo === 'object' && rawAssignedTo
             ? String((rawAssignedTo as { id?: string }).id || '')
             : String(rawAssignedTo || '');
 
           const taskId = String(taskRecord.id || '');
           const taskAttachments = allAttachments.filter(
-            att => String(att.verification_task_id || '') === taskId
+            att => String(att.verificationTaskId || '') === taskId
           );
           const fallbackAttachments = !taskAttachments.length && selectedTasks.length === 1
             ? allAttachments
@@ -206,25 +206,25 @@ export const NewCasePage: React.FC = () => {
 
           return {
             id: taskId,
-            applicantType: String(taskRecord.applicant_type || taskRecord.applicantType || caseFormData.applicantType || ''),
-            verificationTypeId: taskRecord.verification_type_id
-              ? parseInt(String(taskRecord.verification_type_id), 10)
+            applicantType: String(taskRecord.applicantType || taskRecord.applicantType || caseFormData.applicantType || ''),
+            verificationTypeId: taskRecord.verificationTypeId
+              ? parseInt(String(taskRecord.verificationTypeId), 10)
               : taskRecord.verificationTypeId
                 ? parseInt(String(taskRecord.verificationTypeId), 10)
                 : null,
-            rateTypeId: String(taskRecord.rate_type_id || taskRecord.rateTypeId || ''),
+            rateTypeId: String(taskRecord.rateTypeId || taskRecord.rateTypeId || ''),
             pincodeId: (() => {
               const taskPincodeCode = String(taskRecord.pincode || '');
               const found = pincodes.find(p => p.code === taskPincodeCode);
               return found?.id?.toString() || '';
             })(),
-            areaId: String(taskRecord.area_id || taskRecord.areaId || ''),
+            areaId: String(taskRecord.areaId || taskRecord.areaId || ''),
             address: String(taskRecord.address || ''),
             trigger: String(taskRecord.trigger || caseFormData.trigger || ''),
             priority: (String(taskRecord.priority || caseFormData.priority || 'MEDIUM') as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'),
             assignedTo: assignedToId,
-            documentType: String(taskRecord.document_type || taskRecord.documentType || ''),
-            documentNumber: String(taskRecord.document_number || taskRecord.documentNumber || ''),
+            documentType: String(taskRecord.documentType || taskRecord.documentType || ''),
+            documentNumber: String(taskRecord.documentNumber || taskRecord.documentNumber || ''),
             attachments: fallbackAttachments.map(mapAttachment),
           };
         });

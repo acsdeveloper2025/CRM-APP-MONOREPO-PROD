@@ -14,16 +14,16 @@ export interface AgentPerformanceData {
 export interface VerificationTask {
   id: string;
   status: string;
-  verification_type_name: string;
-  assigned_to_name: string | null;
-  estimated_amount: string;
-  actual_amount: string;
+  verificationTypeName: string;
+  assignedToName: string | null;
+  estimatedAmount: string;
+  actualAmount: string;
 }
 
 export interface CaseData {
   id: string;
   status: string;
   priority: string;
-  client_name: string;
+  clientName: string;
   [key: string]: unknown;
 }

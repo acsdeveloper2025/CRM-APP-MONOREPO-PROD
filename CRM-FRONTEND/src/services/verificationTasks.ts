@@ -38,7 +38,7 @@ export class VerificationTasksService {
     search?: string;
     dateFrom?: string;
     dateTo?: string;
-    task_type?: string;
+    taskType?: string;
   }): Promise<{
     success: boolean;
     data: {
@@ -77,7 +77,7 @@ export class VerificationTasksService {
     if (filters?.search) {params.append('search', filters.search);}
     if (filters?.dateFrom) {params.append('dateFrom', filters.dateFrom);}
     if (filters?.dateTo) {params.append('dateTo', filters.dateTo);}
-    if (filters?.task_type) {params.append('task_type', filters.task_type);}
+    if (filters?.taskType) {params.append('taskType', filters.taskType);}
 
     const response = await apiService.get(`/verification-tasks?${params.toString()}`);
     return response as unknown as {
@@ -126,7 +126,7 @@ export class VerificationTasksService {
     assignedTo?: string
   ): Promise<VerificationTaskResponse> {
     const response = await apiService.post(`/verification-tasks/revisit/${taskId}`, {
-      assigned_to: assignedTo
+      assignedTo: assignedTo
     });
     return response.data as unknown as VerificationTaskResponse;
   }
@@ -141,8 +141,8 @@ export class VerificationTasksService {
     const params = new URLSearchParams();
 
     if (filters?.status) {params.append('status', filters.status);}
-    if (filters?.assignedTo) {params.append('assigned_to', filters.assignedTo);}
-    if (filters?.verificationTypeId) {params.append('verification_type_id', filters.verificationTypeId.toString());}
+    if (filters?.assignedTo) {params.append('assignedTo', filters.assignedTo);}
+    if (filters?.verificationTypeId) {params.append('verificationTypeId', filters.verificationTypeId.toString());}
     if (filters?.priority) {params.append('priority', filters.priority);}
 
     const response = await apiService.get(`/cases/${caseId}/verification-tasks?${params.toString()}`);
@@ -177,9 +177,9 @@ export class VerificationTasksService {
     taskId: string,
     assignmentData: AssignVerificationTaskRequest
   ): Promise<VerificationTaskResponse> {
-    // Transform camelCase to snake_case for backend
+    // Transform camelCase to snakeCase for backend
     const backendData = {
-      assigned_to: assignmentData.assignedTo,
+      assignedTo: assignmentData.assignedTo,
       assignment_reason: assignmentData.assignmentReason,
       priority: assignmentData.priority
     };
@@ -194,12 +194,12 @@ export class VerificationTasksService {
     taskId: string,
     completionData: CompleteVerificationTaskRequest
   ): Promise<VerificationTaskResponse> {
-    // Transform camelCase to snake_case for backend
+    // Transform camelCase to snakeCase for backend
     const backendData = {
-      verification_outcome: completionData.verificationOutcome,
-      actual_amount: completionData.actualAmount,
+      verificationOutcome: completionData.verificationOutcome,
+      actualAmount: completionData.actualAmount,
       completion_notes: completionData.completionNotes,
-      form_submission_id: completionData.formSubmissionId
+      formSubmissionId: completionData.formSubmissionId
     };
     const response = await apiService.post(`/verification-tasks/${taskId}/complete`, backendData);
     return response.data as unknown as VerificationTaskResponse;
@@ -235,8 +235,8 @@ export class VerificationTasksService {
     assignmentReason?: string
   ): Promise<{ success: boolean; data: { updated_tasks: number; tasks: VerificationTask[] }; message: string }> {
     const response = await apiService.post('/verification-tasks/bulk-assign', {
-      task_ids: taskIds,
-      assigned_to: assignedTo,
+      taskIds: taskIds,
+      assignedTo: assignedTo,
       assignment_reason: assignmentReason
     });
     return response.data as unknown as { success: boolean; data: { updated_tasks: number; tasks: VerificationTask[] }; message: string };
@@ -291,7 +291,7 @@ export class VerificationTasksService {
     search?: string;
     dateFrom?: string;
     dateTo?: string;
-    task_type?: string;
+    taskType?: string;
   }): Promise<Blob> {
     const params = new URLSearchParams();
     if (filters) {

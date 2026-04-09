@@ -26,22 +26,22 @@ export type UpdateCommissionRateTypeData = Partial<Omit<CreateCommissionRateType
 
 export interface FieldUserCommissionAssignment {
   id: string;
-  user_id: string;
-  rate_type_id: number;
-  commission_amount: string;
+  userId: string;
+  rateTypeId: number;
+  commissionAmount: string;
   currency: string;
-  client_id?: number; // NULL for global assignments
-  is_active: boolean;
-  effective_from: string;
-  effective_to?: string;
-  created_by?: string;
-  created_at: string;
-  updated_at: string;
+  clientId?: number; // NULL for global assignments
+  isActive: boolean;
+  effectiveFrom: string;
+  effectiveTo?: string;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
   // Populated fields
-  user_name?: string;
-  user_email?: string;
-  rate_type_name?: string;
-  client_name?: string;
+  userName?: string;
+  userEmail?: string;
+  rateTypeName?: string;
+  clientName?: string;
 }
 
 export interface CreateFieldUserCommissionAssignmentData {
@@ -59,44 +59,44 @@ export type UpdateFieldUserCommissionAssignmentData = Partial<Omit<CreateFieldUs
 
 export interface CommissionCalculation {
   id: string;
-  case_id: string;
-  case_number?: number;
-  user_id: string;
-  client_id?: number;
-  rate_type_id: number;
-  base_amount?: string;
-  commission_amount: string;
+  caseId: string;
+  caseNumber?: number;
+  userId: string;
+  clientId?: number;
+  rateTypeId: number;
+  baseAmount?: string;
+  commissionAmount: string;
   currency: string;
-  calculation_method?: 'FIXED_AMOUNT' | 'PERCENTAGE';
+  calculationMethod?: 'FIXED_AMOUNT' | 'PERCENTAGE';
   status: 'PENDING' | 'APPROVED' | 'PAID' | 'REJECTED' | 'CALCULATED';
-  case_completed_at?: string;
-  calculated_at?: string;
-  approved_by?: string;
-  approved_at?: string;
-  paid_by?: string;
-  paid_at?: string;
-  payment_method?: string;
-  transaction_id?: string;
-  rejection_reason?: string;
+  caseCompletedAt?: string;
+  calculatedAt?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  paidBy?: string;
+  paidAt?: string;
+  paymentMethod?: string;
+  transactionId?: string;
+  rejectionReason?: string;
   notes?: string;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
   // Populated fields
-  user_name?: string;
-  user_email?: string;
-  client_name?: string;
-  rate_type_name?: string;
-  product_name?: string;
-  case_title?: string;
-  customer_name?: string;
-  task_number?: string;
-  task_title?: string;
-  verification_outcome?: string;
-  task_completed_at?: string;
-  verification_type_name?: string;
-  task_status?: string;
-  approved_by_name?: string;
-  paid_by_name?: string;
+  userName?: string;
+  userEmail?: string;
+  clientName?: string;
+  rateTypeName?: string;
+  productName?: string;
+  caseTitle?: string;
+  customerName?: string;
+  taskNumber?: string;
+  taskTitle?: string;
+  verificationOutcome?: string;
+  taskCompletedAt?: string;
+  verificationTypeName?: string;
+  taskStatus?: string;
+  approvedByName?: string;
+  paidByName?: string;
 }
 
 export interface CreateCommissionCalculationData {
@@ -231,7 +231,7 @@ export interface CommissionSummary {
 
 export interface BulkCommissionOperation {
   commissionIds: number[];
-  operation: 'approve' | 'reject' | 'mark_paid';
+  operation: 'approve' | 'reject' | 'markPaid';
   reason?: string;
   paymentMethod?: string;
   transactionId?: string;

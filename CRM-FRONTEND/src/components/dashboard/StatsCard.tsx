@@ -17,7 +17,7 @@ interface StatsCardProps {
   onClick?: () => void;
 }
 
-export const StatsCard: React.FC<StatsCardProps> = ({
+export const StatsCard: React.FC<StatsCardProps> = React.memo(({
   title,
   value,
   description,
@@ -67,4 +67,6 @@ export const StatsCard: React.FC<StatsCardProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
+
+StatsCard.displayName = 'StatsCard';

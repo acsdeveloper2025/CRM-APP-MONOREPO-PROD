@@ -355,7 +355,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         return;
       }
 
-      // Build applicants and verification_tasks only if we have field tasks
+      // Build applicants and verificationTasks only if we have field tasks
       const hasFieldTasks = tasks.length > 0;
 
       const applicantsByType = new Map<string, TaskFormData[]>();
@@ -371,30 +371,30 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             name: customerInfo.customerName,
             mobile: customerInfo.mobileNumber || '',
             role,
-            pan_number: customerInfo.panNumber || undefined,
+            panNumber: customerInfo.panNumber || undefined,
             verifications: applicantTasks.map(applicantTask => ({
-              verification_type_id: applicantTask.verificationTypeId ?? null,
+              verificationTypeId: applicantTask.verificationTypeId ?? null,
               address: applicantTask.address,
-              pincode_id: Number.isNaN(parseInt(applicantTask.pincodeId, 10))
+              pincodeId: Number.isNaN(parseInt(applicantTask.pincodeId, 10))
                 ? undefined
                 : parseInt(applicantTask.pincodeId, 10),
-              area_id: Number.isNaN(parseInt(applicantTask.areaId, 10))
+              areaId: Number.isNaN(parseInt(applicantTask.areaId, 10))
                 ? undefined
                 : parseInt(applicantTask.areaId, 10),
-              assigned_to: applicantTask.assignedTo || undefined,
+              assignedTo: applicantTask.assignedTo || undefined,
             })),
           }))
         : [{
             name: customerInfo.customerName,
             mobile: customerInfo.mobileNumber || '',
             role: 'APPLICANT',
-            pan_number: customerInfo.panNumber || undefined,
+            panNumber: customerInfo.panNumber || undefined,
             verifications: [],
           }];
 
       const firstTask = tasks[0];
       const payload = {
-        case_details: {
+        caseDetails: {
           customerName: customerInfo.customerName,
           customerPhone: customerInfo.mobileNumber,
           customerCallingCode: customerInfo.customerCallingCode,
@@ -411,36 +411,36 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           deduplicationRationale,
         },
         applicants,
-        verification_tasks: hasFieldTasks
+        verificationTasks: hasFieldTasks
           ? tasks.map((task, index) => {
               if (!task.verificationTypeId) {
                 throw new Error(`Verification type missing for task ${index + 1}`);
               }
               return {
-                verification_type_id: task.verificationTypeId as number,
-                task_title: `${getVerificationTypeName(task.verificationTypeId as number)} - Task ${index + 1}`,
-                task_description: task.trigger,
+                verificationTypeId: task.verificationTypeId as number,
+                taskTitle: `${getVerificationTypeName(task.verificationTypeId as number)} - Task ${index + 1}`,
+                taskDescription: task.trigger,
                 priority: task.priority,
-                assigned_to: task.assignedTo || undefined,
-                rate_type_id: task.rateTypeId ? parseInt(task.rateTypeId, 10) : undefined,
+                assignedTo: task.assignedTo || undefined,
+                rateTypeId: task.rateTypeId ? parseInt(task.rateTypeId, 10) : undefined,
                 address: task.address,
                 pincode: getPincodeCode(task.pincodeId),
-                area_id: Number.isNaN(parseInt(task.areaId, 10))
+                areaId: Number.isNaN(parseInt(task.areaId, 10))
                   ? undefined
                   : parseInt(task.areaId, 10),
-                applicant_type: task.applicantType,
+                applicantType: task.applicantType,
                 trigger: task.trigger,
               };
             })
           : [],
         // KYC document verification tasks (processed separately by backend)
         kyc_documents: kycDocuments.length > 0 ? kycDocuments.map(doc => ({
-          document_type: doc.documentTypeCode,
-          document_number: doc.documentNumber || undefined,
-          document_holder_name: doc.documentHolderName || undefined,
-          document_details: doc.documentDetails || {},
+          documentType: doc.documentTypeCode,
+          documentNumber: doc.documentNumber || undefined,
+          documentHolderName: doc.documentHolderName || undefined,
+          documentDetails: doc.documentDetails || {},
           description: doc.description || undefined,
-          assigned_to: doc.assignedTo || undefined,
+          assignedTo: doc.assignedTo || undefined,
         })) : undefined
       };
 
@@ -578,7 +578,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         }
       } else {
         const payload = {
-          case_details: {
+          caseDetails: {
             customerName: caseData.customerName,
             customerPhone: caseData.customerPhone,
             customerCallingCode: caseData.customerCallingCode,
@@ -598,32 +598,32 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             name: caseData.customerName,
             mobile: caseData.customerPhone || '',
             role: caseData.applicantType || 'APPLICANT',
-            pan_number: caseData.panNumber || undefined,
+            panNumber: caseData.panNumber || undefined,
             verifications: [{
-              verification_type_id: caseData.verificationTypeId ? parseInt(caseData.verificationTypeId, 10) : null,
+              verificationTypeId: caseData.verificationTypeId ? parseInt(caseData.verificationTypeId, 10) : null,
               address: caseData.address,
-              pincode_id: Number.isNaN(parseInt(data.pincodeId, 10))
+              pincodeId: Number.isNaN(parseInt(data.pincodeId, 10))
                 ? undefined
                 : parseInt(data.pincodeId, 10),
-              area_id: Number.isNaN(parseInt(data.areaId, 10))
+              areaId: Number.isNaN(parseInt(data.areaId, 10))
                 ? undefined
                 : parseInt(data.areaId, 10),
-              assigned_to: caseData.assignedToId || undefined,
+              assignedTo: caseData.assignedToId || undefined,
             }],
           }],
-          verification_tasks: [{
-            verification_type_id: caseData.verificationTypeId ? parseInt(caseData.verificationTypeId, 10) : 0,
-            task_title: `${caseData.verificationType || 'Verification'} Task`,
-            task_description: caseData.trigger,
+          verificationTasks: [{
+            verificationTypeId: caseData.verificationTypeId ? parseInt(caseData.verificationTypeId, 10) : 0,
+            taskTitle: `${caseData.verificationType || 'Verification'} Task`,
+            taskDescription: caseData.trigger,
             priority: caseData.priority || 'MEDIUM',
-            assigned_to: caseData.assignedToId || undefined,
-            rate_type_id: caseData.rateTypeId ? parseInt(caseData.rateTypeId, 10) : undefined,
+            assignedTo: caseData.assignedToId || undefined,
+            rateTypeId: caseData.rateTypeId ? parseInt(caseData.rateTypeId, 10) : undefined,
             address: caseData.address,
             pincode: caseData.pincode,
-            area_id: Number.isNaN(parseInt(data.areaId, 10))
+            areaId: Number.isNaN(parseInt(data.areaId, 10))
               ? undefined
               : parseInt(data.areaId, 10),
-            applicant_type: caseData.applicantType,
+            applicantType: caseData.applicantType,
             trigger: caseData.trigger,
           }]
         };

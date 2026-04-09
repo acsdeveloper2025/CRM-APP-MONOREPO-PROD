@@ -99,7 +99,7 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
 
     const field = formSections.flatMap(s => s.fields || []).find(
       f => f.id === 'finalStatus' || 
-           f.id === 'verification_outcome' || 
+           f.id === 'verificationOutcome' || 
            f.label?.toLowerCase().includes('outcome') ||
            f.label?.toLowerCase().includes('final status')
     );

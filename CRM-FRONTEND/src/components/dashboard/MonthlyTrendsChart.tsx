@@ -14,7 +14,38 @@ interface MonthlyTrendsChartProps {
   isLoading?: boolean;
 }
 
-export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({ data, isLoading }) => {
+// Custom Tooltip Types
+interface TooltipPayload {
+  name: string;
+  value: number;
+  color: string;
+  payload: MonthlyTrendData;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 border rounded-lg shadow-lg">
+        <p className="font-medium">{label}</p>
+        {payload.map((entry, index) => (
+          <p key={index} className="text-sm" style={{ color: entry.color }}>
+            {entry.name}: {entry.name === 'Revenue' && entry.value ? `$${entry.value.toLocaleString()}` : entry.value}
+            {entry.name === 'Completion Rate' ? '%' : ''}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = React.memo(({ data, isLoading }) => {
   if (isLoading) {
     return (
       <Card>
@@ -30,37 +61,6 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({ data, is
       </Card>
     );
   }
-
-  // Custom Tooltip Types
-  interface TooltipPayload {
-    name: string;
-    value: number;
-    color: string;
-    payload: MonthlyTrendData;
-  }
-
-  interface CustomTooltipProps {
-    active?: boolean;
-    payload?: TooltipPayload[];
-    label?: string;
-  }
-
-  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 border rounded-lg shadow-lg">
-          <p className="font-medium">{label}</p>
-          {payload.map((entry, index) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {entry.name === 'Revenue' && entry.value ? `$${entry.value.toLocaleString()}` : entry.value}
-              {entry.name === 'Completion Rate' ? '%' : ''}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
 
   // Ensure data is an array
   const safeData = Array.isArray(data) ? data : [];
@@ -103,4 +103,6 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = ({ data, is
       </CardContent>
     </Card>
   );
-};
+});
+
+MonthlyTrendsChart.displayName = 'MonthlyTrendsChart';

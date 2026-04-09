@@ -34,10 +34,10 @@ import {
 interface VerificationTask {
   id: string;
   status: string;
-  verification_type_name: string;
-  assigned_to_name: string | null;
-  estimated_amount: string;
-  actual_amount: string;
+  verificationTypeName: string;
+  assignedToName: string | null;
+  estimatedAmount: string;
+  actualAmount: string;
 }
 
 interface VerificationTasksResponse {
@@ -126,12 +126,12 @@ export const TasksAnalytics: React.FC = () => {
   const tasks: VerificationTask[] = payload?.tasks || [];
 
   // Calculate total amounts (ideally these should also come from backend statistics)
-  const totalEstimatedAmount = tasks.reduce((sum: number, t: VerificationTask) => sum + (parseFloat(t.estimated_amount) || 0), 0);
-  const totalActualAmount = tasks.reduce((sum: number, t: VerificationTask) => sum + (parseFloat(t.actual_amount) || 0), 0);
+  const totalEstimatedAmount = tasks.reduce((sum: number, t: VerificationTask) => sum + (parseFloat(t.estimatedAmount) || 0), 0);
+  const totalActualAmount = tasks.reduce((sum: number, t: VerificationTask) => sum + (parseFloat(t.actualAmount) || 0), 0);
 
   // Verification type distribution
   const typeDistribution = tasks.reduce((acc: Record<string, number>, t: VerificationTask) => {
-    const type = t.verification_type_name || 'Unknown';
+    const type = t.verificationTypeName || 'Unknown';
     acc[type] = (acc[type] || 0) + 1;
     return acc;
   }, {});
@@ -144,7 +144,7 @@ export const TasksAnalytics: React.FC = () => {
 
   // Agent distribution
   const agentDistribution = tasks.reduce((acc: Record<string, number>, t: VerificationTask) => {
-    const agent = t.assigned_to_name || 'Unassigned';
+    const agent = t.assignedToName || 'Unassigned';
     acc[agent] = (acc[agent] || 0) + 1;
     return acc;
   }, {});

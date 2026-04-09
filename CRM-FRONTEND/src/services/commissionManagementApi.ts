@@ -156,13 +156,13 @@ export const commissionManagementApi = {
     if (!data.length) {return '';}
     const headers = ['User Name', 'Rate Type', 'Commission Amount', 'Currency', 'Status', 'Effective From', 'Effective To'];
     const rows = data.map(item => [
-      item.user_name || '',
-      item.rate_type_name || '',
-      item.commission_amount || '',
+      item.userName || '',
+      item.rateTypeName || '',
+      item.commissionAmount || '',
       item.currency || '',
-      item.is_active ? 'Active' : 'Inactive',
-      item.effective_from || '',
-      item.effective_to || ''
+      item.isActive ? 'Active' : 'Inactive',
+      item.effectiveFrom || '',
+      item.effectiveTo || ''
     ]);
     return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
   },
@@ -171,13 +171,13 @@ export const commissionManagementApi = {
     if (!data.length) {return '';}
     const headers = ['Case ID', 'User Name', 'Rate Type', 'Commission Amount', 'Currency', 'Status', 'Calculated Date'];
     const rows = data.map(item => [
-      item.case_id || '',
-      item.user_name || '',
-      item.rate_type_name || '',
-      item.commission_amount || '',
+      item.caseId || '',
+      item.userName || '',
+      item.rateTypeName || '',
+      item.commissionAmount || '',
       item.currency || '',
       item.status || '',
-      item.calculated_at || ''
+      item.calculatedAt || ''
     ]);
     return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
   }

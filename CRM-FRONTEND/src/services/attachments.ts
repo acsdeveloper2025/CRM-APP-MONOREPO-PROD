@@ -4,7 +4,7 @@ import type { ApiResponse } from '@/types/api';
 export interface Attachment {
   id: string;
   caseId: number;
-  case_id: string;
+  caseId: string;
   filename: string;
   originalName: string;
   filePath: string;
@@ -15,7 +15,7 @@ export interface Attachment {
   description?: string;
   isPublic: boolean;
   uploadedBy: string;
-  verification_task_id?: string | null;
+  verificationTaskId?: string | null;
   createdAt: string;
   uploadedAt?: string;
 }
@@ -26,7 +26,7 @@ export interface UploadAttachmentData {
   description?: string;
   category?: 'PHOTO' | 'DOCUMENT' | 'VIDEO' | 'AUDIO' | 'OTHER';
   isPublic?: boolean;
-  verification_task_id?: string;
+  verificationTaskId?: string;
 }
 
 export interface UpdateAttachmentData {
@@ -73,8 +73,8 @@ class AttachmentsService extends BaseApiService {
       formData.append('isPublic', data.isPublic.toString());
     }
 
-    if (data.verification_task_id) {
-      formData.append('verification_task_id', data.verification_task_id);
+    if (data.verificationTaskId) {
+      formData.append('verificationTaskId', data.verificationTaskId);
     }
 
     data.files.forEach((file) => {

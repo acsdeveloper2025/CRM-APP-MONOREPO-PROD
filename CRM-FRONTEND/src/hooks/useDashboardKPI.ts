@@ -14,8 +14,8 @@ import type {
 
 export interface MetricWithTrend {
   value: number;
-  previous_period_value: number;
-  change_percent: number;
+  previousPeriodValue: number;
+  changePercent: number;
 }
 
 export interface VerificationOperationsKPI {
@@ -27,25 +27,25 @@ export interface VerificationOperationsKPI {
   };
 
   workload: {
-    total_tasks: MetricWithTrend;
-    open_tasks: MetricWithTrend;
-    in_progress_tasks: MetricWithTrend;
+    totalTasks: MetricWithTrend;
+    openTasks: MetricWithTrend;
+    inProgressTasks: MetricWithTrend;
     completed_today: number;
-    overdue_tasks: MetricWithTrend;
-    sla_risk_tasks: MetricWithTrend;
+    overdueTasks: MetricWithTrend;
+    slaRiskTasks: MetricWithTrend;
   };
 
   performance: {
-    avg_tat_days: MetricWithTrend;
-    first_visit_success_rate: MetricWithTrend;
+    avgTatDays: MetricWithTrend;
+    firstVisitSuccessRate: MetricWithTrend;
     revisit_rate: MetricWithTrend;
   };
 
   financial: {
     billable_tasks: MetricWithTrend;
-    estimated_amount: MetricWithTrend;
-    actual_amount: MetricWithTrend;
-    collection_efficiency_percent: MetricWithTrend;
+    estimatedAmount: MetricWithTrend;
+    actualAmount: MetricWithTrend;
+    collectionEfficiencyPercent: MetricWithTrend;
   };
 
   kyc: {
@@ -57,31 +57,31 @@ export interface VerificationOperationsKPI {
     verified_today: number;
   };
 
-  legacy_compatibility: {
+  legacyCompatibility: {
     cases: {
       total: MetricWithTrend;
-      in_progress: MetricWithTrend;
+      inProgress: MetricWithTrend;
       completed: MetricWithTrend;
       closed: MetricWithTrend;
     };
     tasks: {
       total: MetricWithTrend;
-      in_progress: MetricWithTrend;
+      inProgress: MetricWithTrend;
       completed: MetricWithTrend;
       revoked: MetricWithTrend;
-      on_hold: MetricWithTrend;
+      onHold: MetricWithTrend;
     };
     clients: {
       total: MetricWithTrend;
       active: MetricWithTrend;
     };
-    field_agents: {
+    fieldAgents: {
       total: MetricWithTrend;
-      active_today: MetricWithTrend;
+      activeToday: MetricWithTrend;
     };
     today_ops: {
-      completed_tasks: MetricWithTrend;
-      assigned_tasks: MetricWithTrend;
+      completedTasks: MetricWithTrend;
+      assignedTasks: MetricWithTrend;
     };
   };
 }
@@ -104,22 +104,22 @@ export const useDashboardKPI = () => {
 
   // 1. Map to DashboardStats
   const stats: DashboardStats | undefined = kpi ? {
-    totalCases: kpi.legacy_compatibility.cases.total.value,
-    revokedTasks: kpi.legacy_compatibility.tasks.revoked.value,
-    inProgressCases: kpi.legacy_compatibility.tasks.in_progress.value,
-    completedCases: kpi.legacy_compatibility.tasks.completed.value,
-    totalClients: kpi.legacy_compatibility.clients.total.value,
-    activeUsers: kpi.legacy_compatibility.field_agents.active_today.value, // Using active agents as proxy
-    pendingCases: kpi.workload.open_tasks.value, // Using open tasks as proxy
+    totalCases: kpi.legacyCompatibility.cases.total.value,
+    revokedTasks: kpi.legacyCompatibility.tasks.revoked.value,
+    inProgressCases: kpi.legacyCompatibility.tasks.inProgress.value,
+    completedCases: kpi.legacyCompatibility.tasks.completed.value,
+    totalClients: kpi.legacyCompatibility.clients.total.value,
+    activeUsers: kpi.legacyCompatibility.fieldAgents.activeToday.value, // Using active agents as proxy
+    pendingCases: kpi.workload.openTasks.value, // Using open tasks as proxy
     
     // Financials
-    monthlyRevenue: kpi.financial.actual_amount.value,
+    monthlyRevenue: kpi.financial.actualAmount.value,
     totalInvoices: 0, // Not in KPI yet
     pendingCommissions: 0, // Not in KPI yet
     
     // Performance
-    completionRate: kpi.performance.first_visit_success_rate.value, // Proxy
-    avgTurnaroundDays: kpi.performance.avg_tat_days.value,
+    completionRate: kpi.performance.firstVisitSuccessRate.value, // Proxy
+    avgTurnaroundDays: kpi.performance.avgTatDays.value,
     
     pendingReviewCases: 0, 
     rejectedCases: 0 
@@ -127,24 +127,24 @@ export const useDashboardKPI = () => {
 
   // 2. Map to TATStats
   const tatStats: TATStats | undefined = kpi ? {
-    criticalOverdue: kpi.workload.sla_risk_tasks.value,
-    totalOverdue: kpi.workload.overdue_tasks.value,
-    totalActiveTasks: kpi.workload.open_tasks.value,
-    overduePercentage: kpi.workload.total_tasks.value > 0 
-      ? (kpi.workload.overdue_tasks.value / kpi.workload.total_tasks.value) * 100 
+    criticalOverdue: kpi.workload.slaRiskTasks.value,
+    totalOverdue: kpi.workload.overdueTasks.value,
+    totalActiveTasks: kpi.workload.openTasks.value,
+    overduePercentage: kpi.workload.totalTasks.value > 0 
+      ? (kpi.workload.overdueTasks.value / kpi.workload.totalTasks.value) * 100 
       : 0
   } : undefined;
 
   // 3. Map to CaseStatusDistribution[]
   const caseDistributionData: CaseStatusDistribution[] | undefined = kpi ? [
-    { status: 'PENDING', count: kpi.workload.open_tasks.value - kpi.workload.in_progress_tasks.value, percentage: 0 }, // Rough calc
-    { status: 'IN_PROGRESS', count: kpi.legacy_compatibility.tasks.in_progress.value, percentage: 0 },
-    { status: 'COMPLETED', count: kpi.legacy_compatibility.tasks.completed.value, percentage: 0 },
-    { status: 'REVOKED', count: kpi.legacy_compatibility.tasks.revoked.value, percentage: 0 },
-    { status: 'ON_HOLD', count: kpi.legacy_compatibility.tasks.on_hold.value, percentage: 0 }
+    { status: 'PENDING', count: kpi.workload.openTasks.value - kpi.workload.inProgressTasks.value, percentage: 0 }, // Rough calc
+    { status: 'IN_PROGRESS', count: kpi.legacyCompatibility.tasks.inProgress.value, percentage: 0 },
+    { status: 'COMPLETED', count: kpi.legacyCompatibility.tasks.completed.value, percentage: 0 },
+    { status: 'REVOKED', count: kpi.legacyCompatibility.tasks.revoked.value, percentage: 0 },
+    { status: 'ON_HOLD', count: kpi.legacyCompatibility.tasks.onHold.value, percentage: 0 }
   ].map(item => {
     // Calculate percentages
-    const total = kpi.legacy_compatibility.tasks.total.value || 1;
+    const total = kpi.legacyCompatibility.tasks.total.value || 1;
     return {
       ...item,
       percentage: Math.round((item.count / total) * 100)
@@ -159,8 +159,8 @@ export const useDashboardKPI = () => {
     { month: 'Aug', monthName: 'Aug', totalCases: 52, completedCases: 47, pendingCases: 5, inProgressCases: 0, rejectedCases: 0, revenue: 15000, completionRate: 90, avgTurnaroundDays: 2.4 },
     { month: 'Sep', monthName: 'Sep', totalCases: 48, completedCases: 43, pendingCases: 5, inProgressCases: 0, rejectedCases: 0, revenue: 13500, completionRate: 89, avgTurnaroundDays: 2.3 },
     { month: 'Oct', monthName: 'Oct', totalCases: 60, completedCases: 55, pendingCases: 5, inProgressCases: 0, rejectedCases: 0, revenue: 18000, completionRate: 92, avgTurnaroundDays: 2.2 },
-    { month: 'Nov', monthName: 'Nov', totalCases: kpi.legacy_compatibility.tasks.total.previous_period_value || 55, completedCases: kpi.legacy_compatibility.tasks.completed.previous_period_value || 50, pendingCases: 5, inProgressCases: 0, rejectedCases: 0, revenue: kpi.financial.actual_amount.previous_period_value || 16000, completionRate: 91, avgTurnaroundDays: 2.1 },
-    { month: 'Dec', monthName: 'Dec', totalCases: kpi.legacy_compatibility.tasks.total.value, completedCases: kpi.legacy_compatibility.tasks.completed.value, pendingCases: 5, inProgressCases: 0, rejectedCases: 0, revenue: kpi.financial.actual_amount.value, completionRate: kpi.financial.collection_efficiency_percent.value || 93, avgTurnaroundDays: kpi.performance.avg_tat_days.value }
+    { month: 'Nov', monthName: 'Nov', totalCases: kpi.legacyCompatibility.tasks.total.previousPeriodValue || 55, completedCases: kpi.legacyCompatibility.tasks.completed.previousPeriodValue || 50, pendingCases: 5, inProgressCases: 0, rejectedCases: 0, revenue: kpi.financial.actualAmount.previousPeriodValue || 16000, completionRate: 91, avgTurnaroundDays: 2.1 },
+    { month: 'Dec', monthName: 'Dec', totalCases: kpi.legacyCompatibility.tasks.total.value, completedCases: kpi.legacyCompatibility.tasks.completed.value, pendingCases: 5, inProgressCases: 0, rejectedCases: 0, revenue: kpi.financial.actualAmount.value, completionRate: kpi.financial.collectionEfficiencyPercent.value || 93, avgTurnaroundDays: kpi.performance.avgTatDays.value }
   ] : undefined;
 
   // 5. Activities (Empty for now per specs)
@@ -169,24 +169,24 @@ export const useDashboardKPI = () => {
   // 6. Map to Card Trends
   const cardTrends = kpi ? {
     totalCases: {
-      value: Math.abs(kpi.legacy_compatibility.cases.total.change_percent),
-      isPositive: kpi.legacy_compatibility.cases.total.change_percent >= 0
+      value: Math.abs(kpi.legacyCompatibility.cases.total.changePercent),
+      isPositive: kpi.legacyCompatibility.cases.total.changePercent >= 0
     },
     revokedTasks: {
-      value: Math.abs(kpi.legacy_compatibility.tasks.revoked.change_percent),
-      isPositive: kpi.legacy_compatibility.tasks.revoked.change_percent >= 0
+      value: Math.abs(kpi.legacyCompatibility.tasks.revoked.changePercent),
+      isPositive: kpi.legacyCompatibility.tasks.revoked.changePercent >= 0
     },
     inProgress: {
-      value: Math.abs(kpi.legacy_compatibility.tasks.in_progress.change_percent),
-      isPositive: kpi.legacy_compatibility.tasks.in_progress.change_percent >= 0
+      value: Math.abs(kpi.legacyCompatibility.tasks.inProgress.changePercent),
+      isPositive: kpi.legacyCompatibility.tasks.inProgress.changePercent >= 0
     },
     completed: {
-      value: Math.abs(kpi.legacy_compatibility.tasks.completed.change_percent),
-      isPositive: kpi.legacy_compatibility.tasks.completed.change_percent >= 0
+      value: Math.abs(kpi.legacyCompatibility.tasks.completed.changePercent),
+      isPositive: kpi.legacyCompatibility.tasks.completed.changePercent >= 0
     },
     totalClients: {
-      value: Math.abs(kpi.legacy_compatibility.clients.total.change_percent),
-      isPositive: kpi.legacy_compatibility.clients.total.change_percent >= 0
+      value: Math.abs(kpi.legacyCompatibility.clients.total.changePercent),
+      isPositive: kpi.legacyCompatibility.clients.total.changePercent >= 0
     }
   } : undefined;
 

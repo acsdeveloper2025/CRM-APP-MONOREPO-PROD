@@ -59,7 +59,7 @@ export const CompletedTasksPage: React.FC = () => {
   const [paginationState, setPaginationState] = useState({
     page: 1,
     limit: 20,
-    sortBy: 'completed_at',
+    sortBy: 'completedAt',
     sortOrder: 'desc' as 'asc' | 'desc',
     status: 'COMPLETED',
   });
@@ -259,7 +259,7 @@ export const CompletedTasksPage: React.FC = () => {
           <div className="flex gap-2">
             <Button variant="outline" onClick={async () => {
               try {
- toast.info('Generating Excel export...'); const blob = await VerificationTasksService.exportToExcel({ status: 'COMPLETED' }); const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `completed_tasks_${new Date().toISOString().split('T')[0]}.xlsx`; a.click(); window.URL.revokeObjectURL(url); toast.success('Export downloaded');
+ toast.info('Generating Excel export...'); const blob = await VerificationTasksService.exportToExcel({ status: 'COMPLETED' }); const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `completedTasks_${new Date().toISOString().split('T')[0]}.xlsx`; a.click(); window.URL.revokeObjectURL(url); toast.success('Export downloaded');
               } catch (err) { logger.error('Export failed:', err); toast.error('Export failed'); }
             }}>
               <Download className="h-4 w-4 mr-2" />Export

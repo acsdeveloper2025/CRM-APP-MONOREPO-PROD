@@ -115,18 +115,18 @@ export function MISDataTable({ data, pagination, onPageChange, isLoading: _isLoa
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {data.map((taskRow) => (
-              <tr key={taskRow.task_id} className="hover:bg-green-50 transition-colors">
+              <tr key={taskRow.taskId} className="hover:bg-green-50 transition-colors">
                 {/* 1. Verification Task Column */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
-                    {taskRow.task_number}
+                    {taskRow.taskNumber}
                   </div>
                 </td>
 
                 {/* 2. Case ID Column */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
-                    #{taskRow.case_number}
+                    #{taskRow.caseNumber}
                   </div>
                 </td>
 
@@ -147,7 +147,7 @@ export function MISDataTable({ data, pagination, onPageChange, isLoading: _isLoa
                 {/* 5. Area Column */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-600">
-                    {taskRow.area_name || '-'}
+                    {taskRow.areaName || '-'}
                   </div>
                 </td>
 
@@ -161,51 +161,51 @@ export function MISDataTable({ data, pagination, onPageChange, isLoading: _isLoa
                 {/* 7. Client Column */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {taskRow.client_name}
+                    {taskRow.clientName}
                   </div>
                   <div className="text-xs text-gray-600">
-                    {taskRow.client_code}
+                    {taskRow.clientCode}
                   </div>
                 </td>
 
                 {/* 8. Product Column */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {taskRow.product_name}
+                    {taskRow.productName}
                   </div>
                 </td>
 
                 {/* 9. Verification Type Column */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {taskRow.verification_type_name}
+                    {taskRow.verificationTypeName}
                   </div>
                 </td>
 
                 {/* 10. Backend User Column */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {taskRow.backend_user_name || '-'}
+                    {taskRow.backendUserName || '-'}
                   </div>
                   <div className="text-xs text-gray-600">
-                    {taskRow.backend_user_employee_id || '-'}
+                    {taskRow.backendUserEmployeeId || '-'}
                   </div>
                 </td>
 
                 {/* 11. Field User Column */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {taskRow.assigned_field_user || '-'}
+                    {taskRow.assignedFieldUser || '-'}
                   </div>
                   <div className="text-xs text-gray-600">
-                    {taskRow.field_user_employee_id || '-'}
+                    {taskRow.fieldUserEmployeeId || '-'}
                   </div>
                 </td>
 
                 {/* 12. Rate Type Column */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {taskRow.rate_type || '-'}
+                    {taskRow.rateType || '-'}
                   </div>
                 </td>
 
@@ -218,14 +218,14 @@ export function MISDataTable({ data, pagination, onPageChange, isLoading: _isLoa
 
                 {/* 14. Report Column */}
                 <td className="px-4 py-4 whitespace-nowrap">
-                  {taskRow.form_submission_id ? (
+                  {taskRow.formSubmissionId ? (
                     <div className="text-sm">
                       <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
-                        {taskRow.form_type || 'Submitted'}
+                        {taskRow.formType || 'Submitted'}
                       </Badge>
-                      {taskRow.form_validation_status && (
+                      {taskRow.formValidationStatus && (
                         <div className="text-xs text-gray-600 mt-1">
-                          {taskRow.form_validation_status}
+                          {taskRow.formValidationStatus}
                         </div>
                       )}
                     </div>
@@ -237,19 +237,19 @@ export function MISDataTable({ data, pagination, onPageChange, isLoading: _isLoa
                 {/* 15. Status Column */}
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="space-y-1">
-                    {getStatusBadge(taskRow.task_status)}
-                    {getPriorityBadge(taskRow.task_priority)}
+                    {getStatusBadge(taskRow.taskStatus)}
+                    {getPriorityBadge(taskRow.taskPriority)}
                   </div>
                 </td>
 
                 {/* 16. Created Column */}
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {formatDate(taskRow.task_created_date)}
+                  {formatDate(taskRow.taskCreatedDate)}
                 </td>
 
                 {/* 17. Completed At Column */}
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {taskRow.task_completion_date ? formatDate(taskRow.task_completion_date) : '-'}
+                  {taskRow.taskCompletionDate ? formatDate(taskRow.taskCompletionDate) : '-'}
                 </td>
               </tr>
             ))}
