@@ -126,7 +126,7 @@ export class VerificationTasksService {
     assignedTo?: string
   ): Promise<VerificationTaskResponse> {
     const response = await apiService.post(`/verification-tasks/revisit/${taskId}`, {
-      assignedTo: assignedTo
+      assignedTo,
     });
     return response.data as unknown as VerificationTaskResponse;
   }
@@ -235,9 +235,9 @@ export class VerificationTasksService {
     assignmentReason?: string
   ): Promise<{ success: boolean; data: { updated_tasks: number; tasks: VerificationTask[] }; message: string }> {
     const response = await apiService.post('/verification-tasks/bulk-assign', {
-      taskIds: taskIds,
-      assignedTo: assignedTo,
-      assignment_reason: assignmentReason
+      taskIds,
+      assignedTo,
+      assignmentReason
     });
     return response.data as unknown as { success: boolean; data: { updated_tasks: number; tasks: VerificationTask[] }; message: string };
   }
