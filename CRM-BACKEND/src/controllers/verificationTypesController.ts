@@ -3,6 +3,7 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
 import type { QueryParams } from '@/types/database';
+import { rowsToCamelCase, toCamelCase } from '@/utils/caseConverter';
 
 // GET /api/verification-types - List verification types with pagination and filters
 export const getVerificationTypes = async (req: AuthenticatedRequest, res: Response) => {
@@ -58,7 +59,7 @@ export const getVerificationTypes = async (req: AuthenticatedRequest, res: Respo
 
     res.json({
       success: true,
-      data: verificationTypes,
+      data: rowsToCamelCase(verificationTypes),
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -98,7 +99,7 @@ export const getVerificationTypeById = async (req: AuthenticatedRequest, res: Re
 
     res.json({
       success: true,
-      data: verificationType,
+      data: toCamelCase(verificationType),
     });
   } catch (error) {
     logger.error('Error retrieving verification type:', error);
@@ -142,7 +143,7 @@ export const createVerificationType = async (req: AuthenticatedRequest, res: Res
 
     res.status(201).json({
       success: true,
-      data: newVerificationType,
+      data: toCamelCase(newVerificationType),
       message: 'Verification type created successfully',
     });
   } catch (error) {
@@ -226,7 +227,7 @@ export const updateVerificationType = async (req: AuthenticatedRequest, res: Res
 
     res.json({
       success: true,
-      data: updatedVerificationType,
+      data: toCamelCase(updatedVerificationType),
       message: 'Verification type updated successfully',
     });
   } catch (error) {
