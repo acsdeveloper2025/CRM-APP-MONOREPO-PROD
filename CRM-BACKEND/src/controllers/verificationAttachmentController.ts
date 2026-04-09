@@ -154,7 +154,7 @@ export class VerificationAttachmentController {
 
     if (isScopedOperationsUser(user)) {
       const caseRes = await query<{ clientId: number; productId: number }>(
-        `SELECT "clientId", "productId" FROM cases WHERE id = $1`,
+        `SELECT client_id, product_id FROM cases WHERE id = $1`,
         [caseId]
       );
       if (caseRes.rows.length === 0) {
@@ -177,7 +177,7 @@ export class VerificationAttachmentController {
            LEFT JOIN verification_tasks vt ON vt.case_id = c.id
            WHERE c.id = $1
              AND (
-               c."createdByBackendUser" = ANY($2::uuid[]) OR
+               c.created_by_backend_user = ANY($2::uuid[]) OR
                c."assignedTo" = ANY($2::uuid[]) OR
                vt.assigned_to = ANY($2::uuid[])
              )
@@ -261,10 +261,10 @@ export class VerificationAttachmentController {
       logger.info(`📸 Processing strict dual-write upload for Task ID: ${taskId}`);
 
       const taskResult = await query(
-        `SELECT vt.id, vt.case_id, vt.status, vt.assigned_to, vty.name as verification_type, c."caseId" as case_number 
+        `SELECT vt.id, vt.case_id, vt.status, vt.assigned_to, vty.name as verification_type, c.case_id as case_number 
          FROM verification_tasks vt
          JOIN cases c ON vt.case_id = c.id
-         LEFT JOIN "verificationTypes" vty ON vt.verification_type_id = vty.id
+         LEFT JOIN verification_types vty ON vt.verification_type_id = vty.id
          WHERE vt.id = $1`,
         [taskId]
       );
@@ -291,11 +291,11 @@ export class VerificationAttachmentController {
       }
 
       const existingByOperation = await query(
-        `SELECT id, filename, "originalName", "mimeType", "fileSize", "filePath", 
-                "thumbnailPath", "createdAt", "photoType"
+        `SELECT id, filename, original_name, mime_type, file_size, file_path, 
+                thumbnail_path, created_at, photo_type
          FROM verification_attachments
          WHERE split_part(operation_id, ':', 1) = $1
-         ORDER BY "createdAt" ASC`,
+         ORDER BY created_at ASC`,
         [operationId]
       );
 
@@ -396,14 +396,14 @@ export class VerificationAttachmentController {
           // Save to verification_attachments table
           const attachmentResult = await query(
             `INSERT INTO verification_attachments (
-              case_id, "caseId", verification_type, filename, "originalName", 
-              "mimeType", "fileSize", "filePath", "thumbnailPath", "uploadedBy", 
-              "geoLocation", "photoType", "submissionId", verification_task_id, operation_id
+              case_id, case_id, verification_type, filename, original_name, 
+              mime_type, file_size, file_path, thumbnail_path, uploaded_by, 
+              geo_location, photo_type, submission_id, verification_task_id, operation_id
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             ON CONFLICT (operation_id) WHERE operation_id IS NOT NULL
             DO UPDATE SET operation_id = EXCLUDED.operation_id
-            RETURNING id, filename, "originalName", "mimeType", "fileSize", "filePath",
-                     "thumbnailPath", "createdAt", "photoType", verification_task_id`,
+            RETURNING id, filename, original_name, mime_type, file_size, file_path,
+                     thumbnail_path, created_at, photo_type, verification_task_id`,
             [
               targetCaseId,
               targetCaseNumber,
@@ -544,7 +544,7 @@ export class VerificationAttachmentController {
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
       const caseResult = isUuid
         ? await query(`SELECT id FROM cases WHERE id = $1`, [caseId])
-        : await query(`SELECT id FROM cases WHERE "caseId" = $1`, [parseInt(caseId, 10)]);
+        : await query(`SELECT id FROM cases WHERE case_id = $1`, [parseInt(caseId, 10)]);
 
       if (caseResult.rows.length === 0) {
         return res.status(404).json({
@@ -568,18 +568,18 @@ export class VerificationAttachmentController {
 
       if (submissionId) {
         const paramIndex = queryParams.length + 1;
-        whereClause += ` AND "submissionId" = $${paramIndex}`;
+        whereClause += ` AND submission_id = $${paramIndex}`;
         queryParams.push(submissionId);
       }
 
       const result = await query(
         `SELECT
-          id, filename, "originalName", "mimeType", "fileSize", "filePath",
-          "thumbnailPath", "uploadedBy", "geoLocation", "photoType",
-          "submissionId", verification_type, "createdAt"
+          id, filename, original_name, mime_type, file_size, file_path,
+          thumbnail_path, uploaded_by, geo_location, photo_type,
+          submission_id, verification_type, created_at
         FROM verification_attachments
         ${whereClause}
-        ORDER BY "createdAt" ASC`,
+        ORDER BY created_at ASC`,
         queryParams
       );
 
@@ -608,8 +608,8 @@ export class VerificationAttachmentController {
           caseId
         );
         const caseDataResult = isUuid2
-          ? await query(`SELECT "verificationData" FROM cases WHERE id = $1`, [caseId])
-          : await query(`SELECT "verificationData" FROM cases WHERE "caseId" = $1`, [
+          ? await query(`SELECT verification_data FROM cases WHERE id = $1`, [caseId])
+          : await query(`SELECT verification_data FROM cases WHERE case_id = $1`, [
               parseInt(caseId, 10),
             ]);
 
@@ -675,7 +675,7 @@ export class VerificationAttachmentController {
 
       // Get image details from database
       const imageResult = await query(
-        `SELECT filename, "originalName", "mimeType", "fileSize", "filePath", case_id, verification_type
+        `SELECT filename, original_name, mime_type, file_size, file_path, case_id, verification_type
          FROM verification_attachments WHERE id = $1`,
         [imageId]
       );
@@ -771,7 +771,7 @@ export class VerificationAttachmentController {
 
       // Get image details from database
       const imageResult = await query(
-        `SELECT filename, "originalName", "mimeType", "fileSize", "thumbnailPath", case_id, verification_type
+        `SELECT filename, original_name, mime_type, file_size, thumbnail_path, case_id, verification_type
          FROM verification_attachments WHERE id = $1`,
         [imageId]
       );

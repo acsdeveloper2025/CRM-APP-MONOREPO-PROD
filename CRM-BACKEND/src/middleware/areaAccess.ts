@@ -15,7 +15,7 @@ import { hasSystemScopeBypass, isFieldExecutionActor } from '@/security/rbacAcce
 const getAssignedAreaIds = async (userId: string): Promise<number[]> => {
   try {
     const result = await query(
-      'SELECT "areaId" FROM "userAreaAssignments" WHERE "userId" = $1 AND "isActive" = true',
+      'SELECT area_id FROM user_area_assignments WHERE user_id = $1 AND is_active = true',
       [userId]
     );
 

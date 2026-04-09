@@ -143,10 +143,10 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
         ) {
           conditions.push('FALSE');
         } else {
-          conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
+          conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
           params.push(assignedClientIds);
           paramIndex++;
-          conditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
+          conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
           params.push(assignedProductIds);
           paramIndex++;
         }
@@ -198,10 +198,10 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
         tfs.validation_status,
         tfs.validated_by,
         tfs.validated_at,
-        c."customerName",
-        c."caseId" as case_number,
+        c.customer_name,
+        c.case_id as case_number,
         u.name as agent_name,
-        u."employeeId" as employee_id,
+        u.employee_id as employee_id,
         vt.task_title as verification_type_name,
         0 as attachment_count
       FROM task_form_submissions tfs
@@ -307,19 +307,19 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
 
     if (dateFrom) {
       const alias = formType.toUpperCase() === 'RESIDENCE' ? 'r' : 'o';
-      conditions.push(`${alias}."createdAt" >= $${paramIndex}`);
+      conditions.push(`${alias}.created_at >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
       const alias = formType.toUpperCase() === 'RESIDENCE' ? 'r' : 'o';
-      conditions.push(`${alias}."createdAt" <= $${paramIndex}`);
+      conditions.push(`${alias}.created_at <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
     if (agentId) {
       const alias = formType.toUpperCase() === 'RESIDENCE' ? 'r' : 'o';
-      conditions.push(`${alias}."createdBy" = $${paramIndex}`);
+      conditions.push(`${alias}.created_by = $${paramIndex}`);
       params.push(agentId);
       paramIndex++;
     }
@@ -331,36 +331,36 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
       query = `
         SELECT
           r.*,
-          c."customerName",
-          c."caseId" as "caseNumber",
+          c.customer_name,
+          c.case_id as "caseNumber",
           u.name as "agentName",
-          u."employeeId",
+          u.employee_id,
           COUNT(a.id) as "attachmentCount"
-        FROM "residenceVerificationReports" r
-        LEFT JOIN cases c ON r."caseId" = c."caseId"
-        LEFT JOIN users u ON r."createdBy" = u.id
-        LEFT JOIN attachments a ON a."caseId" = c.id
+        FROM residence_verification_reports r
+        LEFT JOIN cases c ON r.case_id = c.case_id
+        LEFT JOIN users u ON r.created_by = u.id
+        LEFT JOIN attachments a ON a.case_id = c.id
         ${whereClause}
-        GROUP BY r.id, c."customerName", c."caseId", u.name, u."employeeId"
-        ORDER BY r."createdAt" DESC
+        GROUP BY r.id, c.customer_name, c.case_id, u.name, u.employee_id
+        ORDER BY r.created_at DESC
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
     } else if (formType.toUpperCase() === 'OFFICE') {
       query = `
         SELECT
           o.*,
-          c."customerName",
-          c."caseId" as "caseNumber",
+          c.customer_name,
+          c.case_id as "caseNumber",
           u.name as "agentName",
-          u."employeeId",
+          u.employee_id,
           COUNT(a.id) as "attachmentCount"
-        FROM "officeVerificationReports" o
-        LEFT JOIN cases c ON o."caseId" = c."caseId"
-        LEFT JOIN users u ON o."createdBy" = u.id
-        LEFT JOIN attachments a ON a."caseId" = c.id
+        FROM office_verification_reports o
+        LEFT JOIN cases c ON o.case_id = c.case_id
+        LEFT JOIN users u ON o.created_by = u.id
+        LEFT JOIN attachments a ON a.case_id = c.id
         ${whereClause}
-        GROUP BY o.id, c."customerName", c."caseId", u.name, u."employeeId"
-        ORDER BY o."createdAt" DESC
+        GROUP BY o.id, c.customer_name, c.case_id, u.name, u.employee_id
+        ORDER BY o.created_at DESC
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
     }
@@ -402,12 +402,12 @@ export const getFormValidationStatus = async (req: AuthenticatedRequest, res: Re
     let paramIndex = 1;
 
     if (dateFrom) {
-      conditions.push(`"createdAt" >= $${paramIndex}`);
+      conditions.push(`created_at >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`"createdAt" <= $${paramIndex}`);
+      conditions.push(`created_at <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
@@ -492,17 +492,17 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
     let paramIndex = 1;
 
     if (dateFrom) {
-      conditions.push(`c."createdAt" >= $${paramIndex}`);
+      conditions.push(`c.created_at >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`c."createdAt" <= $${paramIndex}`);
+      conditions.push(`c.created_at <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
     if (clientId) {
-      conditions.push(`c."clientId" = $${paramIndex}`);
+      conditions.push(`c.client_id = $${paramIndex}`);
       params.push(parseInt(clientId));
       paramIndex++;
     }
@@ -545,12 +545,12 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
           ELSE 0
         END as task_completion_percentage
       FROM cases c
-      LEFT JOIN clients cl ON c."clientId" = cl.id
+      LEFT JOIN clients cl ON c.client_id = cl.id
       LEFT JOIN verification_tasks vt ON c.id = vt.case_id
       LEFT JOIN task_form_submissions tfs ON vt.id = tfs.verification_task_id
       ${whereClause}
-      GROUP BY c.id, c."caseId", cl.name
-      ORDER BY c."createdAt" DESC
+      GROUP BY c.id, c.case_id, cl.name
+      ORDER BY c.created_at DESC
     `;
 
     const analyticsResult = await pool.query(analyticsQuery, params);
@@ -613,9 +613,9 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
     const caseQuery = `
       SELECT c.*, cl.name as "clientName", u.name as "agentName"
       FROM cases c
-      LEFT JOIN clients cl ON c."clientId" = cl.id
+      LEFT JOIN clients cl ON c.client_id = cl.id
       LEFT JOIN users u ON c."assignedTo" = u.id
-      WHERE c."caseId" = $1
+      WHERE c.case_id = $1
     `;
     const caseResult = await pool.query(caseQuery, [caseId]);
 
@@ -634,7 +634,7 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
         `SELECT 1
          FROM verification_tasks vt
          JOIN cases c ON vt.case_id = c.id
-         WHERE c."caseId" = $1 AND vt.assigned_to = $2
+         WHERE c.case_id = $1 AND vt.assigned_to = $2
          LIMIT 1`,
         [caseId, req.user.id]
       );
@@ -654,9 +654,9 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
           `SELECT 1
            FROM cases c
            LEFT JOIN verification_tasks vt ON vt.case_id = c.id
-           WHERE c."caseId" = $1
+           WHERE c.case_id = $1
              AND (
-               c."createdByBackendUser" = ANY($2::uuid[]) OR
+               c.created_by_backend_user = ANY($2::uuid[]) OR
                c."assignedTo" = ANY($2::uuid[]) OR
                vt.assigned_to = ANY($2::uuid[])
              )
@@ -695,19 +695,19 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
     const timelineQuery = `
       SELECT
         'CASE_CREATED' as event_type,
-        c."createdAt" as event_date,
+        c.created_at as event_date,
         creator.name as performed_by,
         'Case created and assigned' as description,
         jsonb_build_object('status', c.status, 'priority', c.priority) as metadata
       FROM cases c
-      LEFT JOIN users creator ON c."createdByBackendUser" = creator.id
-      WHERE c."caseId" = $1
+      LEFT JOIN users creator ON c.created_by_backend_user = creator.id
+      WHERE c.case_id = $1
 
       UNION ALL
 
       SELECT
         'RESIDENCE_FORM_SUBMITTED' as event_type,
-        r."createdAt" as event_date,
+        r.created_at as event_date,
         u.name as performed_by,
         'Residence verification form submitted' as description,
         jsonb_build_object(
@@ -715,15 +715,15 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
           'residenceConfirmed', r."residenceConfirmed",
           'personMet', r."personMet"
         ) as metadata
-      FROM "residenceVerificationReports" r
-      LEFT JOIN users u ON r."createdBy" = u.id
-      WHERE r."caseId" = $1
+      FROM residence_verification_reports r
+      LEFT JOIN users u ON r.created_by = u.id
+      WHERE r.case_id = $1
 
       UNION ALL
 
       SELECT
         'OFFICE_FORM_SUBMITTED' as event_type,
-        o."createdAt" as event_date,
+        o.created_at as event_date,
         u.name as performed_by,
         'Office verification form submitted' as description,
         jsonb_build_object(
@@ -731,25 +731,25 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
           'officeConfirmed', o."officeConfirmed",
           'personMet', o."personMet"
         ) as metadata
-      FROM "officeVerificationReports" o
-      LEFT JOIN users u ON o."createdBy" = u.id
-      WHERE o."caseId" = $1
+      FROM office_verification_reports o
+      LEFT JOIN users u ON o.created_by = u.id
+      WHERE o.case_id = $1
 
       UNION ALL
 
       SELECT
         'ATTACHMENT_UPLOADED' as event_type,
-        a."createdAt" as event_date,
+        a.created_at as event_date,
         u.name as performed_by,
         CONCAT('File uploaded: ', a."fileName") as description,
         jsonb_build_object(
           'fileName', a."fileName",
           'fileType', a."fileType",
-          'fileSize', a."fileSize"
+          'fileSize', a.file_size
         ) as metadata
       FROM attachments a
-      LEFT JOIN users u ON a."uploadedBy" = u.id
-      WHERE a."caseId" = (SELECT id FROM cases WHERE "caseId" = $1)
+      LEFT JOIN users u ON a.uploaded_by = u.id
+      WHERE a.case_id = (SELECT id FROM cases WHERE case_id = $1)
 
       ORDER BY event_date ASC
     `;
@@ -813,7 +813,7 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
       paramIndex++;
     }
     if (departmentId) {
-      conditions.push(`u."departmentId" = $${paramIndex}`);
+      conditions.push(`u.department_id = $${paramIndex}`);
       params.push(parseInt(departmentId));
       paramIndex++;
     }
@@ -825,7 +825,7 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
       SELECT
         u.id as agent_id,
         u.name as agent_name,
-        u."employeeId" as employee_id,
+        u.employee_id as employee_id,
         vt.id as task_id,
         vt.task_number,
         vt.status,
@@ -845,10 +845,10 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
       FROM verification_tasks vt
       INNER JOIN users u ON vt.assigned_to = u.id
       LEFT JOIN cases cas ON vt.case_id = cas.id
-      LEFT JOIN clients cl ON cas."clientId" = cl.id
-      LEFT JOIN products p ON cas."productId" = p.id
-      LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
-      LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
+      LEFT JOIN clients cl ON cas.client_id = cl.id
+      LEFT JOIN products p ON cas.product_id = p.id
+      LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
+      LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
       ${whereClause}
       ORDER BY vt.created_at DESC
     `;
@@ -995,7 +995,7 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
     const agentQuery = `
       SELECT u.*, d.name as "departmentName"
       FROM users u
-      LEFT JOIN departments d ON u."departmentId" = d.id
+      LEFT JOIN departments d ON u.department_id = d.id
       WHERE u.id = $1
         AND EXISTS (
           SELECT 1
@@ -1022,12 +1022,12 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
     let paramIndex = 2;
 
     if (dateFrom) {
-      conditions.push(`c."createdAt" >= $${paramIndex}`);
+      conditions.push(`c.created_at >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`c."createdAt" <= $${paramIndex}`);
+      conditions.push(`c.created_at <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
@@ -1037,18 +1037,18 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
     // Get daily productivity data
     const productivityQuery = `
       SELECT
-        DATE(c."createdAt") as work_date,
+        DATE(c.created_at) as work_date,
         COUNT(DISTINCT c.id) as cases_assigned,
         COUNT(DISTINCT CASE WHEN c.status = 'COMPLETED' THEN c.id END) as cases_completed,
         COUNT(DISTINCT r.id) as residence_forms,
         COUNT(DISTINCT o.id) as office_forms,
         COUNT(DISTINCT a.id) as attachments_uploaded
       FROM cases c
-      LEFT JOIN "residenceVerificationReports" r ON c."caseId" = r."caseId" AND r."createdBy" = $1
-      LEFT JOIN "officeVerificationReports" o ON c."caseId" = o."caseId" AND o."createdBy" = $1
-      LEFT JOIN attachments a ON c.id = a.case_id AND a."uploadedBy" = $1
+      LEFT JOIN residence_verification_reports r ON c.case_id = r.case_id AND r.created_by = $1
+      LEFT JOIN office_verification_reports o ON c.case_id = o.case_id AND o.created_by = $1
+      LEFT JOIN attachments a ON c.id = a.case_id AND a.uploaded_by = $1
       ${whereClause}
-      GROUP BY DATE(c."createdAt")
+      GROUP BY DATE(c.created_at)
       ORDER BY work_date DESC
     `;
 
@@ -1103,12 +1103,12 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
     const backendScope = await getBackendUserReportScope(req);
 
     if (dateFrom) {
-      conditions.push(`c."createdAt" >= $${paramIndex}`);
+      conditions.push(`c.created_at >= $${paramIndex}`);
       params.push(dateFrom as string);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`c."createdAt" <= $${paramIndex}`);
+      conditions.push(`c.created_at <= $${paramIndex}`);
       params.push(dateTo as string);
       paramIndex++;
     }
@@ -1118,7 +1118,7 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
       paramIndex++;
     }
     if (clientId) {
-      conditions.push(`c."clientId" = $${paramIndex}`);
+      conditions.push(`c.client_id = $${paramIndex}`);
       params.push(parseInt(clientId as string));
       paramIndex++;
     }
@@ -1135,7 +1135,7 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
 
     if (backendScope.scopedUserIds) {
       conditions.push(`(
-        c."createdByBackendUser" = ANY($${paramIndex}::uuid[]) OR
+        c.created_by_backend_user = ANY($${paramIndex}::uuid[]) OR
         c."assignedTo" = ANY($${paramIndex}::uuid[]) OR
         EXISTS (
           SELECT 1 FROM verification_tasks vt_scope
@@ -1147,12 +1147,12 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
       paramIndex++;
     }
     if (backendScope.clientIds) {
-      conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
       params.push(backendScope.clientIds);
       paramIndex++;
     }
     if (backendScope.productIds) {
-      conditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
       params.push(backendScope.productIds);
       paramIndex++;
     }
@@ -1168,11 +1168,11 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
         u.name as "assignedToName",
         creator.name as "createdByName"
       FROM cases c
-      LEFT JOIN clients cl ON c."clientId" = cl.id
+      LEFT JOIN clients cl ON c.client_id = cl.id
       LEFT JOIN users u ON c."assignedTo" = u.id
-      LEFT JOIN users creator ON c."createdByBackendUser" = creator.id
+      LEFT JOIN users creator ON c.created_by_backend_user = creator.id
       ${whereClause}
-      ORDER BY c."createdAt" DESC
+      ORDER BY c.created_at DESC
     `;
 
     const casesResult = await pool.query(casesQuery, params);
@@ -1272,7 +1272,7 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
       userParamIndex++;
     }
     if (isActive !== undefined) {
-      userConditions.push(`u."isActive" = $${userParamIndex}`);
+      userConditions.push(`u.is_active = $${userParamIndex}`);
       userParams.push(isActive === 'true');
       userParamIndex++;
     }
@@ -1282,7 +1282,7 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
 
     // Get users from database
     const usersQuery = `
-      SELECT u.*, COUNT(c."caseId") as "totalCases"
+      SELECT u.*, COUNT(c.case_id) as total_cases
       FROM users u
       LEFT JOIN cases c ON u.id = c."assignedTo"
       ${userWhereClause}
@@ -1336,7 +1336,7 @@ export const getClientReport = async (req: AuthenticatedRequest, res: Response) 
     let paramIndex = 1;
 
     if (isActive !== undefined) {
-      conditions.push(`cl."isActive" = $${paramIndex}`);
+      conditions.push(`cl.is_active = $${paramIndex}`);
       params.push(isActive === 'true');
       paramIndex++;
     }
@@ -1345,9 +1345,9 @@ export const getClientReport = async (req: AuthenticatedRequest, res: Response) 
 
     // Get clients from database with case counts
     const clientsQuery = `
-      SELECT cl.*, COUNT(c."caseId") as "totalCases"
+      SELECT cl.*, COUNT(c.case_id) as total_cases
       FROM clients cl
-      LEFT JOIN cases c ON cl.id = c."clientId"
+      LEFT JOIN cases c ON cl.id = c.client_id
       ${whereClause}
       GROUP BY cl.id
       ORDER BY cl.name
@@ -1389,12 +1389,12 @@ export const getDashboardReport = async (req: AuthenticatedRequest, res: Respons
     // Get basic counts from database
     const summaryQuery = `
       SELECT 
-        (SELECT COUNT(*) FROM cases) as "totalCases",
+        (SELECT COUNT(*) FROM cases) as total_cases,
         (SELECT COUNT(*) FROM cases WHERE status = 'PENDING') as "pendingCases",
         (SELECT COUNT(*) FROM cases WHERE status = 'IN_PROGRESS') as "inProgressCases",
         (SELECT COUNT(*) FROM cases WHERE status = 'COMPLETED') as "completedCases",
-        (SELECT COUNT(*) FROM users WHERE "isActive" = true) as "activeUsers",
-        (SELECT COUNT(*) FROM clients WHERE "isActive" = true) as "activeClients"
+        (SELECT COUNT(*) FROM users WHERE is_active = true) as "activeUsers",
+        (SELECT COUNT(*) FROM clients WHERE is_active = true) as "activeClients"
     `;
 
     const summaryResult = await pool.query<DashboardSummaryRow>(summaryQuery);
@@ -1448,9 +1448,9 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
     // Search across case number, customer name, customer phone, task number
     if (search && typeof search === 'string' && search.trim()) {
       conditions.push(`(
-        c."caseId" ILIKE $${paramIndex} OR
-        c."customerName" ILIKE $${paramIndex} OR
-        c."customerPhone" ILIKE $${paramIndex} OR
+        c.case_id ILIKE $${paramIndex} OR
+        c.customer_name ILIKE $${paramIndex} OR
+        c.customer_phone ILIKE $${paramIndex} OR
         vt.task_number ILIKE $${paramIndex}
       )`);
       params.push(`%${search.trim()}%`);
@@ -1471,12 +1471,12 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
 
     // Client and Product filters
     if (clientId) {
-      conditions.push(`c."clientId" = $${paramIndex}`);
+      conditions.push(`c.client_id = $${paramIndex}`);
       params.push(parseInt(clientId as string));
       paramIndex++;
     }
     if (productId) {
-      conditions.push(`c."productId" = $${paramIndex}`);
+      conditions.push(`c.product_id = $${paramIndex}`);
       params.push(parseInt(productId as string));
       paramIndex++;
     }
@@ -1497,7 +1497,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
 
     // Backend User filter
     if (backendUserId) {
-      conditions.push(`c."createdByBackendUser" = $${paramIndex}`);
+      conditions.push(`c.created_by_backend_user = $${paramIndex}`);
       params.push(backendUserId as string);
       paramIndex++;
     }
@@ -1519,18 +1519,18 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
     if (backendScope.scopedUserIds) {
       conditions.push(`(
         vt.assigned_to = ANY($${paramIndex}::uuid[]) OR
-        c."createdByBackendUser" = ANY($${paramIndex}::uuid[])
+        c.created_by_backend_user = ANY($${paramIndex}::uuid[])
       )`);
       params.push(backendScope.scopedUserIds);
       paramIndex++;
     }
     if (backendScope.clientIds) {
-      conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
       params.push(backendScope.clientIds);
       paramIndex++;
     }
     if (backendScope.productIds) {
-      conditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
       params.push(backendScope.productIds);
       paramIndex++;
     }
@@ -1551,11 +1551,11 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
       SELECT COUNT(DISTINCT vt.id) as total
       FROM verification_tasks vt
       LEFT JOIN cases c ON vt.case_id = c.id
-      LEFT JOIN clients cl ON c."clientId" = cl.id
-      LEFT JOIN products p ON c."productId" = p.id
-      LEFT JOIN "verificationTypes" vt_type ON vt.verification_type_id = vt_type.id
+      LEFT JOIN clients cl ON c.client_id = cl.id
+      LEFT JOIN products p ON c.product_id = p.id
+      LEFT JOIN verification_types vt_type ON vt.verification_type_id = vt_type.id
       LEFT JOIN users u ON vt.assigned_to = u.id
-      LEFT JOIN users bu ON c."createdByBackendUser" = bu.id
+      LEFT JOIN users bu ON c.created_by_backend_user = bu.id
       ${whereClause}
     `;
     const countResult = await pool.query(countQuery, params);
@@ -1598,17 +1598,17 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
 
         -- Field User Data
         u.name as assigned_field_user,
-        u."employeeId" as field_user_employee_id,
+        u.employee_id as field_user_employee_id,
 
         -- Case-Level Data (SECONDARY/REFERENCE)
         c.id as case_id,
-        c."caseId" as case_number,
-        c."customerName",
-        c."customerPhone",
-        c."customerCallingCode",
+        c.case_id as case_number,
+        c.customer_name,
+        c.customer_phone,
+        c.customer_calling_code,
         c.status as case_status,
         c.priority as case_priority,
-        c."createdAt" as case_created_date,
+        c.created_at as case_created_date,
         c.total_tasks_count,
         c.completed_tasks_count,
         c.case_completion_percentage,
@@ -1620,7 +1620,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
 
         -- Backend User Data
         bu.name as backend_user_name,
-        bu."employeeId" as backend_user_employee_id,
+        bu.employee_id as backend_user_employee_id,
 
         -- Form Submission Data
         tfs.id as form_submission_id,
@@ -1630,13 +1630,13 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
 
       FROM verification_tasks vt
       LEFT JOIN cases c ON vt.case_id = c.id
-      LEFT JOIN clients cl ON c."clientId" = cl.id
-      LEFT JOIN products p ON c."productId" = p.id
-      LEFT JOIN "verificationTypes" vt_type ON vt.verification_type_id = vt_type.id
-      LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
+      LEFT JOIN clients cl ON c.client_id = cl.id
+      LEFT JOIN products p ON c.product_id = p.id
+      LEFT JOIN verification_types vt_type ON vt.verification_type_id = vt_type.id
+      LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
       LEFT JOIN areas ar ON vt.area_id = ar.id
       LEFT JOIN users u ON vt.assigned_to = u.id
-      LEFT JOIN users bu ON c."createdByBackendUser" = bu.id
+      LEFT JOIN users bu ON c.created_by_backend_user = bu.id
       LEFT JOIN task_form_submissions tfs ON vt.id = tfs.verification_task_id
 
       ${whereClause}
@@ -1661,11 +1661,11 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
         END) as avg_tat_days
       FROM verification_tasks vt
       LEFT JOIN cases c ON vt.case_id = c.id
-      LEFT JOIN clients cl ON c."clientId" = cl.id
-      LEFT JOIN products p ON c."productId" = p.id
-      LEFT JOIN "verificationTypes" vt_type ON vt.verification_type_id = vt_type.id
+      LEFT JOIN clients cl ON c.client_id = cl.id
+      LEFT JOIN products p ON c.product_id = p.id
+      LEFT JOIN verification_types vt_type ON vt.verification_type_id = vt_type.id
       LEFT JOIN users u ON vt.assigned_to = u.id
-      LEFT JOIN users bu ON c."createdByBackendUser" = bu.id
+      LEFT JOIN users bu ON c.created_by_backend_user = bu.id
       ${whereClause}
     `;
 
@@ -1738,9 +1738,9 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
     // Search across case number, customer name, customer phone, task number
     if (search && typeof search === 'string' && search.trim()) {
       conditions.push(`(
-        c."caseId" ILIKE $${paramIndex} OR
-        c."customerName" ILIKE $${paramIndex} OR
-        c."customerPhone" ILIKE $${paramIndex} OR
+        c.case_id ILIKE $${paramIndex} OR
+        c.customer_name ILIKE $${paramIndex} OR
+        c.customer_phone ILIKE $${paramIndex} OR
         vt.task_number ILIKE $${paramIndex}
       )`);
       params.push(`%${search.trim()}%`);
@@ -1761,12 +1761,12 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
 
     // Client and Product filters
     if (clientId) {
-      conditions.push(`c."clientId" = $${paramIndex}`);
+      conditions.push(`c.client_id = $${paramIndex}`);
       params.push(parseInt(clientId as string));
       paramIndex++;
     }
     if (productId) {
-      conditions.push(`c."productId" = $${paramIndex}`);
+      conditions.push(`c.product_id = $${paramIndex}`);
       params.push(parseInt(productId as string));
       paramIndex++;
     }
@@ -1787,7 +1787,7 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
 
     // Backend User filter
     if (backendUserId) {
-      conditions.push(`c."createdByBackendUser" = $${paramIndex}`);
+      conditions.push(`c.created_by_backend_user = $${paramIndex}`);
       params.push(backendUserId as string);
       paramIndex++;
     }
@@ -1809,18 +1809,18 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
     if (backendScope.scopedUserIds) {
       conditions.push(`(
         vt.assigned_to = ANY($${paramIndex}::uuid[]) OR
-        c."createdByBackendUser" = ANY($${paramIndex}::uuid[])
+        c.created_by_backend_user = ANY($${paramIndex}::uuid[])
       )`);
       params.push(backendScope.scopedUserIds);
       paramIndex++;
     }
     if (backendScope.clientIds) {
-      conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
       params.push(backendScope.clientIds);
       paramIndex++;
     }
     if (backendScope.productIds) {
-      conditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
       params.push(backendScope.productIds);
       paramIndex++;
     }
@@ -1860,16 +1860,16 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
 
         -- Field User Data
         u.name as assigned_field_user,
-        u."employeeId" as field_user_employee_id,
+        u.employee_id as field_user_employee_id,
 
         -- Case-Level Data (SECONDARY/REFERENCE)
-        c."caseId" as case_number,
-        c."customerName",
-        c."customerPhone",
-        c."customerCallingCode",
+        c.case_id as case_number,
+        c.customer_name,
+        c.customer_phone,
+        c.customer_calling_code,
         c.status as case_status,
         c.priority as case_priority,
-        c."createdAt" as case_created_date,
+        c.created_at as case_created_date,
         c.total_tasks_count,
         c.completed_tasks_count,
         c.case_completion_percentage,
@@ -1881,7 +1881,7 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
 
         -- Backend User Data
         bu.name as backend_user_name,
-        bu."employeeId" as backend_user_employee_id,
+        bu.employee_id as backend_user_employee_id,
 
         -- Form Submission Data
         tfs.id as form_submission_id,
@@ -1891,12 +1891,12 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
 
       FROM verification_tasks vt
       LEFT JOIN cases c ON vt.case_id = c.id
-      LEFT JOIN clients cl ON c."clientId" = cl.id
-      LEFT JOIN products p ON c."productId" = p.id
-      LEFT JOIN "verificationTypes" vt_type ON vt.verification_type_id = vt_type.id
-      LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
+      LEFT JOIN clients cl ON c.client_id = cl.id
+      LEFT JOIN products p ON c.product_id = p.id
+      LEFT JOIN verification_types vt_type ON vt.verification_type_id = vt_type.id
+      LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
       LEFT JOIN users u ON vt.assigned_to = u.id
-      LEFT JOIN users bu ON c."createdByBackendUser" = bu.id
+      LEFT JOIN users bu ON c.created_by_backend_user = bu.id
       LEFT JOIN task_form_submissions tfs ON vt.id = tfs.verification_task_id
       ${whereClause}
       ORDER BY vt.created_at DESC

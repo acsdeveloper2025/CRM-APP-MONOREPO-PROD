@@ -142,41 +142,41 @@ export class EnterpriseMobileSyncService {
     userId: string,
     lastSyncTimestamp?: string
   ): Promise<Record<string, unknown>[]> {
-    const syncCondition = lastSyncTimestamp ? `AND cah."assignedAt" > $2` : '';
+    const syncCondition = lastSyncTimestamp ? `AND cah.assigned_at > $2` : '';
 
     const params = lastSyncTimestamp ? [userId, lastSyncTimestamp] : [userId];
 
     const assignmentsQuery = `
       SELECT DISTINCT
         c.id,
-        c."caseId",
-        c."customerName",
-        c."customerPhone",
+        c.case_id,
+        c.customer_name,
+        c.customer_phone,
         c.address,
         c.city,
         c.state,
         c.pincode,
         c.client,
         c.product,
-        c."verificationType",
-        c."applicantType",
+        c.verification_type,
+        c.applicant_type,
         c.priority,
         c.status,
-        c."createdAt",
-        c."updatedAt",
-        cah."assignedAt",
+        c.created_at,
+        c.updated_at,
+        cah.assigned_at,
         cah.reason as "assignmentReason",
         assigned_by.name as "assignedByName",
         -- Get attachment count
-        (SELECT COUNT(*) FROM attachments a WHERE a."caseId" = c.id) as "attachmentCount",
+        (SELECT COUNT(*) FROM attachments a WHERE a.case_id = c.id) as "attachmentCount",
         -- Get form submission count
-        (SELECT COUNT(*) FROM form_submissions fs WHERE fs."caseId" = c.id) as "formSubmissionCount"
+        (SELECT COUNT(*) FROM form_submissions fs WHERE fs.case_id = c.id) as "formSubmissionCount"
       FROM cases c
-      INNER JOIN case_assignment_history cah ON c.id = cah."caseUUID"
-      LEFT JOIN users assigned_by ON cah."assignedById" = assigned_by.id
-      WHERE cah."toUserId" = $1
+      INNER JOIN case_assignment_history cah ON c.id = cah.case_uuid
+      LEFT JOIN users assigned_by ON cah.assigned_by_id = assigned_by.id
+      WHERE cah.to_user_id = $1
         ${syncCondition}
-      ORDER BY cah."assignedAt" DESC
+      ORDER BY cah.assigned_at DESC
       LIMIT 500
     `;
 
@@ -199,22 +199,22 @@ export class EnterpriseMobileSyncService {
     const updatesQuery = `
       SELECT 
         c.id,
-        c."caseId",
-        c."customerName",
+        c.case_id,
+        c.customer_name,
         c.status,
-        c."updatedAt",
+        c.updated_at,
         c.priority,
         -- Get latest form submission
         (SELECT COUNT(*) FROM form_submissions fs 
-         WHERE fs."caseId" = c.id AND fs."createdAt" > $2) as "newFormSubmissions",
+         WHERE fs.case_id = c.id AND fs.created_at > $2) as "newFormSubmissions",
         -- Get latest attachments
         (SELECT COUNT(*) FROM attachments a 
-         WHERE a."caseId" = c.id AND a."uploadedAt" > $2) as "newAttachments"
+         WHERE a.case_id = c.id AND a."uploadedAt" > $2) as "newAttachments"
       FROM cases c
       WHERE c."assignedTo" = $1
-        AND c."updatedAt" > $2
+        AND c.updated_at > $2
         AND c.status != 'COMPLETED'
-      ORDER BY c."updatedAt" DESC
+      ORDER BY c.updated_at DESC
       LIMIT 200
     `;
 
@@ -231,15 +231,15 @@ export class EnterpriseMobileSyncService {
   ): Promise<CaseAssignmentNotification[]> {
     const notificationsQuery = `
       SELECT 
-        "notificationType" as type,
+        notification_type as type,
         data,
         title,
         message,
-        "createdAt"
+        created_at
       FROM mobile_notification_queue
-      WHERE "userId" = $1 
+      WHERE user_id = $1 
         AND status = 'PENDING'
-      ORDER BY "createdAt" DESC
+      ORDER BY created_at DESC
       LIMIT 100
     `;
 
@@ -267,16 +267,16 @@ export class EnterpriseMobileSyncService {
   ): Promise<void> {
     const upsertQuery = `
       INSERT INTO mobile_device_sync (
-        "userId", "deviceId", "lastSyncAt", "appVersion", 
-        platform, "syncCount", "createdAt", "updatedAt"
+        user_id, device_id, last_sync_at, app_version, 
+        platform, sync_count, created_at, updated_at
       ) VALUES ($1, $2, $3, $4, $5, 1, NOW(), NOW())
-      ON CONFLICT ("userId", "deviceId") 
+      ON CONFLICT (user_id, device_id) 
       DO UPDATE SET
-        "lastSyncAt" = $3,
-        "appVersion" = $4,
+        last_sync_at = $3,
+        app_version = $4,
         platform = $5,
-        "syncCount" = mobile_device_sync."syncCount" + 1,
-        "updatedAt" = NOW()
+        sync_count = mobile_device_sync.sync_count + 1,
+        updated_at = NOW()
     `;
 
     await client.query(upsertQuery, [
@@ -302,8 +302,8 @@ export class EnterpriseMobileSyncService {
 
     const updateQuery = `
       UPDATE mobile_notification_queue 
-      SET status = 'SENT', "sentAt" = NOW(), "updatedAt" = NOW()
-      WHERE "userId" = $1 AND status = 'PENDING'
+      SET status = 'SENT', sent_at = NOW(), updated_at = NOW()
+      WHERE user_id = $1 AND status = 'PENDING'
     `;
 
     await client.query(updateQuery, [userId]);
@@ -322,8 +322,8 @@ export class EnterpriseMobileSyncService {
     try {
       const insertQuery = `
         INSERT INTO mobile_notification_queue (
-          "userId", "notificationType", title, message, data, 
-          status, "scheduledAt", "createdAt", "updatedAt"
+          user_id, notification_type, title, message, data, 
+          status, scheduled_at, created_at, updated_at
         ) VALUES ($1, $2, $3, $4, $5, 'PENDING', NOW(), NOW(), NOW())
       `;
 
@@ -350,13 +350,13 @@ export class EnterpriseMobileSyncService {
     try {
       const statsQuery = `
         SELECT 
-          COUNT(DISTINCT "userId") as "activeUsers",
-          COUNT(DISTINCT "deviceId") as "activeDevices",
-          AVG("syncCount") as "avgSyncCount",
-          MAX("lastSyncAt") as "lastSyncTime",
-          COUNT(CASE WHEN "lastSyncAt" > NOW() - INTERVAL '1 hour' THEN 1 END) as "recentSyncs"
+          COUNT(DISTINCT user_id) as "activeUsers",
+          COUNT(DISTINCT device_id) as "activeDevices",
+          AVG(sync_count) as "avgSyncCount",
+          MAX(last_sync_at) as "lastSyncTime",
+          COUNT(CASE WHEN last_sync_at > NOW() - INTERVAL '1 hour' THEN 1 END) as "recentSyncs"
         FROM mobile_device_sync
-        WHERE "lastSyncAt" > NOW() - INTERVAL '24 hours'
+        WHERE last_sync_at > NOW() - INTERVAL '24 hours'
       `;
 
       const result = await query(statsQuery);

@@ -53,8 +53,8 @@ export const getRbacRoles = async (_req: AuthenticatedRequest, res: Response) =>
          r.parent_role_id as "parentRoleId",
          pr.name as "parentRoleName",
          r.is_system as "isSystem",
-         r.created_at as "createdAt",
-         r.updated_at as "updatedAt",
+         r.created_at as created_at,
+         r.updated_at as updated_at,
          COALESCE(uc."userCount", 0)::int as "userCount"
        FROM roles_v2 r
        LEFT JOIN roles_v2 pr ON pr.id = r.parent_role_id
@@ -91,8 +91,8 @@ export const getRbacRoleById = async (req: AuthenticatedRequest, res: Response) 
          r.parent_role_id as "parentRoleId",
          pr.name as "parentRoleName",
          r.is_system as "isSystem",
-         r.created_at as "createdAt",
-         r.updated_at as "updatedAt",
+         r.created_at as created_at,
+         r.updated_at as updated_at,
          COALESCE(uc."userCount", 0)::int as "userCount"
        FROM roles_v2 r
        LEFT JOIN roles_v2 pr ON pr.id = r.parent_role_id

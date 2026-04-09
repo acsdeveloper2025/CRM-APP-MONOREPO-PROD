@@ -218,7 +218,7 @@ export class PDFExportService {
       SELECT 
         u.id,
         u.name,
-        u."employeeId",
+        u.employee_id,
         u.email,
         d.name as department_name,
         COUNT(DISTINCT apd.date) as active_days,
@@ -228,7 +228,7 @@ export class PDFExportService {
         COALESCE(AVG(apd.quality_score), 0) as avg_quality_score,
         COALESCE(AVG(apd.validation_success_rate), 0) as avg_validation_success_rate
       FROM users u
-      LEFT JOIN departments d ON u."departmentId" = d.id
+      LEFT JOIN departments d ON u.department_id = d.id
       LEFT JOIN agent_performance_daily apd ON u.id = apd.agent_id
       ${whereClause}
       AND EXISTS (
@@ -238,7 +238,7 @@ export class PDFExportService {
         JOIN permissions pf ON pf.id = rpf.permission_id
         WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
       )
-      GROUP BY u.id, u.name, u."employeeId", u.email, d.name
+      GROUP BY u.id, u.name, u.employee_id, u.email, d.name
       ORDER BY avg_quality_score DESC
     `;
 
@@ -262,13 +262,13 @@ export class PDFExportService {
     let paramIndex = 1;
 
     if (dateFrom) {
-      whereConditions.push(`c."createdAt" >= $${paramIndex}`);
+      whereConditions.push(`c.created_at >= $${paramIndex}`);
       queryParams.push(dateFrom);
       paramIndex++;
     }
 
     if (dateTo) {
-      whereConditions.push(`c."createdAt" <= $${paramIndex}`);
+      whereConditions.push(`c.created_at <= $${paramIndex}`);
       queryParams.push(dateTo);
       paramIndex++;
     }
@@ -278,7 +278,7 @@ export class PDFExportService {
     const query = `
       SELECT * FROM case_completion_analytics
       ${whereClause}
-      ORDER BY "createdAt" DESC
+      ORDER BY created_at DESC
       LIMIT 5000
     `;
 

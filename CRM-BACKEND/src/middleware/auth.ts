@@ -63,14 +63,14 @@ export const loadUserAuthContext = async (userId: string): Promise<DbUserAuthCon
           WHERE ur.user_id = u.id
         ), ARRAY[]::varchar[]) as "permissionCodes",
         COALESCE((
-          SELECT ARRAY_AGG(DISTINCT uca."clientId" ORDER BY uca."clientId")
-          FROM "userClientAssignments" uca
-          WHERE uca."userId" = u.id
+          SELECT ARRAY_AGG(DISTINCT uca.client_id ORDER BY uca.client_id)
+          FROM user_client_assignments uca
+          WHERE uca.user_id = u.id
         ), ARRAY[]::int[]) as "assignedClientIds",
         COALESCE((
-          SELECT ARRAY_AGG(DISTINCT upa."productId" ORDER BY upa."productId")
-          FROM "userProductAssignments" upa
-          WHERE upa."userId" = u.id
+          SELECT ARRAY_AGG(DISTINCT upa.product_id ORDER BY upa.product_id)
+          FROM user_product_assignments upa
+          WHERE upa.user_id = u.id
         ), ARRAY[]::int[]) as "assignedProductIds",
         COALESCE((
           SELECT ARRAY_AGG(DISTINCT rv.name ORDER BY rv.name)

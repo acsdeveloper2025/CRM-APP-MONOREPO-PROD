@@ -56,7 +56,7 @@ export class NotificationController {
           title,
           message,
           type,
-          case_id as "caseId",
+          case_id as case_id,
           case_number as "caseNumber",
           task_id as "taskId",
           task_number as "taskNumber",
@@ -65,11 +65,11 @@ export class NotificationController {
           action_type as "actionType",
           is_read as "isRead",
           read_at as "readAt",
-          delivery_status as "deliveryStatus",
+          delivery_status as delivery_status,
           priority,
-          expires_at as "expiresAt",
-          created_at as "createdAt",
-          updated_at as "updatedAt"
+          expires_at as expires_at,
+          created_at as created_at,
+          updated_at as updated_at
         FROM notifications
         WHERE user_id = $1
         ORDER BY created_at DESC
@@ -425,7 +425,7 @@ export class NotificationController {
 
       const selectQuery = `
         SELECT 
-          user_id as "userId",
+          user_id as user_id,
           case_assignment_enabled as "caseAssignmentEnabled",
           case_assignment_push as "caseAssignmentPush",
           case_assignment_websocket as "caseAssignmentWebsocket",
@@ -444,8 +444,8 @@ export class NotificationController {
           quiet_hours_enabled as "quietHoursEnabled",
           quiet_hours_start as "quietHoursStart",
           quiet_hours_end as "quietHoursEnd",
-          created_at as "createdAt",
-          updated_at as "updatedAt"
+          created_at as created_at,
+          updated_at as updated_at
         FROM notification_preferences 
         WHERE user_id = $1
       `;
@@ -458,7 +458,7 @@ export class NotificationController {
           INSERT INTO notification_preferences (user_id)
           VALUES ($1)
           RETURNING 
-            user_id as "userId",
+            user_id as user_id,
             case_assignment_enabled as "caseAssignmentEnabled",
             case_assignment_push as "caseAssignmentPush",
             case_assignment_websocket as "caseAssignmentWebsocket",
@@ -477,8 +477,8 @@ export class NotificationController {
             quiet_hours_enabled as "quietHoursEnabled",
             quiet_hours_start as "quietHoursStart",
             quiet_hours_end as "quietHoursEnd",
-            created_at as "createdAt",
-            updated_at as "updatedAt"
+            created_at as created_at,
+            updated_at as updated_at
         `;
 
         const insertResult = await query(insertQuery, [userId]);
@@ -564,7 +564,7 @@ export class NotificationController {
           updated_at = NOW()
         WHERE user_id = $1
         RETURNING 
-          user_id as "userId",
+          user_id as user_id,
           case_assignment_enabled as "caseAssignmentEnabled",
           case_assignment_push as "caseAssignmentPush",
           case_assignment_websocket as "caseAssignmentWebsocket",
@@ -583,7 +583,7 @@ export class NotificationController {
           quiet_hours_enabled as "quietHoursEnabled",
           quiet_hours_start as "quietHoursStart",
           quiet_hours_end as "quietHoursEnd",
-          updated_at as "updatedAt"
+          updated_at as updated_at
       `;
 
       const values = [
@@ -669,8 +669,8 @@ export class NotificationController {
         SELECT 
           id,
           platform,
-          is_active as "isActive",
-          created_at as "createdAt",
+          is_active as is_active,
+          created_at as created_at,
           last_used_at as "lastUsedAt"
         FROM notification_tokens 
         WHERE user_id = $1
@@ -734,9 +734,9 @@ export class NotificationController {
         RETURNING 
           id,
           platform,
-          is_active as "isActive",
-          created_at as "createdAt",
-          updated_at as "updatedAt"
+          is_active as is_active,
+          created_at as created_at,
+          updated_at as updated_at
       `;
 
       const result = await query(upsertQuery, [userId, deviceId || 'default', platform, pushToken]);
@@ -790,7 +790,7 @@ export class NotificationController {
         UPDATE notification_tokens
         SET is_active = false, updated_at = NOW()
         WHERE id = $1 AND user_id = $2
-        RETURNING id, device_id as "deviceId", platform
+        RETURNING id, device_id as device_id, platform
       `;
 
       const result = await query(updateQuery, [tokenId, userId]);
@@ -1023,7 +1023,7 @@ export class NotificationController {
         SELECT
           ndl.id,
           ndl.delivery_method as "deliveryMethod",
-          ndl.delivery_status as "deliveryStatus",
+          ndl.delivery_status as delivery_status,
           ndl.attempted_at as "attemptedAt",
           ndl.delivered_at as "deliveredAt",
           ndl.error_message as "errorMessage",

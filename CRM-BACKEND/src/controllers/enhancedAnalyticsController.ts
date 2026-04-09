@@ -57,7 +57,7 @@ export const getEnhancedFormSubmissions = async (req: Request, res: Response) =>
     }
 
     if (caseId) {
-      whereConditions.push(`fs."caseId" = $${paramIndex}`);
+      whereConditions.push(`fs.case_id = $${paramIndex}`);
       queryParams.push(caseId);
       paramIndex++;
     }
@@ -159,7 +159,7 @@ export const getEnhancedAgentPerformance = async (req: Request, res: Response) =
     }
 
     if (departmentId) {
-      whereConditions.push(`u."departmentId" = $${paramIndex}`);
+      whereConditions.push(`u.department_id = $${paramIndex}`);
       queryParams.push(departmentId);
       paramIndex++;
     }
@@ -171,7 +171,7 @@ export const getEnhancedAgentPerformance = async (req: Request, res: Response) =
       SELECT 
         u.id,
         u.name,
-        u."employeeId",
+        u.employee_id,
         u.email,
         u.performance_rating,
         u.total_cases_handled,
@@ -207,7 +207,7 @@ export const getEnhancedAgentPerformance = async (req: Request, res: Response) =
         END as avg_forms_per_day
         
       FROM users u
-      LEFT JOIN departments d ON u."departmentId" = d.id
+      LEFT JOIN departments d ON u.department_id = d.id
       LEFT JOIN agent_performance_daily apd ON u.id = apd.agent_id
       ${whereClause}
       AND EXISTS (
@@ -217,7 +217,7 @@ export const getEnhancedAgentPerformance = async (req: Request, res: Response) =
         JOIN permissions pf ON pf.id = rpf.permission_id
         WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
       )
-      GROUP BY u.id, u.name, u."employeeId", u.email, u.performance_rating, 
+      GROUP BY u.id, u.name, u.employee_id, u.email, u.performance_rating, 
                u.total_cases_handled, u.avg_case_completion_days, u.last_active_at, d.name
       ORDER BY avg_quality_score DESC, completion_rate DESC
     `;
@@ -290,7 +290,7 @@ export const getEnhancedAgentPerformance = async (req: Request, res: Response) =
       SELECT 
         u.id,
         u.name,
-        u."employeeId",
+        u.employee_id,
         AVG(apd.quality_score) as avg_quality_score,
         SUM(apd.cases_completed) as total_completed,
         AVG(apd.validation_success_rate) as validation_rate
@@ -304,7 +304,7 @@ export const getEnhancedAgentPerformance = async (req: Request, res: Response) =
         JOIN permissions pf ON pf.id = rpf.permission_id
         WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
       )
-      GROUP BY u.id, u.name, u."employeeId"
+      GROUP BY u.id, u.name, u.employee_id
       HAVING AVG(apd.quality_score) > 85
       ORDER BY AVG(apd.quality_score) DESC, SUM(apd.cases_completed) DESC
       LIMIT 10
@@ -351,13 +351,13 @@ export const getEnhancedCaseAnalytics = async (req: Request, res: Response) => {
 
     // Build WHERE clause
     if (dateFrom) {
-      whereConditions.push(`cca."createdAt" >= $${paramIndex}`);
+      whereConditions.push(`cca.created_at >= $${paramIndex}`);
       queryParams.push(dateFrom);
       paramIndex++;
     }
 
     if (dateTo) {
-      whereConditions.push(`cca."createdAt" <= $${paramIndex}`);
+      whereConditions.push(`cca.created_at <= $${paramIndex}`);
       queryParams.push(dateTo);
       paramIndex++;
     }
@@ -375,7 +375,7 @@ export const getEnhancedCaseAnalytics = async (req: Request, res: Response) => {
     }
 
     if (_clientId) {
-      whereConditions.push(`cca."clientId" = $${paramIndex}`);
+      whereConditions.push(`cca.client_id = $${paramIndex}`);
       queryParams.push(_clientId);
       paramIndex++;
     }
@@ -402,7 +402,7 @@ export const getEnhancedCaseAnalytics = async (req: Request, res: Response) => {
          
       FROM case_completion_analytics cca
       ${whereClause}
-      ORDER BY cca."createdAt" DESC
+      ORDER BY cca.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 

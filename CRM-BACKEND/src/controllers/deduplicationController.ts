@@ -188,7 +188,7 @@ export const getDuplicateClusters = async (req: AuthenticatedRequest, res: Respo
     const query = `
       WITH duplicate_groups AS (
         SELECT 
-          COALESCE("panNumber", "aadhaarNumber", "applicantPhone", "bankAccountNumber") as group_key,
+          COALESCE(pan_number, "aadhaarNumber", "applicantPhone", "bankAccountNumber") as group_key,
           COUNT(*) as case_count,
           ARRAY_AGG(
             json_build_object(
@@ -196,16 +196,16 @@ export const getDuplicateClusters = async (req: AuthenticatedRequest, res: Respo
               'caseNumber', "caseNumber",
               'applicantName', "applicantName",
               'status', status,
-              'createdAt', "createdAt",
-              'panNumber', "panNumber",
+              'createdAt', created_at,
+              'panNumber', pan_number,
               'aadhaarNumber', "aadhaarNumber",
               'applicantPhone', "applicantPhone",
               'bankAccountNumber', "bankAccountNumber"
-            ) ORDER BY "createdAt" DESC
+            ) ORDER BY created_at DESC
           ) as cases
         FROM cases
         WHERE (
-          "panNumber" IS NOT NULL OR 
+          pan_number IS NOT NULL OR 
           "aadhaarNumber" IS NOT NULL OR 
           "applicantPhone" IS NOT NULL OR 
           "bankAccountNumber" IS NOT NULL
@@ -221,11 +221,11 @@ export const getDuplicateClusters = async (req: AuthenticatedRequest, res: Respo
     const countQuery = `
       WITH duplicate_groups AS (
         SELECT 
-          COALESCE("panNumber", "aadhaarNumber", "applicantPhone", "bankAccountNumber") as group_key,
+          COALESCE(pan_number, "aadhaarNumber", "applicantPhone", "bankAccountNumber") as group_key,
           COUNT(*) as case_count
         FROM cases
         WHERE (
-          "panNumber" IS NOT NULL OR 
+          pan_number IS NOT NULL OR 
           "aadhaarNumber" IS NOT NULL OR 
           "applicantPhone" IS NOT NULL OR 
           "bankAccountNumber" IS NOT NULL
@@ -312,7 +312,7 @@ export const searchGlobalDuplicates = async (req: AuthenticatedRequest, res: Res
           },
         });
       }
-      searchConditions.push(`c."panNumber" = $${paramIndex}`);
+      searchConditions.push(`c.pan_number = $${paramIndex}`);
       searchParams.push(cleanPan);
       paramIndex++;
     }
@@ -321,7 +321,7 @@ export const searchGlobalDuplicates = async (req: AuthenticatedRequest, res: Res
     if (mobile?.trim()) {
       const cleanMobile = mobile.trim().replace(/\D/g, '');
       if (cleanMobile.length >= 10) {
-        searchConditions.push(`c."customerPhone" LIKE '%' || $${paramIndex} || '%'`);
+        searchConditions.push(`c.customer_phone LIKE '%' || $${paramIndex} || '%'`);
         searchParams.push(cleanMobile);
         paramIndex++;
       }
@@ -329,7 +329,7 @@ export const searchGlobalDuplicates = async (req: AuthenticatedRequest, res: Res
 
     // Fuzzy name search
     if (name?.trim()) {
-      searchConditions.push(`c."customerName" ILIKE '%' || $${paramIndex} || '%'`);
+      searchConditions.push(`c.customer_name ILIKE '%' || $${paramIndex} || '%'`);
       searchParams.push(name.trim());
       paramIndex++;
     }
@@ -371,22 +371,22 @@ export const searchGlobalDuplicates = async (req: AuthenticatedRequest, res: Res
     const query = `
       SELECT
         c.id,
-        c."caseId",
-        c."caseId" as "caseNumber",
-        c."customerName",
-        c."customerPhone",
-        c."panNumber",
+        c.case_id,
+        c.case_id as "caseNumber",
+        c.customer_name,
+        c.customer_phone,
+        c.pan_number,
         c.status,
-        c."createdAt",
+        c.created_at,
         cl.name as "clientName",
         p.name as "productName",
         vt.address as "address"
       FROM cases c
-      LEFT JOIN clients cl ON c."clientId" = cl.id
-      LEFT JOIN products p ON c."productId" = p.id
+      LEFT JOIN clients cl ON c.client_id = cl.id
+      LEFT JOIN products p ON c.product_id = p.id
       LEFT JOIN verification_tasks vt ON vt.case_id = c.id
       WHERE (${searchConditions.join(' OR ')})
-      ORDER BY c."createdAt" DESC
+      ORDER BY c.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 

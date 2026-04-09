@@ -43,7 +43,7 @@ export const getSubordinateUsers = async (
       `
         SELECT u.id
         FROM users u
-        WHERE u."deletedAt" IS NULL
+        WHERE u.deleted_at IS NULL
           AND u.team_leader_id = $1
       `,
       [userId]
@@ -53,13 +53,13 @@ export const getSubordinateUsers = async (
         WITH RECURSIVE managed_users AS (
           SELECT u.id
           FROM users u
-          WHERE u."deletedAt" IS NULL
+          WHERE u.deleted_at IS NULL
             AND u.manager_id = $1
           UNION
           SELECT child.id
           FROM users child
           JOIN managed_users parent_scope ON child.manager_id = parent_scope.id
-          WHERE child."deletedAt" IS NULL
+          WHERE child.deleted_at IS NULL
         )
         SELECT DISTINCT id
         FROM managed_users

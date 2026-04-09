@@ -33,8 +33,8 @@ export const getCountries = async (req: AuthenticatedRequest, res: Response) => 
         name,
         code,
         continent,
-        "createdAt",
-        "updatedAt"
+        created_at,
+        updated_at
       FROM countries
       WHERE 1=1
     `;
@@ -139,8 +139,8 @@ export const getCountryById = async (req: AuthenticatedRequest, res: Response) =
         name,
         code,
         continent,
-        "createdAt",
-        "updatedAt"
+        created_at,
+        updated_at
       FROM countries
       WHERE id = $1`,
       [Number(id)]
@@ -189,7 +189,7 @@ export const createCountry = async (req: AuthenticatedRequest, res: Response) =>
     const result = await query<Country>(
       `INSERT INTO countries (name, code, continent)
        VALUES ($1, $2, $3)
-       RETURNING id, name, code, continent, "createdAt", "updatedAt"`,
+       RETURNING id, name, code, continent, created_at, updated_at`,
       [name, code.toUpperCase(), continent]
     );
 
@@ -220,7 +220,7 @@ export const updateCountry = async (req: AuthenticatedRequest, res: Response) =>
 
     // Check if country exists
     const countryResult = await query<Country>(
-      'SELECT id, name, code, "isActive", "createdAt", "updatedAt" FROM countries WHERE id = $1',
+      'SELECT id, name, code, is_active, created_at, updated_at FROM countries WHERE id = $1',
       [id]
     );
 
@@ -269,7 +269,7 @@ export const updateCountry = async (req: AuthenticatedRequest, res: Response) =>
 
     // Add updatedAt
     paramCount++;
-    updateFields.push(`"updatedAt" = $${paramCount}`);
+    updateFields.push(`updated_at = $${paramCount}`);
     updateValues.push(new Date().toISOString());
 
     // Add id for WHERE clause
@@ -277,7 +277,7 @@ export const updateCountry = async (req: AuthenticatedRequest, res: Response) =>
     updateValues.push(id);
 
     const updateSql = `UPDATE countries SET ${updateFields.join(', ')} WHERE id = $${paramCount}
-                       RETURNING id, name, code, continent, "createdAt", "updatedAt"`;
+                       RETURNING id, name, code, continent, created_at, updated_at`;
     const result = await query<Country>(updateSql, updateValues);
 
     const updatedCountry = result.rows[0];
@@ -306,7 +306,7 @@ export const deleteCountry = async (req: AuthenticatedRequest, res: Response) =>
 
     // Check if country exists
     const countryResult = await query<Country>(
-      'SELECT id, name, code, "isActive", "createdAt", "updatedAt" FROM countries WHERE id = $1',
+      'SELECT id, name, code, is_active, created_at, updated_at FROM countries WHERE id = $1',
       [id]
     );
 
@@ -316,7 +316,7 @@ export const deleteCountry = async (req: AuthenticatedRequest, res: Response) =>
 
     // Check for associated states before deletion
     const statesResult = await query<{ count: string }>(
-      'SELECT COUNT(*) FROM states WHERE "countryId" = $1',
+      'SELECT COUNT(*) FROM states WHERE country_id = $1',
       [id]
     );
 
@@ -456,7 +456,7 @@ export const bulkImportCountries = async (
           // Update existing country
           await query(
             `UPDATE countries
-             SET name = $1, continent = $2, "updatedAt" = NOW()
+             SET name = $1, continent = $2, updated_at = NOW()
              WHERE code = $3`,
             [name, continent, code.toUpperCase()]
           );

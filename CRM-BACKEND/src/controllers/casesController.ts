@@ -190,7 +190,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         const assignedProductIds = await getAssignedProductIds(userId);
 
         if (assignedClientIds && assignedClientIds.length > 0) {
-          baseConditions.push(`c."clientId" = ANY($${baseParamIndex}::int[])`);
+          baseConditions.push(`c.client_id = ANY($${baseParamIndex}::int[])`);
           baseParams.push(assignedClientIds);
           baseParamIndex++;
         } else if (assignedClientIds && assignedClientIds.length === 0) {
@@ -198,7 +198,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         }
 
         if (assignedProductIds && assignedProductIds.length > 0) {
-          baseConditions.push(`c."productId" = ANY($${baseParamIndex}::int[])`);
+          baseConditions.push(`c.product_id = ANY($${baseParamIndex}::int[])`);
           baseParams.push(assignedProductIds);
           baseParamIndex++;
         } else if (assignedProductIds && assignedProductIds.length === 0) {
@@ -218,15 +218,15 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     // Search filter (customer name, case ID, address, phone, trigger, applicant type)
     if (search) {
       baseConditions.push(`(
-        COALESCE(c."customerName", '') ILIKE $${baseParamIndex} OR
-        COALESCE(c."caseId"::text, '') ILIKE $${baseParamIndex} OR
+        COALESCE(c.customer_name, '') ILIKE $${baseParamIndex} OR
+        COALESCE(c.case_id::text, '') ILIKE $${baseParamIndex} OR
         EXISTS (
           SELECT 1 FROM verification_tasks vt 
           WHERE vt.case_id = c.id AND vt.address ILIKE $${baseParamIndex}
         ) OR
-        COALESCE(c."customerPhone", '') ILIKE $${baseParamIndex} OR
+        COALESCE(c.customer_phone, '') ILIKE $${baseParamIndex} OR
         COALESCE(c.trigger, '') ILIKE $${baseParamIndex} OR
-        COALESCE(c."applicantType", '') ILIKE $${baseParamIndex}
+        COALESCE(c.applicant_type, '') ILIKE $${baseParamIndex}
       )`);
       baseParams.push(
         `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
@@ -236,19 +236,19 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
 
     // Client filter
     if (clientId) {
-      baseConditions.push(`c."clientId" = $${baseParamIndex}`);
+      baseConditions.push(`c.client_id = $${baseParamIndex}`);
       baseParams.push(parseInt(clientId));
       baseParamIndex++;
     }
 
     // Date range filter
     if (dateFrom) {
-      baseConditions.push(`c."createdAt" >= $${baseParamIndex}`);
+      baseConditions.push(`c.created_at >= $${baseParamIndex}`);
       baseParams.push(dateFrom);
       baseParamIndex++;
     }
     if (dateTo) {
-      baseConditions.push(`c."createdAt" <= $${baseParamIndex}`);
+      baseConditions.push(`c.created_at <= $${baseParamIndex}`);
       baseParams.push(dateTo);
       baseParamIndex++;
     }
@@ -321,7 +321,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     // Get case statistics for metric cards (ignoring the active tab's status filter)
     const statsQuery = `
       SELECT
-        COUNT(DISTINCT c.id) as "totalCases",
+        COUNT(DISTINCT c.id) as total_cases,
         COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'PENDING') as pending,
         COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'IN_PROGRESS') as "inProgress",
         COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'COMPLETED') as completed,
@@ -329,14 +329,14 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'REVOKED') as revoked,
         COUNT(DISTINCT c.id) FILTER (
           WHERE c.status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED')
-          AND c."createdAt" < NOW() - INTERVAL '48 hours'
+          AND c.created_at < NOW() - INTERVAL '48 hours'
         ) as overdue,
         0 as "highPriority",
         COUNT(DISTINCT vt.assigned_to) FILTER (WHERE c.status = 'IN_PROGRESS' AND vt.assigned_to IS NOT NULL) as "activeAgentsInProgress",
-        AVG(EXTRACT(EPOCH FROM (NOW() - c."createdAt"))/86400) FILTER (WHERE c.status = 'IN_PROGRESS') as "avgDurationDaysInProgress",
-        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'COMPLETED' AND c."completedAt" >= DATE_TRUNC('month', NOW())) as "completedThisMonth",
+        AVG(EXTRACT(EPOCH FROM (NOW() - c.created_at))/86400) FILTER (WHERE c.status = 'IN_PROGRESS') as "avgDurationDaysInProgress",
+        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'COMPLETED' AND c.completed_at >= DATE_TRUNC('month', NOW())) as "completedThisMonth",
         COUNT(DISTINCT vt.assigned_to) FILTER (WHERE c.status = 'COMPLETED' AND vt.assigned_to IS NOT NULL) as "activeAgentsCompleted",
-        AVG(EXTRACT(EPOCH FROM (c."completedAt" - c."createdAt"))/86400) FILTER (WHERE c.status = 'COMPLETED') as "avgTATDays"
+        AVG(EXTRACT(EPOCH FROM (c.completed_at - c.created_at))/86400) FILTER (WHERE c.status = 'COMPLETED') as "avgTATDays"
       FROM cases c
       LEFT JOIN verification_tasks vt ON c.id = vt.case_id
       ${baseWhereClause}
@@ -354,11 +354,11 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
             WHEN c.status IN ('PENDING', 'IN_PROGRESS') THEN
               COALESCE(
                 EXTRACT(EPOCH FROM (NOW() - (
-                  SELECT MAX(cah."assignedAt")
+                  SELECT MAX(cah.assigned_at)
                   FROM case_assignment_history cah
                   WHERE cah.case_id = c.id
                 ))),
-                EXTRACT(EPOCH FROM (NOW() - c."createdAt"))
+                EXTRACT(EPOCH FROM (NOW() - c.created_at))
               )
             ELSE 0
           END ${safeSortOrder}
@@ -397,7 +397,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         -- Calculate pending/in-progress duration for frontend display (based on case creation time)
         CASE
           WHEN c.status IN ('PENDING', 'IN_PROGRESS') THEN
-            EXTRACT(EPOCH FROM (NOW() - c."createdAt"))
+            EXTRACT(EPOCH FROM (NOW() - c.created_at))
           ELSE NULL
         END as "pendingDurationSeconds",
         -- NEW: Verification task statistics for multi-task architecture
@@ -411,11 +411,11 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         assigned_user.name as "assignedToName",
         assigned_user.email as "assignedToEmail"
       FROM cases c
-      LEFT JOIN clients cl ON c."clientId" = cl.id
-      LEFT JOIN users created_user ON c."createdByBackendUser" = created_user.id
-      LEFT JOIN products p ON c."productId" = p.id
-      LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
-      LEFT JOIN "rateTypes" rt ON c."rateTypeId" = rt.id
+      LEFT JOIN clients cl ON c.client_id = cl.id
+      LEFT JOIN users created_user ON c.created_by_backend_user = created_user.id
+      LEFT JOIN products p ON c.product_id = p.id
+      LEFT JOIN verification_types vt ON c.verification_type_id = vt.id
+      LEFT JOIN rate_types rt ON c.rate_type_id = rt.id
       LEFT JOIN LATERAL (
         SELECT u.id, u.name, u.email
         FROM verification_tasks vts
@@ -607,11 +607,11 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
         assigned_user.name as "assignedToName",
         assigned_user.email as "assignedToEmail"
       FROM cases c
-      LEFT JOIN clients cl ON c."clientId" = cl.id
-      LEFT JOIN users created_user ON c."createdByBackendUser" = created_user.id
-      LEFT JOIN products p ON c."productId" = p.id
-      LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
-      LEFT JOIN "rateTypes" rt ON c."rateTypeId" = rt.id
+      LEFT JOIN clients cl ON c.client_id = cl.id
+      LEFT JOIN users created_user ON c.created_by_backend_user = created_user.id
+      LEFT JOIN products p ON c.product_id = p.id
+      LEFT JOIN verification_types vt ON c.verification_type_id = vt.id
+      LEFT JOIN rate_types rt ON c.rate_type_id = rt.id
       LEFT JOIN LATERAL (
         SELECT u.id, u.name, u.email
         FROM verification_tasks vts
@@ -630,7 +630,7 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
         FROM verification_tasks
         WHERE case_id = c.id
       ) task_stats ON true
-      WHERE ${isNumeric ? 'c."caseId" = $1' : 'c.id = $1'}
+      WHERE ${isNumeric ? 'c.case_id = $1' : 'c.id = $1'}
     `;
 
     const queryParams: QueryParams = [isNumeric ? parseInt(id) : id];
@@ -700,7 +700,7 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
           });
         }
         caseQuery += ` AND (
-          c."createdByBackendUser" = ANY($${queryParams.length + 1}::uuid[]) OR
+          c.created_by_backend_user = ANY($${queryParams.length + 1}::uuid[]) OR
           c."assignedTo" = ANY($${queryParams.length + 1}::uuid[]) OR
           EXISTS (
             SELECT 1 FROM verification_tasks vt_scope
@@ -718,7 +718,7 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
         const assignedProductIds = await getAssignedProductIds(userId);
 
         if (assignedClientIds && assignedClientIds.length > 0) {
-          caseQuery += ` AND c."clientId" = ANY($${queryParams.length + 1}::int[])`;
+          caseQuery += ` AND c.client_id = ANY($${queryParams.length + 1}::int[])`;
           queryParams.push(assignedClientIds);
         } else if (assignedClientIds && assignedClientIds.length === 0) {
           return res.status(403).json({
@@ -729,7 +729,7 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
         }
 
         if (assignedProductIds && assignedProductIds.length > 0) {
-          caseQuery += ` AND c."productId" = ANY($${queryParams.length + 1}::int[])`;
+          caseQuery += ` AND c.product_id = ANY($${queryParams.length + 1}::int[])`;
           queryParams.push(assignedProductIds);
         } else if (assignedProductIds && assignedProductIds.length === 0) {
           return res.status(403).json({
@@ -768,7 +768,7 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
         au.name as visit_assigned_to_name
       FROM applicants a
       LEFT JOIN verifications v ON a.id = v.applicant_id
-      LEFT JOIN "verificationTypes" vt ON v.verification_type_id = vt.id
+      LEFT JOIN verification_types vt ON v.verification_type_id = vt.id
       LEFT JOIN visits vi ON v.id = vi.verification_id
       LEFT JOIN users au ON vi.assigned_to = au.id
       WHERE a.case_id = $1
@@ -952,32 +952,32 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
     let paramIndex = 1;
 
     if (customerName !== undefined) {
-      updateFields.push(`"customerName" = $${paramIndex}`);
+      updateFields.push(`customer_name = $${paramIndex}`);
       values.push(customerName);
       paramIndex++;
     }
     if (customerPhone !== undefined) {
-      updateFields.push(`"customerPhone" = $${paramIndex}`);
+      updateFields.push(`customer_phone = $${paramIndex}`);
       values.push(customerPhone);
       paramIndex++;
     }
     if (customerCallingCode !== undefined) {
-      updateFields.push(`"customerCallingCode" = $${paramIndex}`);
+      updateFields.push(`customer_calling_code = $${paramIndex}`);
       values.push(customerCallingCode);
       paramIndex++;
     }
     if (clientId !== undefined) {
-      updateFields.push(`"clientId" = $${paramIndex}`);
+      updateFields.push(`client_id = $${paramIndex}`);
       values.push(clientId);
       paramIndex++;
     }
     if (productId !== undefined) {
-      updateFields.push(`"productId" = $${paramIndex}`);
+      updateFields.push(`product_id = $${paramIndex}`);
       values.push(productId);
       paramIndex++;
     }
     if (verificationTypeId !== undefined) {
-      updateFields.push(`"verificationTypeId" = $${paramIndex}`);
+      updateFields.push(`verification_type_id = $${paramIndex}`);
       values.push(verificationTypeId);
       paramIndex++;
     }
@@ -997,12 +997,12 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
       paramIndex++;
     }
     if (applicantType !== undefined) {
-      updateFields.push(`"applicantType" = $${paramIndex}`);
+      updateFields.push(`applicant_type = $${paramIndex}`);
       values.push(applicantType);
       paramIndex++;
     }
     if (backendContactNumber !== undefined) {
-      updateFields.push(`"backendContactNumber" = $${paramIndex}`);
+      updateFields.push(`backend_contact_number = $${paramIndex}`);
       values.push(backendContactNumber);
       paramIndex++;
     }
@@ -1018,7 +1018,7 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
     // Update cases table if there are case-level fields
     if (updateFields.length > 0) {
       // Always update the updatedAt timestamp
-      updateFields.push(`"updatedAt" = NOW()`);
+      updateFields.push(`updated_at = NOW()`);
 
       // Add case ID as the last parameter (UUID, not numeric caseId)
       values.push(id);
@@ -1495,9 +1495,9 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
 
     if (search) {
       whereConditions.push(`(
-        c."customerName" ILIKE $${paramIndex} OR
-        c."customerPhone" ILIKE $${paramIndex} OR
-        c."caseId"::text ILIKE $${paramIndex}
+        c.customer_name ILIKE $${paramIndex} OR
+        c.customer_phone ILIKE $${paramIndex} OR
+        c.case_id::text ILIKE $${paramIndex}
       )`);
       queryParams.push(
         `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
@@ -1514,37 +1514,37 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     if (clientId) {
-      whereConditions.push(`c."clientId" = $${paramIndex}`);
+      whereConditions.push(`c.client_id = $${paramIndex}`);
       queryParams.push(clientId as string);
       paramIndex++;
     }
 
     if (productId) {
-      whereConditions.push(`c."productId" = $${paramIndex}`);
+      whereConditions.push(`c.product_id = $${paramIndex}`);
       queryParams.push(productId as string);
       paramIndex++;
     }
 
     if (verificationTypeId) {
-      whereConditions.push(`c."verificationTypeId" = $${paramIndex}`);
+      whereConditions.push(`c.verification_type_id = $${paramIndex}`);
       queryParams.push(verificationTypeId as string);
       paramIndex++;
     }
 
     if (stateId) {
-      whereConditions.push(`c."stateId" = $${paramIndex}`);
+      whereConditions.push(`c.state_id = $${paramIndex}`);
       queryParams.push(stateId as string);
       paramIndex++;
     }
 
     if (cityId) {
-      whereConditions.push(`c."cityId" = $${paramIndex}`);
+      whereConditions.push(`c.city_id = $${paramIndex}`);
       queryParams.push(cityId as string);
       paramIndex++;
     }
 
     if (pincodeId) {
-      whereConditions.push(`c."pincodeId" = $${paramIndex}`);
+      whereConditions.push(`c.pincode_id = $${paramIndex}`);
       queryParams.push(pincodeId as string);
       paramIndex++;
     }
@@ -1556,13 +1556,13 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     if (dateFrom) {
-      whereConditions.push(`c."createdAt" >= $${paramIndex}`);
+      whereConditions.push(`c.created_at >= $${paramIndex}`);
       queryParams.push(dateFrom as string);
       paramIndex++;
     }
 
     if (dateTo) {
-      whereConditions.push(`c."createdAt" <= $${paramIndex}`);
+      whereConditions.push(`c.created_at <= $${paramIndex}`);
       queryParams.push(
         `${typeof dateTo === 'string' || typeof dateTo === 'number' ? String(dateTo) : new Date().toISOString().split('T')[0]} 23:59:59`
       );
@@ -1596,7 +1596,7 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
         if (!assignedClientIds || assignedClientIds.length === 0) {
           whereConditions.push('FALSE');
         } else {
-          whereConditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
+          whereConditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
           queryParams.push(assignedClientIds);
           paramIndex++;
         }
@@ -1604,7 +1604,7 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
         if (!assignedProductIds || assignedProductIds.length === 0) {
           whereConditions.push('FALSE');
         } else {
-          whereConditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
+          whereConditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
           queryParams.push(assignedProductIds);
           paramIndex++;
         }
@@ -1616,10 +1616,10 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     // Query to get cases data
     const query = `
       SELECT
-        c."caseId" as case_id,
-        c."customerName" as customer_name,
-        c."customerPhone" as customer_phone,
-        c."customerCallingCode" as customer_calling_code,
+        c.case_id as case_id,
+        c.customer_name as customer_name,
+        c.customer_phone as customer_phone,
+        c.customer_calling_code as customer_calling_code,
         (SELECT address FROM verification_tasks WHERE case_id = c.id LIMIT 1) as address,
         c.pincode,
         cl.name as client_name,
@@ -1628,40 +1628,40 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
         vt.name as verification_type_name,
         c.status,
         c.priority,
-        c."applicantType" as applicant_type,
-        c."backendContactNumber" as backend_contact_number,
+        c.applicant_type as applicant_type,
+        c.backend_contact_number as backend_contact_number,
         c.trigger,
         assigned_user.name as assigned_to_name,
-        assigned_user."employeeId" as assigned_to_employee_id,
+        assigned_user.employee_id as assigned_to_employee_id,
         bu.name as created_by_backend_user_name,
-        bu."employeeId" as created_by_backend_user_employee_id,
-        c."verificationOutcome" as verification_outcome,
-        c."createdAt" as created_at,
-        c."updatedAt" as updated_at,
-        c."completedAt" as completed_at,
+        bu.employee_id as created_by_backend_user_employee_id,
+        c.verification_outcome as verification_outcome,
+        c.created_at as created_at,
+        c.updated_at as updated_at,
+        c.completed_at as completed_at,
         CASE
           WHEN c.status = 'PENDING' OR c.status = 'IN_PROGRESS' THEN
-            EXTRACT(EPOCH FROM (NOW() - c."createdAt"))
+            EXTRACT(EPOCH FROM (NOW() - c.created_at))
           ELSE NULL
         END as pending_duration_seconds,
         (SELECT COUNT(*) FROM verification_tasks vtc WHERE vtc.case_id = c.id) as total_tasks,
         (SELECT COUNT(*) FROM verification_tasks vtc WHERE vtc.case_id = c.id AND vtc.status = 'COMPLETED') as completed_tasks,
         (SELECT COUNT(*) FROM verification_tasks vtc WHERE vtc.case_id = c.id AND vtc.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS')) as pending_tasks
       FROM cases c
-      LEFT JOIN clients cl ON c."clientId" = cl.id
-      LEFT JOIN products p ON c."productId" = p.id
-      LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
+      LEFT JOIN clients cl ON c.client_id = cl.id
+      LEFT JOIN products p ON c.product_id = p.id
+      LEFT JOIN verification_types vt ON c.verification_type_id = vt.id
       LEFT JOIN LATERAL (
-        SELECT u.name, u."employeeId"
+        SELECT u.name, u.employee_id
         FROM verification_tasks vte
         LEFT JOIN users u ON vte.assigned_to = u.id
         WHERE vte.case_id = c.id AND vte.assigned_to IS NOT NULL
         ORDER BY vte.created_at DESC
         LIMIT 1
       ) assigned_user ON true
-      LEFT JOIN users bu ON c."createdByBackendUser" = bu.id
+      LEFT JOIN users bu ON c.created_by_backend_user = bu.id
       ${whereClause}
-      ORDER BY c."caseId" DESC
+      ORDER BY c.case_id DESC
     `;
 
     const result = await pool.query(query, queryParams);
@@ -1850,9 +1850,9 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
         p.name as product_name,
         u.name as created_by_name
       FROM cases c
-      LEFT JOIN clients cl ON c."clientId" = cl.id
-      LEFT JOIN products p ON c."productId" = p.id
-      LEFT JOIN users u ON c."createdByBackendUser" = u.id
+      LEFT JOIN clients cl ON c.client_id = cl.id
+      LEFT JOIN products p ON c.product_id = p.id
+      LEFT JOIN users u ON c.created_by_backend_user = u.id
       WHERE c.id = $1
     `,
       [caseId]
@@ -1877,7 +1877,7 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
            LEFT JOIN verification_tasks vt ON vt.case_id = c.id
            WHERE c.id = $1
              AND (
-               c."createdByBackendUser" = ANY($2::uuid[]) OR
+               c.created_by_backend_user = ANY($2::uuid[]) OR
                c."assignedTo" = ANY($2::uuid[]) OR
                vt.assigned_to = ANY($2::uuid[])
              )
@@ -2133,8 +2133,8 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
 
     const areaValidation = await pool.query(
       `SELECT 1
-       FROM "pincodeAreas"
-       WHERE "areaId" = $1 AND "pincodeId" = $2
+       FROM pincode_areas
+       WHERE area_id = $1 AND pincode_id = $2
        LIMIT 1`,
       [areaId, resolvedPincodeId]
     );
@@ -2553,9 +2553,9 @@ export const createCase = [
       // ========== CREATE CASE ==========
       const caseResult = await client.query(
         `INSERT INTO cases (
-          "clientId", "productId", "customerName", "customerPhone", "customerCallingCode",
-          priority, "backendContactNumber",
-          "verificationTypeId", "applicantType", trigger, "createdByBackendUser", status, "createdAt", "updatedAt"
+          client_id, product_id, customer_name, customer_phone, customer_calling_code,
+          priority, backend_contact_number,
+          verification_type_id, applicant_type, trigger, created_by_backend_user, status, created_at, updated_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'PENDING', NOW(), NOW()) RETURNING *`,
         [
           resolvedClientId,
@@ -2625,7 +2625,7 @@ export const createCase = [
 
       // Backward compatibility: Set customerName on case from primary applicant
       if (createdHierarchy.length > 0) {
-        await client.query('UPDATE cases SET "customerName" = $1 WHERE id = $2', [
+        await client.query('UPDATE cases SET customer_name = $1 WHERE id = $2', [
           createdHierarchy[0].name,
           newCase.id,
         ]);
@@ -2747,8 +2747,8 @@ export const createCase = [
           if (kycDocTypeRes.rows.length > 0) {
             const kycDocTypeId = kycDocTypeRes.rows[0].id;
             const rateRes = await client.query(
-              `SELECT amount FROM "documentTypeRates"
-               WHERE "clientId" = $1 AND "productId" = $2 AND "documentTypeId" = $3 AND "isActive" = true
+              `SELECT amount FROM document_type_rates
+               WHERE client_id = $1 AND product_id = $2 AND document_type_id = $3 AND is_active = true
                LIMIT 1`,
               [newCase.clientId, newCase.productId, kycDocTypeId]
             );

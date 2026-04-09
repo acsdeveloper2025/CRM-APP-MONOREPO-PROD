@@ -54,13 +54,13 @@ export class DeduplicationService {
 
       // Exact matches for structured data
       if (criteria.panNumber) {
-        searchConditions.push(`c."panNumber" = $${paramIndex}`);
+        searchConditions.push(`c.pan_number = $${paramIndex}`);
         searchParams.push(criteria.panNumber.toUpperCase());
         paramIndex++;
       }
 
       if (criteria.customerPhone) {
-        searchConditions.push(`c."customerPhone" = $${paramIndex}`);
+        searchConditions.push(`c.customer_phone = $${paramIndex}`);
         searchParams.push(criteria.customerPhone);
         paramIndex++;
       }
@@ -68,8 +68,8 @@ export class DeduplicationService {
       // Fuzzy matching for names (using ILIKE for pattern matching)
       if (criteria.customerName) {
         searchConditions.push(`
-          (c."customerName" ILIKE '%' || $${paramIndex} || '%'
-           OR $${paramIndex} ILIKE '%' || c."customerName" || '%')
+          (c.customer_name ILIKE '%' || $${paramIndex} || '%'
+           OR $${paramIndex} ILIKE '%' || c.customer_name || '%')
         `);
         searchParams.push(criteria.customerName);
         paramIndex++;
@@ -86,24 +86,24 @@ export class DeduplicationService {
       const query = `
         SELECT
           c.id,
-          c."caseId",
-          c."caseId" as "caseNumber",
-          c."customerName",
-          c."customerPhone",
-          c."panNumber",
+          c.case_id,
+          c.case_id as "caseNumber",
+          c.customer_name,
+          c.customer_phone,
+          c.pan_number,
           c.status,
-          c."createdAt",
-          c."verificationOutcome",
+          c.created_at,
+          c.verification_outcome,
           c.pincode,
           cl.name as "clientName",
           p.name as "productName",
           vt.name as "verificationTypeName"
         FROM cases c
-        LEFT JOIN clients cl ON c."clientId" = cl.id
-        LEFT JOIN products p ON c."productId" = p.id
-        LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
+        LEFT JOIN clients cl ON c.client_id = cl.id
+        LEFT JOIN products p ON c.product_id = p.id
+        LEFT JOIN verification_types vt ON c.verification_type_id = vt.id
         WHERE (${searchConditions.join(' OR ')})
-        ORDER BY c."createdAt" DESC
+        ORDER BY c.created_at DESC
         LIMIT 200
       `;
 
@@ -190,13 +190,13 @@ export class DeduplicationService {
       }
 
       const query = `
-        INSERT INTO "caseDeduplicationAudit" (
-          "caseId",
-          "searchCriteria",
-          "duplicatesFound",
-          "userDecision",
+        INSERT INTO case_deduplication_audit (
+          case_id,
+          search_criteria,
+          duplicates_found,
+          user_decision,
           "rationale",
-          "performedBy"
+          performed_by
         ) VALUES ($1, $2, $3, $4, $5, $6)
       `;
 
@@ -213,10 +213,10 @@ export class DeduplicationService {
       const updateCaseQuery = `
         UPDATE cases
         SET
-          "deduplicationChecked" = true,
-          "deduplicationDecision" = $1,
-          "deduplicationRationale" = $2,
-          "updatedAt" = CURRENT_TIMESTAMP
+          deduplication_checked = true,
+          deduplication_decision = $1,
+          deduplication_rationale = $2,
+          updated_at = CURRENT_TIMESTAMP
         WHERE id = $3
       `;
 
@@ -242,10 +242,10 @@ export class DeduplicationService {
         SELECT 
           cda.*,
           u.name as "performedByName"
-        FROM "caseDeduplicationAudit" cda
-        LEFT JOIN users u ON cda."performedBy" = u.id
-        WHERE cda."caseId" = $1
-        ORDER BY cda."performedAt" DESC
+        FROM case_deduplication_audit cda
+        LEFT JOIN users u ON cda.performed_by = u.id
+        WHERE cda.case_id = $1
+        ORDER BY cda.performed_at DESC
       `;
 
       const result = await this.db.query(query, [caseId]);

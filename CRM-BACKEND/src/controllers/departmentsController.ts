@@ -23,7 +23,7 @@ export const getDepartments = async (req: AuthenticatedRequest, res: Response) =
     // Active filter
     if (includeInactive !== 'true') {
       paramCount++;
-      whereConditions.push(`d."isActive" = $${paramCount}`);
+      whereConditions.push(`d.is_active = $${paramCount}`);
       params.push(true);
     }
 
@@ -36,11 +36,11 @@ export const getDepartments = async (req: AuthenticatedRequest, res: Response) =
         dh.name as "departmentHeadName",
         u1.name as "createdByName",
         u2.name as "updatedByName",
-        (SELECT COUNT(*) FROM users WHERE "departmentId" = d.id) as "userCount"
+        (SELECT COUNT(*) FROM users WHERE department_id = d.id) as "userCount"
       FROM departments d
-      LEFT JOIN users dh ON d."departmentHeadId" = dh.id
-      LEFT JOIN users u1 ON d."createdBy" = u1.id
-      LEFT JOIN users u2 ON d."updatedBy" = u2.id
+      LEFT JOIN users dh ON d.department_head_id = dh.id
+      LEFT JOIN users u1 ON d.created_by = u1.id
+      LEFT JOIN users u2 ON d.updated_by = u2.id
       ${whereClause}
       ORDER BY d.name
       LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
@@ -92,11 +92,11 @@ export const getDepartmentById = async (req: AuthenticatedRequest, res: Response
         dh.name as "departmentHeadName",
         u1.name as "createdByName",
         u2.name as "updatedByName",
-        (SELECT COUNT(*) FROM users WHERE "departmentId" = d.id) as "userCount"
+        (SELECT COUNT(*) FROM users WHERE department_id = d.id) as "userCount"
       FROM departments d
-      LEFT JOIN users dh ON d."departmentHeadId" = dh.id
-      LEFT JOIN users u1 ON d."createdBy" = u1.id
-      LEFT JOIN users u2 ON d."updatedBy" = u2.id
+      LEFT JOIN users dh ON d.department_head_id = dh.id
+      LEFT JOIN users u1 ON d.created_by = u1.id
+      LEFT JOIN users u2 ON d.updated_by = u2.id
       WHERE d.id = $1
     `;
 
@@ -162,7 +162,7 @@ export const createDepartment = async (req: AuthenticatedRequest, res: Response)
 
     // Create department
     const createQuery = `
-      INSERT INTO departments (name, description, "departmentHeadId", "createdBy")
+      INSERT INTO departments (name, description, department_head_id, created_by)
       VALUES ($1, $2, $3, $4)
       RETURNING *
     `;
@@ -203,7 +203,7 @@ export const updateDepartment = async (req: AuthenticatedRequest, res: Response)
 
     // Check if department exists
     const existingDepartment = await query(
-      'SELECT id, name, description, "isActive", "createdAt", "updatedAt" FROM departments WHERE id = $1',
+      'SELECT id, name, description, is_active, created_at, updated_at FROM departments WHERE id = $1',
       [id]
     );
     if (existingDepartment.rows.length === 0) {
@@ -247,10 +247,10 @@ export const updateDepartment = async (req: AuthenticatedRequest, res: Response)
       SET
         name = COALESCE($1, name),
         description = COALESCE($2, description),
-        "departmentHeadId" = COALESCE($3, "departmentHeadId"),
-        "isActive" = COALESCE($4, "isActive"),
-        "updatedBy" = $5,
-        "updatedAt" = CURRENT_TIMESTAMP
+        department_head_id = COALESCE($3, department_head_id),
+        is_active = COALESCE($4, is_active),
+        updated_by = $5,
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = $6
       RETURNING *
     `;
@@ -292,7 +292,7 @@ export const deleteDepartment = async (req: AuthenticatedRequest, res: Response)
 
     // Check if department exists
     const existingDepartment = await query(
-      'SELECT id, name, description, "isActive", "createdAt", "updatedAt" FROM departments WHERE id = $1',
+      'SELECT id, name, description, is_active, created_at, updated_at FROM departments WHERE id = $1',
       [id]
     );
     if (existingDepartment.rows.length === 0) {
@@ -304,10 +304,9 @@ export const deleteDepartment = async (req: AuthenticatedRequest, res: Response)
     }
 
     // Check if department is in use by users
-    const usageCheck = await query(
-      'SELECT COUNT(*) as count FROM users WHERE "departmentId" = $1',
-      [id]
-    );
+    const usageCheck = await query('SELECT COUNT(*) as count FROM users WHERE department_id = $1', [
+      id,
+    ]);
     if (parseInt(usageCheck.rows[0].count) > 0) {
       return res.status(400).json({
         success: false,

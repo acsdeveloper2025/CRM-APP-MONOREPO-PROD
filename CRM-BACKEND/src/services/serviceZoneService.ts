@@ -26,7 +26,7 @@ export const serviceZoneService = {
       const result = await query(
         `SELECT rt.id, rt.name
          FROM service_zone_rules szr
-         JOIN "rateTypes" rt ON szr.rate_type_id = rt.id
+         JOIN rate_types rt ON szr.rate_type_id = rt.id
          WHERE szr.client_id = $1
            AND szr.product_id = $2
            AND szr.pincode_id = $3

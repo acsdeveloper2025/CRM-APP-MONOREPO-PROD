@@ -35,7 +35,7 @@ export const getDocumentTypes = async (req: AuthenticatedRequest, res: Response)
     // Get total count
     const countQuery = `
       SELECT COUNT(*) as total
-      FROM "documentTypes" dt
+      FROM document_types dt
       ${whereClause}
     `;
     const countResult = await query(countQuery, params);
@@ -47,21 +47,21 @@ export const getDocumentTypes = async (req: AuthenticatedRequest, res: Response)
         dt.id,
         dt.name,
         dt.code,
-        dt."createdAt",
-        dt."updatedAt",
+        dt.created_at,
+        dt.updated_at,
         COALESCE(cdt_count.client_count, 0) as "clientCount",
         COALESCE(pdt_count.product_count, 0) as "productCount"
-      FROM "documentTypes" dt
+      FROM document_types dt
       LEFT JOIN (
-        SELECT "documentTypeId", COUNT(*) as client_count
-        FROM "clientDocumentTypes"
-        GROUP BY "documentTypeId"
-      ) cdt_count ON dt.id = cdt_count."documentTypeId"
+        SELECT document_type_id, COUNT(*) as client_count
+        FROM client_document_types
+        GROUP BY document_type_id
+      ) cdt_count ON dt.id = cdt_count.document_type_id
       LEFT JOIN (
-        SELECT "documentTypeId", COUNT(*) as product_count
-        FROM "productDocumentTypes"
-        GROUP BY "documentTypeId"
-      ) pdt_count ON dt.id = pdt_count."documentTypeId"
+        SELECT document_type_id, COUNT(*) as product_count
+        FROM product_document_types
+        GROUP BY document_type_id
+      ) pdt_count ON dt.id = pdt_count.document_type_id
       ${whereClause}
       ORDER BY dt."${sortField}" ${sortDirection}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -109,21 +109,21 @@ export const getDocumentTypeById = async (req: AuthenticatedRequest, res: Respon
         dt.id,
         dt.name,
         dt.code,
-        dt."createdAt",
-        dt."updatedAt",
+        dt.created_at,
+        dt.updated_at,
         COALESCE(cdt_count.client_count, 0) as "clientCount",
         COALESCE(pdt_count.product_count, 0) as "productCount"
-      FROM "documentTypes" dt
+      FROM document_types dt
       LEFT JOIN (
-        SELECT "documentTypeId", COUNT(*) as client_count
-        FROM "clientDocumentTypes"
-        GROUP BY "documentTypeId"
-      ) cdt_count ON dt.id = cdt_count."documentTypeId"
+        SELECT document_type_id, COUNT(*) as client_count
+        FROM client_document_types
+        GROUP BY document_type_id
+      ) cdt_count ON dt.id = cdt_count.document_type_id
       LEFT JOIN (
-        SELECT "documentTypeId", COUNT(*) as product_count
-        FROM "productDocumentTypes"
-        GROUP BY "documentTypeId"
-      ) pdt_count ON dt.id = pdt_count."documentTypeId"
+        SELECT document_type_id, COUNT(*) as product_count
+        FROM product_document_types
+        GROUP BY document_type_id
+      ) pdt_count ON dt.id = pdt_count.document_type_id
       WHERE dt.id = $1
     `;
 
@@ -162,7 +162,7 @@ export const createDocumentType = async (req: AuthenticatedRequest, res: Respons
     const { name, code } = req.body;
 
     // Check if document type code already exists
-    const existingResult = await query(`SELECT id FROM "documentTypes" WHERE code = $1`, [code]);
+    const existingResult = await query(`SELECT id FROM document_types WHERE code = $1`, [code]);
 
     if (existingResult.rows.length > 0) {
       return res.status(400).json({
@@ -174,7 +174,7 @@ export const createDocumentType = async (req: AuthenticatedRequest, res: Respons
 
     // Create document type
     const createQuery = `
-      INSERT INTO "documentTypes" (name, code, created_by)
+      INSERT INTO document_types (name, code, created_by)
       VALUES ($1, $2, $3)
       RETURNING *
     `;
@@ -227,7 +227,7 @@ export const updateDocumentType = async (req: AuthenticatedRequest, res: Respons
 
     // Check if document type exists
     const existingResult = await query(
-      `SELECT id, name, description, "isActive", "createdAt", "updatedAt" FROM "documentTypes" WHERE id = $1`,
+      `SELECT id, name, description, is_active, created_at, updated_at FROM document_types WHERE id = $1`,
       [Number(id)]
     );
 
@@ -242,7 +242,7 @@ export const updateDocumentType = async (req: AuthenticatedRequest, res: Respons
     // Check for duplicate code if code is being updated
     if (updateData.code) {
       const duplicateResult = await query(
-        `SELECT id FROM "documentTypes" WHERE code = $1 AND id != $2`,
+        `SELECT id FROM document_types WHERE code = $1 AND id != $2`,
         [updateData.code, Number(id)]
       );
 
@@ -283,13 +283,13 @@ export const updateDocumentType = async (req: AuthenticatedRequest, res: Respons
     updateValues.push(req.user?.id);
     paramIndex++;
 
-    updateFields.push(`"updatedAt" = CURRENT_TIMESTAMP`);
+    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
 
     // Add ID for WHERE clause
     updateValues.push(Number(id));
 
     const updateQuery = `
-      UPDATE "documentTypes"
+      UPDATE document_types
       SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}
       RETURNING *
@@ -344,7 +344,7 @@ export const deleteDocumentType = async (req: AuthenticatedRequest, res: Respons
 
     // Check if document type exists
     const existingResult = await query(
-      `SELECT id, name, description, "isActive", "createdAt", "updatedAt" FROM "documentTypes" WHERE id = $1`,
+      `SELECT id, name, description, is_active, created_at, updated_at FROM document_types WHERE id = $1`,
       [Number(id)]
     );
 
@@ -360,8 +360,8 @@ export const deleteDocumentType = async (req: AuthenticatedRequest, res: Respons
 
     // Check if document type is being used
     const usageCheckQueries = [
-      `SELECT COUNT(*) as count FROM "clientDocumentTypes" WHERE "documentTypeId" = $1`,
-      `SELECT COUNT(*) as count FROM "productDocumentTypes" WHERE "documentTypeId" = $1`,
+      `SELECT COUNT(*) as count FROM client_document_types WHERE document_type_id = $1`,
+      `SELECT COUNT(*) as count FROM product_document_types WHERE document_type_id = $1`,
       `SELECT COUNT(*) as count FROM verification_tasks WHERE document_type_id = $1`,
       `SELECT COUNT(*) as count FROM cases WHERE document_type_id = $1`,
     ];
@@ -389,7 +389,7 @@ export const deleteDocumentType = async (req: AuthenticatedRequest, res: Respons
     }
 
     // Delete document type
-    await query(`DELETE FROM "documentTypes" WHERE id = $1`, [Number(id)]);
+    await query(`DELETE FROM document_types WHERE id = $1`, [Number(id)]);
 
     // Create audit log
     await createAuditLog({
@@ -426,7 +426,7 @@ export const deleteDocumentType = async (req: AuthenticatedRequest, res: Respons
 // GET /api/document-types/stats - Get document type statistics
 export const getDocumentTypeStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const statsQuery = `SELECT COUNT(*) as total_document_types FROM "documentTypes"`;
+    const statsQuery = `SELECT COUNT(*) as total_document_types FROM document_types`;
     const statsResult = await query(statsQuery);
     const stats = statsResult.rows[0];
 

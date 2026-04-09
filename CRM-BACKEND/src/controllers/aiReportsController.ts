@@ -31,7 +31,7 @@ export const generateFormSubmissionReport = async (req: AuthenticatedRequest, re
 
     // First get the case UUID from the case ID
     const caseUuidQuery = `
-      SELECT id, "caseId" FROM cases WHERE "caseId" = $1
+      SELECT id, case_id FROM cases WHERE case_id = $1
     `;
     const caseUuidResult = await pool.query(caseUuidQuery, [parseInt(caseId)]);
 
@@ -49,7 +49,7 @@ export const generateFormSubmissionReport = async (req: AuthenticatedRequest, re
       SELECT c.*, u.name as assigned_to_name, cl.name as client_name
       FROM cases c
       LEFT JOIN users u ON c."assignedTo" = u.id
-      LEFT JOIN clients cl ON c."clientId" = cl.id
+      LEFT JOIN clients cl ON c.client_id = cl.id
       WHERE c.id = $1
     `;
     const caseResult = await pool.query(caseQuery, [caseUuid]);
@@ -201,7 +201,7 @@ export const getFormSubmissionReport = async (req: AuthenticatedRequest, res: Re
 
     // First get the case UUID from the case ID
     const caseUuidQuery = `
-      SELECT id FROM cases WHERE "caseId" = $1
+      SELECT id FROM cases WHERE case_id = $1
     `;
     const caseUuidResult = await pool.query(caseUuidQuery, [parseInt(caseId)]);
 
@@ -350,15 +350,15 @@ async function getFormSubmissionData(
   verificationType: string
 ) {
   const tableMap: Record<string, string> = {
-    RESIDENCE: '"residenceVerificationReports"',
-    RESIDENCE_CUM_OFFICE: '"residenceCumOfficeVerificationReports"',
-    OFFICE: '"officeVerificationReports"',
-    BUSINESS: '"businessVerificationReports"',
-    BUILDER: '"builderVerificationReports"',
-    NOC: '"nocVerificationReports"',
-    DSA_CONNECTOR: '"dsaConnectorVerificationReports"',
-    PROPERTY_APF: '"propertyApfVerificationReports"',
-    PROPERTY_INDIVIDUAL: '"propertyIndividualVerificationReports"',
+    RESIDENCE: 'residence_verification_reports',
+    RESIDENCE_CUM_OFFICE: 'residence_cum_office_verification_reports',
+    OFFICE: 'office_verification_reports',
+    BUSINESS: 'business_verification_reports',
+    BUILDER: 'builder_verification_reports',
+    NOC: 'noc_verification_reports',
+    DSA_CONNECTOR: 'dsa_connector_verification_reports',
+    PROPERTY_APF: 'property_apf_verification_reports',
+    PROPERTY_INDIVIDUAL: 'property_individual_verification_reports',
   };
 
   const tableName = tableMap[verificationType.toUpperCase()];
@@ -378,11 +378,11 @@ async function getFormSubmissionData(
 async function getSubmissionPhotos(caseId: string, _submissionId: string) {
   try {
     const query = `
-      SELECT "mimeType", "fileSize", "createdAt"
+      SELECT mime_type, file_size, created_at
       FROM attachments
       WHERE case_id = $1
-      AND "mimeType" LIKE 'image/%'
-      ORDER BY "createdAt" DESC
+      AND mime_type LIKE 'image/%'
+      ORDER BY created_at DESC
     `;
 
     const result = await pool.query(query, [caseId]);

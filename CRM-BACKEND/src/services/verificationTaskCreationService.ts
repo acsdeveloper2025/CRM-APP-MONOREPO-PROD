@@ -89,7 +89,7 @@ export class VerificationTaskCreationService {
     }
 
     const pincodeAreaRes = await client.query(
-      'SELECT 1 FROM "pincodeAreas" WHERE "pincodeId" = $1 AND "areaId" = $2 LIMIT 1',
+      'SELECT 1 FROM pincode_areas WHERE pincode_id = $1 AND area_id = $2 LIMIT 1',
       [pincodeDbId, normalizedAreaId]
     );
     if (!pincodeAreaRes.rows[0]) {
@@ -147,7 +147,7 @@ export class VerificationTaskCreationService {
   ): Promise<VerificationTaskCreationResult> {
     // Verify case exists and get case details for rate lookup
     const caseResult = await client.query(
-      'SELECT id, "caseId", "customerName", "clientId", "productId", "verificationTypeId" FROM cases WHERE id = $1',
+      'SELECT id, case_id, customer_name, client_id, product_id, verification_type_id FROM cases WHERE id = $1',
       [caseId]
     );
 
@@ -347,7 +347,7 @@ export class VerificationTaskCreationService {
           total_tasks_count = (
             SELECT COUNT(*) FROM verification_tasks WHERE case_id = $1
           ),
-          "updatedAt" = NOW()
+          updated_at = NOW()
         WHERE id = $1
       `,
       [caseId]

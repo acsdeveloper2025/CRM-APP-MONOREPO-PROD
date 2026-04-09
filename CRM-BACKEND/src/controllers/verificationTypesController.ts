@@ -22,7 +22,7 @@ export const getVerificationTypes = async (req: AuthenticatedRequest, res: Respo
     }
 
     // Get total count with search filter
-    const countQuery = `SELECT COUNT(*)::text as count FROM "verificationTypes" ${whereClause}`;
+    const countQuery = `SELECT COUNT(*)::text as count FROM verification_types ${whereClause}`;
     const countRes = await query<{ count: string }>(countQuery, queryParams);
     const totalCount = Number(countRes.rows[0]?.count || 0);
 
@@ -43,7 +43,7 @@ export const getVerificationTypes = async (req: AuthenticatedRequest, res: Respo
     const sortDir =
       typeof sortOrder === 'string' ? sortOrder : 'asc'.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
-    const dataQuery = `SELECT id, name, code, description, "isActive", "createdAt", "updatedAt" FROM "verificationTypes" ${whereClause} ORDER BY "${sortCol}" ${sortDir} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    const dataQuery = `SELECT id, name, code, description, is_active, created_at, updated_at FROM verification_types ${whereClause} ORDER BY "${sortCol}" ${sortDir} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     const dataParams = [...queryParams, Number(limit), (Number(page) - 1) * Number(limit)];
     const vtRes = await query(dataQuery, dataParams);
     const verificationTypes = vtRes.rows;
@@ -82,7 +82,7 @@ export const getVerificationTypeById = async (req: AuthenticatedRequest, res: Re
     const { id } = req.params;
 
     const vtRes2 = await query(
-      `SELECT id, name, code, description, "isActive", "createdAt", "updatedAt" FROM "verificationTypes" WHERE id = $1`,
+      `SELECT id, name, code, description, is_active, created_at, updated_at FROM verification_types WHERE id = $1`,
       [Number(id)]
     );
     const verificationType = vtRes2.rows[0];
@@ -116,7 +116,7 @@ export const createVerificationType = async (req: AuthenticatedRequest, res: Res
     const { name, code } = req.body;
 
     // Check if verification type code already exists
-    const exRes = await query(`SELECT id FROM "verificationTypes" WHERE code = $1`, [code]);
+    const exRes = await query(`SELECT id FROM verification_types WHERE code = $1`, [code]);
     const existingVerificationType = exRes.rows[0];
 
     if (existingVerificationType) {
@@ -129,7 +129,7 @@ export const createVerificationType = async (req: AuthenticatedRequest, res: Res
 
     // Create verification type in database
     const newRes = await query(
-      `INSERT INTO "verificationTypes" (id, name, code, "createdAt", "updatedAt") VALUES (gen_random_uuid(), $1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *`,
+      `INSERT INTO verification_types (id, name, code, created_at, updated_at) VALUES (gen_random_uuid(), $1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *`,
       [name, code]
     );
     const newVerificationType = newRes.rows[0];
@@ -163,7 +163,7 @@ export const updateVerificationType = async (req: AuthenticatedRequest, res: Res
 
     // Check if verification type exists
     const exRes2 = await query(
-      `SELECT id, name, code, description, "isActive", "createdAt", "updatedAt" FROM "verificationTypes" WHERE id = $1`,
+      `SELECT id, name, code, description, is_active, created_at, updated_at FROM verification_types WHERE id = $1`,
       [id]
     );
     const existingVerificationType = exRes2.rows[0];
@@ -178,7 +178,7 @@ export const updateVerificationType = async (req: AuthenticatedRequest, res: Res
 
     // Check for duplicate code if being updated
     if (updateData.code && updateData.code !== existingVerificationType.code) {
-      const dupRes = await query(`SELECT id FROM "verificationTypes" WHERE code = $1`, [
+      const dupRes = await query(`SELECT id FROM verification_types WHERE code = $1`, [
         updateData.code,
       ]);
       const duplicateVerificationType = dupRes.rows[0];
@@ -210,10 +210,10 @@ export const updateVerificationType = async (req: AuthenticatedRequest, res: Res
       sets.push(`"${key}" = $${idx++}`);
       vals.push(value as string | number | boolean | Date | number[] | string[]);
     }
-    sets.push(`"updatedAt" = CURRENT_TIMESTAMP`);
+    sets.push(`updated_at = CURRENT_TIMESTAMP`);
     vals.push(id);
     const updRes = await query(
-      `UPDATE "verificationTypes" SET ${sets.join(', ')} WHERE id = $${idx} RETURNING *`,
+      `UPDATE verification_types SET ${sets.join(', ')} WHERE id = $${idx} RETURNING *`,
       vals
     );
     const updatedVerificationType = updRes.rows[0];
@@ -246,7 +246,7 @@ export const deleteVerificationType = async (req: AuthenticatedRequest, res: Res
 
     // Check if verification type exists
     const exRes3 = await query(
-      `SELECT id, name, code, description, "isActive", "createdAt", "updatedAt" FROM "verificationTypes" WHERE id = $1`,
+      `SELECT id, name, code, description, is_active, created_at, updated_at FROM verification_types WHERE id = $1`,
       [id]
     );
     const existingVerificationType = exRes3.rows[0];
@@ -260,7 +260,7 @@ export const deleteVerificationType = async (req: AuthenticatedRequest, res: Res
     }
 
     // Delete verification type
-    await query(`DELETE FROM "verificationTypes" WHERE id = $1`, [id]);
+    await query(`DELETE FROM verification_types WHERE id = $1`, [id]);
 
     logger.info(`Deleted verification type: ${id}`, {
       userId: req.user?.id,
@@ -286,7 +286,7 @@ export const deleteVerificationType = async (req: AuthenticatedRequest, res: Res
 export const getVerificationTypeStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
     // Get total count
-    const totalRes = await query(`SELECT COUNT(*)::int as total FROM "verificationTypes"`);
+    const totalRes = await query(`SELECT COUNT(*)::int as total FROM verification_types`);
     const total = totalRes.rows[0]?.total || 0;
 
     // For now, return basic stats since the verification_types table doesn't have isActive or category columns

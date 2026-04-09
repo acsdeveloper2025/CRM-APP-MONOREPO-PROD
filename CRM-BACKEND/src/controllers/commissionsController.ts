@@ -23,7 +23,7 @@ interface CountResult {
   total: string;
 }
 
-const COMMISSION_PRODUCT_SCOPE_EXPR = `(SELECT c."productId" FROM cases c WHERE c.id = cc."caseId")`;
+const COMMISSION_PRODUCT_SCOPE_EXPR = `(SELECT c.product_id FROM cases c WHERE c.id = cc.case_id)`;
 
 const toOptionalNumber = (value: unknown): number | null => {
   if (value === null || value === undefined || value === '') {
@@ -55,7 +55,7 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
     let paramIndex = 1;
 
     if (userId) {
-      conditions.push(`cc."userId" = $${paramIndex++}`);
+      conditions.push(`cc.user_id = $${paramIndex++}`);
       params.push(userId as string);
     }
 
@@ -65,17 +65,17 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
     }
 
     if (clientId) {
-      conditions.push(`cc."clientId" = $${paramIndex++}`);
+      conditions.push(`cc.client_id = $${paramIndex++}`);
       params.push(parseInt(clientId as string, 10));
     }
 
     if (dateFrom) {
-      conditions.push(`cc."createdAt" >= $${paramIndex++}`);
+      conditions.push(`cc.created_at >= $${paramIndex++}`);
       params.push(dateFrom as string);
     }
 
     if (dateTo) {
-      conditions.push(`cc."createdAt" <= $${paramIndex++}`);
+      conditions.push(`cc.created_at <= $${paramIndex++}`);
       params.push(dateTo as string);
     }
 
@@ -94,8 +94,8 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
       scope,
       conditions,
       params: params as unknown as Array<string | number | boolean | string[] | number[]>,
-      userExpr: `cc."userId"`,
-      clientExpr: `cc."clientId"`,
+      userExpr: `cc.user_id`,
+      clientExpr: `cc.client_id`,
       productExpr: COMMISSION_PRODUCT_SCOPE_EXPR,
     });
     paramIndex = params.length + 1;
@@ -112,7 +112,7 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
     ];
     const safeSortBy: string = validSortColumns.includes(sortBy as string)
       ? `"${sortBy as string}"`
-      : '"createdAt"';
+      : 'created_at';
     const safeSortOrder: 'ASC' | 'DESC' = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
     const limitNum = Math.max(1, Number(limit) || 20);
@@ -123,7 +123,7 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
     const countQuery = `
       SELECT COUNT(*) as total
       FROM commission_calculations cc
-      LEFT JOIN users u ON cc."userId" = u.id
+      LEFT JOIN users u ON cc.user_id = u.id
       ${whereClause}
     `;
     const countResult = await query<CountResult>(countQuery, params);
@@ -139,7 +139,7 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
         u3.name as "paidByName",
         ${COMMISSION_PRODUCT_SCOPE_EXPR} as "scopeProductId"
       FROM commission_calculations cc
-      LEFT JOIN users u ON cc."userId" = u.id
+      LEFT JOIN users u ON cc.user_id = u.id
       LEFT JOIN users u2 ON cc."approvedBy" = u2.id
       LEFT JOIN users u3 ON cc."paidBy" = u3.id
       ${whereClause}
@@ -190,7 +190,7 @@ export const getCommissionById = async (req: AuthenticatedRequest, res: Response
         u2.name as "approvedByName",
         u3.name as "paidByName"
       FROM commission_calculations cc
-      LEFT JOIN users u ON cc."userId" = u.id
+      LEFT JOIN users u ON cc.user_id = u.id
       LEFT JOIN users u2 ON cc."approvedBy" = u2.id
       LEFT JOIN users u3 ON cc."paidBy" = u3.id
       WHERE cc.id = $1
@@ -256,8 +256,8 @@ export const approveCommission = async (req: AuthenticatedRequest, res: Response
     const checkSql = `
       SELECT
         cc.status,
-        cc."userId",
-        cc."clientId",
+        cc.user_id,
+        cc.client_id,
         ${COMMISSION_PRODUCT_SCOPE_EXPR} as "scopeProductId"
       FROM commission_calculations cc
       WHERE cc.id = $1
@@ -309,7 +309,7 @@ export const approveCommission = async (req: AuthenticatedRequest, res: Response
         "approvedBy" = $1,
         "approvedAt" = CURRENT_TIMESTAMP,
         notes = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE notes END,
-        "updatedAt" = CURRENT_TIMESTAMP
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = $3
       RETURNING *
     `;
@@ -355,8 +355,8 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
       SELECT
         cc.status,
         cc."paidAt",
-        cc."userId",
-        cc."clientId",
+        cc.user_id,
+        cc.client_id,
         ${COMMISSION_PRODUCT_SCOPE_EXPR} as "scopeProductId"
       FROM commission_calculations cc
       WHERE cc.id = $1
@@ -422,7 +422,7 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
           WHEN notes IS NULL OR notes = '' THEN $5::text
           ELSE notes || E'\nPayment: ' || $5::text
         END,
-        "updatedAt" = CURRENT_TIMESTAMP
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = $6
       RETURNING *
     `;
@@ -483,7 +483,7 @@ export const getCommissionSummary = async (req: AuthenticatedRequest, res: Respo
     let paramIndex = 1;
 
     if (userId) {
-      conditions.push(`cc."userId" = $${paramIndex++}`);
+      conditions.push(`cc.user_id = $${paramIndex++}`);
       params.push(userId as string);
     }
 
@@ -491,8 +491,8 @@ export const getCommissionSummary = async (req: AuthenticatedRequest, res: Respo
       scope,
       conditions,
       params: params as unknown as Array<string | number | boolean | string[] | number[]>,
-      userExpr: `cc."userId"`,
-      clientExpr: `cc."clientId"`,
+      userExpr: `cc.user_id`,
+      clientExpr: `cc.client_id`,
       productExpr: COMMISSION_PRODUCT_SCOPE_EXPR,
     });
 
@@ -517,16 +517,16 @@ export const getCommissionSummary = async (req: AuthenticatedRequest, res: Respo
 
     const userSummarySql = `
       SELECT
-        cc."userId",
+        cc.user_id,
         u.name as "userName",
         COUNT(*) as "totalCommissions",
         COALESCE(SUM("commissionAmount"), 0) as "totalAmount",
         COALESCE(SUM(CASE WHEN status = 'PAID' THEN "commissionAmount" ELSE 0 END), 0) as "paidAmount",
         COALESCE(SUM(CASE WHEN status = 'PENDING' THEN "commissionAmount" ELSE 0 END), 0) as "pendingAmount"
       FROM commission_calculations cc
-      LEFT JOIN users u ON cc."userId" = u.id
+      LEFT JOIN users u ON cc.user_id = u.id
       ${whereClause}
-      GROUP BY cc."userId", u.name
+      GROUP BY cc.user_id, u.name
     `;
 
     const userSummaryResult = await query<UserSummaryStats>(userSummarySql, params);
@@ -597,8 +597,8 @@ export const bulkApproveCommissions = async (req: AuthenticatedRequest, res: Res
       scope,
       conditions: bulkConditions,
       params: bulkParams,
-      userExpr: `cc."userId"`,
-      clientExpr: `cc."clientId"`,
+      userExpr: `cc.user_id`,
+      clientExpr: `cc.client_id`,
       productExpr: COMMISSION_PRODUCT_SCOPE_EXPR,
     });
 
@@ -609,7 +609,7 @@ export const bulkApproveCommissions = async (req: AuthenticatedRequest, res: Res
         "approvedBy" = $1,
         "approvedAt" = CURRENT_TIMESTAMP,
         notes = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE notes END,
-        "updatedAt" = CURRENT_TIMESTAMP
+        updated_at = CURRENT_TIMESTAMP
       WHERE ${bulkConditions.join(' AND ')}
       RETURNING id
     `;
@@ -684,8 +684,8 @@ export const bulkMarkCommissionsPaid = async (req: AuthenticatedRequest, res: Re
       scope,
       conditions: bulkConditions,
       params: bulkParams,
-      userExpr: `cc."userId"`,
-      clientExpr: `cc."clientId"`,
+      userExpr: `cc.user_id`,
+      clientExpr: `cc.client_id`,
       productExpr: COMMISSION_PRODUCT_SCOPE_EXPR,
     });
 
@@ -701,7 +701,7 @@ export const bulkMarkCommissionsPaid = async (req: AuthenticatedRequest, res: Re
           WHEN notes IS NULL OR notes = '' THEN $4::text
           ELSE notes || E'\nPayment: ' || $4::text
         END,
-        "updatedAt" = CURRENT_TIMESTAMP
+        updated_at = CURRENT_TIMESTAMP
       WHERE ${bulkConditions.join(' AND ')}
       RETURNING id
     `;

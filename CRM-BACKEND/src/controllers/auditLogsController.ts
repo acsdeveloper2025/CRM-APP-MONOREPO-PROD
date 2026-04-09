@@ -153,7 +153,7 @@ export const getAuditLogs = (req: AuthenticatedRequest, res: Response) => {
 
       if (userIdFilter) {
         params.push(userIdFilter);
-        conditions.push(`al."userId" = $${params.length}`);
+        conditions.push(`al.user_id = $${params.length}`);
       }
       if (actionFilter) {
         params.push(actionFilter);
@@ -161,29 +161,29 @@ export const getAuditLogs = (req: AuthenticatedRequest, res: Response) => {
       }
       if (resourceFilter) {
         params.push(resourceFilter);
-        conditions.push(`al."entityType" = $${params.length}`);
+        conditions.push(`al.entity_type = $${params.length}`);
       }
       if (dateFromFilter) {
         params.push(new Date(dateFromFilter));
-        conditions.push(`al."createdAt" >= $${params.length}`);
+        conditions.push(`al.created_at >= $${params.length}`);
       }
       if (dateToFilter) {
         params.push(new Date(dateToFilter));
-        conditions.push(`al."createdAt" <= $${params.length}`);
+        conditions.push(`al.created_at <= $${params.length}`);
       }
       if (searchFilter) {
         params.push(`%${searchFilter}%`);
         conditions.push(
-          `(COALESCE(u.name, '') ILIKE $${params.length} OR al.action ILIKE $${params.length} OR al."entityType" ILIKE $${params.length} OR CAST(al.details AS TEXT) ILIKE $${params.length})`
+          `(COALESCE(u.name, '') ILIKE $${params.length} OR al.action ILIKE $${params.length} OR al.entity_type ILIKE $${params.length} OR CAST(al.details AS TEXT) ILIKE $${params.length})`
         );
       }
 
       const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-      const safeSortBy = sortBy === 'timestamp' ? 'al."createdAt"' : 'al."createdAt"';
+      const safeSortBy = sortBy === 'timestamp' ? 'al.created_at' : 'al.created_at';
       const safeSortOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
       const countResult = await dbQuery<{ total: string }>(
-        `SELECT COUNT(*)::text as total FROM "auditLogs" al ${whereClause}`,
+        `SELECT COUNT(*)::text as total FROM audit_logs al ${whereClause}`,
         params
       );
 
@@ -199,28 +199,28 @@ export const getAuditLogs = (req: AuthenticatedRequest, res: Response) => {
         `
         SELECT
           al.id::text,
-          COALESCE(al."userId", '') as "userId",
+          COALESCE(al.user_id, '') as user_id,
           COALESCE(u.name, 'System') as "userName",
           al.action,
-          COALESCE(al."entityType", 'SYSTEM') as resource,
-          al."entityId" as "resourceId",
+          COALESCE(al.entity_type, 'SYSTEM') as resource,
+          al.entity_id as "resourceId",
           COALESCE(al.details, '{}'::jsonb) as details,
-          COALESCE(al."ipAddress", '') as "ipAddress",
-          COALESCE(al."userAgent", '') as "userAgent",
-          al."createdAt"::text as timestamp,
+          COALESCE(al.ip_address, '') as ip_address,
+          COALESCE(al.user_agent, '') as user_agent,
+          al.created_at::text as timestamp,
           CASE
             WHEN al.action LIKE '%FAILED%' OR al.action LIKE '%REJECTED%' THEN 'ERROR'
             WHEN al.action LIKE '%REVOKED%' THEN 'WARN'
             ELSE 'INFO'
           END as severity,
           CASE
-            WHEN al."entityType" IN ('VERIFICATION_TASK', 'CASE') THEN 'CASE_MANAGEMENT'
-            WHEN al."entityType" = 'USER' THEN 'USER_MANAGEMENT'
-            WHEN al."entityType" = 'ATTACHMENT' THEN 'FILE_MANAGEMENT'
+            WHEN al.entity_type IN ('VERIFICATION_TASK', 'CASE') THEN 'CASE_MANAGEMENT'
+            WHEN al.entity_type = 'USER' THEN 'USER_MANAGEMENT'
+            WHEN al.entity_type = 'ATTACHMENT' THEN 'FILE_MANAGEMENT'
             ELSE 'SYSTEM'
           END as category
-        FROM "auditLogs" al
-        LEFT JOIN users u ON u.id = al."userId"
+        FROM audit_logs al
+        LEFT JOIN users u ON u.id = al.user_id
         ${whereClause}
         ORDER BY ${safeSortBy} ${safeSortOrder}
         LIMIT $${params.length - 1} OFFSET $${params.length}
@@ -264,28 +264,28 @@ export const getAuditLogById = (req: AuthenticatedRequest, res: Response) => {
         `
         SELECT
           al.id::text,
-          COALESCE(al."userId", '') as "userId",
+          COALESCE(al.user_id, '') as user_id,
           COALESCE(u.name, 'System') as "userName",
           al.action,
-          COALESCE(al."entityType", 'SYSTEM') as resource,
-          al."entityId" as "resourceId",
+          COALESCE(al.entity_type, 'SYSTEM') as resource,
+          al.entity_id as "resourceId",
           COALESCE(al.details, '{}'::jsonb) as details,
-          COALESCE(al."ipAddress", '') as "ipAddress",
-          COALESCE(al."userAgent", '') as "userAgent",
-          al."createdAt"::text as timestamp,
+          COALESCE(al.ip_address, '') as ip_address,
+          COALESCE(al.user_agent, '') as user_agent,
+          al.created_at::text as timestamp,
           CASE
             WHEN al.action LIKE '%FAILED%' OR al.action LIKE '%REJECTED%' THEN 'ERROR'
             WHEN al.action LIKE '%REVOKED%' THEN 'WARN'
             ELSE 'INFO'
           END as severity,
           CASE
-            WHEN al."entityType" IN ('VERIFICATION_TASK', 'CASE') THEN 'CASE_MANAGEMENT'
-            WHEN al."entityType" = 'USER' THEN 'USER_MANAGEMENT'
-            WHEN al."entityType" = 'ATTACHMENT' THEN 'FILE_MANAGEMENT'
+            WHEN al.entity_type IN ('VERIFICATION_TASK', 'CASE') THEN 'CASE_MANAGEMENT'
+            WHEN al.entity_type = 'USER' THEN 'USER_MANAGEMENT'
+            WHEN al.entity_type = 'ATTACHMENT' THEN 'FILE_MANAGEMENT'
             ELSE 'SYSTEM'
           END as category
-        FROM "auditLogs" al
-        LEFT JOIN users u ON u.id = al."userId"
+        FROM audit_logs al
+        LEFT JOIN users u ON u.id = al.user_id
         WHERE al.id::text = $1
         LIMIT 1
       `,

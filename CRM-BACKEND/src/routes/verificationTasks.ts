@@ -243,18 +243,18 @@ router.get(
           vt.*,
           vtype.name as verification_type_name,
           u_assigned.name as assigned_to_name,
-          u_assigned."employeeId" as assigned_to_employee_id,
+          u_assigned.employee_id as assigned_to_employee_id,
           u_created.name as assigned_by_name,
           rt.name as rate_type_name,
-          c."caseId" as case_number,
-          c."customerName" as customer_name,
+          c.case_id as case_number,
+          c.customer_name as customer_name,
           tcc.status as commission_status,
           tcc.calculated_commission
         FROM verification_tasks vt
-        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+        LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
         LEFT JOIN users u_assigned ON vt.assigned_to = u_assigned.id
         LEFT JOIN users u_created ON vt.assigned_by = u_created.id
-        LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
+        LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
         LEFT JOIN cases c ON vt.case_id = c.id
         LEFT JOIN task_commission_calculations tcc ON vt.id = tcc.verification_task_id
         WHERE vt.id = $1
@@ -382,8 +382,8 @@ router.post(
            JOIN cases c ON c.id = vt.case_id
            WHERE vt.id = ANY($1::uuid[])
              AND (
-               c."clientId" <> ALL($2::int[])
-               OR c."productId" <> ALL($3::int[])
+               c.client_id <> ALL($2::int[])
+               OR c.product_id <> ALL($3::int[])
              )`,
           [taskIds, assignedClientIds, assignedProductIds]
         );

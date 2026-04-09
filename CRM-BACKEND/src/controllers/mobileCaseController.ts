@@ -256,22 +256,22 @@ export class MobileCaseController {
         const updatedAtFilter = where.updatedAt as DateRangeFilter;
         if (updatedAtFilter.gt) {
           vals.push(updatedAtFilter.gt);
-          wh.push(`c."updatedAt" > $${vals.length}`);
+          wh.push(`c.updated_at > $${vals.length}`);
         }
       }
       if (search) {
         vals.push(`%${search}%`);
         wh.push(
-          `(c."customerName" ILIKE $${vals.length} OR c."customerPhone" ILIKE $${vals.length} OR c.title ILIKE $${vals.length} OR c.description ILIKE $${vals.length})`
+          `(c.customer_name ILIKE $${vals.length} OR c.customer_phone ILIKE $${vals.length} OR c.title ILIKE $${vals.length} OR c.description ILIKE $${vals.length})`
         );
       }
       if (dateFrom) {
         vals.push(new Date(dateFrom));
-        wh.push(`c."createdAt" >= $${vals.length}`);
+        wh.push(`c.created_at >= $${vals.length}`);
       }
       if (dateTo) {
         vals.push(new Date(dateTo));
-        wh.push(`c."createdAt" <= $${vals.length}`);
+        wh.push(`c.created_at <= $${vals.length}`);
       }
       const whereSql = wh.length ? `WHERE ${wh.join(' AND ')}` : '';
 
@@ -291,15 +291,15 @@ export class MobileCaseController {
         SELECT c.*,
                -- All 13 required fields for mobile app
                -- Field 3: Client
-               cl.id as "clientId",
+               cl.id as client_id,
                cl.name as "clientName",
                cl.code as "clientCode",
                -- Field 4: Product
-               p.id as "productId",
+               p.id as product_id,
                p.name as "productName",
                p.code as "productCode",
                -- Field 5: Verification Type
-               vtype.id as "verificationTypeId",
+               vtype.id as verification_type_id,
                vtype.name as "verificationTypeName",
                vtype.code as "verificationTypeCode",
                -- Rate type information (for Area and Rate Type columns) - from task level
@@ -333,10 +333,10 @@ export class MobileCaseController {
                -- Attachment count
                COALESCE(att_count.attachment_count, 0) as "attachmentCount"
         FROM cases c
-        LEFT JOIN clients cl ON cl.id = c."clientId"
-        LEFT JOIN products p ON p.id = c."productId"
-        LEFT JOIN "verificationTypes" vtype ON vtype.id = c."verificationTypeId"
-        LEFT JOIN users cu ON cu.id = c."createdByBackendUser"
+        LEFT JOIN clients cl ON cl.id = c.client_id
+        LEFT JOIN products p ON p.id = c.product_id
+        LEFT JOIN verification_types vtype ON vtype.id = c.verification_type_id
+        LEFT JOIN users cu ON cu.id = c.created_by_backend_user
         LEFT JOIN LATERAL (
           SELECT vt.id, vt.task_number, vt.address, vt.trigger, vt.priority, vt.applicant_type,
                  vt.assigned_to, vt.assigned_at, vt.created_at as task_created_at,
@@ -349,7 +349,7 @@ export class MobileCaseController {
           FROM verification_tasks vt
           LEFT JOIN users u ON u.id = vt.assigned_to
           LEFT JOIN users revoked_user ON revoked_user.id = vt.revoked_by
-          LEFT JOIN "rateTypes" rt ON rt.id = vt.rate_type_id
+          LEFT JOIN rate_types rt ON rt.id = vt.rate_type_id
           WHERE vt.case_id = c.id
           AND (
             $${taskFilterParamIndex}::uuid IS NULL  -- For non-field-agents, show first task
@@ -361,12 +361,12 @@ export class MobileCaseController {
             vt.created_at DESC  -- Show newest task first (Revisit tasks are newer)
         ) vtask ON true
         LEFT JOIN (
-          SELECT "caseId", COUNT(*) as attachment_count
+          SELECT case_id, COUNT(*) as attachment_count
           FROM attachments
-          GROUP BY "caseId"
-        ) att_count ON att_count."caseId" = c."caseId"
+          GROUP BY case_id
+        ) att_count ON att_count.case_id = c.case_id
         ${whereSql}
-        ORDER BY c.priority DESC, c."createdAt" DESC
+        ORDER BY c.priority DESC, c.created_at DESC
         LIMIT $${vals.length + 2} OFFSET $${vals.length + 3}`;
       logger.info('📊 Mobile Cases Query:', { whereSql, vals, userIdForTaskFilter, take, skip });
       const casesRes = await query(listSql, [...vals, userIdForTaskFilter, take, skip]);
@@ -538,9 +538,9 @@ export class MobileCaseController {
 
       let caseSql = `
         SELECT c.*,
-               cl.id as "clientId", cl.name as "clientName", cl.code as "clientCode",
-               p.id as "productId", p.name as "productName", p.code as "productCode",
-               vtype.id as "verificationTypeId", vtype.name as "verificationTypeName", vtype.code as "verificationTypeCode",
+               cl.id as client_id, cl.name as "clientName", cl.code as "clientCode",
+               p.id as product_id, p.name as "productName", p.code as "productCode",
+               vtype.id as verification_type_id, vtype.name as "verificationTypeName", vtype.code as "verificationTypeCode",
                cu.name as "createdByUserName",
                vtask.id as "verificationTaskId",
                vtask.task_number as "verificationTaskNumber",
@@ -551,10 +551,10 @@ export class MobileCaseController {
                vtask.assigned_to as "taskAssignedTo",
                vtask.assigned_user_name
         FROM cases c
-        LEFT JOIN clients cl ON cl.id = c."clientId"
-        LEFT JOIN products p ON p.id = c."productId"
-        LEFT JOIN "verificationTypes" vtype ON vtype.id = c."verificationTypeId"
-        LEFT JOIN users cu ON cu.id = c."createdByBackendUser"
+        LEFT JOIN clients cl ON cl.id = c.client_id
+        LEFT JOIN products p ON p.id = c.product_id
+        LEFT JOIN verification_types vtype ON vtype.id = c.verification_type_id
+        LEFT JOIN users cu ON cu.id = c.created_by_backend_user
         LEFT JOIN LATERAL (
           SELECT vt.id, vt.task_number, vt.address, vt.trigger, vt.priority, vt.applicant_type,
                  vt.assigned_to, vt.assigned_at, vt.created_at as task_created_at,
@@ -615,21 +615,21 @@ export class MobileCaseController {
         SELECT
           id,
           filename,
-          "originalName",
-          "mimeType",
-          "fileSize" as size,
-          "filePath",
-          "uploadedBy",
-          "createdAt" as "uploadedAt",
-          "caseId"
+          original_name,
+          mime_type,
+          file_size as size,
+          file_path,
+          uploaded_by,
+          created_at as "uploadedAt",
+          case_id
         FROM attachments
-        WHERE "caseId" = $1
-        ORDER BY "createdAt" DESC
+        WHERE case_id = $1
+        ORDER BY created_at DESC
       `,
         [caseId]
       );
       const _locRes = await query(
-        `SELECT id, latitude, longitude, accuracy, timestamp, source FROM locations WHERE "caseId" = $1 ORDER BY timestamp DESC LIMIT 10`,
+        `SELECT id, latitude, longitude, accuracy, timestamp, source FROM locations WHERE case_id = $1 ORDER BY timestamp DESC LIMIT 10`,
         [caseId]
       );
 
@@ -758,7 +758,7 @@ export class MobileCaseController {
       });
 
       const vals3: QueryParams = [caseId];
-      let exSql = `SELECT id, "caseId", status, trigger, "completedAt" FROM cases WHERE id = $1`;
+      let exSql = `SELECT id, case_id, status, trigger, completed_at FROM cases WHERE id = $1`;
 
       if (isExecutionActor) {
         exSql += ` AND EXISTS (
@@ -791,11 +791,11 @@ export class MobileCaseController {
       const actualCaseId = existingCase.id; // Use the actual UUID from the database
 
       await query(
-        `UPDATE cases SET status = $1, trigger = COALESCE($2, trigger), "completedAt" = $3, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $4`,
+        `UPDATE cases SET status = $1, trigger = COALESCE($2, trigger), completed_at = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
         [status, notes, compAt, actualCaseId]
       );
       const updRes = await query(
-        `SELECT id, "caseId", status, "updatedAt", "completedAt" FROM cases WHERE id = $1`,
+        `SELECT id, case_id, status, updated_at, completed_at FROM cases WHERE id = $1`,
         [actualCaseId]
       );
       const updatedCase = updRes.rows[0];
@@ -914,11 +914,11 @@ export class MobileCaseController {
         });
       }
 
-      await query(`UPDATE cases SET priority = $1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $2`, [
+      await query(`UPDATE cases SET priority = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`, [
         Number(priority),
         caseId,
       ]);
-      const updRes2 = await query(`SELECT id, priority, "updatedAt" FROM cases WHERE id = $1`, [
+      const updRes2 = await query(`SELECT id, priority, updated_at FROM cases WHERE id = $1`, [
         caseId,
       ]);
       const updatedCase = updRes2.rows[0];
@@ -1005,19 +1005,19 @@ export class MobileCaseController {
 
       // Save or update auto-save data
       const exAuto = await query(
-        `SELECT id FROM "autoSaves" WHERE "caseId" = $1 AND "formType" = $2`,
+        `SELECT id FROM auto_saves WHERE case_id = $1 AND "formType" = $2`,
         [actualCaseId, formType]
       );
       let autoSaveData: { timestamp?: Date; formData?: unknown } | null = null;
       if (exAuto.rowCount && exAuto.rowCount > 0) {
         const upd = await query(
-          `UPDATE "autoSaves" SET "formData" = $1, timestamp = $2 WHERE id = $3 RETURNING *`,
+          `UPDATE auto_saves SET form_data = $1, timestamp = $2 WHERE id = $3 RETURNING *`,
           [JSON.stringify(formData), new Date(timestamp), exAuto.rows[0].id]
         );
         autoSaveData = upd.rows[0];
       } else {
         const ins = await query(
-          `INSERT INTO "autoSaves" (id, "caseId", "formType", "formData", timestamp) VALUES (gen_random_uuid()::text, $1, $2, $3, $4) RETURNING *`,
+          `INSERT INTO auto_saves (id, case_id, "formType", form_data, timestamp) VALUES (gen_random_uuid()::text, $1, $2, $3, $4) RETURNING *`,
           [actualCaseId, formType, JSON.stringify(formData), new Date(timestamp)]
         );
         autoSaveData = ins.rows[0];
@@ -1091,7 +1091,7 @@ export class MobileCaseController {
 
       const actualCaseId = existingCase.id; // Use the actual UUID from the database
       const autoRes = await query(
-        `SELECT id, "caseId", "formType", "formData", "savedAt", "userId" FROM "autoSaves" WHERE "caseId" = $1 AND "formType" = $2 LIMIT 1`,
+        `SELECT id, case_id, "formType", form_data, saved_at, user_id FROM auto_saves WHERE case_id = $1 AND "formType" = $2 LIMIT 1`,
         [actualCaseId, formType.toUpperCase()]
       );
       const autoSaveData = autoRes.rows[0];
@@ -1310,10 +1310,10 @@ export class MobileCaseController {
         `
         UPDATE cases
         SET status = 'REVOKED',
-            "revokedAt" = CURRENT_TIMESTAMP,
+            revoked_at = CURRENT_TIMESTAMP,
             "revokedBy" = $1,
             "revocationReason" = $2,
-            "updatedAt" = CURRENT_TIMESTAMP
+            updated_at = CURRENT_TIMESTAMP
         WHERE id = $3
       `,
         [userId, reason, caseId]
@@ -1322,7 +1322,7 @@ export class MobileCaseController {
       // Get field user information
       const fieldUserQuery = await query(
         `
-        SELECT name, "employeeId" FROM users WHERE id = $1
+        SELECT name, employee_id FROM users WHERE id = $1
       `,
         [userId]
       );
@@ -1335,7 +1335,7 @@ export class MobileCaseController {
         JOIN user_roles ur ON ur.user_id = u.id
         JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
         JOIN permissions p ON p.id = rp.permission_id
-        WHERE u."isActive" = true
+        WHERE u.is_active = true
           AND p.code IN ('case.reassign', 'review.view', 'report.generate')
       `);
       const backendUserIds = backendUsersQuery.rows.map(row => row.id);
@@ -1621,7 +1621,7 @@ export class MobileCaseController {
         `
         SELECT vt.*, vtype.name as verification_type_name
         FROM verification_tasks vt
-        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+        LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
         WHERE vt.id = $1
       `,
         [taskId]
@@ -1786,8 +1786,8 @@ export class MobileCaseController {
         `
         SELECT
           vt.*,
-          c."caseId" as case_number,
-          c."customerName" as customer_name,
+          c.case_id as case_number,
+          c.customer_name as customer_name,
           c.id as case_id
         FROM verification_tasks vt
         LEFT JOIN cases c ON vt.case_id = c.id
@@ -1868,7 +1868,7 @@ export class MobileCaseController {
       // Get field user information
       const fieldUserQuery = await query(
         `
-        SELECT name, "employeeId" FROM users WHERE id = $1
+        SELECT name, employee_id FROM users WHERE id = $1
       `,
         [userId]
       );
@@ -1881,7 +1881,7 @@ export class MobileCaseController {
         JOIN user_roles ur ON ur.user_id = u.id
         JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
         JOIN permissions p ON p.id = rp.permission_id
-        WHERE u."isActive" = true
+        WHERE u.is_active = true
           AND p.code IN ('case.reassign', 'review.view', 'report.generate')
       `);
       const backendUserIds = backendUsersQuery.rows.map(row => row.id);

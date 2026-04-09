@@ -23,34 +23,34 @@ export const getRateTypeAssignments = async (req: AuthenticatedRequest, res: Res
 
     if (clientId) {
       values.push(clientId as string);
-      whereSql.push(`"clientId" = $${values.length}`);
+      whereSql.push(`client_id = $${values.length}`);
     }
 
     if (productId) {
       values.push(productId as string);
-      whereSql.push(`"productId" = $${values.length}`);
+      whereSql.push(`product_id = $${values.length}`);
     }
 
     if (verificationTypeId) {
       values.push(verificationTypeId as string);
-      whereSql.push(`"verificationTypeId" = $${values.length}`);
+      whereSql.push(`verification_type_id = $${values.length}`);
     }
 
     if (rateTypeId) {
       values.push(rateTypeId as string);
-      whereSql.push(`"rateTypeId" = $${values.length}`);
+      whereSql.push(`rate_type_id = $${values.length}`);
     }
 
     if (typeof isActive !== 'undefined') {
       values.push(typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive));
-      whereSql.push(`rta."isActive" = $${values.length}`);
+      whereSql.push(`rta.is_active = $${values.length}`);
     }
 
     const whereClause = whereSql.length ? `WHERE ${whereSql.join(' AND ')}` : '';
 
     // Get total count
     const countRes = await query<{ count: string }>(
-      `SELECT COUNT(*)::text as count FROM "rateTypeAssignmentView" rta ${whereClause}`,
+      `SELECT COUNT(*)::text as count FROM rate_type_assignment_view rta ${whereClause}`,
       values
     );
     const totalCount = Number(countRes.rows[0]?.count || 0);
@@ -59,7 +59,7 @@ export const getRateTypeAssignments = async (req: AuthenticatedRequest, res: Res
     const offset = (Number(page) - 1) * Number(limit);
 
     const listRes = await query(
-      `SELECT * FROM "rateTypeAssignmentView" rta
+      `SELECT * FROM rate_type_assignment_view rta
        ${whereClause}
        ORDER BY "clientName", "productName", "verificationTypeName", "rateTypeName"
        LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
@@ -110,18 +110,18 @@ export const getAssignmentsByCombination = async (req: AuthenticatedRequest, res
     // Get all rate types and their assignment status for this combination
     const assignmentsRes = await query(
       `SELECT 
-        rt.id as "rateTypeId",
+        rt.id as rate_type_id,
         rt.name as "rateTypeName",
         rt.description as "rateTypeDescription",
         CASE WHEN rta.id IS NOT NULL THEN true ELSE false END as "isAssigned",
-        rta.id as "assignmentId",
-        rta."isActive" as "assignmentActive"
-       FROM "rateTypes" rt
-       LEFT JOIN "rateTypeAssignments" rta ON rt.id = rta."rateTypeId" 
-         AND rta."clientId" = $1 
-         AND rta."productId" = $2 
-         AND rta."verificationTypeId" = $3
-       WHERE rt."isActive" = true
+        rta.id as assignment_id,
+        rta.is_active as "assignmentActive"
+       FROM rate_types rt
+       LEFT JOIN rate_type_assignments rta ON rt.id = rta.rate_type_id 
+         AND rta.client_id = $1 
+         AND rta.product_id = $2 
+         AND rta.verification_type_id = $3
+       WHERE rt.is_active = true
        ORDER BY rt.name`,
       [Number(clientId), Number(productId), Number(verificationTypeId)]
     );
@@ -166,8 +166,8 @@ export const bulkAssignRateTypes = async (req: AuthenticatedRequest, res: Respon
     await withTransaction(async client => {
       // First, remove all existing assignments for this combination
       await client.query(
-        `DELETE FROM "rateTypeAssignments" 
-         WHERE "clientId" = $1 AND "productId" = $2 AND "verificationTypeId" = $3`,
+        `DELETE FROM rate_type_assignments 
+         WHERE client_id = $1 AND product_id = $2 AND verification_type_id = $3`,
         [clientId, productId, verificationTypeId]
       );
 
@@ -186,7 +186,7 @@ export const bulkAssignRateTypes = async (req: AuthenticatedRequest, res: Respon
         }
 
         await client.query(
-          `INSERT INTO "rateTypeAssignments" ("clientId", "productId", "verificationTypeId", "rateTypeId", "isActive", "createdAt", "updatedAt")
+          `INSERT INTO rate_type_assignments (client_id, product_id, verification_type_id, rate_type_id, is_active, created_at, updated_at)
            VALUES ${values.join(', ')}`,
           params
         );
@@ -231,8 +231,8 @@ export const createRateTypeAssignment = async (req: AuthenticatedRequest, res: R
 
     // Check if assignment already exists
     const existingRes = await query(
-      `SELECT id FROM "rateTypeAssignments" 
-       WHERE "clientId" = $1 AND "productId" = $2 AND "verificationTypeId" = $3 AND "rateTypeId" = $4`,
+      `SELECT id FROM rate_type_assignments 
+       WHERE client_id = $1 AND product_id = $2 AND verification_type_id = $3 AND rate_type_id = $4`,
       [clientId, productId, verificationTypeId, rateTypeId]
     );
 
@@ -246,9 +246,9 @@ export const createRateTypeAssignment = async (req: AuthenticatedRequest, res: R
 
     // Create assignment
     const insertRes = await query(
-      `INSERT INTO "rateTypeAssignments" ("clientId", "productId", "verificationTypeId", "rateTypeId", "isActive", "createdAt", "updatedAt")
+      `INSERT INTO rate_type_assignments (client_id, product_id, verification_type_id, rate_type_id, is_active, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-       RETURNING id, "clientId", "productId", "verificationTypeId", "rateTypeId", "isActive", "createdAt", "updatedAt"`,
+       RETURNING id, client_id, product_id, verification_type_id, rate_type_id, is_active, created_at, updated_at`,
       [clientId, productId, verificationTypeId, rateTypeId, isActive]
     );
     const newAssignment = insertRes.rows[0];
@@ -282,7 +282,7 @@ export const deleteRateTypeAssignment = async (req: AuthenticatedRequest, res: R
     const { id } = req.params;
 
     // Check if assignment exists
-    const existRes = await query(`SELECT id FROM "rateTypeAssignments" WHERE id = $1`, [
+    const existRes = await query(`SELECT id FROM rate_type_assignments WHERE id = $1`, [
       Number(id),
     ]);
     if (!existRes.rows[0]) {
@@ -296,10 +296,10 @@ export const deleteRateTypeAssignment = async (req: AuthenticatedRequest, res: R
     // Check if assignment is being used in rates
     const usageRes = await query(
       `SELECT COUNT(*) as count FROM rates r
-       JOIN "rateTypeAssignments" rta ON r."clientId" = rta."clientId" 
-         AND r."productId" = rta."productId" 
-         AND r."verificationTypeId" = rta."verificationTypeId" 
-         AND r."rateTypeId" = rta."rateTypeId"
+       JOIN rate_type_assignments rta ON r.client_id = rta.client_id 
+         AND r.product_id = rta.product_id 
+         AND r.verification_type_id = rta.verification_type_id 
+         AND r.rate_type_id = rta.rate_type_id
        WHERE rta.id = $1`,
       [Number(id)]
     );
@@ -314,7 +314,7 @@ export const deleteRateTypeAssignment = async (req: AuthenticatedRequest, res: R
     }
 
     // Delete assignment
-    await query(`DELETE FROM "rateTypeAssignments" WHERE id = $1`, [Number(id)]);
+    await query(`DELETE FROM rate_type_assignments WHERE id = $1`, [Number(id)]);
 
     logger.info(`Deleted rate type assignment: ${id}`, {
       userId: req.user?.id,

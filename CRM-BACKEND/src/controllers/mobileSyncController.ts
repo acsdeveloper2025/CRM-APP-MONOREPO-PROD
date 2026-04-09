@@ -282,7 +282,7 @@ export class MobileSyncController {
       // Update device sync timestamp
       if (deviceInfo?.deviceId) {
         await query(
-          `UPDATE devices SET "lastUsed" = CURRENT_TIMESTAMP WHERE "userId" = $1 AND "deviceId" = $2`,
+          `UPDATE devices SET "lastUsed" = CURRENT_TIMESTAMP WHERE user_id = $1 AND device_id = $2`,
           [userId, deviceInfo.deviceId]
         );
       }
@@ -444,10 +444,10 @@ export class MobileSyncController {
 
       const casesRes = await query(
         `SELECT c.*,
-                cl.id as "clientId", cl.name as "clientName", cl.code as "clientCode",
-                p.id as "productId", p.name as "productName", p.code as "productCode",
-                vtype.id as "verificationTypeId", vtype.name as "verificationTypeName", vtype.code as "verificationTypeCode",
-                c."verificationData",
+                cl.id as client_id, cl.name as "clientName", cl.code as "clientCode",
+                p.id as product_id, p.name as "productName", p.code as "productCode",
+                vtype.id as verification_type_id, vtype.name as "verificationTypeName", vtype.code as "verificationTypeCode",
+                c.verification_data,
                 COALESCE(cu.name, cu.username) as "createdByUserName",
                 vtask.id as "verificationTaskId",
                 vtask.task_number as "verificationTaskNumber",
@@ -471,10 +471,10 @@ export class MobileSyncController {
                 vtask.task_updated_at,
                 COALESCE(att_count.attachment_count, 0) as "attachmentCount"
          FROM cases c
-         LEFT JOIN clients cl ON cl.id = c."clientId"
-         LEFT JOIN products p ON p.id = c."productId"
-         LEFT JOIN "verificationTypes" vtype ON vtype.id = c."verificationTypeId"
-         LEFT JOIN users cu ON cu.id = c."createdByBackendUser"
+         LEFT JOIN clients cl ON cl.id = c.client_id
+         LEFT JOIN products p ON p.id = c.product_id
+         LEFT JOIN verification_types vtype ON vtype.id = c.verification_type_id
+         LEFT JOIN users cu ON cu.id = c.created_by_backend_user
          LEFT JOIN LATERAL (
            SELECT vt.id, vt.task_number, vt.address, vt.trigger, vt.priority, vt.applicant_type,
                   vt.assigned_to, vt.assigned_at, vt.created_at as task_created_at, vt.updated_at as task_updated_at,
@@ -499,16 +499,16 @@ export class MobileSyncController {
            LIMIT 1
          ) vtask ON true
          LEFT JOIN (
-           SELECT "caseId", COUNT(*) as attachment_count
+           SELECT case_id, COUNT(*) as attachment_count
            FROM attachments
-           GROUP BY "caseId"
-         ) att_count ON att_count."caseId" = c."caseId"
+           GROUP BY case_id
+         ) att_count ON att_count.case_id = c.case_id
          WHERE vtask.id IS NOT NULL
            AND (
-             c."updatedAt" > $${syncTimestampParamIndex}
-             OR COALESCE(vtask.task_updated_at, c."updatedAt") > $${syncTimestampParamIndex}
+             c.updated_at > $${syncTimestampParamIndex}
+             OR COALESCE(vtask.task_updated_at, c.updated_at) > $${syncTimestampParamIndex}
            )
-         ORDER BY COALESCE(vtask.task_updated_at, c."updatedAt") ASC
+         ORDER BY COALESCE(vtask.task_updated_at, c.updated_at) ASC
          LIMIT $${limitParamIndex}
          OFFSET $${offsetParamIndex}`,
         vals
@@ -521,25 +521,25 @@ export class MobileSyncController {
         `SELECT
            va.id as attachment_id,
            va.verification_task_id as task_id,
-           COALESCE(va."photoType", 'verification') as type,
+           COALESCE(va.photo_type, 'verification') as type,
            va.filename as file_name,
-           COALESCE(va.file_size_bytes, va."fileSize", 0) as file_size,
-           va."mimeType" as mime_type,
-           COALESCE(va.capture_time, va."createdAt") as captured_at,
-           COALESCE(va.gps_latitude::double precision, NULLIF(va."geoLocation"->>'latitude', '')::double precision) as latitude,
-           COALESCE(va.gps_longitude::double precision, NULLIF(va."geoLocation"->>'longitude', '')::double precision) as longitude,
-           NULLIF(COALESCE(va."geoLocation"->>'address', va."geoLocation"->>'formattedAddress', ''), '') as address,
+           COALESCE(va.file_size_bytes, va.file_size, 0) as file_size,
+           va.mime_type as mime_type,
+           COALESCE(va.capture_time, va.created_at) as captured_at,
+           COALESCE(va.gps_latitude::double precision, NULLIF(va.geo_location->>'latitude', '')::double precision) as latitude,
+           COALESCE(va.gps_longitude::double precision, NULLIF(va.geo_location->>'longitude', '')::double precision) as longitude,
+           NULLIF(COALESCE(va.geo_location->>'address', va.geo_location->>'formattedAddress', ''), '') as address,
            (va.deleted_at IS NULL) as uploaded,
-           va."createdAt" as created_at,
-           COALESCE(va."updatedAt", va."createdAt") as updated_at
+           va.created_at as created_at,
+           COALESCE(va.updated_at, va.created_at) as updated_at
          FROM verification_attachments va
          INNER JOIN verification_tasks vt ON vt.id = va.verification_task_id
          WHERE (
            $${userIdParamIndex}::uuid IS NULL
            OR vt.assigned_to = $${userIdParamIndex}::uuid
          )
-           AND COALESCE(va."updatedAt", va."createdAt") > $${syncTimestampParamIndex}
-         ORDER BY COALESCE(va."updatedAt", va."createdAt") ASC, va.id ASC
+           AND COALESCE(va.updated_at, va.created_at) > $${syncTimestampParamIndex}
+         ORDER BY COALESCE(va.updated_at, va.created_at) ASC, va.id ASC
          LIMIT $${limitParamIndex}
          OFFSET $${offsetParamIndex}`,
         vals
@@ -781,7 +781,7 @@ export class MobileSyncController {
       const deviceId = String(req.headers['x-device-id'] || 'default');
 
       const devRes = await query(
-        `SELECT id, "userId", "deviceId", "deviceName", "platform", "appVersion", "lastActiveAt", "createdAt" FROM devices WHERE "userId" = $1 AND "deviceId" = $2 LIMIT 1`,
+        `SELECT id, user_id, device_id, "deviceName", "platform", app_version, last_active_at, created_at FROM devices WHERE user_id = $1 AND device_id = $2 LIMIT 1`,
         [userId, deviceId]
       );
       const device = devRes.rows[0];
@@ -840,7 +840,7 @@ export class MobileSyncController {
       case 'UPDATE': {
         // Check if case exists and user has access
         const vals9: QueryParams = [id];
-        let exSql7 = `SELECT id, "updatedAt" FROM cases WHERE id = $1`;
+        let exSql7 = `SELECT id, updated_at FROM cases WHERE id = $1`;
         if (isExecutionActor) {
           exSql7 += ` AND EXISTS (
             SELECT 1 FROM verification_tasks vt
@@ -874,7 +874,7 @@ export class MobileSyncController {
           sets.push(`"${key}" = $${idx++}`);
           vals10.push(value);
         }
-        sets.push(`"updatedAt" = CURRENT_TIMESTAMP`);
+        sets.push(`updated_at = CURRENT_TIMESTAMP`);
         vals10.push(id);
         await query(`UPDATE cases SET ${sets.join(', ')} WHERE id = $${idx}`, vals10);
 
@@ -972,7 +972,7 @@ export class MobileSyncController {
 
     if (normalizedTaskId) {
       const taskRes = await query(
-        `SELECT vt.id, vt.case_id, vt.assigned_to, c."caseId"::text as "caseNumber"
+        `SELECT vt.id, vt.case_id, vt.assigned_to, c.case_id::text as "caseNumber"
          FROM verification_tasks vt
          JOIN cases c ON c.id = vt.case_id
          WHERE vt.id = $1
@@ -990,10 +990,10 @@ export class MobileSyncController {
       assignedTo = (taskRes.rows[0].assigned_to as string | null) || null;
     } else if (normalizedCaseToken) {
       const isNumericCaseNumber = /^\d+$/.test(normalizedCaseToken);
-      const caseFilter = isNumericCaseNumber ? `c."caseId" = $1::int` : `c.id = $1::uuid`;
+      const caseFilter = isNumericCaseNumber ? `c.case_id = $1::int` : `c.id = $1::uuid`;
 
       const taskRes = await query(
-        `SELECT vt.id, vt.case_id, vt.assigned_to, c."caseId"::text as "caseNumber"
+        `SELECT vt.id, vt.case_id, vt.assigned_to, c.case_id::text as "caseNumber"
          FROM verification_tasks vt
          JOIN cases c ON c.id = vt.case_id
          WHERE ${caseFilter}
@@ -1029,7 +1029,7 @@ export class MobileSyncController {
 
     await query(
       `INSERT INTO locations
-        (id, "caseId", case_id, verification_task_id, latitude, longitude, accuracy, "recordedAt", "recordedBy")
+        (id, case_id, case_id, verification_task_id, latitude, longitude, accuracy, recorded_at, recorded_by)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
       [
         id,

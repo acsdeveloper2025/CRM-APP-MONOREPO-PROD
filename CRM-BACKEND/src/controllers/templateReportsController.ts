@@ -70,8 +70,8 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
     // Handle both UUID and integer caseId
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
     const caseQuery = isUuid
-      ? `SELECT id, "customerName", "verificationData", "verificationType", "verificationOutcome", status FROM cases WHERE id = $1`
-      : `SELECT id, "customerName", "verificationData", "verificationType", "verificationOutcome", status FROM cases WHERE "caseId" = $1`;
+      ? `SELECT id, customer_name, verification_data, verification_type, verification_outcome, status FROM cases WHERE id = $1`
+      : `SELECT id, customer_name, verification_data, verification_type, verification_outcome, status FROM cases WHERE case_id = $1`;
     const caseResult = await pool.query(caseQuery, [isUuid ? caseId : parseInt(caseId)]);
 
     if (caseResult.rows.length === 0) {
@@ -85,10 +85,10 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
     const taskQuery = `
       SELECT DISTINCT vt.id as task_id, vt.verification_type_id, vtype.name as verification_type_name
       FROM verification_tasks vt
-      LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+      LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
       WHERE vt.case_id = $1 AND (
         vt.id IN (SELECT verification_task_id FROM task_form_submissions WHERE form_submission_id::text = $2)
-        OR vt.id IN (SELECT verification_task_id FROM verification_attachments WHERE "submissionId" = $2)
+        OR vt.id IN (SELECT verification_task_id FROM verification_attachments WHERE submission_id = $2)
       )
       LIMIT 1
     `;
@@ -99,7 +99,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       const fallbackResult = await pool.query(
         `SELECT vt.id as task_id, vt.verification_type_id, vtype.name as verification_type_name
          FROM verification_tasks vt
-         LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+         LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
          WHERE vt.case_id = $1 LIMIT 1`,
         [caseData.id]
       );
@@ -129,7 +129,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
 
     if (typeUpper.includes('RESIDENCE') && !typeUpper.includes('OFFICE')) {
       const residenceQuery = `
-        SELECT * FROM "residenceVerificationReports"
+        SELECT * FROM residence_verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -209,7 +209,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       }
     } else if (typeUpper.includes('OFFICE') && !typeUpper.includes('RESIDENCE')) {
       const officeQuery = `
-        SELECT * FROM "officeVerificationReports"
+        SELECT * FROM office_verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -295,7 +295,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       }
     } else if (typeUpper.includes('BUSINESS')) {
       const businessQuery = `
-        SELECT * FROM "businessVerificationReports"
+        SELECT * FROM business_verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -385,7 +385,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       }
     } else if (typeUpper.includes('RESIDENCE') && typeUpper.includes('OFFICE')) {
       const residenceCumOfficeQuery = `
-        SELECT * FROM "residenceCumOfficeVerificationReports"
+        SELECT * FROM residence_cum_office_verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -488,7 +488,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       }
     } else if (typeUpper.includes('BUILDER')) {
       const builderQuery = `
-        SELECT * FROM "builderVerificationReports"
+        SELECT * FROM builder_verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -571,7 +571,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       }
     } else if (typeUpper.includes('NOC')) {
       const nocQuery = `
-        SELECT * FROM "nocVerificationReports"
+        SELECT * FROM noc_verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -669,7 +669,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       }
     } else if (typeUpper.includes('DSA') || typeUpper.includes('CONNECTOR')) {
       const dsaQuery = `
-        SELECT * FROM "dsaConnectorVerificationReports"
+        SELECT * FROM dsa_connector_verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -789,7 +789,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       }
     } else if (typeUpper.includes('PROPERTY') && typeUpper.includes('APF')) {
       const propertyApfQuery = `
-        SELECT * FROM "propertyApfVerificationReports"
+        SELECT * FROM property_apf_verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -921,7 +921,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       }
     } else if (typeUpper.includes('PROPERTY') && typeUpper.includes('INDIVIDUAL')) {
       const propertyIndividualQuery = `
-        SELECT * FROM "propertyIndividualVerificationReports"
+        SELECT * FROM property_individual_verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -1148,7 +1148,7 @@ export async function getTemplateReport(req: Request, res: Response) {
     );
     const caseQuery = isUuidLookup
       ? `SELECT id FROM cases WHERE id = $1`
-      : `SELECT id FROM cases WHERE "caseId" = $1`;
+      : `SELECT id FROM cases WHERE case_id = $1`;
     const caseResult = await pool.query(caseQuery, [isUuidLookup ? caseId : parseInt(caseId)]);
 
     if (caseResult.rows.length === 0) {
@@ -1205,7 +1205,7 @@ export async function getCaseTemplateReports(req: Request, res: Response) {
     );
     const caseQuery = isUuidLookup
       ? `SELECT id FROM cases WHERE id = $1`
-      : `SELECT id FROM cases WHERE "caseId" = $1`;
+      : `SELECT id FROM cases WHERE case_id = $1`;
     const caseResult = await pool.query(caseQuery, [isUuidLookup ? caseId : parseInt(caseId)]);
 
     if (caseResult.rows.length === 0) {

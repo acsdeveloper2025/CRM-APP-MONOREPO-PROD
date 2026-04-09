@@ -133,15 +133,15 @@ export class DashboardKPIService {
     let idx = 1;
 
     if (clientId) {
-      conditions.push(`c."clientId" = $${idx++}`);
+      conditions.push(`c.client_id = $${idx++}`);
       params.push(clientId);
     }
     if (clientIds && clientIds.length > 0) {
-      conditions.push(`c."clientId" = ANY($${idx++}::int[])`);
+      conditions.push(`c.client_id = ANY($${idx++}::int[])`);
       params.push(clientIds);
     }
     if (productIds && productIds.length > 0) {
-      conditions.push(`c."productId" = ANY($${idx++}::int[])`);
+      conditions.push(`c.product_id = ANY($${idx++}::int[])`);
       params.push(productIds);
     }
     if (agentId) {
@@ -256,21 +256,21 @@ export class DashboardKPIService {
       )
       SELECT 
         -- TOTAL (Created)
-        COUNT(*) FILTER (WHERE "createdAt" BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_total,
-        COUNT(*) FILTER (WHERE "createdAt" BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_total,
+        COUNT(*) FILTER (WHERE created_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_total,
+        COUNT(*) FILTER (WHERE created_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_total,
 
         -- IN PROGRESS (Snapshot)
         COUNT(*) FILTER (WHERE status IN ('IN_PROGRESS', 'PENDING')) as cp_active,
-        COUNT(*) FILTER (WHERE "createdAt" <= (SELECT pp_end FROM date_ranges) AND (status NOT IN ('COMPLETED', 'CLOSED') OR "updatedAt" > (SELECT pp_end FROM date_ranges))) as pp_active, 
+        COUNT(*) FILTER (WHERE created_at <= (SELECT pp_end FROM date_ranges) AND (status NOT IN ('COMPLETED', 'CLOSED') OR updated_at > (SELECT pp_end FROM date_ranges))) as pp_active, 
 
         -- COMPLETED (Flow)
-        COUNT(*) FILTER (WHERE status = 'COMPLETED' AND "updatedAt" BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_completed,
-        COUNT(*) FILTER (WHERE status = 'COMPLETED' AND "updatedAt" BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_completed
+        COUNT(*) FILTER (WHERE status = 'COMPLETED' AND updated_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_completed,
+        COUNT(*) FILTER (WHERE status = 'COMPLETED' AND updated_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_completed
 
       FROM cases c
       -- We must apply filters if relevant (Agent filter might not apply to Cases directly if assigned at task level, implies Join)
       -- Keeping simple based strictly on table 'cases' but respecting clientId
-      WHERE 1=1 ${clientId ? `AND "clientId" = $1` : ''}
+      WHERE 1=1 ${clientId ? `AND client_id = $1` : ''}
     `;
     // Note: If agentId is provided, cases query might be inaccurate unless we join tasks or look at case assignment.
     // Assuming for dashboard simplicity, Agent view focuses on Tasks.
@@ -281,7 +281,7 @@ export class DashboardKPIService {
     const clientsQuery = `
       SELECT 
         COUNT(*) as total,
-        COUNT(*) FILTER (WHERE "isActive" = true) as active
+        COUNT(*) FILTER (WHERE is_active = true) as active
       FROM clients
     `;
 

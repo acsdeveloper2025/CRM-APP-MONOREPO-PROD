@@ -63,7 +63,7 @@ export const requireTaskAccess = async (
 
     if (isScopedOperationsUser(user)) {
       const taskScopeResult = await query(
-        `SELECT vt.id, c."clientId" as client_id, c."productId" as product_id
+        `SELECT vt.id, c.client_id as client_id, c.product_id as product_id
          FROM verification_tasks vt
          JOIN cases c ON c.id = vt.case_id
          WHERE vt.id = $1`,

@@ -92,7 +92,7 @@ export class QueryOptimizationService {
           (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
           'UNASSIGNED'
         ) as role,
-        u."employeeId", u."isActive", u."lastLogin", u."createdAt", u."updatedAt",
+        u.employee_id, u.is_active, u.last_login, u.created_at, u.updated_at,
         COALESCE(
           (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
           'UNASSIGNED'
@@ -107,10 +107,10 @@ export class QueryOptimizationService {
         d.name as "departmentName", d.description as "departmentDescription",
         des.name as "designationName"
       FROM users u
-      LEFT JOIN departments d ON u."departmentId" = d.id  
-      LEFT JOIN designations des ON u."designationId" = des.id
+      LEFT JOIN departments d ON u.department_id = d.id  
+      LEFT JOIN designations des ON u.designation_id = des.id
       WHERE ($1::text IS NULL OR u.name ILIKE $1 OR u.username ILIKE $1 OR u.email ILIKE $1)
-        AND ($2::boolean IS NULL OR u."isActive" = $2)
+        AND ($2::boolean IS NULL OR u.is_active = $2)
         AND ($3::text IS NULL OR EXISTS (
           SELECT 1
           FROM user_roles urf
@@ -141,16 +141,16 @@ export class QueryOptimizationService {
 
     const query = `
       SELECT 
-        c.id, c.name, c.code, c."createdAt", c."updatedAt",
-        COUNT(DISTINCT cp."productId") as "productCount",
-        COUNT(DISTINCT cases."caseId") as "caseCount",
-        COUNT(DISTINCT CASE WHEN cases.status = 'COMPLETED' THEN cases."caseId" END) as "completedCases",
-        COUNT(DISTINCT CASE WHEN cases.status = 'PENDING' THEN cases."caseId" END) as "pendingCases"
+        c.id, c.name, c.code, c.created_at, c.updated_at,
+        COUNT(DISTINCT cp.product_id) as "productCount",
+        COUNT(DISTINCT cases.case_id) as "caseCount",
+        COUNT(DISTINCT CASE WHEN cases.status = 'COMPLETED' THEN cases.case_id END) as "completedCases",
+        COUNT(DISTINCT CASE WHEN cases.status = 'PENDING' THEN cases.case_id END) as "pendingCases"
       FROM clients c
-      LEFT JOIN "clientProducts" cp ON c.id = cp."clientId"
-      LEFT JOIN cases ON c.id = cases."clientId"
+      LEFT JOIN client_products cp ON c.id = cp.client_id
+      LEFT JOIN cases ON c.id = cases.client_id
       WHERE ($1::text IS NULL OR c.name ILIKE $1 OR c.code ILIKE $1)
-      GROUP BY c.id, c.name, c.code, c."createdAt", c."updatedAt"
+      GROUP BY c.id, c.name, c.code, c.created_at, c.updated_at
       ORDER BY c.name
       LIMIT $2 OFFSET $3
     `;
@@ -173,30 +173,30 @@ export class QueryOptimizationService {
 
     const query = `
       SELECT 
-        c."caseId", c."customerName", c."customerPhone", c.address,
-        c.status, c.priority, c."createdAt", c."updatedAt",
+        c.case_id, c.customer_name, c.customer_phone, c.address,
+        c.status, c.priority, c.created_at, c.updated_at,
         cl.name as "clientName", cl.code as "clientCode",
-        u.name as "assignedToName", u."employeeId",
+        u.name as "assignedToName", u.employee_id,
         p.name as "productName", p.code as "productCode",
         vt.name as "verificationTypeName", vt.code as "verificationTypeCode",
         COUNT(DISTINCT a.id) as "attachmentCount",
         COUNT(DISTINCT al.id) as "auditLogCount"
       FROM cases c
-      LEFT JOIN clients cl ON c."clientId" = cl.id
+      LEFT JOIN clients cl ON c.client_id = cl.id
       LEFT JOIN users u ON c."assignedTo" = u.id
-      LEFT JOIN products p ON c."productId" = p.id
-      LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
-      LEFT JOIN attachments a ON c."caseId" = a."caseId"
-      LEFT JOIN "auditLogs" al ON c."caseId"::text = al."entityId" AND al."entityType" = 'case'
+      LEFT JOIN products p ON c.product_id = p.id
+      LEFT JOIN verification_types vt ON c.verification_type_id = vt.id
+      LEFT JOIN attachments a ON c.case_id = a.case_id
+      LEFT JOIN audit_logs al ON c.case_id::text = al.entity_id AND al.entity_type = 'case'
       WHERE ($1::text IS NULL OR c.status = $1)
         AND ($2::uuid IS NULL OR c."assignedTo" = $2)
-        AND ($3::integer IS NULL OR c."clientId" = $3)
-        AND ($4::text IS NULL OR c."customerName" ILIKE $4 OR c."customerPhone" ILIKE $4)
-      GROUP BY c."caseId", c."customerName", c."customerPhone", c.address,
-               c.status, c.priority, c."createdAt", c."updatedAt",
-               cl.name, cl.code, u.name, u."employeeId", 
+        AND ($3::integer IS NULL OR c.client_id = $3)
+        AND ($4::text IS NULL OR c.customer_name ILIKE $4 OR c.customer_phone ILIKE $4)
+      GROUP BY c.case_id, c.customer_name, c.customer_phone, c.address,
+               c.status, c.priority, c.created_at, c.updated_at,
+               cl.name, cl.code, u.name, u.employee_id, 
                p.name, p.code, vt.name, vt.code
-      ORDER BY c."createdAt" DESC
+      ORDER BY c.created_at DESC
       LIMIT $5 OFFSET $6
     `;
 
@@ -226,19 +226,19 @@ export class QueryOptimizationService {
           COUNT(CASE WHEN status = 'IN_PROGRESS' THEN 1 END) as in_progress_cases,
           COUNT(CASE WHEN status = 'COMPLETED' THEN 1 END) as completed_cases,
           COUNT(CASE WHEN priority = 'HIGH' THEN 1 END) as high_priority_cases,
-          COUNT(CASE WHEN "createdAt" >= CURRENT_DATE THEN 1 END) as today_cases
+          COUNT(CASE WHEN created_at >= CURRENT_DATE THEN 1 END) as today_cases
         FROM cases c
         WHERE 1=1 ${baseCondition}
       ),
       recent_cases AS (
         SELECT 
-          c."caseId", c."customerName", c.status, c.priority, c."createdAt",
+          c.case_id, c.customer_name, c.status, c.priority, c.created_at,
           cl.name as "clientName", u.name as "assignedToName"
         FROM cases c
-        LEFT JOIN clients cl ON c."clientId" = cl.id
+        LEFT JOIN clients cl ON c.client_id = cl.id
         LEFT JOIN users u ON c."assignedTo" = u.id
         WHERE 1=1 ${baseCondition}
-        ORDER BY c."createdAt" DESC
+        ORDER BY c.created_at DESC
         LIMIT 10
       )
       SELECT 
@@ -263,14 +263,14 @@ export class QueryOptimizationService {
 
     const query = `
       SELECT 
-        u.id as "userId", u.name as "userName", u.username, u."employeeId", u."isActive",
+        u.id as user_id, u.name as "userName", u.username, u.employee_id, u.is_active,
         json_agg(
           DISTINCT jsonb_build_object(
             'pincodeId', p.id,
             'pincodeCode', p.code,
             'cityName', c.name,
             'stateName', s.name,
-            'isActive', upa."isActive"
+            'isActive', upa.is_active
           )
         ) FILTER (WHERE p.id IS NOT NULL) as pincodes,
         json_agg(
@@ -278,17 +278,17 @@ export class QueryOptimizationService {
             'areaId', a.id,
             'areaName', a.name,
             'pincodeCode', ap.code,
-            'isActive', uaa."isActive"
+            'isActive', uaa.is_active
           )
         ) FILTER (WHERE a.id IS NOT NULL) as areas
       FROM users u
-      LEFT JOIN "userPincodeAssignments" upa ON u.id = upa."userId" AND upa."isActive" = true
-      LEFT JOIN pincodes p ON upa."pincodeId" = p.id
-      LEFT JOIN cities c ON p."cityId" = c.id
-      LEFT JOIN states s ON c."stateId" = s.id
-      LEFT JOIN "userAreaAssignments" uaa ON u.id = uaa."userId" AND uaa."isActive" = true
-      LEFT JOIN areas a ON uaa."areaId" = a.id
-      LEFT JOIN pincodes ap ON uaa."pincodeId" = ap.id
+      LEFT JOIN user_pincode_assignments upa ON u.id = upa.user_id AND upa.is_active = true
+      LEFT JOIN pincodes p ON upa.pincode_id = p.id
+      LEFT JOIN cities c ON p.city_id = c.id
+      LEFT JOIN states s ON c.state_id = s.id
+      LEFT JOIN user_area_assignments uaa ON u.id = uaa.user_id AND uaa.is_active = true
+      LEFT JOIN areas a ON uaa.area_id = a.id
+      LEFT JOIN pincodes ap ON uaa.pincode_id = ap.id
       WHERE EXISTS (
         SELECT 1
         FROM user_roles urf
@@ -299,8 +299,8 @@ export class QueryOptimizationService {
         AND ($1::text IS NULL OR u.name ILIKE $1 OR u.username ILIKE $1)
         AND ($2::integer IS NULL OR p.id = $2 OR ap.id = $2)
         AND ($3::integer IS NULL OR c.id = $3)
-        AND ($4::boolean IS NULL OR u."isActive" = $4)
-      GROUP BY u.id, u.name, u.username, u."employeeId", u."isActive"
+        AND ($4::boolean IS NULL OR u.is_active = $4)
+      GROUP BY u.id, u.name, u.username, u.employee_id, u.is_active
       ORDER BY u.name
       LIMIT $5 OFFSET $6
     `;

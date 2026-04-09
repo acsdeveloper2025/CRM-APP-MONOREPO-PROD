@@ -53,7 +53,7 @@ export class VerificationTasksController {
     }
 
     const caseScopeResult = await pool.query(
-      `SELECT "clientId" as client_id, "productId" as product_id FROM cases WHERE id = $1`,
+      `SELECT client_id as client_id, product_id as product_id FROM cases WHERE id = $1`,
       [task.case_id]
     );
 
@@ -154,7 +154,7 @@ export class VerificationTasksController {
       UPDATE cases
       SET
         total_tasks_count = (SELECT COUNT(*) FROM verification_tasks WHERE case_id = $1),
-        "updatedAt" = NOW()
+        updated_at = NOW()
       WHERE id = $1
       `,
       [currentTask.case_id]
@@ -192,7 +192,7 @@ export class VerificationTasksController {
     try {
       // Check if caseId is a number (case number) and convert to UUID
       if (/^\d+$/.test(caseId)) {
-        const caseQuery = 'SELECT id FROM cases WHERE "caseId" = $1';
+        const caseQuery = 'SELECT id FROM cases WHERE case_id = $1';
         const caseResult = await pool.query(caseQuery, [parseInt(caseId)]);
 
         if (caseResult.rows.length === 0) {
@@ -241,7 +241,7 @@ export class VerificationTasksController {
       try {
         // Get case details for notifications
         const caseQuery = `
-          SELECT c.id, c."caseId" as case_number, c."customerName"
+          SELECT c.id, c.case_id as case_number, c.customer_name
           FROM cases c
           WHERE c.id = $1
         `;
@@ -255,7 +255,7 @@ export class VerificationTasksController {
           if (task.assignedTo) {
             // Get verification type name
             const vtQuery = `
-              SELECT name FROM "verificationTypes" WHERE id = $1
+              SELECT name FROM verification_types WHERE id = $1
             `;
             const vtResult = await client.query(vtQuery, [task.verificationTypeId]);
             const verificationType = vtResult.rows[0]?.name || 'Unknown';
@@ -350,7 +350,7 @@ export class VerificationTasksController {
       const originalTask = originalTaskResult.rows[0];
 
       const caseScopeResult = await client.query(
-        'SELECT "clientId", "productId" FROM cases WHERE id = $1',
+        'SELECT client_id, product_id FROM cases WHERE id = $1',
         [originalTask.case_id]
       );
       if (caseScopeResult.rows.length === 0) {
@@ -472,7 +472,7 @@ export class VerificationTasksController {
             WHEN status = 'COMPLETED' THEN 'IN_PROGRESS'
             ELSE status
           END,
-          "updatedAt" = NOW()
+          updated_at = NOW()
         WHERE id = $1
       `,
         [newTask.case_id]
@@ -485,7 +485,7 @@ export class VerificationTasksController {
         try {
           // Get case details for notifications
           const caseQuery = `
-             SELECT c.id, c."caseId" as case_number, c."customerName"
+             SELECT c.id, c.case_id as case_number, c.customer_name
              FROM cases c
              WHERE c.id = $1
            `;
@@ -495,7 +495,7 @@ export class VerificationTasksController {
           const { queueCaseAssignmentNotification } = await import('../queues/notificationQueue');
 
           // Get verification type name
-          const vtQuery = `SELECT name FROM "verificationTypes" WHERE id = $1`;
+          const vtQuery = `SELECT name FROM verification_types WHERE id = $1`;
           const vtResult = await client.query(vtQuery, [newTask.verification_type_id]);
           const verificationType = vtResult.rows[0]?.name || 'Unknown';
 
@@ -643,11 +643,11 @@ export class VerificationTasksController {
           ) {
             conditions.push('FALSE');
           } else {
-            conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
+            conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
             params.push(assignedClientIds);
             paramIndex++;
 
-            conditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
+            conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
             params.push(assignedProductIds);
             paramIndex++;
           }
@@ -706,14 +706,14 @@ export class VerificationTasksController {
 
       // Client filter
       if (clientId) {
-        conditions.push(`c."clientId" = $${paramIndex}`);
+        conditions.push(`c.client_id = $${paramIndex}`);
         params.push(parseInt(clientId as string));
         paramIndex++;
       }
 
       // Product filter
       if (productId) {
-        conditions.push(`c."productId" = $${paramIndex}`);
+        conditions.push(`c.product_id = $${paramIndex}`);
         params.push(parseInt(productId as string));
         paramIndex++;
       }
@@ -721,13 +721,13 @@ export class VerificationTasksController {
       // Search filter (customer name, task title, address, task number, trigger, applicant type)
       if (search) {
         conditions.push(`(
-          COALESCE(c."customerName", '') ILIKE $${paramIndex} OR
+          COALESCE(c.customer_name, '') ILIKE $${paramIndex} OR
           COALESCE(vt.task_title, '') ILIKE $${paramIndex} OR
           COALESCE(vt.address, '') ILIKE $${paramIndex} OR
           COALESCE(vt.task_number, '') ILIKE $${paramIndex} OR
           COALESCE(vt.trigger, '') ILIKE $${paramIndex} OR
           COALESCE(vt.applicant_type, '') ILIKE $${paramIndex} OR
-          COALESCE(c."caseId"::text, '') ILIKE $${paramIndex}
+          COALESCE(c.case_id::text, '') ILIKE $${paramIndex}
         )`);
         params.push(
           `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
@@ -780,26 +780,26 @@ export class VerificationTasksController {
         `
         SELECT
           vt.*,
-          c."caseId" as case_number,
-          c."customerName" as customer_name,
+          c.case_id as case_number,
+          c.customer_name as customer_name,
           c.status as case_status,
           cl.name as client_name,
           p.name as product_name,
           vtype.name as verification_type_name,
           u_assigned.name as "assignedToName",
-          u_assigned."employeeId" as "assignedToEmployeeId",
+          u_assigned.employee_id as "assignedToEmployeeId",
           u_created.name as "assignedByName",
           rt.name as rate_type_name,
           tcc.status as commission_status,
           tcc.calculated_commission
         FROM verification_tasks vt
         LEFT JOIN cases c ON vt.case_id = c.id
-        LEFT JOIN clients cl ON c."clientId" = cl.id
-        LEFT JOIN products p ON c."productId" = p.id
-        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+        LEFT JOIN clients cl ON c.client_id = cl.id
+        LEFT JOIN products p ON c.product_id = p.id
+        LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
         LEFT JOIN users u_assigned ON vt.assigned_to = u_assigned.id
         LEFT JOIN users u_created ON vt.assigned_by = u_created.id
-        LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
+        LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
         LEFT JOIN task_commission_calculations tcc ON vt.id = tcc.verification_task_id
         ${whereClause}
         ORDER BY vt.${typeof safeSortBy === 'string' || typeof safeSortBy === 'number' ? String(safeSortBy) : 'created_at'} ${safeSortOrder}
@@ -949,7 +949,7 @@ export class VerificationTasksController {
 
       // Check if caseId is a number (case number) and convert to UUID
       if (/^\d+$/.test(caseId)) {
-        const caseQuery = 'SELECT id FROM cases WHERE "caseId" = $1';
+        const caseQuery = 'SELECT id FROM cases WHERE case_id = $1';
         const caseResult = await pool.query(caseQuery, [parseInt(caseId)]);
 
         if (caseResult.rows.length === 0) {
@@ -992,9 +992,9 @@ export class VerificationTasksController {
       const caseResult = await pool.query(
         `
         SELECT
-          c.id, c."caseId" as case_number, c."customerName" as customer_name,
-          c."clientId" as client_id, c."productId" as product_id,
-          c.trigger, c."applicantType" as applicant_type,
+          c.id, c.case_id as case_number, c.customer_name as customer_name,
+          c.client_id as client_id, c.product_id as product_id,
+          c.trigger, c.applicant_type as applicant_type,
           c.has_multiple_tasks, c.total_tasks_count, c.completed_tasks_count,
           c.case_completion_percentage
         FROM cases c
@@ -1024,7 +1024,7 @@ export class VerificationTasksController {
              LEFT JOIN verification_tasks vt ON vt.case_id = c.id
              WHERE c.id = $1
                AND (
-                 c."createdByBackendUser" = ANY($2::uuid[]) OR
+                 c.created_by_backend_user = ANY($2::uuid[]) OR
                  c."assignedTo" = ANY($2::uuid[]) OR
                  vt.assigned_to = ANY($2::uuid[])
                )
@@ -1073,16 +1073,16 @@ export class VerificationTasksController {
           vt.*,
           vtype.name as verification_type_name,
           u_assigned.name as assigned_to_name,
-          u_assigned."employeeId" as assigned_to_employee_id,
+          u_assigned.employee_id as assigned_to_employee_id,
           u_created.name as assigned_by_name,
           rt.name as rate_type_name,
           tcc.status as commission_status,
           tcc.calculated_commission
         FROM verification_tasks vt
-        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+        LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
         LEFT JOIN users u_assigned ON vt.assigned_to = u_assigned.id
         LEFT JOIN users u_created ON vt.assigned_by = u_created.id
-        LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
+        LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
         LEFT JOIN task_commission_calculations tcc ON vt.id = tcc.verification_task_id
         WHERE ${whereClause}
         ORDER BY vt.created_at ASC
@@ -1167,7 +1167,7 @@ export class VerificationTasksController {
       // First, fetch the current task to check if it's a REVISIT task and validate territory updates
       const currentTaskResult = await pool.query(
         `SELECT vt.task_type, vt.status, vt.started_at, vt.pincode, vt.area_id,
-                vt.verification_type_id, c."clientId" as client_id, c."productId" as product_id
+                vt.verification_type_id, c.client_id as client_id, c.product_id as product_id
          FROM verification_tasks vt
          JOIN cases c ON c.id = vt.case_id
          WHERE vt.id = $1`,
@@ -1433,10 +1433,10 @@ export class VerificationTasksController {
         u_created.name as assigned_by_name,
         rt.name as rate_type_name
       FROM verification_tasks vt
-      LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+      LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
       LEFT JOIN users u_assigned ON vt.assigned_to = u_assigned.id
       LEFT JOIN users u_created ON vt.assigned_by = u_created.id
-      LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
+      LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
       WHERE vt.id IN (${placeholders})
       ORDER BY vt.created_at ASC
     `,
@@ -1494,7 +1494,7 @@ export class VerificationTasksController {
 
       const currentTask = taskResult.rows[0];
       const taskCaseScopeResult = await client.query(
-        'SELECT "clientId", "productId" FROM cases WHERE id = $1',
+        'SELECT client_id, product_id FROM cases WHERE id = $1',
         [currentTask.case_id]
       );
       if (taskCaseScopeResult.rows.length === 0) {
@@ -1605,7 +1605,7 @@ export class VerificationTasksController {
       try {
         // Get case and user details for notification
         const caseQuery = `
-          SELECT c.id, c."caseId" as case_number, c."customerName"
+          SELECT c.id, c.case_id as case_number, c.customer_name
           FROM cases c
           WHERE c.id = $1
         `;
@@ -1614,7 +1614,7 @@ export class VerificationTasksController {
 
         // Get verification type name
         const vtQuery = `
-          SELECT name FROM "verificationTypes" WHERE id = $1
+          SELECT name FROM verification_types WHERE id = $1
         `;
         const vtResult = await client.query(vtQuery, [currentTask.verification_type_id]);
         const verificationType = vtResult.rows[0]?.name || 'Unknown';
@@ -1702,9 +1702,9 @@ export class VerificationTasksController {
         `
           SELECT
             vt.*,
-            c."caseId" as case_number,
-            c."clientId" as client_id,
-            c."productId" as product_id
+            c.case_id as case_number,
+            c.client_id as client_id,
+            c.product_id as product_id
           FROM verification_tasks vt
           JOIN cases c ON c.id = vt.case_id
           WHERE vt.id = $1
@@ -1918,7 +1918,7 @@ export class VerificationTasksController {
       // A) Location must exist
       // A) Location must exist (Schema fix: use case_id and recordedAt)
       const locationResult = await client.query(
-        `SELECT id, "recordedAt" FROM locations WHERE case_id = $1 ORDER BY "recordedAt" DESC LIMIT 1`,
+        `SELECT id, recorded_at FROM locations WHERE case_id = $1 ORDER BY recorded_at DESC LIMIT 1`,
         [task.case_id]
       );
       if (locationResult.rows.length === 0) {
@@ -2089,11 +2089,11 @@ export class VerificationTasksController {
           vt.status, vt.priority, vt.address, vt.estimated_amount,
           vt.assigned_at, vt.estimated_completion_date,
           vt.task_type, vt.parent_task_id,
-          c."caseId" as case_number, c."customerName" as customer_name,
+          c.case_id as case_number, c.customer_name as customer_name,
           vtype.name as verification_type
         FROM verification_tasks vt
         JOIN cases c ON vt.case_id = c.id
-        JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+        JOIN verification_types vtype ON vt.verification_type_id = vtype.id
         WHERE ${whereClause}
         ORDER BY
           CASE vt.priority
@@ -2168,7 +2168,7 @@ export class VerificationTasksController {
         `
         SELECT vt.*, vtype.name as verification_type_name
         FROM verification_tasks vt
-        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+        LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
         WHERE vt.id = $1
       `,
         [taskId]
@@ -2311,12 +2311,12 @@ export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Respons
           getAssignedProductIds(userId),
         ]);
         if (assignedClientIds && assignedClientIds.length > 0) {
-          conditions.push(`c."clientId" = ANY($${paramIndex}::int[])`);
+          conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
           params.push(assignedClientIds);
           paramIndex++;
         }
         if (assignedProductIds && assignedProductIds.length > 0) {
-          conditions.push(`c."productId" = ANY($${paramIndex}::int[])`);
+          conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
           params.push(assignedProductIds);
           paramIndex++;
         }
@@ -2346,12 +2346,12 @@ export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Respons
       paramIndex++;
     }
     if (clientId) {
-      conditions.push(`c."clientId" = $${paramIndex}`);
+      conditions.push(`c.client_id = $${paramIndex}`);
       params.push(parseInt(clientId as string));
       paramIndex++;
     }
     if (productId) {
-      conditions.push(`c."productId" = $${paramIndex}`);
+      conditions.push(`c.product_id = $${paramIndex}`);
       params.push(parseInt(productId as string));
       paramIndex++;
     }
@@ -2362,7 +2362,7 @@ export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Respons
     }
     if (search) {
       conditions.push(
-        `(c."customerName" ILIKE $${paramIndex} OR vt.task_title ILIKE $${paramIndex} OR vt.address ILIKE $${paramIndex} OR vt.task_number ILIKE $${paramIndex})`
+        `(c.customer_name ILIKE $${paramIndex} OR vt.task_title ILIKE $${paramIndex} OR vt.address ILIKE $${paramIndex} OR vt.task_number ILIKE $${paramIndex})`
       );
       params.push(`%${search as string}%`);
       paramIndex++;
@@ -2384,9 +2384,9 @@ export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Respons
       `
       SELECT
         vt.task_number,
-        c."caseId" as case_number,
-        c."customerName" as customer_name,
-        c."customerPhone" as customer_phone,
+        c.case_id as case_number,
+        c.customer_name as customer_name,
+        c.customer_phone as customer_phone,
         vt.task_title,
         vt.task_type,
         vtype.name as verification_type_name,
@@ -2398,7 +2398,7 @@ export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Respons
         vt.status,
         vt.priority,
         u_assigned.name as assigned_to_name,
-        u_assigned."employeeId" as assigned_to_employee_id,
+        u_assigned.employee_id as assigned_to_employee_id,
         u_created.name as assigned_by_name,
         rt.name as rate_type_name,
         vt.estimated_amount,
@@ -2414,12 +2414,12 @@ export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Respons
           ELSE NULL END as tat_days
       FROM verification_tasks vt
       LEFT JOIN cases c ON vt.case_id = c.id
-      LEFT JOIN clients cl ON c."clientId" = cl.id
-      LEFT JOIN products p ON c."productId" = p.id
-      LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+      LEFT JOIN clients cl ON c.client_id = cl.id
+      LEFT JOIN products p ON c.product_id = p.id
+      LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
       LEFT JOIN users u_assigned ON vt.assigned_to = u_assigned.id
       LEFT JOIN users u_created ON vt.assigned_by = u_created.id
-      LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
+      LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
       LEFT JOIN areas a ON vt.area_id = a.id
       ${whereClause}
       ORDER BY vt.created_at DESC

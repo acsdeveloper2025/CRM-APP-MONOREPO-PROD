@@ -51,7 +51,7 @@ export const generateUserAuthUuid = async (
   // Generate new UUID and update the user (no role restrictions)
   const newAuthUuid = await query(
     `UPDATE users
-     SET "authUuid" = gen_random_uuid(), "updatedAt" = CURRENT_TIMESTAMP
+     SET "authUuid" = gen_random_uuid(), updated_at = CURRENT_TIMESTAMP
      WHERE id = $1
      RETURNING "authUuid"`,
     [userId]
@@ -103,7 +103,7 @@ export const revokeUserAuthUuid = async (userId: string, adminUserId?: string): 
   // Revoke the authUuid (no role restrictions)
   const result = await query(
     `UPDATE users
-     SET "authUuid" = NULL, "updatedAt" = CURRENT_TIMESTAMP
+     SET "authUuid" = NULL, updated_at = CURRENT_TIMESTAMP
      WHERE id = $1
      RETURNING id`,
     [userId]
@@ -134,7 +134,7 @@ export const revokeUserAuthUuid = async (userId: string, adminUserId?: string): 
 export const getUserAuthInfo = async (userId: string): Promise<UserAuthInfo | null> => {
   try {
     const result = await query(
-      `SELECT u.id, u.username, u.name, u."authUuid", u."isActive",
+      `SELECT u.id, u.username, u.name, u."authUuid", u.is_active,
               ${PRIMARY_ROLE_NAME_SQL} as role,
               ${PRIMARY_ROLE_NAME_SQL} as "roleName"
        FROM users u
@@ -169,7 +169,7 @@ export const validateUserAuthUuid = async (authUuid: string): Promise<boolean> =
     const result = await query(
       `SELECT u.id
        FROM users u
-       WHERE u."authUuid" = $1 AND u."isActive" = true`,
+       WHERE u."authUuid" = $1 AND u.is_active = true`,
       [authUuid]
     );
 
@@ -185,7 +185,7 @@ export const validateUserAuthUuid = async (authUuid: string): Promise<boolean> =
 export const getUserByAuthUuid = async (authUuid: string): Promise<UserAuthInfo | null> => {
   try {
     const result = await query(
-      `SELECT u.id, u.username, u.name, u."authUuid", u."isActive",
+      `SELECT u.id, u.username, u.name, u."authUuid", u.is_active,
               ${PRIMARY_ROLE_NAME_SQL} as role,
               ${PRIMARY_ROLE_NAME_SQL} as "roleName"
        FROM users u

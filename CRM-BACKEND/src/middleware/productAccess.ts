@@ -15,7 +15,7 @@ import { resolveDataScope } from '@/security/dataScope';
 const getAssignedProductIds = async (userId: string): Promise<number[]> => {
   try {
     const result = await query(
-      'SELECT "productId" FROM "userProductAssignments" WHERE "userId" = $1',
+      'SELECT product_id FROM user_product_assignments WHERE user_id = $1',
       [userId]
     );
 
@@ -165,7 +165,7 @@ export const validateCaseProductAccess = async (
     }
 
     // Get the product ID for the case
-    const caseResult = await query('SELECT "productId" FROM cases WHERE id = $1', [caseId]);
+    const caseResult = await query('SELECT product_id FROM cases WHERE id = $1', [caseId]);
 
     if (caseResult.rows.length === 0) {
       return res.status(404).json({

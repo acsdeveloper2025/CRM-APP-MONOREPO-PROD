@@ -41,7 +41,7 @@ export const getFieldAgentTerritories = async (req: AuthenticatedRequest, res: R
 
     if (search && typeof search === 'string') {
       conditions.push(
-        `(u.name ILIKE $${paramIndex} OR u.username ILIKE $${paramIndex} OR u."employeeId" ILIKE $${paramIndex})`
+        `(u.name ILIKE $${paramIndex} OR u.username ILIKE $${paramIndex} OR u.employee_id ILIKE $${paramIndex})`
       );
       params.push(`%${search}%`);
       paramIndex++;
@@ -52,7 +52,7 @@ export const getFieldAgentTerritories = async (req: AuthenticatedRequest, res: R
       const pincodeStr = pincodeId;
       const isNumericId = /^\d+$/.test(pincodeStr) && Number(pincodeStr) < 10000;
       if (isNumericId) {
-        conditions.push(`upa."pincodeId" = $${paramIndex}`);
+        conditions.push(`upa.pincode_id = $${paramIndex}`);
         params.push(Number(pincodeStr));
       } else {
         conditions.push(`p.code = $${paramIndex}`);
@@ -68,7 +68,7 @@ export const getFieldAgentTerritories = async (req: AuthenticatedRequest, res: R
     }
 
     if (isActive !== undefined) {
-      conditions.push(`upa."isActive" = $${paramIndex}`);
+      conditions.push(`upa.is_active = $${paramIndex}`);
       params.push(isActive === 'true');
       paramIndex++;
     }
@@ -79,9 +79,9 @@ export const getFieldAgentTerritories = async (req: AuthenticatedRequest, res: R
     const countSql = `
       SELECT COUNT(DISTINCT u.id) as total
       FROM users u
-      LEFT JOIN "userPincodeAssignments" upa ON u.id = upa."userId"
-      LEFT JOIN pincodes p ON upa."pincodeId" = p.id
-      LEFT JOIN cities c ON p."cityId" = c.id
+      LEFT JOIN user_pincode_assignments upa ON u.id = upa.user_id
+      LEFT JOIN pincodes p ON upa.pincode_id = p.id
+      LEFT JOIN cities c ON p.city_id = c.id
       ${whereClause}
     `;
 
@@ -96,52 +96,52 @@ export const getFieldAgentTerritories = async (req: AuthenticatedRequest, res: R
     // Get field agents with territory assignments using the view
     const sql = `
       SELECT
-        u.id as "userId",
+        u.id as user_id,
         u.name as "userName",
         u.username,
-        u."employeeId",
-        u."isActive" as "userIsActive",
+        u.employee_id,
+        u.is_active as "userIsActive",
         COALESCE(
           JSON_AGG(
             JSON_BUILD_OBJECT(
               'pincodeAssignmentId', upa.id,
-              'pincodeId', upa."pincodeId",
+              'pincodeId', upa.pincode_id,
               'pincodeCode', p.code,
               'cityName', c.name,
               'stateName', s.name,
               'countryName', co.name,
               'assignedAreas', COALESCE(area_agg.areas, '[]'::json),
-              'pincodeAssignedAt', upa."assignedAt",
-              'isActive', upa."isActive"
+              'pincodeAssignedAt', upa.assigned_at,
+              'isActive', upa.is_active
             ) ORDER BY p.code
-          ) FILTER (WHERE upa."pincodeId" IS NOT NULL),
+          ) FILTER (WHERE upa.pincode_id IS NOT NULL),
           '[]'::json
         ) as "territoryAssignments"
       FROM users u
-      LEFT JOIN "userPincodeAssignments" upa ON u.id = upa."userId" AND upa."isActive" = true
-      LEFT JOIN pincodes p ON upa."pincodeId" = p.id
-      LEFT JOIN cities c ON p."cityId" = c.id
-      LEFT JOIN states s ON c."stateId" = s.id
-      LEFT JOIN countries co ON c."countryId" = co.id
+      LEFT JOIN user_pincode_assignments upa ON u.id = upa.user_id AND upa.is_active = true
+      LEFT JOIN pincodes p ON upa.pincode_id = p.id
+      LEFT JOIN cities c ON p.city_id = c.id
+      LEFT JOIN states s ON c.state_id = s.id
+      LEFT JOIN countries co ON c.country_id = co.id
       LEFT JOIN (
         SELECT
-          uaa."userId",
-          uaa."pincodeId",
+          uaa.user_id,
+          uaa.pincode_id,
           JSON_AGG(
             JSON_BUILD_OBJECT(
               'areaAssignmentId', uaa.id,
-              'areaId', uaa."areaId",
+              'areaId', uaa.area_id,
               'areaName', a.name,
-              'assignedAt', uaa."assignedAt"
+              'assignedAt', uaa.assigned_at
             )
           ) as areas
-        FROM "userAreaAssignments" uaa
-        LEFT JOIN areas a ON uaa."areaId" = a.id
-        WHERE uaa."isActive" = true
-        GROUP BY uaa."userId", uaa."pincodeId"
-      ) area_agg ON upa."userId" = area_agg."userId" AND upa."pincodeId" = area_agg."pincodeId"
+        FROM user_area_assignments uaa
+        LEFT JOIN areas a ON uaa.area_id = a.id
+        WHERE uaa.is_active = true
+        GROUP BY uaa.user_id, uaa.pincode_id
+      ) area_agg ON upa.user_id = area_agg.user_id AND upa.pincode_id = area_agg.pincode_id
       ${whereClause}
-      GROUP BY u.id, u.name, u.username, u."employeeId", u."isActive"
+      GROUP BY u.id, u.name, u.username, u.employee_id, u.is_active
       ORDER BY ${typeof sortBy === 'string' && sortBy === 'userName' ? 'u.name' : typeof sortBy === 'string' ? `u."${sortBy}"` : 'u.name'} ${typeof sortOrder === 'string' ? sortOrder.toUpperCase() : 'ASC'}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
@@ -191,7 +191,7 @@ export const getFieldAgentTerritoryById = async (req: AuthenticatedRequest, res:
 
     // Verify user exists and is execution-eligible
     const userCheck = await query(
-      'SELECT id, name, username, "employeeId" FROM users WHERE id = $1',
+      'SELECT id, name, username, employee_id FROM users WHERE id = $1',
       [userId]
     );
     const userProfile = await loadUserCapabilityProfile(userId);
@@ -216,22 +216,22 @@ export const getFieldAgentTerritoryById = async (req: AuthenticatedRequest, res:
     // Get territory assignments using the view
     const sql = `
       SELECT 
-        "userId",
+        user_id,
         "userName",
         "username",
-        "employeeId",
+        employee_id,
         "pincodeAssignmentId",
-        "pincodeId",
+        pincode_id,
         "pincodeCode",
         "cityName",
         "stateName",
         "countryName",
         "assignedAreas",
         "pincodeAssignedAt",
-        "assignedBy",
-        "isActive"
-      FROM "fieldAgentTerritories"
-      WHERE "userId" = $1
+        assigned_by,
+        is_active
+      FROM field_agent_territories
+      WHERE user_id = $1
       ORDER BY "pincodeCode"
     `;
 
@@ -349,14 +349,14 @@ export const assignPincodesToFieldAgent = async (req: AuthenticatedRequest, res:
     try {
       // First, delete all existing area assignments for this user
       const deleteAreasResult = await query(
-        'DELETE FROM "userAreaAssignments" WHERE "userId" = $1 RETURNING id',
+        'DELETE FROM user_area_assignments WHERE user_id = $1 RETURNING id',
         [userId]
       );
       const deletedAreasCount = deleteAreasResult.rows.length;
 
       // Delete all existing pincode assignments for this user
       const deletePincodesResult = await query(
-        'DELETE FROM "userPincodeAssignments" WHERE "userId" = $1 RETURNING id',
+        'DELETE FROM user_pincode_assignments WHERE user_id = $1 RETURNING id',
         [userId]
       );
       const deletedPincodesCount = deletePincodesResult.rows.length;
@@ -379,9 +379,9 @@ export const assignPincodesToFieldAgent = async (req: AuthenticatedRequest, res:
         const params = pincodeIds.flatMap((pincodeId: number) => [userId, pincodeId, assignedBy]);
 
         const result = await query(
-          `INSERT INTO "userPincodeAssignments" ("userId", "pincodeId", "assignedBy", "isActive")
+          `INSERT INTO user_pincode_assignments (user_id, pincode_id, assigned_by, is_active)
            VALUES ${values}
-           RETURNING id, "pincodeId", "assignedAt"`,
+           RETURNING id, pincode_id, assigned_at`,
           params
         );
         insertedCount = result.rows.length;
@@ -500,8 +500,8 @@ export const assignAreasToFieldAgent = async (req: AuthenticatedRequest, res: Re
 
     // Step 1: Remove all existing area assignments for this user
     const removeResult = await query(
-      `DELETE FROM "userAreaAssignments"
-       WHERE "userId" = $1 AND "isActive" = true`,
+      `DELETE FROM user_area_assignments
+       WHERE user_id = $1 AND is_active = true`,
       [userId]
     );
 
@@ -524,8 +524,8 @@ export const assignAreasToFieldAgent = async (req: AuthenticatedRequest, res: Re
 
         // Verify pincode assignment exists
         const pincodeAssignmentResult = await query(
-          `SELECT id FROM "userPincodeAssignments"
-           WHERE "userId" = $1 AND "pincodeId" = $2 AND "isActive" = true`,
+          `SELECT id FROM user_pincode_assignments
+           WHERE user_id = $1 AND pincode_id = $2 AND is_active = true`,
           [userId, pincodeId]
         );
 
@@ -543,10 +543,10 @@ export const assignAreasToFieldAgent = async (req: AuthenticatedRequest, res: Re
 
         // Verify areas exist and belong to the pincode
         const areaCheck = await query(
-          `SELECT a.id, a.name, pa."pincodeId"
+          `SELECT a.id, a.name, pa.pincode_id
            FROM areas a
-           JOIN "pincodeAreas" pa ON a.id = pa."areaId"
-           WHERE a.id = ANY($1) AND pa."pincodeId" = $2`,
+           JOIN pincode_areas pa ON a.id = pa.area_id
+           WHERE a.id = ANY($1) AND pa.pincode_id = $2`,
           [areaIds, pincodeId]
         );
 
@@ -582,10 +582,10 @@ export const assignAreasToFieldAgent = async (req: AuthenticatedRequest, res: Re
             ]);
 
             const result = await query(
-              `INSERT INTO "userAreaAssignments"
-               ("userId", "pincodeId", "areaId", "userPincodeAssignmentId", "assignedBy")
+              `INSERT INTO user_area_assignments
+               (user_id, pincode_id, area_id, user_pincode_assignment_id, assigned_by)
                VALUES ${values}
-               RETURNING id, "areaId"`,
+               RETURNING id, area_id`,
               params
             );
 
@@ -649,8 +649,8 @@ export const removePincodeAssignment = async (req: AuthenticatedRequest, res: Re
 
     // Verify assignment exists
     const assignmentCheck = await query(
-      `SELECT id FROM "userPincodeAssignments"
-       WHERE "userId" = $1 AND "pincodeId" = $2 AND "isActive" = true`,
+      `SELECT id FROM user_pincode_assignments
+       WHERE user_id = $1 AND pincode_id = $2 AND is_active = true`,
       [userId, pincodeId]
     );
 
@@ -668,15 +668,15 @@ export const removePincodeAssignment = async (req: AuthenticatedRequest, res: Re
     try {
       // Delete area assignments
       await query(
-        `DELETE FROM "userAreaAssignments"
-         WHERE "userId" = $1 AND "pincodeId" = $2 AND "isActive" = true`,
+        `DELETE FROM user_area_assignments
+         WHERE user_id = $1 AND pincode_id = $2 AND is_active = true`,
         [userId, pincodeId]
       );
 
       // Delete pincode assignment
       await query(
-        `DELETE FROM "userPincodeAssignments"
-         WHERE "userId" = $1 AND "pincodeId" = $2 AND "isActive" = true`,
+        `DELETE FROM user_pincode_assignments
+         WHERE user_id = $1 AND pincode_id = $2 AND is_active = true`,
         [userId, pincodeId]
       );
 
@@ -722,8 +722,8 @@ export const removeAreaAssignment = async (req: AuthenticatedRequest, res: Respo
 
     // Verify assignment exists
     const assignmentCheck = await query(
-      `SELECT id FROM "userAreaAssignments"
-       WHERE "userId" = $1 AND "areaId" = $2 AND "pincodeId" = $3 AND "isActive" = true`,
+      `SELECT id FROM user_area_assignments
+       WHERE user_id = $1 AND area_id = $2 AND pincode_id = $3 AND is_active = true`,
       [userId, areaId, Number(pincodeId)]
     );
 
@@ -737,8 +737,8 @@ export const removeAreaAssignment = async (req: AuthenticatedRequest, res: Respo
 
     // Delete area assignment
     await query(
-      `DELETE FROM "userAreaAssignments"
-       WHERE "userId" = $1 AND "areaId" = $2 AND "pincodeId" = $3 AND "isActive" = true`,
+      `DELETE FROM user_area_assignments
+       WHERE user_id = $1 AND area_id = $2 AND pincode_id = $3 AND is_active = true`,
       [userId, areaId, Number(pincodeId)]
     );
 
@@ -827,7 +827,7 @@ export const addSinglePincodeAssignment = async (req: AuthenticatedRequest, res:
 
     // Check if pincode is already assigned
     const existingAssignment = await query(
-      'SELECT id FROM "userPincodeAssignments" WHERE "userId" = $1 AND "pincodeId" = $2 AND "isActive" = true',
+      'SELECT id FROM user_pincode_assignments WHERE user_id = $1 AND pincode_id = $2 AND is_active = true',
       [userId, pincodeId]
     );
 
@@ -860,7 +860,7 @@ export const addSinglePincodeAssignment = async (req: AuthenticatedRequest, res:
     try {
       // Add pincode assignment
       const pincodeAssignmentResult = await query(
-        `INSERT INTO "userPincodeAssignments" ("userId", "pincodeId", "assignedBy", "isActive")
+        `INSERT INTO user_pincode_assignments (user_id, pincode_id, assigned_by, is_active)
          VALUES ($1, $2, $3, true)
          RETURNING id`,
         [userId, pincodeId, req.user?.id]
@@ -873,7 +873,7 @@ export const addSinglePincodeAssignment = async (req: AuthenticatedRequest, res:
 
         for (const areaId of areaIds) {
           await query(
-            `INSERT INTO "userAreaAssignments" ("userId", "pincodeId", "areaId", "userPincodeAssignmentId", "assignedBy", "isActive")
+            `INSERT INTO user_area_assignments (user_id, pincode_id, area_id, user_pincode_assignment_id, assigned_by, is_active)
              VALUES ($1, $2, $3, $4, $5, true)`,
             [userId, pincodeId, areaId, userPincodeAssignmentId, req.user?.id]
           );
@@ -960,11 +960,11 @@ export const removeAllTerritoryAssignments = async (req: AuthenticatedRequest, r
       // Get current assignments for logging
       const currentAssignments = await query(
         `SELECT
-          COUNT(DISTINCT upa."pincodeId") as pincode_count,
-          COUNT(DISTINCT uaa."areaId") as area_count
-         FROM "userPincodeAssignments" upa
-         LEFT JOIN "userAreaAssignments" uaa ON upa."userId" = uaa."userId" AND upa."pincodeId" = uaa."pincodeId" AND uaa."isActive" = true
-         WHERE upa."userId" = $1 AND upa."isActive" = true`,
+          COUNT(DISTINCT upa.pincode_id) as pincode_count,
+          COUNT(DISTINCT uaa.area_id) as area_count
+         FROM user_pincode_assignments upa
+         LEFT JOIN user_area_assignments uaa ON upa.user_id = uaa.user_id AND upa.pincode_id = uaa.pincode_id AND uaa.is_active = true
+         WHERE upa.user_id = $1 AND upa.is_active = true`,
         [userId]
       );
 
@@ -972,16 +972,16 @@ export const removeAllTerritoryAssignments = async (req: AuthenticatedRequest, r
 
       // Delete all area assignments
       const deleteAreasResult = await query(
-        `DELETE FROM "userAreaAssignments"
-         WHERE "userId" = $1 AND "isActive" = true
+        `DELETE FROM user_area_assignments
+         WHERE user_id = $1 AND is_active = true
          RETURNING id`,
         [userId]
       );
 
       // Delete all pincode assignments
       const deletePincodesResult = await query(
-        `DELETE FROM "userPincodeAssignments"
-         WHERE "userId" = $1 AND "isActive" = true
+        `DELETE FROM user_pincode_assignments
+         WHERE user_id = $1 AND is_active = true
          RETURNING id`,
         [userId]
       );

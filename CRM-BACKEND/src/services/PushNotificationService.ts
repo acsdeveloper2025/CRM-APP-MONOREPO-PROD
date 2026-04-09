@@ -467,10 +467,10 @@ export class PushNotificationService {
       const selectQuery = `
         SELECT 
           id,
-          user_id as "userId",
+          user_id as user_id,
           platform,
           push_token as "pushToken",
-          is_active as "isActive"
+          is_active as is_active
         FROM notification_tokens 
         WHERE user_id IN (${placeholders}) 
           AND is_active = true 

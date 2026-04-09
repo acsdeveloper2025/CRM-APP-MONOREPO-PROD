@@ -226,7 +226,7 @@ export class CSVExportService {
     }
 
     if (filters?.departmentId) {
-      whereConditions.push(`u."departmentId" = $${paramIndex}`);
+      whereConditions.push(`u.department_id = $${paramIndex}`);
       queryParams.push(filters.departmentId);
       paramIndex++;
     }
@@ -237,7 +237,7 @@ export class CSVExportService {
       SELECT 
         u.id as agent_id,
         u.name as agent_name,
-        u."employeeId" as employee_id,
+        u.employee_id as employee_id,
         u.email,
         u.performance_rating,
         d.name as department_name,
@@ -263,7 +263,7 @@ export class CSVExportService {
           ELSE 0 
         END as completion_rate_percentage
       FROM users u
-      LEFT JOIN departments d ON u."departmentId" = d.id
+      LEFT JOIN departments d ON u.department_id = d.id
       LEFT JOIN agent_performance_daily apd ON u.id = apd.agent_id
       ${whereClause}
       AND EXISTS (
@@ -325,13 +325,13 @@ export class CSVExportService {
     let paramIndex = 1;
 
     if (dateFrom) {
-      whereConditions.push(`"createdAt" >= $${paramIndex}`);
+      whereConditions.push(`created_at >= $${paramIndex}`);
       queryParams.push(dateFrom);
       paramIndex++;
     }
 
     if (dateTo) {
-      whereConditions.push(`"createdAt" <= $${paramIndex}`);
+      whereConditions.push(`created_at <= $${paramIndex}`);
       queryParams.push(dateTo);
       paramIndex++;
     }
@@ -349,7 +349,7 @@ export class CSVExportService {
     }
 
     if (filters?.clientId) {
-      whereConditions.push(`"clientId" = $${paramIndex}`);
+      whereConditions.push(`client_id = $${paramIndex}`);
       queryParams.push(filters.clientId);
       paramIndex++;
     }
@@ -359,8 +359,8 @@ export class CSVExportService {
     const query = `
       SELECT 
         id as case_id,
-        "caseId" as case_number,
-        "customerName" as customer_name,
+        case_id as case_number,
+        customer_name as customer_name,
         status,
         priority,
         "assignedTo" as assigned_to_id,
@@ -375,11 +375,11 @@ export class CSVExportService {
         valid_forms,
         attachment_count,
         completion_days,
-        "createdAt" as created_at,
-        "updatedAt" as updated_at
+        created_at as created_at,
+        updated_at as updated_at
       FROM case_completion_analytics
       ${whereClause}
-      ORDER BY "createdAt" DESC
+      ORDER BY created_at DESC
     `;
 
     const result = await pool.query(query, queryParams);

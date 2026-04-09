@@ -25,22 +25,22 @@ export const getDocumentTypeRates = async (req: AuthenticatedRequest, res: Respo
 
     if (clientId) {
       values.push(Number(clientId));
-      whereSql.push(`"clientId" = $${values.length}`);
+      whereSql.push(`client_id = $${values.length}`);
     }
 
     if (productId) {
       values.push(Number(productId));
-      whereSql.push(`"productId" = $${values.length}`);
+      whereSql.push(`product_id = $${values.length}`);
     }
 
     if (documentTypeId) {
       values.push(Number(documentTypeId));
-      whereSql.push(`"documentTypeId" = $${values.length}`);
+      whereSql.push(`document_type_id = $${values.length}`);
     }
 
     if (typeof isActive !== 'undefined') {
       values.push(typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive));
-      whereSql.push(`"isActive" = $${values.length}`);
+      whereSql.push(`is_active = $${values.length}`);
     }
 
     if (search && typeof search === 'string') {
@@ -56,7 +56,7 @@ export const getDocumentTypeRates = async (req: AuthenticatedRequest, res: Respo
 
     // Get total count
     const countRes = await query<{ count: string }>(
-      `SELECT COUNT(*)::text as count FROM "documentTypeRatesView" ${whereClause}`,
+      `SELECT COUNT(*)::text as count FROM document_type_rates_view ${whereClause}`,
       values
     );
     const totalCount = Number(countRes.rows[0]?.count || 0);
@@ -80,7 +80,7 @@ export const getDocumentTypeRates = async (req: AuthenticatedRequest, res: Respo
       typeof sortOrder === 'string' ? sortOrder : 'asc'.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     const listRes = await query<Record<string, unknown>>(
-      `SELECT * FROM "documentTypeRatesView"
+      `SELECT * FROM document_type_rates_view
        ${whereClause}
        ORDER BY "${sortCol}" ${sortDir}
        LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
@@ -176,8 +176,8 @@ export const createOrUpdateDocumentTypeRate = async (req: AuthenticatedRequest, 
 
     // Check if rate already exists
     const existRes = await query(
-      `SELECT id, amount FROM "documentTypeRates" 
-       WHERE "clientId" = $1 AND "productId" = $2 AND "documentTypeId" = $3 AND "isActive" = true`,
+      `SELECT id, amount FROM document_type_rates 
+       WHERE client_id = $1 AND product_id = $2 AND document_type_id = $3 AND is_active = true`,
       [clientId, productId, documentTypeId]
     );
 
@@ -186,8 +186,8 @@ export const createOrUpdateDocumentTypeRate = async (req: AuthenticatedRequest, 
         // Update existing rate
         const existingRate = existRes.rows[0];
         await client.query(
-          `UPDATE "documentTypeRates" 
-           SET amount = $1, currency = $2, "updatedAt" = CURRENT_TIMESTAMP
+          `UPDATE document_type_rates 
+           SET amount = $1, currency = $2, updated_at = CURRENT_TIMESTAMP
            WHERE id = $3`,
           [amount, currency, existingRate.id]
         );
@@ -203,8 +203,8 @@ export const createOrUpdateDocumentTypeRate = async (req: AuthenticatedRequest, 
       } else {
         // Create new rate
         const insertRes = await client.query(
-          `INSERT INTO "documentTypeRates" 
-           ("clientId", "productId", "documentTypeId", amount, currency, "isActive", "createdBy", "createdAt", "updatedAt")
+          `INSERT INTO document_type_rates 
+           (client_id, product_id, document_type_id, amount, currency, is_active, created_by, created_at, updated_at)
            VALUES ($1, $2, $3, $4, $5, true, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
            RETURNING id`,
           [clientId, productId, documentTypeId, amount, currency, req.user?.id]
@@ -254,7 +254,7 @@ export const deleteDocumentTypeRate = async (req: AuthenticatedRequest, res: Res
     }
 
     // Check if rate exists
-    const existRes = await query('SELECT id FROM "documentTypeRates" WHERE id = $1', [Number(id)]);
+    const existRes = await query('SELECT id FROM document_type_rates WHERE id = $1', [Number(id)]);
     if (existRes.rows.length === 0) {
       return res.status(404).json({
         success: false,
@@ -265,7 +265,7 @@ export const deleteDocumentTypeRate = async (req: AuthenticatedRequest, res: Res
 
     // Soft delete by setting isActive to false
     await query(
-      `UPDATE "documentTypeRates" SET "isActive" = false, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $1`,
+      `UPDATE document_type_rates SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
       [Number(id)]
     );
 
@@ -294,14 +294,14 @@ export const getDocumentTypeRateStats = async (req: AuthenticatedRequest, res: R
     const statsRes = await query(`
       SELECT 
         COUNT(*)::int as "totalRates",
-        COUNT(DISTINCT "clientId")::int as "totalClients",
-        COUNT(DISTINCT "productId")::int as "totalProducts",
-        COUNT(DISTINCT "documentTypeId")::int as "totalDocumentTypes",
+        COUNT(DISTINCT client_id)::int as "totalClients",
+        COUNT(DISTINCT product_id)::int as "totalProducts",
+        COUNT(DISTINCT document_type_id)::int as "totalDocumentTypes",
         COALESCE(AVG(amount), 0)::numeric(10,2) as "averageRate",
         COALESCE(MIN(amount), 0)::numeric(10,2) as "minRate",
         COALESCE(MAX(amount), 0)::numeric(10,2) as "maxRate"
-      FROM "documentTypeRates"
-      WHERE "isActive" = true
+      FROM document_type_rates
+      WHERE is_active = true
     `);
 
     const stats = statsRes.rows[0];
