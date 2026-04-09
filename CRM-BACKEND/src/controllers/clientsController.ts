@@ -5,6 +5,7 @@ import { query, withTransaction } from '@/config/database';
 import type { QueryParams } from '@/types/database';
 import { getAssignedProductIds } from '@/middleware/productAccess';
 import { isScopedOperationsUser } from '@/security/rbacAccess';
+import { createAuditLog } from '@/utils/auditLogger';
 
 interface DatabaseError extends Error {
   code?: string;
@@ -461,6 +462,16 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
       documentTypeCount: documentTypeIds.length,
     });
 
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'CREATE_CLIENT',
+      entityType: 'CLIENT',
+      entityId: newClient.id?.toString(),
+      details: { name: newClient.name, code: newClient.code },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
+
     res.status(201).json({
       success: true,
       data: responseData,
@@ -756,6 +767,16 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
       updates: Object.keys(updateData),
     });
 
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'UPDATE_CLIENT',
+      entityType: 'CLIENT',
+      entityId: id?.toString(),
+      details: { updates: Object.keys(updateData) },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
+
     res.json({ success: true, data: responseData, message: 'Client updated successfully' });
   } catch (error: unknown) {
     const err = error as DatabaseError;
@@ -869,6 +890,16 @@ export const deleteClient = async (req: AuthenticatedRequest, res: Response) => 
       userId: req.user?.id,
       clientId: id,
       clientName: existingClient.name,
+    });
+
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'DELETE_CLIENT',
+      entityType: 'CLIENT',
+      entityId: id?.toString(),
+      details: { name: existingClient.name },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
     });
 
     res.json({
