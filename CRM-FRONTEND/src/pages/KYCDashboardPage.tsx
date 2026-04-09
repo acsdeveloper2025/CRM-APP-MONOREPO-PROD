@@ -223,23 +223,23 @@ export const KYCDashboardPage: React.FC = () => {
                 <TableBody>
                   {tasks.map((task) => (
                     <TableRow key={task.id} className="hover:bg-gray-50">
-                      <TableCell className="font-medium">#{task.case_number}</TableCell>
-                      <TableCell>{task.customer_name}</TableCell>
+                      <TableCell className="font-medium">#{task.caseNumber}</TableCell>
+                      <TableCell>{task.customerName}</TableCell>
                       <TableCell>
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_COLORS[task.document_category] || 'bg-gray-100 text-gray-700'}`}>
-                          {task.document_category}
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_COLORS[task.documentCategory] || 'bg-gray-100 text-gray-700'}`}>
+                          {task.documentCategory}
                         </span>
                       </TableCell>
-                      <TableCell>{task.document_type_name}</TableCell>
-                      <TableCell className="font-mono text-sm">{task.document_number || '-'}</TableCell>
+                      <TableCell>{task.documentTypeName}</TableCell>
+                      <TableCell className="font-mono text-sm">{task.documentNumber || '-'}</TableCell>
                       <TableCell>
-                        <Badge className={STATUS_COLORS[task.verification_status] || ''}>
-                          {task.verification_status}
+                        <Badge className={STATUS_COLORS[task.verificationStatus] || ''}>
+                          {task.verificationStatus}
                         </Badge>
                       </TableCell>
-                      <TableCell>{task.assigned_to_name || <span className="text-gray-400">Unassigned</span>}</TableCell>
+                      <TableCell>{task.assignedToName || <span className="text-gray-400">Unassigned</span>}</TableCell>
                       <TableCell className="text-sm text-gray-500">
-                        {format(new Date(task.created_at), 'dd MMM yyyy')}
+                        {format(new Date(task.createdAt), 'dd MMM yyyy')}
                       </TableCell>
                       <TableCell>
                         <Button
@@ -248,7 +248,7 @@ export const KYCDashboardPage: React.FC = () => {
                           onClick={() => navigate(`/kyc/verify/${task.id}`)}
                         >
                           <Eye className="h-4 w-4 mr-1" />
-                          {task.verification_status === 'PENDING' ? 'Verify' : 'View'}
+                          {task.verificationStatus === 'PENDING' ? 'Verify' : 'View'}
                         </Button>
                       </TableCell>
                     </TableRow>

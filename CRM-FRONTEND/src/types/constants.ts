@@ -146,13 +146,13 @@ export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATI
 
 // WebSocket Event Types
 export const WEBSOCKET_EVENTS = {
-  CASE_ASSIGNED: 'case_assigned',
-  CASE_UPDATED: 'case_updated',
-  CASE_COMPLETED: 'case_completed',
-  FORM_SUBMITTED: 'form_submitted',
+  CASE_ASSIGNED: 'caseAssigned',
+  CASE_UPDATED: 'caseUpdated',
+  CASE_COMPLETED: 'caseCompleted',
+  FORM_SUBMITTED: 'formSubmitted',
   NOTIFICATION: 'notification',
-  USER_STATUS: 'user_status',
-  SYSTEM_ALERT: 'system_alert'
+  USER_STATUS: 'userStatus',
+  SYSTEM_ALERT: 'systemAlert'
 } as const;
 
 export type WebSocketEventType = typeof WEBSOCKET_EVENTS[keyof typeof WEBSOCKET_EVENTS];
@@ -302,20 +302,20 @@ export type ErrorCode = typeof ERROR_CODES[keyof typeof ERROR_CODES];
 
 // Local Storage Keys
 export const STORAGE_KEYS = {
-  AUTH_TOKEN: 'crm_auth_token',
-  REFRESH_TOKEN: 'crm_refresh_token',
-  USER_DATA: 'crm_user_data',
-  THEME_MODE: 'crm_theme_mode',
-  COLOR_SCHEME: 'crm_color_scheme',
-  SIDEBAR_COLLAPSED: 'crm_sidebar_collapsed',
-  FORM_DRAFT: 'crm_form_draft_',
-  LAST_ROUTE: 'crm_last_route'
+  AUTH_TOKEN: 'crmAuthToken',
+  REFRESH_TOKEN: 'crmRefreshToken',
+  USER_DATA: 'crmUserData',
+  THEME_MODE: 'crmThemeMode',
+  COLOR_SCHEME: 'crmColorScheme',
+  SIDEBAR_COLLAPSED: 'crmSidebarCollapsed',
+  FORM_DRAFT: 'crmFormDraft',
+  LAST_ROUTE: 'crmLastRoute'
 } as const;
 
 // Cross-tab Synchronization Keys
 export const SYNC_KEYS = {
-  LAST_ACTIVITY: 'crm_last_activity',
-  FORCE_LOGOUT: 'crm_force_logout'
+  LAST_ACTIVITY: 'crmLastActivity',
+  FORCE_LOGOUT: 'crmForceLogout'
 } as const;
 
 // API Endpoints

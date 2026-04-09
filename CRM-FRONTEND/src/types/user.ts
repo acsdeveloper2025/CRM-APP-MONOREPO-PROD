@@ -167,9 +167,9 @@ export interface RolePermissions {
   reports: Permission;
   settings: Permission;
   products: Permission;
-  verification_types: Permission;
-  document_types: Permission;
-  rate_management: Permission;
+  verificationTypes: Permission;
+  documentTypes: Permission;
+  rateManagement: Permission;
   commissions: Permission;
   billing: Permission;
   forms: Permission;

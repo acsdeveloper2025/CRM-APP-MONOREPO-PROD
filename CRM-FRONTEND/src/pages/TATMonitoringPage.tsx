@@ -179,14 +179,14 @@ export const TATMonitoringPage: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="cursor-pointer" onClick={() => handleSort('task_number')}>
+                <TableHead className="cursor-pointer" onClick={() => handleSort('taskNumber')}>
                   <div className="flex items-center space-x-1">
                     <span>Task Number</span>
                     <ArrowUpDown className="h-4 w-4" />
                   </div>
                 </TableHead>
                 <TableHead>Case Number</TableHead>
-                <TableHead className="cursor-pointer" onClick={() => handleSort('customer_name')}>
+                <TableHead className="cursor-pointer" onClick={() => handleSort('customerName')}>
                   <div className="flex items-center space-x-1">
                     <span>Customer</span>
                     <ArrowUpDown className="h-4 w-4" />

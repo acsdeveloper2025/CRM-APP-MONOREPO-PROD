@@ -20,7 +20,39 @@ const COLORS = {
   PENDING_REVIEW: '#8b5cf6',
 };
 
-export const CaseStatusChart: React.FC<CaseStatusChartProps> = ({ data, isLoading }) => {
+// Custom Tooltip Types
+interface TooltipPayload {
+  name: string;
+  value: number;
+  payload: {
+    percentage: number;
+  };
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+}
+
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    const data = payload[0];
+    return (
+      <div className="bg-white p-3 border rounded-lg shadow-lg">
+        <p className="font-medium">{data.name}</p>
+        <p className="text-sm text-gray-600">
+          Count: {data.value}
+        </p>
+        <p className="text-sm text-gray-600">
+          Percentage: {data.payload.percentage}%
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+export const CaseStatusChart: React.FC<CaseStatusChartProps> = React.memo(({ data, isLoading }) => {
   if (isLoading) {
     return (
       <Card>
@@ -39,44 +71,12 @@ export const CaseStatusChart: React.FC<CaseStatusChartProps> = ({ data, isLoadin
 
   // Ensure data is an array
   const safeData = Array.isArray(data) ? data : [];
-  
+
   const chartData = safeData.map(item => ({
     name: item.status.replace('_', ' '),
     value: item.count,
     percentage: item.percentage,
   }));
-
-  // Custom Tooltip Types
-  interface TooltipPayload {
-    name: string;
-    value: number;
-    payload: {
-      percentage: number;
-    };
-  }
-
-  interface CustomTooltipProps {
-    active?: boolean;
-    payload?: TooltipPayload[];
-  }
-
-  const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
-    if (active && payload && payload.length) {
-      const data = payload[0];
-      return (
-        <div className="bg-white p-3 border rounded-lg shadow-lg">
-          <p className="font-medium">{data.name}</p>
-          <p className="text-sm text-gray-600">
-            Count: {data.value}
-          </p>
-          <p className="text-sm text-gray-600">
-            Percentage: {data.payload.percentage}%
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <Card>
@@ -113,4 +113,6 @@ export const CaseStatusChart: React.FC<CaseStatusChartProps> = ({ data, isLoadin
       </CardContent>
     </Card>
   );
-};
+});
+
+CaseStatusChart.displayName = 'CaseStatusChart';

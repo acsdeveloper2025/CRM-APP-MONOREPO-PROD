@@ -68,11 +68,11 @@ export const CommissionCalculationsTab: React.FC = () => {
   const monthlySummary = useMemo(() => {
     const summary: { [key: string]: { total: number; count: number; currency: string } } = {};
     calculations.forEach(calc => {
-      const month = formatMonth(calc.created_at);
+      const month = formatMonth(calc.createdAt);
       if (!summary[month]) {
         summary[month] = { total: 0, count: 0, currency: calc.currency };
       }
-      summary[month].total += parseFloat(calc.commission_amount || '0');
+      summary[month].total += parseFloat(calc.commissionAmount || '0');
       summary[month].count += 1;
     });
     return summary;
@@ -190,11 +190,11 @@ export const CommissionCalculationsTab: React.FC = () => {
                       <TableCell>
                         <div>
                           <div className="font-medium text-gray-900">
-                            {calculation.task_number || 'N/A'}
+                            {calculation.taskNumber || 'N/A'}
                           </div>
-                          {calculation.verification_type_name && (
+                          {calculation.verificationTypeName && (
                             <div className="text-sm text-gray-600">
-                              {calculation.verification_type_name}
+                              {calculation.verificationTypeName}
                             </div>
                           )}
                         </div>
@@ -202,32 +202,32 @@ export const CommissionCalculationsTab: React.FC = () => {
                       <TableCell>
                         <div>
                           <div className="font-medium text-gray-900">
-                            {calculation.user_name || 'N/A'}
+                            {calculation.userName || 'N/A'}
                           </div>
                           <div className="text-sm text-gray-600">
-                            {calculation.user_email || ''}
+                            {calculation.userEmail || ''}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="font-medium text-gray-900">
-                          {calculation.client_name || 'N/A'}
+                          {calculation.clientName || 'N/A'}
                         </div>
                       </TableCell>
                       <TableCell>
-                        {calculation.product_name || 'N/A'}
+                        {calculation.productName || 'N/A'}
                       </TableCell>
                       <TableCell>
-                        <Badge className={baseBadgeStyle}>{formatBadgeLabel(calculation.rate_type_name || 'N/A')}</Badge>
+                        <Badge className={baseBadgeStyle}>{formatBadgeLabel(calculation.rateTypeName || 'N/A')}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <div>
                           <div className="font-semibold">
-                            {calculation.currency} {Number(calculation.commission_amount).toFixed(2)}
+                            {calculation.currency} {Number(calculation.commissionAmount).toFixed(2)}
                           </div>
-                          {calculation.base_amount && (
+                          {calculation.baseAmount && (
                             <div className="text-sm text-gray-600">
-                              Base: {calculation.currency} {Number(calculation.base_amount).toFixed(2)}
+                              Base: {calculation.currency} {Number(calculation.baseAmount).toFixed(2)}
                             </div>
                           )}
                         </div>
@@ -236,7 +236,7 @@ export const CommissionCalculationsTab: React.FC = () => {
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3.5 w-3.5 text-gray-600" />
                           <span className="text-sm">
-                            {formatMonth(calculation.created_at)}
+                            {formatMonth(calculation.createdAt)}
                           </span>
                         </div>
                       </TableCell>

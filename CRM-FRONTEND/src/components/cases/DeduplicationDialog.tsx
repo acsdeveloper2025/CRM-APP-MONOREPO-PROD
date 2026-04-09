@@ -83,7 +83,7 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
     switch (status.toLowerCase()) {
       case 'completed':
         return 'bg-green-100 text-green-800';
-      case 'in_progress':
+      case 'inProgress':
         return 'bg-green-100 text-green-800';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';

@@ -5,8 +5,8 @@ import type { ApiResponse, PaginationQuery } from '@/types/api';
 
 // Form Submission Types
 export interface FormSubmission {
-  form_type: 'RESIDENCE' | 'OFFICE' | 'BUSINESS';
-  case_id: string;
+  formType: 'RESIDENCE' | 'OFFICE' | 'BUSINESS';
+  caseId: string;
   submitted_by: string;
   submitted_at: string;
   validation_status: 'VALID' | 'PENDING' | 'INVALID';
@@ -158,7 +158,7 @@ export interface AgentProductivityQuery {
 
 // Form Validation Status Types
 export interface FormValidationStatus {
-  form_type: string;
+  formType: string;
   total_forms: number;
   validated_forms: number;
   pending_forms: number;

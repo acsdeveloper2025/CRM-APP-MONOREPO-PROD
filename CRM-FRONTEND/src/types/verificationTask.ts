@@ -90,19 +90,19 @@ export interface VerificationTask {
 }
 
 export interface CreateVerificationTaskRequest {
-  verification_type_id: number;
-  task_title: string;
-  task_description?: string;
+  verificationTypeId: number;
+  taskTitle: string;
+  taskDescription?: string;
   priority?: TaskPriority;
-  assigned_to?: string;
-  rate_type_id?: number;
-  estimated_amount?: number;
+  assignedTo?: string;
+  rateTypeId?: number;
+  estimatedAmount?: number;
   address?: string;
   pincode?: string;
-  area_id?: number;
-  applicant_type?: string;
+  areaId?: number;
+  applicantType?: string;
   trigger?: string;
-  estimated_completion_date?: string;
+  estimatedCompletionDate?: string;
 }
 
 export interface UpdateVerificationTaskRequest {
@@ -120,15 +120,15 @@ export interface UpdateVerificationTaskRequest {
   applicantType?: string;
   estimatedCompletionDate?: string;
   caseId?: string;
-  // Legacy snake_case keys kept for backward compatibility in older callers
-  task_title?: string;
-  task_description?: string;
-  verification_outcome?: string;
-  actual_amount?: number;
-  document_type?: string;
-  document_number?: string;
-  document_details?: Record<string, unknown>;
-  estimated_completion_date?: string;
+  // Legacy snakeCase keys kept for backward compatibility in older callers
+  taskTitle?: string;
+  taskDescription?: string;
+  verificationOutcome?: string;
+  actualAmount?: number;
+  documentType?: string;
+  documentNumber?: string;
+  documentDetails?: Record<string, unknown>;
+  estimatedCompletionDate?: string;
 }
 
 export interface AssignVerificationTaskRequest {
@@ -260,7 +260,7 @@ export interface EnhancedCase {
 }
 
 export interface CreateCaseWithMultipleTasksRequest {
-  case_details: {
+  caseDetails: {
     customerName: string;
     customerPhone?: string;
     customerCallingCode?: string;
@@ -279,15 +279,15 @@ export interface CreateCaseWithMultipleTasksRequest {
     name: string;
     mobile?: string;
     role?: string;
-    pan_number?: string;
+    panNumber?: string;
     verifications?: Array<{
-      verification_type_id?: number | null;
+      verificationTypeId?: number | null;
       address?: string;
-      pincode_id?: number;
-      assigned_to?: string;
+      pincodeId?: number;
+      assignedTo?: string;
     }>;
   }>;
-  verification_tasks: CreateVerificationTaskRequest[];
+  verificationTasks: CreateVerificationTaskRequest[];
 }
 
 export interface CaseSummaryResponse {
@@ -366,12 +366,12 @@ export interface VerificationTaskListResponse {
 export interface TasksForCaseResponse {
   success: boolean;
   data: {
-    case_id: string;
-    case_number: string;
-    customer_name: string;
-    total_tasks: number;
-    completed_tasks: number;
-    completion_percentage: number;
+    caseId: string;
+    caseNumber: string;
+    customerName: string;
+    totalTasks: number;
+    completedTasks: number;
+    completionPercentage: number;
     tasks: VerificationTask[];
   };
   message: string;
@@ -380,10 +380,10 @@ export interface TasksForCaseResponse {
 export interface CreateMultipleTasksResponse {
   success: boolean;
   data: {
-    case_id: string;
-    tasks_created: number;
+    caseId: string;
+    tasksCreated: number;
     tasks: VerificationTask[];
-    total_estimated_amount: number;
+    totalEstimatedAmount: number;
   };
   message: string;
 }
@@ -392,15 +392,15 @@ export interface CreateCaseWithMultipleTasksResponse {
   success: boolean;
   data: {
     case: EnhancedCase;
-    verification_tasks: VerificationTask[];
+    verificationTasks: VerificationTask[];
     summary: {
-      case_id: string;
-      case_number: string;
-      customer_name: string;
-      total_tasks: number;
-      total_estimated_amount: number;
-      assigned_tasks: number;
-      pending_tasks: number;
+      caseId: string;
+      caseNumber: string;
+      customerName: string;
+      totalTasks: number;
+      totalEstimatedAmount: number;
+      assignedTasks: number;
+      pendingTasks: number;
     };
   };
   message: string;
@@ -417,7 +417,7 @@ export interface TaskFormState {
   isCompleting: boolean;
   selectedTasks: string[];
   filters: VerificationTaskFilters;
-  sortBy: 'created_at' | 'priority' | 'status' | 'assigned_at' | 'estimated_completion_date';
+  sortBy: 'createdAt' | 'priority' | 'status' | 'assignedAt' | 'estimatedCompletionDate';
   sortOrder: 'asc' | 'desc';
 }
 

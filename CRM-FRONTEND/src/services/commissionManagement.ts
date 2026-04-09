@@ -138,7 +138,7 @@ class CommissionManagementService {
   }): Promise<ApiResponse<void>> {
     const operation: BulkCommissionOperation = {
       commissionIds,
-      operation: 'mark_paid',
+      operation: 'markPaid',
       paymentMethod: data.paymentMethod,
       transactionId: data.transactionId,
       notes: data.notes

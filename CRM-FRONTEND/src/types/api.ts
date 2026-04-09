@@ -95,7 +95,7 @@ export interface NotificationPayload {
   message: string;
   title?: string;
   data?: Record<string, unknown>;
-  created_at: string;
+  createdAt: string;
   createdAt?: string;
   read?: boolean;
   userId?: string;

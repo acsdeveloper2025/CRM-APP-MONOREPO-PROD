@@ -143,7 +143,7 @@ const resolveFirstAccessibleRoute = (permissionSet: Set<string>): string => {
     { permission: 'page.masterdata', path: '/clients' },
     { permission: 'page.users', path: '/users' },
     { permission: 'page.kyc', path: '/kyc' },
-    { permission: 'page.field_monitoring', path: '/operations/field-monitoring' },
+    { permission: 'page.fieldMonitoring', path: '/operations/field-monitoring' },
     { permission: 'page.rbac', path: '/admin/rbac' },
     { permission: 'page.settings', path: '/settings' },
   ];
@@ -506,7 +506,7 @@ export const AppRoutes: React.FC = () => {
           <Route
             path="/operations/field-monitoring"
             element={
-              <ProtectedRoute permission="page.field_monitoring">
+              <ProtectedRoute permission="page.fieldMonitoring">
                 <FieldMonitoringPage />
               </ProtectedRoute>
             }
@@ -514,7 +514,7 @@ export const AppRoutes: React.FC = () => {
           <Route
             path="/operations/field-monitoring/:userId"
             element={
-              <ProtectedRoute permission="page.field_monitoring">
+              <ProtectedRoute permission="page.fieldMonitoring">
                 <FieldMonitoringPage />
               </ProtectedRoute>
             }

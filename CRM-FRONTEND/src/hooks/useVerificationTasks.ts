@@ -11,16 +11,16 @@ import type {
 } from '@/types/verificationTask';
 
 const normalizeTaskForUi = (task: Record<string, unknown>): VerificationTask => {
-  const assignedToId = typeof task.assigned_to === 'string' ? task.assigned_to : undefined;
+  const assignedToId = typeof task.assignedTo === 'string' ? task.assignedTo : undefined;
   const assignedToName =
-    typeof task.assigned_to_name === 'string'
-      ? task.assigned_to_name
+    typeof task.assignedToName === 'string'
+      ? task.assignedToName
       : typeof task.assignedToName === 'string'
         ? task.assignedToName
         : undefined;
   const assignedToEmployeeId =
-    typeof task.assigned_to_employee_id === 'string'
-      ? task.assigned_to_employee_id
+    typeof task.assignedToEmployeeId === 'string'
+      ? task.assignedToEmployeeId
       : typeof task.assignedToEmployeeId === 'string'
         ? task.assignedToEmployeeId
         : undefined;
@@ -30,48 +30,48 @@ const normalizeTaskForUi = (task: Record<string, unknown>): VerificationTask => 
     taskNumber:
       typeof task.taskNumber === 'string'
         ? task.taskNumber
-        : typeof task.task_number === 'string'
-          ? task.task_number
+        : typeof task.taskNumber === 'string'
+          ? task.taskNumber
           : '',
     caseId:
       typeof task.caseId === 'string'
         ? task.caseId
-        : typeof task.case_id === 'string'
-          ? task.case_id
+        : typeof task.caseId === 'string'
+          ? task.caseId
           : '',
     caseNumber:
       typeof task.caseNumber === 'string'
         ? task.caseNumber
-        : typeof task.case_number === 'string' || typeof task.case_number === 'number'
-          ? String(task.case_number)
+        : typeof task.caseNumber === 'string' || typeof task.caseNumber === 'number'
+          ? String(task.caseNumber)
           : undefined,
     customerName:
       typeof task.customerName === 'string'
         ? task.customerName
-        : typeof task.customer_name === 'string'
-          ? task.customer_name
+        : typeof task.customerName === 'string'
+          ? task.customerName
           : undefined,
     verificationTypeId:
       typeof task.verificationTypeId === 'number'
         ? task.verificationTypeId
-        : Number(task.verification_type_id || 0),
+        : Number(task.verificationTypeId || 0),
     verificationTypeName:
       typeof task.verificationTypeName === 'string'
         ? task.verificationTypeName
-        : typeof task.verification_type_name === 'string'
-          ? task.verification_type_name
+        : typeof task.verificationTypeName === 'string'
+          ? task.verificationTypeName
           : undefined,
     taskTitle:
       typeof task.taskTitle === 'string'
         ? task.taskTitle
-        : typeof task.task_title === 'string'
-          ? task.task_title
+        : typeof task.taskTitle === 'string'
+          ? task.taskTitle
           : '',
     taskDescription:
       typeof task.taskDescription === 'string'
         ? task.taskDescription
-        : typeof task.task_description === 'string'
-          ? task.task_description
+        : typeof task.taskDescription === 'string'
+          ? task.taskDescription
           : undefined,
     assignedTo:
       assignedToId || assignedToName
@@ -84,124 +84,124 @@ const normalizeTaskForUi = (task: Record<string, unknown>): VerificationTask => 
     assignedToName,
     assignedToEmployeeId,
     assignedBy:
-      typeof task.assigned_by === 'string' && typeof task.assigned_by_name === 'string'
+      typeof task.assignedBy === 'string' && typeof task.assignedByName === 'string'
         ? {
-            id: task.assigned_by,
-            name: task.assigned_by_name,
+            id: task.assignedBy,
+            name: task.assignedByName,
           }
         : null,
     assignedByName:
       typeof task.assignedByName === 'string'
         ? task.assignedByName
-        : typeof task.assigned_by_name === 'string'
-          ? task.assigned_by_name
+        : typeof task.assignedByName === 'string'
+          ? task.assignedByName
           : undefined,
     assignedAt:
       typeof task.assignedAt === 'string'
         ? task.assignedAt
-        : typeof task.assigned_at === 'string'
-          ? task.assigned_at
+        : typeof task.assignedAt === 'string'
+          ? task.assignedAt
           : undefined,
     taskType:
-      task.taskType === 'REVISIT' || task.task_type === 'REVISIT' ? 'REVISIT' : null,
+      task.taskType === 'REVISIT' || task.taskType === 'REVISIT' ? 'REVISIT' : null,
     parentTaskId:
       typeof task.parentTaskId === 'string'
         ? task.parentTaskId
-        : typeof task.parent_task_id === 'string'
-          ? task.parent_task_id
+        : typeof task.parentTaskId === 'string'
+          ? task.parentTaskId
           : null,
     rateTypeId:
       typeof task.rateTypeId === 'number'
         ? task.rateTypeId
-        : task.rate_type_id != null
-          ? Number(task.rate_type_id)
+        : task.rateTypeId != null
+          ? Number(task.rateTypeId)
           : undefined,
     rateTypeName:
       typeof task.rateTypeName === 'string'
         ? task.rateTypeName
-        : typeof task.rate_type_name === 'string'
-          ? task.rate_type_name
+        : typeof task.rateTypeName === 'string'
+          ? task.rateTypeName
           : undefined,
     estimatedAmount:
       typeof task.estimatedAmount === 'number'
         ? task.estimatedAmount
-        : task.estimated_amount != null
-          ? Number(task.estimated_amount)
+        : task.estimatedAmount != null
+          ? Number(task.estimatedAmount)
           : undefined,
     actualAmount:
       typeof task.actualAmount === 'number'
         ? task.actualAmount
-        : task.actual_amount != null
-          ? Number(task.actual_amount)
+        : task.actualAmount != null
+          ? Number(task.actualAmount)
           : undefined,
     applicantType:
       typeof task.applicantType === 'string'
         ? task.applicantType
-        : typeof task.applicant_type === 'string'
-          ? task.applicant_type
+        : typeof task.applicantType === 'string'
+          ? task.applicantType
           : undefined,
     documentType:
       typeof task.documentType === 'string'
         ? task.documentType
-        : typeof task.document_type === 'string'
-          ? task.document_type
+        : typeof task.documentType === 'string'
+          ? task.documentType
           : undefined,
     documentNumber:
       typeof task.documentNumber === 'string'
         ? task.documentNumber
-        : typeof task.document_number === 'string'
-          ? task.document_number
+        : typeof task.documentNumber === 'string'
+          ? task.documentNumber
           : undefined,
     documentDetails:
       (task.documentDetails as Record<string, unknown> | undefined) ||
-      (task.document_details as Record<string, unknown> | undefined),
+      (task.documentDetails as Record<string, unknown> | undefined),
     estimatedCompletionDate:
       typeof task.estimatedCompletionDate === 'string'
         ? task.estimatedCompletionDate
-        : typeof task.estimated_completion_date === 'string'
-          ? task.estimated_completion_date
+        : typeof task.estimatedCompletionDate === 'string'
+          ? task.estimatedCompletionDate
           : undefined,
     startedAt:
       typeof task.startedAt === 'string'
         ? task.startedAt
-        : typeof task.started_at === 'string'
-          ? task.started_at
+        : typeof task.startedAt === 'string'
+          ? task.startedAt
           : undefined,
     inProgressAt:
       typeof task.inProgressAt === 'string'
         ? task.inProgressAt
-        : typeof task.started_at === 'string'
-          ? task.started_at
+        : typeof task.startedAt === 'string'
+          ? task.startedAt
           : undefined,
     completedAt:
       typeof task.completedAt === 'string'
         ? task.completedAt
-        : typeof task.completed_at === 'string'
-          ? task.completed_at
+        : typeof task.completedAt === 'string'
+          ? task.completedAt
           : undefined,
     commissionStatus:
       typeof task.commissionStatus === 'string'
         ? task.commissionStatus
-        : typeof task.commission_status === 'string'
-          ? task.commission_status
+        : typeof task.commissionStatus === 'string'
+          ? task.commissionStatus
           : undefined,
     calculatedCommission:
       typeof task.calculatedCommission === 'number'
         ? task.calculatedCommission
-        : task.calculated_commission != null
-          ? Number(task.calculated_commission)
+        : task.calculatedCommission != null
+          ? Number(task.calculatedCommission)
           : undefined,
     createdAt:
       typeof task.createdAt === 'string'
         ? task.createdAt
-        : typeof task.created_at === 'string'
-          ? task.created_at
+        : typeof task.createdAt === 'string'
+          ? task.createdAt
           : '',
     updatedAt:
       typeof task.updatedAt === 'string'
         ? task.updatedAt
-        : typeof task.updated_at === 'string'
-          ? task.updated_at
+        : typeof task.updatedAt === 'string'
+          ? task.updatedAt
           : '',
   };
 };
@@ -213,20 +213,20 @@ export const useVerificationTasks = (caseId: string) => {
       const response = await api.get<TasksForCaseResponse['data']>(`/cases/${caseId}/verification-tasks`);
       return {
         caseId:
-          typeof response.data.case_id === 'string' ? response.data.case_id : caseId,
+          typeof response.data.caseId === 'string' ? response.data.caseId : caseId,
         caseNumber:
-          typeof response.data.case_number === 'string' || typeof response.data.case_number === 'number'
-            ? String(response.data.case_number)
+          typeof response.data.caseNumber === 'string' || typeof response.data.caseNumber === 'number'
+            ? String(response.data.caseNumber)
             : '',
         customerName:
-          typeof response.data.customer_name === 'string' ? response.data.customer_name : '',
+          typeof response.data.customerName === 'string' ? response.data.customerName : '',
         totalTasks:
-          typeof response.data.total_tasks === 'number' ? response.data.total_tasks : 0,
+          typeof response.data.totalTasks === 'number' ? response.data.totalTasks : 0,
         completedTasks:
-          typeof response.data.completed_tasks === 'number' ? response.data.completed_tasks : 0,
+          typeof response.data.completedTasks === 'number' ? response.data.completedTasks : 0,
         completionPercentage:
-          typeof response.data.completion_percentage === 'number'
-            ? response.data.completion_percentage
+          typeof response.data.completionPercentage === 'number'
+            ? response.data.completionPercentage
             : 0,
         tasks: Array.isArray(response.data.tasks)
           ? response.data.tasks.map((task) => normalizeTaskForUi(task as unknown as Record<string, unknown>))

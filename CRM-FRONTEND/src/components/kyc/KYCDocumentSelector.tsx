@@ -229,7 +229,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                   filteredTypes.map(dt => {
                     const checked = isSelected(dt.code);
                     const categoryLabel = CATEGORY_LABELS[dt.category] || dt.category;
-                    const customFieldCount = (dt.custom_fields || []).length;
+                    const customFieldCount = (dt.customFields || []).length;
 
                     return (
                       <button
@@ -278,7 +278,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
 
             {selectedDocuments.map(doc => {
               const docType = documentTypes.find(dt => dt.code === doc.documentTypeCode);
-              const customFields: KYCCustomField[] = docType?.custom_fields || [];
+              const customFields: KYCCustomField[] = docType?.customFields || [];
               const isExpanded = expandedDocs.has(doc.documentTypeCode);
 
               return (

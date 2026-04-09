@@ -217,15 +217,15 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     setLoading(true);
     
     const taskRequests: CreateVerificationTaskRequest[] = tasks.map(task => ({
-      verification_type_id: task.verificationTypeId as number,
-      task_title: task.taskTitle,
-      task_description: task.taskDescription || undefined,
+      verificationTypeId: task.verificationTypeId as number,
+      taskTitle: task.taskTitle,
+      taskDescription: task.taskDescription || undefined,
       priority: task.priority,
-      assigned_to: task.assignedTo && task.assignedTo !== 'unassigned' ? task.assignedTo : undefined,
-      rate_type_id: task.rateTypeId ? parseInt(task.rateTypeId) : undefined,
+      assignedTo: task.assignedTo && task.assignedTo !== 'unassigned' ? task.assignedTo : undefined,
+      rateTypeId: task.rateTypeId ? parseInt(task.rateTypeId) : undefined,
       address: task.address || undefined,
       pincode: task.pincode || undefined,
-      area_id: task.areaId ? parseInt(task.areaId) : undefined,
+      areaId: task.areaId ? parseInt(task.areaId) : undefined,
     }));
 
     try {

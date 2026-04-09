@@ -105,39 +105,39 @@ export const TaskDetailPage: React.FC = () => {
       const response = await apiService.get(`/verification-tasks/${taskId}`);
 
       if (response.success) {
-        // Transform snake_case to camelCase
+        // Transform snakeCase to camelCase
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const taskData = response.data as any;
         setTask({
           id: taskData.id,
-          taskNumber: taskData.task_number,
-          caseId: taskData.case_id,
-          caseNumber: taskData.case_number,
-          customerName: taskData.customer_name,
-          verificationTypeName: taskData.verification_type_name,
-          taskTitle: taskData.task_title,
-          taskDescription: taskData.task_description,
+          taskNumber: taskData.taskNumber,
+          caseId: taskData.caseId,
+          caseNumber: taskData.caseNumber,
+          customerName: taskData.customerName,
+          verificationTypeName: taskData.verificationTypeName,
+          taskTitle: taskData.taskTitle,
+          taskDescription: taskData.taskDescription,
           priority: taskData.priority,
           status: taskData.status,
-          assignedToName: taskData.assigned_to_name,
-          assignedToEmployeeId: taskData.assigned_to_employee_id,
-          assignedByName: taskData.assigned_by_name,
-          assignedAt: taskData.assigned_at,
-          startedAt: taskData.started_at,
-          completedAt: taskData.completed_at,
-          estimatedAmount: taskData.estimated_amount,
-          actualAmount: taskData.actual_amount,
+          assignedToName: taskData.assignedToName,
+          assignedToEmployeeId: taskData.assignedToEmployeeId,
+          assignedByName: taskData.assignedByName,
+          assignedAt: taskData.assignedAt,
+          startedAt: taskData.startedAt,
+          completedAt: taskData.completedAt,
+          estimatedAmount: taskData.estimatedAmount,
+          actualAmount: taskData.actualAmount,
           address: taskData.address,
           pincode: taskData.pincode,
-          rateTypeName: taskData.rate_type_name,
+          rateTypeName: taskData.rateTypeName,
           trigger: taskData.trigger,
-          applicantType: taskData.applicant_type,
-          verificationOutcome: taskData.verification_outcome,
-          commissionStatus: taskData.commission_status,
-          calculatedCommission: taskData.calculated_commission,
-          taskType: taskData.task_type || null,
-          createdAt: taskData.created_at,
-          updatedAt: taskData.updated_at,
+          applicantType: taskData.applicantType,
+          verificationOutcome: taskData.verificationOutcome,
+          commissionStatus: taskData.commissionStatus,
+          calculatedCommission: taskData.calculatedCommission,
+          taskType: taskData.taskType || null,
+          createdAt: taskData.createdAt,
+          updatedAt: taskData.updatedAt,
         });
       }
       setLoading(false);

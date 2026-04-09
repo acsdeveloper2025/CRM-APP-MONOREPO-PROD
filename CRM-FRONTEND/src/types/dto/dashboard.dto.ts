@@ -79,7 +79,7 @@ export interface OverdueTask {
   daysOverdue: number;
   status: string;
   priority: string;
-  completed_at?: string;
+  completedAt?: string;
 }
 
 export interface OverdueTasksResponse {

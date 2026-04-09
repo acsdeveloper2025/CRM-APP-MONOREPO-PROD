@@ -13,41 +13,41 @@ export interface KYCDocumentType {
   code: string;
   name: string;
   category: string;
-  is_active: boolean;
+  isActive: boolean;
   sort_order: number;
-  custom_fields: KYCCustomField[];
+  customFields: KYCCustomField[];
 }
 
 export interface KYCTask {
   id: string;
-  verification_task_id: string;
-  case_id: string;
-  document_type: string;
-  document_number: string | null;
-  document_holder_name: string | null;
-  document_file_name: string | null;
-  document_file_path: string | null;
-  document_details: Record<string, string>;
+  verificationTaskId: string;
+  caseId: string;
+  documentType: string;
+  documentNumber: string | null;
+  documentHolderName: string | null;
+  documentFileName: string | null;
+  documentFilePath: string | null;
+  documentDetails: Record<string, string>;
   description: string | null;
-  type_custom_fields: KYCCustomField[];
-  verification_status: 'PENDING' | 'PASS' | 'FAIL' | 'REFER';
+  type_customFields: KYCCustomField[];
+  verificationStatus: 'PENDING' | 'PASS' | 'FAIL' | 'REFER';
   remarks: string | null;
-  rejection_reason: string | null;
-  verified_at: string | null;
-  assigned_to: string | null;
-  created_at: string;
-  updated_at: string;
-  case_number: number;
-  customer_name: string;
-  customer_phone: string | null;
-  case_status: string;
-  task_number: string;
-  task_status: string;
-  verified_by_name: string | null;
-  assigned_to_name: string | null;
-  assigned_by_name: string | null;
-  document_type_name: string;
-  document_category: string;
+  rejectionReason: string | null;
+  verifiedAt: string | null;
+  assignedTo: string | null;
+  createdAt: string;
+  updatedAt: string;
+  caseNumber: number;
+  customerName: string;
+  customerPhone: string | null;
+  caseStatus: string;
+  taskNumber: string;
+  taskStatus: string;
+  verifiedByName: string | null;
+  assignedToName: string | null;
+  assignedByName: string | null;
+  documentTypeName: string;
+  documentCategory: string;
 }
 
 export interface KYCTaskListResponse {

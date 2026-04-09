@@ -62,7 +62,7 @@ export const AllTasksPage: React.FC = () => {
   const [paginationState, setPaginationState] = useState({
     page: 1,
     limit: 20,
-    sortBy: 'created_at',
+    sortBy: 'createdAt',
     sortOrder: 'desc' as 'asc' | 'desc',
   });
 

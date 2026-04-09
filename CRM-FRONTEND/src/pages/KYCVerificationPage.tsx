@@ -64,7 +64,7 @@ export const KYCVerificationPage: React.FC = () => {
   if (isLoading) {return <LoadingState />;}
   if (!task) {return <div className="text-center py-8">KYC task not found</div>;}
 
-  const isPending = task.verification_status === 'PENDING';
+  const isPending = task.verificationStatus === 'PENDING';
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -75,10 +75,10 @@ export const KYCVerificationPage: React.FC = () => {
         </Button>
         <div>
           <h1 className="text-xl font-bold">KYC Document Verification</h1>
-          <p className="text-sm text-gray-500">Case #{task.case_number} — {task.task_number}</p>
+          <p className="text-sm text-gray-500">Case #{task.caseNumber} — {task.taskNumber}</p>
         </div>
-        <Badge className={STATUS_COLORS[task.verification_status] || ''}>
-          {task.verification_status}
+        <Badge className={STATUS_COLORS[task.verificationStatus] || ''}>
+          {task.verificationStatus}
         </Badge>
       </div>
 
@@ -93,28 +93,28 @@ export const KYCVerificationPage: React.FC = () => {
               <User className="h-4 w-4 text-gray-400" />
               <div>
                 <p className="text-xs text-gray-500">Customer Name</p>
-                <p className="font-medium">{task.customer_name}</p>
+                <p className="font-medium">{task.customerName}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Phone className="h-4 w-4 text-gray-400" />
               <div>
                 <p className="text-xs text-gray-500">Phone</p>
-                <p className="font-medium">{task.customer_phone || '-'}</p>
+                <p className="font-medium">{task.customerPhone || '-'}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-gray-400" />
               <div>
                 <p className="text-xs text-gray-500">Case Status</p>
-                <p className="font-medium">{task.case_status}</p>
+                <p className="font-medium">{task.caseStatus}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-gray-400" />
               <div>
                 <p className="text-xs text-gray-500">Created</p>
-                <p className="font-medium">{format(new Date(task.created_at), 'dd MMM yyyy')}</p>
+                <p className="font-medium">{format(new Date(task.createdAt), 'dd MMM yyyy')}</p>
               </div>
             </div>
           </div>
@@ -130,27 +130,27 @@ export const KYCVerificationPage: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
               <p className="text-xs text-gray-500">Document Type</p>
-              <p className="font-medium">{task.document_type_name}</p>
+              <p className="font-medium">{task.documentTypeName}</p>
               <Badge variant="outline" className="mt-1 text-xs">
-                {task.document_category}
+                {task.documentCategory}
               </Badge>
             </div>
             <div>
               <p className="text-xs text-gray-500">Document Number</p>
-              <p className="font-medium font-mono">{task.document_number || '-'}</p>
+              <p className="font-medium font-mono">{task.documentNumber || '-'}</p>
             </div>
             <div>
               <p className="text-xs text-gray-500">Document Holder</p>
-              <p className="font-medium">{task.document_holder_name || task.customer_name}</p>
+              <p className="font-medium">{task.documentHolderName || task.customerName}</p>
             </div>
           </div>
 
           {/* Custom Fields (from LOS) */}
-          {task.document_details && Object.keys(task.document_details).length > 0 && (
+          {task.documentDetails && Object.keys(task.documentDetails).length > 0 && (
             <div className="border rounded-lg p-3 bg-blue-50/50">
               <p className="text-xs font-semibold text-gray-600 mb-2">Verification Details</p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {Object.entries(task.document_details).map(([key, value]) => (
+                {Object.entries(task.documentDetails).map(([key, value]) => (
                   <div key={key}>
                     <p className="text-xs text-gray-500">{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
                     <p className="font-medium text-sm">{value || '-'}</p>
@@ -169,18 +169,18 @@ export const KYCVerificationPage: React.FC = () => {
           )}
 
           {/* Document File */}
-          {task.document_file_path ? (
+          {task.documentFilePath ? (
             <div className="border rounded-lg p-4 bg-gray-50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-blue-500" />
                   <div>
-                    <p className="font-medium">{task.document_file_name}</p>
+                    <p className="font-medium">{task.documentFileName}</p>
                     <p className="text-xs text-gray-500">Uploaded document</p>
                   </div>
                 </div>
                 <Button variant="outline" size="sm" asChild>
-                  <a href={task.document_file_path} target="_blank" rel="noopener noreferrer">
+                  <a href={task.documentFilePath} target="_blank" rel="noopener noreferrer">
                     <Download className="h-4 w-4 mr-1" /> View
                   </a>
                 </Button>
@@ -195,15 +195,15 @@ export const KYCVerificationPage: React.FC = () => {
           {/* Previous verification result */}
           {!isPending && (
             <div className={`border rounded-lg p-4 ${
-              task.verification_status === 'PASS' ? 'bg-green-50 border-green-200' :
-              task.verification_status === 'FAIL' ? 'bg-red-50 border-red-200' :
+              task.verificationStatus === 'PASS' ? 'bg-green-50 border-green-200' :
+              task.verificationStatus === 'FAIL' ? 'bg-red-50 border-red-200' :
               'bg-purple-50 border-purple-200'
             }`}>
-              <p className="font-medium">Verification Result: {task.verification_status}</p>
-              {task.verified_by_name && <p className="text-sm mt-1">Verified by: {task.verified_by_name}</p>}
-              {task.verified_at && <p className="text-sm">Date: {format(new Date(task.verified_at), 'dd MMM yyyy HH:mm')}</p>}
+              <p className="font-medium">Verification Result: {task.verificationStatus}</p>
+              {task.verifiedByName && <p className="text-sm mt-1">Verified by: {task.verifiedByName}</p>}
+              {task.verifiedAt && <p className="text-sm">Date: {format(new Date(task.verifiedAt), 'dd MMM yyyy HH:mm')}</p>}
               {task.remarks && <p className="text-sm mt-2">Remarks: {task.remarks}</p>}
-              {task.rejection_reason && <p className="text-sm text-red-600 mt-1">Reason: {task.rejection_reason}</p>}
+              {task.rejectionReason && <p className="text-sm text-red-600 mt-1">Reason: {task.rejectionReason}</p>}
             </div>
           )}
         </CardContent>
