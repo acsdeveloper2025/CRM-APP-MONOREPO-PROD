@@ -103,8 +103,7 @@ export const verificationUpload = multer({
 
 export class VerificationAttachmentController {
   private static getOperationId(req: Request): string | null {
-    const bodyValue =
-      typeof req.body?.operation_id === 'string' ? req.body.operation_id.trim() : '';
+    const bodyValue = typeof req.body?.operation_id === 'string' ? req.body.operationId.trim() : '';
     if (bodyValue) {
       return bodyValue;
     }
