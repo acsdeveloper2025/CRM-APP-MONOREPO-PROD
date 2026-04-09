@@ -83,7 +83,7 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
       conditions.push(`(
         u.name ILIKE $${paramIndex} OR
         u.username ILIKE $${paramIndex} OR
-        cc."caseNumber"::text ILIKE $${paramIndex} OR
+        cc.case_number::text ILIKE $${paramIndex} OR
         cc."notes" ILIKE $${paramIndex}
       )`);
       params.push(`%${search}%`);
@@ -133,15 +133,15 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
     const dataQuery = `
       SELECT
         cc.*,
-        u.name as "userName",
+        u.name as user_name,
         u.email as "userEmail",
         u2.name as "approvedByName",
         u3.name as "paidByName",
         ${COMMISSION_PRODUCT_SCOPE_EXPR} as "scopeProductId"
       FROM commission_calculations cc
       LEFT JOIN users u ON cc.user_id = u.id
-      LEFT JOIN users u2 ON cc."approvedBy" = u2.id
-      LEFT JOIN users u3 ON cc."paidBy" = u3.id
+      LEFT JOIN users u2 ON cc.approved_by = u2.id
+      LEFT JOIN users u3 ON cc.paid_by = u3.id
       ${whereClause}
       ORDER BY cc.${safeSortBy} ${safeSortOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -185,14 +185,14 @@ export const getCommissionById = async (req: AuthenticatedRequest, res: Response
     const sql = `
       SELECT
         cc.*,
-        u.name as "userName",
+        u.name as user_name,
         u.email as "userEmail",
         u2.name as "approvedByName",
         u3.name as "paidByName"
       FROM commission_calculations cc
       LEFT JOIN users u ON cc.user_id = u.id
-      LEFT JOIN users u2 ON cc."approvedBy" = u2.id
-      LEFT JOIN users u3 ON cc."paidBy" = u3.id
+      LEFT JOIN users u2 ON cc.approved_by = u2.id
+      LEFT JOIN users u3 ON cc.paid_by = u3.id
       WHERE cc.id = $1
     `;
 
@@ -306,8 +306,8 @@ export const approveCommission = async (req: AuthenticatedRequest, res: Response
       UPDATE commission_calculations
       SET
         status = 'APPROVED',
-        "approvedBy" = $1,
-        "approvedAt" = CURRENT_TIMESTAMP,
+        approved_by = $1,
+        approved_at = CURRENT_TIMESTAMP,
         notes = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE notes END,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = $3
@@ -354,7 +354,7 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
     const checkSql = `
       SELECT
         cc.status,
-        cc."paidAt",
+        cc.paid_at,
         cc.user_id,
         cc.client_id,
         ${COMMISSION_PRODUCT_SCOPE_EXPR} as "scopeProductId"
@@ -414,10 +414,10 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
       UPDATE commission_calculations
       SET
         status = 'PAID',
-        "paidBy" = $1,
-        "paidAt" = $2,
-        "paymentMethod" = $3,
-        "transactionId" = $4,
+        paid_by = $1,
+        paid_at = $2,
+        payment_method = $3,
+        transaction_id = $4,
         notes = CASE 
           WHEN notes IS NULL OR notes = '' THEN $5::text
           ELSE notes || E'\nPayment: ' || $5::text
@@ -518,7 +518,7 @@ export const getCommissionSummary = async (req: AuthenticatedRequest, res: Respo
     const userSummarySql = `
       SELECT
         cc.user_id,
-        u.name as "userName",
+        u.name as user_name,
         COUNT(*) as "totalCommissions",
         COALESCE(SUM("commissionAmount"), 0) as "totalAmount",
         COALESCE(SUM(CASE WHEN status = 'PAID' THEN "commissionAmount" ELSE 0 END), 0) as "paidAmount",
@@ -606,8 +606,8 @@ export const bulkApproveCommissions = async (req: AuthenticatedRequest, res: Res
       UPDATE commission_calculations cc
       SET
         status = 'APPROVED',
-        "approvedBy" = $1,
-        "approvedAt" = CURRENT_TIMESTAMP,
+        approved_by = $1,
+        approved_at = CURRENT_TIMESTAMP,
         notes = CASE WHEN $2::text IS NOT NULL THEN $2 ELSE notes END,
         updated_at = CURRENT_TIMESTAMP
       WHERE ${bulkConditions.join(' AND ')}
@@ -670,7 +670,7 @@ export const bulkMarkCommissionsPaid = async (req: AuthenticatedRequest, res: Re
     const bulkConditions = [
       `cc.id = ANY($5::int[])`,
       `cc.status = 'APPROVED'`,
-      `cc."paidAt" IS NULL`,
+      `cc.paid_at IS NULL`,
     ];
     const bulkParams: Array<string | number | boolean | string[] | number[]> = [
       payerId || '',
@@ -693,10 +693,10 @@ export const bulkMarkCommissionsPaid = async (req: AuthenticatedRequest, res: Re
       UPDATE commission_calculations cc
       SET
         status = 'PAID',
-        "paidBy" = $1,
-        "paidAt" = CURRENT_TIMESTAMP,
-        "paymentMethod" = $2,
-        "transactionId" = $3,
+        paid_by = $1,
+        paid_at = CURRENT_TIMESTAMP,
+        payment_method = $2,
+        transaction_id = $3,
         notes = CASE 
           WHEN notes IS NULL OR notes = '' THEN $4::text
           ELSE notes || E'\nPayment: ' || $4::text

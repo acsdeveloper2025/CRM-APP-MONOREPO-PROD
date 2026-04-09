@@ -1025,7 +1025,7 @@ export class VerificationTasksController {
              WHERE c.id = $1
                AND (
                  c.created_by_backend_user = ANY($2::uuid[]) OR
-                 c."assignedTo" = ANY($2::uuid[]) OR
+                 c.assigned_to = ANY($2::uuid[]) OR
                  vt.assigned_to = ANY($2::uuid[])
                )
              LIMIT 1`,

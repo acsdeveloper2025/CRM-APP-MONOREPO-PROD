@@ -26,7 +26,7 @@ export const getAreas = async (req: AuthenticatedRequest, res: Response) => {
         a.name,
         a.created_at,
         a.updated_at,
-        COALESCE(COUNT(pa.id), 0) as "usageCount"
+        COALESCE(COUNT(pa.id), 0) as usage_count
       FROM areas a
       LEFT JOIN pincode_areas pa ON pa.area_id = a.id
     `;
@@ -55,7 +55,7 @@ export const getAreas = async (req: AuthenticatedRequest, res: Response) => {
     const sortField: string = sortBy as string;
 
     if (sortField === 'usageCount') {
-      sql += ` ORDER BY "usageCount" ${sortDirection}`;
+      sql += ` ORDER BY usage_count ${sortDirection}`;
     } else if (sortField === 'createdAt') {
       sql += ` ORDER BY a.created_at ${sortDirection}`;
     } else if (sortField === 'name') {
@@ -168,7 +168,7 @@ export const getAreaById = async (req: AuthenticatedRequest, res: Response) => {
         a.name,
         a.created_at,
         a.updated_at,
-        COUNT(pa.id) as "usageCount"
+        COUNT(pa.id) as usage_count
       FROM areas a
       LEFT JOIN pincode_areas pa ON pa.area_id = a.id
       WHERE a.id = $1

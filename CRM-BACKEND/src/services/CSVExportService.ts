@@ -343,7 +343,7 @@ export class CSVExportService {
     }
 
     if (filters?.agentId) {
-      whereConditions.push(`"assignedTo" = $${paramIndex}`);
+      whereConditions.push(`assigned_to = $${paramIndex}`);
       queryParams.push(filters.agentId);
       paramIndex++;
     }
@@ -363,7 +363,7 @@ export class CSVExportService {
         customer_name as customer_name,
         status,
         priority,
-        "assignedTo" as assigned_to_id,
+        assigned_to as assigned_to_id,
         agent_name,
         employee_id,
         client_name,

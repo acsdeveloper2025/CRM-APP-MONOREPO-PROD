@@ -19,9 +19,9 @@ export const getUserTerritoryAssignments = async (req: AuthenticatedRequest, res
       SELECT 
         upa.id as assignment_id,
         upa.pincode_id,
-        p.code as "pincodeCode",
-        c.name as "cityName",
-        s.name as "stateName",
+        p.code as pincode_code,
+        c.name as city_name,
+        s.name as state_name,
         upa.assigned_at,
         COALESCE(
           JSON_AGG(

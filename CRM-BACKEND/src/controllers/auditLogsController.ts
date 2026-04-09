@@ -200,7 +200,7 @@ export const getAuditLogs = (req: AuthenticatedRequest, res: Response) => {
         SELECT
           al.id::text,
           COALESCE(al.user_id, '') as user_id,
-          COALESCE(u.name, 'System') as "userName",
+          COALESCE(u.name, 'System') as user_name,
           al.action,
           COALESCE(al.entity_type, 'SYSTEM') as resource,
           al.entity_id as "resourceId",
@@ -265,7 +265,7 @@ export const getAuditLogById = (req: AuthenticatedRequest, res: Response) => {
         SELECT
           al.id::text,
           COALESCE(al.user_id, '') as user_id,
-          COALESCE(u.name, 'System') as "userName",
+          COALESCE(u.name, 'System') as user_name,
           al.action,
           COALESCE(al.entity_type, 'SYSTEM') as resource,
           al.entity_id as "resourceId",

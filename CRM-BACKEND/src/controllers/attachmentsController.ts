@@ -78,7 +78,7 @@ const enforceBackendUserCaseScope = async (
     createdByBackendUser: string | null;
     assignedTo: string | null;
   }>(
-    `SELECT client_id, product_id, created_by_backend_user, "assignedTo" FROM cases WHERE id = $1`,
+    `SELECT client_id, product_id, created_by_backend_user, assigned_to FROM cases WHERE id = $1`,
     [caseUuid]
   );
 
@@ -95,7 +95,7 @@ const enforceBackendUserCaseScope = async (
        WHERE c.id = $1
          AND (
            c.created_by_backend_user = ANY($2::uuid[]) OR
-           c."assignedTo" = ANY($2::uuid[]) OR
+           c.assigned_to = ANY($2::uuid[]) OR
            vt.assigned_to = ANY($2::uuid[])
          )
        LIMIT 1`,
@@ -224,7 +224,7 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
 
         if (isFieldExecutionActor(req.user)) {
           // Field agents can only upload to cases assigned to them
-          caseQuery = 'SELECT id FROM cases WHERE case_id = $1 AND "assignedTo" = $2';
+          caseQuery = 'SELECT id FROM cases WHERE case_id = $1 AND assigned_to = $2';
           caseParams = [caseId, req.user.id];
         } else {
           // Admin/Manager can upload to any case
@@ -286,7 +286,7 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
             case_id,
             verification_task_id
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-          RETURNING id, filename, original_name, mime_type, file_size as size, file_path, uploaded_by, created_at as "uploadedAt", case_id`,
+          RETURNING id, filename, original_name, mime_type, file_size as size, file_path, uploaded_by, created_at as uploaded_at, case_id`,
             [
               file.filename,
               file.originalname,
@@ -359,12 +359,12 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
           a.file_size as size,
           a.file_path,
           a.uploaded_by,
-          a.created_at as "uploadedAt",
+          a.created_at as uploaded_at,
           a.case_id,
           a.verification_task_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
-        WHERE a.case_id = $1 AND c."assignedTo" = $2
+        WHERE a.case_id = $1 AND c.assigned_to = $2
       `;
       queryParams = [caseId, userId];
     } else {
@@ -378,7 +378,7 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
           file_size as size,
           file_path,
           uploaded_by,
-          created_at as "uploadedAt",
+          created_at as uploaded_at,
           case_id,
           verification_task_id
         FROM attachments
@@ -434,7 +434,7 @@ export const getAttachmentById = async (req: AuthenticatedRequest, res: Response
                a.file_path, a.uploaded_by, a.created_at, a.case_id, a.case_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
-        WHERE a.id = $1 AND c."assignedTo" = $2
+        WHERE a.id = $1 AND c.assigned_to = $2
       `;
       queryParams = [id, userId];
     } else {
@@ -522,7 +522,7 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
              , a.case_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
-        WHERE a.id = $1 AND c."assignedTo" = $2
+        WHERE a.id = $1 AND c.assigned_to = $2
       `;
       queryParams = [id, userId];
     } else {
@@ -681,7 +681,7 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
              , a.case_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
-        WHERE a.id = $1 AND c."assignedTo" = $2
+        WHERE a.id = $1 AND c.assigned_to = $2
       `;
       queryParams = [id, userId];
     } else {
@@ -780,7 +780,7 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
              , a.case_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
-        WHERE a.id = $1 AND c."assignedTo" = $2
+        WHERE a.id = $1 AND c.assigned_to = $2
       `;
       queryParams = [id, userId];
     } else {

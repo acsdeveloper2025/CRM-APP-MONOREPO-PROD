@@ -188,27 +188,27 @@ export const getDuplicateClusters = async (req: AuthenticatedRequest, res: Respo
     const query = `
       WITH duplicate_groups AS (
         SELECT 
-          COALESCE(pan_number, "aadhaarNumber", "applicantPhone", "bankAccountNumber") as group_key,
+          COALESCE(pan_number, aadhaar_number, applicant_phone, bank_account_number) as group_key,
           COUNT(*) as case_count,
           ARRAY_AGG(
             json_build_object(
               'id', id,
-              'caseNumber', "caseNumber",
-              'applicantName', "applicantName",
+              'caseNumber', case_number,
+              'applicantName', applicant_name,
               'status', status,
               'createdAt', created_at,
               'panNumber', pan_number,
-              'aadhaarNumber', "aadhaarNumber",
-              'applicantPhone', "applicantPhone",
-              'bankAccountNumber', "bankAccountNumber"
+              'aadhaarNumber', aadhaar_number,
+              'applicantPhone', applicant_phone,
+              'bankAccountNumber', bank_account_number
             ) ORDER BY created_at DESC
           ) as cases
         FROM cases
         WHERE (
           pan_number IS NOT NULL OR 
-          "aadhaarNumber" IS NOT NULL OR 
-          "applicantPhone" IS NOT NULL OR 
-          "bankAccountNumber" IS NOT NULL
+          aadhaar_number IS NOT NULL OR 
+          applicant_phone IS NOT NULL OR 
+          bank_account_number IS NOT NULL
         )
         GROUP BY group_key
         HAVING COUNT(*) > 1
@@ -221,14 +221,14 @@ export const getDuplicateClusters = async (req: AuthenticatedRequest, res: Respo
     const countQuery = `
       WITH duplicate_groups AS (
         SELECT 
-          COALESCE(pan_number, "aadhaarNumber", "applicantPhone", "bankAccountNumber") as group_key,
+          COALESCE(pan_number, aadhaar_number, applicant_phone, bank_account_number) as group_key,
           COUNT(*) as case_count
         FROM cases
         WHERE (
           pan_number IS NOT NULL OR 
-          "aadhaarNumber" IS NOT NULL OR 
-          "applicantPhone" IS NOT NULL OR 
-          "bankAccountNumber" IS NOT NULL
+          aadhaar_number IS NOT NULL OR 
+          applicant_phone IS NOT NULL OR 
+          bank_account_number IS NOT NULL
         )
         GROUP BY group_key
         HAVING COUNT(*) > 1
@@ -372,14 +372,14 @@ export const searchGlobalDuplicates = async (req: AuthenticatedRequest, res: Res
       SELECT
         c.id,
         c.case_id,
-        c.case_id as "caseNumber",
+        c.case_id as case_number,
         c.customer_name,
         c.customer_phone,
         c.pan_number,
         c.status,
         c.created_at,
-        cl.name as "clientName",
-        p.name as "productName",
+        cl.name as client_name,
+        p.name as product_name,
         vt.address as "address"
       FROM cases c
       LEFT JOIN clients cl ON c.client_id = cl.id

@@ -48,7 +48,7 @@ export const getDocumentTypeRates = async (req: AuthenticatedRequest, res: Respo
       values.push(`%${search}%`);
       values.push(`%${search}%`);
       whereSql.push(
-        `("clientName" ILIKE $${values.length - 2} OR "productName" ILIKE $${values.length - 1} OR "documentTypeName" ILIKE $${values.length})`
+        `(client_name ILIKE $${values.length - 2} OR product_name ILIKE $${values.length - 1} OR document_type_name ILIKE $${values.length})`
       );
     }
 

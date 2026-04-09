@@ -332,7 +332,7 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
         SELECT
           r.*,
           c.customer_name,
-          c.case_id as "caseNumber",
+          c.case_id as case_number,
           u.name as "agentName",
           u.employee_id,
           COUNT(a.id) as "attachmentCount"
@@ -350,7 +350,7 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
         SELECT
           o.*,
           c.customer_name,
-          c.case_id as "caseNumber",
+          c.case_id as case_number,
           u.name as "agentName",
           u.employee_id,
           COUNT(a.id) as "attachmentCount"
@@ -507,7 +507,7 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
       paramIndex++;
     }
     if (agentId) {
-      conditions.push(`c."assignedTo" = $${paramIndex}`);
+      conditions.push(`c.assigned_to = $${paramIndex}`);
       params.push(agentId);
       paramIndex++;
     }
@@ -611,10 +611,10 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
 
     // Get case details
     const caseQuery = `
-      SELECT c.*, cl.name as "clientName", u.name as "agentName"
+      SELECT c.*, cl.name as client_name, u.name as "agentName"
       FROM cases c
       LEFT JOIN clients cl ON c.client_id = cl.id
-      LEFT JOIN users u ON c."assignedTo" = u.id
+      LEFT JOIN users u ON c.assigned_to = u.id
       WHERE c.case_id = $1
     `;
     const caseResult = await pool.query(caseQuery, [caseId]);
@@ -657,7 +657,7 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
            WHERE c.case_id = $1
              AND (
                c.created_by_backend_user = ANY($2::uuid[]) OR
-               c."assignedTo" = ANY($2::uuid[]) OR
+               c.assigned_to = ANY($2::uuid[]) OR
                vt.assigned_to = ANY($2::uuid[])
              )
            LIMIT 1`,
@@ -711,9 +711,9 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
         u.name as performed_by,
         'Residence verification form submitted' as description,
         jsonb_build_object(
-          'applicantName', r."applicantName",
-          'residenceConfirmed', r."residenceConfirmed",
-          'personMet', r."personMet"
+          'applicantName', r.applicant_name,
+          'residenceConfirmed', r.residence_confirmed,
+          'personMet', r.person_met
         ) as metadata
       FROM residence_verification_reports r
       LEFT JOIN users u ON r.created_by = u.id
@@ -727,9 +727,9 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
         u.name as performed_by,
         'Office verification form submitted' as description,
         jsonb_build_object(
-          'companyName', o."companyName",
-          'officeConfirmed', o."officeConfirmed",
-          'personMet', o."personMet"
+          'companyName', o.company_name,
+          'officeConfirmed', o.office_confirmed,
+          'personMet', o.person_met
         ) as metadata
       FROM office_verification_reports o
       LEFT JOIN users u ON o.created_by = u.id
@@ -741,10 +741,10 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
         'ATTACHMENT_UPLOADED' as event_type,
         a.created_at as event_date,
         u.name as performed_by,
-        CONCAT('File uploaded: ', a."fileName") as description,
+        CONCAT('File uploaded: ', a.file_name) as description,
         jsonb_build_object(
-          'fileName', a."fileName",
-          'fileType', a."fileType",
+          'fileName', a.file_name,
+          'fileType', a.file_type,
           'fileSize', a.file_size
         ) as metadata
       FROM attachments a
@@ -1017,7 +1017,7 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
 
     const agent = agentResult.rows[0];
 
-    const conditions: string[] = ['c."assignedTo" = $1'];
+    const conditions: string[] = ['c.assigned_to = $1'];
     const params: QueryParams = [agentId];
     let paramIndex = 2;
 
@@ -1123,7 +1123,7 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
       paramIndex++;
     }
     if (assignedToId) {
-      conditions.push(`c."assignedTo" = $${paramIndex}`);
+      conditions.push(`c.assigned_to = $${paramIndex}`);
       params.push(assignedToId as string);
       paramIndex++;
     }
@@ -1136,7 +1136,7 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
     if (backendScope.scopedUserIds) {
       conditions.push(`(
         c.created_by_backend_user = ANY($${paramIndex}::uuid[]) OR
-        c."assignedTo" = ANY($${paramIndex}::uuid[]) OR
+        c.assigned_to = ANY($${paramIndex}::uuid[]) OR
         EXISTS (
           SELECT 1 FROM verification_tasks vt_scope
           WHERE vt_scope.case_id = c.id
@@ -1163,13 +1163,13 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
     const casesQuery = `
       SELECT 
         c.*,
-        cl.name as "clientName",
+        cl.name as client_name,
         cl.code as "clientCode",
         u.name as "assignedToName",
         creator.name as "createdByName"
       FROM cases c
       LEFT JOIN clients cl ON c.client_id = cl.id
-      LEFT JOIN users u ON c."assignedTo" = u.id
+      LEFT JOIN users u ON c.assigned_to = u.id
       LEFT JOIN users creator ON c.created_by_backend_user = creator.id
       ${whereClause}
       ORDER BY c.created_at DESC
@@ -1284,7 +1284,7 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
     const usersQuery = `
       SELECT u.*, COUNT(c.case_id) as total_cases
       FROM users u
-      LEFT JOIN cases c ON u.id = c."assignedTo"
+      LEFT JOIN cases c ON u.id = c.assigned_to
       ${userWhereClause}
       GROUP BY u.id
       ORDER BY u.name

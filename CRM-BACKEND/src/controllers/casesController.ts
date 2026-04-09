@@ -172,7 +172,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
           baseConditions.push('FALSE');
         } else {
           baseConditions.push(`(
-            c."assignedTo" = ANY($${baseParamIndex}::uuid[]) OR
+            c.assigned_to = ANY($${baseParamIndex}::uuid[]) OR
             EXISTS (
               SELECT 1 FROM verification_tasks vt_scope
               WHERE vt_scope.case_id = c.id
@@ -373,16 +373,16 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         -- Get representative address from tasks (since address is not in cases table anymore)
         (SELECT address FROM verification_tasks WHERE case_id = c.id LIMIT 1) as address,
         -- Client information (Field 3: Client)
-        cl.name as "clientName",
+        cl.name as client_name,
         cl.code as "clientCode",
         -- Product information (Field 4: Product)
-        p.name as "productName",
+        p.name as product_name,
         p.code as "productCode",
         -- Verification type information (Field 5: Verification Type)
-        vt.name as "verificationTypeName",
+        vt.name as verification_type_name,
         vt.code as "verificationTypeCode",
         -- Rate type information (for Area and Rate Type columns)
-        rt.name as "rateTypeName",
+        rt.name as rate_type_name,
         rt.description as "rateTypeDescription",
         -- Area information derived from rate type (local/ogl classification)
         CASE
@@ -407,7 +407,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         COALESCE(task_stats.in_progress_tasks, 0) as "inProgressTasks",
         COALESCE(task_stats.revisit_tasks, 0) as "revisitTasks",
         -- Representative assigned agent from tasks
-        assigned_user.id as "assignedTo",
+        assigned_user.id as assigned_to,
         assigned_user.name as "assignedToName",
         assigned_user.email as "assignedToEmail"
       FROM cases c
@@ -575,16 +575,16 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
         (SELECT vt2.pincode FROM verification_tasks vt2 WHERE vt2.case_id = c.id AND vt2.pincode IS NOT NULL AND vt2.pincode != '' LIMIT 1) as "taskPincode",
         (SELECT ar2.name FROM verification_tasks vt2 LEFT JOIN areas ar2 ON ar2.id = vt2.area_id WHERE vt2.case_id = c.id AND vt2.area_id IS NOT NULL LIMIT 1) as "taskAreaName",
         -- Client information (Field 3: Client)
-        cl.name as "clientName",
+        cl.name as client_name,
         cl.code as "clientCode",
         -- Product information (Field 4: Product)
-        p.name as "productName",
+        p.name as product_name,
         p.code as "productCode",
         -- Verification type information (Field 5: Verification Type)
-        vt.name as "verificationTypeName",
+        vt.name as verification_type_name,
         vt.code as "verificationTypeCode",
         -- Rate type information (for Area and Rate Type columns)
-        rt.name as "rateTypeName",
+        rt.name as rate_type_name,
         rt.description as "rateTypeDescription",
         -- Area information derived from rate type (local/ogl classification)
         CASE
@@ -603,7 +603,7 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
         COALESCE(task_stats.in_progress_tasks, 0) as "inProgressTasks",
         COALESCE(task_stats.revisit_tasks, 0) as "revisitTasks",
         -- Representative assigned agent from tasks
-        assigned_user.id as "assignedTo",
+        assigned_user.id as assigned_to,
         assigned_user.name as "assignedToName",
         assigned_user.email as "assignedToEmail"
       FROM cases c
@@ -701,7 +701,7 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
         }
         caseQuery += ` AND (
           c.created_by_backend_user = ANY($${queryParams.length + 1}::uuid[]) OR
-          c."assignedTo" = ANY($${queryParams.length + 1}::uuid[]) OR
+          c.assigned_to = ANY($${queryParams.length + 1}::uuid[]) OR
           EXISTS (
             SELECT 1 FROM verification_tasks vt_scope
             WHERE vt_scope.case_id = c.id
@@ -1575,7 +1575,7 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
           whereConditions.push('FALSE');
         } else {
           whereConditions.push(`(
-            c."assignedTo" = ANY($${paramIndex}::uuid[]) OR
+            c.assigned_to = ANY($${paramIndex}::uuid[]) OR
             EXISTS (
               SELECT 1 FROM verification_tasks vts
               WHERE vts.case_id = c.id
@@ -1878,7 +1878,7 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
            WHERE c.id = $1
              AND (
                c.created_by_backend_user = ANY($2::uuid[]) OR
-               c."assignedTo" = ANY($2::uuid[]) OR
+               c.assigned_to = ANY($2::uuid[]) OR
                vt.assigned_to = ANY($2::uuid[])
              )
            LIMIT 1`,

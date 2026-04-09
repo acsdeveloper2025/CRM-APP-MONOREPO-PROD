@@ -61,7 +61,7 @@ export const getRateTypeAssignments = async (req: AuthenticatedRequest, res: Res
     const listRes = await query(
       `SELECT * FROM rate_type_assignment_view rta
        ${whereClause}
-       ORDER BY "clientName", "productName", "verificationTypeName", "rateTypeName"
+       ORDER BY client_name, product_name, verification_type_name, rate_type_name
        LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
       [...values, Number(limit), offset]
     );
@@ -111,7 +111,7 @@ export const getAssignmentsByCombination = async (req: AuthenticatedRequest, res
     const assignmentsRes = await query(
       `SELECT 
         rt.id as rate_type_id,
-        rt.name as "rateTypeName",
+        rt.name as rate_type_name,
         rt.description as "rateTypeDescription",
         CASE WHEN rta.id IS NOT NULL THEN true ELSE false END as "isAssigned",
         rta.id as assignment_id,

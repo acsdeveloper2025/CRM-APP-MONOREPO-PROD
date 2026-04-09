@@ -209,9 +209,9 @@ export class EnterpriseMobileSyncService {
          WHERE fs.case_id = c.id AND fs.created_at > $2) as "newFormSubmissions",
         -- Get latest attachments
         (SELECT COUNT(*) FROM attachments a 
-         WHERE a.case_id = c.id AND a."uploadedAt" > $2) as "newAttachments"
+         WHERE a.case_id = c.id AND a.uploaded_at > $2) as "newAttachments"
       FROM cases c
-      WHERE c."assignedTo" = $1
+      WHERE c.assigned_to = $1
         AND c.updated_at > $2
         AND c.status != 'COMPLETED'
       ORDER BY c.updated_at DESC

@@ -48,7 +48,7 @@ export const generateFormSubmissionReport = async (req: AuthenticatedRequest, re
     const caseQuery = `
       SELECT c.*, u.name as assigned_to_name, cl.name as client_name
       FROM cases c
-      LEFT JOIN users u ON c."assignedTo" = u.id
+      LEFT JOIN users u ON c.assigned_to = u.id
       LEFT JOIN clients cl ON c.client_id = cl.id
       WHERE c.id = $1
     `;

@@ -148,7 +148,7 @@ export class CacheWarmingService {
 
             -- Assignment arrays for FIELD_AGENT role
             COALESCE(pincode_arrays.ids, ARRAY[]::int[]) as "assignedPincodes",
-            COALESCE(area_arrays.ids, ARRAY[]::int[]) as "assignedAreas"
+            COALESCE(area_arrays.ids, ARRAY[]::int[]) as assigned_areas
           FROM users u
           LEFT JOIN (
             SELECT user_id, ARRAY_AGG(client_id) as ids
@@ -234,7 +234,7 @@ export class CacheWarmingService {
 
           -- Assignment arrays for FIELD_AGENT role
           COALESCE(pincode_arrays.ids, ARRAY[]::int[]) as "assignedPincodes",
-          COALESCE(area_arrays.ids, ARRAY[]::int[]) as "assignedAreas"
+          COALESCE(area_arrays.ids, ARRAY[]::int[]) as assigned_areas
         FROM users u
         LEFT JOIN (
           SELECT user_id, ARRAY_AGG(client_id) as ids
@@ -302,7 +302,7 @@ export class CacheWarmingService {
         SELECT
           c.id, c.case_id, c.customer_name, c.status, c.priority,
           c.created_at, c.updated_at,
-          cl.name as "clientName"
+          cl.name as client_name
         FROM cases c
         LEFT JOIN clients cl ON c.client_id = cl.id
         WHERE c.status = 'PENDING'
@@ -318,7 +318,7 @@ export class CacheWarmingService {
         SELECT
           c.id, c.case_id, c.customer_name, c.status, c.priority,
           c.created_at, c.updated_at,
-          cl.name as "clientName"
+          cl.name as client_name
         FROM cases c
         LEFT JOIN clients cl ON c.client_id = cl.id
         WHERE c.status = 'IN_PROGRESS'

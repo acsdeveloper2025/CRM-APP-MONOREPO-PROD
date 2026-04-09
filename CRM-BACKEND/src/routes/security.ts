@@ -27,7 +27,7 @@ router.get(
   async (req, res) => {
     const { userId } = req.params;
     const result = await query(
-      `SELECT id, "macAddress", label, "isApproved", created_at, updated_at FROM "macAddresses" WHERE user_id = $1 ORDER BY created_at DESC`,
+      `SELECT id, mac_address, label, is_approved, created_at, updated_at FROM mac_addresses WHERE user_id = $1 ORDER BY created_at DESC`,
       [userId]
     );
     res.json({ success: true, data: result.rows });
@@ -43,10 +43,10 @@ router.post('/mac-addresses', macCreateValidation, validate, async (req, res) =>
   const colonized = norm.match(/.{1,2}/g)?.join(':') || norm;
 
   const ins = await query(
-    `INSERT INTO "macAddresses" (user_id, "macAddress", label, "isApproved")
+    `INSERT INTO mac_addresses (user_id, mac_address, label, is_approved)
      VALUES ($1, $2, $3, COALESCE($4, true))
-     ON CONFLICT (user_id, "macAddress") DO UPDATE SET label = EXCLUDED.label, "isApproved" = EXCLUDED."isApproved", updated_at = CURRENT_TIMESTAMP
-     RETURNING id, "macAddress", label, "isApproved", created_at, updated_at`,
+     ON CONFLICT (user_id, mac_address) DO UPDATE SET label = EXCLUDED.label, is_approved = EXCLUDED.is_approved, updated_at = CURRENT_TIMESTAMP
+     RETURNING id, mac_address, label, is_approved, created_at, updated_at`,
     [userId, colonized, label || null, isApproved]
   );
   res.json({ success: true, data: ins.rows[0] });
@@ -58,7 +58,7 @@ router.delete(
   validate,
   async (req, res) => {
     const { id } = req.params;
-    await query(`DELETE FROM "macAddresses" WHERE id = $1`, [id]);
+    await query(`DELETE FROM mac_addresses WHERE id = $1`, [id]);
     res.json({ success: true, message: 'MAC address removed' });
   }
 );

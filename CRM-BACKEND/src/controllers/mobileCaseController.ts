@@ -292,18 +292,18 @@ export class MobileCaseController {
                -- All 13 required fields for mobile app
                -- Field 3: Client
                cl.id as client_id,
-               cl.name as "clientName",
+               cl.name as client_name,
                cl.code as "clientCode",
                -- Field 4: Product
                p.id as product_id,
-               p.name as "productName",
+               p.name as product_name,
                p.code as "productCode",
                -- Field 5: Verification Type
                vtype.id as verification_type_id,
-               vtype.name as "verificationTypeName",
+               vtype.name as verification_type_name,
                vtype.code as "verificationTypeCode",
                -- Rate type information (for Area and Rate Type columns) - from task level
-               vtask.rate_type_name as "rateTypeName",
+               vtask.rate_type_name as rate_type_name,
                vtask.rate_type_description as "rateTypeDescription",
                -- Area information derived from rate type (local/ogl classification)
                CASE
@@ -538,9 +538,9 @@ export class MobileCaseController {
 
       let caseSql = `
         SELECT c.*,
-               cl.id as client_id, cl.name as "clientName", cl.code as "clientCode",
-               p.id as product_id, p.name as "productName", p.code as "productCode",
-               vtype.id as verification_type_id, vtype.name as "verificationTypeName", vtype.code as "verificationTypeCode",
+               cl.id as client_id, cl.name as client_name, cl.code as "clientCode",
+               p.id as product_id, p.name as product_name, p.code as "productCode",
+               vtype.id as verification_type_id, vtype.name as verification_type_name, vtype.code as "verificationTypeCode",
                cu.name as "createdByUserName",
                vtask.id as "verificationTaskId",
                vtask.task_number as "verificationTaskNumber",
@@ -620,7 +620,7 @@ export class MobileCaseController {
           file_size as size,
           file_path,
           uploaded_by,
-          created_at as "uploadedAt",
+          created_at as uploaded_at,
           case_id
         FROM attachments
         WHERE case_id = $1
@@ -1005,7 +1005,7 @@ export class MobileCaseController {
 
       // Save or update auto-save data
       const exAuto = await query(
-        `SELECT id FROM auto_saves WHERE case_id = $1 AND "formType" = $2`,
+        `SELECT id FROM auto_saves WHERE case_id = $1 AND form_type = $2`,
         [actualCaseId, formType]
       );
       let autoSaveData: { timestamp?: Date; formData?: unknown } | null = null;
@@ -1017,7 +1017,7 @@ export class MobileCaseController {
         autoSaveData = upd.rows[0];
       } else {
         const ins = await query(
-          `INSERT INTO auto_saves (id, case_id, "formType", form_data, timestamp) VALUES (gen_random_uuid()::text, $1, $2, $3, $4) RETURNING *`,
+          `INSERT INTO auto_saves (id, case_id, form_type, form_data, timestamp) VALUES (gen_random_uuid()::text, $1, $2, $3, $4) RETURNING *`,
           [actualCaseId, formType, JSON.stringify(formData), new Date(timestamp)]
         );
         autoSaveData = ins.rows[0];
@@ -1091,7 +1091,7 @@ export class MobileCaseController {
 
       const actualCaseId = existingCase.id; // Use the actual UUID from the database
       const autoRes = await query(
-        `SELECT id, case_id, "formType", form_data, saved_at, user_id FROM auto_saves WHERE case_id = $1 AND "formType" = $2 LIMIT 1`,
+        `SELECT id, case_id, form_type, form_data, saved_at, user_id FROM auto_saves WHERE case_id = $1 AND form_type = $2 LIMIT 1`,
         [actualCaseId, formType.toUpperCase()]
       );
       const autoSaveData = autoRes.rows[0];
@@ -1311,8 +1311,8 @@ export class MobileCaseController {
         UPDATE cases
         SET status = 'REVOKED',
             revoked_at = CURRENT_TIMESTAMP,
-            "revokedBy" = $1,
-            "revocationReason" = $2,
+            revoked_by = $1,
+            revocation_reason = $2,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $3
       `,

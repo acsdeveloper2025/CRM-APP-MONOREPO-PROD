@@ -292,9 +292,9 @@ export class MobileFormController {
                 vt.case_id, 
                 vt.task_number,
                 vt.status,
-                c.case_id as "caseNumber", 
+                c.case_id as case_number, 
                 vt.assigned_to,
-                vtype.name as "verificationTypeName"
+                vtype.name as verification_type_name
              FROM verification_tasks vt
              JOIN cases c ON vt.case_id = c.id
              LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
@@ -415,8 +415,8 @@ export class MobileFormController {
           vt.case_id as case_id,
           vt.task_number as "taskNumber",
           vt.status,
-          vt.assigned_to as "assignedTo",
-          vtype.name as "verificationTypeName",
+          vt.assigned_to as assigned_to,
+          vtype.name as verification_type_name,
           vtype.id as verification_type_id
          FROM verification_tasks vt
          LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
@@ -2166,7 +2166,7 @@ export class MobileFormController {
       const vals: QueryParams = [caseId];
       let caseSql = `SELECT id FROM cases WHERE id = $1`;
       if (isExecutionActor) {
-        caseSql += ` AND "assignedTo" = $2`;
+        caseSql += ` AND assigned_to = $2`;
         vals.push(userId);
       }
       const caseRes = await query(caseSql, vals);

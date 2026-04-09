@@ -282,7 +282,7 @@ export class MobileSyncController {
       // Update device sync timestamp
       if (deviceInfo?.deviceId) {
         await query(
-          `UPDATE devices SET "lastUsed" = CURRENT_TIMESTAMP WHERE user_id = $1 AND device_id = $2`,
+          `UPDATE devices SET last_used = CURRENT_TIMESTAMP WHERE user_id = $1 AND device_id = $2`,
           [userId, deviceInfo.deviceId]
         );
       }
@@ -444,9 +444,9 @@ export class MobileSyncController {
 
       const casesRes = await query(
         `SELECT c.*,
-                cl.id as client_id, cl.name as "clientName", cl.code as "clientCode",
-                p.id as product_id, p.name as "productName", p.code as "productCode",
-                vtype.id as verification_type_id, vtype.name as "verificationTypeName", vtype.code as "verificationTypeCode",
+                cl.id as client_id, cl.name as client_name, cl.code as "clientCode",
+                p.id as product_id, p.name as product_name, p.code as "productCode",
+                vtype.id as verification_type_id, vtype.name as verification_type_name, vtype.code as "verificationTypeCode",
                 c.verification_data,
                 COALESCE(cu.name, cu.username) as "createdByUserName",
                 vtask.id as "verificationTaskId",
@@ -781,7 +781,7 @@ export class MobileSyncController {
       const deviceId = String(req.headers['x-device-id'] || 'default');
 
       const devRes = await query(
-        `SELECT id, user_id, device_id, "deviceName", "platform", app_version, last_active_at, created_at FROM devices WHERE user_id = $1 AND device_id = $2 LIMIT 1`,
+        `SELECT id, user_id, device_id, device_name, "platform", app_version, last_active_at, created_at FROM devices WHERE user_id = $1 AND device_id = $2 LIMIT 1`,
         [userId, deviceId]
       );
       const device = devRes.rows[0];
@@ -972,7 +972,7 @@ export class MobileSyncController {
 
     if (normalizedTaskId) {
       const taskRes = await query(
-        `SELECT vt.id, vt.case_id, vt.assigned_to, c.case_id::text as "caseNumber"
+        `SELECT vt.id, vt.case_id, vt.assigned_to, c.case_id::text as case_number
          FROM verification_tasks vt
          JOIN cases c ON c.id = vt.case_id
          WHERE vt.id = $1
@@ -993,7 +993,7 @@ export class MobileSyncController {
       const caseFilter = isNumericCaseNumber ? `c.case_id = $1::int` : `c.id = $1::uuid`;
 
       const taskRes = await query(
-        `SELECT vt.id, vt.case_id, vt.assigned_to, c.case_id::text as "caseNumber"
+        `SELECT vt.id, vt.case_id, vt.assigned_to, c.case_id::text as case_number
          FROM verification_tasks vt
          JOIN cases c ON c.id = vt.case_id
          WHERE ${caseFilter}

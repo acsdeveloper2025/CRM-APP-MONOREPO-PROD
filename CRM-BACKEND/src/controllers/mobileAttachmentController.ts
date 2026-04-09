@@ -668,7 +668,7 @@ export class MobileAttachmentController {
         // Field agents can only delete attachments for their assigned task OR attachments with NULL task_id
         attachmentQuery = `
           SELECT a.id, a.filename, a.original_name, a.mime_type, a.file_size, a.file_path,
-                 a.uploaded_by, a.created_at, a.case_id, c."assignedTo", c.status
+                 a.uploaded_by, a.created_at, a.case_id, c.assigned_to, c.status
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
           LEFT JOIN verification_tasks vt ON vt.id = a.verification_task_id
@@ -685,7 +685,7 @@ export class MobileAttachmentController {
         // Admin/Manager can delete any attachment
         attachmentQuery = `
           SELECT a.id, a.filename, a.original_name, a.mime_type, a.file_size, a.file_path,
-                 a.uploaded_by, a.created_at, a.case_id, c."assignedTo", c.status
+                 a.uploaded_by, a.created_at, a.case_id, c.assigned_to, c.status
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
           WHERE a.id = $1
@@ -826,13 +826,13 @@ export class MobileAttachmentController {
             a.original_name,
             a.mime_type,
             a.file_size,
-            a."uploadedAt",
+            a.uploaded_at,
             a.uploaded_by,
             a.metadata,
-            a."isProcessed",
-            a."processingStatus",
+            a.is_processed,
+            a.processing_status,
             a.thumbnail_path,
-            a."compressedPath",
+            a.compressed_path,
             u.name as "uploaderName"
           FROM attachments a
           LEFT JOIN users u ON u.id = a.uploaded_by
@@ -843,7 +843,7 @@ export class MobileAttachmentController {
             WHERE vt.case_id = c.id
             AND vt.assigned_to = $${caseIds.length + 1}
           )
-          ORDER BY a.case_id, a."uploadedAt" DESC
+          ORDER BY a.case_id, a.uploaded_at DESC
         `;
         queryParams = [...caseIds, userId];
       } else {
@@ -856,18 +856,18 @@ export class MobileAttachmentController {
             a.original_name,
             a.mime_type,
             a.file_size,
-            a."uploadedAt",
+            a.uploaded_at,
             a.uploaded_by,
             a.metadata,
-            a."isProcessed",
-            a."processingStatus",
+            a.is_processed,
+            a.processing_status,
             a.thumbnail_path,
-            a."compressedPath",
+            a.compressed_path,
             u.name as "uploaderName"
           FROM attachments a
           LEFT JOIN users u ON u.id = a.uploaded_by
           WHERE a.case_id IN (${placeholders})
-          ORDER BY a.case_id, a."uploadedAt" DESC
+          ORDER BY a.case_id, a.uploaded_at DESC
         `;
         queryParams = caseIds;
       }
