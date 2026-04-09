@@ -155,6 +155,10 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
+// Input sanitization — strip XSS from request body and query strings
+import { sanitizeInput } from '@/middleware/sanitize';
+app.use(sanitizeInput);
+
 // Performance monitoring — request timing + memory tracking
 app.use(performanceMonitoring);
 app.use(memoryMonitoring);

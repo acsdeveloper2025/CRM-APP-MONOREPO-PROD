@@ -100,7 +100,8 @@
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "tsconfig-paths": "^4.2.0",
-    "winston": "^3.17.0"
+    "winston": "^3.17.0",
+    "xss": "^1.0.15"
   },
   "devDependencies": {
     "@express-rate-limit/tsconfig": "^1.0.2",
