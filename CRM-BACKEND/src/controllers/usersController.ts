@@ -2239,7 +2239,7 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response) =
 
     // Check if user exists and get current password
     const userCheck = await query(
-      'SELECT id, name, username, password_hash FROM users WHERE id = $1',
+      'SELECT id, name, username, password_hash as "passwordHash" FROM users WHERE id = $1',
       [id]
     );
 

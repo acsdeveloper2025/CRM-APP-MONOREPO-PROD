@@ -47,7 +47,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     // Find user by username
     const userRes = await query(
-      `SELECT u.id, u.name, u.username, u.email, u.password_hash, u.employee_id, u.designation, u.department, u.profile_photo_url
+      `SELECT u.id, u.name, u.username, u.email, u.password_hash as "passwordHash", u.employee_id as "employeeId", u.designation, u.department, u.profile_photo_url as "profilePhotoUrl"
        FROM users u
        WHERE u.username = $1`,
       [username]
