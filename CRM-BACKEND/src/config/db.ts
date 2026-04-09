@@ -1,7 +1,6 @@
 import { Pool, type PoolClient, type QueryResult } from 'pg';
 import type { QueryParams } from '@/types/database';
 import { logger } from './logger';
-// toCamelCase available in @/utils/caseConverter for manual conversion where needed
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {

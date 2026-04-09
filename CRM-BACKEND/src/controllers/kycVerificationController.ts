@@ -4,7 +4,6 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import type { QueryParams } from '@/types/database';
 import ExcelJS from 'exceljs';
-import { rowsToCamelCase } from '@/utils/caseConverter';
 
 /**
  * KYC Document Verification Controller
@@ -20,7 +19,7 @@ export const listDocumentTypes = async (_req: AuthenticatedRequest, res: Respons
        WHERE is_active = true
        ORDER BY sort_order, name`
     );
-    res.json({ success: true, data: rowsToCamelCase(result.rows) });
+    res.json({ success: true, data: result.rows });
   } catch (error) {
     logger.error('Error listing KYC document types:', error);
     res.status(500).json({ success: false, message: 'Failed to list document types' });
@@ -155,7 +154,7 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
 
     res.json({
       success: true,
-      data: rowsToCamelCase(dataResult.rows),
+      data: dataResult.rows,
       pagination: {
         page: pageNum,
         limit: limitNum,
@@ -205,7 +204,7 @@ export const getKYCTaskDetail = async (req: AuthenticatedRequest, res: Response)
       return res.status(404).json({ success: false, message: 'KYC task not found' });
     }
 
-    res.json({ success: true, data: rowsToCamelCase([result.rows[0]])[0] });
+    res.json({ success: true, data: result.rows[0] });
   } catch (error) {
     logger.error('Error getting KYC task detail:', error);
     res.status(500).json({ success: false, message: 'Failed to get KYC task detail' });
@@ -430,7 +429,7 @@ export const getKYCTasksForCase = async (req: AuthenticatedRequest, res: Respons
       [caseId]
     );
 
-    res.json({ success: true, data: rowsToCamelCase(result.rows) });
+    res.json({ success: true, data: result.rows });
   } catch (error) {
     logger.error('Error getting KYC tasks for case:', error);
     res.status(500).json({ success: false, message: 'Failed to get KYC tasks' });
