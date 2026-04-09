@@ -167,6 +167,12 @@ app.use(sanitizeInput);
 // form/script cannot read or attach them. This is inherently CSRF-safe by design.
 // See: https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html
 
+// Auto-convert API response data from snake_case to camelCase
+// This is the SINGLE point of conversion — internal code keeps using row.snake_case,
+// conversion happens ONLY at the HTTP response boundary via res.json() override.
+import { camelCaseResponse } from '@/middleware/camelCaseResponse';
+app.use(camelCaseResponse);
+
 // Performance monitoring — request timing + memory tracking
 app.use(performanceMonitoring);
 app.use(memoryMonitoring);
