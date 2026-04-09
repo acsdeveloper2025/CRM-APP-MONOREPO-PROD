@@ -3,7 +3,6 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
 import type { QueryParams } from '@/types/database';
-import { rowsToCamelCase, toCamelCase } from '@/utils/caseConverter';
 
 // GET /api/rate-types - List rate types with pagination and filters
 export const getRateTypes = async (req: AuthenticatedRequest, res: Response) => {
@@ -73,7 +72,7 @@ export const getRateTypes = async (req: AuthenticatedRequest, res: Response) => 
 
     res.json({
       success: true,
-      data: rowsToCamelCase(rateTypes),
+      data: rateTypes,
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -113,7 +112,7 @@ export const getRateTypeById = async (req: AuthenticatedRequest, res: Response) 
 
     res.json({
       success: true,
-      data: toCamelCase(rateType),
+      data: rateType,
     });
   } catch (error) {
     logger.error('Error retrieving rate type:', error);
@@ -239,7 +238,7 @@ export const getAvailableRateTypesForCase = async (req: AuthenticatedRequest, re
 
     res.json({
       success: true,
-      data: rowsToCamelCase(availableRateTypes),
+      data: availableRateTypes,
       message: `Found ${availableRateTypes.length} available rate types`,
     });
   } catch (error) {
