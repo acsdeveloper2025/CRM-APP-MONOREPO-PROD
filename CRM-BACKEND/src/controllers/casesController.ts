@@ -2549,6 +2549,40 @@ export const createCase = [
         throw validationError;
       }
 
+      // ========== VALIDATE MASTER DATA EXISTS ==========
+      const [clientCheck, productCheck] = await Promise.all([
+        client.query('SELECT id, is_active FROM clients WHERE id = $1', [resolvedClientId]),
+        client.query('SELECT id, is_active, client_id FROM products WHERE id = $1', [
+          resolvedProductId,
+        ]),
+      ]);
+
+      if (clientCheck.rows.length === 0) {
+        const err = new Error('Client not found');
+        (err as DatabaseError).code = 'VALIDATION_ERROR';
+        throw err;
+      }
+      if (!clientCheck.rows[0].is_active) {
+        const err = new Error('Client is inactive');
+        (err as DatabaseError).code = 'VALIDATION_ERROR';
+        throw err;
+      }
+      if (productCheck.rows.length === 0) {
+        const err = new Error('Product not found');
+        (err as DatabaseError).code = 'VALIDATION_ERROR';
+        throw err;
+      }
+      if (!productCheck.rows[0].is_active) {
+        const err = new Error('Product is inactive');
+        (err as DatabaseError).code = 'VALIDATION_ERROR';
+        throw err;
+      }
+      if (Number(productCheck.rows[0].client_id) !== resolvedClientId) {
+        const err = new Error('Product does not belong to the specified client');
+        (err as DatabaseError).code = 'VALIDATION_ERROR';
+        throw err;
+      }
+
       // ========== CREATE CASE ==========
       const caseResult = await client.query(
         `INSERT INTO cases (
@@ -2740,19 +2774,33 @@ export const createCase = [
           // Look up KYC rate from documentTypeRates (client + product + kyc_document_type)
           let rateAmount: number | null = null;
           const kycDocTypeRes = await client.query(
-            `SELECT id FROM kyc_document_types WHERE code = $1`,
+            `SELECT id FROM kyc_document_types WHERE code = $1 AND is_active = true`,
             [doc.document_type]
           );
+          if (kycDocTypeRes.rows.length === 0) {
+            logger.warn(`KYC document type not found or inactive: ${doc.document_type}`, {
+              caseId: newCase.id,
+              documentType: doc.document_type,
+            });
+          }
           if (kycDocTypeRes.rows.length > 0) {
             const kycDocTypeId = kycDocTypeRes.rows[0].id;
             const rateRes = await client.query(
               `SELECT amount FROM document_type_rates
                WHERE client_id = $1 AND product_id = $2 AND document_type_id = $3 AND is_active = true
+               ORDER BY effective_from DESC NULLS LAST
                LIMIT 1`,
-              [newCase.clientId, newCase.productId, kycDocTypeId]
+              [newCase.client_id, newCase.product_id, kycDocTypeId]
             );
             if (rateRes.rows.length > 0) {
               rateAmount = parseFloat(rateRes.rows[0].amount);
+            } else {
+              logger.warn(`No active rate found for KYC document type ${doc.document_type}`, {
+                caseId: newCase.id,
+                clientId: newCase.client_id,
+                productId: newCase.product_id,
+                documentTypeId: kycDocTypeId,
+              });
             }
           }
 
