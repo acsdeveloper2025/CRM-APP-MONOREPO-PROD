@@ -264,8 +264,8 @@ export const approveCommission = async (req: AuthenticatedRequest, res: Response
     `;
     const checkResult = await query<{
       status: string;
-      userId: string;
-      clientId: number;
+      user_id: string;
+      client_id: number;
       scopeProductId: number | null;
     }>(checkSql, [id]);
 
@@ -280,8 +280,8 @@ export const approveCommission = async (req: AuthenticatedRequest, res: Response
     if (
       !valueAllowedByScope(
         {
-          userId: checkResult.rows[0].userId,
-          clientId: Number(checkResult.rows[0].clientId),
+          userId: checkResult.rows[0].user_id,
+          clientId: Number(checkResult.rows[0].client_id),
           productId: toOptionalNumber(checkResult.rows[0].scopeProductId),
         },
         scope
@@ -363,9 +363,9 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
     `;
     const checkResult = await query<{
       status: string;
-      paidAt: string | null;
-      userId: string;
-      clientId: number;
+      paid_at: string | null;
+      user_id: string;
+      client_id: number;
       scopeProductId: number | null;
     }>(checkSql, [id]);
 
@@ -380,8 +380,8 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
     if (
       !valueAllowedByScope(
         {
-          userId: checkResult.rows[0].userId,
-          clientId: Number(checkResult.rows[0].clientId),
+          userId: checkResult.rows[0].user_id,
+          clientId: Number(checkResult.rows[0].client_id),
           productId: toOptionalNumber(checkResult.rows[0].scopeProductId),
         },
         scope
@@ -402,7 +402,7 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
       });
     }
 
-    if (checkResult.rows[0].paidAt) {
+    if (checkResult.rows[0].paid_at) {
       return res.status(400).json({
         success: false,
         message: 'Commission is already marked as paid',

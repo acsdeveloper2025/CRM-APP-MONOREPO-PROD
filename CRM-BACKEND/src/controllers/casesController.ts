@@ -2577,7 +2577,7 @@ export const createCase = [
         (err as DatabaseError).code = 'VALIDATION_ERROR';
         throw err;
       }
-      if (Number(productCheck.rows[0].clientId) !== resolvedClientId) {
+      if (Number(productCheck.rows[0].client_id) !== resolvedClientId) {
         const err = new Error('Product does not belong to the specified client');
         (err as DatabaseError).code = 'VALIDATION_ERROR';
         throw err;
