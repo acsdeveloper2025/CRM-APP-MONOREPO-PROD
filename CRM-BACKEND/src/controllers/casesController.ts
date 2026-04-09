@@ -2577,7 +2577,7 @@ export const createCase = [
         (err as DatabaseError).code = 'VALIDATION_ERROR';
         throw err;
       }
-      if (Number(productCheck.rows[0].client_id) !== resolvedClientId) {
+      if (Number(productCheck.rows[0].clientId) !== resolvedClientId) {
         const err = new Error('Product does not belong to the specified client');
         (err as DatabaseError).code = 'VALIDATION_ERROR';
         throw err;
@@ -2790,15 +2790,15 @@ export const createCase = [
                WHERE client_id = $1 AND product_id = $2 AND document_type_id = $3 AND is_active = true
                ORDER BY effective_from DESC NULLS LAST
                LIMIT 1`,
-              [newCase.client_id, newCase.product_id, kycDocTypeId]
+              [newCase.clientId, newCase.productId, kycDocTypeId]
             );
             if (rateRes.rows.length > 0) {
               rateAmount = parseFloat(rateRes.rows[0].amount);
             } else {
               logger.warn(`No active rate found for KYC document type ${doc.document_type}`, {
                 caseId: newCase.id,
-                clientId: newCase.client_id,
-                productId: newCase.product_id,
+                clientId: newCase.clientId,
+                productId: newCase.productId,
                 documentTypeId: kycDocTypeId,
               });
             }
