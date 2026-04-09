@@ -1,6 +1,7 @@
 import { Pool, type PoolClient, type QueryResult } from 'pg';
 import type { QueryParams } from '@/types/database';
 import { logger } from './logger';
+import { toCamelCase } from '@/utils/caseConverter';
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -45,12 +46,65 @@ logger.info('Database pool configured for enterprise scale', {
   maxCapacity: '500 connections',
 });
 
+/**
+ * Execute a SQL query with automatic snake_case → camelCase conversion on result rows.
+ * This ensures the application layer NEVER sees snake_case property names.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const query = async <T = any>(
   text: string,
   params: QueryParams = []
 ): Promise<QueryResult<T>> => {
+  const result = await pool.query<T>(text, params);
+  if (result.rows && result.rows.length > 0) {
+    result.rows = result.rows.map(row =>
+      typeof row === 'object' && row !== null
+        ? toCamelCase(row as unknown as Record<string, unknown>)
+        : row
+    );
+  }
+  return result;
+};
+
+/**
+ * Execute a raw SQL query WITHOUT camelCase conversion.
+ * Use this ONLY for internal/system queries where snake_case is expected
+ * (e.g., schema introspection, migrations, raw column checks).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const queryRaw = async <T = any>(
+  text: string,
+  params: QueryParams = []
+): Promise<QueryResult<T>> => {
   return pool.query<T>(text, params);
+};
+
+/**
+ * Wraps a PoolClient to auto-convert query results from snake_case to camelCase.
+ */
+const wrapClientWithCamelCase = (client: PoolClient): PoolClient => {
+  const originalQuery = client.query.bind(client);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client.query = (async (...args: any[]) => {
+    const result = await originalQuery(...args);
+    if (result?.rows?.length > 0) {
+      result.rows = result.rows.map((row: unknown) =>
+        typeof row === 'object' && row !== null ? toCamelCase(row as Record<string, unknown>) : row
+      );
+    }
+    return result;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  }) as any;
+  return client;
+};
+
+/**
+ * Get a pool client with auto camelCase conversion on query results.
+ * Use this instead of pool.connect() directly.
+ */
+export const getClient = async (): Promise<PoolClient> => {
+  const rawClient = await pool.connect();
+  return wrapClientWithCamelCase(rawClient);
 };
 
 export const withTransaction = async <T>(
@@ -58,7 +112,8 @@ export const withTransaction = async <T>(
   maxRetries = 3
 ): Promise<T> => {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const client = await pool.connect();
+    const rawClient = await pool.connect();
+    const client = wrapClientWithCamelCase(rawClient);
     try {
       await client.query('BEGIN');
       const result = await fn(client);
