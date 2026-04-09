@@ -76,7 +76,7 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
       : 'name';
     const sortDir: 'ASC' | 'DESC' = sortOrderStr.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
     const listRes = await query(
-      `SELECT id, name, code, "createdAt", "updatedAt"
+      `SELECT id, name, code, created_at, updated_at
        FROM products
        ${whereClause}
        ORDER BY "${sortCol}" ${sortDir}
@@ -118,7 +118,7 @@ export const getProductById = async (req: AuthenticatedRequest, res: Response) =
   try {
     const id = String(req.params.id || '');
     const productRes = await query(
-      `SELECT id, name, code, "createdAt", "updatedAt" FROM products WHERE id = $1`,
+      `SELECT id, name, code, created_at, updated_at FROM products WHERE id = $1`,
       [Number(id)]
     );
     const product = productRes.rows[0];
@@ -164,9 +164,9 @@ export const createProduct = async (req: AuthenticatedRequest, res: Response) =>
 
     // Create product in database
     const insertRes = await query(
-      `INSERT INTO products (name, code, "createdAt", "updatedAt")
+      `INSERT INTO products (name, code, created_at, updated_at)
        VALUES ($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-       RETURNING id, name, code, "createdAt", "updatedAt"`,
+       RETURNING id, name, code, created_at, updated_at`,
       [name, code]
     );
     const newProduct = insertRes.rows[0];
@@ -250,14 +250,14 @@ export const updateProduct = async (req: AuthenticatedRequest, res: Response) =>
       sets.push(`${key} = $${idx++}`);
       vals.push(updatePayload[key]);
     }
-    sets.push(`"updatedAt" = CURRENT_TIMESTAMP`);
+    sets.push(`updated_at = CURRENT_TIMESTAMP`);
     vals.push(id);
 
     const updRes = await query(
       `UPDATE products
        SET ${sets.join(', ')}
        WHERE id = $${idx}
-       RETURNING id, name, code, "createdAt", "updatedAt"`,
+       RETURNING id, name, code, created_at, updated_at`,
       vals
     );
     const updatedProduct = updRes.rows[0];
@@ -351,15 +351,15 @@ export const getProductsByClient = async (req: AuthenticatedRequest, res: Respon
 
     // Build where clause for mapping table
     const values: (number | boolean)[] = [Number(clientId)];
-    const activeClause = typeof isActive !== 'undefined' ? 'AND cp."isActive" = $2' : '';
+    const activeClause = typeof isActive !== 'undefined' ? 'AND cp.is_active = $2' : '';
     if (typeof isActive !== 'undefined') {
       values.push(typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive));
     }
     const mapRes = await query(
-      `SELECT p.id, p.name, p.code, p."createdAt", p."updatedAt"
-       FROM "clientProducts" cp
-       JOIN products p ON p.id = cp."productId"
-       WHERE cp."clientId" = $1 ${activeClause}
+      `SELECT p.id, p.name, p.code, p.created_at, p.updated_at
+       FROM client_products cp
+       JOIN products p ON p.id = cp.product_id
+       WHERE cp.client_id = $1 ${activeClause}
       `,
       values
     );
@@ -432,17 +432,17 @@ export const getProductVerificationTypes = async (req: AuthenticatedRequest, res
     }
 
     // Build where clause for active filter
-    const whereClause = isActive !== undefined ? 'AND vt."isActive" = $2' : '';
+    const whereClause = isActive !== undefined ? 'AND vt.is_active = $2' : '';
     const params =
       isActive !== undefined
         ? [id, typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive)]
         : [id];
 
     const vtRes = await query(
-      `SELECT vt.id, vt.name, vt.code, vt.description, vt."isActive", pvt."createdAt" as "assignedAt"
-       FROM "productVerificationTypes" pvt
-       JOIN "verificationTypes" vt ON pvt."verificationTypeId" = vt.id
-       WHERE pvt."productId" = $1 ${whereClause}
+      `SELECT vt.id, vt.name, vt.code, vt.description, vt.is_active, pvt.created_at as assigned_at
+       FROM product_verification_types pvt
+       JOIN verification_types vt ON pvt.verification_type_id = vt.id
+       WHERE pvt.product_id = $1 ${whereClause}
        ORDER BY vt.name`,
       params
     );

@@ -35,12 +35,12 @@ export const getCities = async (req: AuthenticatedRequest, res: Response) => {
         c.name,
         s.name as state,
         co.name as country,
-        c."createdAt",
-        c."updatedAt",
+        c.created_at,
+        c.updated_at,
         0 as "pincodeCount"
       FROM cities c
-      JOIN states s ON c."stateId" = s.id
-      JOIN countries co ON c."countryId" = co.id
+      JOIN states s ON c.state_id = s.id
+      JOIN countries co ON c.country_id = co.id
 
       WHERE 1=1
     `;
@@ -102,8 +102,8 @@ export const getCities = async (req: AuthenticatedRequest, res: Response) => {
     let countSql = `
       SELECT COUNT(*)
       FROM cities c
-      JOIN states s ON c."stateId" = s.id
-      JOIN countries co ON c."countryId" = co.id
+      JOIN states s ON c.state_id = s.id
+      JOIN countries co ON c.country_id = co.id
       WHERE 1=1
     `;
     const countParams: QueryParams = [];
@@ -171,11 +171,11 @@ export const getCityById = async (req: AuthenticatedRequest, res: Response) => {
         c.name,
         s.name as state,
         co.name as country,
-        c."createdAt",
-        c."updatedAt"
+        c.created_at,
+        c.updated_at
        FROM cities c
-       JOIN states s ON c."stateId" = s.id
-       JOIN countries co ON c."countryId" = co.id
+       JOIN states s ON c.state_id = s.id
+       JOIN countries co ON c.country_id = co.id
        WHERE c.id = $1`,
       [Number(id)]
     );
@@ -242,7 +242,7 @@ export const createCity = async (req: AuthenticatedRequest, res: Response) => {
 
     // Check if city already exists in this state
     const existingCity = await query<{ id: string }>(
-      'SELECT id FROM cities WHERE name = $1 AND "stateId" = $2',
+      'SELECT id FROM cities WHERE name = $1 AND state_id = $2',
       [name, stateId]
     );
 
@@ -252,9 +252,9 @@ export const createCity = async (req: AuthenticatedRequest, res: Response) => {
 
     // Insert new city
     const insertResult = await query<City>(
-      `INSERT INTO cities (name, "stateId", "countryId", "createdAt", "updatedAt")
+      `INSERT INTO cities (name, state_id, country_id, created_at, updated_at)
        VALUES ($1, $2, $3, NOW(), NOW())
-       RETURNING id, name, "stateId", "countryId", "createdAt", "updatedAt"`,
+       RETURNING id, name, state_id, country_id, created_at, updated_at`,
       [name, stateId, countryId]
     );
 
@@ -267,11 +267,11 @@ export const createCity = async (req: AuthenticatedRequest, res: Response) => {
         c.name,
         s.name as state,
         co.name as country,
-        c."createdAt",
-        c."updatedAt"
+        c.created_at,
+        c.updated_at
        FROM cities c
-       JOIN states s ON c."stateId" = s.id
-       JOIN countries co ON c."countryId" = co.id
+       JOIN states s ON c.state_id = s.id
+       JOIN countries co ON c.country_id = co.id
        WHERE c.id = $1`,
       [newCity.id]
     );
@@ -342,7 +342,7 @@ export const updateCity = async (req: AuthenticatedRequest, res: Response) => {
     // Update city
     await query(
       `UPDATE cities
-       SET name = $1, "stateId" = $2, "countryId" = $3, "updatedAt" = NOW()
+       SET name = $1, state_id = $2, country_id = $3, updated_at = NOW()
        WHERE id = $4`,
       [name, stateId, countryId, id]
     );
@@ -354,11 +354,11 @@ export const updateCity = async (req: AuthenticatedRequest, res: Response) => {
         c.name,
         s.name as state,
         co.name as country,
-        c."createdAt",
-        c."updatedAt"
+        c.created_at,
+        c.updated_at
        FROM cities c
-       JOIN states s ON c."stateId" = s.id
-       JOIN countries co ON c."countryId" = co.id
+       JOIN states s ON c.state_id = s.id
+       JOIN countries co ON c.country_id = co.id
        WHERE c.id = $1`,
       [id]
     );
@@ -396,8 +396,8 @@ export const deleteCity = async (req: AuthenticatedRequest, res: Response) => {
         s.name as state,
         co.name as country
        FROM cities c
-       JOIN states s ON c."stateId" = s.id
-       JOIN countries co ON c."countryId" = co.id
+       JOIN states s ON c.state_id = s.id
+       JOIN countries co ON c.country_id = co.id
        WHERE c.id = $1`,
       [id]
     );
@@ -441,7 +441,7 @@ export const getCitiesStats = async (req: AuthenticatedRequest, res: Response) =
     const stateDistributionResult = await query<{ state: string; count: string }>(
       `SELECT s.name as state, COUNT(*) as count
        FROM cities c
-       JOIN states s ON c."stateId" = s.id
+       JOIN states s ON c.state_id = s.id
        GROUP BY s.name
        ORDER BY count DESC`
     );
@@ -449,7 +449,7 @@ export const getCitiesStats = async (req: AuthenticatedRequest, res: Response) =
     const countryDistributionResult = await query<{ country: string; count: string }>(
       `SELECT co.name as country, COUNT(*) as count
        FROM cities c
-       JOIN countries co ON c."countryId" = co.id
+       JOIN countries co ON c.country_id = co.id
        GROUP BY co.name
        ORDER BY count DESC`
     );
@@ -545,14 +545,14 @@ export const bulkImportCities = async (
 
         // Find or create state
         const stateResult = await query(
-          'SELECT id FROM states WHERE LOWER(name) = LOWER($1) AND "countryId" = $2',
+          'SELECT id FROM states WHERE LOWER(name) = LOWER($1) AND country_id = $2',
           [state, countryId]
         );
 
         let stateId: number;
         if (stateResult.rows.length === 0) {
           const newState = await query(
-            'INSERT INTO states (name, code, "countryId") VALUES ($1, $2, $3) RETURNING id',
+            'INSERT INTO states (name, code, country_id) VALUES ($1, $2, $3) RETURNING id',
             [state, state.substring(0, 3).toUpperCase(), countryId]
           );
           stateId = newState.rows[0].id;
@@ -562,7 +562,7 @@ export const bulkImportCities = async (
 
         // Check if city already exists
         const existingCity = await query(
-          'SELECT id FROM cities WHERE LOWER(name) = LOWER($1) AND "stateId" = $2',
+          'SELECT id FROM cities WHERE LOWER(name) = LOWER($1) AND state_id = $2',
           [name, stateId]
         );
 
@@ -570,15 +570,15 @@ export const bulkImportCities = async (
           // Update existing city
           await query(
             `UPDATE cities
-             SET "updatedAt" = NOW()
-             WHERE LOWER(name) = LOWER($1) AND "stateId" = $2`,
+             SET updated_at = NOW()
+             WHERE LOWER(name) = LOWER($1) AND state_id = $2`,
             [name, stateId]
           );
           results.updated++;
         } else {
           // Create new city
           await query(
-            `INSERT INTO cities (name, "stateId", "countryId")
+            `INSERT INTO cities (name, state_id, country_id)
              VALUES ($1, $2, $3)`,
             [name, stateId, countryId]
           );

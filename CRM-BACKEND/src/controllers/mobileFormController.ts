@@ -292,12 +292,12 @@ export class MobileFormController {
                 vt.case_id, 
                 vt.task_number,
                 vt.status,
-                c."caseId" as "caseNumber", 
+                c.case_id as "caseNumber", 
                 vt.assigned_to,
                 vtype.name as "verificationTypeName"
              FROM verification_tasks vt
              JOIN cases c ON vt.case_id = c.id
-             LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+             LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
              WHERE vt.id = $1`,
         [taskId]
       );
@@ -412,14 +412,14 @@ export class MobileFormController {
       const taskQuery = await query(
         `SELECT 
           vt.id,
-          vt.case_id as "caseId",
+          vt.case_id as case_id,
           vt.task_number as "taskNumber",
           vt.status,
           vt.assigned_to as "assignedTo",
           vtype.name as "verificationTypeName",
-          vtype.id as "verificationTypeId"
+          vtype.id as verification_type_id
          FROM verification_tasks vt
-         LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+         LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
          WHERE vt.id = $1`,
         [taskId]
       );
@@ -520,7 +520,7 @@ export class MobileFormController {
     try {
       // Get field user information
       const fieldUserQuery = `
-        SELECT name, "employeeId" FROM users WHERE id = $1
+        SELECT name, employee_id FROM users WHERE id = $1
       `;
       const fieldUserResult = await query(fieldUserQuery, [fieldUserId]);
       const fieldUserName = fieldUserResult.rows[0]?.name || 'Unknown User';
@@ -532,7 +532,7 @@ export class MobileFormController {
         JOIN user_roles ur ON ur.user_id = u.id
         JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
         JOIN permissions p ON p.id = rp.permission_id
-        WHERE u."isActive" = true
+        WHERE u.is_active = true
           AND p.code IN ('report.generate', 'report.download', 'review.view')
       `;
       const notificationUsersResult = await query(notificationUsersQuery);
@@ -594,11 +594,11 @@ export class MobileFormController {
     // attachment IDs from mobile are UUIDs but may also be stored as submissionId or filename references.
     // Query by submissionId (UUID) which is what the mobile sends, falling back to string match.
     const attachmentResult = await query(
-      `SELECT id, filename, "filePath", "thumbnailPath", "createdAt", "photoType", "geoLocation"
+      `SELECT id, filename, file_path, thumbnail_path, created_at, photo_type, geo_location
        FROM verification_attachments
-       WHERE "submissionId" = ANY($1::text[])
+       WHERE submission_id = ANY($1::text[])
           OR filename = ANY($1::text[])
-       ORDER BY "createdAt" ASC`,
+       ORDER BY created_at ASC`,
       [attachmentIds]
     );
 
@@ -629,8 +629,8 @@ export class MobileFormController {
   ): Promise<{ totalImages: number; totalSelfies: number }> {
     const result = await query(
       `SELECT
-        COUNT(*) FILTER (WHERE "photoType" = 'verification') as total_images,
-        COUNT(*) FILTER (WHERE "photoType" = 'selfie') as total_selfies
+        COUNT(*) FILTER (WHERE photo_type = 'verification') as total_images,
+        COUNT(*) FILTER (WHERE photo_type = 'selfie') as total_selfies
        FROM verification_attachments WHERE verification_task_id = $1`,
       [taskId]
     );
@@ -711,11 +711,11 @@ export class MobileFormController {
         // Save to verification_attachments table
         const attachmentResult = await query(
           `INSERT INTO verification_attachments (
-            case_id, "caseId", verification_type, verification_task_id, filename, "originalName",
-            "mimeType", "fileSize", "filePath", "thumbnailPath", "uploadedBy",
-            "geoLocation", "photoType", "submissionId"
+            case_id, case_id, verification_type, verification_task_id, filename, original_name,
+            mime_type, file_size, file_path, thumbnail_path, uploaded_by,
+            geo_location, photo_type, submission_id
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-          RETURNING id, filename, "filePath", "thumbnailPath", "createdAt"`,
+          RETURNING id, filename, file_path, thumbnail_path, created_at`,
           [
             caseId,
             null, // caseId integer - will be set later if needed
@@ -2302,10 +2302,10 @@ export class MobileFormController {
 
       // Update case with verification data
       await query(
-        `UPDATE cases SET status = 'COMPLETED', "completedAt" = CURRENT_TIMESTAMP, "verificationData" = $1, "verificationType" = $2, "verificationOutcome" = $3, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $4`,
+        `UPDATE cases SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, verification_data = $1, verification_type = $2, verification_outcome = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
         [JSON.stringify(verificationData), verificationType, formData.outcome || 'VERIFIED', caseId]
       );
-      const caseUpd = await query(`SELECT id, status, "completedAt" FROM cases WHERE id = $1`, [
+      const caseUpd = await query(`SELECT id, status, completed_at FROM cases WHERE id = $1`, [
         caseId,
       ]);
       const updatedCase = caseUpd.rows[0];
@@ -2315,7 +2315,7 @@ export class MobileFormController {
 
       // Update attachment geo-locations
       for (const photo of photos) {
-        await query(`UPDATE attachments SET "geoLocation" = $1 WHERE id = $2`, [
+        await query(`UPDATE attachments SET geo_location = $1 WHERE id = $2`, [
           JSON.stringify(photo.geoLocation),
           photo.attachmentId,
         ]);
@@ -2390,12 +2390,12 @@ export class MobileFormController {
 
       // Verify case access - handle both UUID and business caseId
       const vals: QueryParams = [];
-      let caseSql = `SELECT id, "customerName", "verificationData", "verificationType", "verificationOutcome", status FROM cases WHERE `;
+      let caseSql = `SELECT id, customer_name, verification_data, verification_type, verification_outcome, status FROM cases WHERE `;
 
       // Check if caseId is a number (business caseId) or UUID
       const isNumeric = /^\d+$/.test(caseId);
       if (isNumeric) {
-        caseSql += `"caseId" = $1`;
+        caseSql += `case_id = $1`;
         vals.push(parseInt(caseId));
       } else {
         caseSql += `id = $1`;
@@ -2442,9 +2442,9 @@ export class MobileFormController {
           vt.status as task_status,
           vtype.name as verification_type_name,
           u.name as assigned_to_name,
-          u."employeeId" as assigned_to_employee_id
+          u.employee_id as assigned_to_employee_id
         FROM verification_tasks vt
-        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+        LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
         LEFT JOIN users u ON vt.assigned_to = u.id
         WHERE vt.case_id = $1
         ORDER BY vt.created_at ASC
@@ -2509,9 +2509,9 @@ export class MobileFormController {
 
           // FIXED: Get verification images for THIS SPECIFIC TASK only
           const imagesSql = `
-            SELECT id, verification_task_id, filename, "filePath", "fileSize", "mimeType", "photoType", "thumbnailPath", "geoLocation", "submissionId", "createdAt" FROM verification_attachments
+            SELECT id, verification_task_id, filename, file_path, file_size, mime_type, photo_type, thumbnail_path, geo_location, submission_id, created_at FROM verification_attachments
             WHERE case_id = $1 AND verification_task_id = $2
-            ORDER BY "createdAt"
+            ORDER BY created_at
           `;
           const imagesRes = await query(imagesSql, [caseData.id, task.task_id]);
 
@@ -2797,7 +2797,7 @@ export class MobileFormController {
       logger.info(`✅ Verification Type: ${verificationTypeName}`);
 
       // Verify case exists (additional validation)
-      const caseRes = await query(`SELECT id, "caseId", status FROM cases WHERE id = $1`, [caseId]);
+      const caseRes = await query(`SELECT id, case_id, status FROM cases WHERE id = $1`, [caseId]);
       const existingCase = caseRes.rows[0];
 
       if (!existingCase) {
@@ -2963,11 +2963,11 @@ export class MobileFormController {
 
       // Update case with verification data (without changing status)
       await query(
-        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'RESIDENCE', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        `UPDATE cases SET verification_data = $1, verification_type = 'RESIDENCE', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
         [JSON.stringify(verificationData), verificationOutcome, caseId]
       );
       const caseUpd = await query(
-        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
         [caseId]
       );
       const updatedCase = caseUpd.rows[0];
@@ -3026,7 +3026,7 @@ export class MobileFormController {
       const columnNames = columns.map(col => `"${col}"`).join(', ');
 
       const insertQuery = `
-        INSERT INTO "residenceVerificationReports" (${columnNames})
+        INSERT INTO residence_verification_reports (${columnNames})
         VALUES (${placeholders})
       `;
 
@@ -3057,7 +3057,7 @@ export class MobileFormController {
       }
 
       // Remove auto-save data (autoSaves table doesn't have form_type column)
-      await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);
+      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
 
       await createAuditLog({
         action: 'RESIDENCE_VERIFICATION_SUBMITTED',
@@ -3191,7 +3191,7 @@ export class MobileFormController {
 
       // Verify case exists (additional validation)
       const caseQuery = await query(
-        `SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`,
+        `SELECT id, case_id, customer_name, backend_contact_number as "systemContact" FROM cases WHERE id = $1`,
         [caseId]
       );
       if (caseQuery.rows.length === 0) {
@@ -3365,11 +3365,11 @@ export class MobileFormController {
 
       // Update case with verification data (without changing status)
       await query(
-        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'OFFICE', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        `UPDATE cases SET verification_data = $1, verification_type = 'OFFICE', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
         [JSON.stringify(verificationData), verificationOutcome, caseId]
       );
       const caseUpd = await query(
-        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
         [caseId]
       );
       const updatedCase = caseUpd.rows[0];
@@ -3414,7 +3414,7 @@ export class MobileFormController {
       const columnNames = columns.map(col => `"${col}"`).join(', ');
 
       const insertQuery = `
-        INSERT INTO "officeVerificationReports" (${columnNames})
+        INSERT INTO office_verification_reports (${columnNames})
         VALUES (${placeholders})
       `;
 
@@ -3454,7 +3454,7 @@ export class MobileFormController {
       }
 
       // Remove auto-save data
-      await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);
+      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
 
       await createAuditLog({
         action: 'OFFICE_VERIFICATION_SUBMITTED',
@@ -3597,7 +3597,7 @@ export class MobileFormController {
 
       // Validate case exists
       const caseQuery = await query(
-        `SELECT id, "caseId", "customerName", "backendContactNumber" as "systemContact" FROM cases WHERE id = $1`,
+        `SELECT id, case_id, customer_name, backend_contact_number as "systemContact" FROM cases WHERE id = $1`,
         [caseId]
       );
       if (caseQuery.rows.length === 0) {
@@ -3769,11 +3769,11 @@ export class MobileFormController {
 
       // Update case with verification data (without changing status)
       await query(
-        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'BUSINESS', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        `UPDATE cases SET verification_data = $1, verification_type = 'BUSINESS', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
         [JSON.stringify(verificationData), verificationOutcome, caseId]
       );
       const caseUpd = await query(
-        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
         [caseId]
       );
       const updatedCase = caseUpd.rows[0];
@@ -3847,7 +3847,7 @@ export class MobileFormController {
       logger.info(`🔍 Filtered columns for SQL insert:`, columns);
 
       const insertQuery = `
-        INSERT INTO "businessVerificationReports" (${columnNames})
+        INSERT INTO business_verification_reports (${columnNames})
         VALUES (${placeholders})
       `;
 
@@ -3887,7 +3887,7 @@ export class MobileFormController {
       }
 
       // Remove auto-save data
-      await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);
+      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
 
       await createAuditLog({
         action: 'BUSINESS_VERIFICATION_SUBMITTED',
@@ -4166,11 +4166,11 @@ export class MobileFormController {
 
       // Update case with verification data (without changing status)
       await query(
-        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'BUILDER', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        `UPDATE cases SET verification_data = $1, verification_type = 'BUILDER', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
         [JSON.stringify(verificationData), verificationOutcome, caseId]
       );
       const caseUpd = await query(
-        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
         [caseId]
       );
       const updatedCase = caseUpd.rows[0];
@@ -4243,7 +4243,7 @@ export class MobileFormController {
       const columnNames = columns.map(col => `"${col}"`).join(', ');
 
       const insertQuery = `
-        INSERT INTO "builderVerificationReports" (${columnNames})
+        INSERT INTO builder_verification_reports (${columnNames})
         VALUES (${placeholders})
       `;
 
@@ -4283,7 +4283,7 @@ export class MobileFormController {
       }
 
       // Remove auto-save data
-      await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);
+      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
 
       await createAuditLog({
         action: 'BUILDER_VERIFICATION_SUBMITTED',
@@ -4455,11 +4455,11 @@ export class MobileFormController {
 
       // Update case with verification data
       await query(
-        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'RESIDENCE_CUM_OFFICE', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        `UPDATE cases SET verification_data = $1, verification_type = 'RESIDENCE_CUM_OFFICE', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
         [JSON.stringify(verificationData), verificationOutcome, caseId]
       );
       const caseUpd = await query(
-        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
         [caseId]
       );
       const updatedCase = caseUpd.rows[0];
@@ -4499,7 +4499,7 @@ export class MobileFormController {
       const columnNames = columns.map(col => `"${col}"`).join(', ');
 
       const insertQuery = `
-        INSERT INTO "residenceCumOfficeVerificationReports" (${columnNames})
+        INSERT INTO residence_cum_office_verification_reports (${columnNames})
         VALUES (${placeholders})
       `;
 
@@ -4525,7 +4525,7 @@ export class MobileFormController {
       }
 
       // Remove auto-save data
-      await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);
+      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
 
       await createAuditLog({
         action: 'RESIDENCE_CUM_OFFICE_VERIFICATION_SUBMITTED',
@@ -4814,11 +4814,11 @@ export class MobileFormController {
 
       // Update case with verification data (without changing status)
       await query(
-        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'DSA_CONNECTOR', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        `UPDATE cases SET verification_data = $1, verification_type = 'DSA_CONNECTOR', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
         [JSON.stringify(verificationData), verificationOutcome, caseId]
       );
       const caseUpd = await query(
-        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
         [caseId]
       );
       const updatedCase = caseUpd.rows[0];
@@ -4891,7 +4891,7 @@ export class MobileFormController {
       const columnNames = columns.map(col => `"${col}"`).join(', ');
 
       const insertQuery = `
-        INSERT INTO "dsaConnectorVerificationReports" (${columnNames})
+        INSERT INTO dsa_connector_verification_reports (${columnNames})
         VALUES (${placeholders})
       `;
 
@@ -4941,7 +4941,7 @@ export class MobileFormController {
       }
 
       // Remove auto-save data
-      await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);
+      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
 
       await createAuditLog({
         action: 'DSA_CONNECTOR_VERIFICATION_SUBMITTED',
@@ -5113,11 +5113,11 @@ export class MobileFormController {
 
       // Update case with verification data
       await query(
-        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'PROPERTY_INDIVIDUAL', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        `UPDATE cases SET verification_data = $1, verification_type = 'PROPERTY_INDIVIDUAL', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
         [JSON.stringify(verificationData), verificationOutcome, caseId]
       );
       const caseUpd = await query(
-        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
         [caseId]
       );
       const updatedCase = caseUpd.rows[0];
@@ -5157,7 +5157,7 @@ export class MobileFormController {
       const columnNames = columns.map(col => `"${col}"`).join(', ');
 
       const insertQuery = `
-        INSERT INTO "propertyIndividualVerificationReports" (${columnNames})
+        INSERT INTO property_individual_verification_reports (${columnNames})
         VALUES (${placeholders})
       `;
 
@@ -5183,7 +5183,7 @@ export class MobileFormController {
       }
 
       // Remove auto-save data
-      await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);
+      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
 
       await createAuditLog({
         action: 'PROPERTY_INDIVIDUAL_VERIFICATION_SUBMITTED',
@@ -5468,11 +5468,11 @@ export class MobileFormController {
 
       // Update case with verification data (without changing status)
       await query(
-        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'PROPERTY_APF', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        `UPDATE cases SET verification_data = $1, verification_type = 'PROPERTY_APF', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
         [JSON.stringify(verificationData), verificationOutcome, caseId]
       );
       const caseUpd = await query(
-        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
         [caseId]
       );
       const updatedCase = caseUpd.rows[0];
@@ -5542,7 +5542,7 @@ export class MobileFormController {
       const columnNames = columns.map(col => `"${col}"`).join(', ');
 
       const insertQuery = `
-        INSERT INTO "propertyApfVerificationReports" (${columnNames})
+        INSERT INTO property_apf_verification_reports (${columnNames})
         VALUES (${placeholders})
       `;
 
@@ -5589,7 +5589,7 @@ export class MobileFormController {
       }
 
       // Remove auto-save data
-      await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);
+      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
 
       await createAuditLog({
         action: 'PROPERTY_APF_VERIFICATION_SUBMITTED',
@@ -5876,11 +5876,11 @@ export class MobileFormController {
 
       // Update case with verification data (without changing status)
       await query(
-        `UPDATE cases SET "verificationData" = $1, "verificationType" = 'NOC', "verificationOutcome" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $3`,
+        `UPDATE cases SET verification_data = $1, verification_type = 'NOC', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
         [JSON.stringify(verificationData), verificationOutcome, caseId]
       );
       const caseUpd = await query(
-        `SELECT id, "caseId", status, "completedAt", "customerName", "backendContactNumber" FROM cases WHERE id = $1`,
+        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
         [caseId]
       );
       const updatedCase = caseUpd.rows[0];
@@ -5950,7 +5950,7 @@ export class MobileFormController {
       const columnNames = columns.map(col => `"${col}"`).join(', ');
 
       const insertQuery = `
-        INSERT INTO "nocVerificationReports" (${columnNames})
+        INSERT INTO noc_verification_reports (${columnNames})
         VALUES (${placeholders})
       `;
 
@@ -5990,7 +5990,7 @@ export class MobileFormController {
       }
 
       // Remove auto-save data
-      await query(`DELETE FROM "autoSaves" WHERE case_id = $1::uuid`, [caseId]);
+      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
 
       await createAuditLog({
         action: 'NOC_VERIFICATION_SUBMITTED',

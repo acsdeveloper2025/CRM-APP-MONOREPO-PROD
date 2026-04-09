@@ -15,7 +15,7 @@ import { hasSystemScopeBypass, isFieldExecutionActor } from '@/security/rbacAcce
 const getAssignedPincodeIds = async (userId: string): Promise<number[]> => {
   try {
     const result = await query(
-      'SELECT "pincodeId" FROM "userPincodeAssignments" WHERE "userId" = $1 AND "isActive" = true',
+      'SELECT pincode_id FROM user_pincode_assignments WHERE user_id = $1 AND is_active = true',
       [userId]
     );
 

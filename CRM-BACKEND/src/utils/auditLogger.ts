@@ -14,7 +14,7 @@ export interface AuditLogData {
 export const createAuditLog = async (data: AuditLogData): Promise<void> => {
   try {
     await query(
-      `INSERT INTO "auditLogs" (action, "entityType", "entityId", "userId", details, "ipAddress", "userAgent", "createdAt")
+      `INSERT INTO audit_logs (action, entity_type, entity_id, user_id, details, ip_address, user_agent, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)`,
       [
         data.action,

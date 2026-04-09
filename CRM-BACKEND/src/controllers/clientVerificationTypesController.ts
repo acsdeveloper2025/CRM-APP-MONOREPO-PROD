@@ -15,7 +15,7 @@ export const getVerificationTypesByClient = async (req: AuthenticatedRequest, re
     }
 
     const mappingsRes = await query(
-      `SELECT id, "productId", "verificationTypeId", "isActive", "createdAt" FROM "productVerificationTypes" WHERE "productId" IN (SELECT id FROM "clientProducts" WHERE "clientId" = $1)`,
+      `SELECT id, product_id, verification_type_id, is_active, created_at FROM product_verification_types WHERE product_id IN (SELECT id FROM client_products WHERE client_id = $1)`,
       [clientId]
     );
     const mappings = mappingsRes.rows;

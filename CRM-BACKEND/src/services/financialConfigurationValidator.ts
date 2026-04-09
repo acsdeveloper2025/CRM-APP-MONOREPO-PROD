@@ -166,9 +166,9 @@ export const financialConfigurationValidator = {
   ): Promise<number | null> => {
     const result = await query(
       `SELECT amount FROM rates
-       WHERE "clientId" = $1 AND "productId" = $2
-         AND "verificationTypeId" = $3 AND "rateTypeId" = $4
-         AND "isActive" = true
+       WHERE client_id = $1 AND product_id = $2
+         AND verification_type_id = $3 AND rate_type_id = $4
+         AND is_active = true
        LIMIT 1`,
       [clientId, productId, verificationTypeId, rateTypeId]
     );
@@ -186,12 +186,12 @@ export const financialConfigurationValidator = {
     verificationTypeId: number
   ): Promise<{ rateTypeId: number; amount: number } | null> => {
     const result = await query(
-      `SELECT "rateTypeId", amount
+      `SELECT rate_type_id, amount
        FROM rates
-       WHERE "clientId" = $1 AND "productId" = $2
-         AND "verificationTypeId" = $3
-         AND "isActive" = true
-       ORDER BY "rateTypeId" ASC`,
+       WHERE client_id = $1 AND product_id = $2
+         AND verification_type_id = $3
+         AND is_active = true
+       ORDER BY rate_type_id ASC`,
       [clientId, productId, verificationTypeId]
     );
 

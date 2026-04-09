@@ -80,8 +80,8 @@ async function processCaseReassignment(
     const caseQuery = `
       SELECT
         id,
-        "caseId",
-        "customerName",
+        case_id,
+        customer_name,
         "assignedTo",
         status
       FROM cases
@@ -129,7 +129,7 @@ async function processCaseReassignment(
       SET
         "assignedTo" = $1,
         status = 'PENDING',
-        "updatedAt" = NOW()
+        updated_at = NOW()
       WHERE id = $2
       RETURNING *
     `;
@@ -156,8 +156,8 @@ async function processCaseReassignment(
     // Insert assignment history record
     const historyQuery = `
       INSERT INTO case_assignment_history (
-        "caseUUID", "case_id", "fromUserId", "toUserId", "assignedById", "assignedBy",
-        "previousAssignee", "newAssignee", reason, "assignedAt", "batchId"
+        case_uuid, "case_id", from_user_id, to_user_id, assigned_by_id, assigned_by,
+        previous_assignee, new_assignee, reason, assigned_at, batch_id
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), $10)
     `;
 
@@ -180,7 +180,7 @@ async function processCaseReassignment(
     const verificationTypeQuery = `
       SELECT vt.name as verification_type_name
       FROM cases c
-      LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
+      LEFT JOIN verification_types vt ON c.verification_type_id = vt.id
       WHERE c.id = $1
     `;
     const verificationResult = await client.query(verificationTypeQuery, [caseId]);
@@ -266,8 +266,8 @@ async function processSingleAssignment(
     const caseQuery = `
       SELECT
         id,
-        "caseId",
-        "customerName",
+        case_id,
+        customer_name,
         "assignedTo",
         status
       FROM cases
@@ -330,7 +330,7 @@ async function processSingleAssignment(
           WHEN status = 'PENDING' THEN 'PENDING'
           ELSE status
         END,
-        "updatedAt" = NOW()
+        updated_at = NOW()
       WHERE id = $2
       RETURNING *
     `;
@@ -355,8 +355,8 @@ async function processSingleAssignment(
     // Insert assignment history record
     const historyQuery = `
       INSERT INTO case_assignment_history (
-        "caseUUID", "case_id", "fromUserId", "toUserId", "assignedById", "assignedBy",
-        "previousAssignee", "newAssignee", reason, "assignedAt", "batchId"
+        case_uuid, "case_id", from_user_id, to_user_id, assigned_by_id, assigned_by,
+        previous_assignee, new_assignee, reason, assigned_at, batch_id
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), $10)
     `;
 
@@ -379,7 +379,7 @@ async function processSingleAssignment(
     const verificationTypeQuery = `
       SELECT vt.name as verification_type_name
       FROM cases c
-      LEFT JOIN "verificationTypes" vt ON c."verificationTypeId" = vt.id
+      LEFT JOIN verification_types vt ON c.verification_type_id = vt.id
       WHERE c.id = $1
     `;
     const verificationResult = await client.query(verificationTypeQuery, [caseId]);

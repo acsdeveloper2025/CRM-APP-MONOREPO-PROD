@@ -28,14 +28,14 @@ export const getRateTypes = async (req: AuthenticatedRequest, res: Response) => 
 
     if (typeof isActive !== 'undefined') {
       values.push(typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive));
-      whereSql.push(`"isActive" = $${values.length}`);
+      whereSql.push(`is_active = $${values.length}`);
     }
 
     const whereClause = whereSql.length ? `WHERE ${whereSql.join(' AND ')}` : '';
 
     // Get total count
     const countRes = await query<{ count: string }>(
-      `SELECT COUNT(*)::text as count FROM "rateTypes" ${whereClause}`,
+      `SELECT COUNT(*)::text as count FROM rate_types ${whereClause}`,
       values
     );
     const totalCount = Number(countRes.rows[0]?.count || 0);
@@ -53,8 +53,8 @@ export const getRateTypes = async (req: AuthenticatedRequest, res: Response) => 
       typeof sortOrder === 'string' ? sortOrder : 'asc'.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     const listRes = await query(
-      `SELECT id, name, description, "isActive", "createdAt", "updatedAt"
-       FROM "rateTypes"
+      `SELECT id, name, description, is_active, created_at, updated_at
+       FROM rate_types
        ${whereClause}
        ORDER BY "${sortCol}" ${sortDir}
        LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
@@ -95,7 +95,7 @@ export const getRateTypeById = async (req: AuthenticatedRequest, res: Response) 
   try {
     const { id } = req.params;
     const rateTypeRes = await query(
-      `SELECT id, name, description, "isActive", "createdAt", "updatedAt" FROM "rateTypes" WHERE id = $1`,
+      `SELECT id, name, description, is_active, created_at, updated_at FROM rate_types WHERE id = $1`,
       [Number(id)]
     );
     const rateType = rateTypeRes.rows[0];
@@ -139,7 +139,7 @@ export const createRateType = async (req: AuthenticatedRequest, res: Response) =
     }
 
     // Check if rate type name already exists
-    const dupRes = await query(`SELECT 1 FROM "rateTypes" WHERE name = $1`, [name]);
+    const dupRes = await query(`SELECT 1 FROM rate_types WHERE name = $1`, [name]);
     if (dupRes.rowCount && dupRes.rowCount > 0) {
       return res.status(400).json({
         success: false,
@@ -150,9 +150,9 @@ export const createRateType = async (req: AuthenticatedRequest, res: Response) =
 
     // Create rate type in database
     const insertRes = await query(
-      `INSERT INTO "rateTypes" (name, description, "isActive", "createdAt", "updatedAt")
+      `INSERT INTO rate_types (name, description, is_active, created_at, updated_at)
        VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-       RETURNING id, name, description, "isActive", "createdAt", "updatedAt"`,
+       RETURNING id, name, description, is_active, created_at, updated_at`,
       [name, description || null, isActive]
     );
     const newRateType = insertRes.rows[0];
@@ -198,22 +198,22 @@ export const getAvailableRateTypesForCase = async (req: AuthenticatedRequest, re
         rt.id,
         rt.name,
         rt.description,
-        rt."isActive",
+        rt.is_active,
         r.amount,
         r.currency,
         CASE WHEN r.id IS NOT NULL THEN true ELSE false END as "hasRate"
-       FROM "rateTypeAssignments" rta
-       JOIN "rateTypes" rt ON rta."rateTypeId" = rt.id
-       LEFT JOIN rates r ON rta."clientId" = r."clientId"
-         AND rta."productId" = r."productId"
-         AND rta."verificationTypeId" = r."verificationTypeId"
-         AND rta."rateTypeId" = r."rateTypeId"
-         AND r."isActive" = true
-       WHERE rta."clientId" = $1
-         AND rta."productId" = $2
-         AND rta."verificationTypeId" = $3
-         AND rta."isActive" = true
-         AND rt."isActive" = true
+       FROM rate_type_assignments rta
+       JOIN rate_types rt ON rta.rate_type_id = rt.id
+       LEFT JOIN rates r ON rta.client_id = r.client_id
+         AND rta.product_id = r.product_id
+         AND rta.verification_type_id = r.verification_type_id
+         AND rta.rate_type_id = r.rate_type_id
+         AND r.is_active = true
+       WHERE rta.client_id = $1
+         AND rta.product_id = $2
+         AND rta.verification_type_id = $3
+         AND rta.is_active = true
+         AND rt.is_active = true
        ORDER BY rt.name ASC`,
       [Number(clientId), Number(productId), Number(verificationTypeId)]
     );
@@ -258,7 +258,7 @@ export const updateRateType = async (req: AuthenticatedRequest, res: Response) =
     const updateData = req.body as { name?: string; description?: string; isActive?: boolean };
 
     // Check if rate type exists
-    const existingRes = await query(`SELECT id, name FROM "rateTypes" WHERE id = $1`, [Number(id)]);
+    const existingRes = await query(`SELECT id, name FROM rate_types WHERE id = $1`, [Number(id)]);
     const existingRateType = existingRes.rows[0];
 
     if (!existingRateType) {
@@ -271,7 +271,7 @@ export const updateRateType = async (req: AuthenticatedRequest, res: Response) =
 
     // Check for duplicate name if being updated
     if (updateData.name && updateData.name !== existingRateType.name) {
-      const dupRes = await query(`SELECT 1 FROM "rateTypes" WHERE name = $1`, [updateData.name]);
+      const dupRes = await query(`SELECT 1 FROM rate_types WHERE name = $1`, [updateData.name]);
       if (dupRes.rowCount && dupRes.rowCount > 0) {
         return res.status(400).json({
           success: false,
@@ -301,12 +301,12 @@ export const updateRateType = async (req: AuthenticatedRequest, res: Response) =
       sets.push(`"${key}" = $${idx++}`);
       vals.push(updatePayload[key] as string | number | boolean | Date | number[] | string[]);
     }
-    sets.push(`"updatedAt" = CURRENT_TIMESTAMP`);
+    sets.push(`updated_at = CURRENT_TIMESTAMP`);
     vals.push(Number(id));
 
     const updRes = await query(
-      `UPDATE "rateTypes" SET ${sets.join(', ')} WHERE id = $${idx}
-       RETURNING id, name, description, "isActive", "createdAt", "updatedAt"`,
+      `UPDATE rate_types SET ${sets.join(', ')} WHERE id = $${idx}
+       RETURNING id, name, description, is_active, created_at, updated_at`,
       vals
     );
     const updatedRateType = updRes.rows[0];
@@ -338,7 +338,7 @@ export const deleteRateType = async (req: AuthenticatedRequest, res: Response) =
     const { id } = req.params;
 
     // Check if rate type exists
-    const existRes = await query(`SELECT id, name FROM "rateTypes" WHERE id = $1`, [Number(id)]);
+    const existRes = await query(`SELECT id, name FROM rate_types WHERE id = $1`, [Number(id)]);
     const existingRateType = existRes.rows[0];
 
     if (!existingRateType) {
@@ -352,8 +352,8 @@ export const deleteRateType = async (req: AuthenticatedRequest, res: Response) =
     // Check if rate type is being used in assignments or rates
     const usageRes = await query(
       `SELECT
-        (SELECT COUNT(*) FROM "rateTypeAssignments" WHERE "rateTypeId" = $1) as assignments,
-        (SELECT COUNT(*) FROM rates WHERE "rateTypeId" = $1) as rates`,
+        (SELECT COUNT(*) FROM rate_type_assignments WHERE rate_type_id = $1) as assignments,
+        (SELECT COUNT(*) FROM rates WHERE rate_type_id = $1) as rates`,
       [Number(id)]
     );
     const usage = usageRes.rows[0];
@@ -367,7 +367,7 @@ export const deleteRateType = async (req: AuthenticatedRequest, res: Response) =
     }
 
     // Delete rate type
-    await query(`DELETE FROM "rateTypes" WHERE id = $1`, [Number(id)]);
+    await query(`DELETE FROM rate_types WHERE id = $1`, [Number(id)]);
 
     logger.info(`Deleted rate type: ${id}`, {
       userId: req.user?.id,
@@ -395,9 +395,9 @@ export const getRateTypeStats = async (req: AuthenticatedRequest, res: Response)
     const statsRes = await query(`
       SELECT 
         COUNT(*)::int as total,
-        COUNT(CASE WHEN "isActive" = true THEN 1 END)::int as active,
-        COUNT(CASE WHEN "isActive" = false THEN 1 END)::int as inactive
-      FROM "rateTypes"
+        COUNT(CASE WHEN is_active = true THEN 1 END)::int as active,
+        COUNT(CASE WHEN is_active = false THEN 1 END)::int as inactive
+      FROM rate_types
     `);
     const stats = statsRes.rows[0];
 

@@ -82,7 +82,7 @@ export class MobileLocationController {
 
       // 1. Validate Task and User Assignment
       const taskResult = await query(
-        `SELECT vt.id, vt.case_id, c."caseId" as case_number, vt.assigned_to
+        `SELECT vt.id, vt.case_id, c.case_id as case_number, vt.assigned_to
          FROM verification_tasks vt
          JOIN cases c ON vt.case_id = c.id
          WHERE vt.id = $1`,
@@ -115,7 +115,7 @@ export class MobileLocationController {
       }
 
       const existingByOperation = await query(
-        `SELECT id, "recordedAt" as timestamp, accuracy
+        `SELECT id, recorded_at as timestamp, accuracy
          FROM locations
          WHERE operation_id = $1
          LIMIT 1`,
@@ -180,8 +180,8 @@ export class MobileLocationController {
       // 3. Insert into locations (Dual Write)
       const locRes = await query(
         `INSERT INTO locations (
-           "caseId", case_id, verification_task_id, 
-           latitude, longitude, accuracy, "recordedAt", "recordedBy", operation_id
+           case_id, case_id, verification_task_id, 
+           latitude, longitude, accuracy, recorded_at, recorded_by, operation_id
          )
          VALUES (
            $1, $2, $3, 
@@ -189,7 +189,7 @@ export class MobileLocationController {
          )
          ON CONFLICT (operation_id) WHERE operation_id IS NOT NULL
          DO UPDATE SET operation_id = EXCLUDED.operation_id
-         RETURNING id, "recordedAt" as timestamp`,
+         RETURNING id, recorded_at as timestamp`,
         [
           targetCaseNumber,
           targetCaseId,
@@ -415,7 +415,7 @@ export class MobileLocationController {
       const vals8: QueryParams = [caseId];
       let exSql6 = `SELECT id FROM cases WHERE id = $1`;
       if (isExecutionActor) {
-        exSql6 += ` AND "assignedToId" = $2`;
+        exSql6 += ` AND assigned_to_id = $2`;
         vals8.push(String(userId));
       }
       const exRes6 = await query(exSql6, vals8);
@@ -433,9 +433,9 @@ export class MobileLocationController {
       }
 
       const locRes = await query(
-        `SELECT l.id, l.latitude, l.longitude, l.accuracy, l."recordedAt" as timestamp, c.id as "caseId", c.title, c."customerName"
-         FROM locations l JOIN cases c ON c.id = l."caseId"
-         WHERE l."caseId" = $1 ORDER BY l."recordedAt" DESC`,
+        `SELECT l.id, l.latitude, l.longitude, l.accuracy, l.recorded_at as timestamp, c.id as case_id, c.title, c.customer_name
+         FROM locations l JOIN cases c ON c.id = l.case_id
+         WHERE l.case_id = $1 ORDER BY l.recorded_at DESC`,
         [caseId]
       );
 
@@ -525,24 +525,24 @@ export class MobileLocationController {
       }
 
       const vals: QueryParams = [];
-      let sql = `SELECT l.id, l.latitude, l.longitude, l.accuracy, l."recordedAt" as timestamp, c.id as "caseId", c.title, c."customerName" FROM locations l JOIN cases c ON c.id = l."caseId"`;
+      let sql = `SELECT l.id, l.latitude, l.longitude, l.accuracy, l.recorded_at as timestamp, c.id as case_id, c.title, c.customer_name FROM locations l JOIN cases c ON c.id = l.case_id`;
       const wh: string[] = [];
       if (where.caseId) {
         vals.push(where.caseId);
-        wh.push(`l."caseId" = $${vals.length}`);
+        wh.push(`l.case_id = $${vals.length}`);
       }
       if (where.timestamp?.gte) {
         vals.push(where.timestamp.gte);
-        wh.push(`l."recordedAt" >= $${vals.length}`);
+        wh.push(`l.recorded_at >= $${vals.length}`);
       }
       if (where.timestamp?.lte) {
         vals.push(where.timestamp.lte);
-        wh.push(`l."recordedAt" <= $${vals.length}`);
+        wh.push(`l.recorded_at <= $${vals.length}`);
       }
       if (wh.length) {
         sql += ` WHERE ${wh.join(' AND ')}`;
       }
-      sql += ` ORDER BY l."recordedAt" DESC LIMIT $${vals.length + 1}`;
+      sql += ` ORDER BY l.recorded_at DESC LIMIT $${vals.length + 1}`;
       vals.push(limit);
       const locationTrailRes = await query(sql, vals);
       const locationTrail = locationTrailRes.rows;

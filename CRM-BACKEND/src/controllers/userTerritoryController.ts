@@ -17,33 +17,33 @@ export const getUserTerritoryAssignments = async (req: AuthenticatedRequest, res
     const result = await query(
       `
       SELECT 
-        upa.id as "assignmentId",
-        upa."pincodeId",
+        upa.id as assignment_id,
+        upa.pincode_id,
         p.code as "pincodeCode",
         c.name as "cityName",
         s.name as "stateName",
-        upa."assignedAt",
+        upa.assigned_at,
         COALESCE(
           JSON_AGG(
             JSON_BUILD_OBJECT(
               'id', uaa.id,
-              'areaId', uaa."areaId",
+              'areaId', uaa.area_id,
               'areaName', a.name,
-              'assignedAt', uaa."assignedAt"
+              'assignedAt', uaa.assigned_at
             ) ORDER BY a.name
           ) FILTER (WHERE uaa.id IS NOT NULL),
           '[]'::json
         ) as "areaAssignments"
-      FROM "userPincodeAssignments" upa
-      JOIN pincodes p ON upa."pincodeId" = p.id
-      JOIN cities c ON p."cityId" = c.id
-      JOIN states s ON c."stateId" = s.id
-      LEFT JOIN "userAreaAssignments" uaa 
-        ON upa.id = uaa."userPincodeAssignmentId" 
-        AND uaa."isActive" = true
-      LEFT JOIN areas a ON uaa."areaId" = a.id
-      WHERE upa."userId" = $1 AND upa."isActive" = true
-      GROUP BY upa.id, upa."pincodeId", p.code, c.name, s.name, upa."assignedAt"
+      FROM user_pincode_assignments upa
+      JOIN pincodes p ON upa.pincode_id = p.id
+      JOIN cities c ON p.city_id = c.id
+      JOIN states s ON c.state_id = s.id
+      LEFT JOIN user_area_assignments uaa 
+        ON upa.id = uaa.user_pincode_assignment_id 
+        AND uaa.is_active = true
+      LEFT JOIN areas a ON uaa.area_id = a.id
+      WHERE upa.user_id = $1 AND upa.is_active = true
+      GROUP BY upa.id, upa.pincode_id, p.code, c.name, s.name, upa.assigned_at
       ORDER BY p.code
     `,
       [userId]
@@ -115,18 +115,18 @@ export const bulkSaveTerritoryAssignments = async (req: AuthenticatedRequest, re
     // Step 1: Deactivate all existing assignments (soft delete)
     await client.query(
       `
-      UPDATE "userPincodeAssignments" 
-      SET "isActive" = false, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "userId" = $1 AND "isActive" = true
+      UPDATE user_pincode_assignments 
+      SET is_active = false, updated_at = CURRENT_TIMESTAMP
+      WHERE user_id = $1 AND is_active = true
     `,
       [userId]
     );
 
     await client.query(
       `
-      UPDATE "userAreaAssignments" 
-      SET "isActive" = false, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "userId" = $1 AND "isActive" = true
+      UPDATE user_area_assignments 
+      SET is_active = false, updated_at = CURRENT_TIMESTAMP
+      WHERE user_id = $1 AND is_active = true
     `,
       [userId]
     );
@@ -141,8 +141,8 @@ export const bulkSaveTerritoryAssignments = async (req: AuthenticatedRequest, re
       // Insert pincode assignment
       const pincodeResult = await client.query(
         `
-        INSERT INTO "userPincodeAssignments" 
-        ("userId", "pincodeId", "assignedBy", "isActive")
+        INSERT INTO user_pincode_assignments 
+        (user_id, pincode_id, assigned_by, is_active)
         VALUES ($1, $2, $3, true)
         RETURNING id
       `,
@@ -157,8 +157,8 @@ export const bulkSaveTerritoryAssignments = async (req: AuthenticatedRequest, re
         for (const areaId of areaIds) {
           await client.query(
             `
-            INSERT INTO "userAreaAssignments" 
-            ("userId", "pincodeId", "areaId", "userPincodeAssignmentId", "assignedBy", "isActive")
+            INSERT INTO user_area_assignments 
+            (user_id, pincode_id, area_id, user_pincode_assignment_id, assigned_by, is_active)
             VALUES ($1, $2, $3, $4, $5, true)
           `,
             [userId, pincodeId, areaId, userPincodeAssignmentId, assignedBy]

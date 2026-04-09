@@ -54,16 +54,16 @@ export const getCommissionRateTypes = async (req: AuthenticatedRequest, res: Res
     const result = await query(
       `SELECT 
         crt.id,
-        crt.rate_type_id as "rateTypeId",
+        crt.rate_type_id as rate_type_id,
         crt.commission_amount as "commissionAmount",
         crt.currency,
-        crt.is_active as "isActive",
-        crt.created_by as "createdBy",
-        crt.created_at as "createdAt",
-        crt.updated_at as "updatedAt",
+        crt.is_active as is_active,
+        crt.created_by as created_by,
+        crt.created_at as created_at,
+        crt.updated_at as updated_at,
         rt.name as "rateTypeName"
        FROM commission_rate_types crt
-       LEFT JOIN "rateTypes" rt ON crt.rate_type_id = rt.id
+       LEFT JOIN rate_types rt ON crt.rate_type_id = rt.id
        ${whereClause}
        ORDER BY crt.created_at DESC`,
       queryParams
@@ -114,7 +114,7 @@ export const createCommissionRateType = async (req: AuthenticatedRequest, res: R
     }
 
     // Check if rate type exists
-    const rateTypeCheck = await query('SELECT id FROM "rateTypes" WHERE id = $1', [rateTypeId]);
+    const rateTypeCheck = await query('SELECT id FROM rate_types WHERE id = $1', [rateTypeId]);
     if (rateTypeCheck.rows.length === 0) {
       return res.status(404).json({
         success: false,
@@ -140,9 +140,9 @@ export const createCommissionRateType = async (req: AuthenticatedRequest, res: R
     const result = await query(
       `INSERT INTO commission_rate_types (rate_type_id, commission_amount, currency, is_active, created_by)
        VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, rate_type_id as "rateTypeId", commission_amount as "commissionAmount", 
-                 currency, is_active as "isActive",
-                 created_by as "createdBy", created_at as "createdAt", updated_at as "updatedAt"`,
+       RETURNING id, rate_type_id as rate_type_id, commission_amount as "commissionAmount", 
+                 currency, is_active as is_active,
+                 created_by as created_by, created_at as created_at, updated_at as updated_at`,
       [rateTypeId, commissionAmount, currency, isActive, req.user?.id]
     );
 
@@ -234,9 +234,9 @@ export const updateCommissionRateType = async (req: AuthenticatedRequest, res: R
       `UPDATE commission_rate_types 
        SET ${updateFields.join(', ')}
        WHERE id = $${paramIndex}
-       RETURNING id, rate_type_id as "rateTypeId", commission_amount as "commissionAmount", 
-                 currency, is_active as "isActive",
-                 created_by as "createdBy", created_at as "createdAt", updated_at as "updatedAt"`,
+       RETURNING id, rate_type_id as rate_type_id, commission_amount as "commissionAmount", 
+                 currency, is_active as is_active,
+                 created_by as created_by, created_at as created_at, updated_at as updated_at`,
       updateValues
     );
 
@@ -386,7 +386,7 @@ export const getFieldUserCommissionAssignments = async (
         c.name as client_name
       FROM field_user_commission_assignments fuca
       LEFT JOIN users u ON fuca.user_id = u.id
-      LEFT JOIN "rateTypes" rt ON fuca.rate_type_id = rt.id
+      LEFT JOIN rate_types rt ON fuca.rate_type_id = rt.id
       LEFT JOIN clients c ON fuca.client_id = c.id
       ${whereClause ? `WHERE ${whereClause}` : ''}
       ORDER BY fuca.created_at DESC
@@ -495,7 +495,7 @@ export const createFieldUserCommissionAssignment = async (
     }
 
     // Check if rate type exists
-    const rateTypeCheck = await query('SELECT id FROM "rateTypes" WHERE id = $1', [rateTypeId]);
+    const rateTypeCheck = await query('SELECT id FROM rate_types WHERE id = $1', [rateTypeId]);
     if (rateTypeCheck.rows.length === 0) {
       return res.status(404).json({
         success: false,
@@ -800,7 +800,7 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
       params: queryParams as unknown as Array<string | number | boolean | string[] | number[]>,
       userExpr: 'cc.user_id',
       clientExpr: 'cc.client_id',
-      productExpr: 'cases."productId"',
+      productExpr: 'cases.product_id',
     });
     whereClause = scopeConditions.join(' AND ');
     paramCount = queryParams.length;
@@ -819,8 +819,8 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
         c.name as client_name,
         rt.name as rate_type_name,
         p.name as product_name,
-        cases."customerName" as customer_name,
-        cases."caseId" as case_number_display,
+        cases.customer_name as customer_name,
+        cases.case_id as case_number_display,
         vt.task_number,
         vt.task_title,
         vt.verification_outcome,
@@ -830,11 +830,11 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
       FROM commission_calculations cc
       LEFT JOIN users u ON cc.user_id = u.id
       LEFT JOIN clients c ON cc.client_id = c.id
-      LEFT JOIN "rateTypes" rt ON cc.rate_type_id = rt.id
+      LEFT JOIN rate_types rt ON cc.rate_type_id = rt.id
       LEFT JOIN cases ON cc.case_id = cases.id
-      LEFT JOIN products p ON cases."productId" = p.id
+      LEFT JOIN products p ON cases.product_id = p.id
       LEFT JOIN verification_tasks vt ON cc.verification_task_id = vt.id
-      LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+      LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
       ${whereClause ? `WHERE ${whereClause}` : ''}
       ORDER BY cc.created_at DESC
       LIMIT $${paramCount - 1} OFFSET $${paramCount}
@@ -922,7 +922,7 @@ export const calculateCommissionForCompletedCase = async (
         rt.name as rate_type_name,
         rt.amount as rate_amount
       FROM cases c
-      LEFT JOIN "rateTypes" rt ON c.rate_type_id = rt.id
+      LEFT JOIN rate_types rt ON c.rate_type_id = rt.id
       WHERE c.id = $1
     `;
     const caseResult = await query(caseQuery, [caseId]);
@@ -1070,21 +1070,21 @@ export const autoCalculateCommissionForCase = async (caseId: string): Promise<bo
     const caseQuery = `
       SELECT
         c.id,
-        c."caseId" as case_number,
+        c.case_id as case_number,
         c."assignedTo" as user_id,
-        c."clientId" as client_id,
-        c."completedAt" as case_completed_at,
+        c.client_id as client_id,
+        c.completed_at as case_completed_at,
         c.status,
         c.rate_type_id,
         rt.name as rate_type_name,
         r.amount as base_amount,
         r.currency
       FROM cases c
-      LEFT JOIN "rateTypes" rt ON c.rate_type_id = rt.id
-      LEFT JOIN rates r ON r."clientId" = c."clientId"
-        AND r."productId" = c."productId"
-        AND r."verificationTypeId" = c."verificationTypeId"
-        AND r."rateTypeId" = c.rate_type_id
+      LEFT JOIN rate_types rt ON c.rate_type_id = rt.id
+      LEFT JOIN rates r ON r.client_id = c.client_id
+        AND r.product_id = c.product_id
+        AND r.verification_type_id = c.verification_type_id
+        AND r.rate_type_id = c.rate_type_id
       WHERE c.id = $1 AND c.status = 'COMPLETED'
     `;
 
@@ -1223,12 +1223,12 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
         vt.completed_at as task_completed_at,
         vt.status,
         vt.verification_outcome,
-        c."clientId" as client_id,
-        c."caseId" as case_number,
+        c.client_id as client_id,
+        c.case_id as case_number,
         rt.name as rate_type_name
       FROM verification_tasks vt
       LEFT JOIN cases c ON vt.case_id = c.id
-      LEFT JOIN "rateTypes" rt ON vt.rate_type_id = rt.id
+      LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
       WHERE vt.id = $1 
         AND vt.status = 'COMPLETED'  -- MUST be COMPLETED
         AND vt.status != 'REVOKED'   -- NEVER generate for REVOKED tasks
@@ -1389,7 +1389,7 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       params: calcParams,
       userExpr: 'cc.user_id',
       clientExpr: 'cc.client_id',
-      productExpr: 'cases."productId"',
+      productExpr: 'cases.product_id',
     });
     const calcWhere = calcConditions.length ? `WHERE ${calcConditions.join(' AND ')}` : '';
 
@@ -1461,7 +1461,7 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
     const topRateTypeQuery = `
       SELECT rt.name as rate_type_name, COUNT(*) as usage_count
       FROM field_user_commission_assignments fuca
-      LEFT JOIN "rateTypes" rt ON fuca.rate_type_id = rt.id
+      LEFT JOIN rate_types rt ON fuca.rate_type_id = rt.id
       ${
         assignmentConditions.length
           ? `WHERE ${assignmentConditions
@@ -1480,8 +1480,8 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
     // Get total rate types count
     const rateTypesQuery = `
       SELECT COUNT(*) as total_rate_types
-      FROM "rateTypes"
-      WHERE "isActive" = true
+      FROM rate_types
+      WHERE is_active = true
     `;
     const rateTypesResult = await query(rateTypesQuery);
     const totalRateTypes = rateTypesResult.rows[0]?.total_rate_types || 0;
@@ -1598,13 +1598,13 @@ export const exportCommissionsToExcel = async (req: AuthenticatedRequest, res: R
     const result = await query(
       `
       SELECT
-        cases."caseId" as case_number,
-        cases."customerName" as customer_name,
+        cases.case_id as case_number,
+        cases.customer_name as customer_name,
         vt.task_number,
         vt.task_title,
         vtype.name as verification_type_name,
         u.name as field_agent_name,
-        u."employeeId" as field_agent_id,
+        u.employee_id as field_agent_id,
         c.name as client_name,
         p.name as product_name,
         rt.name as rate_type_name,
@@ -1619,11 +1619,11 @@ export const exportCommissionsToExcel = async (req: AuthenticatedRequest, res: R
       FROM commission_calculations cc
       LEFT JOIN users u ON cc.user_id = u.id
       LEFT JOIN clients c ON cc.client_id = c.id
-      LEFT JOIN "rateTypes" rt ON cc.rate_type_id = rt.id
+      LEFT JOIN rate_types rt ON cc.rate_type_id = rt.id
       LEFT JOIN cases ON cc.case_id = cases.id
-      LEFT JOIN products p ON cases."productId" = p.id
+      LEFT JOIN products p ON cases.product_id = p.id
       LEFT JOIN verification_tasks vt ON cc.verification_task_id = vt.id
-      LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+      LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
       ${whereClause}
       ORDER BY cc.created_at DESC
     `,

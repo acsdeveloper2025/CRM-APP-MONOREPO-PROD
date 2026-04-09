@@ -78,7 +78,7 @@ const enforceBackendUserCaseScope = async (
     createdByBackendUser: string | null;
     assignedTo: string | null;
   }>(
-    `SELECT "clientId", "productId", "createdByBackendUser", "assignedTo" FROM cases WHERE id = $1`,
+    `SELECT client_id, product_id, created_by_backend_user, "assignedTo" FROM cases WHERE id = $1`,
     [caseUuid]
   );
 
@@ -94,7 +94,7 @@ const enforceBackendUserCaseScope = async (
        LEFT JOIN verification_tasks vt ON vt.case_id = c.id
        WHERE c.id = $1
          AND (
-           c."createdByBackendUser" = ANY($2::uuid[]) OR
+           c.created_by_backend_user = ANY($2::uuid[]) OR
            c."assignedTo" = ANY($2::uuid[]) OR
            vt.assigned_to = ANY($2::uuid[])
          )
@@ -224,11 +224,11 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
 
         if (isFieldExecutionActor(req.user)) {
           // Field agents can only upload to cases assigned to them
-          caseQuery = 'SELECT id FROM cases WHERE "caseId" = $1 AND "assignedTo" = $2';
+          caseQuery = 'SELECT id FROM cases WHERE case_id = $1 AND "assignedTo" = $2';
           caseParams = [caseId, req.user.id];
         } else {
           // Admin/Manager can upload to any case
-          caseQuery = 'SELECT id FROM cases WHERE "caseId" = $1';
+          caseQuery = 'SELECT id FROM cases WHERE case_id = $1';
           caseParams = [caseId];
         }
 
@@ -277,16 +277,16 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
           const insertResult = await query(
             `INSERT INTO attachments (
             filename,
-            "originalName",
-            "mimeType",
-            "fileSize",
-            "filePath",
-            "uploadedBy",
-            "caseId",
+            original_name,
+            mime_type,
+            file_size,
+            file_path,
+            uploaded_by,
+            case_id,
             case_id,
             verification_task_id
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-          RETURNING id, filename, "originalName", "mimeType", "fileSize" as size, "filePath", "uploadedBy", "createdAt" as "uploadedAt", "caseId"`,
+          RETURNING id, filename, original_name, mime_type, file_size as size, file_path, uploaded_by, created_at as "uploadedAt", case_id`,
             [
               file.filename,
               file.originalname,
@@ -354,17 +354,17 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
         SELECT
           a.id,
           a.filename,
-          a."originalName",
-          a."mimeType",
-          a."fileSize" as size,
-          a."filePath",
-          a."uploadedBy",
-          a."createdAt" as "uploadedAt",
-          a."caseId",
+          a.original_name,
+          a.mime_type,
+          a.file_size as size,
+          a.file_path,
+          a.uploaded_by,
+          a.created_at as "uploadedAt",
+          a.case_id,
           a.verification_task_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
-        WHERE a."caseId" = $1 AND c."assignedTo" = $2
+        WHERE a.case_id = $1 AND c."assignedTo" = $2
       `;
       queryParams = [caseId, userId];
     } else {
@@ -373,21 +373,21 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
         SELECT
           id,
           filename,
-          "originalName",
-          "mimeType",
-          "fileSize" as size,
-          "filePath",
-          "uploadedBy",
-          "createdAt" as "uploadedAt",
-          "caseId",
+          original_name,
+          mime_type,
+          file_size as size,
+          file_path,
+          uploaded_by,
+          created_at as "uploadedAt",
+          case_id,
           verification_task_id
         FROM attachments
-        WHERE "caseId" = $1
+        WHERE case_id = $1
       `;
       queryParams = [caseId];
     }
 
-    queryText += ` ORDER BY "createdAt" DESC LIMIT $${queryParams.length + 1}`;
+    queryText += ` ORDER BY created_at DESC LIMIT $${queryParams.length + 1}`;
     queryParams.push(typeof limit === 'string' || typeof limit === 'number' ? String(limit) : '50');
 
     const result = await query(queryText, queryParams);
@@ -430,8 +430,8 @@ export const getAttachmentById = async (req: AuthenticatedRequest, res: Response
     if (isExecutionActor) {
       // Field agents can only access attachments for cases assigned to them
       attachmentQuery = `
-        SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize",
-               a."filePath", a."uploadedBy", a."createdAt", a."caseId", a.case_id
+        SELECT a.id, a.filename, a.original_name, a.mime_type, a.file_size,
+               a.file_path, a.uploaded_by, a.created_at, a.case_id, a.case_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
         WHERE a.id = $1 AND c."assignedTo" = $2
@@ -440,8 +440,8 @@ export const getAttachmentById = async (req: AuthenticatedRequest, res: Response
     } else {
       // Admin/Manager can access any attachment
       attachmentQuery = `
-        SELECT id, filename, "originalName", "mimeType", "fileSize",
-               "filePath", "uploadedBy", "createdAt", "caseId", case_id
+        SELECT id, filename, original_name, mime_type, file_size,
+               file_path, uploaded_by, created_at, case_id, case_id
         FROM attachments
         WHERE id = $1
       `;
@@ -518,7 +518,7 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
     if (isExecutionActor) {
       // Field agents can only delete attachments for cases assigned to them
       attachmentQuery = `
-        SELECT a.filename, a."filePath", a."uploadedBy", a."caseId"
+        SELECT a.filename, a.file_path, a.uploaded_by, a.case_id
              , a.case_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
@@ -528,7 +528,7 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
     } else {
       // Admin/Manager can delete any attachment
       attachmentQuery =
-        'SELECT filename, "filePath", "uploadedBy", "caseId", case_id FROM attachments WHERE id = $1';
+        'SELECT filename, file_path, uploaded_by, case_id, case_id FROM attachments WHERE id = $1';
       queryParams = [id];
     }
 
@@ -677,7 +677,7 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
     if (isExecutionActor) {
       // Field agents can only download attachments for cases assigned to them
       attachmentQuery = `
-        SELECT a.filename, a."originalName", a."mimeType", a."fileSize", a."caseId"
+        SELECT a.filename, a.original_name, a.mime_type, a.file_size, a.case_id
              , a.case_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
@@ -687,7 +687,7 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
     } else {
       // Admin/Manager can download any attachment
       attachmentQuery =
-        'SELECT filename, "originalName", "mimeType", "fileSize", "caseId", case_id FROM attachments WHERE id = $1';
+        'SELECT filename, original_name, mime_type, file_size, case_id, case_id FROM attachments WHERE id = $1';
       queryParams = [id];
     }
 
@@ -776,7 +776,7 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
     if (isExecutionActor) {
       // Field agents can only serve attachments for cases assigned to them
       attachmentQuery = `
-        SELECT a.filename, a."originalName", a."mimeType", a."fileSize", a."caseId", a."filePath", a."createdAt"
+        SELECT a.filename, a.original_name, a.mime_type, a.file_size, a.case_id, a.file_path, a.created_at
              , a.case_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
@@ -786,7 +786,7 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
     } else {
       // Admin/Manager can serve any attachment
       attachmentQuery =
-        'SELECT filename, "originalName", "mimeType", "fileSize", "caseId", "filePath", "createdAt", case_id FROM attachments WHERE id = $1';
+        'SELECT filename, original_name, mime_type, file_size, case_id, file_path, created_at, case_id FROM attachments WHERE id = $1';
       queryParams = [id];
     }
 

@@ -24,9 +24,9 @@ export const getDocumentTypesByClient = async (req: AuthenticatedRequest, res: R
         cdt.is_required as "isRequired",
         cdt.priority,
         cdt.client_specific_rules as "clientSpecificRules"
-      FROM "clientDocumentTypes" cdt
-      JOIN "documentTypes" dt ON cdt."documentTypeId" = dt.id
-      WHERE cdt."clientId" = $1 ${whereClause}
+      FROM client_document_types cdt
+      JOIN document_types dt ON cdt.document_type_id = dt.id
+      WHERE cdt.client_id = $1 ${whereClause}
       ORDER BY cdt.priority ASC, dt.name ASC
     `;
 
@@ -78,7 +78,7 @@ export const assignDocumentTypesToClient = async (req: AuthenticatedRequest, res
     // Verify all document types exist
     const uniqueDocumentTypeIds = Array.from(new Set(documentTypeIds.map(Number)));
     const documentTypeCheck = await query(
-      `SELECT id FROM "documentTypes" WHERE id = ANY($1::integer[])`,
+      `SELECT id FROM document_types WHERE id = ANY($1::integer[])`,
       [uniqueDocumentTypeIds]
     );
 
@@ -98,16 +98,16 @@ export const assignDocumentTypesToClient = async (req: AuthenticatedRequest, res
 
         try {
           const insertResult = await client.query(
-            `INSERT INTO "clientDocumentTypes" (
-              "clientId", "documentTypeId", is_required, priority, created_by
+            `INSERT INTO client_document_types (
+              client_id, document_type_id, is_required, priority, created_by
             ) VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT ("clientId", "documentTypeId") 
+            ON CONFLICT (client_id, document_type_id) 
             DO UPDATE SET 
               is_required = EXCLUDED.is_required,
               priority = EXCLUDED.priority,
               is_active = true,
               updated_by = EXCLUDED.created_by,
-              "updatedAt" = CURRENT_TIMESTAMP
+              updated_at = CURRENT_TIMESTAMP
             RETURNING *`,
             [Number(clientId), documentTypeId, isRequired, i + 1, req.user?.id]
           );
@@ -164,7 +164,7 @@ export const removeDocumentTypeFromClient = async (req: AuthenticatedRequest, re
 
     // Check if mapping exists
     const existingMapping = await query(
-      `SELECT id, "clientId", "documentTypeId", "isActive", "createdAt" FROM "clientDocumentTypes" WHERE "clientId" = $1 AND "documentTypeId" = $2`,
+      `SELECT id, client_id, document_type_id, is_active, created_at FROM client_document_types WHERE client_id = $1 AND document_type_id = $2`,
       [Number(clientId), Number(documentTypeId)]
     );
 
@@ -178,7 +178,7 @@ export const removeDocumentTypeFromClient = async (req: AuthenticatedRequest, re
 
     // Remove the mapping
     await query(
-      `DELETE FROM "clientDocumentTypes" WHERE "clientId" = $1 AND "documentTypeId" = $2`,
+      `DELETE FROM client_document_types WHERE client_id = $1 AND document_type_id = $2`,
       [Number(clientId), Number(documentTypeId)]
     );
 
@@ -223,7 +223,7 @@ export const updateClientDocumentTypeMapping = async (req: AuthenticatedRequest,
 
     // Check if mapping exists
     const existingMapping = await query(
-      `SELECT id, "clientId", "documentTypeId", "isActive", "createdAt" FROM "clientDocumentTypes" WHERE "clientId" = $1 AND "documentTypeId" = $2`,
+      `SELECT id, client_id, document_type_id, is_active, created_at FROM client_document_types WHERE client_id = $1 AND document_type_id = $2`,
       [Number(clientId), Number(documentTypeId)]
     );
 
@@ -271,15 +271,15 @@ export const updateClientDocumentTypeMapping = async (req: AuthenticatedRequest,
     updateValues.push(req.user?.id);
     paramIndex++;
 
-    updateFields.push(`"updatedAt" = CURRENT_TIMESTAMP`);
+    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
 
     // Add WHERE clause parameters
     updateValues.push(Number(clientId), Number(documentTypeId));
 
     const updateQuery = `
-      UPDATE "clientDocumentTypes"
+      UPDATE client_document_types
       SET ${updateFields.join(', ')}
-      WHERE "clientId" = $${paramIndex} AND "documentTypeId" = $${paramIndex + 1}
+      WHERE client_id = $${paramIndex} AND document_type_id = $${paramIndex + 1}
       RETURNING *
     `;
 

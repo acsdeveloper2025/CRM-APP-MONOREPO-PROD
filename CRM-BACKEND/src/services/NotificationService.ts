@@ -393,7 +393,7 @@ export class NotificationService {
   static async getUserPreferences(userId: string): Promise<NotificationPreferences> {
     const selectQuery = `
       SELECT 
-        user_id as "userId",
+        user_id as user_id,
         case_assignment_enabled as "caseAssignmentEnabled",
         case_assignment_push as "caseAssignmentPush",
         case_assignment_websocket as "caseAssignmentWebsocket",
@@ -446,9 +446,9 @@ export class NotificationService {
   private static async getUserPushTokens(userId: string): Promise<NotificationToken[]> {
     const selectQuery = `
       SELECT 
-        id, user_id as "userId",
-        device_id as "deviceId",
-        platform, push_token as "pushToken", is_active as "isActive"
+        id, user_id as user_id,
+        device_id as device_id,
+        platform, push_token as "pushToken", is_active as is_active
       FROM notification_tokens 
       WHERE user_id = $1 AND is_active = true
     `;

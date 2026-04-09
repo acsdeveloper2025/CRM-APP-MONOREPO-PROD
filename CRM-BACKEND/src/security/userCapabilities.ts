@@ -33,7 +33,7 @@ export const loadUserCapabilityProfile = async (
     `
       SELECT
         u.id,
-        u."isActive" as "isActive",
+        u.is_active as is_active,
         u.team_leader_id as "teamLeaderId",
         u.manager_id as "managerId",
         COALESCE((
@@ -45,7 +45,7 @@ export const loadUserCapabilityProfile = async (
         ), ARRAY[]::varchar[]) as "permissionCodes"
       FROM users u
       WHERE u.id = $1
-        AND u."deletedAt" IS NULL
+        AND u.deleted_at IS NULL
       LIMIT 1
     `,
     [userId]

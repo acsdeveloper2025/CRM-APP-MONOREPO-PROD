@@ -425,19 +425,19 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
     let paramIdx = 1;
 
     if (clientId) {
-      conditions.push(`c."clientId" = $${paramIdx}`);
+      conditions.push(`c.client_id = $${paramIdx}`);
       params.push(Number(clientId));
       paramIdx++;
     }
 
     if (backendScope.clientIds) {
-      conditions.push(`c."clientId" = ANY($${paramIdx}::int[])`);
+      conditions.push(`c.client_id = ANY($${paramIdx}::int[])`);
       params.push(backendScope.clientIds);
       paramIdx++;
     }
 
     if (backendScope.productIds) {
-      conditions.push(`c."productId" = ANY($${paramIdx}::int[])`);
+      conditions.push(`c.product_id = ANY($${paramIdx}::int[])`);
       params.push(backendScope.productIds);
       paramIdx++;
     }
@@ -450,7 +450,7 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
 
     if (search) {
       conditions.push(
-        `(vt.task_number ILIKE $${paramIdx} OR c."caseId"::text ILIKE $${paramIdx} OR c."customerName" ILIKE $${paramIdx})`
+        `(vt.task_number ILIKE $${paramIdx} OR c.case_id::text ILIKE $${paramIdx} OR c.customer_name ILIKE $${paramIdx})`
       );
       params.push(`%${search as string}%`);
       paramIdx++;
@@ -473,7 +473,7 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
     // Sort mapping
     const sortFieldMap: Record<string, string> = {
       task_number: 'vt.task_number',
-      customer_name: 'c."customerName"',
+      customer_name: 'c.customer_name',
       days_overdue: 'days_overdue',
       status: 'vt.status',
       priority: 'vt.priority',
@@ -486,9 +486,9 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
       SELECT 
         vt.id,
         vt.task_number as "taskNumber",
-        vt.case_id as "caseId",
-        c."caseId" as "caseNumber",
-        c."customerName" as "customerName",
+        vt.case_id as case_id,
+        c.case_id as "caseNumber",
+        c.customer_name as customer_name,
         vt.status,
         vt.priority,
         vtype.name as "verificationTypeName",
@@ -497,7 +497,7 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
       FROM verification_tasks vt
       LEFT JOIN cases c ON vt.case_id = c.id
       LEFT JOIN users u ON vt.assigned_to = u.id
-      LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+      LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
       WHERE ${whereClause}
       ORDER BY ${orderBy} ${direction}
       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}

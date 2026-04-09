@@ -20,11 +20,11 @@ const validateReferences = async (payload: ServiceZoneRulePayload) => {
     query('SELECT id FROM products WHERE id = $1 LIMIT 1', [productId]),
     query('SELECT id FROM pincodes WHERE id = $1 LIMIT 1', [pincodeId]),
     query('SELECT id FROM areas WHERE id = $1 LIMIT 1', [areaId]),
-    query('SELECT 1 FROM "pincodeAreas" WHERE "pincodeId" = $1 AND "areaId" = $2 LIMIT 1', [
+    query('SELECT 1 FROM pincode_areas WHERE pincode_id = $1 AND area_id = $2 LIMIT 1', [
       pincodeId,
       areaId,
     ]),
-    query('SELECT id FROM "rateTypes" WHERE id = $1 AND "isActive" = true LIMIT 1', [rateTypeId]),
+    query('SELECT id FROM rate_types WHERE id = $1 AND is_active = true LIMIT 1', [rateTypeId]),
   ]);
 
   if (!clientRes.rows[0]) {
@@ -116,7 +116,7 @@ export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Respo
       JOIN products p ON p.id = szr.product_id
       JOIN pincodes pin ON pin.id = szr.pincode_id
       JOIN areas a ON a.id = szr.area_id
-      LEFT JOIN "rateTypes" rt ON rt.id = szr.rate_type_id
+      LEFT JOIN rate_types rt ON rt.id = szr.rate_type_id
     `;
     const countRes = await query<{ count: string }>(
       `SELECT COUNT(*)::text as count ${baseFrom} ${whereClause}`,
@@ -128,14 +128,14 @@ export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Respo
     const listRes = await query(
       `SELECT
         szr.id,
-        szr.client_id as "clientId",
-        szr.product_id as "productId",
-        szr.pincode_id as "pincodeId",
-        szr.area_id as "areaId",
-        szr.rate_type_id as "rateTypeId",
-        szr.is_active as "isActive",
-        szr.created_at as "createdAt",
-        szr.updated_at as "updatedAt",
+        szr.client_id as client_id,
+        szr.product_id as product_id,
+        szr.pincode_id as pincode_id,
+        szr.area_id as area_id,
+        szr.rate_type_id as rate_type_id,
+        szr.is_active as is_active,
+        szr.created_at as created_at,
+        szr.updated_at as updated_at,
         c.name as "clientName",
         p.name as "productName",
         pin.code as "pincodeCode",
@@ -172,7 +172,7 @@ export const listServiceZones = async (_req: AuthenticatedRequest, res: Response
   try {
     // Now returns rate types instead of service zones
     const rateTypesRes = await query(
-      'SELECT id, name, description, "isActive" as "isActive" FROM "rateTypes" ORDER BY name'
+      'SELECT id, name, description, is_active as is_active FROM rate_types ORDER BY name'
     );
     res.json({
       success: true,

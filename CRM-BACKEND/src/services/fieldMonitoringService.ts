@@ -248,7 +248,7 @@ export class FieldMonitoringService {
           u.username,
           u.email,
           u.phone,
-          u."employeeId" as "employeeId",
+          u.employee_id as employee_id,
           COALESCE((
             SELECT ARRAY_AGG(DISTINCT p.code ORDER BY p.code)
             FROM user_roles ur
@@ -257,8 +257,8 @@ export class FieldMonitoringService {
             WHERE ur.user_id = u.id
           ), ARRAY[]::varchar[]) as "permissionCodes"
         FROM users u
-        WHERE u."deletedAt" IS NULL
-          AND u."isActive" = true
+        WHERE u.deleted_at IS NULL
+          AND u.is_active = true
       `
     );
 
@@ -579,18 +579,18 @@ export class FieldMonitoringService {
       query<MaxTimestampRow>(
         `
           SELECT
-            "userId" as "userId",
-            MAX("lastSyncAt") as value
+            user_id as user_id,
+            MAX(last_sync_at) as value
           FROM mobile_device_sync
-          WHERE "userId" = ANY($1::uuid[])
-          GROUP BY "userId"
+          WHERE user_id = ANY($1::uuid[])
+          GROUP BY user_id
         `,
         [uniqueUserIds]
       ),
       query<TaskActivityRow>(
         `
           SELECT
-            assigned_to as "userId",
+            assigned_to as user_id,
             MAX(started_at) as "maxStartedAt",
             MAX(submitted_at) as "maxSubmittedAt",
             MAX(updated_at) as "maxUpdatedAt",
@@ -605,18 +605,18 @@ export class FieldMonitoringService {
       query<MaxTimestampRow>(
         `
           SELECT
-            "recordedBy" as "userId",
-            MAX("recordedAt") as value
+            recorded_by as user_id,
+            MAX(recorded_at) as value
           FROM locations
-          WHERE "recordedBy" = ANY($1::uuid[])
-          GROUP BY "recordedBy"
+          WHERE recorded_by = ANY($1::uuid[])
+          GROUP BY recorded_by
         `,
         [uniqueUserIds]
       ),
       query<MaxTimestampRow>(
         `
           SELECT
-            submitted_by as "userId",
+            submitted_by as user_id,
             MAX(submitted_at) as value
           FROM form_submissions
           WHERE submitted_by = ANY($1::uuid[])
@@ -678,23 +678,23 @@ export class FieldMonitoringService {
     const [locationResult, submissionResult, taskResult] = await Promise.all([
       query<LocationRow>(
         `
-          SELECT DISTINCT ON (l."recordedBy")
-            l."recordedBy" as "userId",
+          SELECT DISTINCT ON (l.recorded_by)
+            l.recorded_by as user_id,
             l.latitude as lat,
             l.longitude as lng,
             l.accuracy,
-            l."recordedAt" as "recordedAt"
+            l.recorded_at as recorded_at
           FROM locations l
-          WHERE l."recordedBy" = ANY($1::uuid[])
-          ORDER BY l."recordedBy", l."recordedAt" DESC, l.id DESC
+          WHERE l.recorded_by = ANY($1::uuid[])
+          ORDER BY l.recorded_by, l.recorded_at DESC, l.id DESC
         `,
         [uniqueUserIds]
       ),
       query<SubmissionLocationRow>(
         `
           SELECT DISTINCT ON (fs.submitted_by)
-            fs.submitted_by as "userId",
-            fs.geo_location as "geoLocation",
+            fs.submitted_by as user_id,
+            fs.geo_location as geo_location,
             fs.submitted_at as "submittedAt"
           FROM form_submissions fs
           WHERE fs.submitted_by = ANY($1::uuid[])
@@ -706,7 +706,7 @@ export class FieldMonitoringService {
       query<TaskCoordinateRow>(
         `
           SELECT DISTINCT ON (vt.assigned_to)
-            vt.assigned_to as "userId",
+            vt.assigned_to as user_id,
             vt.latitude,
             vt.longitude,
             COALESCE(
@@ -810,10 +810,10 @@ export class FieldMonitoringService {
     const result = await query<ActiveTaskContextRow>(
       `
         SELECT DISTINCT ON (vt.assigned_to)
-          vt.assigned_to as "userId",
+          vt.assigned_to as user_id,
           vt.id as "verificationTaskId",
           vt.pincode,
-          vt.area_id as "areaId",
+          vt.area_id as area_id,
           a.name as "areaName"
         FROM verification_tasks vt
         LEFT JOIN areas a ON a.id = vt.area_id
@@ -870,31 +870,31 @@ export class FieldMonitoringService {
       query<AssignedAreaRow>(
         `
           SELECT
-            uaa."userId" as "userId",
-            uaa."pincodeId" as "pincodeId",
+            uaa.user_id as user_id,
+            uaa.pincode_id as pincode_id,
             p.code as "pincodeCode",
-            uaa."areaId" as "areaId",
+            uaa.area_id as area_id,
             a.name as "areaName"
-          FROM "userAreaAssignments" uaa
-          JOIN pincodes p ON p.id = uaa."pincodeId"
-          JOIN areas a ON a.id = uaa."areaId"
-          WHERE uaa."userId" = ANY($1::uuid[])
-            AND uaa."isActive" = true
-          ORDER BY uaa."userId", p.code, a.name
+          FROM user_area_assignments uaa
+          JOIN pincodes p ON p.id = uaa.pincode_id
+          JOIN areas a ON a.id = uaa.area_id
+          WHERE uaa.user_id = ANY($1::uuid[])
+            AND uaa.is_active = true
+          ORDER BY uaa.user_id, p.code, a.name
         `,
         [uniqueUserIds]
       ),
       query<AssignedPincodeRow>(
         `
           SELECT
-            upa."userId" as "userId",
-            upa."pincodeId" as "pincodeId",
+            upa.user_id as user_id,
+            upa.pincode_id as pincode_id,
             p.code as "pincodeCode"
-          FROM "userPincodeAssignments" upa
-          JOIN pincodes p ON p.id = upa."pincodeId"
-          WHERE upa."userId" = ANY($1::uuid[])
-            AND upa."isActive" = true
-          ORDER BY upa."userId", p.code
+          FROM user_pincode_assignments upa
+          JOIN pincodes p ON p.id = upa.pincode_id
+          WHERE upa.user_id = ANY($1::uuid[])
+            AND upa.is_active = true
+          ORDER BY upa.user_id, p.code
         `,
         [uniqueUserIds]
       ),
@@ -944,19 +944,19 @@ export class FieldMonitoringService {
     const result = await query<ActiveAssignmentRow>(
       `
         SELECT
-          vt.assigned_to as "userId",
+          vt.assigned_to as user_id,
           vt.id as "taskId",
           vt.task_number as "taskNumber",
           vt.status,
           vt.priority,
-          vt.started_at as "startedAt",
-          vt.assigned_at as "assignedAt",
+          vt.started_at as started_at,
+          vt.assigned_at as assigned_at,
           vt.current_assigned_at as "currentAssignedAt",
           vt.pincode,
-          c.id as "caseId",
-          c."caseId" as "caseNumber",
-          c."customerName" as "customerName",
-          c."customerPhone" as "customerPhone",
+          c.id as case_id,
+          c.case_id as "caseNumber",
+          c.customer_name as customer_name,
+          c.customer_phone as customer_phone,
           c.status as "caseStatus"
         FROM verification_tasks vt
         JOIN cases c ON c.id = vt.case_id

@@ -24,11 +24,11 @@ export const getAreas = async (req: AuthenticatedRequest, res: Response) => {
       SELECT
         a.id,
         a.name,
-        a."createdAt",
-        a."updatedAt",
+        a.created_at,
+        a.updated_at,
         COALESCE(COUNT(pa.id), 0) as "usageCount"
       FROM areas a
-      LEFT JOIN "pincodeAreas" pa ON pa."areaId" = a.id
+      LEFT JOIN pincode_areas pa ON pa.area_id = a.id
     `;
 
     const params: QueryParams = [];
@@ -48,7 +48,7 @@ export const getAreas = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Add GROUP BY
-    sql += ` GROUP BY a.id, a.name, a."createdAt", a."updatedAt"`;
+    sql += ` GROUP BY a.id, a.name, a.created_at, a.updated_at`;
 
     // Apply sorting
     const sortDirection: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
@@ -57,7 +57,7 @@ export const getAreas = async (req: AuthenticatedRequest, res: Response) => {
     if (sortField === 'usageCount') {
       sql += ` ORDER BY "usageCount" ${sortDirection}`;
     } else if (sortField === 'createdAt') {
-      sql += ` ORDER BY a."createdAt" ${sortDirection}`;
+      sql += ` ORDER BY a.created_at ${sortDirection}`;
     } else if (sortField === 'name') {
       sql += ` ORDER BY a.name ${sortDirection}`;
     } else {
@@ -166,13 +166,13 @@ export const getAreaById = async (req: AuthenticatedRequest, res: Response) => {
       SELECT
         a.id,
         a.name,
-        a."createdAt",
-        a."updatedAt",
+        a.created_at,
+        a.updated_at,
         COUNT(pa.id) as "usageCount"
       FROM areas a
-      LEFT JOIN "pincodeAreas" pa ON pa."areaId" = a.id
+      LEFT JOIN pincode_areas pa ON pa.area_id = a.id
       WHERE a.id = $1
-      GROUP BY a.id, a.name, a."createdAt", a."updatedAt"
+      GROUP BY a.id, a.name, a.created_at, a.updated_at
     `;
 
     const result = await query(sql, [id]);
@@ -219,9 +219,9 @@ export const createArea = async (req: AuthenticatedRequest, res: Response) => {
 
     // Create a standalone area entry
     const result = await query(
-      `INSERT INTO areas (name, "createdAt", "updatedAt")
+      `INSERT INTO areas (name, created_at, updated_at)
        VALUES ($1, NOW(), NOW())
-       RETURNING id, name, "createdAt" as "createdAt", "updatedAt" as "updatedAt"`,
+       RETURNING id, name, created_at as created_at, updated_at as updated_at`,
       [name.trim()]
     );
 
@@ -287,9 +287,9 @@ export const updateArea = async (req: AuthenticatedRequest, res: Response) => {
     // Update the area
     const result = await query(
       `UPDATE areas
-       SET name = $2, "updatedAt" = CURRENT_TIMESTAMP
+       SET name = $2, updated_at = CURRENT_TIMESTAMP
        WHERE id = $1
-       RETURNING id, name, "updatedAt" as "updatedAt"`,
+       RETURNING id, name, updated_at as updated_at`,
       [id, name.trim()]
     );
 
@@ -329,7 +329,7 @@ export const deleteArea = async (req: AuthenticatedRequest, res: Response) => {
 
     // Check if area is in use by any pincodes
     const usageCheck = await query(
-      'SELECT COUNT(*) as count FROM "pincodeAreas" WHERE "areaId" = $1',
+      'SELECT COUNT(*) as count FROM pincode_areas WHERE area_id = $1',
       [id]
     );
     const usageCount = parseInt(usageCheck.rows[0].count, 10);
@@ -386,14 +386,14 @@ export const getAreasByPincodes = async (req: AuthenticatedRequest, res: Respons
     const result = await query(
       `
       SELECT
-        pa."pincodeId",
+        pa.pincode_id,
         a.id,
         a.name,
-        pa."displayOrder"
-      FROM "pincodeAreas" pa
-      JOIN areas a ON pa."areaId" = a.id
-      WHERE pa."pincodeId" = ANY($1::int[])
-      ORDER BY pa."pincodeId", pa."displayOrder"
+        pa.display_order
+      FROM pincode_areas pa
+      JOIN areas a ON pa.area_id = a.id
+      WHERE pa.pincode_id = ANY($1::int[])
+      ORDER BY pa.pincode_id, pa.display_order
     `,
       [pincodeIdArray]
     );

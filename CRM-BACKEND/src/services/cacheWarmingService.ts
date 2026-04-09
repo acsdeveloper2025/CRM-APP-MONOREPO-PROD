@@ -41,9 +41,9 @@ export class CacheWarmingService {
   private static async warmClientCache(): Promise<void> {
     try {
       const result = await pool.query(`
-        SELECT id, name, email, phone, address, "isActive", "createdAt", "updatedAt"
+        SELECT id, name, email, phone, address, is_active, created_at, updated_at
         FROM clients
-        WHERE "isActive" = true
+        WHERE is_active = true
         ORDER BY name ASC
       `);
 
@@ -60,9 +60,9 @@ export class CacheWarmingService {
   private static async warmVerificationTypesCache(): Promise<void> {
     try {
       const result = await pool.query(`
-        SELECT id, name, description, "isActive", "createdAt", "updatedAt"
-        FROM "verificationTypes"
-        WHERE "isActive" = true
+        SELECT id, name, description, is_active, created_at, updated_at
+        FROM verification_types
+        WHERE is_active = true
         ORDER BY name ASC
       `);
 
@@ -79,9 +79,9 @@ export class CacheWarmingService {
   private static async warmProductsCache(): Promise<void> {
     try {
       const result = await pool.query(`
-        SELECT id, name, description, "isActive", "createdAt", "updatedAt"
+        SELECT id, name, description, is_active, created_at, updated_at
         FROM products
-        WHERE "isActive" = true
+        WHERE is_active = true
         ORDER BY name ASC
       `);
 
@@ -98,9 +98,9 @@ export class CacheWarmingService {
   private static async warmRateTypesCache(): Promise<void> {
     try {
       const result = await pool.query(`
-        SELECT id, name, description, "isActive", "createdAt", "updatedAt"
-        FROM "rateTypes"
-        WHERE "isActive" = true
+        SELECT id, name, description, is_active, created_at, updated_at
+        FROM rate_types
+        WHERE is_active = true
         ORDER BY name ASC
       `);
 
@@ -140,7 +140,7 @@ export class CacheWarmingService {
             ) as role,
             u.name,
             u.phone,
-            u."isActive",
+            u.is_active,
 
             -- Assignment arrays for BACKEND_USER role
             COALESCE(client_arrays.ids, ARRAY[]::int[]) as "assignedClients",
@@ -151,33 +151,33 @@ export class CacheWarmingService {
             COALESCE(area_arrays.ids, ARRAY[]::int[]) as "assignedAreas"
           FROM users u
           LEFT JOIN (
-            SELECT "userId", ARRAY_AGG("clientId") as ids
-            FROM "userClientAssignments"
-            GROUP BY "userId"
-          ) client_arrays ON u.id = client_arrays."userId"
+            SELECT user_id, ARRAY_AGG(client_id) as ids
+            FROM user_client_assignments
+            GROUP BY user_id
+          ) client_arrays ON u.id = client_arrays.user_id
           LEFT JOIN (
-            SELECT "userId", ARRAY_AGG("productId") as ids
-            FROM "userProductAssignments"
-            GROUP BY "userId"
-          ) product_arrays ON u.id = product_arrays."userId"
+            SELECT user_id, ARRAY_AGG(product_id) as ids
+            FROM user_product_assignments
+            GROUP BY user_id
+          ) product_arrays ON u.id = product_arrays.user_id
           LEFT JOIN (
-            SELECT "userId", ARRAY_AGG("pincodeId") as ids
-            FROM "userPincodeAssignments"
-            WHERE "isActive" = true
-            GROUP BY "userId"
-          ) pincode_arrays ON u.id = pincode_arrays."userId"
+            SELECT user_id, ARRAY_AGG(pincode_id) as ids
+            FROM user_pincode_assignments
+            WHERE is_active = true
+            GROUP BY user_id
+          ) pincode_arrays ON u.id = pincode_arrays.user_id
           LEFT JOIN (
-            SELECT "userId", ARRAY_AGG("areaId") as ids
-            FROM "userAreaAssignments"
-            WHERE "isActive" = true
-            GROUP BY "userId"
-          ) area_arrays ON u.id = area_arrays."userId"
+            SELECT user_id, ARRAY_AGG(area_id) as ids
+            FROM user_area_assignments
+            WHERE is_active = true
+            GROUP BY user_id
+          ) area_arrays ON u.id = area_arrays.user_id
           WHERE EXISTS (
             SELECT 1
             FROM user_roles urf
             JOIN roles_v2 rvf ON rvf.id = urf.role_id
             WHERE urf.user_id = u.id AND rvf.name = $1
-          ) AND u."isActive" = true
+          ) AND u.is_active = true
           ORDER BY u.username ASC
         `,
           [profile.roleName]
@@ -226,7 +226,7 @@ export class CacheWarmingService {
           ) as role,
           u.name,
           u.phone,
-          u."isActive",
+          u.is_active,
 
           -- Assignment arrays for BACKEND_USER role
           COALESCE(client_arrays.ids, ARRAY[]::int[]) as "assignedClients",
@@ -237,28 +237,28 @@ export class CacheWarmingService {
           COALESCE(area_arrays.ids, ARRAY[]::int[]) as "assignedAreas"
         FROM users u
         LEFT JOIN (
-          SELECT "userId", ARRAY_AGG("clientId") as ids
-          FROM "userClientAssignments"
-          GROUP BY "userId"
-        ) client_arrays ON u.id = client_arrays."userId"
+          SELECT user_id, ARRAY_AGG(client_id) as ids
+          FROM user_client_assignments
+          GROUP BY user_id
+        ) client_arrays ON u.id = client_arrays.user_id
         LEFT JOIN (
-          SELECT "userId", ARRAY_AGG("productId") as ids
-          FROM "userProductAssignments"
-          GROUP BY "userId"
-        ) product_arrays ON u.id = product_arrays."userId"
+          SELECT user_id, ARRAY_AGG(product_id) as ids
+          FROM user_product_assignments
+          GROUP BY user_id
+        ) product_arrays ON u.id = product_arrays.user_id
         LEFT JOIN (
-          SELECT "userId", ARRAY_AGG("pincodeId") as ids
-          FROM "userPincodeAssignments"
-          WHERE "isActive" = true
-          GROUP BY "userId"
-        ) pincode_arrays ON u.id = pincode_arrays."userId"
+          SELECT user_id, ARRAY_AGG(pincode_id) as ids
+          FROM user_pincode_assignments
+          WHERE is_active = true
+          GROUP BY user_id
+        ) pincode_arrays ON u.id = pincode_arrays.user_id
         LEFT JOIN (
-          SELECT "userId", ARRAY_AGG("areaId") as ids
-          FROM "userAreaAssignments"
-          WHERE "isActive" = true
-          GROUP BY "userId"
-        ) area_arrays ON u.id = area_arrays."userId"
-        WHERE u."isActive" = true
+          SELECT user_id, ARRAY_AGG(area_id) as ids
+          FROM user_area_assignments
+          WHERE is_active = true
+          GROUP BY user_id
+        ) area_arrays ON u.id = area_arrays.user_id
+        WHERE u.is_active = true
         ORDER BY u.username ASC
       `);
 
@@ -300,13 +300,13 @@ export class CacheWarmingService {
       // Cache recent pending cases (most frequently accessed)
       const pendingResult = await pool.query(`
         SELECT
-          c.id, c."caseId", c."customerName", c.status, c.priority,
-          c."createdAt", c."updatedAt",
+          c.id, c.case_id, c.customer_name, c.status, c.priority,
+          c.created_at, c.updated_at,
           cl.name as "clientName"
         FROM cases c
-        LEFT JOIN clients cl ON c."clientId" = cl.id
+        LEFT JOIN clients cl ON c.client_id = cl.id
         WHERE c.status = 'PENDING'
-        ORDER BY c."createdAt" DESC
+        ORDER BY c.created_at DESC
         LIMIT 500
       `);
 
@@ -316,13 +316,13 @@ export class CacheWarmingService {
       // Cache recent in-progress cases
       const inProgressResult = await pool.query(`
         SELECT
-          c.id, c."caseId", c."customerName", c.status, c.priority,
-          c."createdAt", c."updatedAt",
+          c.id, c.case_id, c.customer_name, c.status, c.priority,
+          c.created_at, c.updated_at,
           cl.name as "clientName"
         FROM cases c
-        LEFT JOIN clients cl ON c."clientId" = cl.id
+        LEFT JOIN clients cl ON c.client_id = cl.id
         WHERE c.status = 'IN_PROGRESS'
-        ORDER BY c."createdAt" DESC
+        ORDER BY c.created_at DESC
         LIMIT 500
       `);
 
@@ -366,7 +366,7 @@ export class CacheWarmingService {
           u.id,
           u.username,
           u.name,
-          COUNT(DISTINCT vt.case_id) as "totalCases",
+          COUNT(DISTINCT vt.case_id) as total_cases,
           COUNT(DISTINCT CASE WHEN c.status = 'PENDING' THEN vt.case_id END) as "pendingCases",
           COUNT(DISTINCT CASE WHEN c.status = 'IN_PROGRESS' THEN vt.case_id END) as "inProgressCases",
           COUNT(DISTINCT CASE WHEN c.status = 'COMPLETED' THEN vt.case_id END) as "completedCases"
@@ -379,9 +379,9 @@ export class CacheWarmingService {
           JOIN role_permissions rpf ON rpf.role_id = urf.role_id AND rpf.allowed = true
           JOIN permissions pf ON pf.id = rpf.permission_id
           WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
-        ) AND u."isActive" = true
+        ) AND u.is_active = true
         GROUP BY u.id, u.username, u.name
-        ORDER BY "totalCases" DESC
+        ORDER BY total_cases DESC
       `);
 
       await EnterpriseCacheService.set('analytics:field-agent-workload', workloadResult.rows, 600); // 10 minutes

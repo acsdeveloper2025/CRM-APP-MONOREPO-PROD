@@ -27,7 +27,7 @@ router.get(
   async (req, res) => {
     const { userId } = req.params;
     const result = await query(
-      `SELECT id, "macAddress", label, "isApproved", "createdAt", "updatedAt" FROM "macAddresses" WHERE "userId" = $1 ORDER BY "createdAt" DESC`,
+      `SELECT id, "macAddress", label, "isApproved", created_at, updated_at FROM "macAddresses" WHERE user_id = $1 ORDER BY created_at DESC`,
       [userId]
     );
     res.json({ success: true, data: result.rows });
@@ -43,10 +43,10 @@ router.post('/mac-addresses', macCreateValidation, validate, async (req, res) =>
   const colonized = norm.match(/.{1,2}/g)?.join(':') || norm;
 
   const ins = await query(
-    `INSERT INTO "macAddresses" ("userId", "macAddress", label, "isApproved")
+    `INSERT INTO "macAddresses" (user_id, "macAddress", label, "isApproved")
      VALUES ($1, $2, $3, COALESCE($4, true))
-     ON CONFLICT ("userId", "macAddress") DO UPDATE SET label = EXCLUDED.label, "isApproved" = EXCLUDED."isApproved", "updatedAt" = CURRENT_TIMESTAMP
-     RETURNING id, "macAddress", label, "isApproved", "createdAt", "updatedAt"`,
+     ON CONFLICT (user_id, "macAddress") DO UPDATE SET label = EXCLUDED.label, "isApproved" = EXCLUDED."isApproved", updated_at = CURRENT_TIMESTAMP
+     RETURNING id, "macAddress", label, "isApproved", created_at, updated_at`,
     [userId, colonized, label || null, isApproved]
   );
   res.json({ success: true, data: ins.rows[0] });

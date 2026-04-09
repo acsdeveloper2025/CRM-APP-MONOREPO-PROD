@@ -241,7 +241,7 @@ export class ExcelExportService {
       SELECT 
         u.id,
         u.name,
-        u."employeeId",
+        u.employee_id,
         u.email,
         u.performance_rating,
         d.name as department_name,
@@ -257,7 +257,7 @@ export class ExcelExportService {
         COALESCE(SUM(apd.total_distance_km), 0) as total_distance,
         COALESCE(AVG(apd.active_hours), 0) as avg_active_hours
       FROM users u
-      LEFT JOIN departments d ON u."departmentId" = d.id
+      LEFT JOIN departments d ON u.department_id = d.id
       LEFT JOIN agent_performance_daily apd ON u.id = apd.agent_id
       ${whereClause}
       AND EXISTS (
@@ -267,7 +267,7 @@ export class ExcelExportService {
         JOIN permissions pf ON pf.id = rpf.permission_id
         WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
       )
-      GROUP BY u.id, u.name, u."employeeId", u.email, u.performance_rating, d.name
+      GROUP BY u.id, u.name, u.employee_id, u.email, u.performance_rating, d.name
       ORDER BY avg_quality_score DESC
     `;
 
@@ -276,7 +276,7 @@ export class ExcelExportService {
       SELECT 
         apd.date,
         u.name as agent_name,
-        u."employeeId",
+        u.employee_id,
         apd.cases_assigned,
         apd.cases_completed,
         apd.forms_submitted,
@@ -314,13 +314,13 @@ export class ExcelExportService {
     let paramIndex = 1;
 
     if (dateFrom) {
-      whereConditions.push(`"createdAt" >= $${paramIndex}`);
+      whereConditions.push(`created_at >= $${paramIndex}`);
       queryParams.push(dateFrom);
       paramIndex++;
     }
 
     if (dateTo) {
-      whereConditions.push(`"createdAt" <= $${paramIndex}`);
+      whereConditions.push(`created_at <= $${paramIndex}`);
       queryParams.push(dateTo);
       paramIndex++;
     }
@@ -330,7 +330,7 @@ export class ExcelExportService {
     const casesQuery = `
       SELECT * FROM case_completion_analytics
       ${whereClause}
-      ORDER BY "createdAt" DESC
+      ORDER BY created_at DESC
       LIMIT 5000
     `;
 

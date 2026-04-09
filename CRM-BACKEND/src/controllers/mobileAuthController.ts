@@ -58,7 +58,7 @@ export class MobileAuthController {
 
       // Find user
       const userRes = await query<UserQueryResult>(
-        `SELECT u.id, u.name, u.username, u.email, u."passwordHash", u."employeeId", u.designation, u.department, u."profilePhotoUrl"
+        `SELECT u.id, u.name, u.username, u.email, u.password_hash, u.employee_id, u.designation, u.department, u.profile_photo_url
          FROM users u
          WHERE u.username = $1`,
         [username]
@@ -154,7 +154,7 @@ export class MobileAuthController {
 
       // Store refresh token (simplified - no device ID)
       await query(
-        `INSERT INTO "refreshTokens" (token, "userId", "expiresAt", "createdAt", "ipAddress", "userAgent") VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)`,
+        `INSERT INTO refresh_tokens (token, user_id, expires_at, created_at, ip_address, user_agent) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)`,
         [
           refreshToken,
           user.id,
@@ -171,14 +171,14 @@ export class MobileAuthController {
       if (isFieldExecutionActor(authProfile)) {
         // Fetch assigned pincodes
         const pincodesRes = await query<UserPincodeRow>(
-          'SELECT "pincodeId" FROM "userPincodeAssignments" WHERE "userId" = $1 AND "isActive" = true',
+          'SELECT pincode_id FROM user_pincode_assignments WHERE user_id = $1 AND is_active = true',
           [user.id]
         );
         assignedPincodes = pincodesRes.rows.map(row => row.pincodeId);
 
         // Fetch assigned areas
         const areasRes = await query<UserAreaRow>(
-          'SELECT "areaId" FROM "userAreaAssignments" WHERE "userId" = $1 AND "isActive" = true',
+          'SELECT area_id FROM user_area_assignments WHERE user_id = $1 AND is_active = true',
           [user.id]
         );
         assignedAreas = areasRes.rows.map(row => row.areaId);
@@ -260,9 +260,9 @@ export class MobileAuthController {
 
       // Check if refresh token exists in database
       const storedRes = await query(
-        `SELECT rt.token, u.id as "userId", u.username
-         FROM "refreshTokens" rt JOIN users u ON u.id = rt."userId"
-         WHERE rt.token = $1 AND rt."userId" = $2 AND rt."expiresAt" > CURRENT_TIMESTAMP
+        `SELECT rt.token, u.id as user_id, u.username
+         FROM refresh_tokens rt JOIN users u ON u.id = rt.user_id
+         WHERE rt.token = $1 AND rt.user_id = $2 AND rt.expires_at > CURRENT_TIMESTAMP
          LIMIT 1`,
         [refreshToken, decoded.userId]
       );
@@ -317,7 +317,7 @@ export class MobileAuthController {
       const userId = (req as AuthenticatedRequest).user?.id;
 
       // Invalidate all refresh tokens for this user
-      await query(`DELETE FROM "refreshTokens" WHERE "userId" = $1`, [userId]);
+      await query(`DELETE FROM refresh_tokens WHERE user_id = $1`, [userId]);
 
       await createAuditLog({
         action: 'MOBILE_LOGOUT',
@@ -535,7 +535,7 @@ export class MobileAuthController {
            is_active = EXCLUDED.is_active,
            last_used_at = NOW(),
            updated_at = NOW()
-         RETURNING id, device_id as "deviceId", platform, is_active as "isActive"`,
+         RETURNING id, device_id as device_id, platform, is_active as is_active`,
         [userId, deviceId, normalizedPlatform, normalizedPushToken, isEnabled]
       );
 
@@ -618,7 +618,7 @@ export class MobileAuthController {
       const { userId } = req.params;
 
       const devs = await query(
-        `SELECT id, "userId", "deviceId", "deviceName", "platform", "appVersion", "lastActiveAt", "createdAt" FROM devices WHERE "userId" = $1 ORDER BY "lastActiveAt" DESC`,
+        `SELECT id, user_id, device_id, "deviceName", "platform", app_version, last_active_at, created_at FROM devices WHERE user_id = $1 ORDER BY last_active_at DESC`,
         [userId]
       );
       const devices = devs.rows;

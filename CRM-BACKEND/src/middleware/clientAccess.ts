@@ -20,10 +20,9 @@ interface RequestWithClientFilter extends AuthenticatedRequest {
 // Helper function to get assigned client IDs for BACKEND_USER users
 const getAssignedClientIds = async (userId: string): Promise<number[]> => {
   try {
-    const result = await query(
-      'SELECT "clientId" FROM "userClientAssignments" WHERE "userId" = $1',
-      [userId]
-    );
+    const result = await query('SELECT client_id FROM user_client_assignments WHERE user_id = $1', [
+      userId,
+    ]);
 
     return result.rows.map(row => row.clientId);
   } catch (error) {
@@ -181,8 +180,8 @@ export const validateCaseAccess = async (
     // Handle both numeric case IDs and UUID case IDs
     const isNumeric = /^\d+$/.test(caseId);
     const caseQuery = isNumeric
-      ? 'SELECT "clientId" FROM cases WHERE "caseId" = $1'
-      : 'SELECT "clientId" FROM cases WHERE id = $1';
+      ? 'SELECT client_id FROM cases WHERE case_id = $1'
+      : 'SELECT client_id FROM cases WHERE id = $1';
     const queryParam = isNumeric ? parseInt(caseId) : caseId;
 
     const caseResult = await query(caseQuery, [queryParam]);

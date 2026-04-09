@@ -68,7 +68,7 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
 
     if (search) {
       conditions.push(
-        `(c."customerName" ILIKE $${paramIndex} OR kdv.document_number ILIKE $${paramIndex} OR kdv.document_holder_name ILIKE $${paramIndex})`
+        `(c.customer_name ILIKE $${paramIndex} OR kdv.document_number ILIKE $${paramIndex} OR kdv.document_holder_name ILIKE $${paramIndex})`
       );
       params.push(`%${search as string}%`);
       paramIndex++;
@@ -80,8 +80,8 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
       created_at: 'kdv.created_at',
       document_type: 'kdv.document_type',
       verification_status: 'kdv.verification_status',
-      customer_name: 'c."customerName"',
-      case_number: 'c."caseId"',
+      customer_name: 'c.customer_name',
+      case_number: 'c.case_id',
     };
     const sortCol = allowedSortColumns[sortBy as string] || 'kdv.created_at';
     const sortDir = (sortOrder as string)?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
@@ -116,9 +116,9 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
         kdv.updated_at,
         COALESCE(kdv.document_details, '{}'::jsonb) as document_details,
         kdv.description,
-        c."caseId" as case_number,
-        c."customerName" as customer_name,
-        c."customerPhone" as customer_phone,
+        c.case_id as case_number,
+        c.customer_name as customer_name,
+        c.customer_phone as customer_phone,
         c.status as case_status,
         vt.task_number,
         vt.status as task_status,
@@ -177,9 +177,9 @@ export const getKYCTaskDetail = async (req: AuthenticatedRequest, res: Response)
     const result = await query(
       `SELECT
         kdv.*,
-        c."caseId" as case_number,
-        c."customerName" as customer_name,
-        c."customerPhone" as customer_phone,
+        c.case_id as case_number,
+        c.customer_name as customer_name,
+        c.customer_phone as customer_phone,
         c.status as case_status,
         vt.task_number,
         vt.status as task_status,
@@ -300,7 +300,7 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
         );
         if (allCompleted && allTasks.rows.length > 0) {
           await client.query(
-            `UPDATE cases SET status = 'COMPLETED', "completedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $1`,
+            `UPDATE cases SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
             [caseId]
           );
         }
@@ -470,9 +470,9 @@ export const exportKYCToExcel = async (req: AuthenticatedRequest, res: Response)
 
     const result = await query(
       `SELECT
-        c."caseId" as "Case #",
-        c."customerName" as "Customer Name",
-        c."customerPhone" as "Customer Phone",
+        c.case_id as "Case #",
+        c.customer_name as "Customer Name",
+        c.customer_phone as "Customer Phone",
         kdt.category as "Document Category",
         kdt.name as "Document Type",
         kdv.document_number as "Document Number",
@@ -492,7 +492,7 @@ export const exportKYCToExcel = async (req: AuthenticatedRequest, res: Response)
        LEFT JOIN users u_verified ON u_verified.id = kdv.verified_by
        LEFT JOIN users u_assigned ON u_assigned.id = kdv.assigned_to
        ${whereClause}
-       ORDER BY c."caseId", kdt.sort_order, kdv.created_at`,
+       ORDER BY c.case_id, kdt.sort_order, kdv.created_at`,
       params
     );
 

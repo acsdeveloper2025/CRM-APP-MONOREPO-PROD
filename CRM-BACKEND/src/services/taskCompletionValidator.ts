@@ -305,7 +305,7 @@ export class TaskCompletionValidator {
         `
         SELECT vt.*, vtype.name as verification_type_name
         FROM verification_tasks vt
-        LEFT JOIN "verificationTypes" vtype ON vt.verification_type_id = vtype.id
+        LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
         WHERE vt.id = $1
       `,
         [taskId]

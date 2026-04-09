@@ -70,8 +70,8 @@ export class CaseStatusSyncService {
       await db.query(
         `UPDATE cases 
          SET status = $1, 
-             "completedAt" = $2, 
-             "updatedAt" = NOW() 
+             completed_at = $2, 
+             updated_at = NOW() 
          WHERE id = $3`,
         [newStatus, completedAt, caseId]
       );

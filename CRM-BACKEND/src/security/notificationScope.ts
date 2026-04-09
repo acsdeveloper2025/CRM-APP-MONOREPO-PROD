@@ -141,12 +141,12 @@ const loadTaskScopeRows = async (
         `
           SELECT
             vt.id,
-            vt.case_id as "caseId",
+            vt.case_id as case_id,
             vt.assigned_to as "assignedTo",
-            vt.area_id as "areaId",
-            p_scope.id as "pincodeId",
-            c."clientId" as "clientId",
-            c."productId" as "productId"
+            vt.area_id as area_id,
+            p_scope.id as pincode_id,
+            c.client_id as client_id,
+            c.product_id as product_id
           FROM verification_tasks vt
           JOIN cases c ON c.id = vt.case_id
           LEFT JOIN pincodes p_scope ON p_scope.code = vt.pincode
@@ -158,12 +158,12 @@ const loadTaskScopeRows = async (
         `
       SELECT
         vt.id,
-        vt.case_id as "caseId",
+        vt.case_id as case_id,
         vt.assigned_to as "assignedTo",
-        vt.area_id as "areaId",
-        p_scope.id as "pincodeId",
-        c."clientId" as "clientId",
-        c."productId" as "productId"
+        vt.area_id as area_id,
+        p_scope.id as pincode_id,
+        c.client_id as client_id,
+        c.product_id as product_id
       FROM verification_tasks vt
       JOIN cases c ON c.id = vt.case_id
       LEFT JOIN pincodes p_scope ON p_scope.code = vt.pincode
@@ -189,8 +189,8 @@ const loadCaseScopeRows = async (
           SELECT
             c.id,
             NULL::uuid as "assignedTo",
-            c."clientId" as "clientId",
-            c."productId" as "productId",
+            c.client_id as client_id,
+            c.product_id as product_id,
             ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.assigned_to), NULL) as "taskAssignees",
             ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.area_id), NULL) as "areaIds",
             ARRAY_REMOVE(ARRAY_AGG(DISTINCT p_scope.id), NULL) as "pincodeIds"
@@ -198,7 +198,7 @@ const loadCaseScopeRows = async (
           LEFT JOIN verification_tasks vt ON vt.case_id = c.id
           LEFT JOIN pincodes p_scope ON p_scope.code = vt.pincode
           WHERE c.id = ANY($1::uuid[])
-          GROUP BY c.id, c."clientId", c."productId"
+          GROUP BY c.id, c.client_id, c.product_id
         `,
         [caseIds]
       )
@@ -207,8 +207,8 @@ const loadCaseScopeRows = async (
       SELECT
         c.id,
         NULL::uuid as "assignedTo",
-        c."clientId" as "clientId",
-        c."productId" as "productId",
+        c.client_id as client_id,
+        c.product_id as product_id,
         ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.assigned_to), NULL) as "taskAssignees",
         ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.area_id), NULL) as "areaIds",
         ARRAY_REMOVE(ARRAY_AGG(DISTINCT p_scope.id), NULL) as "pincodeIds"
@@ -216,7 +216,7 @@ const loadCaseScopeRows = async (
       LEFT JOIN verification_tasks vt ON vt.case_id = c.id
       LEFT JOIN pincodes p_scope ON p_scope.code = vt.pincode
       WHERE c.id = ANY($1::uuid[])
-      GROUP BY c.id, c."clientId", c."productId"
+      GROUP BY c.id, c.client_id, c.product_id
     `,
         [caseIds]
       );

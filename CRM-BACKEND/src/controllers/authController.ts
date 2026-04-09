@@ -47,7 +47,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     // Find user by username
     const userRes = await query(
-      `SELECT u.id, u.name, u.username, u.email, u."passwordHash", u."employeeId", u.designation, u.department, u."profilePhotoUrl"
+      `SELECT u.id, u.name, u.username, u.email, u.password_hash, u.employee_id, u.designation, u.department, u.profile_photo_url
        FROM users u
        WHERE u.username = $1`,
       [username]
@@ -129,12 +129,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const expiresAt = new Date(Date.now() + parseDurationMs(config.jwtRefreshExpiresIn));
 
     await query(
-      `INSERT INTO "refreshTokens" (token, "userId", "expiresAt", "createdAt", "ipAddress", "userAgent") VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)`,
+      `INSERT INTO refresh_tokens (token, user_id, expires_at, created_at, ip_address, user_agent) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)`,
       [tokenHash, user.id, expiresAt, req.ip, req.get('User-Agent') || null]
     );
 
     // Update user's lastLogin timestamp
-    await query(`UPDATE users SET "lastLogin" = CURRENT_TIMESTAMP WHERE id = $1`, [user.id]);
+    await query(`UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1`, [user.id]);
 
     // Fetch role-based assignments for BACKEND_USER and FIELD_AGENT users
     let assignedClients: number[] = [];
@@ -145,28 +145,28 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     if (isScopedOperationsUser(authProfile)) {
       // Fetch assigned clients
       const clientsRes = await query(
-        'SELECT "clientId" FROM "userClientAssignments" WHERE "userId" = $1',
+        'SELECT client_id FROM user_client_assignments WHERE user_id = $1',
         [user.id]
       );
       assignedClients = clientsRes.rows.map(row => row.clientId);
 
       // Fetch assigned products
       const productsRes = await query(
-        'SELECT "productId" FROM "userProductAssignments" WHERE "userId" = $1',
+        'SELECT product_id FROM user_product_assignments WHERE user_id = $1',
         [user.id]
       );
       assignedProducts = productsRes.rows.map(row => row.productId);
     } else if (isFieldExecutionActor(authProfile)) {
       // Fetch assigned pincodes
       const pincodesRes = await query(
-        'SELECT "pincodeId" FROM "userPincodeAssignments" WHERE "userId" = $1 AND "isActive" = true',
+        'SELECT pincode_id FROM user_pincode_assignments WHERE user_id = $1 AND is_active = true',
         [user.id]
       );
       assignedPincodes = pincodesRes.rows.map(row => row.pincodeId);
 
       // Fetch assigned areas
       const areasRes = await query(
-        'SELECT "areaId" FROM "userAreaAssignments" WHERE "userId" = $1 AND "isActive" = true',
+        'SELECT area_id FROM user_area_assignments WHERE user_id = $1 AND is_active = true',
         [user.id]
       );
       assignedAreas = areasRes.rows.map(row => row.areaId);
@@ -229,7 +229,7 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
 
     // Log logout
     await query(
-      `INSERT INTO "auditLogs" ("userId", action, "entityType", "newValues", "ipAddress", "userAgent", "createdAt")
+      `INSERT INTO audit_logs (user_id, action, entity_type, new_values, ip_address, user_agent, created_at)
        VALUES ($1, 'LOGOUT', 'USER', $2, $3, $4, CURRENT_TIMESTAMP)`,
       [req.user.id, JSON.stringify({}), req.ip, req.get('User-Agent')]
     );
@@ -314,17 +314,17 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
         u.name,
         u.username,
         u.email,
-        u."departmentId",
-        u."employeeId",
+        u.department_id,
+        u.employee_id,
         u.designation,
         u.department,
-        u."profilePhotoUrl",
-        u."isActive",
-        u."lastLogin",
-        u."createdAt",
+        u.profile_photo_url,
+        u.is_active,
+        u.last_login,
+        u.created_at,
         d.name as "departmentName"
       FROM users u
-      LEFT JOIN departments d ON u."departmentId" = d.id
+      LEFT JOIN departments d ON u.department_id = d.id
       WHERE u.id = $1
     `;
 
@@ -390,28 +390,28 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
     if (isScopedOperationsUser(authProfile)) {
       // Fetch assigned clients
       const clientsRes = await query(
-        'SELECT "clientId" FROM "userClientAssignments" WHERE "userId" = $1',
+        'SELECT client_id FROM user_client_assignments WHERE user_id = $1',
         [userData.id]
       );
       assignedClients = clientsRes.rows.map(row => row.clientId);
 
       // Fetch assigned products
       const productsRes = await query(
-        'SELECT "productId" FROM "userProductAssignments" WHERE "userId" = $1',
+        'SELECT product_id FROM user_product_assignments WHERE user_id = $1',
         [userData.id]
       );
       assignedProducts = productsRes.rows.map(row => row.productId);
     } else if (isFieldExecutionActor(authProfile)) {
       // Fetch assigned pincodes
       const pincodesRes = await query(
-        'SELECT "pincodeId" FROM "userPincodeAssignments" WHERE "userId" = $1 AND "isActive" = true',
+        'SELECT pincode_id FROM user_pincode_assignments WHERE user_id = $1 AND is_active = true',
         [userData.id]
       );
       assignedPincodes = pincodesRes.rows.map(row => row.pincodeId);
 
       // Fetch assigned areas
       const areasRes = await query(
-        'SELECT "areaId" FROM "userAreaAssignments" WHERE "userId" = $1 AND "isActive" = true',
+        'SELECT area_id FROM user_area_assignments WHERE user_id = $1 AND is_active = true',
         [userData.id]
       );
       assignedAreas = areasRes.rows.map(row => row.areaId);
@@ -493,7 +493,7 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
 
     // Check DB for valid, non-expired token
     const result = await query(
-      `SELECT id, token, "userId", "expiresAt", "createdAt" FROM "refreshTokens" WHERE token = $1 AND "userId" = $2 AND "expiresAt" > CURRENT_TIMESTAMP`,
+      `SELECT id, token, user_id, expires_at, created_at FROM refresh_tokens WHERE token = $1 AND user_id = $2 AND expires_at > CURRENT_TIMESTAMP`,
       [tokenHash, decoded.userId]
     );
 
@@ -508,7 +508,7 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
 
     // Fetch user to ensure they still exist and get current role
     const userRes = await query(
-      `SELECT id, name, username, email, "employeeId", designation, department, "profilePhotoUrl", "isActive" FROM users WHERE id = $1`,
+      `SELECT id, name, username, email, employee_id, designation, department, profile_photo_url, is_active FROM users WHERE id = $1`,
       [decoded.userId]
     );
     const user = userRes.rows[0];

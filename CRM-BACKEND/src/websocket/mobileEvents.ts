@@ -566,8 +566,8 @@ export class MobileWebSocketEvents {
     try {
       const insertQuery = `
         INSERT INTO mobile_notification_audit (
-          "notificationId", "userId", "caseId", "notificationType",
-          "notificationData", "sentAt", "deliveryStatus", "metadata"
+          notification_id, user_id, case_id, notification_type,
+          notification_data, sent_at, delivery_status, "metadata"
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `;
 
@@ -599,8 +599,8 @@ export class MobileWebSocketEvents {
     try {
       const updateQuery = `
         UPDATE mobile_notification_audit
-        SET "deliveryStatus" = $1, "acknowledgedAt" = CURRENT_TIMESTAMP
-        WHERE "notificationId" = $2
+        SET delivery_status = $1, acknowledged_at = CURRENT_TIMESTAMP
+        WHERE notification_id = $2
       `;
 
       await query(updateQuery, [status, notificationId]);

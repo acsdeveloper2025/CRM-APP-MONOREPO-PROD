@@ -189,18 +189,18 @@ export class CaseAssignmentService {
     try {
       const statusQuery = `
         SELECT 
-          "batchId",
-          "jobId",
+          batch_id,
+          job_id,
           status,
-          "totalCases",
-          "processedCases",
-          "successfulAssignments",
-          "failedAssignments",
-          "startedAt",
-          "completedAt",
+          total_cases,
+          processed_cases,
+          successful_assignments,
+          failed_assignments,
+          started_at,
+          completed_at,
           errors
         FROM case_assignment_queue_status
-        WHERE "batchId" = $1
+        WHERE batch_id = $1
       `;
 
       const result = await query(statusQuery, [batchId]);
@@ -245,9 +245,9 @@ export class CaseAssignmentService {
       const historyQuery = `
         SELECT 
           cah.id,
-          cah."assignedAt",
+          cah.assigned_at,
           cah.reason,
-          cah."batchId",
+          cah.batch_id,
           from_user.name as "fromUserName",
           from_user.email as "fromUserEmail",
           to_user.name as "toUserName",
@@ -255,11 +255,11 @@ export class CaseAssignmentService {
           assigned_by.name as "assignedByName",
           assigned_by.email as "assignedByEmail"
         FROM case_assignment_history cah
-        LEFT JOIN users from_user ON cah."fromUserId" = from_user.id
-        LEFT JOIN users to_user ON cah."toUserId" = to_user.id
-        LEFT JOIN users assigned_by ON cah."assignedById" = assigned_by.id
-        WHERE cah."caseId" = $1
-        ORDER BY cah."assignedAt" DESC
+        LEFT JOIN users from_user ON cah.from_user_id = from_user.id
+        LEFT JOIN users to_user ON cah.to_user_id = to_user.id
+        LEFT JOIN users assigned_by ON cah.assigned_by_id = assigned_by.id
+        WHERE cah.case_id = $1
+        ORDER BY cah.assigned_at DESC
       `;
 
       const result = await query(historyQuery, [caseId]);
@@ -301,8 +301,8 @@ export class CaseAssignmentService {
     try {
       // Get job ID
       const statusQuery = `
-        SELECT "jobId", status FROM case_assignment_queue_status
-        WHERE "batchId" = $1
+        SELECT job_id, status FROM case_assignment_queue_status
+        WHERE batch_id = $1
       `;
 
       const result = await query(statusQuery, [batchId]);
@@ -431,8 +431,8 @@ export class CaseAssignmentService {
   ): Promise<void> {
     const insertQuery = `
       INSERT INTO case_assignment_queue_status (
-        "batchId", "jobId", "createdById", "assignedToId", 
-        "totalCases", status, "createdAt", "updatedAt"
+        batch_id, job_id, created_by_id, assigned_to_id, 
+        total_cases, status, created_at, updated_at
       ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
     `;
 
@@ -475,12 +475,12 @@ export class CaseAssignmentService {
       return;
     }
 
-    updateFields.push(`"updatedAt" = NOW()`);
+    updateFields.push(`updated_at = NOW()`);
 
     const updateQuery = `
       UPDATE case_assignment_queue_status 
       SET ${updateFields.join(', ')}
-      WHERE "batchId" = $${paramIndex}
+      WHERE batch_id = $${paramIndex}
     `;
 
     values.push(batchId);

@@ -26,27 +26,27 @@ export const getRates = async (req: AuthenticatedRequest, res: Response) => {
 
     if (clientId) {
       values.push(Number(clientId));
-      whereSql.push(`"clientId" = $${values.length}`);
+      whereSql.push(`client_id = $${values.length}`);
     }
 
     if (productId) {
       values.push(Number(productId));
-      whereSql.push(`"productId" = $${values.length}`);
+      whereSql.push(`product_id = $${values.length}`);
     }
 
     if (verificationTypeId) {
       values.push(Number(verificationTypeId));
-      whereSql.push(`"verificationTypeId" = $${values.length}`);
+      whereSql.push(`verification_type_id = $${values.length}`);
     }
 
     if (rateTypeId) {
       values.push(Number(rateTypeId));
-      whereSql.push(`"rateTypeId" = $${values.length}`);
+      whereSql.push(`rate_type_id = $${values.length}`);
     }
 
     if (typeof isActive !== 'undefined') {
       values.push(typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive));
-      whereSql.push(`"isActive" = $${values.length}`);
+      whereSql.push(`is_active = $${values.length}`);
     }
 
     if (search && typeof search === 'string') {
@@ -63,7 +63,7 @@ export const getRates = async (req: AuthenticatedRequest, res: Response) => {
 
     // Get total count
     const countRes = await query<{ count: string }>(
-      `SELECT COUNT(*)::text as count FROM "rateManagementView" ${whereClause}`,
+      `SELECT COUNT(*)::text as count FROM rate_management_view ${whereClause}`,
       values
     );
     const totalCount = Number(countRes.rows[0]?.count || 0);
@@ -88,7 +88,7 @@ export const getRates = async (req: AuthenticatedRequest, res: Response) => {
     const sortDir: 'ASC' | 'DESC' = sortOrderStr.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     const listRes = await query(
-      `SELECT * FROM "rateManagementView"
+      `SELECT * FROM rate_management_view
        ${whereClause}
        ORDER BY "${sortCol}" ${sortDir}
        LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
@@ -143,23 +143,23 @@ export const getAvailableRateTypesForAssignment = async (
     // Get rate types that are assigned to this combination but don't have rates yet
     const availableRes = await query(
       `SELECT 
-        rt.id as "rateTypeId",
+        rt.id as rate_type_id,
         rt.name as "rateTypeName",
         rt.description as "rateTypeDescription",
         CASE WHEN r.id IS NOT NULL THEN r.amount ELSE NULL END as "currentAmount",
         CASE WHEN r.id IS NOT NULL THEN true ELSE false END as "hasRate"
-       FROM "rateTypeAssignments" rta
-       JOIN "rateTypes" rt ON rta."rateTypeId" = rt.id
-       LEFT JOIN rates r ON rta."clientId" = r."clientId" 
-         AND rta."productId" = r."productId" 
-         AND rta."verificationTypeId" = r."verificationTypeId" 
-         AND rta."rateTypeId" = r."rateTypeId"
-         AND r."isActive" = true
-       WHERE rta."clientId" = $1
-         AND rta."productId" = $2
-         AND rta."verificationTypeId" = $3
-         AND rta."isActive" = true
-         AND rt."isActive" = true
+       FROM rate_type_assignments rta
+       JOIN rate_types rt ON rta.rate_type_id = rt.id
+       LEFT JOIN rates r ON rta.client_id = r.client_id 
+         AND rta.product_id = r.product_id 
+         AND rta.verification_type_id = r.verification_type_id 
+         AND rta.rate_type_id = r.rate_type_id
+         AND r.is_active = true
+       WHERE rta.client_id = $1
+         AND rta.product_id = $2
+         AND rta.verification_type_id = $3
+         AND rta.is_active = true
+         AND rt.is_active = true
        ORDER BY rt.name`,
       [Number(clientId), Number(productId), Number(verificationTypeId)]
     );
@@ -220,8 +220,8 @@ export const createOrUpdateRate = async (req: AuthenticatedRequest, res: Respons
 
     // Check if rate type is assigned to this combination
     const assignmentRes = await query(
-      `SELECT id FROM "rateTypeAssignments"
-       WHERE "clientId" = $1 AND "productId" = $2 AND "verificationTypeId" = $3 AND "rateTypeId" = $4 AND "isActive" = true`,
+      `SELECT id FROM rate_type_assignments
+       WHERE client_id = $1 AND product_id = $2 AND verification_type_id = $3 AND rate_type_id = $4 AND is_active = true`,
       [Number(clientId), Number(productId), Number(verificationTypeId), Number(rateTypeId)]
     );
 
@@ -237,7 +237,7 @@ export const createOrUpdateRate = async (req: AuthenticatedRequest, res: Respons
       // Check if active rate already exists
       const existingRes = await client.query(
         `SELECT id, amount FROM rates
-         WHERE "clientId" = $1 AND "productId" = $2 AND "verificationTypeId" = $3 AND "rateTypeId" = $4 AND "isActive" = true`,
+         WHERE client_id = $1 AND product_id = $2 AND verification_type_id = $3 AND rate_type_id = $4 AND is_active = true`,
         [Number(clientId), Number(productId), Number(verificationTypeId), Number(rateTypeId)]
       );
 
@@ -246,7 +246,7 @@ export const createOrUpdateRate = async (req: AuthenticatedRequest, res: Respons
         const existingRate = existingRes.rows[0];
         await client.query(
           `UPDATE rates 
-           SET amount = $1, currency = $2, "updatedAt" = CURRENT_TIMESTAMP
+           SET amount = $1, currency = $2, updated_at = CURRENT_TIMESTAMP
            WHERE id = $3`,
           [amount, currency, existingRate.id]
         );
@@ -260,7 +260,7 @@ export const createOrUpdateRate = async (req: AuthenticatedRequest, res: Respons
       } else {
         // Create new rate
         const insertRes = await client.query(
-          `INSERT INTO rates ("clientId", "productId", "verificationTypeId", "rateTypeId", amount, currency, "createdBy", "createdAt", "updatedAt")
+          `INSERT INTO rates (client_id, product_id, verification_type_id, rate_type_id, amount, currency, created_by, created_at, updated_at)
            VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
            RETURNING id`,
           [
@@ -344,8 +344,8 @@ export const getRateStats = async (req: AuthenticatedRequest, res: Response) => 
     const statsRes = await query(`
       SELECT 
         COUNT(*)::int as total,
-        COUNT(CASE WHEN "isActive" = true THEN 1 END)::int as active,
-        COUNT(CASE WHEN "isActive" = false THEN 1 END)::int as inactive,
+        COUNT(CASE WHEN is_active = true THEN 1 END)::int as active,
+        COUNT(CASE WHEN is_active = false THEN 1 END)::int as inactive,
         AVG(amount)::numeric(10,2) as averageAmount,
         MIN(amount)::numeric(10,2) as minAmount,
         MAX(amount)::numeric(10,2) as maxAmount

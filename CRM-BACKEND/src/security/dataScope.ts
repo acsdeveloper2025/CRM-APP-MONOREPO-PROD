@@ -27,7 +27,7 @@ const getAggregatedClientIds = async (userIds: string[]): Promise<number[]> => {
     return [];
   }
   const result = await query<{ clientId: number }>(
-    `SELECT DISTINCT "clientId" FROM "userClientAssignments" WHERE "userId" = ANY($1::uuid[])`,
+    `SELECT DISTINCT client_id FROM user_client_assignments WHERE user_id = ANY($1::uuid[])`,
     [userIds]
   );
   return result.rows.map(r => r.clientId);
@@ -42,7 +42,7 @@ const getAggregatedProductIds = async (userIds: string[]): Promise<number[]> => 
     return [];
   }
   const result = await query<{ productId: number }>(
-    `SELECT DISTINCT "productId" FROM "userProductAssignments" WHERE "userId" = ANY($1::uuid[])`,
+    `SELECT DISTINCT product_id FROM user_product_assignments WHERE user_id = ANY($1::uuid[])`,
     [userIds]
   );
   return result.rows.map(r => r.productId);

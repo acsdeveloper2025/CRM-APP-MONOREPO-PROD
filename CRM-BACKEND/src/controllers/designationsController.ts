@@ -23,14 +23,14 @@ export const getDesignations = async (req: Request, res: Response) => {
 
     // Active status filter
     if (isActive !== undefined) {
-      whereConditions.push(`d."isActive" = $${paramIndex}`);
+      whereConditions.push(`d.is_active = $${paramIndex}`);
       queryParams.push(isActive === 'true');
       paramIndex++;
     }
 
     // Department filter
     if (departmentId) {
-      whereConditions.push(`d."departmentId" = $${paramIndex}`);
+      whereConditions.push(`d.department_id = $${paramIndex}`);
       queryParams.push(departmentId as string);
       paramIndex++;
     }
@@ -42,17 +42,17 @@ export const getDesignations = async (req: Request, res: Response) => {
         d.id,
         d.name,
         d.description,
-        d."departmentId",
+        d.department_id,
         dept.name as "departmentName",
-        d."isActive",
-        d."createdAt",
-        d."updatedAt",
+        d.is_active,
+        d.created_at,
+        d.updated_at,
         creator.name as "createdByName",
         updater.name as "updatedByName"
       FROM designations d
-      LEFT JOIN departments dept ON d."departmentId" = dept.id
-      LEFT JOIN users creator ON d."createdBy" = creator.id
-      LEFT JOIN users updater ON d."updatedBy" = updater.id
+      LEFT JOIN departments dept ON d.department_id = dept.id
+      LEFT JOIN users creator ON d.created_by = creator.id
+      LEFT JOIN users updater ON d.updated_by = updater.id
       ${whereClause}
       ORDER BY d.name ASC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -63,7 +63,7 @@ export const getDesignations = async (req: Request, res: Response) => {
     const countQuery = `
       SELECT COUNT(*) as total
       FROM designations d
-      LEFT JOIN departments dept ON d."departmentId" = dept.id
+      LEFT JOIN departments dept ON d.department_id = dept.id
       ${whereClause}
     `;
 
@@ -107,17 +107,17 @@ export const getDesignationById = async (req: Request, res: Response) => {
         d.id,
         d.name,
         d.description,
-        d."departmentId",
+        d.department_id,
         dept.name as "departmentName",
-        d."isActive",
-        d."createdAt",
-        d."updatedAt",
+        d.is_active,
+        d.created_at,
+        d.updated_at,
         creator.name as "createdByName",
         updater.name as "updatedByName"
       FROM designations d
-      LEFT JOIN departments dept ON d."departmentId" = dept.id
-      LEFT JOIN users creator ON d."createdBy" = creator.id
-      LEFT JOIN users updater ON d."updatedBy" = updater.id
+      LEFT JOIN departments dept ON d.department_id = dept.id
+      LEFT JOIN users creator ON d.created_by = creator.id
+      LEFT JOIN users updater ON d.updated_by = updater.id
       WHERE d.id = $1
     `;
 
@@ -163,9 +163,9 @@ export const createDesignation = async (req: AuthenticatedRequest, res: Response
     }
 
     const createQuery = `
-      INSERT INTO designations (name, description, "departmentId", "isActive", "createdBy", "updatedBy")
+      INSERT INTO designations (name, description, department_id, is_active, created_by, updated_by)
       VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, name, description, "departmentId", "isActive", "createdAt", "updatedAt"
+      RETURNING id, name, description, department_id, is_active, created_at, updated_at
     `;
 
     const result = await query(createQuery, [
@@ -237,12 +237,12 @@ export const updateDesignation = async (req: AuthenticatedRequest, res: Response
       SET 
         name = COALESCE($1, name),
         description = COALESCE($2, description),
-        "departmentId" = COALESCE($3, "departmentId"),
-        "isActive" = COALESCE($4, "isActive"),
-        "updatedBy" = $5,
-        "updatedAt" = CURRENT_TIMESTAMP
+        department_id = COALESCE($3, department_id),
+        is_active = COALESCE($4, is_active),
+        updated_by = $5,
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = $6
-      RETURNING id, name, description, "departmentId", "isActive", "createdAt", "updatedAt"
+      RETURNING id, name, description, department_id, is_active, created_at, updated_at
     `;
 
     const result = await query(updateQuery, [
@@ -331,11 +331,11 @@ export const getActiveDesignations = async (req: Request, res: Response) => {
   try {
     const { departmentId } = req.query;
 
-    let whereClause = 'WHERE d."isActive" = true';
+    let whereClause = 'WHERE d.is_active = true';
     const queryParams: (string | number)[] = [];
 
     if (departmentId) {
-      whereClause += ' AND (d."departmentId" = $1 OR d."departmentId" IS NULL)';
+      whereClause += ' AND (d.department_id = $1 OR d.department_id IS NULL)';
       queryParams.push(departmentId as string);
     }
 
@@ -344,10 +344,10 @@ export const getActiveDesignations = async (req: Request, res: Response) => {
         d.id,
         d.name,
         d.description,
-        d."departmentId",
+        d.department_id,
         dept.name as "departmentName"
       FROM designations d
-      LEFT JOIN departments dept ON d."departmentId" = dept.id
+      LEFT JOIN departments dept ON d.department_id = dept.id
       ${whereClause}
       ORDER BY d.name ASC
     `;

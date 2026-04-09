@@ -89,8 +89,8 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
     // Safe column mapping — prevents SQL injection by only allowing known column names
     const SORT_COLUMNS: Record<string, string> = {
       name: '"name"',
-      createdAt: '"createdAt"',
-      updatedAt: '"updatedAt"',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
     };
     const sortByStr =
       typeof sortBy === 'string' || typeof sortBy === 'number' ? String(sortBy) : 'name';
@@ -100,7 +100,7 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
     const sortDir = sortOrderStr.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     const clientsRes = await query(
-      `SELECT id, name, code, "createdAt", "updatedAt"
+      `SELECT id, name, code, created_at, updated_at
        FROM clients
        ${whereClause}
        ORDER BY ${safeSortCol} ${sortDir}
@@ -117,9 +117,9 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
     const casesByClient = new Map<string, Record<string, unknown>[]>();
     if (dbClientIds.length > 0) {
       const prodMapRes = await query(
-        `SELECT cp."clientId", p.id, p.name, p.code
-         FROM "clientProducts" cp JOIN products p ON p.id = cp."productId"
-         WHERE cp."clientId" = ANY($1::integer[])`,
+        `SELECT cp.client_id, p.id, p.name, p.code
+         FROM client_products cp JOIN products p ON p.id = cp.product_id
+         WHERE cp.client_id = ANY($1::integer[])`,
         [dbClientIds.map(Number)]
       );
       prodMapRes.rows.forEach(r => {
@@ -130,11 +130,11 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
 
       // Load verification types through product relationships
       const vtMapRes = await query(
-        `SELECT DISTINCT cp."clientId", vt.id, vt.name, vt.code
-         FROM "clientProducts" cp
-         JOIN "productVerificationTypes" pvt ON cp."productId" = pvt."productId"
-         JOIN "verificationTypes" vt ON pvt."verificationTypeId" = vt.id
-         WHERE cp."clientId" = ANY($1::integer[])`,
+        `SELECT DISTINCT cp.client_id, vt.id, vt.name, vt.code
+         FROM client_products cp
+         JOIN product_verification_types pvt ON cp.product_id = pvt.product_id
+         JOIN verification_types vt ON pvt.verification_type_id = vt.id
+         WHERE cp.client_id = ANY($1::integer[])`,
         [dbClientIds.map(Number)]
       );
       vtMapRes.rows.forEach(r => {
@@ -145,10 +145,10 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
 
       // Load document types through client relationships
       const dtMapRes = await query(
-        `SELECT cdt."clientId", dt.id, dt.name, dt.code
-         FROM "clientDocumentTypes" cdt
-         JOIN "documentTypes" dt ON cdt."documentTypeId" = dt.id
-         WHERE cdt."clientId" = ANY($1::integer[])`,
+        `SELECT cdt.client_id, dt.id, dt.name, dt.code
+         FROM client_document_types cdt
+         JOIN document_types dt ON cdt.document_type_id = dt.id
+         WHERE cdt.client_id = ANY($1::integer[])`,
         [dbClientIds.map(Number)]
       );
       dtMapRes.rows.forEach(r => {
@@ -158,7 +158,7 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
       });
 
       const casesRes = await query(
-        `SELECT "caseId", status, "clientId" FROM cases WHERE "clientId" = ANY($1::integer[])`,
+        `SELECT case_id, status, client_id FROM cases WHERE client_id = ANY($1::integer[])`,
         [dbClientIds.map(Number)]
       );
       casesRes.rows.forEach(r => {
@@ -211,7 +211,7 @@ export const getClientById = async (req: AuthenticatedRequest, res: Response) =>
     const { id } = req.params;
 
     const baseRes = await query(
-      `SELECT id, name, code, "createdAt", "updatedAt" FROM clients WHERE id = $1`,
+      `SELECT id, name, code, created_at, updated_at FROM clients WHERE id = $1`,
       [Number(id)]
     );
     const client = baseRes.rows[0];
@@ -224,30 +224,30 @@ export const getClientById = async (req: AuthenticatedRequest, res: Response) =>
     }
 
     const prodRes = await query(
-      `SELECT p.id, p.name, p.code FROM "clientProducts" cp JOIN products p ON p.id = cp."productId" WHERE cp."clientId" = $1`,
+      `SELECT p.id, p.name, p.code FROM client_products cp JOIN products p ON p.id = cp.product_id WHERE cp.client_id = $1`,
       [Number(id)]
     );
 
     // Load verification types through product relationships
     const vtRes = await query(
       `SELECT DISTINCT vt.id, vt.name, vt.code
-       FROM "clientProducts" cp
-       JOIN "productVerificationTypes" pvt ON cp."productId" = pvt."productId"
-       JOIN "verificationTypes" vt ON pvt."verificationTypeId" = vt.id
-       WHERE cp."clientId" = $1`,
+       FROM client_products cp
+       JOIN product_verification_types pvt ON cp.product_id = pvt.product_id
+       JOIN verification_types vt ON pvt.verification_type_id = vt.id
+       WHERE cp.client_id = $1`,
       [Number(id)]
     );
 
     // Load document types through client relationships
     const dtRes = await query(
       `SELECT dt.id, dt.name, dt.code
-       FROM "clientDocumentTypes" cdt
-       JOIN "documentTypes" dt ON cdt."documentTypeId" = dt.id
-       WHERE cdt."clientId" = $1`,
+       FROM client_document_types cdt
+       JOIN document_types dt ON cdt.document_type_id = dt.id
+       WHERE cdt.client_id = $1`,
       [Number(id)]
     );
 
-    const casesRes2 = await query(`SELECT "caseId", status FROM cases WHERE "clientId" = $1`, [
+    const casesRes2 = await query(`SELECT case_id, status FROM cases WHERE client_id = $1`, [
       Number(id),
     ]);
 
@@ -314,7 +314,7 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
     // Verify verification types exist if provided
     if (verificationTypeIds.length > 0) {
       const vtCheck = await query(
-        `SELECT id FROM "verificationTypes" WHERE id = ANY($1::integer[])`,
+        `SELECT id FROM verification_types WHERE id = ANY($1::integer[])`,
         [verificationTypeIds.map(Number)]
       );
       if (vtCheck.rowCount !== verificationTypeIds.length) {
@@ -328,7 +328,7 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
 
     // Verify document types exist if provided
     if (documentTypeIds.length > 0) {
-      const dtCheck = await query(`SELECT id FROM "documentTypes" WHERE id = ANY($1::integer[])`, [
+      const dtCheck = await query(`SELECT id FROM document_types WHERE id = ANY($1::integer[])`, [
         documentTypeIds.map(Number),
       ]);
       if (dtCheck.rowCount !== documentTypeIds.length) {
@@ -344,7 +344,7 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
     const newClient = await withTransaction(async cx => {
       // Create client (id is auto-generated SERIAL)
       const clientIns = await cx.query(
-        `INSERT INTO clients (name, code, "createdAt", "updatedAt") VALUES ($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, name, code, "createdAt", "updatedAt"`,
+        `INSERT INTO clients (name, code, created_at, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, name, code, created_at, updated_at`,
         [name, code]
       );
       const created = clientIns.rows[0];
@@ -362,7 +362,7 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
         }
         for (const pid of uniqueProductIds) {
           await cx.query(
-            `INSERT INTO "clientProducts" ("clientId", "productId", "isActive", "createdAt", "updatedAt") VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+            `INSERT INTO client_products (client_id, product_id, is_active, created_at, updated_at) VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
             [created.id, Number(pid)]
           );
         }
@@ -377,12 +377,12 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
           for (const verificationTypeId of uniqueVerificationTypeIds) {
             // Check if relationship already exists
             const existingRel = await cx.query(
-              `SELECT id FROM "productVerificationTypes" WHERE "productId" = $1 AND "verificationTypeId" = $2`,
+              `SELECT id FROM product_verification_types WHERE product_id = $1 AND verification_type_id = $2`,
               [productId, verificationTypeId]
             );
             if (existingRel.rowCount === 0) {
               await cx.query(
-                `INSERT INTO "productVerificationTypes" ("productId", "verificationTypeId", "isActive", "createdAt", "updatedAt")
+                `INSERT INTO product_verification_types (product_id, verification_type_id, is_active, created_at, updated_at)
                  VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
                 [productId, verificationTypeId]
               );
@@ -396,7 +396,7 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
         const uniqueDocumentTypeIds = Array.from(new Set(documentTypeIds.map(Number)));
         // Verify document types
         const dtCheck = await cx.query(
-          `SELECT id FROM "documentTypes" WHERE id = ANY($1::integer[])`,
+          `SELECT id FROM document_types WHERE id = ANY($1::integer[])`,
           [uniqueDocumentTypeIds]
         );
         if (dtCheck.rowCount !== uniqueDocumentTypeIds.length) {
@@ -406,7 +406,7 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
         }
         for (const dtId of uniqueDocumentTypeIds) {
           await cx.query(
-            `INSERT INTO "clientDocumentTypes" ("clientId", "documentTypeId", "is_active", "createdAt", "updatedAt") VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+            `INSERT INTO client_document_types (client_id, document_type_id, "is_active", created_at, updated_at) VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
             [created.id, Number(dtId)]
           );
         }
@@ -414,26 +414,26 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
 
       // Load includes
       const prodRes2 = await cx.query(
-        `SELECT p.id, p.name, p.code FROM "clientProducts" cp JOIN products p ON p.id = cp."productId" WHERE cp."clientId" = $1`,
+        `SELECT p.id, p.name, p.code FROM client_products cp JOIN products p ON p.id = cp.product_id WHERE cp.client_id = $1`,
         [created.id]
       );
 
       // Load verification types through product relationships
       const vtRes2 = await cx.query(
         `SELECT DISTINCT vt.id, vt.name, vt.code
-         FROM "clientProducts" cp
-         JOIN "productVerificationTypes" pvt ON cp."productId" = pvt."productId"
-         JOIN "verificationTypes" vt ON pvt."verificationTypeId" = vt.id
-         WHERE cp."clientId" = $1`,
+         FROM client_products cp
+         JOIN product_verification_types pvt ON cp.product_id = pvt.product_id
+         JOIN verification_types vt ON pvt.verification_type_id = vt.id
+         WHERE cp.client_id = $1`,
         [created.id]
       );
 
       // Load document types through client relationships
       const dtRes2 = await cx.query(
         `SELECT dt.id, dt.name, dt.code
-         FROM "clientDocumentTypes" cdt
-         JOIN "documentTypes" dt ON cdt."documentTypeId" = dt.id
-         WHERE cdt."clientId" = $1`,
+         FROM client_document_types cdt
+         JOIN document_types dt ON cdt.document_type_id = dt.id
+         WHERE cdt.client_id = $1`,
         [created.id]
       );
 
@@ -606,7 +606,7 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
         updates.push(`code = $${i++}`);
         vals.push(updateData.code);
       }
-      updates.push(`"updatedAt" = CURRENT_TIMESTAMP`);
+      updates.push(`updated_at = CURRENT_TIMESTAMP`);
       vals.push(id);
       await cx.query(`UPDATE clients SET ${updates.join(', ')} WHERE id = $${i}`, vals);
 
@@ -625,18 +625,18 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
           }
         }
         await cx.query(
-          `DELETE FROM "clientProducts" WHERE "clientId" = $1 AND "productId" <> ALL($2::integer[])`,
+          `DELETE FROM client_products WHERE client_id = $1 AND product_id <> ALL($2::integer[])`,
           [Number(id), ids]
         );
         for (const pid of ids) {
           // Check if relationship already exists
           const existingRel = await cx.query(
-            `SELECT id FROM "clientProducts" WHERE "clientId" = $1 AND "productId" = $2`,
+            `SELECT id FROM client_products WHERE client_id = $1 AND product_id = $2`,
             [Number(id), pid]
           );
           if (existingRel.rowCount === 0) {
             await cx.query(
-              `INSERT INTO "clientProducts" ("clientId", "productId", "isActive", "createdAt")
+              `INSERT INTO client_products (client_id, product_id, is_active, created_at)
                VALUES ($1, $2, true, CURRENT_TIMESTAMP)`,
               [Number(id), pid]
             );
@@ -649,7 +649,7 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
         const vtIds = Array.from(new Set(normalizedVerificationTypeIds.normalized));
         if (vtIds.length > 0) {
           const vtCheck = await cx.query(
-            `SELECT id FROM "verificationTypes" WHERE id = ANY($1::integer[])`,
+            `SELECT id FROM verification_types WHERE id = ANY($1::integer[])`,
             [vtIds]
           );
           if (vtCheck.rowCount !== vtIds.length) {
@@ -661,7 +661,7 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
 
         // Get current products for this client
         const clientProductsRes = await cx.query(
-          `SELECT "productId" FROM "clientProducts" WHERE "clientId" = $1`,
+          `SELECT product_id FROM client_products WHERE client_id = $1`,
           [Number(id)]
         );
         const productIds = clientProductsRes.rows.map(row => row.productId);
@@ -669,7 +669,7 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
         if (productIds.length > 0) {
           // Remove existing product-verification type relationships for this client's products
           await cx.query(
-            `DELETE FROM "productVerificationTypes" WHERE "productId" = ANY($1::integer[]) AND "verificationTypeId" NOT IN (SELECT UNNEST($2::integer[]))`,
+            `DELETE FROM product_verification_types WHERE product_id = ANY($1::integer[]) AND verification_type_id NOT IN (SELECT UNNEST($2::integer[]))`,
             [productIds, vtIds]
           );
 
@@ -678,12 +678,12 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
             for (const vtId of vtIds) {
               // Check if relationship already exists
               const existingRel = await cx.query(
-                `SELECT id FROM "productVerificationTypes" WHERE "productId" = $1 AND "verificationTypeId" = $2`,
+                `SELECT id FROM product_verification_types WHERE product_id = $1 AND verification_type_id = $2`,
                 [productId, vtId]
               );
               if (existingRel.rowCount === 0) {
                 await cx.query(
-                  `INSERT INTO "productVerificationTypes" ("productId", "verificationTypeId", "isActive", "createdAt", "updatedAt")
+                  `INSERT INTO product_verification_types (product_id, verification_type_id, is_active, created_at, updated_at)
                    VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
                   [productId, vtId]
                 );
@@ -698,7 +698,7 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
         const dtIds = Array.from(new Set(normalizedDocumentTypeIds.normalized));
         if (dtIds.length > 0) {
           const dtCheck = await cx.query(
-            `SELECT id FROM "documentTypes" WHERE id = ANY($1::integer[])`,
+            `SELECT id FROM document_types WHERE id = ANY($1::integer[])`,
             [dtIds]
           );
           if (dtCheck.rowCount !== dtIds.length) {
@@ -708,14 +708,14 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
           }
         }
         await cx.query(
-          `DELETE FROM "clientDocumentTypes" WHERE "clientId" = $1 AND "documentTypeId" <> ALL($2::integer[])`,
+          `DELETE FROM client_document_types WHERE client_id = $1 AND document_type_id <> ALL($2::integer[])`,
           [Number(id), dtIds]
         );
         for (const dtId of dtIds) {
           await cx.query(
-            `INSERT INTO "clientDocumentTypes" ("clientId", "documentTypeId", "is_active", "createdAt")
+            `INSERT INTO client_document_types (client_id, document_type_id, "is_active", created_at)
              VALUES ($1, $2, true, CURRENT_TIMESTAMP)
-             ON CONFLICT ("clientId", "documentTypeId") DO NOTHING`,
+             ON CONFLICT (client_id, document_type_id) DO NOTHING`,
             [Number(id), dtId]
           );
         }
@@ -723,26 +723,26 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
 
       // Load includes
       const prodRes3 = await cx.query(
-        `SELECT p.id, p.name, p.code FROM "clientProducts" cp JOIN products p ON p.id = cp."productId" WHERE cp."clientId" = $1`,
+        `SELECT p.id, p.name, p.code FROM client_products cp JOIN products p ON p.id = cp.product_id WHERE cp.client_id = $1`,
         [Number(id)]
       );
 
       // Load verification types through product relationships
       const vtRes3 = await cx.query(
         `SELECT DISTINCT vt.id, vt.name, vt.code
-         FROM "clientProducts" cp
-         JOIN "productVerificationTypes" pvt ON cp."productId" = pvt."productId"
-         JOIN "verificationTypes" vt ON pvt."verificationTypeId" = vt.id
-         WHERE cp."clientId" = $1`,
+         FROM client_products cp
+         JOIN product_verification_types pvt ON cp.product_id = pvt.product_id
+         JOIN verification_types vt ON pvt.verification_type_id = vt.id
+         WHERE cp.client_id = $1`,
         [Number(id)]
       );
 
       // Load document types through client relationships
       const dtRes3 = await cx.query(
         `SELECT dt.id, dt.name, dt.code
-         FROM "clientDocumentTypes" cdt
-         JOIN "documentTypes" dt ON cdt."documentTypeId" = dt.id
-         WHERE cdt."clientId" = $1`,
+         FROM client_document_types cdt
+         JOIN document_types dt ON cdt.document_type_id = dt.id
+         WHERE cdt.client_id = $1`,
         [Number(id)]
       );
 
@@ -831,7 +831,7 @@ export const deleteClient = async (req: AuthenticatedRequest, res: Response) => 
     }
 
     // Check if client has associated cases
-    const casesRes = await query(`SELECT COUNT(*)::int as count FROM cases WHERE "clientId" = $1`, [
+    const casesRes = await query(`SELECT COUNT(*)::int as count FROM cases WHERE client_id = $1`, [
       id,
     ]);
     const caseCount = casesRes.rows[0]?.count || 0;
@@ -851,7 +851,7 @@ export const deleteClient = async (req: AuthenticatedRequest, res: Response) => 
     }
 
     // Check if client has any cases (cannot delete if cases exist)
-    const casesCheck = await query(`SELECT COUNT(*) as count FROM cases WHERE "clientId" = $1`, [
+    const casesCheck = await query(`SELECT COUNT(*) as count FROM cases WHERE client_id = $1`, [
       id,
     ]);
 
@@ -871,14 +871,14 @@ export const deleteClient = async (req: AuthenticatedRequest, res: Response) => 
     await withTransaction(async cx => {
       // Delete related records first (foreign keys with NO ACTION or RESTRICT need manual deletion)
       // Order matters: delete child records before parent records
-      await cx.query(`DELETE FROM rates WHERE "clientId" = $1`, [id]);
-      await cx.query(`DELETE FROM "documentTypeRates" WHERE "clientId" = $1`, [id]);
-      await cx.query(`DELETE FROM "rateTypeAssignments" WHERE "clientId" = $1`, [id]);
-      await cx.query(`DELETE FROM "clientProducts" WHERE "clientId" = $1`, [id]);
+      await cx.query(`DELETE FROM rates WHERE client_id = $1`, [id]);
+      await cx.query(`DELETE FROM document_type_rates WHERE client_id = $1`, [id]);
+      await cx.query(`DELETE FROM rate_type_assignments WHERE client_id = $1`, [id]);
+      await cx.query(`DELETE FROM client_products WHERE client_id = $1`, [id]);
 
       // These have CASCADE but we delete them explicitly for clarity
-      await cx.query(`DELETE FROM "clientDocumentTypes" WHERE "clientId" = $1`, [id]);
-      await cx.query(`DELETE FROM "userClientAssignments" WHERE "clientId" = $1`, [id]);
+      await cx.query(`DELETE FROM client_document_types WHERE client_id = $1`, [id]);
+      await cx.query(`DELETE FROM user_client_assignments WHERE client_id = $1`, [id]);
       await cx.query(`DELETE FROM commission_calculations WHERE client_id = $1`, [id]);
       await cx.query(`DELETE FROM field_user_commission_assignments WHERE client_id = $1`, [id]);
 
@@ -939,7 +939,7 @@ export const getClientProducts = async (req: AuthenticatedRequest, res: Response
     if (isActive !== undefined) {
       const isActiveStr =
         typeof isActive === 'string' || typeof isActive === 'number' ? String(isActive) : 'false';
-      filters.push(`cp."isActive" = $${paramIndex}`);
+      filters.push(`cp.is_active = $${paramIndex}`);
       params.push(isActiveStr === 'true');
       paramIndex++;
     }
@@ -960,10 +960,10 @@ export const getClientProducts = async (req: AuthenticatedRequest, res: Response
     const whereClause = filters.length > 0 ? ` AND ${filters.join(' AND ')}` : '';
 
     const productsRes = await query(
-      `SELECT p.id, p.name, p.code, p.description, cp."createdAt" as "assignedAt"
-       FROM "clientProducts" cp
-       JOIN products p ON p.id = cp."productId"
-       WHERE cp."clientId" = $1${whereClause}
+      `SELECT p.id, p.name, p.code, p.description, cp.created_at as assigned_at
+       FROM client_products cp
+       JOIN products p ON p.id = cp.product_id
+       WHERE cp.client_id = $1${whereClause}
        ORDER BY p.name`,
       params
     );
@@ -1004,17 +1004,17 @@ export const getClientVerificationTypes = async (req: AuthenticatedRequest, res:
     }
 
     // Build where clause for active filter
-    const whereClause = isActive !== undefined ? 'AND vt."isActive" = $2' : '';
+    const whereClause = isActive !== undefined ? 'AND vt.is_active = $2' : '';
     const isActiveStr2 =
       typeof isActive === 'string' || typeof isActive === 'number' ? String(isActive) : 'false';
     const params = isActive !== undefined ? [Number(id), isActiveStr2 === 'true'] : [Number(id)];
 
     const vtRes = await query(
-      `SELECT DISTINCT vt.id, vt.name, vt.code, vt.description, vt."isActive"
-       FROM "clientProducts" cp
-       JOIN "productVerificationTypes" pvt ON cp."productId" = pvt."productId"
-       JOIN "verificationTypes" vt ON pvt."verificationTypeId" = vt.id
-       WHERE cp."clientId" = $1 ${whereClause}
+      `SELECT DISTINCT vt.id, vt.name, vt.code, vt.description, vt.is_active
+       FROM client_products cp
+       JOIN product_verification_types pvt ON cp.product_id = pvt.product_id
+       JOIN verification_types vt ON pvt.verification_type_id = vt.id
+       WHERE cp.client_id = $1 ${whereClause}
        ORDER BY vt.name`,
       params
     );

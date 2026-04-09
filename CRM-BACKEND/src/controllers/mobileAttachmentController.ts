@@ -134,10 +134,10 @@ export class MobileAttachmentController {
 
       if (isUUID) {
         // Mobile app sends UUID
-        caseSql = `SELECT id, "caseId" FROM cases WHERE id = $1`;
+        caseSql = `SELECT id, case_id FROM cases WHERE id = $1`;
       } else {
         // Web app sends case number
-        caseSql = `SELECT id, "caseId" FROM cases WHERE "caseId" = $1`;
+        caseSql = `SELECT id, case_id FROM cases WHERE case_id = $1`;
       }
 
       // For FIELD_AGENT: Check task-level assignment and get their task ID
@@ -248,9 +248,9 @@ export class MobileAttachmentController {
 
           // Save attachment to database with verification_task_id for field agents
           const attRes = await query(
-            `INSERT INTO attachments (case_id, "caseId", filename, "originalName", "mimeType", "fileSize", "filePath", "uploadedBy", verification_task_id, "createdAt")
+            `INSERT INTO attachments (case_id, case_id, filename, original_name, mime_type, file_size, file_path, uploaded_by, verification_task_id, created_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-             RETURNING id, filename, "originalName", "mimeType", "fileSize", "filePath", "createdAt"`,
+             RETURNING id, filename, original_name, mime_type, file_size, file_path, created_at`,
             [
               actualCaseId, // case_id (UUID)
               existingCase.caseId, // caseId (integer)
@@ -354,10 +354,10 @@ export class MobileAttachmentController {
 
       if (isUUID) {
         // Mobile app sends UUID
-        caseSql = `SELECT id, "caseId" FROM cases WHERE id = $1`;
+        caseSql = `SELECT id, case_id FROM cases WHERE id = $1`;
       } else {
         // Web app sends case number
-        caseSql = `SELECT id, "caseId" FROM cases WHERE "caseId" = $1`;
+        caseSql = `SELECT id, case_id FROM cases WHERE case_id = $1`;
       }
 
       // For FIELD_AGENT: Check task-level assignment
@@ -407,20 +407,20 @@ export class MobileAttachmentController {
       if (isExecutionActor && userTaskId) {
         // Filter attachments by specific verification task OR show attachments with NULL task_id (admin-uploaded/legacy)
         attachmentQuery = `
-          SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath", a."createdAt"
+          SELECT a.id, a.filename, a.original_name, a.mime_type, a.file_size, a.file_path, a.created_at
           FROM attachments a
           WHERE a.case_id = $1
           AND (a.verification_task_id = $2 OR a.verification_task_id IS NULL)
-          ORDER BY a."createdAt" DESC
+          ORDER BY a.created_at DESC
         `;
         attachmentParams = [actualCaseId, userTaskId];
       } else {
         // Admin/Manager can see all attachments for the case
         attachmentQuery = `
-          SELECT id, filename, "originalName", "mimeType", "fileSize", "filePath", "createdAt"
+          SELECT id, filename, original_name, mime_type, file_size, file_path, created_at
           FROM attachments
           WHERE case_id = $1
-          ORDER BY "createdAt" DESC
+          ORDER BY created_at DESC
         `;
         attachmentParams = [actualCaseId];
       }
@@ -516,8 +516,8 @@ export class MobileAttachmentController {
       if (isExecutionActor) {
         // Field agents can only access attachments for their assigned task OR attachments with NULL task_id
         attachmentQuery = `
-          SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
-                 a."uploadedBy", a."createdAt", a."caseId", a.case_id
+          SELECT a.id, a.filename, a.original_name, a.mime_type, a.file_size, a.file_path,
+                 a.uploaded_by, a.created_at, a.case_id, a.case_id
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
           LEFT JOIN verification_tasks vt ON vt.id = a.verification_task_id
@@ -533,8 +533,8 @@ export class MobileAttachmentController {
       } else {
         // Admin/Manager can access any attachment
         attachmentQuery = `
-          SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
-                 a."uploadedBy", a."createdAt", a."caseId", a.case_id
+          SELECT a.id, a.filename, a.original_name, a.mime_type, a.file_size, a.file_path,
+                 a.uploaded_by, a.created_at, a.case_id, a.case_id
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
           WHERE a.id = $1
@@ -667,8 +667,8 @@ export class MobileAttachmentController {
       if (isExecutionActor) {
         // Field agents can only delete attachments for their assigned task OR attachments with NULL task_id
         attachmentQuery = `
-          SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
-                 a."uploadedBy", a."createdAt", a."caseId", c."assignedTo", c.status
+          SELECT a.id, a.filename, a.original_name, a.mime_type, a.file_size, a.file_path,
+                 a.uploaded_by, a.created_at, a.case_id, c."assignedTo", c.status
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
           LEFT JOIN verification_tasks vt ON vt.id = a.verification_task_id
@@ -684,8 +684,8 @@ export class MobileAttachmentController {
       } else {
         // Admin/Manager can delete any attachment
         attachmentQuery = `
-          SELECT a.id, a.filename, a."originalName", a."mimeType", a."fileSize", a."filePath",
-                 a."uploadedBy", a."createdAt", a."caseId", c."assignedTo", c.status
+          SELECT a.id, a.filename, a.original_name, a.mime_type, a.file_size, a.file_path,
+                 a.uploaded_by, a.created_at, a.case_id, c."assignedTo", c.status
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
           WHERE a.id = $1
@@ -821,29 +821,29 @@ export class MobileAttachmentController {
         attachmentsSql = `
           SELECT
             a.id,
-            a."caseId",
+            a.case_id,
             a.filename,
-            a."originalName",
-            a."mimeType",
-            a."fileSize",
+            a.original_name,
+            a.mime_type,
+            a.file_size,
             a."uploadedAt",
-            a."uploadedBy",
+            a.uploaded_by,
             a.metadata,
             a."isProcessed",
             a."processingStatus",
-            a."thumbnailPath",
+            a.thumbnail_path,
             a."compressedPath",
             u.name as "uploaderName"
           FROM attachments a
-          LEFT JOIN users u ON u.id = a."uploadedBy"
+          LEFT JOIN users u ON u.id = a.uploaded_by
           JOIN cases c ON a.case_id = c.id
-          WHERE a."caseId" IN (${placeholders})
+          WHERE a.case_id IN (${placeholders})
           AND EXISTS (
             SELECT 1 FROM verification_tasks vt
             WHERE vt.case_id = c.id
             AND vt.assigned_to = $${caseIds.length + 1}
           )
-          ORDER BY a."caseId", a."uploadedAt" DESC
+          ORDER BY a.case_id, a."uploadedAt" DESC
         `;
         queryParams = [...caseIds, userId];
       } else {
@@ -851,23 +851,23 @@ export class MobileAttachmentController {
         attachmentsSql = `
           SELECT
             a.id,
-            a."caseId",
+            a.case_id,
             a.filename,
-            a."originalName",
-            a."mimeType",
-            a."fileSize",
+            a.original_name,
+            a.mime_type,
+            a.file_size,
             a."uploadedAt",
-            a."uploadedBy",
+            a.uploaded_by,
             a.metadata,
             a."isProcessed",
             a."processingStatus",
-            a."thumbnailPath",
+            a.thumbnail_path,
             a."compressedPath",
             u.name as "uploaderName"
           FROM attachments a
-          LEFT JOIN users u ON u.id = a."uploadedBy"
-          WHERE a."caseId" IN (${placeholders})
-          ORDER BY a."caseId", a."uploadedAt" DESC
+          LEFT JOIN users u ON u.id = a.uploaded_by
+          WHERE a.case_id IN (${placeholders})
+          ORDER BY a.case_id, a."uploadedAt" DESC
         `;
         queryParams = caseIds;
       }

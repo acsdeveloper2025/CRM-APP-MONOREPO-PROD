@@ -91,7 +91,7 @@ const loadHierarchyRefUser = async (
         ), ARRAY[]::varchar[]) as "permissionCodes"
       FROM users u
       WHERE u.id = $1
-        AND u."deletedAt" IS NULL
+        AND u.deleted_at IS NULL
       LIMIT 1
     `,
     [userId]
@@ -283,7 +283,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
     let paramIndex = 1;
 
     // Always exclude soft-deleted users
-    conditions.push(`u."deletedAt" IS NULL`);
+    conditions.push(`u.deleted_at IS NULL`);
 
     if (role && typeof role === 'string') {
       conditions.push(`EXISTS (
@@ -301,7 +301,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     if (isActive !== undefined) {
-      conditions.push(`u."isActive" = $${paramIndex++}`);
+      conditions.push(`u.is_active = $${paramIndex++}`);
       params.push(isActive === 'true');
     }
 
@@ -310,7 +310,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         COALESCE(u.name, '') ILIKE $${paramIndex} OR
         COALESCE(u.email, '') ILIKE $${paramIndex} OR
         COALESCE(u.username, '') ILIKE $${paramIndex} OR
-        COALESCE(u."employeeId", '') ILIKE $${paramIndex}
+        COALESCE(u.employee_id, '') ILIKE $${paramIndex}
       )`);
       params.push(`%${search}%`);
       paramIndex++;
@@ -326,8 +326,8 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
       username: 'u.username',
       email: 'u.email',
       role: '"roleName"',
-      createdAt: 'u."createdAt"',
-      updatedAt: 'u."updatedAt"',
+      createdAt: 'u.created_at',
+      updatedAt: 'u.updated_at',
     };
     const safeSortColumn = sortColumnMap[safeSortBy] || 'u.name';
     const safeSortOrder: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
@@ -336,7 +336,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
     const countQuery = `
       SELECT COUNT(*) as total
       FROM users u
-      LEFT JOIN departments d ON u."departmentId" = d.id
+      LEFT JOIN departments d ON u.department_id = d.id
       ${whereClause}
     `;
     const countResult = await query(countQuery, params);
@@ -353,14 +353,14 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         u.phone,
         ${PRIMARY_RBAC_ROLE_NAME_SQL} as role,
         ${PRIMARY_RBAC_ROLE_ID_SQL} as "roleId",
-        u."departmentId",
-        u."designationId",
-        u."employeeId",
+        u.department_id,
+        u.designation_id,
+        u.employee_id,
         u.designation,
-        u."isActive",
-        u."lastLogin",
-        u."createdAt",
-        u."updatedAt",
+        u.is_active,
+        u.last_login,
+        u.created_at,
+        u.updated_at,
         COALESCE((
           SELECT ARRAY_AGG(rv.name ORDER BY rv.name)
           FROM user_roles ur
@@ -392,58 +392,58 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         COALESCE(pincode_arrays.ids, ARRAY[]::int[]) as "assignedPincodes",
         COALESCE(area_arrays.ids, ARRAY[]::int[]) as "assignedAreas"
       FROM users u
-      LEFT JOIN departments d ON u."departmentId" = d.id
-      LEFT JOIN designations des ON u."designationId" = des.id
+      LEFT JOIN departments d ON u.department_id = d.id
+      LEFT JOIN designations des ON u.designation_id = des.id
       LEFT JOIN users tl ON tl.id = u.team_leader_id
       LEFT JOIN users mgr ON mgr.id = u.manager_id
       LEFT JOIN (
-        SELECT "userId", COUNT(*) as count
-        FROM "userClientAssignments"
-        GROUP BY "userId"
-      ) client_counts ON u.id = client_counts."userId"
+        SELECT user_id, COUNT(*) as count
+        FROM user_client_assignments
+        GROUP BY user_id
+      ) client_counts ON u.id = client_counts.user_id
       LEFT JOIN (
-        SELECT "userId", COUNT(*) as count
-        FROM "userProductAssignments"
-        GROUP BY "userId"
-      ) product_counts ON u.id = product_counts."userId"
+        SELECT user_id, COUNT(*) as count
+        FROM user_product_assignments
+        GROUP BY user_id
+      ) product_counts ON u.id = product_counts.user_id
       LEFT JOIN (
-        SELECT "userId", COUNT(*) as count
-        FROM "userPincodeAssignments"
-        WHERE "isActive" = true
-        GROUP BY "userId"
-      ) pincode_counts ON u.id = pincode_counts."userId"
+        SELECT user_id, COUNT(*) as count
+        FROM user_pincode_assignments
+        WHERE is_active = true
+        GROUP BY user_id
+      ) pincode_counts ON u.id = pincode_counts.user_id
       LEFT JOIN (
-        SELECT uaa."userId", COUNT(*) as count
-        FROM "userAreaAssignments" uaa
-        INNER JOIN "userPincodeAssignments" upa 
-          ON uaa."userPincodeAssignmentId" = upa.id
-        WHERE uaa."isActive" = true AND upa."isActive" = true
-        GROUP BY uaa."userId"
-      ) area_counts ON u.id = area_counts."userId"
+        SELECT uaa.user_id, COUNT(*) as count
+        FROM user_area_assignments uaa
+        INNER JOIN user_pincode_assignments upa 
+          ON uaa.user_pincode_assignment_id = upa.id
+        WHERE uaa.is_active = true AND upa.is_active = true
+        GROUP BY uaa.user_id
+      ) area_counts ON u.id = area_counts.user_id
       LEFT JOIN (
-        SELECT "userId", ARRAY_AGG("clientId") as ids
-        FROM "userClientAssignments"
-        GROUP BY "userId"
-      ) client_arrays ON u.id = client_arrays."userId"
+        SELECT user_id, ARRAY_AGG(client_id) as ids
+        FROM user_client_assignments
+        GROUP BY user_id
+      ) client_arrays ON u.id = client_arrays.user_id
       LEFT JOIN (
-        SELECT "userId", ARRAY_AGG("productId") as ids
-        FROM "userProductAssignments"
-        GROUP BY "userId"
-      ) product_arrays ON u.id = product_arrays."userId"
+        SELECT user_id, ARRAY_AGG(product_id) as ids
+        FROM user_product_assignments
+        GROUP BY user_id
+      ) product_arrays ON u.id = product_arrays.user_id
       LEFT JOIN (
-        SELECT "userId", ARRAY_AGG("pincodeId") as ids
-        FROM "userPincodeAssignments"
-        WHERE "isActive" = true
-        GROUP BY "userId"
-      ) pincode_arrays ON u.id = pincode_arrays."userId"
+        SELECT user_id, ARRAY_AGG(pincode_id) as ids
+        FROM user_pincode_assignments
+        WHERE is_active = true
+        GROUP BY user_id
+      ) pincode_arrays ON u.id = pincode_arrays.user_id
       LEFT JOIN (
-        SELECT uaa."userId", ARRAY_AGG(uaa."areaId") as ids
-        FROM "userAreaAssignments" uaa
-        INNER JOIN "userPincodeAssignments" upa 
-          ON uaa."userPincodeAssignmentId" = upa.id
-        WHERE uaa."isActive" = true AND upa."isActive" = true
-        GROUP BY uaa."userId"
-      ) area_arrays ON u.id = area_arrays."userId"
+        SELECT uaa.user_id, ARRAY_AGG(uaa.area_id) as ids
+        FROM user_area_assignments uaa
+        INNER JOIN user_pincode_assignments upa 
+          ON uaa.user_pincode_assignment_id = upa.id
+        WHERE uaa.is_active = true AND upa.is_active = true
+        GROUP BY uaa.user_id
+      ) area_arrays ON u.id = area_arrays.user_id
       ${whereClause}
       ORDER BY ${safeSortColumn} ${safeSortOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -461,10 +461,10 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
     const statsQuery = `
       SELECT
         COUNT(*) as total,
-        COUNT(*) FILTER (WHERE u."isActive" = true) as active,
-        COUNT(*) FILTER (WHERE u."isActive" = false) as inactive
+        COUNT(*) FILTER (WHERE u.is_active = true) as active,
+        COUNT(*) FILTER (WHERE u.is_active = false) as inactive
       FROM users u
-      LEFT JOIN departments d ON u."departmentId" = d.id
+      LEFT JOIN departments d ON u.department_id = d.id
       ${whereClause}
     `;
     const statsResult = await query(statsQuery, params);
@@ -511,14 +511,14 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
         u.phone,
         ${PRIMARY_RBAC_ROLE_NAME_SQL} as role,
         ${PRIMARY_RBAC_ROLE_ID_SQL} as "roleId",
-        u."departmentId",
-        u."designationId",
-        u."employeeId",
+        u.department_id,
+        u.designation_id,
+        u.employee_id,
         u.designation,
-        u."isActive",
-        u."lastLogin",
-        u."createdAt",
-        u."updatedAt",
+        u.is_active,
+        u.last_login,
+        u.created_at,
+        u.updated_at,
         COALESCE((
           SELECT ARRAY_AGG(rv.name ORDER BY rv.name)
           FROM user_roles ur
@@ -560,62 +560,62 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
         COALESCE(pincode_arrays.ids, ARRAY[]::int[]) as "assignedPincodes",
         COALESCE(area_arrays.ids, ARRAY[]::int[]) as "assignedAreas"
       FROM users u
-      LEFT JOIN departments d ON u."departmentId" = d.id
-      LEFT JOIN designations des ON u."designationId" = des.id
+      LEFT JOIN departments d ON u.department_id = d.id
+      LEFT JOIN designations des ON u.designation_id = des.id
       LEFT JOIN users tl ON tl.id = u.team_leader_id
       LEFT JOIN users mgr ON mgr.id = u.manager_id
       LEFT JOIN (
-        SELECT "userId", COUNT(*) as count
-        FROM "userClientAssignments"
-        WHERE "userId" = $1
-        GROUP BY "userId"
-      ) client_counts ON u.id = client_counts."userId"
+        SELECT user_id, COUNT(*) as count
+        FROM user_client_assignments
+        WHERE user_id = $1
+        GROUP BY user_id
+      ) client_counts ON u.id = client_counts.user_id
       LEFT JOIN (
-        SELECT "userId", COUNT(*) as count
-        FROM "userProductAssignments"
-        WHERE "userId" = $1
-        GROUP BY "userId"
-      ) product_counts ON u.id = product_counts."userId"
+        SELECT user_id, COUNT(*) as count
+        FROM user_product_assignments
+        WHERE user_id = $1
+        GROUP BY user_id
+      ) product_counts ON u.id = product_counts.user_id
       LEFT JOIN (
-        SELECT "userId", COUNT(*) as count
-        FROM "userPincodeAssignments"
-        WHERE "userId" = $1 AND "isActive" = true
-        GROUP BY "userId"
-      ) pincode_counts ON u.id = pincode_counts."userId"
+        SELECT user_id, COUNT(*) as count
+        FROM user_pincode_assignments
+        WHERE user_id = $1 AND is_active = true
+        GROUP BY user_id
+      ) pincode_counts ON u.id = pincode_counts.user_id
       LEFT JOIN (
-        SELECT uaa."userId", COUNT(*) as count
-        FROM "userAreaAssignments" uaa
-        INNER JOIN "userPincodeAssignments" upa 
-          ON uaa."userPincodeAssignmentId" = upa.id
-        WHERE uaa."userId" = $1 AND uaa."isActive" = true AND upa."isActive" = true
-        GROUP BY uaa."userId"
-      ) area_counts ON u.id = area_counts."userId"
+        SELECT uaa.user_id, COUNT(*) as count
+        FROM user_area_assignments uaa
+        INNER JOIN user_pincode_assignments upa 
+          ON uaa.user_pincode_assignment_id = upa.id
+        WHERE uaa.user_id = $1 AND uaa.is_active = true AND upa.is_active = true
+        GROUP BY uaa.user_id
+      ) area_counts ON u.id = area_counts.user_id
       LEFT JOIN (
-        SELECT "userId", ARRAY_AGG("clientId") as ids
-        FROM "userClientAssignments"
-        WHERE "userId" = $1
-        GROUP BY "userId"
-      ) client_arrays ON u.id = client_arrays."userId"
+        SELECT user_id, ARRAY_AGG(client_id) as ids
+        FROM user_client_assignments
+        WHERE user_id = $1
+        GROUP BY user_id
+      ) client_arrays ON u.id = client_arrays.user_id
       LEFT JOIN (
-        SELECT "userId", ARRAY_AGG("productId") as ids
-        FROM "userProductAssignments"
-        WHERE "userId" = $1
-        GROUP BY "userId"
-      ) product_arrays ON u.id = product_arrays."userId"
+        SELECT user_id, ARRAY_AGG(product_id) as ids
+        FROM user_product_assignments
+        WHERE user_id = $1
+        GROUP BY user_id
+      ) product_arrays ON u.id = product_arrays.user_id
       LEFT JOIN (
-        SELECT "userId", ARRAY_AGG("pincodeId") as ids
-        FROM "userPincodeAssignments"
-        WHERE "userId" = $1 AND "isActive" = true
-        GROUP BY "userId"
-      ) pincode_arrays ON u.id = pincode_arrays."userId"
+        SELECT user_id, ARRAY_AGG(pincode_id) as ids
+        FROM user_pincode_assignments
+        WHERE user_id = $1 AND is_active = true
+        GROUP BY user_id
+      ) pincode_arrays ON u.id = pincode_arrays.user_id
       LEFT JOIN (
-        SELECT uaa."userId", ARRAY_AGG(uaa."areaId") as ids
-        FROM "userAreaAssignments" uaa
-        INNER JOIN "userPincodeAssignments" upa 
-          ON uaa."userPincodeAssignmentId" = upa.id
-        WHERE uaa."userId" = $1 AND uaa."isActive" = true AND upa."isActive" = true
-        GROUP BY uaa."userId"
-      ) area_arrays ON u.id = area_arrays."userId"
+        SELECT uaa.user_id, ARRAY_AGG(uaa.area_id) as ids
+        FROM user_area_assignments uaa
+        INNER JOIN user_pincode_assignments upa 
+          ON uaa.user_pincode_assignment_id = upa.id
+        WHERE uaa.user_id = $1 AND uaa.is_active = true AND upa.is_active = true
+        GROUP BY uaa.user_id
+      ) area_arrays ON u.id = area_arrays.user_id
       WHERE u.id = $1
     `;
 
@@ -781,12 +781,12 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
 
       const createUserQuery = `
         INSERT INTO users (
-          name, username, email, "passwordHash", role, "departmentId", "designationId",
-          "employeeId", designation, phone, team_leader_id, manager_id, "isActive", "createdAt", "updatedAt"
+          name, username, email, password_hash, role, department_id, designation_id,
+          employee_id, designation, phone, team_leader_id, manager_id, is_active, created_at, updated_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-        RETURNING id, name, username, email, role, "departmentId", "designationId",
-                  "employeeId", designation, phone, team_leader_id as "teamLeaderId",
-                  manager_id as "managerId", "isActive", "createdAt", "updatedAt"
+        RETURNING id, name, username, email, role, department_id, designation_id,
+                  employee_id, designation, phone, team_leader_id as "teamLeaderId",
+                  manager_id as "managerId", is_active, created_at, updated_at
       `;
 
       const insertRes = await client.query(createUserQuery, [
@@ -996,11 +996,11 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
     ];
 
     const fieldColumnMap: Record<string, string> = {
-      employeeId: '"employeeId"',
-      departmentId: '"departmentId"',
+      employeeId: 'employee_id',
+      departmentId: 'department_id',
       teamLeaderId: 'team_leader_id',
       managerId: 'manager_id',
-      isActive: '"isActive"',
+      isActive: 'is_active',
     };
 
     for (const field of allowedFields) {
@@ -1019,16 +1019,16 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    updateFields.push(`"updatedAt" = CURRENT_TIMESTAMP`);
+    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
     updateParams.push(id);
 
     const updateQuery = `
       UPDATE users
       SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}
-      RETURNING id, name, username, email, role, "departmentId",
-                "employeeId", designation, phone, team_leader_id as "teamLeaderId",
-                manager_id as "managerId", "isActive", "createdAt", "updatedAt"
+      RETURNING id, name, username, email, role, department_id,
+                employee_id, designation, phone, team_leader_id as "teamLeaderId",
+                manager_id as "managerId", is_active, created_at, updated_at
     `;
 
     const result = await withTransaction(async client => {
@@ -1123,8 +1123,8 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
     const softDeleteQuery = `
       UPDATE users 
       SET 
-        "deletedAt" = NOW(), 
-        "isActive" = false,
+        deleted_at = NOW(), 
+        is_active = false,
         "username" = $2 || '_deleted_' || $3,
         "email" = $4 || '_deleted_' || $3
       WHERE id = $1
@@ -1194,9 +1194,9 @@ export const activateUser = async (req: AuthenticatedRequest, res: Response) => 
 
     const updateQuery = `
       UPDATE users
-      SET "isActive" = true, "updatedAt" = CURRENT_TIMESTAMP
+      SET is_active = true, updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
-      RETURNING id, name, username, "isActive"
+      RETURNING id, name, username, is_active
     `;
 
     const result = await query(updateQuery, [id]);
@@ -1242,9 +1242,9 @@ export const deactivateUser = async (req: AuthenticatedRequest, res: Response) =
 
     const updateQuery = `
       UPDATE users
-      SET "isActive" = false, "updatedAt" = CURRENT_TIMESTAMP
+      SET is_active = false, updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
-      RETURNING id, name, username, "isActive"
+      RETURNING id, name, username, is_active
     `;
 
     const result = await query(updateQuery, [id]);
@@ -1305,9 +1305,9 @@ export const searchUsers = async (req: AuthenticatedRequest, res: Response) => {
         ${PRIMARY_RBAC_ROLE_NAME_SQL} as role,
         d.name as "departmentName",
         u.designation,
-        u."isActive"
+        u.is_active
       FROM users u
-      LEFT JOIN departments d ON u."departmentId" = d.id
+      LEFT JOIN departments d ON u.department_id = d.id
       WHERE
         u.name ILIKE $1 OR
         u.email ILIKE $1 OR
@@ -1352,11 +1352,11 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
     const userCountsQuery = `
       SELECT
         COUNT(*) as "totalUsers",
-        COUNT(CASE WHEN "isActive" = true THEN 1 END) as "activeUsers",
-        COUNT(CASE WHEN "isActive" = false THEN 1 END) as "inactiveUsers",
-        COUNT(CASE WHEN "createdAt" >= DATE_TRUNC('month', CURRENT_DATE) THEN 1 END) as "newUsersThisMonth"
+        COUNT(CASE WHEN is_active = true THEN 1 END) as "activeUsers",
+        COUNT(CASE WHEN is_active = false THEN 1 END) as "inactiveUsers",
+        COUNT(CASE WHEN created_at >= DATE_TRUNC('month', CURRENT_DATE) THEN 1 END) as "newUsersThisMonth"
       FROM users
-      WHERE "deletedAt" IS NULL
+      WHERE deleted_at IS NULL
     `;
     const userCounts = await query(userCountsQuery);
 
@@ -1366,7 +1366,7 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
         ${PRIMARY_RBAC_ROLE_NAME_SQL} as role,
         COUNT(*) as count
       FROM users u
-      WHERE u."deletedAt" IS NULL
+      WHERE u.deleted_at IS NULL
       GROUP BY ${PRIMARY_RBAC_ROLE_NAME_SQL}
       ORDER BY count DESC
     `;
@@ -1378,8 +1378,8 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
         COALESCE(d.name, 'No Department') as department,
         COUNT(*) as count
       FROM users u
-      LEFT JOIN departments d ON u."departmentId" = d.id
-      WHERE u."deletedAt" IS NULL
+      LEFT JOIN departments d ON u.department_id = d.id
+      WHERE u.deleted_at IS NULL
       GROUP BY d.name
       ORDER BY count DESC
     `;
@@ -1389,13 +1389,13 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
     // Since we don't have a login tracking table yet, we'll use lastLogin field
     const recentLoginsQuery = `
       SELECT
-        id as "userId",
+        id as user_id,
         name as "userName",
-        "lastLogin" as "lastLoginAt"
+        last_login as "lastLoginAt"
       FROM users
-      WHERE "lastLogin" >= NOW() - INTERVAL '24 hours'
-        AND "deletedAt" IS NULL
-      ORDER BY "lastLogin" DESC
+      WHERE last_login >= NOW() - INTERVAL '24 hours'
+        AND deleted_at IS NULL
+      ORDER BY last_login DESC
       LIMIT 10
     `;
     const recentLoginsResult = await query(recentLoginsQuery);
@@ -1430,7 +1430,7 @@ export const getDepartments = async (req: AuthenticatedRequest, res: Response) =
     const departmentsQuery = `
       SELECT id, name, description
       FROM departments
-      WHERE "isActive" = true
+      WHERE is_active = true
       ORDER BY name
     `;
 
@@ -1456,7 +1456,7 @@ export const getDesignations = async (req: AuthenticatedRequest, res: Response) 
     const designationsQuery = `
       SELECT id, name, description
       FROM designations
-      WHERE "isActive" = true
+      WHERE is_active = true
       ORDER BY name
     `;
 
@@ -1493,7 +1493,7 @@ export const getUserActivities = async (req: AuthenticatedRequest, res: Response
     if (canViewAllActivities) {
       // Super admin / permission managers: filter by optional userId or see all
       if (userId && typeof userId === 'string') {
-        conditions.push(`al."userId" = $${paramIndex++}`);
+        conditions.push(`al.user_id = $${paramIndex++}`);
         params.push(userId);
       }
     } else {
@@ -1503,10 +1503,10 @@ export const getUserActivities = async (req: AuthenticatedRequest, res: Response
         : undefined;
 
       if (hierarchyUserIds && hierarchyUserIds.length > 0) {
-        conditions.push(`al."userId" = ANY($${paramIndex++}::uuid[])`);
+        conditions.push(`al.user_id = ANY($${paramIndex++}::uuid[])`);
         params.push(hierarchyUserIds);
       } else if (req.user?.id) {
-        conditions.push(`al."userId" = $${paramIndex++}`);
+        conditions.push(`al.user_id = $${paramIndex++}`);
         params.push(req.user.id);
       }
     }
@@ -1518,19 +1518,19 @@ export const getUserActivities = async (req: AuthenticatedRequest, res: Response
     }
 
     if (fromDate) {
-      conditions.push(`al."createdAt" >= $${paramIndex++}`);
+      conditions.push(`al.created_at >= $${paramIndex++}`);
       params.push(fromDate as string);
     }
 
     if (toDate) {
-      conditions.push(`al."createdAt" <= $${paramIndex++}`);
+      conditions.push(`al.created_at <= $${paramIndex++}`);
       params.push(toDate as string);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Get total count
-    const countQuery = `SELECT COUNT(*) as total FROM "auditLogs" al ${whereClause}`;
+    const countQuery = `SELECT COUNT(*) as total FROM audit_logs al ${whereClause}`;
     const countResult = await query(countQuery, params);
     const total = parseInt(countResult.rows[0].total);
 
@@ -1540,16 +1540,16 @@ export const getUserActivities = async (req: AuthenticatedRequest, res: Response
       SELECT 
         al.id, 
         al.action, 
-        al."createdAt", 
-        al."ipAddress", 
-        al."userAgent", 
+        al.created_at, 
+        al.ip_address, 
+        al.user_agent, 
         al.details, 
-        al."userId",
+        al.user_id,
         u.name as "userName"
-      FROM "auditLogs" al
-      LEFT JOIN users u ON al."userId" = u.id
+      FROM audit_logs al
+      LEFT JOIN users u ON al.user_id = u.id
       ${whereClause}
-      ORDER BY al."createdAt" DESC
+      ORDER BY al.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
@@ -1592,7 +1592,7 @@ export const getUserSessions = async (req: AuthenticatedRequest, res: Response) 
     let paramIndex = 1;
 
     if (targetUserId) {
-      conditions.push(`rt."userId" = $${paramIndex++}`);
+      conditions.push(`rt.user_id = $${paramIndex++}`);
       params.push(targetUserId);
     }
 
@@ -1602,18 +1602,18 @@ export const getUserSessions = async (req: AuthenticatedRequest, res: Response) 
     const sessionsQuery = `
       SELECT 
         rt.id,
-        rt."userId",
-        rt."createdAt",
-        rt."expiresAt",
-        rt."ipAddress",
-        rt."userAgent",
-        (rt."expiresAt" > CURRENT_TIMESTAMP) as "isActive",
+        rt.user_id,
+        rt.created_at,
+        rt.expires_at,
+        rt.ip_address,
+        rt.user_agent,
+        (rt.expires_at > CURRENT_TIMESTAMP) as is_active,
         u.name as "userName",
         u.username
-      FROM "refreshTokens" rt
-      LEFT JOIN users u ON rt."userId" = u.id
+      FROM refresh_tokens rt
+      LEFT JOIN users u ON rt.user_id = u.id
       ${whereClause}
-      ORDER BY rt."createdAt" DESC
+      ORDER BY rt.created_at DESC
     `;
 
     const result = await query(sessionsQuery, params);
@@ -1672,16 +1672,16 @@ export const getUserClientAssignments = async (req: AuthenticatedRequest, res: R
       `
       SELECT
         uca.id,
-        uca."clientId",
-        uca."createdAt",
-        uca."updatedAt",
+        uca.client_id,
+        uca.created_at,
+        uca.updated_at,
         c.name as "clientName",
         c.code as "clientCode",
         c.email as "clientEmail",
-        c."isActive" as "clientIsActive"
-      FROM "userClientAssignments" uca
-      JOIN clients c ON uca."clientId" = c.id
-      WHERE uca."userId" = $1
+        c.is_active as "clientIsActive"
+      FROM user_client_assignments uca
+      JOIN clients c ON uca.client_id = c.id
+      WHERE uca.user_id = $1
       ORDER BY c.name ASC
     `,
       [userId]
@@ -1763,7 +1763,7 @@ export const assignClientsToUser = async (req: AuthenticatedRequest, res: Respon
     try {
       // First, delete all existing assignments for this user
       const deleteResult = await query(
-        'DELETE FROM "userClientAssignments" WHERE "userId" = $1 RETURNING id',
+        'DELETE FROM user_client_assignments WHERE user_id = $1 RETURNING id',
         [userId]
       );
       const deletedCount = deleteResult.rows.length;
@@ -1775,7 +1775,7 @@ export const assignClientsToUser = async (req: AuthenticatedRequest, res: Respon
         const insertPromises = clientIds.map(clientId =>
           query(
             `
-            INSERT INTO "userClientAssignments" ("userId", "clientId")
+            INSERT INTO user_client_assignments (user_id, client_id)
             VALUES ($1, $2)
             RETURNING id
           `,
@@ -1852,7 +1852,7 @@ export const removeClientAssignment = async (req: AuthenticatedRequest, res: Res
 
     // Remove the assignment
     const deleteResult = await query(
-      'DELETE FROM "userClientAssignments" WHERE "userId" = $1 AND "clientId" = $2 RETURNING id',
+      'DELETE FROM user_client_assignments WHERE user_id = $1 AND client_id = $2 RETURNING id',
       [userId, clientId]
     );
 
@@ -1904,18 +1904,18 @@ export const getUserProductAssignments = async (req: AuthenticatedRequest, res: 
     const assignmentsQuery = `
       SELECT
         upa.id,
-        upa."userId",
-        upa."productId",
-        upa."assignedAt",
-        upa."assignedBy",
+        upa.user_id,
+        upa.product_id,
+        upa.assigned_at,
+        upa.assigned_by,
         p.name as "productName",
         p.description as "productDescription",
         u.name as "assignedByName"
-      FROM "userProductAssignments" upa
-      JOIN products p ON upa."productId" = p.id
-      LEFT JOIN users u ON upa."assignedBy" = u.id
-      WHERE upa."userId" = $1
-      ORDER BY upa."assignedAt" DESC
+      FROM user_product_assignments upa
+      JOIN products p ON upa.product_id = p.id
+      LEFT JOIN users u ON upa.assigned_by = u.id
+      WHERE upa.user_id = $1
+      ORDER BY upa.assigned_at DESC
     `;
 
     const result = await query(assignmentsQuery, [userId]);
@@ -1983,7 +1983,7 @@ export const assignProductsToUser = async (req: AuthenticatedRequest, res: Respo
     try {
       // First, delete all existing assignments for this user
       const deleteResult = await query(
-        'DELETE FROM "userProductAssignments" WHERE "userId" = $1 RETURNING id',
+        'DELETE FROM user_product_assignments WHERE user_id = $1 RETURNING id',
         [userId]
       );
       const deletedCount = deleteResult.rows.length;
@@ -2000,7 +2000,7 @@ export const assignProductsToUser = async (req: AuthenticatedRequest, res: Respo
           .join(', ');
 
         const insertQuery = `
-          INSERT INTO "userProductAssignments" ("userId", "productId", "assignedBy", "assignedAt")
+          INSERT INTO user_product_assignments (user_id, product_id, assigned_by, assigned_at)
           VALUES ${insertValues}
           RETURNING *
         `;
@@ -2064,7 +2064,7 @@ export const removeProductAssignment = async (req: AuthenticatedRequest, res: Re
 
     // Check if assignment exists
     const assignmentResult = await query(
-      'SELECT id FROM "userProductAssignments" WHERE "userId" = $1 AND "productId" = $2',
+      'SELECT id FROM user_product_assignments WHERE user_id = $1 AND product_id = $2',
       [userId, productId]
     );
 
@@ -2077,7 +2077,7 @@ export const removeProductAssignment = async (req: AuthenticatedRequest, res: Re
     }
 
     // Remove assignment
-    await query('DELETE FROM "userProductAssignments" WHERE "userId" = $1 AND "productId" = $2', [
+    await query('DELETE FROM user_product_assignments WHERE user_id = $1 AND product_id = $2', [
       userId,
       productId,
     ]);
@@ -2125,7 +2125,7 @@ export const generateTemporaryPassword = async (req: AuthenticatedRequest, res: 
 
     // Update user's password
     await query(
-      'UPDATE users SET "passwordHash" = $1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $2',
+      'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
       [hashedPassword, id]
     );
 
@@ -2239,7 +2239,7 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response) =
 
     // Check if user exists and get current password
     const userCheck = await query(
-      'SELECT id, name, username, "passwordHash" FROM users WHERE id = $1',
+      'SELECT id, name, username, password_hash FROM users WHERE id = $1',
       [id]
     );
 
@@ -2268,7 +2268,7 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response) =
 
     // Update password
     await query(
-      'UPDATE users SET "passwordHash" = $1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $2',
+      'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
       [hashedNewPassword, id]
     );
 
@@ -2344,7 +2344,7 @@ export const resetPassword = async (req: AuthenticatedRequest, res: Response) =>
 
     // Update password
     await query(
-      'UPDATE users SET "passwordHash" = $1, "updatedAt" = CURRENT_TIMESTAMP WHERE id = $2',
+      'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
       [hashedPassword, user.id]
     );
 
@@ -2404,17 +2404,17 @@ export const getAvailableFieldAgents = async (req: AuthenticatedRequest, res: Re
           u.id,
           u.name,
           u.email,
-          u."employeeId"
+          u.employee_id
         FROM users u
-        INNER JOIN "userPincodeAssignments" upa
-          ON u.id = upa."userId"
-          AND upa."pincodeId" = $1
-          AND upa."isActive" = true
-        INNER JOIN "userAreaAssignments" uaa
-          ON u.id = uaa."userId"
-          AND uaa."pincodeId" = $1
-          AND uaa."areaId" = $2
-          AND uaa."isActive" = true
+        INNER JOIN user_pincode_assignments upa
+          ON u.id = upa.user_id
+          AND upa.pincode_id = $1
+          AND upa.is_active = true
+        INNER JOIN user_area_assignments uaa
+          ON u.id = uaa.user_id
+          AND uaa.pincode_id = $1
+          AND uaa.area_id = $2
+          AND uaa.is_active = true
         WHERE EXISTS (
           SELECT 1
           FROM user_roles urf
@@ -2422,7 +2422,7 @@ export const getAvailableFieldAgents = async (req: AuthenticatedRequest, res: Re
           JOIN permissions pf ON pf.id = rpf.permission_id
           WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
         )
-          AND u."isActive" = true
+          AND u.is_active = true
         ORDER BY u.name
       `;
       params = [Number(pincodeId), Number(areaId)];
@@ -2433,12 +2433,12 @@ export const getAvailableFieldAgents = async (req: AuthenticatedRequest, res: Re
           u.id,
           u.name,
           u.email,
-          u."employeeId"
+          u.employee_id
         FROM users u
-        INNER JOIN "userPincodeAssignments" upa
-          ON u.id = upa."userId"
-          AND upa."pincodeId" = $1
-          AND upa."isActive" = true
+        INNER JOIN user_pincode_assignments upa
+          ON u.id = upa.user_id
+          AND upa.pincode_id = $1
+          AND upa.is_active = true
         WHERE EXISTS (
           SELECT 1
           FROM user_roles urf
@@ -2446,7 +2446,7 @@ export const getAvailableFieldAgents = async (req: AuthenticatedRequest, res: Re
           JOIN permissions pf ON pf.id = rpf.permission_id
           WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
         )
-          AND u."isActive" = true
+          AND u.is_active = true
         ORDER BY u.name
       `;
       params = [Number(pincodeId)];
@@ -2494,7 +2494,7 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
     let paramIndex = 1;
 
     // Always exclude soft-deleted users
-    conditions.push(`u."deletedAt" IS NULL`);
+    conditions.push(`u.deleted_at IS NULL`);
 
     if (role && typeof role === 'string') {
       conditions.push(`EXISTS (
@@ -2512,7 +2512,7 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     if (isActive !== undefined) {
-      conditions.push(`u."isActive" = $${paramIndex++}`);
+      conditions.push(`u.is_active = $${paramIndex++}`);
       params.push(isActive === 'true' || isActive === true);
     }
 
@@ -2521,7 +2521,7 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
         COALESCE(u.name, '') ILIKE $${paramIndex} OR
         COALESCE(u.email, '') ILIKE $${paramIndex} OR
         COALESCE(u.username, '') ILIKE $${paramIndex} OR
-        COALESCE(u."employeeId", '') ILIKE $${paramIndex}
+        COALESCE(u.employee_id, '') ILIKE $${paramIndex}
       )`);
       params.push(`%${search}%`);
       paramIndex++;
@@ -2540,8 +2540,8 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
       username: 'u.username',
       email: 'u.email',
       role: '"roleName"',
-      createdAt: 'u."createdAt"',
-      updatedAt: 'u."updatedAt"',
+      createdAt: 'u.created_at',
+      updatedAt: 'u.updated_at',
     };
     const safeSortColumn = sortColumnMap[safeSortBy] || 'u.name';
 
@@ -2553,16 +2553,16 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
         u.email,
         u.phone,
         ${PRIMARY_RBAC_ROLE_NAME_SQL} as role,
-        u."employeeId",
+        u.employee_id,
         u.designation,
-        u."isActive",
-        u."lastLogin",
-        u."createdAt",
-        u."updatedAt",
+        u.is_active,
+        u.last_login,
+        u.created_at,
+        u.updated_at,
         ${PRIMARY_RBAC_ROLE_NAME_SQL} as "roleName",
         d.name as "departmentName"
       FROM users u
-      LEFT JOIN departments d ON u."departmentId" = d.id
+      LEFT JOIN departments d ON u.department_id = d.id
       ${whereClause}
       ORDER BY ${safeSortColumn} ${safeSortOrder}
     `;
