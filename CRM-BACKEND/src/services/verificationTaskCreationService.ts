@@ -210,8 +210,21 @@ export class VerificationTaskCreationService {
       rateTypeId = territoryValidation.rateTypeId;
       actualAmount = territoryValidation.amount;
 
-      // actualAmount is already set by the validator
-      // No need for additional rate lookup
+      // Enforce financial configuration completeness — task MUST have valid rate
+      if (!rateTypeId) {
+        throw new VerificationTaskCreationError(422, {
+          success: false,
+          message: 'Rate type could not be determined for this pincode/area combination',
+          error: { code: 'CONFIG_RATE_TYPE_MISSING' },
+        });
+      }
+      if (actualAmount === null || actualAmount === undefined || actualAmount <= 0) {
+        throw new VerificationTaskCreationError(422, {
+          success: false,
+          message: `No active rate found for rate type ${rateTypeId}`,
+          error: { code: 'CONFIG_RATE_AMOUNT_MISSING' },
+        });
+      }
 
       // Validate required fields
       if (!verificationTypeId || !taskTitle) {

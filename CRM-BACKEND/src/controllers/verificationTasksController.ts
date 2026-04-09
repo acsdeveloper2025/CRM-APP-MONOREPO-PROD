@@ -1506,6 +1506,29 @@ export class VerificationTasksController {
         });
         return;
       }
+      // Validate assigned user has territory coverage for the task's pincode
+      if (currentTask.pincode) {
+        const territoryCheck = await client.query(
+          `SELECT 1 FROM user_pincode_assignments
+           WHERE user_id = $1 AND pincode_id = (
+             SELECT id FROM pincodes WHERE code = $2 LIMIT 1
+           ) AND is_active = true
+           LIMIT 1`,
+          [assignedTo, currentTask.pincode]
+        );
+        if (territoryCheck.rows.length === 0) {
+          logger.warn(
+            `Territory mismatch: user ${assignedTo} has no pincode assignment for ${currentTask.pincode}`,
+            {
+              taskId,
+              assignedTo,
+              pincode: currentTask.pincode,
+            }
+          );
+          // Warning only — some assignments may be intentional overrides by admins
+        }
+      }
+
       const previousAssignee = currentTask.assigned_to;
       const previousStatus = currentTask.status;
 
