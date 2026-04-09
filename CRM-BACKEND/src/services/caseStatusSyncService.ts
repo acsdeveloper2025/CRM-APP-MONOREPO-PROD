@@ -67,11 +67,16 @@ export class CaseStatusSyncService {
       // Default remains IN_PROGRESS if none of the above matches exactly
 
       // Update the case
+      // Use COALESCE to preserve the original completed_at if it was already set
+      // (prevents overwriting historical completion dates on re-sync)
       await db.query(
-        `UPDATE cases 
-         SET status = $1, 
-             completed_at = $2, 
-             updated_at = NOW() 
+        `UPDATE cases
+         SET status = $1,
+             completed_at = CASE
+               WHEN $1 = 'COMPLETED' THEN COALESCE(completed_at, $2::timestamp)
+               ELSE NULL
+             END,
+             updated_at = NOW()
          WHERE id = $3`,
         [newStatus, completedAt, caseId]
       );

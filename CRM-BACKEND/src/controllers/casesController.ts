@@ -172,7 +172,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
           baseConditions.push('FALSE');
         } else {
           baseConditions.push(`(
-            c.assigned_to = ANY($${baseParamIndex}::uuid[]) OR
+            -- case scope: check via verification_tasks assignment
             EXISTS (
               SELECT 1 FROM verification_tasks vt_scope
               WHERE vt_scope.case_id = c.id
@@ -701,7 +701,6 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
         }
         caseQuery += ` AND (
           c.created_by_backend_user = ANY($${queryParams.length + 1}::uuid[]) OR
-          c.assigned_to = ANY($${queryParams.length + 1}::uuid[]) OR
           EXISTS (
             SELECT 1 FROM verification_tasks vt_scope
             WHERE vt_scope.case_id = c.id
@@ -1878,7 +1877,7 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
            WHERE c.id = $1
              AND (
                c.created_by_backend_user = ANY($2::uuid[]) OR
-               c.assigned_to = ANY($2::uuid[]) OR
+               EXISTS (SELECT 1 FROM verification_tasks vt_scope WHERE vt_scope.case_id = c.id AND vt_scope.assigned_to = ANY($2::uuid[])) OR
                vt.assigned_to = ANY($2::uuid[])
              )
            LIMIT 1`,
