@@ -61,7 +61,7 @@ export const getCommissionRateTypes = async (req: AuthenticatedRequest, res: Res
         crt.created_by as created_by,
         crt.created_at as created_at,
         crt.updated_at as updated_at,
-        rt.name as "rateTypeName"
+        rt.name as rate_type_name
        FROM commission_rate_types crt
        LEFT JOIN rate_types rt ON crt.rate_type_id = rt.id
        ${whereClause}
@@ -1071,7 +1071,7 @@ export const autoCalculateCommissionForCase = async (caseId: string): Promise<bo
       SELECT
         c.id,
         c.case_id as case_number,
-        c."assignedTo" as user_id,
+        c.assigned_to as user_id,
         c.client_id as client_id,
         c.completed_at as case_completed_at,
         c.status,

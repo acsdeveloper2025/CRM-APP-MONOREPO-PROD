@@ -97,7 +97,7 @@ export const getFieldAgentTerritories = async (req: AuthenticatedRequest, res: R
     const sql = `
       SELECT
         u.id as user_id,
-        u.name as "userName",
+        u.name as user_name,
         u.username,
         u.employee_id,
         u.is_active as "userIsActive",
@@ -217,22 +217,22 @@ export const getFieldAgentTerritoryById = async (req: AuthenticatedRequest, res:
     const sql = `
       SELECT 
         user_id,
-        "userName",
+        user_name,
         "username",
         employee_id,
-        "pincodeAssignmentId",
+        pincode_assignment_id,
         pincode_id,
-        "pincodeCode",
-        "cityName",
-        "stateName",
-        "countryName",
-        "assignedAreas",
-        "pincodeAssignedAt",
+        pincode_code,
+        city_name,
+        state_name,
+        country_name,
+        assigned_areas,
+        pincode_assigned_at,
         assigned_by,
         is_active
       FROM field_agent_territories
       WHERE user_id = $1
-      ORDER BY "pincodeCode"
+      ORDER BY pincode_code
     `;
 
     const result = await query(sql, [userId]);

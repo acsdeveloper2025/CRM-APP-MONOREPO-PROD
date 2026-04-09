@@ -313,13 +313,13 @@ ${this.formatFormDataForPrompt(formData, verificationType)}
 Generate a comprehensive verification report in the following JSON format. Ensure all analysis is based on the provided data and follows professional verification standards.
 
 {
-  "executiveSummary": "Brief 2-3 sentence summary of the verification outcome and key findings",
-  "keyFindings": [
+  executive_summary: "Brief 2-3 sentence summary of the verification outcome and key findings",
+  key_findings: [
     "List of 3-5 key findings from the verification",
     "Each finding should be specific and evidence-based"
   ],
-  "verificationDetails": "Detailed analysis of the verification process, what was verified, who was met, documents checked, etc. (200-300 words)",
-  "riskAssessment": "Professional risk assessment based on findings - categorize as LOW, MEDIUM, or HIGH risk with justification (150-200 words)",
+  verification_details: "Detailed analysis of the verification process, what was verified, who was met, documents checked, etc. (200-300 words)",
+  risk_assessment: "Professional risk assessment based on findings - categorize as LOW, MEDIUM, or HIGH risk with justification (150-200 words)",
   "recommendations": [
     "List of 2-4 actionable recommendations",
     "Based on the verification outcome and risk assessment"

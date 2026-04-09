@@ -37,7 +37,7 @@ export const generateUserAuthUuid = async (
   const userRes = await query(
     `SELECT u.id, u.username,
             ${PRIMARY_ROLE_NAME_SQL} as role,
-            ${PRIMARY_ROLE_NAME_SQL} as "roleName"
+            ${PRIMARY_ROLE_NAME_SQL} as role_name
      FROM users u
      WHERE u.id = $1`,
     [userId]
@@ -51,9 +51,9 @@ export const generateUserAuthUuid = async (
   // Generate new UUID and update the user (no role restrictions)
   const newAuthUuid = await query(
     `UPDATE users
-     SET "authUuid" = gen_random_uuid(), updated_at = CURRENT_TIMESTAMP
+     SET auth_uuid = gen_random_uuid(), updated_at = CURRENT_TIMESTAMP
      WHERE id = $1
-     RETURNING "authUuid"`,
+     RETURNING auth_uuid`,
     [userId]
   );
 
@@ -89,7 +89,7 @@ export const revokeUserAuthUuid = async (userId: string, adminUserId?: string): 
   const userRes = await query(
     `SELECT u.id, u.username,
             ${PRIMARY_ROLE_NAME_SQL} as role,
-            ${PRIMARY_ROLE_NAME_SQL} as "roleName"
+            ${PRIMARY_ROLE_NAME_SQL} as role_name
      FROM users u
      WHERE u.id = $1`,
     [userId]
@@ -103,7 +103,7 @@ export const revokeUserAuthUuid = async (userId: string, adminUserId?: string): 
   // Revoke the authUuid (no role restrictions)
   const result = await query(
     `UPDATE users
-     SET "authUuid" = NULL, updated_at = CURRENT_TIMESTAMP
+     SET auth_uuid = NULL, updated_at = CURRENT_TIMESTAMP
      WHERE id = $1
      RETURNING id`,
     [userId]
@@ -134,9 +134,9 @@ export const revokeUserAuthUuid = async (userId: string, adminUserId?: string): 
 export const getUserAuthInfo = async (userId: string): Promise<UserAuthInfo | null> => {
   try {
     const result = await query(
-      `SELECT u.id, u.username, u.name, u."authUuid", u.is_active,
+      `SELECT u.id, u.username, u.name, u.auth_uuid, u.is_active,
               ${PRIMARY_ROLE_NAME_SQL} as role,
-              ${PRIMARY_ROLE_NAME_SQL} as "roleName"
+              ${PRIMARY_ROLE_NAME_SQL} as role_name
        FROM users u
        WHERE u.id = $1`,
       [userId]
@@ -169,7 +169,7 @@ export const validateUserAuthUuid = async (authUuid: string): Promise<boolean> =
     const result = await query(
       `SELECT u.id
        FROM users u
-       WHERE u."authUuid" = $1 AND u.is_active = true`,
+       WHERE u.auth_uuid = $1 AND u.is_active = true`,
       [authUuid]
     );
 
@@ -185,11 +185,11 @@ export const validateUserAuthUuid = async (authUuid: string): Promise<boolean> =
 export const getUserByAuthUuid = async (authUuid: string): Promise<UserAuthInfo | null> => {
   try {
     const result = await query(
-      `SELECT u.id, u.username, u.name, u."authUuid", u.is_active,
+      `SELECT u.id, u.username, u.name, u.auth_uuid, u.is_active,
               ${PRIMARY_ROLE_NAME_SQL} as role,
-              ${PRIMARY_ROLE_NAME_SQL} as "roleName"
+              ${PRIMARY_ROLE_NAME_SQL} as role_name
        FROM users u
-       WHERE u."authUuid" = $1`,
+       WHERE u.auth_uuid = $1`,
       [authUuid]
     );
 

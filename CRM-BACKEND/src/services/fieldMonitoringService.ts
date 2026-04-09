@@ -872,7 +872,7 @@ export class FieldMonitoringService {
           SELECT
             uaa.user_id as user_id,
             uaa.pincode_id as pincode_id,
-            p.code as "pincodeCode",
+            p.code as pincode_code,
             uaa.area_id as area_id,
             a.name as "areaName"
           FROM user_area_assignments uaa
@@ -889,7 +889,7 @@ export class FieldMonitoringService {
           SELECT
             upa.user_id as user_id,
             upa.pincode_id as pincode_id,
-            p.code as "pincodeCode"
+            p.code as pincode_code
           FROM user_pincode_assignments upa
           JOIN pincodes p ON p.id = upa.pincode_id
           WHERE upa.user_id = ANY($1::uuid[])
@@ -954,7 +954,7 @@ export class FieldMonitoringService {
           vt.current_assigned_at as "currentAssignedAt",
           vt.pincode,
           c.id as case_id,
-          c.case_id as "caseNumber",
+          c.case_id as case_number,
           c.customer_name as customer_name,
           c.customer_phone as customer_phone,
           c.status as "caseStatus"

@@ -82,10 +82,10 @@ async function processCaseReassignment(
         id,
         case_id,
         customer_name,
-        "assignedTo",
+        assigned_to,
         status
       FROM cases
-      WHERE id = $1 AND "assignedTo" = $2
+      WHERE id = $1 AND assigned_to = $2
       FOR UPDATE
     `;
 
@@ -127,7 +127,7 @@ async function processCaseReassignment(
     const updateQuery = `
       UPDATE cases
       SET
-        "assignedTo" = $1,
+        assigned_to = $1,
         status = 'PENDING',
         updated_at = NOW()
       WHERE id = $2
@@ -268,7 +268,7 @@ async function processSingleAssignment(
         id,
         case_id,
         customer_name,
-        "assignedTo",
+        assigned_to,
         status
       FROM cases
       WHERE id = $1
@@ -324,7 +324,7 @@ async function processSingleAssignment(
     const updateQuery = `
       UPDATE cases
       SET
-        "assignedTo" = $1,
+        assigned_to = $1,
         status = CASE
           WHEN status IS NULL OR status = '' THEN 'PENDING'
           WHEN status = 'PENDING' THEN 'PENDING'

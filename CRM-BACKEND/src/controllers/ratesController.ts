@@ -55,7 +55,7 @@ export const getRates = async (req: AuthenticatedRequest, res: Response) => {
       values.push(`%${String(search)}%`);
       values.push(`%${String(search)}%`);
       whereSql.push(
-        `("clientName" ILIKE $${values.length - 3} OR "productName" ILIKE $${values.length - 2} OR "verificationTypeName" ILIKE $${values.length - 1} OR "rateTypeName" ILIKE $${values.length})`
+        `(client_name ILIKE $${values.length - 3} OR product_name ILIKE $${values.length - 2} OR verification_type_name ILIKE $${values.length - 1} OR rate_type_name ILIKE $${values.length})`
       );
     }
 
@@ -144,7 +144,7 @@ export const getAvailableRateTypesForAssignment = async (
     const availableRes = await query(
       `SELECT 
         rt.id as rate_type_id,
-        rt.name as "rateTypeName",
+        rt.name as rate_type_name,
         rt.description as "rateTypeDescription",
         CASE WHEN r.id IS NOT NULL THEN r.amount ELSE NULL END as "currentAmount",
         CASE WHEN r.id IS NOT NULL THEN true ELSE false END as "hasRate"

@@ -96,7 +96,7 @@ export class QueryOptimizationService {
         COALESCE(
           (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
           'UNASSIGNED'
-        ) as "roleName",
+        ) as role_name,
         COALESCE((
           SELECT ARRAY_AGG(DISTINCT p.code ORDER BY p.code)
           FROM user_roles ur
@@ -175,21 +175,21 @@ export class QueryOptimizationService {
       SELECT 
         c.case_id, c.customer_name, c.customer_phone, c.address,
         c.status, c.priority, c.created_at, c.updated_at,
-        cl.name as "clientName", cl.code as "clientCode",
+        cl.name as client_name, cl.code as "clientCode",
         u.name as "assignedToName", u.employee_id,
-        p.name as "productName", p.code as "productCode",
-        vt.name as "verificationTypeName", vt.code as "verificationTypeCode",
+        p.name as product_name, p.code as "productCode",
+        vt.name as verification_type_name, vt.code as "verificationTypeCode",
         COUNT(DISTINCT a.id) as "attachmentCount",
         COUNT(DISTINCT al.id) as "auditLogCount"
       FROM cases c
       LEFT JOIN clients cl ON c.client_id = cl.id
-      LEFT JOIN users u ON c."assignedTo" = u.id
+      LEFT JOIN users u ON c.assigned_to = u.id
       LEFT JOIN products p ON c.product_id = p.id
       LEFT JOIN verification_types vt ON c.verification_type_id = vt.id
       LEFT JOIN attachments a ON c.case_id = a.case_id
       LEFT JOIN audit_logs al ON c.case_id::text = al.entity_id AND al.entity_type = 'case'
       WHERE ($1::text IS NULL OR c.status = $1)
-        AND ($2::uuid IS NULL OR c."assignedTo" = $2)
+        AND ($2::uuid IS NULL OR c.assigned_to = $2)
         AND ($3::integer IS NULL OR c.client_id = $3)
         AND ($4::text IS NULL OR c.customer_name ILIKE $4 OR c.customer_phone ILIKE $4)
       GROUP BY c.case_id, c.customer_name, c.customer_phone, c.address,
@@ -215,7 +215,7 @@ export class QueryOptimizationService {
     options: { restrictToAssignedUser?: boolean } = {}
   ): Promise<Record<string, unknown>> {
     const restrictToAssignedUser = Boolean(options.restrictToAssignedUser && userId);
-    const baseCondition = restrictToAssignedUser ? 'AND c."assignedTo" = $1' : '';
+    const baseCondition = restrictToAssignedUser ? 'AND c.assigned_to = $1' : '';
     const params = restrictToAssignedUser ? [userId] : [];
 
     const query = `
@@ -233,10 +233,10 @@ export class QueryOptimizationService {
       recent_cases AS (
         SELECT 
           c.case_id, c.customer_name, c.status, c.priority, c.created_at,
-          cl.name as "clientName", u.name as "assignedToName"
+          cl.name as client_name, u.name as "assignedToName"
         FROM cases c
         LEFT JOIN clients cl ON c.client_id = cl.id
-        LEFT JOIN users u ON c."assignedTo" = u.id
+        LEFT JOIN users u ON c.assigned_to = u.id
         WHERE 1=1 ${baseCondition}
         ORDER BY c.created_at DESC
         LIMIT 10
@@ -263,7 +263,7 @@ export class QueryOptimizationService {
 
     const query = `
       SELECT 
-        u.id as user_id, u.name as "userName", u.username, u.employee_id, u.is_active,
+        u.id as user_id, u.name as user_name, u.username, u.employee_id, u.is_active,
         json_agg(
           DISTINCT jsonb_build_object(
             'pincodeId', p.id,

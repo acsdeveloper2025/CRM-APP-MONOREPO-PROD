@@ -396,9 +396,9 @@ export class CaseAssignmentService {
   ): Promise<void> {
     // Check if case is currently assigned to fromUserId
     const caseQuery = `
-      SELECT id, "assignedTo" 
+      SELECT id, assigned_to 
       FROM cases 
-      WHERE id = $1 AND "assignedTo" = $2
+      WHERE id = $1 AND assigned_to = $2
     `;
     const caseResult = await query(caseQuery, [caseId, fromUserId]);
 

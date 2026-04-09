@@ -369,7 +369,7 @@ export const getEnhancedCaseAnalytics = async (req: Request, res: Response) => {
     }
 
     if (agentId) {
-      whereConditions.push(`cca."assignedTo" = $${paramIndex}`);
+      whereConditions.push(`cca.assigned_to = $${paramIndex}`);
       queryParams.push(agentId);
       paramIndex++;
     }

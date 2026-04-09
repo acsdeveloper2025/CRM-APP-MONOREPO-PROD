@@ -87,7 +87,7 @@ export class DeduplicationService {
         SELECT
           c.id,
           c.case_id,
-          c.case_id as "caseNumber",
+          c.case_id as case_number,
           c.customer_name,
           c.customer_phone,
           c.pan_number,
@@ -95,9 +95,9 @@ export class DeduplicationService {
           c.created_at,
           c.verification_outcome,
           c.pincode,
-          cl.name as "clientName",
-          p.name as "productName",
-          vt.name as "verificationTypeName"
+          cl.name as client_name,
+          p.name as product_name,
+          vt.name as verification_type_name
         FROM cases c
         LEFT JOIN clients cl ON c.client_id = cl.id
         LEFT JOIN products p ON c.product_id = p.id

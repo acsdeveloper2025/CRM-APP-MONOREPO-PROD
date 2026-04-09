@@ -57,7 +57,7 @@ export class NotificationController {
           message,
           type,
           case_id as case_id,
-          case_number as "caseNumber",
+          case_number as case_number,
           task_id as "taskId",
           task_number as "taskNumber",
           data,

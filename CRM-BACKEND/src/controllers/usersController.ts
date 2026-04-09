@@ -325,7 +325,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
       name: 'u.name',
       username: 'u.username',
       email: 'u.email',
-      role: '"roleName"',
+      role: 'role_name',
       createdAt: 'u.created_at',
       updatedAt: 'u.updated_at',
     };
@@ -368,7 +368,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
           WHERE ur.user_id = u.id
         ), ARRAY[]::text[]) as roles,
         ${USER_PERMISSION_CODES_SQL} as "permissionCodes",
-        ${PRIMARY_RBAC_ROLE_NAME_SQL} as "roleName",
+        ${PRIMARY_RBAC_ROLE_NAME_SQL} as role_name,
         d.name as "departmentName",
         des.name as "designationName",
         u.team_leader_id as "teamLeaderId",
@@ -390,7 +390,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
 
         -- Assignment arrays for FIELD_AGENT role
         COALESCE(pincode_arrays.ids, ARRAY[]::int[]) as "assignedPincodes",
-        COALESCE(area_arrays.ids, ARRAY[]::int[]) as "assignedAreas"
+        COALESCE(area_arrays.ids, ARRAY[]::int[]) as assigned_areas
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
       LEFT JOIN designations des ON u.designation_id = des.id
@@ -526,7 +526,7 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
           WHERE ur.user_id = u.id
         ), ARRAY[]::text[]) as roles,
         ${USER_PERMISSION_CODES_SQL} as "permissionCodes",
-        ${PRIMARY_RBAC_ROLE_NAME_SQL} as "roleName",
+        ${PRIMARY_RBAC_ROLE_NAME_SQL} as role_name,
         (
           SELECT rv.description
           FROM user_roles ur
@@ -558,7 +558,7 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
 
         -- Assignment arrays for FIELD_AGENT role
         COALESCE(pincode_arrays.ids, ARRAY[]::int[]) as "assignedPincodes",
-        COALESCE(area_arrays.ids, ARRAY[]::int[]) as "assignedAreas"
+        COALESCE(area_arrays.ids, ARRAY[]::int[]) as assigned_areas
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
       LEFT JOIN designations des ON u.designation_id = des.id
@@ -1390,7 +1390,7 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
     const recentLoginsQuery = `
       SELECT
         id as user_id,
-        name as "userName",
+        name as user_name,
         last_login as "lastLoginAt"
       FROM users
       WHERE last_login >= NOW() - INTERVAL '24 hours'
@@ -1545,7 +1545,7 @@ export const getUserActivities = async (req: AuthenticatedRequest, res: Response
         al.user_agent, 
         al.details, 
         al.user_id,
-        u.name as "userName"
+        u.name as user_name
       FROM audit_logs al
       LEFT JOIN users u ON al.user_id = u.id
       ${whereClause}
@@ -1608,7 +1608,7 @@ export const getUserSessions = async (req: AuthenticatedRequest, res: Response) 
         rt.ip_address,
         rt.user_agent,
         (rt.expires_at > CURRENT_TIMESTAMP) as is_active,
-        u.name as "userName",
+        u.name as user_name,
         u.username
       FROM refresh_tokens rt
       LEFT JOIN users u ON rt.user_id = u.id
@@ -1675,7 +1675,7 @@ export const getUserClientAssignments = async (req: AuthenticatedRequest, res: R
         uca.client_id,
         uca.created_at,
         uca.updated_at,
-        c.name as "clientName",
+        c.name as client_name,
         c.code as "clientCode",
         c.email as "clientEmail",
         c.is_active as "clientIsActive"
@@ -1908,7 +1908,7 @@ export const getUserProductAssignments = async (req: AuthenticatedRequest, res: 
         upa.product_id,
         upa.assigned_at,
         upa.assigned_by,
-        p.name as "productName",
+        p.name as product_name,
         p.description as "productDescription",
         u.name as "assignedByName"
       FROM user_product_assignments upa
@@ -2539,7 +2539,7 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
       name: 'u.name',
       username: 'u.username',
       email: 'u.email',
-      role: '"roleName"',
+      role: 'role_name',
       createdAt: 'u.created_at',
       updatedAt: 'u.updated_at',
     };
@@ -2559,7 +2559,7 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
         u.last_login,
         u.created_at,
         u.updated_at,
-        ${PRIMARY_RBAC_ROLE_NAME_SQL} as "roleName",
+        ${PRIMARY_RBAC_ROLE_NAME_SQL} as role_name,
         d.name as "departmentName"
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id

@@ -487,11 +487,11 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
         vt.id,
         vt.task_number as "taskNumber",
         vt.case_id as case_id,
-        c.case_id as "caseNumber",
+        c.case_id as case_number,
         c.customer_name as customer_name,
         vt.status,
         vt.priority,
-        vtype.name as "verificationTypeName",
+        vtype.name as verification_type_name,
         u.name as "assignedToName",
         EXTRACT(EPOCH FROM (NOW() - vt.created_at))/86400 as days_overdue
       FROM verification_tasks vt

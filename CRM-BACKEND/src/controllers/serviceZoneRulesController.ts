@@ -136,11 +136,11 @@ export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Respo
         szr.is_active as is_active,
         szr.created_at as created_at,
         szr.updated_at as updated_at,
-        c.name as "clientName",
-        p.name as "productName",
-        pin.code as "pincodeCode",
+        c.name as client_name,
+        p.name as product_name,
+        pin.code as pincode_code,
         a.name as "areaName",
-        rt.name as "rateTypeName"
+        rt.name as rate_type_name
        ${baseFrom}
        ${whereClause}
        ORDER BY c.name, p.name, pin.code, a.name

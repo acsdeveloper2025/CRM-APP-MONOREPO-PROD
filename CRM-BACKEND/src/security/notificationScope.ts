@@ -142,7 +142,7 @@ const loadTaskScopeRows = async (
           SELECT
             vt.id,
             vt.case_id as case_id,
-            vt.assigned_to as "assignedTo",
+            vt.assigned_to as assigned_to,
             vt.area_id as area_id,
             p_scope.id as pincode_id,
             c.client_id as client_id,
@@ -159,7 +159,7 @@ const loadTaskScopeRows = async (
       SELECT
         vt.id,
         vt.case_id as case_id,
-        vt.assigned_to as "assignedTo",
+        vt.assigned_to as assigned_to,
         vt.area_id as area_id,
         p_scope.id as pincode_id,
         c.client_id as client_id,
@@ -188,7 +188,7 @@ const loadCaseScopeRows = async (
         `
           SELECT
             c.id,
-            NULL::uuid as "assignedTo",
+            NULL::uuid as assigned_to,
             c.client_id as client_id,
             c.product_id as product_id,
             ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.assigned_to), NULL) as "taskAssignees",
@@ -206,7 +206,7 @@ const loadCaseScopeRows = async (
         `
       SELECT
         c.id,
-        NULL::uuid as "assignedTo",
+        NULL::uuid as assigned_to,
         c.client_id as client_id,
         c.product_id as product_id,
         ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.assigned_to), NULL) as "taskAssignees",
