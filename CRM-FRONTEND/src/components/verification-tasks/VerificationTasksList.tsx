@@ -49,7 +49,7 @@ interface VerificationTasksListProps {
   onViewTask?: (taskId: string) => void;
 }
 
-export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
+export const VerificationTasksList: React.FC<VerificationTasksListProps> = React.memo(({
   tasks,
   loading,
   selectedTasks,
@@ -310,4 +310,6 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = ({
       </Table>
     </div>
   );
-};
+});
+
+VerificationTasksList.displayName = 'VerificationTasksList';
