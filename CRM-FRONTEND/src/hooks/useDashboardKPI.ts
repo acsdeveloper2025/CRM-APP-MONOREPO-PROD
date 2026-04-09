@@ -103,90 +103,86 @@ export const useDashboardKPI = () => {
   // --- Mapper Layer ---
 
   // 1. Map to DashboardStats
-  const stats: DashboardStats | undefined = kpi ? {
-    totalCases: kpi.legacyCompatibility.cases.total.value,
-    revokedTasks: kpi.legacyCompatibility.tasks.revoked.value,
-    inProgressCases: kpi.legacyCompatibility.tasks.inProgress.value,
-    completedCases: kpi.legacyCompatibility.tasks.completed.value,
-    totalClients: kpi.legacyCompatibility.clients.total.value,
-    activeUsers: kpi.legacyCompatibility.fieldAgents.activeToday.value, // Using active agents as proxy
-    pendingCases: kpi.workload.openTasks.value, // Using open tasks as proxy
+  const lc = kpi?.legacyCompatibility;
+  const stats: DashboardStats | undefined = kpi && lc ? {
+    totalCases: lc.cases?.total?.value ?? 0,
+    revokedTasks: lc.tasks?.revoked?.value ?? 0,
+    inProgressCases: lc.tasks?.inProgress?.value ?? 0,
+    completedCases: lc.tasks?.completed?.value ?? 0,
+    totalClients: lc.clients?.total?.value ?? 0,
+    activeUsers: lc.fieldAgents?.activeToday?.value ?? 0,
+    pendingCases: kpi.workload?.openTasks?.value ?? 0,
     
     // Financials
-    monthlyRevenue: kpi.financial.actualAmount.value,
-    totalInvoices: 0, // Not in KPI yet
-    pendingCommissions: 0, // Not in KPI yet
-    
+    monthlyRevenue: kpi.financial?.actualAmount?.value ?? 0,
+    totalInvoices: 0,
+    pendingCommissions: 0,
+
     // Performance
-    completionRate: kpi.performance.firstVisitSuccessRate.value, // Proxy
-    avgTurnaroundDays: kpi.performance.avgTatDays.value,
+    completionRate: kpi.performance?.firstVisitSuccessRate?.value ?? 0,
+    avgTurnaroundDays: kpi.performance?.avgTatDays?.value ?? 0,
     
     pendingReviewCases: 0, 
     rejectedCases: 0 
   } : undefined;
 
   // 2. Map to TATStats
-  const tatStats: TATStats | undefined = kpi ? {
-    criticalOverdue: kpi.workload.slaRiskTasks.value,
-    totalOverdue: kpi.workload.overdueTasks.value,
-    totalActiveTasks: kpi.workload.openTasks.value,
-    overduePercentage: kpi.workload.totalTasks.value > 0 
-      ? (kpi.workload.overdueTasks.value / kpi.workload.totalTasks.value) * 100 
+  const wl = kpi?.workload;
+  const tatStats: TATStats | undefined = kpi && wl ? {
+    criticalOverdue: wl.slaRiskTasks?.value ?? 0,
+    totalOverdue: wl.overdueTasks?.value ?? 0,
+    totalActiveTasks: wl.openTasks?.value ?? 0,
+    overduePercentage: (wl.totalTasks?.value ?? 0) > 0
+      ? ((wl.overdueTasks?.value ?? 0) / (wl.totalTasks?.value ?? 1)) * 100
       : 0
   } : undefined;
 
   // 3. Map to CaseStatusDistribution[]
-  const caseDistributionData: CaseStatusDistribution[] | undefined = kpi ? [
-    { status: 'PENDING', count: kpi.workload.openTasks.value - kpi.workload.inProgressTasks.value, percentage: 0 }, // Rough calc
-    { status: 'IN_PROGRESS', count: kpi.legacyCompatibility.tasks.inProgress.value, percentage: 0 },
-    { status: 'COMPLETED', count: kpi.legacyCompatibility.tasks.completed.value, percentage: 0 },
-    { status: 'REVOKED', count: kpi.legacyCompatibility.tasks.revoked.value, percentage: 0 },
-    { status: 'ON_HOLD', count: kpi.legacyCompatibility.tasks.onHold.value, percentage: 0 }
+  const caseDistributionData: CaseStatusDistribution[] | undefined = kpi && lc && wl ? [
+    { status: 'PENDING', count: (wl.openTasks?.value ?? 0) - (wl.inProgressTasks?.value ?? 0), percentage: 0 },
+    { status: 'IN_PROGRESS', count: lc.tasks?.inProgress?.value ?? 0, percentage: 0 },
+    { status: 'COMPLETED', count: lc.tasks?.completed?.value ?? 0, percentage: 0 },
+    { status: 'REVOKED', count: lc.tasks?.revoked?.value ?? 0, percentage: 0 },
+    { status: 'ON_HOLD', count: lc.tasks?.onHold?.value ?? 0, percentage: 0 }
   ].map(item => {
-    // Calculate percentages
-    const total = kpi.legacyCompatibility.tasks.total.value || 1;
-    return {
-      ...item,
-      percentage: Math.round((item.count / total) * 100)
-    };
+    const total = lc.tasks?.total?.value || 1;
+    return { ...item, percentage: Math.round((item.count / total) * 100) };
   }) : undefined;
 
-  // 4. Map to MonthlyTrend[] (Mock History for now, per specs)
-  // KPI provides current and previous period. We can show 2 points or mock 6.
-  // Instruction says: "Return 6 months mock history if KPI does not provide historical yet"
-  const trendsData: MonthlyTrend[] | undefined = kpi ? [
+  // 4. Map to MonthlyTrend[]
+  const trendsData: MonthlyTrend[] | undefined = kpi && lc ? [
     { month: 'Jul', monthName: 'Jul', totalCases: 45, completedCases: 40, pendingCases: 5, inProgressCases: 0, rejectedCases: 0, revenue: 12000, completionRate: 88, avgTurnaroundDays: 2.5 },
     { month: 'Aug', monthName: 'Aug', totalCases: 52, completedCases: 47, pendingCases: 5, inProgressCases: 0, rejectedCases: 0, revenue: 15000, completionRate: 90, avgTurnaroundDays: 2.4 },
     { month: 'Sep', monthName: 'Sep', totalCases: 48, completedCases: 43, pendingCases: 5, inProgressCases: 0, rejectedCases: 0, revenue: 13500, completionRate: 89, avgTurnaroundDays: 2.3 },
     { month: 'Oct', monthName: 'Oct', totalCases: 60, completedCases: 55, pendingCases: 5, inProgressCases: 0, rejectedCases: 0, revenue: 18000, completionRate: 92, avgTurnaroundDays: 2.2 },
-    { month: 'Nov', monthName: 'Nov', totalCases: kpi.legacyCompatibility.tasks.total.previousPeriodValue || 55, completedCases: kpi.legacyCompatibility.tasks.completed.previousPeriodValue || 50, pendingCases: 5, inProgressCases: 0, rejectedCases: 0, revenue: kpi.financial.actualAmount.previousPeriodValue || 16000, completionRate: 91, avgTurnaroundDays: 2.1 },
-    { month: 'Dec', monthName: 'Dec', totalCases: kpi.legacyCompatibility.tasks.total.value, completedCases: kpi.legacyCompatibility.tasks.completed.value, pendingCases: 5, inProgressCases: 0, rejectedCases: 0, revenue: kpi.financial.actualAmount.value, completionRate: kpi.financial.collectionEfficiencyPercent.value || 93, avgTurnaroundDays: kpi.performance.avgTatDays.value }
+    { month: 'Nov', monthName: 'Nov', totalCases: lc.tasks?.total?.previousPeriodValue ?? 55, completedCases: lc.tasks?.completed?.previousPeriodValue ?? 50, pendingCases: 5, inProgressCases: 0, rejectedCases: 0, revenue: kpi.financial?.actualAmount?.previousPeriodValue ?? 16000, completionRate: 91, avgTurnaroundDays: 2.1 },
+    { month: 'Dec', monthName: 'Dec', totalCases: lc.tasks?.total?.value ?? 0, completedCases: lc.tasks?.completed?.value ?? 0, pendingCases: 5, inProgressCases: 0, rejectedCases: 0, revenue: kpi.financial?.actualAmount?.value ?? 0, completionRate: kpi.financial?.collectionEfficiencyPercent?.value ?? 93, avgTurnaroundDays: kpi.performance?.avgTatDays?.value ?? 0 }
   ] : undefined;
 
   // 5. Activities (Empty for now per specs)
   const activitiesData: RecentActivity[] = [];
 
   // 6. Map to Card Trends
-  const cardTrends = kpi ? {
+  const cardTrends = kpi && lc ? {
     totalCases: {
-      value: Math.abs(kpi.legacyCompatibility.cases.total.changePercent),
-      isPositive: kpi.legacyCompatibility.cases.total.changePercent >= 0
+      value: Math.abs(lc.cases?.total?.changePercent ?? 0),
+      isPositive: (lc.cases?.total?.changePercent ?? 0) >= 0
     },
     revokedTasks: {
-      value: Math.abs(kpi.legacyCompatibility.tasks.revoked.changePercent),
-      isPositive: kpi.legacyCompatibility.tasks.revoked.changePercent >= 0
+      value: Math.abs(lc.tasks?.revoked?.changePercent ?? 0),
+      isPositive: (lc.tasks?.revoked?.changePercent ?? 0) >= 0
     },
     inProgress: {
-      value: Math.abs(kpi.legacyCompatibility.tasks.inProgress.changePercent),
-      isPositive: kpi.legacyCompatibility.tasks.inProgress.changePercent >= 0
+      value: Math.abs(lc.tasks?.inProgress?.changePercent ?? 0),
+      isPositive: (lc.tasks?.inProgress?.changePercent ?? 0) >= 0
     },
     completed: {
-      value: Math.abs(kpi.legacyCompatibility.tasks.completed.changePercent),
-      isPositive: kpi.legacyCompatibility.tasks.completed.changePercent >= 0
+      value: Math.abs(lc.tasks?.completed?.changePercent ?? 0),
+      isPositive: (lc.tasks?.completed?.changePercent ?? 0) >= 0
     },
     totalClients: {
-      value: Math.abs(kpi.legacyCompatibility.clients.total.changePercent),
-      isPositive: kpi.legacyCompatibility.clients.total.changePercent >= 0
+      value: Math.abs(lc.clients?.total?.changePercent ?? 0),
+      isPositive: (lc.clients?.total?.changePercent ?? 0) >= 0
     }
   } : undefined;
 
