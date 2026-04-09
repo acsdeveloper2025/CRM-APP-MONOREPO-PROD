@@ -13,6 +13,7 @@ import {
   userHasPermission,
 } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
+import { createAuditLog } from '@/utils/auditLogger';
 
 const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
@@ -830,6 +831,16 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
       newUserRole: role,
     });
 
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'CREATE_USER',
+      entityType: 'USER',
+      entityId: newUser.id,
+      details: { name, username, email, role: finalRole },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
+
     res.status(201).json({
       success: true,
       data: newUser,
@@ -1041,6 +1052,16 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
       updatedFields: Object.keys(updateData),
     });
 
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'UPDATE_USER',
+      entityType: 'USER',
+      entityId: id,
+      details: { updatedFields: Object.keys(updateData) },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
+
     res.json({
       success: true,
       data: updatedUser,
@@ -1117,6 +1138,16 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
       originalEmail: targetUser.email,
     });
 
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'DELETE_USER',
+      entityType: 'USER',
+      entityId: id,
+      details: { deletedUsername: targetUser.username, softDelete: true },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
+
     res.json({
       success: true,
       message: 'User deleted safely (Data preserved, User deactivated)',
@@ -1180,6 +1211,15 @@ export const activateUser = async (req: AuthenticatedRequest, res: Response) => 
 
     logger.info(`Activated user: ${id}`, { userId: req.user?.id });
 
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'ACTIVATE_USER',
+      entityType: 'USER',
+      entityId: id,
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
+
     res.json({
       success: true,
       data: result.rows[0],
@@ -1218,6 +1258,15 @@ export const deactivateUser = async (req: AuthenticatedRequest, res: Response) =
     }
 
     logger.info(`Deactivated user: ${id}`, { userId: req.user?.id });
+
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'DEACTIVATE_USER',
+      entityType: 'USER',
+      entityId: id,
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
 
     res.json({
       success: true,
@@ -2139,6 +2188,16 @@ If you did not request this password reset, please contact your administrator im
       targetUserId: id,
     });
 
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'GENERATE_TEMP_PASSWORD',
+      entityType: 'USER',
+      entityId: id,
+      details: { targetUsername: user.username },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
+
     res.json({
       success: true,
       data: { temporaryPassword: tempPassword },
@@ -2218,6 +2277,15 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response) =
       targetUserId: id,
     });
 
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'CHANGE_PASSWORD',
+      entityType: 'USER',
+      entityId: id,
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
+
     res.json({
       success: true,
       message: 'Password changed successfully',
@@ -2283,6 +2351,16 @@ export const resetPassword = async (req: AuthenticatedRequest, res: Response) =>
     logger.info(`Password reset for user: ${user.username}`, {
       userId: req.user?.id,
       targetUserId: user.id,
+    });
+
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'RESET_PASSWORD',
+      entityType: 'USER',
+      entityId: user.id,
+      details: { targetUsername: user.username },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
     });
 
     res.json({

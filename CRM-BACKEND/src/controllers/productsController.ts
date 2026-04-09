@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
+import { createAuditLog } from '@/utils/auditLogger';
 
 // GET /api/products - List products with pagination and filters
 export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
@@ -176,6 +177,16 @@ export const createProduct = async (req: AuthenticatedRequest, res: Response) =>
       productCode: code,
     });
 
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'CREATE_PRODUCT',
+      entityType: 'PRODUCT',
+      entityId: newProduct.id?.toString(),
+      details: { name: newProduct.name, code: newProduct.code },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
+
     res.status(201).json({
       success: true,
       data: newProduct,
@@ -257,6 +268,16 @@ export const updateProduct = async (req: AuthenticatedRequest, res: Response) =>
       updates: Object.keys(updatePayload),
     });
 
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'UPDATE_PRODUCT',
+      entityType: 'PRODUCT',
+      entityId: id,
+      details: { updates: updatePayload, name: updatedProduct.name, code: updatedProduct.code },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
+
     res.json({
       success: true,
       data: updatedProduct,
@@ -296,6 +317,16 @@ export const deleteProduct = async (req: AuthenticatedRequest, res: Response) =>
       userId: req.user?.id,
       productId: id,
       productName: existingProduct.name,
+    });
+
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'DELETE_PRODUCT',
+      entityType: 'PRODUCT',
+      entityId: id,
+      details: { name: existingProduct.name },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
     });
 
     res.json({
