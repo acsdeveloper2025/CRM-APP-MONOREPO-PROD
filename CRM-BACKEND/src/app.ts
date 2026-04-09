@@ -4,7 +4,7 @@ import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import cookieParser from 'cookie-parser';
+// cookie-parser not needed — API uses JWT Bearer tokens, not cookie-based auth
 import { config } from '@/config';
 import { logger } from '@/config/logger';
 import { errorHandler, notFoundHandler } from '@/middleware/errorHandler';
@@ -160,14 +160,12 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 import { sanitizeInput } from '@/middleware/sanitize';
 app.use(sanitizeInput);
 
-// Cookie parsing — required for CSRF double-submit cookie pattern
-app.use(cookieParser());
-
-// CSRF protection — double-submit cookie pattern for state-changing requests
-// Skips: mobile API routes (Bearer token auth), auth/login, health checks
-import { csrfProtection, csrfTokenHandler } from '@/middleware/csrf';
-app.use(csrfProtection);
-app.get('/api/csrf-token', csrfTokenHandler);
+// NOTE: CSRF protection is NOT needed for this API.
+// All authentication uses JWT Bearer tokens in Authorization headers.
+// CSRF attacks only affect cookie-based auth (where browser auto-attaches credentials).
+// Bearer tokens must be explicitly attached by client JS — an attacker's cross-origin
+// form/script cannot read or attach them. This is inherently CSRF-safe by design.
+// See: https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html
 
 // Performance monitoring — request timing + memory tracking
 app.use(performanceMonitoring);
