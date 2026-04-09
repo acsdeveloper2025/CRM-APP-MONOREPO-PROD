@@ -170,7 +170,7 @@ export default defineConfig({
     },
 
     // Modern browser targets for smaller bundles
-    target: ['es2020', 'chrome80', 'safari13', 'firefox78', 'edge88'],
+    target: ['es2022', 'chrome90', 'safari15', 'firefox90', 'edge90'],
 
     // Enable CSS code splitting for better caching
     cssCodeSplit: true,
