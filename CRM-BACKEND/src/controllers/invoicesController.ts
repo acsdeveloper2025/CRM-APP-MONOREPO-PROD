@@ -751,12 +751,12 @@ const loadCompletedUnbilledTasks = async (
 
   if (billingPeriodFrom) {
     params.push(billingPeriodFrom);
-    conditions.push(`COALESCE(vt.completed_at, c.completed_at) >= $${params.length}`);
+    conditions.push(`vt.completed_at >= $${params.length}`);
   }
 
   if (billingPeriodTo) {
     params.push(billingPeriodTo);
-    conditions.push(`COALESCE(vt.completed_at, c.completed_at) <= $${params.length}`);
+    conditions.push(`vt.completed_at <= $${params.length}`);
   }
 
   const result = await client.query<InvoiceTaskCandidateRow>(
