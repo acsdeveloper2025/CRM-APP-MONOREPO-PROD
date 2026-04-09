@@ -320,7 +320,7 @@ export class VerificationTasksController {
     }
     const rawTaskId = String(req.params.taskId || '');
     const taskId = Array.isArray(rawTaskId) ? String(rawTaskId[0]) : String(rawTaskId || '');
-    const { assigned_to: assignedTo } = req.body;
+    const { assignedTo } = req.body;
     const userId = req.user?.id;
 
     const client = await pool.connect();
@@ -1457,8 +1457,8 @@ export class VerificationTasksController {
     const rawTaskId = String(req.params.taskId || '');
     const taskId = Array.isArray(rawTaskId) ? String(rawTaskId[0]) : String(rawTaskId || '');
     const body = req.body;
-    const assignedTo = body.assignedTo || body.assigned_to;
-    const assignmentReason = body.assignmentReason || body.assignment_reason;
+    const assignedTo = body.assignedTo || body.assignedTo;
+    const assignmentReason = body.assignmentReason || body.assignmentReason;
     const priority = body.priority;
     const userId = req.user?.id;
 
@@ -1695,7 +1695,7 @@ export class VerificationTasksController {
     }
 
     const taskId = String(req.params.taskId || '');
-    const reason = String(req.body.revoke_reason || req.body.reason || '').trim();
+    const reason = String(req.body.revokeReason || req.body.reason || '').trim();
     const userId = req.user?.id;
 
     if (!taskId) {

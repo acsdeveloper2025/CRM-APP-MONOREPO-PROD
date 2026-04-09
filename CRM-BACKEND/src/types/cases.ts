@@ -17,39 +17,47 @@ export interface CreateCaseDetails {
 }
 
 export interface CreateVerificationTask {
-  verification_type_id: number;
-  task_title?: string;
-  task_description?: string;
+  verificationTypeId: number;
+  taskTitle?: string;
+  taskDescription?: string;
   priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  assigned_to?: string;
   assignedTo?: string;
-  rate_type_id?: number;
-  estimated_amount?: number;
+  rateTypeId?: number;
+  estimatedAmount?: number;
   address?: string;
   pincode?: string;
   trigger?: string;
-  document_type?: string;
-  document_number?: string;
-  document_details?: Record<string, unknown>;
-  estimated_completion_date?: string;
-  applicant_type?: string;
+  documentType?: string;
+  documentNumber?: string;
+  documentDetails?: Record<string, unknown>;
+  estimatedCompletionDate?: string;
   applicantType?: string;
-  attachment_keys?: string[];
+  attachmentKeys?: string[];
   [key: string]: unknown;
 }
 
 export interface CreateCaseRequest {
-  case_details: CreateCaseDetails;
-  verification_tasks: CreateVerificationTask[];
+  caseDetails: CreateCaseDetails;
+  verificationTasks: CreateVerificationTask[];
   applicants?: CreateApplicantData[];
+  kycDocuments?: KYCDocumentInput[];
+}
+
+export interface KYCDocumentInput {
+  documentType: string;
+  documentNumber?: string;
+  documentHolderName?: string;
+  documentDetails?: Record<string, string>;
+  description?: string;
+  assignedTo?: string;
 }
 
 export interface CreateApplicantData {
   name: string;
   mobile: string;
   role?: string;
-  pan_number?: string;
-  id_details?: Record<string, unknown>;
+  panNumber?: string;
+  idDetails?: Record<string, unknown>;
   verifications?: CreateVerificationTask[];
 }
 

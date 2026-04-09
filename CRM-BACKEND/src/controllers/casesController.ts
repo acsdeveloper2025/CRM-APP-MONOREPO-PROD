@@ -7,7 +7,12 @@ import path from 'path';
 import fs from 'fs';
 import ExcelJS from 'exceljs';
 import { QueryParams, CaseRow } from '../types/database';
-import { CreateApplicantData, CreateCaseRequest, CreateVerificationTask } from '../types/cases';
+import {
+  CreateApplicantData,
+  CreateCaseRequest,
+  CreateVerificationTask,
+  KYCDocumentInput,
+} from '../types/cases';
 import {
   VerificationTaskCreationError,
   VerificationTaskCreationService,
@@ -2306,7 +2311,7 @@ export const createCase = [
         logger.info('Case creation request received:', {
           userId,
           hasFormData: !!req.body.data,
-          caseDetailsKeys: requestData.case_details ? Object.keys(requestData.case_details) : [],
+          caseDetailsKeys: requestData.caseDetails ? Object.keys(requestData.caseDetails) : [],
           applicantsCount: requestData.applicants?.length || 0,
           firstApplicantKeys: requestData.applicants?.[0]
             ? Object.keys(requestData.applicants[0])
@@ -2328,8 +2333,8 @@ export const createCase = [
         });
       }
 
-      const { case_details: caseDetails, verification_tasks: verificationTasksFromRequest } =
-        requestData;
+      const caseDetails = requestData.caseDetails;
+      const verificationTasksFromRequest = requestData.verificationTasks;
       let applicantsData = requestData.applicants;
 
       if (
@@ -2377,7 +2382,7 @@ export const createCase = [
         for (const taskRaw of verificationTasksFromRequest) {
           const task = taskRaw as Record<string, unknown>;
           const role = String(
-            (task.applicant_type as string) ||
+            (task.applicantType as string) ||
               (task.applicantType as string) ||
               caseDetails?.applicantType ||
               'APPLICANT'
@@ -2398,7 +2403,7 @@ export const createCase = [
               ''
           );
           const verificationTypeId = Number(
-            task.verification_type_id || task.verificationTypeId || 0
+            task.verificationTypeId || task.verificationTypeId || 0
           );
           if (!verificationTypeId) {
             continue;
@@ -2425,7 +2430,7 @@ export const createCase = [
             address: task.address || null,
             pincode_id: pincodeIdFromTask,
             assigned_to: task.assigned_to || task.assignedTo || null,
-            sla_deadline: task.estimated_completion_date || task.sla_deadline || null,
+            sla_deadline: task.estimatedCompletionDate || task.sla_deadline || null,
           } as unknown as CreateVerificationTask);
         }
 
@@ -2518,7 +2523,7 @@ export const createCase = [
           : '';
       // For KYC-only cases, verificationTypeId and trigger are optional
       const kycDocumentsForValidation = (requestData as unknown as Record<string, unknown>)
-        .kyc_documents as unknown[] | undefined;
+        .kycDocuments as unknown[] | undefined;
       const isKYCOnlyCase =
         kycDocumentsForValidation &&
         kycDocumentsForValidation.length > 0 &&
@@ -2618,8 +2623,8 @@ export const createCase = [
             appData.name,
             appData.mobile,
             appData.role || 'APPLICANT',
-            appData.pan_number,
-            appData.id_details || {},
+            appData.panNumber,
+            appData.idDetails || {},
           ]
         );
         const applicant = applicantResult.rows[0];
@@ -2732,7 +2737,7 @@ export const createCase = [
 
       // Allow empty field tasks if KYC documents are provided
       const kycDocumentsFromRequest = (requestData as unknown as Record<string, unknown>)
-        .kyc_documents as unknown[] | undefined;
+        .kycDocuments as unknown[] | undefined;
       const hasKYCDocuments = kycDocumentsFromRequest && kycDocumentsFromRequest.length > 0;
 
       if ((!tasksToCreate || tasksToCreate.length === 0) && !hasKYCDocuments) {
@@ -2756,31 +2761,22 @@ export const createCase = [
       }
 
       // Create KYC document verification tasks if provided
-      const kycDocuments = kycDocumentsFromRequest as
-        | Array<{
-            document_type: string;
-            document_number?: string;
-            document_holder_name?: string;
-            document_details?: Record<string, string>;
-            description?: string;
-            assigned_to?: string;
-          }>
-        | undefined;
+      const kycDocuments = kycDocumentsFromRequest as KYCDocumentInput[] | undefined;
 
       if (kycDocuments && kycDocuments.length > 0) {
         for (const doc of kycDocuments) {
-          const hasAssignment = !!doc.assigned_to;
+          const hasAssignment = !!doc.assignedTo;
 
           // Look up KYC rate from documentTypeRates (client + product + kyc_document_type)
           let rateAmount: number | null = null;
           const kycDocTypeRes = await client.query(
             `SELECT id FROM kyc_document_types WHERE code = $1 AND is_active = true`,
-            [doc.document_type]
+            [doc.documentType]
           );
           if (kycDocTypeRes.rows.length === 0) {
-            logger.warn(`KYC document type not found or inactive: ${doc.document_type}`, {
+            logger.warn(`KYC document type not found or inactive: ${doc.documentType}`, {
               caseId: newCase.id,
-              documentType: doc.document_type,
+              documentType: doc.documentType,
             });
           }
           if (kycDocTypeRes.rows.length > 0) {
@@ -2795,7 +2791,7 @@ export const createCase = [
             if (rateRes.rows.length > 0) {
               rateAmount = parseFloat(rateRes.rows[0].amount);
             } else {
-              logger.warn(`No active rate found for KYC document type ${doc.document_type}`, {
+              logger.warn(`No active rate found for KYC document type ${doc.documentType}`, {
                 caseId: newCase.id,
                 clientId: newCase.clientId,
                 productId: newCase.productId,
@@ -2814,12 +2810,12 @@ export const createCase = [
             RETURNING id`,
             [
               newCase.id,
-              `KYC: ${doc.document_type.replace(/_/g, ' ')}`,
-              `KYC document verification for ${doc.document_type}`,
+              `KYC: ${doc.documentType.replace(/_/g, ' ')}`,
+              `KYC document verification for ${doc.documentType}`,
               hasAssignment ? 'ASSIGNED' : 'PENDING',
               userId,
               rateAmount,
-              doc.assigned_to || null,
+              doc.assignedTo || null,
               hasAssignment ? userId : null,
               hasAssignment ? new Date() : null,
             ]
@@ -2837,12 +2833,12 @@ export const createCase = [
             [
               kycTaskId,
               newCase.id,
-              doc.document_type,
-              doc.document_number || null,
-              doc.document_holder_name || requestData.case_details.customerName || null,
-              JSON.stringify(doc.document_details || {}),
+              doc.documentType,
+              doc.documentNumber || null,
+              doc.documentHolderName || requestData.caseDetails?.customerName || null,
+              JSON.stringify(doc.documentDetails || {}),
               doc.description || null,
-              doc.assigned_to || null,
+              doc.assignedTo || null,
               hasAssignment ? userId : null,
               hasAssignment ? new Date() : null,
               rateAmount,

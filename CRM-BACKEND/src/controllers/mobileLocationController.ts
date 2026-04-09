@@ -15,8 +15,7 @@ import { MobileOperationService } from '@/services/mobileOperationService';
 
 export class MobileLocationController {
   private static getOperationId(req: AuthenticatedRequest): string | null {
-    const bodyValue =
-      typeof req.body?.operation_id === 'string' ? req.body.operation_id.trim() : '';
+    const bodyValue = typeof req.body?.operation_id === 'string' ? req.body.operationId.trim() : '';
     if (bodyValue) {
       return bodyValue;
     }
