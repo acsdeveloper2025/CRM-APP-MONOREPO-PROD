@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Plus, Edit, Trash2, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -204,6 +204,30 @@ export const FieldUserAssignmentsTab: React.FC = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  const userOptions = useMemo(
+    () => [
+      { value: '', label: 'All Users' },
+      ...(users || []).map((user) => ({
+        value: String(user.id),
+        label: user.name,
+        description: user.email,
+      })),
+    ],
+    [users]
+  );
+
+  const rateTypeOptions = useMemo(
+    () => [
+      { value: '', label: 'All Rate Types' },
+      ...(rateTypes || []).map((rateType) => ({
+        value: rateType.id.toString(),
+        label: rateType.name,
+        description: `Rate: ${(rateType as unknown as { rate_amount?: string }).rate_amount || 'Not set'}`,
+      })),
+    ],
+    [rateTypes]
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -245,14 +269,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
               <div className="space-y-2">
                 <Label>Field User</Label>
                 <SearchableSelect
-                  options={[
-                    { value: '', label: 'All Users' },
-                    ...(users || []).map(user => ({
-                      value: String(user.id),
-                      label: user.name,
-                      description: user.email
-                    }))
-                  ]}
+                  options={userOptions}
                   value={String(filterUserId || '')}
                   onValueChange={(value) => setFilter('userId', value)}
                   placeholder="Filter by user..."
@@ -263,14 +280,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
               <div className="space-y-2">
                 <Label>Rate Type</Label>
                 <SearchableSelect
-                  options={[
-                    { value: '', label: 'All Rate Types' },
-                    ...(rateTypes || []).map(rateType => ({
-                      value: rateType.id.toString(),
-                      label: rateType.name,
-                                            description: `Rate: ${(rateType as unknown).rate_amount || 'Not set'}`
-                    }))
-                  ]}
+                  options={rateTypeOptions}
                   value={String(filterRateTypeId || '')}
                   onValueChange={(value) => setFilter('rateTypeId', value)}
                   placeholder="Filter by rate type..."

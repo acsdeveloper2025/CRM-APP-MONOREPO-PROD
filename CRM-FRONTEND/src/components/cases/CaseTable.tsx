@@ -29,7 +29,7 @@ interface CaseTableProps {
   isLoading?: boolean;
 }
 
-export const CaseTable: React.FC<CaseTableProps> = ({
+export const CaseTable: React.FC<CaseTableProps> = React.memo(({
   cases,
   isLoading,
 }) => {
@@ -262,4 +262,6 @@ export const CaseTable: React.FC<CaseTableProps> = ({
       </div>
     </>
   );
-};
+});
+
+CaseTable.displayName = 'CaseTable';
