@@ -194,7 +194,7 @@ export const validateCaseAccess = async (
       });
     }
 
-    const caseClientId = caseResult.rows[0].clientId;
+    const caseClientId = caseResult.rows[0].client_id;
 
     // Get assigned client IDs for the BACKEND_USER user
     const assignedClientIds = await getAssignedClientIds(userId);

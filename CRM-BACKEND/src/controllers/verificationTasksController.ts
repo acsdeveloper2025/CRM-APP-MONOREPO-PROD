@@ -366,8 +366,8 @@ export class VerificationTasksController {
       // Enforce territory integrity on child task creation
       const revisitedTerritory =
         await VerificationTaskCreationService.validateTerritoryAndFinancialConfig(client, {
-          clientId: Number(caseScopeResult.rows[0].clientId),
-          productId: Number(caseScopeResult.rows[0].productId),
+          clientId: Number(caseScopeResult.rows[0].client_id),
+          productId: Number(caseScopeResult.rows[0].product_id),
           verificationTypeId: Number(originalTask.verification_type_id),
           pincode: originalTask.pincode,
           areaId: originalTask.area_id,

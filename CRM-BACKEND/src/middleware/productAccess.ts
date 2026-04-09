@@ -175,7 +175,7 @@ export const validateCaseProductAccess = async (
       });
     }
 
-    const productId = caseResult.rows[0].productId;
+    const productId = caseResult.rows[0].product_id;
 
     // Get assigned product IDs for the BACKEND_USER user
     const assignedProductIds = await getAssignedProductIds(userId);

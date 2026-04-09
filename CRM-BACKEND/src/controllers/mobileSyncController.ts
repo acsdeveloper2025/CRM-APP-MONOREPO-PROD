@@ -986,7 +986,7 @@ export class MobileSyncController {
 
       targetTaskId = taskRes.rows[0].id as string;
       targetCaseId = taskRes.rows[0].case_id as string;
-      targetCaseNumber = taskRes.rows[0].caseNumber as string;
+      targetCaseNumber = taskRes.rows[0].case_number as string;
       assignedTo = (taskRes.rows[0].assigned_to as string | null) || null;
     } else if (normalizedCaseToken) {
       const isNumericCaseNumber = /^\d+$/.test(normalizedCaseToken);
@@ -1008,7 +1008,7 @@ export class MobileSyncController {
 
       targetTaskId = taskRes.rows[0].id as string;
       targetCaseId = taskRes.rows[0].case_id as string;
-      targetCaseNumber = taskRes.rows[0].caseNumber as string;
+      targetCaseNumber = taskRes.rows[0].case_number as string;
       assignedTo = (taskRes.rows[0].assigned_to as string | null) || null;
     } else {
       throw new Error('taskId or caseId is required for location sync');
