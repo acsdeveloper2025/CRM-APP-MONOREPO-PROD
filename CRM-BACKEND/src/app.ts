@@ -4,6 +4,7 @@ import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import { config } from '@/config';
 import { logger } from '@/config/logger';
 import { errorHandler, notFoundHandler } from '@/middleware/errorHandler';
@@ -158,6 +159,15 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 // Input sanitization — strip XSS from request body and query strings
 import { sanitizeInput } from '@/middleware/sanitize';
 app.use(sanitizeInput);
+
+// Cookie parsing — required for CSRF double-submit cookie pattern
+app.use(cookieParser());
+
+// CSRF protection — double-submit cookie pattern for state-changing requests
+// Skips: mobile API routes (Bearer token auth), auth/login, health checks
+import { csrfProtection, csrfTokenHandler } from '@/middleware/csrf';
+app.use(csrfProtection);
+app.get('/api/csrf-token', csrfTokenHandler);
 
 // Performance monitoring — request timing + memory tracking
 app.use(performanceMonitoring);
