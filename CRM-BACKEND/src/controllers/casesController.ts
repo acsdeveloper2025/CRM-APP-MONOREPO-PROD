@@ -2555,11 +2555,13 @@ export const createCase = [
       }
 
       // ========== VALIDATE MASTER DATA EXISTS ==========
-      const [clientCheck, productCheck] = await Promise.all([
+      const [clientCheck, productCheck, productClientCheck] = await Promise.all([
         client.query('SELECT id, is_active FROM clients WHERE id = $1', [resolvedClientId]),
-        client.query('SELECT id, is_active, client_id FROM products WHERE id = $1', [
-          resolvedProductId,
-        ]),
+        client.query('SELECT id, is_active FROM products WHERE id = $1', [resolvedProductId]),
+        client.query(
+          'SELECT 1 FROM client_products WHERE client_id = $1 AND product_id = $2',
+          [resolvedClientId, resolvedProductId]
+        ),
       ]);
 
       if (clientCheck.rows.length === 0) {
@@ -2582,7 +2584,7 @@ export const createCase = [
         (err as DatabaseError).code = 'VALIDATION_ERROR';
         throw err;
       }
-      if (Number(productCheck.rows[0].client_id) !== resolvedClientId) {
+      if (productClientCheck.rows.length === 0) {
         const err = new Error('Product does not belong to the specified client');
         (err as DatabaseError).code = 'VALIDATION_ERROR';
         throw err;
