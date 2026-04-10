@@ -200,7 +200,7 @@ export const financialConfigurationValidator = {
     }
 
     return {
-      rateTypeId: Number(result.rows[0].rateTypeId),
+      rateTypeId: Number(result.rows[0].rate_type_id),
       amount: Number(result.rows[0].amount),
     };
   },

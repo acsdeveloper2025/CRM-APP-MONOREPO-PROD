@@ -26,11 +26,11 @@ const getAggregatedClientIds = async (userIds: string[]): Promise<number[]> => {
   if (userIds.length === 0) {
     return [];
   }
-  const result = await query<{ clientId: number }>(
+  const result = await query<{ client_id: number }>(
     `SELECT DISTINCT client_id FROM user_client_assignments WHERE user_id = ANY($1::uuid[])`,
     [userIds]
   );
-  return result.rows.map(r => r.clientId);
+  return result.rows.map(r => r.client_id);
 };
 
 /**
@@ -41,11 +41,11 @@ const getAggregatedProductIds = async (userIds: string[]): Promise<number[]> => 
   if (userIds.length === 0) {
     return [];
   }
-  const result = await query<{ productId: number }>(
+  const result = await query<{ product_id: number }>(
     `SELECT DISTINCT product_id FROM user_product_assignments WHERE user_id = ANY($1::uuid[])`,
     [userIds]
   );
-  return result.rows.map(r => r.productId);
+  return result.rows.map(r => r.product_id);
 };
 
 export const resolveDataScope = async (req: RequestLike): Promise<ResolvedDataScope> => {

@@ -166,17 +166,17 @@ export class VerificationTaskCreationService {
     // Create each verification task
     for (const taskData of tasks) {
       const {
-        verification_type_id: verificationTypeId,
-        task_title: taskTitle,
-        task_description: taskDescription,
+        verificationTypeId,
+        taskTitle,
+        taskDescription,
         priority = 'MEDIUM',
-        assigned_to: assignedTo,
-        rate_type_id: initialRateTypeId,
-        estimated_amount: _estimatedAmount,
+        assignedTo,
+        rateTypeId: initialRateTypeId,
+        estimatedAmount: _estimatedAmount,
         address,
         pincode,
-        estimated_completion_date: estimatedCompletionDate,
-        area_id: areaId, // Assuming area_id is passed in taskData
+        estimatedCompletionDate,
+        areaId,
       } = taskData;
 
       let rateTypeId = initialRateTypeId as number | undefined;
@@ -185,7 +185,7 @@ export class VerificationTaskCreationService {
       let actualAmount: number | null = null;
 
       // STRICT VALIDATION: Validate complete financial configuration chain
-      if (!caseInfo.clientId || !caseInfo.productId || !verificationTypeId) {
+      if (!caseInfo.client_id || !caseInfo.product_id || !verificationTypeId) {
         throw new VerificationTaskCreationError(400, {
           success: false,
           message: 'Client, Product, and Verification Type are required',
@@ -195,8 +195,8 @@ export class VerificationTaskCreationService {
 
       const territoryValidation =
         await VerificationTaskCreationService.validateTerritoryAndFinancialConfig(client, {
-          clientId: Number(caseInfo.clientId),
-          productId: Number(caseInfo.productId),
+          clientId: Number(caseInfo.client_id),
+          productId: Number(caseInfo.product_id),
           verificationTypeId: Number(verificationTypeId),
           pincode,
           areaId,

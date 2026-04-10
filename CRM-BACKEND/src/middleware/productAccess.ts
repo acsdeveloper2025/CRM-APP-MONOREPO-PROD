@@ -19,7 +19,7 @@ const getAssignedProductIds = async (userId: string): Promise<number[]> => {
       [userId]
     );
 
-    return result.rows.map(row => row.productId);
+    return result.rows.map(row => row.product_id);
   } catch (error) {
     logger.error('Error fetching assigned product IDs:', error);
     throw error;

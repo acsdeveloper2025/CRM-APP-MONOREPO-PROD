@@ -469,8 +469,8 @@ interface SummaryStats {
 }
 
 interface UserSummaryStats extends SummaryStats {
-  userId: string;
-  userName: string;
+  user_id: string;
+  user_name: string;
 }
 
 export const getCommissionSummary = async (req: AuthenticatedRequest, res: Response) => {
@@ -543,8 +543,8 @@ export const getCommissionSummary = async (req: AuthenticatedRequest, res: Respo
         paidCommissions: Number(stats.paidCommissions || 0),
         paidAmount: Number(stats.paidAmount || 0),
         userSummary: userSummaryResult.rows.map(row => ({
-          userId: row.userId,
-          userName: row.userName,
+          userId: row.user_id,
+          userName: row.user_name,
           totalCommissions: Number(row.totalCommissions),
           totalAmount: Number(row.totalAmount),
           paidAmount: Number(row.paidAmount),

@@ -402,10 +402,10 @@ export const getAreasByPincodes = async (req: AuthenticatedRequest, res: Respons
     const areasByPincode: Record<number, Array<{ id: number; name: string }>> = {};
 
     result.rows.forEach(row => {
-      if (!areasByPincode[row.pincodeId]) {
-        areasByPincode[row.pincodeId] = [];
+      if (!areasByPincode[row.pincode_id]) {
+        areasByPincode[row.pincode_id] = [];
       }
-      areasByPincode[row.pincodeId].push({
+      areasByPincode[row.pincode_id].push({
         id: row.id,
         name: row.name,
       });

@@ -7,11 +7,11 @@ import type { ApiResponse, PaginationQuery } from '@/types/api';
 export interface FormSubmission {
   formType: 'RESIDENCE' | 'OFFICE' | 'BUSINESS';
   caseId: string;
-  submitted_by: string;
-  submitted_at: string;
-  validation_status: 'VALID' | 'PENDING' | 'INVALID';
-  submission_data: Record<string, unknown>;
-  photos_count: number;
+  submittedBy: string;
+  submittedAt: string;
+  validationStatus: 'VALID' | 'PENDING' | 'INVALID';
+  submissionData: Record<string, unknown>;
+  photosCount: number;
   customerName?: string;
   caseNumber?: string;
   agentName?: string;
@@ -108,12 +108,12 @@ export interface AgentPerformanceResponse {
 
 // Agent Productivity Types
 export interface DailyProductivity {
-  work_date: string;
-  cases_assigned: number;
-  cases_completed: number;
-  residence_forms: number;
-  office_forms: number;
-  attachments_uploaded: number;
+  workDate: string;
+  casesAssigned: number;
+  casesCompleted: number;
+  residenceForms: number;
+  officeForms: number;
+  attachmentsUploaded: number;
 }
 
 export interface AgentProductivityResponse {
@@ -159,10 +159,10 @@ export interface AgentProductivityQuery {
 // Form Validation Status Types
 export interface FormValidationStatus {
   formType: string;
-  total_forms: number;
-  validated_forms: number;
-  pending_forms: number;
-  avg_validation_time_hours: number;
+  totalForms: number;
+  validatedForms: number;
+  pendingForms: number;
+  avgValidationTimeHours: number;
 }
 
 export interface FormValidationResponse {
@@ -179,9 +179,9 @@ export interface FormValidationResponse {
 
 // Case Timeline Types
 export interface CaseTimelineEvent {
-  event_type: string;
-  event_date: string;
-  performed_by: string;
+  eventType: string;
+  eventDate: string;
+  performedBy: string;
   description: string;
   metadata: Record<string, unknown>;
 }

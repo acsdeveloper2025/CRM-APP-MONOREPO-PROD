@@ -403,19 +403,19 @@ export interface MobileSyncDownloadResponse {
 }
 
 export interface MobileAttachmentDeltaPayload {
-  attachment_id: string;
-  task_id: string;
+  attachmentId: string;
+  taskId: string;
   type: string;
-  file_name: string;
-  file_size: number;
-  mime_type: string;
-  captured_at: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  capturedAt: string;
   latitude: number | null;
   longitude: number | null;
   address: string | null;
   uploaded: boolean;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface MobileAttachmentDeltaChange {

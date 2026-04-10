@@ -553,13 +553,13 @@ export class MobileSyncController {
           entity: 'attachment',
           id: String(attachment.attachment_id),
           changes: {
-            attachment_id: String(attachment.attachment_id),
-            task_id: String(attachment.task_id),
+            attachmentId: String(attachment.attachment_id),
+            taskId: String(attachment.task_id),
             type: String(attachment.type || 'verification'),
-            file_name: String(attachment.file_name || ''),
-            file_size: Number(attachment.file_size || 0),
-            mime_type: String(attachment.mime_type || ''),
-            captured_at: new Date(attachment.captured_at).toISOString(),
+            fileName: String(attachment.file_name || ''),
+            fileSize: Number(attachment.file_size || 0),
+            mimeType: String(attachment.mime_type || ''),
+            capturedAt: new Date(attachment.captured_at).toISOString(),
             latitude:
               attachment.latitude === null || typeof attachment.latitude === 'undefined'
                 ? null
@@ -573,8 +573,8 @@ export class MobileSyncController {
                 ? attachment.address
                 : null,
             uploaded: Boolean(attachment.uploaded),
-            created_at: new Date(attachment.created_at).toISOString(),
-            updated_at: new Date(attachment.updated_at).toISOString(),
+            createdAt: new Date(attachment.created_at).toISOString(),
+            updatedAt: new Date(attachment.updated_at).toISOString(),
           },
         })
       );

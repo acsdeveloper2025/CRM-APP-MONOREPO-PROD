@@ -148,28 +148,28 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         'SELECT client_id FROM user_client_assignments WHERE user_id = $1',
         [user.id]
       );
-      assignedClients = clientsRes.rows.map(row => row.clientId);
+      assignedClients = clientsRes.rows.map(row => row.client_id);
 
       // Fetch assigned products
       const productsRes = await query(
         'SELECT product_id FROM user_product_assignments WHERE user_id = $1',
         [user.id]
       );
-      assignedProducts = productsRes.rows.map(row => row.productId);
+      assignedProducts = productsRes.rows.map(row => row.product_id);
     } else if (isFieldExecutionActor(authProfile)) {
       // Fetch assigned pincodes
       const pincodesRes = await query(
         'SELECT pincode_id FROM user_pincode_assignments WHERE user_id = $1 AND is_active = true',
         [user.id]
       );
-      assignedPincodes = pincodesRes.rows.map(row => row.pincodeId);
+      assignedPincodes = pincodesRes.rows.map(row => row.pincode_id);
 
       // Fetch assigned areas
       const areasRes = await query(
         'SELECT area_id FROM user_area_assignments WHERE user_id = $1 AND is_active = true',
         [user.id]
       );
-      assignedAreas = areasRes.rows.map(row => row.areaId);
+      assignedAreas = areasRes.rows.map(row => row.area_id);
     }
 
     // Audit success
@@ -393,28 +393,28 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
         'SELECT client_id FROM user_client_assignments WHERE user_id = $1',
         [userData.id]
       );
-      assignedClients = clientsRes.rows.map(row => row.clientId);
+      assignedClients = clientsRes.rows.map(row => row.client_id);
 
       // Fetch assigned products
       const productsRes = await query(
         'SELECT product_id FROM user_product_assignments WHERE user_id = $1',
         [userData.id]
       );
-      assignedProducts = productsRes.rows.map(row => row.productId);
+      assignedProducts = productsRes.rows.map(row => row.product_id);
     } else if (isFieldExecutionActor(authProfile)) {
       // Fetch assigned pincodes
       const pincodesRes = await query(
         'SELECT pincode_id FROM user_pincode_assignments WHERE user_id = $1 AND is_active = true',
         [userData.id]
       );
-      assignedPincodes = pincodesRes.rows.map(row => row.pincodeId);
+      assignedPincodes = pincodesRes.rows.map(row => row.pincode_id);
 
       // Fetch assigned areas
       const areasRes = await query(
         'SELECT area_id FROM user_area_assignments WHERE user_id = $1 AND is_active = true',
         [userData.id]
       );
-      assignedAreas = areasRes.rows.map(row => row.areaId);
+      assignedAreas = areasRes.rows.map(row => row.area_id);
     }
 
     const response: ApiResponse = {

@@ -585,16 +585,16 @@ export class VerificationAttachmentController {
       let attachments = result.rows.map(row => ({
         id: row.id,
         filename: row.filename,
-        originalName: row.originalName,
-        mimeType: row.mimeType,
-        size: row.fileSize,
-        url: row.filePath,
-        thumbnailUrl: row.thumbnailPath,
-        uploadedAt: row.createdAt.toISOString(),
-        photoType: row.photoType,
+        originalName: row.original_name,
+        mimeType: row.mime_type,
+        size: row.file_size,
+        url: row.file_path,
+        thumbnailUrl: row.thumbnail_path,
+        uploadedAt: row.created_at.toISOString(),
+        photoType: row.photo_type,
         verificationType: row.verification_type,
-        submissionId: row.submissionId,
-        geoLocation: row.geoLocation,
+        submissionId: row.submission_id,
+        geoLocation: row.geo_location,
       }));
 
       logger.info('📊 Found', attachments.length, 'images in verification_attachments table');
@@ -613,7 +613,7 @@ export class VerificationAttachmentController {
             ]);
 
         if (caseDataResult.rows.length > 0) {
-          const verificationData = caseDataResult.rows[0].verificationData;
+          const verificationData = caseDataResult.rows[0].verification_data;
           const verificationImages = verificationData?.verificationImages || [];
 
           logger.info('📋 Case verificationData found:', {

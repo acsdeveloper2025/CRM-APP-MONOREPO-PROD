@@ -1,5 +1,3 @@
-/* eslint-disable camelcase */
-// Disabled camelcase rule for this file as it uses snake_case for request body properties
 import type { Request, Response, NextFunction } from 'express';
 import type { TaskStatus, TaskPriority } from '../types/verificationTask';
 
@@ -24,36 +22,44 @@ export const validateTaskCreation = (req: Request, res: Response, next: NextFunc
     const task = tasks[i];
     const taskIndex = i + 1;
 
-    // Required fields validation
-    if (!task.verification_type_id) {
+    // Required fields validation (accept both camelCase and snake_case)
+    const verificationTypeId = task.verificationTypeId ?? task.verification_type_id;
+    const taskTitle = task.taskTitle ?? task.task_title;
+    const taskDescription = task.taskDescription ?? task.task_description;
+    const estimatedAmount = task.estimatedAmount ?? task.estimated_amount;
+    const rateTypeId = task.rateTypeId ?? task.rate_type_id;
+    const estimatedCompletionDate = task.estimatedCompletionDate ?? task.estimated_completion_date;
+    const documentDetails = task.documentDetails ?? task.document_details;
+
+    if (!verificationTypeId) {
       return res.status(400).json({
         success: false,
-        message: `Task ${taskIndex}: verification_type_id is required`,
+        message: `Task ${taskIndex}: verificationTypeId is required`,
         error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
-    if (!task.task_title || task.task_title.trim().length === 0) {
+    if (!taskTitle || taskTitle.trim().length === 0) {
       return res.status(400).json({
         success: false,
-        message: `Task ${taskIndex}: task_title is required`,
+        message: `Task ${taskIndex}: taskTitle is required`,
         error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
     // Type validation
-    if (typeof task.verification_type_id !== 'number') {
+    if (typeof verificationTypeId !== 'number') {
       return res.status(400).json({
         success: false,
-        message: `Task ${taskIndex}: verification_type_id must be a number`,
+        message: `Task ${taskIndex}: verificationTypeId must be a number`,
         error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
-    if (typeof task.task_title !== 'string') {
+    if (typeof taskTitle !== 'string') {
       return res.status(400).json({
         success: false,
-        message: `Task ${taskIndex}: task_title must be a string`,
+        message: `Task ${taskIndex}: taskTitle must be a string`,
         error: { code: 'INVALID_TASK_DATA' },
       });
     }
@@ -67,56 +73,53 @@ export const validateTaskCreation = (req: Request, res: Response, next: NextFunc
       });
     }
 
-    if (
-      task.estimated_amount &&
-      (typeof task.estimated_amount !== 'number' || task.estimated_amount < 0)
-    ) {
+    if (estimatedAmount && (typeof estimatedAmount !== 'number' || estimatedAmount < 0)) {
       return res.status(400).json({
         success: false,
-        message: `Task ${taskIndex}: estimated_amount must be a positive number`,
+        message: `Task ${taskIndex}: estimatedAmount must be a positive number`,
         error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
-    if (task.rate_type_id && typeof task.rate_type_id !== 'number') {
+    if (rateTypeId && typeof rateTypeId !== 'number') {
       return res.status(400).json({
         success: false,
-        message: `Task ${taskIndex}: rate_type_id must be a number`,
+        message: `Task ${taskIndex}: rateTypeId must be a number`,
         error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
     // String length validation
-    if (task.task_title.length > 255) {
+    if (taskTitle.length > 255) {
       return res.status(400).json({
         success: false,
-        message: `Task ${taskIndex}: task_title must be 255 characters or less`,
+        message: `Task ${taskIndex}: taskTitle must be 255 characters or less`,
         error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
-    if (task.task_description && task.task_description.length > 1000) {
+    if (taskDescription && taskDescription.length > 1000) {
       return res.status(400).json({
         success: false,
-        message: `Task ${taskIndex}: task_description must be 1000 characters or less`,
+        message: `Task ${taskIndex}: taskDescription must be 1000 characters or less`,
         error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
     // Date validation
-    if (task.estimated_completion_date && !isValidDate(task.estimated_completion_date)) {
+    if (estimatedCompletionDate && !isValidDate(estimatedCompletionDate)) {
       return res.status(400).json({
         success: false,
-        message: `Task ${taskIndex}: estimated_completion_date must be a valid date`,
+        message: `Task ${taskIndex}: estimatedCompletionDate must be a valid date`,
         error: { code: 'INVALID_TASK_DATA' },
       });
     }
 
     // Document details validation
-    if (task.document_details && typeof task.document_details !== 'object') {
+    if (documentDetails && typeof documentDetails !== 'object') {
       return res.status(400).json({
         success: false,
-        message: `Task ${taskIndex}: document_details must be an object`,
+        message: `Task ${taskIndex}: documentDetails must be an object`,
         error: { code: 'INVALID_TASK_DATA' },
       });
     }
@@ -128,19 +131,27 @@ export const validateTaskCreation = (req: Request, res: Response, next: NextFunc
 export const validateTaskUpdate = (req: Request, res: Response, next: NextFunction) => {
   const updateData = req.body;
 
-  // Check if at least one field is provided
+  // Check if at least one field is provided (accept both camelCase and snake_case)
   const allowedFields = [
+    'taskTitle',
     'task_title',
+    'taskDescription',
     'task_description',
     'priority',
     'status',
+    'verificationOutcome',
     'verification_outcome',
+    'actualAmount',
     'actual_amount',
     'address',
     'pincode',
+    'documentType',
     'document_type',
+    'documentNumber',
     'document_number',
+    'documentDetails',
     'document_details',
+    'estimatedCompletionDate',
     'estimated_completion_date',
   ];
 
@@ -154,38 +165,40 @@ export const validateTaskUpdate = (req: Request, res: Response, next: NextFuncti
     });
   }
 
-  // Validate individual fields
-  if (updateData.task_title !== undefined) {
-    if (typeof updateData.task_title !== 'string' || updateData.task_title.trim().length === 0) {
+  // Validate individual fields (accept both camelCase and snake_case)
+  const taskTitle = updateData.taskTitle ?? updateData.task_title;
+  if (taskTitle !== undefined) {
+    if (typeof taskTitle !== 'string' || taskTitle.trim().length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'task_title must be a non-empty string',
+        message: 'taskTitle must be a non-empty string',
         error: { code: 'INVALID_INPUT' },
       });
     }
 
-    if (updateData.task_title.length > 255) {
+    if (taskTitle.length > 255) {
       return res.status(400).json({
         success: false,
-        message: 'task_title must be 255 characters or less',
+        message: 'taskTitle must be 255 characters or less',
         error: { code: 'INVALID_INPUT' },
       });
     }
   }
 
-  if (updateData.task_description !== undefined) {
-    if (typeof updateData.task_description !== 'string') {
+  const taskDescription = updateData.taskDescription ?? updateData.task_description;
+  if (taskDescription !== undefined) {
+    if (typeof taskDescription !== 'string') {
       return res.status(400).json({
         success: false,
-        message: 'task_description must be a string',
+        message: 'taskDescription must be a string',
         error: { code: 'INVALID_INPUT' },
       });
     }
 
-    if (updateData.task_description.length > 1000) {
+    if (taskDescription.length > 1000) {
       return res.status(400).json({
         success: false,
-        message: 'task_description must be 1000 characters or less',
+        message: 'taskDescription must be 1000 characters or less',
         error: { code: 'INVALID_INPUT' },
       });
     }
@@ -207,34 +220,32 @@ export const validateTaskUpdate = (req: Request, res: Response, next: NextFuncti
     });
   }
 
-  if (updateData.actual_amount !== undefined) {
-    if (typeof updateData.actual_amount !== 'number' || updateData.actual_amount < 0) {
+  const actualAmount = updateData.actualAmount ?? updateData.actual_amount;
+  if (actualAmount !== undefined) {
+    if (typeof actualAmount !== 'number' || actualAmount < 0) {
       return res.status(400).json({
         success: false,
-        message: 'actual_amount must be a positive number',
+        message: 'actualAmount must be a positive number',
         error: { code: 'INVALID_INPUT' },
       });
     }
   }
 
-  if (
-    updateData.estimated_completion_date !== undefined &&
-    !isValidDate(updateData.estimated_completion_date)
-  ) {
+  const estimatedCompletionDate =
+    updateData.estimatedCompletionDate ?? updateData.estimated_completion_date;
+  if (estimatedCompletionDate !== undefined && !isValidDate(estimatedCompletionDate)) {
     return res.status(400).json({
       success: false,
-      message: 'estimated_completion_date must be a valid date',
+      message: 'estimatedCompletionDate must be a valid date',
       error: { code: 'INVALID_INPUT' },
     });
   }
 
-  if (
-    updateData.document_details !== undefined &&
-    typeof updateData.document_details !== 'object'
-  ) {
+  const documentDetails = updateData.documentDetails ?? updateData.document_details;
+  if (documentDetails !== undefined && typeof documentDetails !== 'object') {
     return res.status(400).json({
       success: false,
-      message: 'document_details must be an object',
+      message: 'documentDetails must be an object',
       error: { code: 'INVALID_INPUT' },
     });
   }
@@ -243,39 +254,41 @@ export const validateTaskUpdate = (req: Request, res: Response, next: NextFuncti
 };
 
 export const validateTaskAssignment = (req: Request, res: Response, next: NextFunction) => {
-  const { assigned_to, assignment_reason, priority } = req.body;
+  const assignedTo = req.body.assignedTo ?? req.body.assigned_to;
+  const assignmentReason = req.body.assignmentReason ?? req.body.assignment_reason;
+  const { priority } = req.body;
 
   // Required field validation
-  if (!assigned_to) {
+  if (!assignedTo) {
     return res.status(400).json({
       success: false,
-      message: 'assigned_to is required',
+      message: 'assignedTo is required',
       error: { code: 'INVALID_INPUT' },
     });
   }
 
-  if (typeof assigned_to !== 'string') {
+  if (typeof assignedTo !== 'string') {
     return res.status(400).json({
       success: false,
-      message: 'assigned_to must be a string (user ID)',
+      message: 'assignedTo must be a string (user ID)',
       error: { code: 'INVALID_INPUT' },
     });
   }
 
   // Optional field validation
-  if (assignment_reason !== undefined) {
-    if (typeof assignment_reason !== 'string') {
+  if (assignmentReason !== undefined) {
+    if (typeof assignmentReason !== 'string') {
       return res.status(400).json({
         success: false,
-        message: 'assignment_reason must be a string',
+        message: 'assignmentReason must be a string',
         error: { code: 'INVALID_INPUT' },
       });
     }
 
-    if (assignment_reason.length > 500) {
+    if (assignmentReason.length > 500) {
       return res.status(400).json({
         success: false,
-        message: 'assignment_reason must be 500 characters or less',
+        message: 'assignmentReason must be 500 characters or less',
         error: { code: 'INVALID_INPUT' },
       });
     }
@@ -293,58 +306,61 @@ export const validateTaskAssignment = (req: Request, res: Response, next: NextFu
 };
 
 export const validateTaskCompletion = (req: Request, res: Response, next: NextFunction) => {
-  const { verification_outcome, actual_amount, completion_notes, form_submission_id } = req.body;
+  const verificationOutcome = req.body.verificationOutcome ?? req.body.verification_outcome;
+  const actualAmount = req.body.actualAmount ?? req.body.actual_amount;
+  const completionNotes = req.body.completionNotes ?? req.body.completion_notes;
+  const formSubmissionId = req.body.formSubmissionId ?? req.body.form_submission_id;
 
   // Required field validation
-  if (!verification_outcome) {
+  if (!verificationOutcome) {
     return res.status(400).json({
       success: false,
-      message: 'verification_outcome is required',
+      message: 'verificationOutcome is required',
       error: { code: 'INVALID_INPUT' },
     });
   }
 
-  if (typeof verification_outcome !== 'string' || verification_outcome.trim().length === 0) {
+  if (typeof verificationOutcome !== 'string' || verificationOutcome.trim().length === 0) {
     return res.status(400).json({
       success: false,
-      message: 'verification_outcome must be a non-empty string',
+      message: 'verificationOutcome must be a non-empty string',
       error: { code: 'INVALID_INPUT' },
     });
   }
 
   // Optional field validation
-  if (actual_amount !== undefined) {
-    if (typeof actual_amount !== 'number' || actual_amount < 0) {
+  if (actualAmount !== undefined) {
+    if (typeof actualAmount !== 'number' || actualAmount < 0) {
       return res.status(400).json({
         success: false,
-        message: 'actual_amount must be a positive number',
+        message: 'actualAmount must be a positive number',
         error: { code: 'INVALID_INPUT' },
       });
     }
   }
 
-  if (completion_notes !== undefined) {
-    if (typeof completion_notes !== 'string') {
+  if (completionNotes !== undefined) {
+    if (typeof completionNotes !== 'string') {
       return res.status(400).json({
         success: false,
-        message: 'completion_notes must be a string',
+        message: 'completionNotes must be a string',
         error: { code: 'INVALID_INPUT' },
       });
     }
 
-    if (completion_notes.length > 1000) {
+    if (completionNotes.length > 1000) {
       return res.status(400).json({
         success: false,
-        message: 'completion_notes must be 1000 characters or less',
+        message: 'completionNotes must be 1000 characters or less',
         error: { code: 'INVALID_INPUT' },
       });
     }
   }
 
-  if (form_submission_id !== undefined && typeof form_submission_id !== 'string') {
+  if (formSubmissionId !== undefined && typeof formSubmissionId !== 'string') {
     return res.status(400).json({
       success: false,
-      message: 'form_submission_id must be a string',
+      message: 'formSubmissionId must be a string',
       error: { code: 'INVALID_INPUT' },
     });
   }

@@ -42,19 +42,19 @@ type ViewerContext = {
 
 type TaskScopeRow = {
   id: string;
-  caseId: string;
-  assignedTo: string | null;
-  areaId: number | null;
-  pincodeId: number | null;
-  clientId: number;
-  productId: number;
+  case_id: string;
+  assigned_to: string | null;
+  area_id: number | null;
+  pincode_id: number | null;
+  client_id: number;
+  product_id: number;
 };
 
 type CaseScopeRow = {
   id: string;
-  assignedTo: string | null;
-  clientId: number;
-  productId: number;
+  assigned_to: string | null;
+  client_id: number;
+  product_id: number;
   taskAssignees: string[] | null;
   areaIds: number[] | null;
   pincodeIds: number[] | null;
@@ -238,19 +238,19 @@ const canAccessTask = (task: TaskScopeRow | undefined, viewerContext: ViewerCont
     const pincodeSet = toArraySet(viewerContext.assignedPincodeIds);
 
     return (
-      task.assignedTo === viewerContext.viewer.id ||
-      (task.areaId !== null && Boolean(areaSet?.has(task.areaId))) ||
-      (task.pincodeId !== null && Boolean(pincodeSet?.has(task.pincodeId)))
+      task.assigned_to === viewerContext.viewer.id ||
+      (task.area_id !== null && Boolean(areaSet?.has(task.area_id))) ||
+      (task.pincode_id !== null && Boolean(pincodeSet?.has(task.pincode_id)))
     );
   }
 
   if (viewerContext.isScopedOps) {
     if (viewerContext.hierarchyUserIds) {
-      return viewerContext.hierarchyUserIds.includes(task.assignedTo || '');
+      return viewerContext.hierarchyUserIds.includes(task.assigned_to || '');
     }
 
-    const clientAllowed = viewerContext.assignedClientIds?.includes(task.clientId) ?? false;
-    const productAllowed = viewerContext.assignedProductIds?.includes(task.productId) ?? false;
+    const clientAllowed = viewerContext.assignedClientIds?.includes(task.client_id) ?? false;
+    const productAllowed = viewerContext.assignedProductIds?.includes(task.product_id) ?? false;
     return clientAllowed && productAllowed;
   }
 
@@ -274,7 +274,7 @@ const canAccessCase = (
     const pincodeSet = toArraySet(viewerContext.assignedPincodeIds);
 
     return (
-      caseRow.assignedTo === viewerContext.viewer.id ||
+      caseRow.assigned_to === viewerContext.viewer.id ||
       caseRow.taskAssignees?.includes(viewerContext.viewer.id) === true ||
       arraysOverlap(caseRow.areaIds || undefined, areaSet) ||
       arraysOverlap(caseRow.pincodeIds || undefined, pincodeSet)
@@ -284,7 +284,7 @@ const canAccessCase = (
   if (viewerContext.isScopedOps) {
     if (viewerContext.hierarchyUserIds) {
       return (
-        viewerContext.hierarchyUserIds.includes(caseRow.assignedTo || '') ||
+        viewerContext.hierarchyUserIds.includes(caseRow.assigned_to || '') ||
         arraysOverlap(
           caseRow.taskAssignees || undefined,
           toArraySet(viewerContext.hierarchyUserIds)
@@ -292,8 +292,8 @@ const canAccessCase = (
       );
     }
 
-    const clientAllowed = viewerContext.assignedClientIds?.includes(caseRow.clientId) ?? false;
-    const productAllowed = viewerContext.assignedProductIds?.includes(caseRow.productId) ?? false;
+    const clientAllowed = viewerContext.assignedClientIds?.includes(caseRow.client_id) ?? false;
+    const productAllowed = viewerContext.assignedProductIds?.includes(caseRow.product_id) ?? false;
     return clientAllowed && productAllowed;
   }
 

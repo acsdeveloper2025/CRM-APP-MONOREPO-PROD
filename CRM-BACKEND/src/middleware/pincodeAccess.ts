@@ -19,7 +19,7 @@ const getAssignedPincodeIds = async (userId: string): Promise<number[]> => {
       [userId]
     );
 
-    return result.rows.map(row => row.pincodeId);
+    return result.rows.map(row => row.pincode_id);
   } catch (error) {
     logger.error('Error fetching assigned pincode IDs:', error);
     throw error;

@@ -143,8 +143,8 @@ async function processCaseReassignment(
       entityType: 'CASE',
       entityId: caseId,
       details: {
-        caseId: caseData.caseId,
-        customerName: caseData.customerName,
+        caseId: caseData.case_id,
+        customerName: caseData.customer_name,
         previousAssignee: previousAssigneeName,
         newAssignee: newAssignee.name,
         previousStatus: caseData.status,
@@ -190,8 +190,8 @@ async function processCaseReassignment(
     await queueCaseAssignmentNotification({
       userId: toUserId,
       caseId,
-      caseNumber: caseData.caseId,
-      customerName: caseData.customerName,
+      caseNumber: caseData.case_id,
+      customerName: caseData.customer_name,
       verificationType,
       assignmentType: 'reassignment',
       assignedBy: assignedById,
@@ -203,8 +203,8 @@ async function processCaseReassignment(
       await queueCaseAssignmentNotification({
         userId: fromUserId,
         caseId,
-        caseNumber: caseData.caseId,
-        customerName: caseData.customerName,
+        caseNumber: caseData.case_id,
+        customerName: caseData.customer_name,
         verificationType,
         assignmentType: 'reassignment', // This will be handled as case removal in the notification
         assignedBy: assignedById,
@@ -282,7 +282,7 @@ async function processSingleAssignment(
     }
 
     const caseData = caseResult.rows[0];
-    const previousAssignee = caseData.assignedTo;
+    const previousAssignee = caseData.assigned_to;
 
     // Get previous assignee details if exists
     let previousAssigneeName = null;
@@ -344,8 +344,8 @@ async function processSingleAssignment(
       entityType: 'CASE',
       entityId: caseId,
       details: {
-        caseId: caseData.caseId,
-        customerName: caseData.customerName,
+        caseId: caseData.case_id,
+        customerName: caseData.customer_name,
         previousAssignee: previousAssigneeName,
         newAssignee: newAssignee.name,
         reason: reason || 'No reason provided',
@@ -389,8 +389,8 @@ async function processSingleAssignment(
     await queueCaseAssignmentNotification({
       userId: assignedToId,
       caseId,
-      caseNumber: caseData.caseId,
-      customerName: caseData.customerName,
+      caseNumber: caseData.case_id,
+      customerName: caseData.customer_name,
       verificationType,
       assignmentType: previousAssignee ? 'reassignment' : 'assignment',
       assignedBy: assignedById,
@@ -407,7 +407,7 @@ async function processSingleAssignment(
     return {
       success: true,
       caseId,
-      previousAssignee: caseData.previousAssigneeName,
+      previousAssignee: previousAssigneeName,
       newAssignee: newAssignee.name,
     };
   } catch (error) {

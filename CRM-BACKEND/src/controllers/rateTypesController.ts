@@ -222,7 +222,7 @@ export const getAvailableRateTypesForCase = async (req: AuthenticatedRequest, re
       id: row.id,
       name: row.name,
       description: row.description,
-      isActive: row.isActive,
+      isActive: row.is_active,
       amount: row.amount,
       currency: row.currency || 'INR',
       hasRate: row.hasRate,

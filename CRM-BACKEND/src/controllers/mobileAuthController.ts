@@ -32,11 +32,11 @@ interface UserQueryResult {
 }
 
 interface UserPincodeRow {
-  pincodeId: number;
+  pincode_id: number;
 }
 
 interface UserAreaRow {
-  areaId: number;
+  area_id: number;
 }
 
 export class MobileAuthController {
@@ -174,14 +174,14 @@ export class MobileAuthController {
           'SELECT pincode_id FROM user_pincode_assignments WHERE user_id = $1 AND is_active = true',
           [user.id]
         );
-        assignedPincodes = pincodesRes.rows.map(row => row.pincodeId);
+        assignedPincodes = pincodesRes.rows.map(row => row.pincode_id);
 
         // Fetch assigned areas
         const areasRes = await query<UserAreaRow>(
           'SELECT area_id FROM user_area_assignments WHERE user_id = $1 AND is_active = true',
           [user.id]
         );
-        assignedAreas = areasRes.rows.map(row => row.areaId);
+        assignedAreas = areasRes.rows.map(row => row.area_id);
       }
 
       await createAuditLog({

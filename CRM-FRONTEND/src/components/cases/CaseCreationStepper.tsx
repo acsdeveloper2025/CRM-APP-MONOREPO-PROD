@@ -434,7 +434,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             })
           : [],
         // KYC document verification tasks (processed separately by backend)
-        kyc_documents: kycDocuments.length > 0 ? kycDocuments.map(doc => ({
+        kycDocuments: kycDocuments.length > 0 ? kycDocuments.map(doc => ({
           documentType: doc.documentTypeCode,
           documentNumber: doc.documentNumber || undefined,
           documentHolderName: doc.documentHolderName || undefined,

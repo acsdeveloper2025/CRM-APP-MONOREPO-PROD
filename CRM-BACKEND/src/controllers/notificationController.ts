@@ -56,8 +56,8 @@ export class NotificationController {
           title,
           message,
           type,
-          case_id as case_id,
-          case_number as case_number,
+          case_id as "caseId",
+          case_number as "caseNumber",
           task_id as "taskId",
           task_number as "taskNumber",
           data,
@@ -65,11 +65,11 @@ export class NotificationController {
           action_type as "actionType",
           is_read as "isRead",
           read_at as "readAt",
-          delivery_status as delivery_status,
+          delivery_status as "deliveryStatus",
           priority,
-          expires_at as expires_at,
-          created_at as created_at,
-          updated_at as updated_at
+          expires_at as "expiresAt",
+          created_at as "createdAt",
+          updated_at as "updatedAt"
         FROM notifications
         WHERE user_id = $1
         ORDER BY created_at DESC
@@ -790,7 +790,7 @@ export class NotificationController {
         UPDATE notification_tokens
         SET is_active = false, updated_at = NOW()
         WHERE id = $1 AND user_id = $2
-        RETURNING id, device_id as device_id, platform
+        RETURNING id, device_id, platform
       `;
 
       const result = await query(updateQuery, [tokenId, userId]);
@@ -806,7 +806,7 @@ export class NotificationController {
       logger.info('Notification token deactivated', {
         userId,
         tokenId,
-        deviceId: result.rows[0].deviceId,
+        deviceId: result.rows[0].device_id,
         platform: result.rows[0].platform,
       });
 

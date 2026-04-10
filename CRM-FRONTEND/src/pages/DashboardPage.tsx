@@ -80,7 +80,7 @@ export const DashboardPage: React.FC = () => {
     overduePercentage: 0
   };
 
-  const kycStats = kycStatsRaw || { total: 0, pending: 0, passed: 0, failed: 0, referred: 0, verified_today: 0 };
+  const kycStats = kycStatsRaw || { total: 0, pending: 0, passed: 0, failed: 0, referred: 0, verifiedToday: 0 };
 
   // Mock data removed - using real API data only
 

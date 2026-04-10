@@ -24,7 +24,7 @@ const getAssignedClientIds = async (userId: string): Promise<number[]> => {
       userId,
     ]);
 
-    return result.rows.map(row => row.clientId);
+    return result.rows.map(row => row.client_id);
   } catch (error) {
     logger.error('Error fetching assigned client IDs:', error);
     throw error;
