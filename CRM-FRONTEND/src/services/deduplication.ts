@@ -44,8 +44,8 @@ export interface DeduplicationDecision {
 }
 
 export interface DuplicateCluster {
-  group_key: string;
-  case_count: number;
+  groupKey: string;
+  caseCount: number;
   cases: Array<{
     id: string;
     caseNumber: string;

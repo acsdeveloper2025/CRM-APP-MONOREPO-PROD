@@ -114,17 +114,17 @@ export class DeduplicationService {
         let matchScore = 0;
 
         // Calculate match types and score
-        if (criteria.panNumber && row.panNumber === criteria.panNumber?.toUpperCase()) {
+        if (criteria.panNumber && row.pan_number === criteria.panNumber?.toUpperCase()) {
           matchTypes.push('PAN');
           matchScore += 100;
         }
-        if (criteria.customerPhone && row.customerPhone === criteria.customerPhone) {
+        if (criteria.customerPhone && row.customer_phone === criteria.customerPhone) {
           matchTypes.push('Phone');
           matchScore += 80;
         }
         if (criteria.customerName) {
           // Simple name similarity check
-          const nameMatch = this.calculateNameSimilarity(criteria.customerName, row.customerName);
+          const nameMatch = this.calculateNameSimilarity(criteria.customerName, row.customer_name);
           if (nameMatch > 0.6) {
             matchTypes.push('Name');
             matchScore += Math.floor(nameMatch * 60);
@@ -132,19 +132,18 @@ export class DeduplicationService {
         }
 
         return {
-          id: row.id || row.caseId.toString(),
-          caseId: row.caseId,
-          caseNumber: row.caseNumber,
-          customerName: row.customerName,
-          customerPhone: row.customerPhone,
-          panNumber: row.panNumber,
+          id: row.id || row.case_id.toString(),
+          caseId: row.case_id,
+          customerName: row.customer_name,
+          customerPhone: row.customer_phone,
+          panNumber: row.pan_number,
           status: row.status,
-          createdAt: row.createdAt,
-          clientName: row.clientName,
-          productName: row.productName,
-          verificationTypeName: row.verificationTypeName,
+          createdAt: row.created_at,
+          clientName: row.client_name,
+          productName: row.product_name,
+          verificationTypeName: row.verification_type_name,
           pincode: row.pincode,
-          verificationOutcome: row.verificationOutcome,
+          verificationOutcome: row.verification_outcome,
           matchType: matchTypes,
           matchScore,
         };

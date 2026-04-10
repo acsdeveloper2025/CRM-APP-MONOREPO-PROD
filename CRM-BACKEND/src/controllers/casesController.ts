@@ -2708,7 +2708,11 @@ export const createCase = [
               typeof (verData as Record<string, unknown>).pincode === 'string'
                 ? String((verData as Record<string, unknown>).pincode as string)
                 : await resolvePincodeCode(
-                    Number((verData as Record<string, unknown>).pincode_id || 0) || undefined
+                    Number(
+                      (verData as Record<string, unknown>).pincodeId ||
+                        (verData as Record<string, unknown>).pincode_id ||
+                        0
+                    ) || undefined
                   );
 
             if (!pincodeCode) {
@@ -2716,19 +2720,26 @@ export const createCase = [
             }
 
             tasksToCreate.push({
-              verification_type_id: (verData as Record<string, unknown>).verification_type_id,
-              task_title: `Verification for ${appData.name}`,
-              task_description: 'Auto-generated task from case creation',
+              verificationTypeId:
+                (verData as Record<string, unknown>).verification_type_id ||
+                (verData as Record<string, unknown>).verificationTypeId,
+              taskTitle: `Verification for ${appData.name}`,
+              taskDescription: 'Auto-generated task from case creation',
               priority: caseDetails.priority || 'MEDIUM',
-              assigned_to:
+              assignedTo:
                 (verData as Record<string, unknown>).assigned_to ||
                 (verData as Record<string, unknown>).assignedTo ||
                 null,
               address: (verData as Record<string, unknown>).address,
               pincode: pincodeCode,
-              estimated_completion_date: (verData as Record<string, unknown>).sla_deadline,
-              area_id: (verData as Record<string, unknown>).area_id || null,
-              applicant_type: appData.role || 'APPLICANT',
+              estimatedCompletionDate:
+                (verData as Record<string, unknown>).sla_deadline ||
+                (verData as Record<string, unknown>).estimatedCompletionDate,
+              areaId:
+                (verData as Record<string, unknown>).area_id ||
+                (verData as Record<string, unknown>).areaId ||
+                null,
+              applicantType: appData.role || 'APPLICANT',
               trigger: caseDetails.trigger || null,
             });
           }

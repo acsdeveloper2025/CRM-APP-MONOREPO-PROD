@@ -73,10 +73,10 @@ const enforceBackendUserCaseScope = async (
 
   const { query } = await import('@/config/database');
   const caseResult = await query<{
-    clientId: number;
-    productId: number;
-    createdByBackendUser: string | null;
-    assignedTo: string | null;
+    client_id: number;
+    product_id: number;
+    created_by_backend_user: string | null;
+    assigned_to: string | null;
   }>(
     `SELECT client_id, product_id, created_by_backend_user, assigned_to FROM cases WHERE id = $1`,
     [caseUuid]
@@ -120,8 +120,8 @@ const enforceBackendUserCaseScope = async (
 
   const row = caseResult.rows[0];
   return (
-    assignedClientIds.includes(Number(row.clientId)) &&
-    assignedProductIds.includes(Number(row.productId))
+    assignedClientIds.includes(Number(row.client_id)) &&
+    assignedProductIds.includes(Number(row.product_id))
   );
 };
 

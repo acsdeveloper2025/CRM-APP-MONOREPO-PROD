@@ -210,21 +210,20 @@ export class CaseAssignmentService {
       }
 
       const statusData = result.rows[0];
-      const progress =
-        statusData.totalCases > 0
-          ? Math.round((statusData.processedCases / statusData.totalCases) * 100)
-          : 0;
+      const totalCases = Number(statusData.total_cases) || 0;
+      const processedCases = Number(statusData.processed_cases) || 0;
+      const progress = totalCases > 0 ? Math.round((processedCases / totalCases) * 100) : 0;
 
       return {
-        batchId: statusData.batchId,
-        jobId: statusData.jobId,
+        batchId: statusData.batch_id,
+        jobId: statusData.job_id,
         status: statusData.status,
-        totalCases: statusData.totalCases,
-        processedCases: statusData.processedCases,
-        successfulAssignments: statusData.successfulAssignments,
-        failedAssignments: statusData.failedAssignments,
-        startedAt: statusData.startedAt,
-        completedAt: statusData.completedAt,
+        totalCases,
+        processedCases,
+        successfulAssignments: Number(statusData.successful_assignments) || 0,
+        failedAssignments: Number(statusData.failed_assignments) || 0,
+        startedAt: statusData.started_at,
+        completedAt: statusData.completed_at,
         errors: statusData.errors || [],
         progress,
       };
@@ -311,7 +310,7 @@ export class CaseAssignmentService {
         throw new Error(`Batch ${batchId} not found`);
       }
 
-      const { jobId, status } = result.rows[0];
+      const { job_id: jobId, status } = result.rows[0];
 
       if (status !== 'PENDING' && status !== 'PROCESSING') {
         throw new Error(`Cannot cancel batch in status: ${status}`);

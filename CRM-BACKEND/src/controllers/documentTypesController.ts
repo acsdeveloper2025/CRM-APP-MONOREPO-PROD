@@ -204,8 +204,8 @@ export const createDocumentType = async (req: AuthenticatedRequest, res: Respons
         id: newDocumentType.id,
         name: newDocumentType.name,
         code: newDocumentType.code,
-        createdAt: newDocumentType.createdAt,
-        updatedAt: newDocumentType.updatedAt,
+        createdAt: newDocumentType.created_at,
+        updatedAt: newDocumentType.updated_at,
       },
       message: 'Document type created successfully',
     });
@@ -322,8 +322,8 @@ export const updateDocumentType = async (req: AuthenticatedRequest, res: Respons
         id: updatedDocumentType.id,
         name: updatedDocumentType.name,
         code: updatedDocumentType.code,
-        createdAt: updatedDocumentType.createdAt,
-        updatedAt: updatedDocumentType.updatedAt,
+        createdAt: updatedDocumentType.created_at,
+        updatedAt: updatedDocumentType.updated_at,
       },
       message: 'Document type updated successfully',
     });

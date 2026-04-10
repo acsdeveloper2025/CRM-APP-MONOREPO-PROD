@@ -603,7 +603,7 @@ export class MobileFormController {
     );
 
     return attachmentResult.rows.map(row => {
-      let geoLocation = row.geoLocation;
+      let geoLocation = row.geo_location;
       if (typeof geoLocation === 'string') {
         try {
           geoLocation = JSON.parse(geoLocation);
@@ -615,10 +615,10 @@ export class MobileFormController {
       return {
         id: row.id,
         filename: row.filename,
-        url: row.filePath,
-        thumbnailUrl: row.thumbnailPath,
-        uploadedAt: row.createdAt.toISOString(),
-        photoType: row.photoType,
+        url: row.file_path,
+        thumbnailUrl: row.thumbnail_path,
+        uploadedAt: row.created_at.toISOString(),
+        photoType: row.photo_type,
         geoLocation,
       };
     });
@@ -2527,7 +2527,7 @@ export class MobileFormController {
           );
           const actualSubmissionId =
             tfsRes.rows[0]?.form_submission_id ||
-            (imagesRes.rows.length > 0 ? imagesRes.rows[0].submissionId : null) ||
+            (imagesRes.rows.length > 0 ? imagesRes.rows[0].submission_id : null) ||
             `${verificationType.toLowerCase()}_${task.task_id}_${Date.now()}`;
 
           // Create comprehensive form submission WITH TASK INFORMATION

@@ -20,17 +20,17 @@ export interface MetricWithTrend {
 
 export interface VerificationOperationsKPI {
   meta: {
-    generated_at: string;
-    period: 'last_7_days'; 
-    comparison_period: 'previous_7_days';
-    filters_applied: Record<string, unknown>;
+    generatedAt: string;
+    period: 'last_7_days';
+    comparisonPeriod: 'previous_7_days';
+    filtersApplied: Record<string, unknown>;
   };
 
   workload: {
     totalTasks: MetricWithTrend;
     openTasks: MetricWithTrend;
     inProgressTasks: MetricWithTrend;
-    completed_today: number;
+    completedToday: number;
     overdueTasks: MetricWithTrend;
     slaRiskTasks: MetricWithTrend;
   };
@@ -38,11 +38,11 @@ export interface VerificationOperationsKPI {
   performance: {
     avgTatDays: MetricWithTrend;
     firstVisitSuccessRate: MetricWithTrend;
-    revisit_rate: MetricWithTrend;
+    revisitRate: MetricWithTrend;
   };
 
   financial: {
-    billable_tasks: MetricWithTrend;
+    billableTasks: MetricWithTrend;
     estimatedAmount: MetricWithTrend;
     actualAmount: MetricWithTrend;
     collectionEfficiencyPercent: MetricWithTrend;
@@ -54,7 +54,7 @@ export interface VerificationOperationsKPI {
     passed: number;
     failed: number;
     referred: number;
-    verified_today: number;
+    verifiedToday: number;
   };
 
   legacyCompatibility: {
@@ -79,7 +79,7 @@ export interface VerificationOperationsKPI {
       total: MetricWithTrend;
       activeToday: MetricWithTrend;
     };
-    today_ops: {
+    todayOps: {
       completedTasks: MetricWithTrend;
       assignedTasks: MetricWithTrend;
     };
@@ -187,7 +187,7 @@ export const useDashboardKPI = () => {
   } : undefined;
 
   // 7. KYC stats
-  const kycStats = kpi?.kyc || { total: 0, pending: 0, passed: 0, failed: 0, referred: 0, verified_today: 0 };
+  const kycStats = kpi?.kyc || { total: 0, pending: 0, passed: 0, failed: 0, referred: 0, verifiedToday: 0 };
 
   return {
     isLoading: query.isLoading,

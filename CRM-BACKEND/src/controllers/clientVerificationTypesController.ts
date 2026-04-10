@@ -20,7 +20,7 @@ export const getVerificationTypesByClient = async (req: AuthenticatedRequest, re
     );
     const mappings = mappingsRes.rows;
     const verificationTypes = mappings.map((m: Record<string, unknown>) => ({
-      id: m.verificationTypeId,
+      id: m.verification_type_id,
       name: '',
       code: '',
     }));

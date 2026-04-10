@@ -36,9 +36,9 @@ interface MISReportRow {
   form_submitted_date: string;
   form_validation_status: string;
   case_number: string;
-  customerName: string;
-  customerPhone: string;
-  customerCallingCode: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_calling_code: string;
   client_name: string;
   client_code: string;
   product_name: string;
@@ -1941,9 +1941,9 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
 
         // Case-Level Data (SECONDARY/REFERENCE)
         { header: 'Case Number', key: 'case_number', width: 15 },
-        { header: 'Customer Name', key: 'customerName', width: 25 },
-        { header: 'Customer Phone', key: 'customerPhone', width: 15 },
-        { header: 'Calling Code', key: 'customerCallingCode', width: 12 },
+        { header: 'Customer Name', key: 'customer_name', width: 25 },
+        { header: 'Customer Phone', key: 'customer_phone', width: 15 },
+        { header: 'Calling Code', key: 'customer_calling_code', width: 12 },
         { header: 'Client Name', key: 'client_name', width: 20 },
         { header: 'Client Code', key: 'client_code', width: 15 },
         { header: 'Product', key: 'product_name', width: 20 },
@@ -2061,9 +2061,9 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
           row.form_validation_status || '',
           // Case-Level Data (SECONDARY/REFERENCE)
           row.case_number,
-          `"${row.customerName || ''}"`,
-          row.customerPhone || '',
-          row.customerCallingCode || '',
+          `"${row.customer_name || ''}"`,
+          row.customer_phone || '',
+          row.customer_calling_code || '',
           `"${row.client_name || ''}"`,
           row.client_code || '',
           `"${row.product_name || ''}"`,

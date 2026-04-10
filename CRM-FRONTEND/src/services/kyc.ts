@@ -14,7 +14,7 @@ export interface KYCDocumentType {
   name: string;
   category: string;
   isActive: boolean;
-  sort_order: number;
+  sortOrder: number;
   customFields: KYCCustomField[];
 }
 
@@ -29,7 +29,7 @@ export interface KYCTask {
   documentFilePath: string | null;
   documentDetails: Record<string, string>;
   description: string | null;
-  type_customFields: KYCCustomField[];
+  typeCustomFields: KYCCustomField[];
   verificationStatus: 'PENDING' | 'PASS' | 'FAIL' | 'REFER';
   remarks: string | null;
   rejectionReason: string | null;

@@ -177,10 +177,9 @@ export class VerificationTasksService {
     taskId: string,
     assignmentData: AssignVerificationTaskRequest
   ): Promise<VerificationTaskResponse> {
-    // Transform camelCase to snakeCase for backend
     const backendData = {
       assignedTo: assignmentData.assignedTo,
-      assignment_reason: assignmentData.assignmentReason,
+      assignmentReason: assignmentData.assignmentReason,
       priority: assignmentData.priority
     };
     const response = await apiService.post(`/verification-tasks/${taskId}/assign`, backendData);
@@ -194,11 +193,10 @@ export class VerificationTasksService {
     taskId: string,
     completionData: CompleteVerificationTaskRequest
   ): Promise<VerificationTaskResponse> {
-    // Transform camelCase to snakeCase for backend
     const backendData = {
       verificationOutcome: completionData.verificationOutcome,
       actualAmount: completionData.actualAmount,
-      completion_notes: completionData.completionNotes,
+      completionNotes: completionData.completionNotes,
       formSubmissionId: completionData.formSubmissionId
     };
     const response = await apiService.post(`/verification-tasks/${taskId}/complete`, backendData);
@@ -221,7 +219,7 @@ export class VerificationTasksService {
     cancellationReason?: string
   ): Promise<VerificationTaskResponse> {
     const response = await apiService.post(`/verification-tasks/${taskId}/revoke`, {
-      revoke_reason: cancellationReason
+      revokeReason: cancellationReason
     });
     return response.data as unknown as VerificationTaskResponse;
   }
@@ -233,13 +231,13 @@ export class VerificationTasksService {
     taskIds: string[],
     assignedTo: string,
     assignmentReason?: string
-  ): Promise<{ success: boolean; data: { updated_tasks: number; tasks: VerificationTask[] }; message: string }> {
+  ): Promise<{ success: boolean; data: { updatedTasks: number; tasks: VerificationTask[] }; message: string }> {
     const response = await apiService.post('/verification-tasks/bulk-assign', {
       taskIds,
       assignedTo,
       assignmentReason
     });
-    return response.data as unknown as { success: boolean; data: { updated_tasks: number; tasks: VerificationTask[] }; message: string };
+    return response.data as unknown as { success: boolean; data: { updatedTasks: number; tasks: VerificationTask[] }; message: string };
   }
 
   /**
@@ -419,7 +417,7 @@ export class TaskTemplatesService {
     }
   ): Promise<CreateMultipleTasksResponse> {
     const response = await apiService.post(`/cases/${caseId}/verification-tasks/from-template`, {
-      template_id: templateId,
+      templateId,
       customizations
     });
     return response.data as unknown as CreateMultipleTasksResponse;

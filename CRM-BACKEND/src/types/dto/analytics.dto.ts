@@ -24,7 +24,7 @@ export interface FormSubmission {
   caseId: string;
   verificationTaskId?: string;
   formType: string;
-  submission_data: FormSubmissionData;
+  submissionData: FormSubmissionData;
   submittedAt: string;
   submittedBy: string;
   status: string;

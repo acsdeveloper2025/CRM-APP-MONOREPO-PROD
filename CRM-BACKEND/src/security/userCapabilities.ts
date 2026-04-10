@@ -18,7 +18,7 @@ export type UserCapabilityProfile = {
 
 type UserCapabilityRow = {
   id: string;
-  isActive: boolean;
+  is_active: boolean;
   teamLeaderId: string | null;
   managerId: string | null;
   permissionCodes: string[] | null;
@@ -59,7 +59,7 @@ export const loadUserCapabilityProfile = async (
   const permissionCodes = row.permissionCodes || [];
   return {
     id: row.id,
-    isActive: row.isActive,
+    isActive: row.is_active,
     teamLeaderId: row.teamLeaderId ?? null,
     managerId: row.managerId ?? null,
     permissionCodes,
