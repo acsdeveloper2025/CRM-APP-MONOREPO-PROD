@@ -298,7 +298,7 @@ router.post(
   async (req: AuthenticatedRequest, res) => {
     try {
       const { taskId: _taskId } = req.params;
-      const { cancellation_reason } = req.body;
+      const { cancellationReason } = req.body;
       const userId = req.user?.id;
 
       await VerificationTasksController.updateTask(
@@ -306,8 +306,7 @@ router.post(
           ...req,
           body: {
             status: 'REVOKED',
-            // eslint-disable-next-line camelcase
-            revocationReason: cancellation_reason,
+            revocationReason: cancellationReason,
             revokedAt: new Date().toISOString(),
             revokedBy: userId,
           },
@@ -334,23 +333,22 @@ router.post(
   authorize('case.reassign'),
   async (req: AuthenticatedRequest, res) => {
     try {
-      const { task_ids: taskIds, assigned_to, assignment_reason } = req.body;
+      const { taskIds, assignedTo, assignmentReason } = req.body;
       const userId = req.user?.id;
 
       if (!taskIds || !Array.isArray(taskIds) || taskIds.length === 0) {
         res.status(400).json({
           success: false,
-          message: 'task_ids array is required',
+          message: 'taskIds array is required',
           error: { code: 'INVALID_INPUT' },
         });
         return;
       }
 
-      // eslint-disable-next-line camelcase
-      if (!assigned_to) {
+      if (!assignedTo) {
         res.status(400).json({
           success: false,
-          message: 'assigned_to is required',
+          message: 'assignedTo is required',
           error: { code: 'INVALID_INPUT' },
         });
         return;
@@ -423,8 +421,7 @@ router.post(
             WHERE id = $3
             RETURNING *
           `,
-            // eslint-disable-next-line camelcase
-            [assigned_to, userId, taskId]
+            [assignedTo, userId, taskId]
           );
 
           if (result.rows.length > 0) {
@@ -442,11 +439,9 @@ router.post(
               [
                 taskId,
                 task.case_id,
-                // eslint-disable-next-line camelcase
-                assigned_to,
+                assignedTo,
                 userId,
-                // eslint-disable-next-line camelcase
-                assignment_reason || 'Bulk assignment',
+                assignmentReason || 'Bulk assignment',
                 task.status,
               ]
             );
@@ -506,22 +501,19 @@ router.post(
     try {
       const { taskId: _taskId } = req.params;
       const {
-        verification_outcome,
-        form_data,
+        verificationOutcome,
+        formData,
         attachments: _attachments,
-        // eslint-disable-next-line camelcase
-        geo_location: _geo_location,
+        geoLocation: _geoLocation,
       } = req.body;
 
-      // This would integrate with the existing form submission system
-      // For now, we'll just complete the task
       await VerificationTasksController.completeTask(
         {
           ...req,
           body: {
-            verification_outcome,
-            completion_notes: JSON.stringify(form_data),
-            actual_amount: req.body.actual_amount,
+            verificationOutcome,
+            completionNotes: JSON.stringify(formData),
+            actualAmount: req.body.actualAmount,
           },
         } as AuthenticatedRequest,
         res

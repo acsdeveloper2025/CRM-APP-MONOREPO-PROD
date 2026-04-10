@@ -30,10 +30,7 @@ function sanitizeObject(obj: Record<string, unknown>): Record<string, unknown> {
  * Express middleware that sanitizes req.body and req.query string values
  * to strip dangerous HTML/JavaScript and prevent stored XSS attacks.
  *
- * NOTE: Does NOT convert camelCase → snake_case on request body.
- * Controllers accept BOTH conventions using pattern:
- *   const value = req.body.case_details || req.body.caseDetails;
- *
+ * Frontend sends camelCase → controllers read camelCase from req.body.
  * Response conversion (snake→camel) is handled by camelCaseResponse middleware.
  */
 export const sanitizeInput = (req: Request, _res: Response, next: NextFunction): void => {
