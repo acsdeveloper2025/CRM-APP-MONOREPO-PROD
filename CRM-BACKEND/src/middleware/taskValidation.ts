@@ -254,8 +254,8 @@ export const validateTaskUpdate = (req: Request, res: Response, next: NextFuncti
 };
 
 export const validateTaskAssignment = (req: Request, res: Response, next: NextFunction) => {
-  const assignedTo = req.body.assignedTo ?? req.body.assigned_to;
-  const assignmentReason = req.body.assignmentReason ?? req.body.assignment_reason;
+  const assignedTo = req.body.assignedTo;
+  const assignmentReason = req.body.assignmentReason;
   const { priority } = req.body;
 
   // Required field validation
@@ -306,10 +306,10 @@ export const validateTaskAssignment = (req: Request, res: Response, next: NextFu
 };
 
 export const validateTaskCompletion = (req: Request, res: Response, next: NextFunction) => {
-  const verificationOutcome = req.body.verificationOutcome ?? req.body.verification_outcome;
-  const actualAmount = req.body.actualAmount ?? req.body.actual_amount;
-  const completionNotes = req.body.completionNotes ?? req.body.completion_notes;
-  const formSubmissionId = req.body.formSubmissionId ?? req.body.form_submission_id;
+  const verificationOutcome = req.body.verificationOutcome;
+  const actualAmount = req.body.actualAmount;
+  const completionNotes = req.body.completionNotes;
+  const formSubmissionId = req.body.formSubmissionId;
 
   // Required field validation
   if (!verificationOutcome) {
