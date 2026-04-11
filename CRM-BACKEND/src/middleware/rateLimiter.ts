@@ -4,7 +4,6 @@ import type { Response } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 import { redisClient } from '@/config/redis';
-import { config } from '@/config';
 import { logger } from '@/config/logger';
 
 /**
@@ -59,19 +58,9 @@ const createRateLimiter = (
       // Use standard behavior for IP-based limiting (handles IPv6 correctly)
       return ipKeyGenerator(req.ip || 'unknown');
     },
-    // Dev-token bypass only in development — NEVER in production
-    skip: (req: AuthenticatedRequest) => {
-      if (config.nodeEnv !== 'development') {
-        return false;
-      }
-      const devToken = process.env.DEV_RATE_LIMIT_BYPASS_TOKEN;
-      if (!devToken) {
-        return false;
-      }
-      const rawAuthHeader = req.headers.authorization;
-      const authHeader = Array.isArray(rawAuthHeader) ? rawAuthHeader[0] : rawAuthHeader;
-      return authHeader === `Bearer ${devToken}`;
-    },
+    // Phase E3: DEV_RATE_LIMIT_BYPASS_TOKEN has been removed. There is no
+    // way to bypass these limiters at runtime — any such knob is a
+    // production footgun waiting to happen.
   });
 };
 
@@ -138,4 +127,18 @@ export const geoRateLimit = createRateLimiter(
   'Too many location updates',
   'USER',
   'geo'
+);
+
+// Mobile umbrella tier — applied once at the top of the mobile router so
+// every mobile endpoint inherits the same generous quota. Distributed via
+// the same Redis store used by the other tiers; replaces the former
+// `mobileRateLimit` factory in mobileValidation.ts which had a non-
+// distributed in-memory fallback that allowed limit amplification across
+// cluster workers.
+export const mobileGeneralRateLimit = createRateLimiter(
+  15 * 60 * 1000, // 15 minutes
+  10000, // 10,000 requests per 15 minutes — high-volume field agent quota
+  'Too many requests, please slow down',
+  'AUTO',
+  'mobile'
 );
