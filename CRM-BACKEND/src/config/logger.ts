@@ -1,8 +1,13 @@
 import winston from 'winston';
+import { redact } from '@/utils/logRedact';
 
 const logLevel = process.env.LOG_LEVEL || 'info';
 
-// PII patterns to redact from log output
+// Regex patterns applied to plain string values (message body, raw log
+// lines). The structural / field-name redaction is delegated to
+// `redact()` in src/utils/logRedact.ts so there is a single source of
+// truth for "which keys are sensitive". Phase F2 unifies the two
+// previously separate redaction paths into one winston formatter.
 const PII_PATTERNS: [RegExp, string][] = [
   // Phone numbers (10+ digits, with optional country code/dashes/spaces)
   [/\b(\+?\d[\d\s-]{8,}\d)\b/g, '[PHONE_REDACTED]'],
@@ -14,50 +19,56 @@ const PII_PATTERNS: [RegExp, string][] = [
   [/\b[\w.+-]+@[\w-]+\.[\w.-]+\b/g, '[EMAIL_REDACTED]'],
 ];
 
-/** Recursively redact PII from any log value */
-function redactPII(value: unknown): unknown {
+/** Apply the regex patterns above to a single string value. */
+function scrubString(value: string): string {
+  let redacted = value;
+  for (const [pattern, replacement] of PII_PATTERNS) {
+    redacted = redacted.replace(pattern, replacement);
+  }
+  return redacted;
+}
+
+/** Recursively apply string scrubbing to a value already returned by `redact()`. */
+function scrubPIIInPlace(value: unknown): unknown {
   if (typeof value === 'string') {
-    let redacted = value;
-    for (const [pattern, replacement] of PII_PATTERNS) {
-      redacted = redacted.replace(pattern, replacement);
-    }
-    return redacted;
+    return scrubString(value);
   }
   if (Array.isArray(value)) {
-    return value.map(redactPII);
+    return value.map(scrubPIIInPlace);
   }
   if (value && typeof value === 'object') {
     const result: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      // Redact known sensitive field names entirely
-      const lk = k.toLowerCase();
-      if (
-        lk.includes('password') ||
-        lk.includes('token') ||
-        lk.includes('secret') ||
-        lk.includes('authorization')
-      ) {
-        result[k] = '[REDACTED]';
-      } else {
-        result[k] = redactPII(v);
-      }
+      result[k] = scrubPIIInPlace(v);
     }
     return result;
   }
   return value;
 }
 
-/** Winston format that strips PII from all log entries */
+/**
+ * Phase F2: single winston formatter that pipes every log entry's
+ * metadata through the canonical `redact()` helper (from
+ * src/utils/logRedact.ts) for field-name / depth / length redaction
+ * AND through the regex-based PII scrubber above for phone / PAN /
+ * Aadhaar / email scraping from free-text fields. The two were
+ * previously separate implementations; unifying them means adding a
+ * new sensitive field name (say `nationalId`) to logRedact.ts
+ * automatically takes effect in winston output.
+ */
 const piiRedactionFormat = winston.format(info => {
   if (info.message && typeof info.message === 'string') {
-    info.message = redactPII(info.message) as string;
+    info.message = scrubString(info.message);
   }
-  // Redact metadata fields
   for (const key of Object.keys(info)) {
     if (key === 'level' || key === 'message' || key === 'timestamp' || key === 'service') {
       continue;
     }
-    info[key] = redactPII(info[key]);
+    // First redact by field name / depth / length, then regex-strip
+    // the residual strings. Applying in this order means a
+    // sensitive-field value is fully masked before the regex pass
+    // even looks at it.
+    info[key] = scrubPIIInPlace(redact(info[key]));
   }
   return info;
 });
