@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { logger } from '../utils/logger';
 import { templateReportService } from '../services/TemplateReportService';
-import { pool } from '../config/database';
+import { query as dbQuery } from '../config/database';
 import type { AuthenticatedRequest } from '../middleware/auth';
 
 /**
@@ -72,7 +72,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
     const caseQuery = isUuid
       ? `SELECT id, customer_name, verification_data, verification_type, verification_outcome, status FROM cases WHERE id = $1`
       : `SELECT id, customer_name, verification_data, verification_type, verification_outcome, status FROM cases WHERE case_id = $1`;
-    const caseResult = await pool.query(caseQuery, [isUuid ? caseId : parseInt(caseId)]);
+    const caseResult = await dbQuery(caseQuery, [isUuid ? caseId : parseInt(caseId)]);
 
     if (caseResult.rows.length === 0) {
       return res.status(404).json({ error: 'Case not found' });
@@ -92,11 +92,11 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       )
       LIMIT 1
     `;
-    const taskResult = await pool.query(taskQuery, [caseData.id, submissionId]);
+    const taskResult = await dbQuery(taskQuery, [caseData.id, submissionId]);
 
     if (taskResult.rows.length === 0) {
       // Last resort: just get the first task for this case
-      const fallbackResult = await pool.query(
+      const fallbackResult = await dbQuery(
         `SELECT vt.id as task_id, vt.verification_type_id, vtype.name as verification_type_name
          FROM verification_tasks vt
          LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
@@ -135,7 +135,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
         LIMIT 1
       `;
 
-      const residenceResult = await pool.query(residenceQuery, [verificationTaskId]);
+      const residenceResult = await dbQuery(residenceQuery, [verificationTaskId]);
 
       if (residenceResult.rows.length > 0) {
         const residenceData = residenceResult.rows[0];
@@ -215,7 +215,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
         LIMIT 1
       `;
 
-      const officeResult = await pool.query(officeQuery, [verificationTaskId]);
+      const officeResult = await dbQuery(officeQuery, [verificationTaskId]);
 
       if (officeResult.rows.length > 0) {
         const officeData = officeResult.rows[0];
@@ -301,7 +301,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
         LIMIT 1
       `;
 
-      const businessResult = await pool.query(businessQuery, [verificationTaskId]);
+      const businessResult = await dbQuery(businessQuery, [verificationTaskId]);
 
       if (businessResult.rows.length > 0) {
         const businessData = businessResult.rows[0];
@@ -391,9 +391,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
         LIMIT 1
       `;
 
-      const residenceCumOfficeResult = await pool.query(residenceCumOfficeQuery, [
-        verificationTaskId,
-      ]);
+      const residenceCumOfficeResult = await dbQuery(residenceCumOfficeQuery, [verificationTaskId]);
 
       if (residenceCumOfficeResult.rows.length > 0) {
         const rcData = residenceCumOfficeResult.rows[0];
@@ -494,7 +492,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
         LIMIT 1
       `;
 
-      const builderResult = await pool.query(builderQuery, [verificationTaskId]);
+      const builderResult = await dbQuery(builderQuery, [verificationTaskId]);
 
       if (builderResult.rows.length > 0) {
         const builderData = builderResult.rows[0];
@@ -577,7 +575,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
         LIMIT 1
       `;
 
-      const nocResult = await pool.query(nocQuery, [verificationTaskId]);
+      const nocResult = await dbQuery(nocQuery, [verificationTaskId]);
 
       if (nocResult.rows.length > 0) {
         const nocData = nocResult.rows[0];
@@ -675,7 +673,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
         LIMIT 1
       `;
 
-      const dsaResult = await pool.query(dsaQuery, [verificationTaskId]);
+      const dsaResult = await dbQuery(dsaQuery, [verificationTaskId]);
 
       if (dsaResult.rows.length > 0) {
         const dsaData = dsaResult.rows[0];
@@ -795,7 +793,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
         LIMIT 1
       `;
 
-      const propertyApfResult = await pool.query(propertyApfQuery, [verificationTaskId]);
+      const propertyApfResult = await dbQuery(propertyApfQuery, [verificationTaskId]);
 
       if (propertyApfResult.rows.length > 0) {
         const propertyData = propertyApfResult.rows[0];
@@ -927,9 +925,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
         LIMIT 1
       `;
 
-      const propertyIndividualResult = await pool.query(propertyIndividualQuery, [
-        verificationTaskId,
-      ]);
+      const propertyIndividualResult = await dbQuery(propertyIndividualQuery, [verificationTaskId]);
 
       if (propertyIndividualResult.rows.length > 0) {
         const propertyData = propertyIndividualResult.rows[0];
@@ -1099,7 +1095,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       RETURNING id, created_at
     `;
 
-    const saveResult = await pool.query(saveQuery, [
+    const saveResult = await dbQuery(saveQuery, [
       caseData.id,
       submissionId,
       verificationType,
@@ -1149,7 +1145,7 @@ export async function getTemplateReport(req: Request, res: Response) {
     const caseQuery = isUuidLookup
       ? `SELECT id FROM cases WHERE id = $1`
       : `SELECT id FROM cases WHERE case_id = $1`;
-    const caseResult = await pool.query(caseQuery, [isUuidLookup ? caseId : parseInt(caseId)]);
+    const caseResult = await dbQuery(caseQuery, [isUuidLookup ? caseId : parseInt(caseId)]);
 
     if (caseResult.rows.length === 0) {
       return res.status(404).json({ error: 'Case not found' });
@@ -1166,7 +1162,7 @@ export async function getTemplateReport(req: Request, res: Response) {
       LIMIT 1
     `;
 
-    const reportResult = await pool.query(reportQuery, [caseUuid, submissionId]);
+    const reportResult = await dbQuery(reportQuery, [caseUuid, submissionId]);
 
     if (reportResult.rows.length === 0) {
       return res.status(404).json({ error: 'Template report not found' });
@@ -1206,7 +1202,7 @@ export async function getCaseTemplateReports(req: Request, res: Response) {
     const caseQuery = isUuidLookup
       ? `SELECT id FROM cases WHERE id = $1`
       : `SELECT id FROM cases WHERE case_id = $1`;
-    const caseResult = await pool.query(caseQuery, [isUuidLookup ? caseId : parseInt(caseId)]);
+    const caseResult = await dbQuery(caseQuery, [isUuidLookup ? caseId : parseInt(caseId)]);
 
     if (caseResult.rows.length === 0) {
       return res.status(404).json({ error: 'Case not found' });
@@ -1223,7 +1219,7 @@ export async function getCaseTemplateReports(req: Request, res: Response) {
       ORDER BY created_at DESC
     `;
 
-    const reportsResult = await pool.query(reportsQuery, [caseUuid]);
+    const reportsResult = await dbQuery(reportsQuery, [caseUuid]);
 
     const reports = reportsResult.rows.map(report => ({
       id: report.id,
@@ -1262,7 +1258,7 @@ export async function deleteTemplateReport(req: AuthenticatedRequest, res: Respo
       RETURNING id
     `;
 
-    const result = await pool.query(deleteQuery, [reportId, userId]);
+    const result = await dbQuery(deleteQuery, [reportId, userId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Template report not found or unauthorized' });

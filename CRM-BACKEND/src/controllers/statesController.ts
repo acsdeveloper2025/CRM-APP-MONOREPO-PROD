@@ -20,11 +20,11 @@ export const getStates = async (req: AuthenticatedRequest, res: Response) => {
         co.name as country,
         s.created_at,
         s.updated_at,
-        COALESCE(c."cityCount", 0) as "cityCount"
+        COALESCE(c."city_count", 0) as "city_count"
       FROM states s
       JOIN countries co ON s.country_id = co.id
       LEFT JOIN (
-        SELECT state_id, COUNT(*) as "cityCount"
+        SELECT state_id, COUNT(*) as "city_count"
         FROM cities
         GROUP BY state_id
       ) c ON s.id = c.state_id
@@ -47,15 +47,17 @@ export const getStates = async (req: AuthenticatedRequest, res: Response) => {
       params.push(`%${search}%`);
     }
 
-    // Apply sorting
+    // API contract: sortBy is camelCase; map to snake_case DB column (or joined table).
+    const sortColumnMap: Record<string, string> = {
+      country: 'co.name',
+      name: 's.name',
+      code: 's.code',
+      createdAt: 's.created_at',
+      updatedAt: 's.updated_at',
+    };
     const sortDirection: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
-    const sortField: string = sortBy as string;
-
-    if (sortField === 'country') {
-      sql += ` ORDER BY co.name ${sortDirection}`;
-    } else {
-      sql += ` ORDER BY s.${sortField} ${sortDirection}`;
-    }
+    const sortExpr = sortColumnMap[sortBy as string] || 's.name';
+    sql += ` ORDER BY ${sortExpr} ${sortDirection}`;
 
     // Apply pagination
     const pageNum = parseInt(page as string, 10);

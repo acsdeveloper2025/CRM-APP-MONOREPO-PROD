@@ -5,49 +5,49 @@ export interface BaseReportData {
 
 export interface FormSubmissionRow {
   id: string;
-  form_type: string;
-  agent_name?: string;
-  case_number: string;
-  customer_name: string;
-  validation_status: string;
-  submission_score?: number;
-  photos_count?: number;
-  submitted_at: Date | string;
-  overall_quality_score?: number;
-  network_quality?: string;
-  employee_id?: string;
-  case_status?: string;
-  sender_name?: string;
-  time_spent_minutes?: number;
-  attachments_count?: number;
-  completeness_score?: number;
-  accuracy_score?: number;
-  photo_quality_score?: number;
+  formType: string;
+  agentName?: string;
+  caseNumber: string;
+  customerName: string;
+  validationStatus: string;
+  submissionScore?: number;
+  photosCount?: number;
+  submittedAt: Date | string;
+  overallQualityScore?: number;
+  networkQuality?: string;
+  employeeId?: string;
+  caseStatus?: string;
+  senderName?: string;
+  timeSpentMinutes?: number;
+  attachmentsCount?: number;
+  completenessScore?: number;
+  accuracyScore?: number;
+  photoQualityScore?: number;
 }
 
 export interface FormSubmissionsReportData extends BaseReportData {
   reportType: 'Form Submissions Report';
   submissions: FormSubmissionRow[];
   summary: {
-    total_submissions: string | number;
-    valid_submissions: string | number;
-    pending_submissions: string | number;
-    invalid_submissions?: string | number;
-    residence_forms?: string | number;
-    office_forms?: string | number;
-    business_forms?: string | number;
-    avg_submission_score: string | number;
-    avg_photos_per_form: string | number;
-    avg_time_spent?: string | number;
+    totalSubmissions: string | number;
+    validSubmissions: string | number;
+    pendingSubmissions: string | number;
+    invalidSubmissions?: string | number;
+    residenceForms?: string | number;
+    officeForms?: string | number;
+    businessForms?: string | number;
+    avgSubmissionScore: string | number;
+    avgPhotosPerForm: string | number;
+    avgTimeSpent?: string | number;
   };
   formTypeBreakdown?: FormTypeBreakdownRow[];
 }
 
 export interface FormTypeBreakdownRow {
-  form_type: string;
-  validation_status: string;
+  formType: string;
+  validationStatus: string;
   count: string | number;
-  avg_score: string | number;
+  avgScore: string | number;
 }
 
 export interface AgentPerformanceRow {
@@ -55,33 +55,33 @@ export interface AgentPerformanceRow {
   name: string;
   employeeId?: string;
   email: string;
-  department_name?: string;
-  total_cases_assigned: number;
-  cases_completed: number;
-  total_forms_submitted: number;
-  avg_quality_score?: string | number;
-  avg_validation_success_rate?: string | number;
-  performance_rating?: string;
-  active_days?: number;
-  residence_forms?: number;
-  office_forms?: number;
-  business_forms?: number;
-  total_distance?: string | number;
-  avg_active_hours?: string | number;
-  avg_validation_rate?: string | number;
+  departmentName?: string;
+  totalCasesAssigned: number;
+  casesCompleted: number;
+  totalFormsSubmitted: number;
+  avgQualityScore?: string | number;
+  avgValidationSuccessRate?: string | number;
+  performanceRating?: string;
+  activeDays?: number;
+  residenceForms?: number;
+  officeForms?: number;
+  businessForms?: number;
+  totalDistance?: string | number;
+  avgActiveHours?: string | number;
+  avgValidationRate?: string | number;
 }
 
 export interface DailyPerformanceRow {
   date: Date | string;
-  agent_name: string;
+  agentName: string;
   employeeId?: string;
-  cases_assigned: number;
-  cases_completed: number;
-  forms_submitted: number;
-  quality_score?: string | number;
-  validation_success_rate?: string | number;
-  active_hours?: string | number;
-  total_distance_km?: string | number;
+  casesAssigned: number;
+  casesCompleted: number;
+  formsSubmitted: number;
+  qualityScore?: string | number;
+  validationSuccessRate?: string | number;
+  activeHours?: string | number;
+  totalDistanceKm?: string | number;
 }
 
 export interface AgentPerformanceReportData extends BaseReportData {
@@ -93,16 +93,16 @@ export interface AgentPerformanceReportData extends BaseReportData {
 export interface CaseAnalyticsRow {
   caseId: string;
   customerName: string;
-  agent_name?: string;
-  client_name?: string;
+  agentName?: string;
+  clientName?: string;
   status: string;
   priority?: string;
-  completion_days?: number;
-  quality_score?: number;
-  actual_forms_submitted?: number;
-  valid_forms?: number;
-  attachment_count?: number;
-  form_completion_percentage?: number;
+  completionDays?: number;
+  qualityScore?: number;
+  actualFormsSubmitted?: number;
+  validForms?: number;
+  attachmentCount?: number;
+  formCompletionPercentage?: number;
   createdAt: Date | string;
   updatedAt: Date | string;
 }
@@ -111,24 +111,24 @@ export interface CaseAnalyticsReportData extends BaseReportData {
   reportType: 'Case Analytics Report';
   cases: CaseAnalyticsRow[];
   summary: {
-    total_cases: string | number;
-    completed_cases: string | number;
-    in_progress_cases?: string | number;
-    pending_cases?: string | number;
-    avg_completion_days: string | number;
-    avg_quality_score: string | number;
-    avg_form_completion?: string | number;
+    totalCases: string | number;
+    completedCases: string | number;
+    inProgressCases?: string | number;
+    pendingCases?: string | number;
+    avgCompletionDays: string | number;
+    avgQualityScore: string | number;
+    avgFormCompletion?: string | number;
   };
 }
 
 export interface ValidationStatusRow {
-  form_type: string;
-  validation_status: string;
-  form_count: string | number;
-  avg_submission_score?: string | number;
-  avg_quality_score?: string | number;
-  avg_completeness?: string | number;
-  avg_accuracy?: string | number;
+  formType: string;
+  validationStatus: string;
+  formCount: string | number;
+  avgSubmissionScore?: string | number;
+  avgQualityScore?: string | number;
+  avgCompleteness?: string | number;
+  avgAccuracy?: string | number;
 }
 
 export interface ValidationStatusReportData extends BaseReportData {

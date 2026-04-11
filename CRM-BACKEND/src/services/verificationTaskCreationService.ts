@@ -230,84 +230,56 @@ export class VerificationTaskCreationService {
       if (!verificationTypeId || !taskTitle) {
         throw new VerificationTaskCreationError(400, {
           success: false,
-          message: 'verification_type_id and task_title are required for each task',
+          message: 'verificationTypeId and taskTitle are required for each task',
           error: { code: 'INVALID_TASK_DATA' },
         });
       }
 
-      // Determine status based on assignment
-      const isAssigned = !!assignedTo;
-      const assignedToValue = isAssigned ? String(assignedTo as string) : null;
-      const taskStatus = isAssigned ? 'ASSIGNED' : 'PENDING';
-
-      let insertQuery: string;
-      let insertParams: (string | number | boolean | null | Date | undefined)[];
-
-      if (isAssigned) {
-        insertQuery = `
-            INSERT INTO verification_tasks (
-              case_id, verification_type_id, task_title, task_description,
-              priority, assigned_to, assigned_by, assigned_at,
-              rate_type_id, estimated_amount, address, pincode,
-              estimated_completion_date, status, created_by,
-              first_assigned_at, current_assigned_at,
-              area_id
-            ) VALUES (
-              $1, $2, $3, $4, $5, $6, $7, NOW(),
-              $8, $9, $10, $11, $12,
-              $13, $14, NOW(), NOW(),
-              $15
-            ) RETURNING *
-          `;
-        insertParams = [
-          caseId,
-          Number(verificationTypeId),
-          String(taskTitle as string),
-          taskDescription as string | undefined,
-          String(priority as string),
-          assignedToValue,
-          userId,
-          rateTypeId,
-          actualAmount,
-          address as string | undefined,
-          String(pincode as string),
-          estimatedCompletionDate as string | undefined,
-          taskStatus,
-          userId,
-          territoryValidation.areaId,
-        ];
-      } else {
-        insertQuery = `
-            INSERT INTO verification_tasks (
-              case_id, verification_type_id, task_title, task_description,
-              priority, assigned_to, assigned_by, assigned_at,
-              rate_type_id, estimated_amount, address, pincode,
-              estimated_completion_date, status, created_by,
-              first_assigned_at, current_assigned_at,
-              area_id
-            ) VALUES (
-              $1, $2, $3, $4, $5, NULL, NULL, NULL,
-              $6, $7, $8, $9, $10,
-              $11, $12, NOW(), NOW(),
-              $13
-            ) RETURNING *
-          `;
-        insertParams = [
-          caseId,
-          Number(verificationTypeId),
-          String(taskTitle as string),
-          taskDescription as string | undefined,
-          String(priority as string),
-          rateTypeId,
-          actualAmount,
-          address as string | undefined,
-          String(pincode as string),
-          estimatedCompletionDate as string | undefined,
-          taskStatus,
-          userId,
-          territoryValidation.areaId,
-        ];
+      // Business rule: every task MUST have an assignee at creation time.
+      // The "Unassigned"/PENDING branch has been removed — tasks are always
+      // created in the ASSIGNED state with a valid field executive.
+      if (!assignedTo || (typeof assignedTo === 'string' && assignedTo.trim() === '')) {
+        const taskTitleLabel = typeof taskTitle === 'string' ? taskTitle : 'Unnamed task';
+        throw new VerificationTaskCreationError(400, {
+          success: false,
+          message: `Task "${taskTitleLabel}" must be assigned to a field executive at creation time`,
+          error: { code: 'ASSIGNEE_REQUIRED' },
+        });
       }
+
+      const assignedToValue = String(assignedTo as string);
+
+      const insertQuery = `
+          INSERT INTO verification_tasks (
+            case_id, verification_type_id, task_title, task_description,
+            priority, assigned_to, assigned_by, assigned_at,
+            rate_type_id, estimated_amount, address, pincode,
+            estimated_completion_date, status, created_by,
+            first_assigned_at, current_assigned_at,
+            area_id
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, NOW(),
+            $8, $9, $10, $11, $12,
+            'ASSIGNED', $13, NOW(), NOW(),
+            $14
+          ) RETURNING *
+        `;
+      const insertParams: (string | number | boolean | null | Date | undefined)[] = [
+        caseId,
+        Number(verificationTypeId),
+        String(taskTitle as string),
+        taskDescription as string | undefined,
+        String(priority as string),
+        assignedToValue,
+        userId,
+        rateTypeId,
+        actualAmount,
+        address as string | undefined,
+        String(pincode as string),
+        estimatedCompletionDate as string | undefined,
+        userId,
+        territoryValidation.areaId,
+      ];
 
       const taskResult = await client.query(insertQuery, insertParams);
 

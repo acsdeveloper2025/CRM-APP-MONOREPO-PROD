@@ -3,26 +3,28 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-// Validate that we're using the correct fixed ports
-const validatePorts = () => {
-  const requiredPort = 3000;
-  const configuredPort = parseInt(process.env.PORT || '3000', 10);
-
-  if (configuredPort !== requiredPort) {
-    // Logger not yet initialized at this point — use stderr directly
-    process.stderr.write(
-      `Port mismatch: Backend must run on port ${requiredPort}, but PORT=${configuredPort} was configured.\n`
-    );
-    process.exit(1);
+// Resolve the HTTP port from the environment.
+// Defaults to 3000 for local dev. Any positive integer is accepted so the
+// service can be deployed behind platforms that inject a dynamic PORT
+// (Render, Fly, Heroku, Cloud Run, etc.).
+const resolvePort = (): number => {
+  const raw = process.env.PORT;
+  if (!raw) {
+    return 3000;
   }
+  const parsed = parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 65535) {
+    process.stderr.write(`Invalid PORT env var: "${raw}". Falling back to 3000.\n`);
+    return 3000;
+  }
+  return parsed;
 };
 
-// Run port validation
-validatePorts();
+const resolvedPort = resolvePort();
 
 export const config = {
-  // Server - Fixed port 3000 (no automatic switching)
-  port: 3000,
+  // Server — port resolved from PORT env var (defaults to 3000 in dev)
+  port: resolvedPort,
   nodeEnv: process.env.NODE_ENV || 'development',
 
   // Database

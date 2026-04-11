@@ -734,7 +734,7 @@ export const bulkImportPincodes = async (
           if (existingAssociation.rows.length === 0) {
             // Get current max display order
             const maxOrderResult = await query(
-              'SELECT COALESCE(MAX(display_order), 0) as "maxOrder" FROM pincode_areas WHERE pincode_id = $1',
+              'SELECT COALESCE(MAX(display_order), 0) as "max_order" FROM pincode_areas WHERE pincode_id = $1',
               [pincodeId]
             );
             const nextOrder = maxOrderResult.rows[0].maxOrder + 1;

@@ -18,9 +18,9 @@ type IdempotencyRequestContext = {
 };
 
 type ReplayRow = {
-  response_status: number | null;
-  response_body: unknown;
-  request_hash: string;
+  responseStatus: number | null;
+  responseBody: unknown;
+  requestHash: string;
 };
 
 type IdempotencyLocals = {
@@ -81,6 +81,18 @@ async function getReplayRow(
   return replayRes.rows[0] || null;
 }
 
+/**
+ * Attempt to reserve an idempotency key atomically.
+ *
+ * Returns `true` if this caller won the race and now owns the key (the
+ * request should proceed). Returns `false` if another caller already reserved
+ * the key — the caller should re-read the existing row and replay it.
+ *
+ * The `INSERT ... ON CONFLICT DO NOTHING RETURNING idempotency_key` form
+ * collapses the check-and-insert into a single atomic statement, eliminating
+ * the race where two concurrent transactions both see "no existing row" and
+ * both proceed to execute the handler.
+ */
 async function reserveKey(
   client: PoolClient,
   key: string,
@@ -88,8 +100,8 @@ async function reserveKey(
   scope: string,
   requestHash: string,
   ttlHours: number
-): Promise<void> {
-  await client.query(
+): Promise<boolean> {
+  const insertRes = await client.query<{ idempotencyKey: string }>(
     `INSERT INTO mobile_idempotency_keys (
        idempotency_key,
        user_id,
@@ -101,9 +113,11 @@ async function reserveKey(
      )
      VALUES ($1, $2::uuid, $3, $4, NULL, NULL, NOW() + ($5 || ' hours')::interval)
      ON CONFLICT (idempotency_key, user_id, scope)
-     DO NOTHING`,
+     DO NOTHING
+     RETURNING idempotency_key`,
     [key, userId, scope, requestHash, String(ttlHours)]
   );
+  return insertRes.rowCount !== null && insertRes.rowCount > 0;
 }
 
 async function persistResponse(
@@ -159,15 +173,18 @@ export function idempotencyMiddleware(options: IdempotencyOptions = {}) {
 
     try {
       const replay = await withTransaction(async client => {
-        const existing = await getReplayRow(client, key, userId, scope);
-        if (!existing) {
-          await reserveKey(client, key, userId, scope, requestHash, ttlHours);
+        // First try to atomically reserve the key. If we win the race, we own
+        // the request and no replay row exists. If we lose, another caller
+        // already inserted — re-read the existing row to serve as the replay.
+        const reserved = await reserveKey(client, key, userId, scope, requestHash, ttlHours);
+        if (reserved) {
+          return null;
         }
-        return existing;
+        return getReplayRow(client, key, userId, scope);
       });
 
       if (replay) {
-        if (replay.request_hash !== requestHash) {
+        if (replay.requestHash !== requestHash) {
           return res.status(409).json({
             success: false,
             message: 'Idempotency-Key already used with different payload',
@@ -178,10 +195,10 @@ export function idempotencyMiddleware(options: IdempotencyOptions = {}) {
           });
         }
 
-        if (replay.response_status && replay.response_body !== null) {
+        if (replay.responseStatus && replay.responseBody !== null) {
           res.setHeader('X-Idempotent-Replay', 'true');
-          void MobileTelemetryService.increment('idempotent_replay_count', 1, { scope });
-          return res.status(replay.response_status).json(replay.response_body);
+          void MobileTelemetryService.increment('idempotentReplayCount', 1, { scope });
+          return res.status(replay.responseStatus).json(replay.responseBody);
         }
 
         return res.status(409).json({

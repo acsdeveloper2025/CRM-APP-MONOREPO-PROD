@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import { logger } from '../config/logger';
 import type { AuthenticatedRequest } from '../middleware/auth';
-import { query, pool } from '../config/database';
+import { query, pool, wrapClient } from '../config/database';
 import { EnterpriseCacheService, CacheKeys } from '../services/enterpriseCacheService';
 import { isExecutionEligibleUser, loadUserCapabilityProfile } from '../security/userCapabilities';
 
@@ -33,7 +33,7 @@ export const getUserTerritoryAssignments = async (req: AuthenticatedRequest, res
             ) ORDER BY a.name
           ) FILTER (WHERE uaa.id IS NOT NULL),
           '[]'::json
-        ) as "areaAssignments"
+        ) as "area_assignments"
       FROM user_pincode_assignments upa
       JOIN pincodes p ON upa.pincode_id = p.id
       JOIN cities c ON p.city_id = c.id
@@ -75,7 +75,7 @@ export const getUserTerritoryAssignments = async (req: AuthenticatedRequest, res
  * Body: { assignments: [{ pincodeId: number, areaIds: number[] }] }
  */
 export const bulkSaveTerritoryAssignments = async (req: AuthenticatedRequest, res: Response) => {
-  const client = await pool.connect();
+  const client = wrapClient(await pool.connect());
 
   try {
     const userId = String(req.params.userId || '');

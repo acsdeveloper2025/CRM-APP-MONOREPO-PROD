@@ -1,6 +1,6 @@
 // Disabled no-return-await rule for CSV export service as it uses return await pattern
 // Disabled require-await rule for CSV export service as some methods are async for consistency
-import { pool } from '../config/database';
+import { query as dbQuery } from '../config/database';
 import { logger } from '../utils/logger';
 import path from 'path';
 import fs from 'fs/promises';
@@ -161,7 +161,7 @@ export class CSVExportService {
       ORDER BY fs.submitted_at DESC
     `;
 
-    const result = await pool.query(query, queryParams);
+    const result = await dbQuery(query, queryParams);
 
     return {
       headers: [
@@ -276,7 +276,7 @@ export class CSVExportService {
       ORDER BY apd.date DESC, u.name
     `;
 
-    const result = await pool.query(query, queryParams);
+    const result = await dbQuery(query, queryParams);
 
     return {
       headers: [
@@ -382,7 +382,7 @@ export class CSVExportService {
       ORDER BY created_at DESC
     `;
 
-    const result = await pool.query(query, queryParams);
+    const result = await dbQuery(query, queryParams);
 
     return {
       headers: [
@@ -467,7 +467,7 @@ export class CSVExportService {
       ORDER BY fs.form_type, fs.validation_status
     `;
 
-    const result = await pool.query(query, queryParams);
+    const result = await dbQuery(query, queryParams);
 
     return {
       headers: [

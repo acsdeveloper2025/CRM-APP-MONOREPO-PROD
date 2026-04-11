@@ -1,7 +1,7 @@
 // Disabled no-return-await rule for PDF export service as it uses return await pattern
 // Disabled require-await rule for PDF export service as some methods are async for consistency
 import puppeteer, { type Browser, type PDFOptions } from 'puppeteer';
-import { pool } from '../config/database';
+import { query as dbQuery } from '../config/database';
 import { logger } from '../utils/logger';
 import path from 'path';
 import fs from 'fs/promises';
@@ -134,19 +134,19 @@ export class PDFExportService {
     let paramIndex = 1;
 
     if (dateFrom) {
-      whereConditions.push(`fs.submitted_at >= $${paramIndex}`);
+      whereConditions.push(`fs.submittedAt >= $${paramIndex}`);
       queryParams.push(dateFrom);
       paramIndex++;
     }
 
     if (dateTo) {
-      whereConditions.push(`fs.submitted_at <= $${paramIndex}`);
+      whereConditions.push(`fs.submittedAt <= $${paramIndex}`);
       queryParams.push(dateTo);
       paramIndex++;
     }
 
     if (filters?.formType) {
-      whereConditions.push(`fs.form_type = $${paramIndex}`);
+      whereConditions.push(`fs.formType = $${paramIndex}`);
       queryParams.push(filters.formType as string);
       paramIndex++;
     }
@@ -178,8 +178,8 @@ export class PDFExportService {
     `;
 
     const [submissionsResult, summaryResult] = await Promise.all([
-      pool.query(query, queryParams),
-      pool.query(summaryQuery, queryParams),
+      dbQuery(query, queryParams),
+      dbQuery(summaryQuery, queryParams),
     ]);
 
     return {
@@ -242,7 +242,7 @@ export class PDFExportService {
       ORDER BY avg_quality_score DESC
     `;
 
-    const result = await pool.query(query, queryParams);
+    const result = await dbQuery(query, queryParams);
 
     return {
       agents: result.rows,
@@ -262,13 +262,13 @@ export class PDFExportService {
     let paramIndex = 1;
 
     if (dateFrom) {
-      whereConditions.push(`c.created_at >= $${paramIndex}`);
+      whereConditions.push(`c.createdAt >= $${paramIndex}`);
       queryParams.push(dateFrom);
       paramIndex++;
     }
 
     if (dateTo) {
-      whereConditions.push(`c.created_at <= $${paramIndex}`);
+      whereConditions.push(`c.createdAt <= $${paramIndex}`);
       queryParams.push(dateTo);
       paramIndex++;
     }
@@ -293,8 +293,8 @@ export class PDFExportService {
     `;
 
     const [casesResult, summaryResult] = await Promise.all([
-      pool.query(query, queryParams),
-      pool.query(summaryQuery, queryParams),
+      dbQuery(query, queryParams),
+      dbQuery(summaryQuery, queryParams),
     ]);
 
     return {
@@ -316,13 +316,13 @@ export class PDFExportService {
     let paramIndex = 1;
 
     if (dateFrom) {
-      whereConditions.push(`fs.submitted_at >= $${paramIndex}`);
+      whereConditions.push(`fs.submittedAt >= $${paramIndex}`);
       queryParams.push(dateFrom);
       paramIndex++;
     }
 
     if (dateTo) {
-      whereConditions.push(`fs.submitted_at <= $${paramIndex}`);
+      whereConditions.push(`fs.submittedAt <= $${paramIndex}`);
       queryParams.push(dateTo);
       paramIndex++;
     }
@@ -343,7 +343,7 @@ export class PDFExportService {
       ORDER BY fs.form_type, fs.validation_status
     `;
 
-    const result = await pool.query(query, queryParams);
+    const result = await dbQuery(query, queryParams);
 
     return {
       validationData: result.rows,
@@ -500,19 +500,19 @@ export class PDFExportService {
       <div class="summary-cards">
         <div class="card">
           <h3>Total Submissions</h3>
-          <div class="value">${summary.total_submissions || 0}</div>
+          <div class="value">${summary.totalSubmissions || 0}</div>
         </div>
         <div class="card">
           <h3>Valid Submissions</h3>
-          <div class="value">${summary.valid_submissions || 0}</div>
+          <div class="value">${summary.validSubmissions || 0}</div>
         </div>
         <div class="card">
           <h3>Pending Review</h3>
-          <div class="value">${summary.pending_submissions || 0}</div>
+          <div class="value">${summary.pendingSubmissions || 0}</div>
         </div>
         <div class="card">
           <h3>Avg Quality Score</h3>
-          <div class="value">${summary.avg_submission_score ? parseFloat(String(summary.avg_submission_score)).toFixed(1) : 'N/A'}</div>
+          <div class="value">${summary.avgSubmissionScore ? parseFloat(String(summary.avgSubmissionScore)).toFixed(1) : 'N/A'}</div>
         </div>
       </div>
 
@@ -533,13 +533,13 @@ export class PDFExportService {
             .map(
               (sub: FormSubmissionRow) => `
             <tr>
-              <td>${sub.form_type}</td>
-              <td>${sub.agent_name || 'N/A'}</td>
-              <td>#${sub.case_number} - ${sub.customer_name}</td>
-              <td><span class="status-badge status-${sub.validation_status.toLowerCase()}">${sub.validation_status}</span></td>
-              <td>${sub.submission_score || 'N/A'}</td>
-              <td>${sub.photos_count || 0}</td>
-              <td>${new Date(sub.submitted_at).toLocaleDateString()}</td>
+              <td>${sub.formType}</td>
+              <td>${sub.agentName || 'N/A'}</td>
+              <td>#${sub.caseNumber} - ${sub.customerName}</td>
+              <td><span class="status-badge status-${sub.validationStatus.toLowerCase()}">${sub.validationStatus}</span></td>
+              <td>${sub.submissionScore || 'N/A'}</td>
+              <td>${sub.photosCount || 0}</td>
+              <td>${new Date(sub.submittedAt).toLocaleDateString()}</td>
             </tr>
           `
             )
@@ -573,12 +573,12 @@ export class PDFExportService {
             <tr>
               <td>${agent.name}</td>
               <td>${agent.employeeId || 'N/A'}</td>
-              <td>${agent.department_name || 'N/A'}</td>
-              <td>${agent.total_cases_assigned}</td>
-              <td>${agent.cases_completed}</td>
-              <td>${agent.total_forms_submitted}</td>
-              <td>${agent.avg_quality_score ? parseFloat(String(agent.avg_quality_score)).toFixed(1) : 'N/A'}</td>
-              <td>${agent.avg_validation_success_rate ? `${parseFloat(String(agent.avg_validation_success_rate)).toFixed(1)}%` : 'N/A'}</td>
+              <td>${agent.departmentName || 'N/A'}</td>
+              <td>${agent.totalCasesAssigned}</td>
+              <td>${agent.casesCompleted}</td>
+              <td>${agent.totalFormsSubmitted}</td>
+              <td>${agent.avgQualityScore ? parseFloat(String(agent.avgQualityScore)).toFixed(1) : 'N/A'}</td>
+              <td>${agent.avgValidationSuccessRate ? `${parseFloat(String(agent.avgValidationSuccessRate)).toFixed(1)}%` : 'N/A'}</td>
             </tr>
           `
             )
@@ -596,19 +596,19 @@ export class PDFExportService {
       <div class="summary-cards">
         <div class="card">
           <h3>Total Cases</h3>
-          <div class="value">${summary.total_cases || 0}</div>
+          <div class="value">${summary.totalCases || 0}</div>
         </div>
         <div class="card">
           <h3>Completed Cases</h3>
-          <div class="value">${summary.completed_cases || 0}</div>
+          <div class="value">${summary.completedCases || 0}</div>
         </div>
         <div class="card">
           <h3>Avg Completion Days</h3>
-          <div class="value">${summary.avg_completion_days ? parseFloat(String(summary.avg_completion_days)).toFixed(1) : 'N/A'}</div>
+          <div class="value">${summary.avgCompletionDays ? parseFloat(String(summary.avgCompletionDays)).toFixed(1) : 'N/A'}</div>
         </div>
         <div class="card">
           <h3>Avg Quality Score</h3>
-          <div class="value">${summary.avg_quality_score ? parseFloat(String(summary.avg_quality_score)).toFixed(1) : 'N/A'}</div>
+          <div class="value">${summary.avgQualityScore ? parseFloat(String(summary.avgQualityScore)).toFixed(1) : 'N/A'}</div>
         </div>
       </div>
 
@@ -632,11 +632,11 @@ export class PDFExportService {
             <tr>
               <td>#${caseItem.caseId}</td>
               <td>${caseItem.customerName}</td>
-              <td>${caseItem.agent_name || 'Unassigned'}</td>
+              <td>${caseItem.agentName || 'Unassigned'}</td>
               <td>${caseItem.status}</td>
-              <td>${caseItem.completion_days ? parseFloat(String(caseItem.completion_days)).toFixed(1) : 'N/A'}</td>
-              <td>${caseItem.quality_score || 'N/A'}</td>
-              <td>${caseItem.actual_forms_submitted || 0}</td>
+              <td>${caseItem.completionDays ? parseFloat(String(caseItem.completionDays)).toFixed(1) : 'N/A'}</td>
+              <td>${caseItem.qualityScore || 'N/A'}</td>
+              <td>${caseItem.actualFormsSubmitted || 0}</td>
             </tr>
           `
             )
@@ -665,11 +665,11 @@ export class PDFExportService {
             .map(
               (item: ValidationStatusRow) => `
             <tr>
-              <td>${item.form_type}</td>
-              <td><span class="status-badge status-${item.validation_status.toLowerCase()}">${item.validation_status}</span></td>
-              <td>${item.form_count}</td>
-              <td>${item.avg_submission_score ? parseFloat(String(item.avg_submission_score)).toFixed(1) : 'N/A'}</td>
-              <td>${item.avg_quality_score ? parseFloat(String(item.avg_quality_score)).toFixed(1) : 'N/A'}</td>
+              <td>${item.formType}</td>
+              <td><span class="status-badge status-${item.validationStatus.toLowerCase()}">${item.validationStatus}</span></td>
+              <td>${item.formCount}</td>
+              <td>${item.avgSubmissionScore ? parseFloat(String(item.avgSubmissionScore)).toFixed(1) : 'N/A'}</td>
+              <td>${item.avgQualityScore ? parseFloat(String(item.avgQualityScore)).toFixed(1) : 'N/A'}</td>
             </tr>
           `
             )

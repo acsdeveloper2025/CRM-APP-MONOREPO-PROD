@@ -161,7 +161,7 @@ export const createRbacRole = async (req: AuthenticatedRequest, res: Response) =
       const insert = await client.query(
         `INSERT INTO roles_v2 (name, description, parent_role_id, is_system)
          VALUES ($1, $2, $3, false)
-         RETURNING id, name, description, parent_role_id as "parentRoleId", is_system as "isSystem"`,
+         RETURNING id, name, description, parent_role_id as "parent_role_id", is_system as "is_system"`,
         [finalRoleName, description?.trim() || null, parentRoleId || null]
       );
       const created = insert.rows[0];
@@ -230,7 +230,7 @@ export const updateRbacRole = async (req: AuthenticatedRequest, res: Response) =
            parent_role_id = $3,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $4
-       RETURNING id, name, description, parent_role_id as "parentRoleId", is_system as "isSystem"`,
+       RETURNING id, name, description, parent_role_id as "parent_role_id", is_system as "is_system"`,
       [
         (canonicalName ?? trimmedName) || null,
         description !== undefined ? description : null,
@@ -259,7 +259,7 @@ export const deleteRbacRole = async (req: AuthenticatedRequest, res: Response) =
   try {
     const { id } = req.params;
     const roleRes = await query(
-      `SELECT r.*, (SELECT COUNT(*) FROM user_roles ur WHERE ur.role_id = r.id)::int as "userCount"
+      `SELECT r.*, (SELECT COUNT(*) FROM user_roles ur WHERE ur.role_id = r.id)::int as "user_count"
        FROM roles_v2 r WHERE r.id = $1`,
       [id]
     );
@@ -269,7 +269,7 @@ export const deleteRbacRole = async (req: AuthenticatedRequest, res: Response) =
         .status(404)
         .json({ success: false, message: 'Role not found', error: { code: 'ROLE_NOT_FOUND' } });
     }
-    if (role.is_system) {
+    if (role.isSystem) {
       return res.status(400).json({
         success: false,
         message: 'Cannot delete system role',
@@ -330,7 +330,7 @@ export const updateRolePermissions = async (req: AuthenticatedRequest, res: Resp
     const permissionCodes = Array.isArray(req.body?.permissionCodes)
       ? (req.body.permissionCodes as string[])
       : [];
-    const affectedUsersRes = await query<{ user_id: string }>(
+    const affectedUsersRes = await query<{ userId: string }>(
       'SELECT DISTINCT user_id FROM user_roles WHERE role_id = $1',
       [id]
     );
@@ -352,7 +352,7 @@ export const updateRolePermissions = async (req: AuthenticatedRequest, res: Resp
     if (io) {
       emitPermissionsUpdated(
         io,
-        affectedUsersRes.rows.map(row => row.user_id)
+        affectedUsersRes.rows.map(row => row.userId)
       );
     }
 
@@ -370,7 +370,7 @@ export const getRoleRoutes = async (req: AuthenticatedRequest, res: Response) =>
   try {
     const { id } = req.params;
     const result = await query(
-      `SELECT rr.route_key as "routeKey", rr.allowed
+      `SELECT rr.route_key as "route_key", rr.allowed
        FROM role_routes rr
        WHERE rr.role_id = $1`,
       [id]
@@ -405,7 +405,7 @@ export const updateRoleRoutes = async (req: AuthenticatedRequest, res: Response)
     const routeEntries = Array.isArray(req.body?.routes)
       ? (req.body.routes as Array<{ routeKey: string; allowed: boolean }>)
       : [];
-    const affectedUsersRes = await query<{ user_id: string }>(
+    const affectedUsersRes = await query<{ userId: string }>(
       'SELECT DISTINCT user_id FROM user_roles WHERE role_id = $1',
       [id]
     );
@@ -427,7 +427,7 @@ export const updateRoleRoutes = async (req: AuthenticatedRequest, res: Response)
     if (io) {
       emitPermissionsUpdated(
         io,
-        affectedUsersRes.rows.map(row => row.user_id)
+        affectedUsersRes.rows.map(row => row.userId)
       );
     }
 

@@ -19,22 +19,22 @@ import { TaskRevocationService } from '@/services/taskRevocationService';
 
 type ReassignableTaskRecord = {
   id: string;
-  case_id: string;
-  verification_type_id: number;
-  task_title: string | null;
-  task_description: string | null;
+  caseId: string;
+  verificationTypeId: number;
+  taskTitle: string | null;
+  taskDescription: string | null;
   priority: string | null;
-  rate_type_id: number | null;
-  estimated_amount: number | null;
+  rateTypeId: number | null;
+  estimatedAmount: number | null;
   address: string | null;
   pincode: string | null;
-  area_id: number | null;
-  task_type: string | null;
-  assigned_to: string | null;
+  areaId: number | null;
+  taskType: string | null;
+  assignedTo: string | null;
 };
 
 // Database connection (assuming it's imported from your existing setup)
-import { pool } from '../config/database';
+import { pool, query as dbQuery, wrapClient } from '../config/database';
 import { CaseStatusSyncService } from '../services/caseStatusSyncService';
 import {
   VerificationTaskCreationError,
@@ -44,7 +44,7 @@ import {
 export class VerificationTasksController {
   private static async ensureTaskRevokeAccess(
     req: AuthenticatedRequest,
-    task: { assigned_to: string | null; case_id: string }
+    task: { assignedTo: string | null; caseId: string }
   ): Promise<boolean> {
     const scope = await resolveDataScope(req);
 
@@ -52,9 +52,9 @@ export class VerificationTasksController {
       return true;
     }
 
-    const caseScopeResult = await pool.query(
+    const caseScopeResult = await dbQuery(
       `SELECT client_id as client_id, product_id as product_id FROM cases WHERE id = $1`,
-      [task.case_id]
+      [task.caseId]
     );
 
     if (caseScopeResult.rows.length === 0) {
@@ -65,9 +65,9 @@ export class VerificationTasksController {
 
     return valueAllowedByScope(
       {
-        userId: task.assigned_to,
-        clientId: Number(caseScope.client_id),
-        productId: Number(caseScope.product_id),
+        userId: task.assignedTo,
+        clientId: Number(caseScope.clientId),
+        productId: Number(caseScope.productId),
       },
       scope
     );
@@ -86,9 +86,9 @@ export class VerificationTasksController {
       await VerificationTaskCreationService.validateTerritoryAndFinancialConfig(client, {
         clientId: Number(taskCaseScopeResult.clientId),
         productId: Number(taskCaseScopeResult.productId),
-        verificationTypeId: Number(currentTask.verification_type_id),
+        verificationTypeId: Number(currentTask.verificationTypeId),
         pincode: currentTask.pincode,
-        areaId: currentTask.area_id,
+        areaId: currentTask.areaId,
       });
 
     const newTaskResult = await client.query(
@@ -110,13 +110,13 @@ export class VerificationTasksController {
       ) RETURNING *
     `,
       [
-        currentTask.case_id,
-        currentTask.verification_type_id,
-        currentTask.task_title,
-        currentTask.task_description,
+        currentTask.caseId,
+        currentTask.verificationTypeId,
+        currentTask.taskTitle,
+        currentTask.taskDescription,
         priority || currentTask.priority,
-        currentTask.rate_type_id,
-        currentTask.estimated_amount,
+        currentTask.rateTypeId,
+        currentTask.estimatedAmount,
         currentTask.address,
         currentTask.pincode,
         recreatedTerritory.areaId,
@@ -124,7 +124,7 @@ export class VerificationTasksController {
         assignedBy,
         assignedBy,
         currentTask.id,
-        currentTask.task_type,
+        currentTask.taskType,
       ]
     );
 
@@ -139,8 +139,8 @@ export class VerificationTasksController {
     `,
       [
         finalTask.id,
-        finalTask.case_id,
-        currentTask.assigned_to,
+        finalTask.caseId,
+        currentTask.assignedTo,
         assignedTo,
         assignedBy,
         assignmentReason || 'Reassigned after revoke',
@@ -157,7 +157,7 @@ export class VerificationTasksController {
         updated_at = NOW()
       WHERE id = $1
       `,
-      [currentTask.case_id]
+      [currentTask.caseId]
     );
 
     await TaskRevocationService.markReassigned(client, currentTask.id, assignedTo);
@@ -193,7 +193,7 @@ export class VerificationTasksController {
       // Check if caseId is a number (case number) and convert to UUID
       if (/^\d+$/.test(caseId)) {
         const caseQuery = 'SELECT id FROM cases WHERE case_id = $1';
-        const caseResult = await pool.query(caseQuery, [parseInt(caseId)]);
+        const caseResult = await dbQuery(caseQuery, [parseInt(caseId)]);
 
         if (caseResult.rows.length === 0) {
           res.status(404).json({
@@ -215,7 +215,7 @@ export class VerificationTasksController {
       return;
     }
 
-    const client = await pool.connect();
+    const client = wrapClient(await pool.connect());
 
     try {
       await client.query('BEGIN');
@@ -263,7 +263,7 @@ export class VerificationTasksController {
             await queueCaseAssignmentNotification({
               userId: task.assignedTo,
               caseId: actualCaseId,
-              caseNumber: caseData.case_number,
+              caseNumber: caseData.caseNumber,
               taskId: task.id,
               taskNumber: task.taskNumber,
               customerName: caseData.customerName,
@@ -285,10 +285,10 @@ export class VerificationTasksController {
       res.status(201).json({
         success: true,
         data: {
-          case_id: actualCaseId,
-          tasks_created: createdTasks.length,
+          caseId: actualCaseId,
+          tasksCreated: createdTasks.length,
           tasks: populatedTasks,
-          total_estimated_amount: totalEstimatedAmount,
+          totalEstimatedAmount,
         },
         message: 'Verification tasks created successfully',
       });
@@ -323,7 +323,7 @@ export class VerificationTasksController {
     const { assignedTo } = req.body;
     const userId = req.user?.id;
 
-    const client = await pool.connect();
+    const client = wrapClient(await pool.connect());
 
     try {
       await client.query('BEGIN');
@@ -351,7 +351,7 @@ export class VerificationTasksController {
 
       const caseScopeResult = await client.query(
         'SELECT client_id, product_id FROM cases WHERE id = $1',
-        [originalTask.case_id]
+        [originalTask.caseId]
       );
       if (caseScopeResult.rows.length === 0) {
         await client.query('ROLLBACK');
@@ -366,11 +366,11 @@ export class VerificationTasksController {
       // Enforce territory integrity on child task creation
       const revisitedTerritory =
         await VerificationTaskCreationService.validateTerritoryAndFinancialConfig(client, {
-          clientId: Number(caseScopeResult.rows[0].client_id),
-          productId: Number(caseScopeResult.rows[0].product_id),
-          verificationTypeId: Number(originalTask.verification_type_id),
+          clientId: Number(caseScopeResult.rows[0].clientId),
+          productId: Number(caseScopeResult.rows[0].productId),
+          verificationTypeId: Number(originalTask.verificationTypeId),
           pincode: originalTask.pincode,
-          areaId: originalTask.area_id,
+          areaId: originalTask.areaId,
         });
 
       // 2. Create new task (REVISIT type)
@@ -398,26 +398,26 @@ export class VerificationTasksController {
       `;
 
       const insertParams = [
-        originalTask.case_id,
-        originalTask.verification_type_id,
+        originalTask.caseId,
+        originalTask.verificationTypeId,
         `Revisit: ${originalTask.task_title}`,
-        originalTask.task_description,
+        originalTask.taskDescription,
         originalTask.priority,
         assignedToValue,
         userId,
         isAssigned ? new Date() : null,
-        originalTask.rate_type_id,
-        originalTask.estimated_amount,
+        originalTask.rateTypeId,
+        originalTask.estimatedAmount,
         originalTask.address,
         originalTask.pincode,
         revisitedTerritory.areaId,
         null, // Reset estimated completion date
         taskStatus,
         userId,
-        taskId, // parent_task_id
-        originalTask.first_assigned_at ||
-          originalTask.assigned_at ||
-          originalTask.created_at ||
+        taskId, // parentTaskId
+        originalTask.firstAssignedAt ||
+          originalTask.assignedAt ||
+          originalTask.createdAt ||
           new Date(),
       ];
 
@@ -425,13 +425,13 @@ export class VerificationTasksController {
       const newTask = newTaskResult.rows[0];
 
       // 3. Clone photos (attachments) if any
-      // We need to copy records from verification_attachments where verification_task_id = originalTask.id
-      // and set is_historical = true (if we had that field) or just copy them.
+      // We need to copy records from verificationAttachments where verificationTaskId = originalTask.id
+      // and set isHistorical = true (if we had that field) or just copy them.
       // The requirement says "photos (but marked as historical—not counted toward mandatory 5 photos)".
       // This implies we need a way to distinguish them.
-      // Checking verification_attachments schema might be needed.
+      // Checking verificationAttachments schema might be needed.
       // For now, let's assume we just copy them and maybe the frontend filters them based on creation date vs task creation date?
-      // Or we add a 'is_historical' flag to attachments?
+      // Or we add a 'isHistorical' flag to attachments?
       // The requirement said "marked as historical".
       // Let's check if we can add a metadata field or similar.
       // For now, I will skip photo cloning in this step to keep it simple and because I don't want to change attachment schema yet without checking.
@@ -448,7 +448,7 @@ export class VerificationTasksController {
         `,
           [
             newTask.id,
-            newTask.case_id,
+            newTask.caseId,
             assignedTo,
             userId,
             'Initial assignment for revisit task',
@@ -475,7 +475,7 @@ export class VerificationTasksController {
           updated_at = NOW()
         WHERE id = $1
       `,
-        [newTask.case_id]
+        [newTask.caseId]
       );
 
       await client.query('COMMIT');
@@ -489,22 +489,22 @@ export class VerificationTasksController {
              FROM cases c
              WHERE c.id = $1
            `;
-          const caseQueryResult = await client.query(caseQuery, [newTask.case_id]);
+          const caseQueryResult = await client.query(caseQuery, [newTask.caseId]);
           const caseData = caseQueryResult.rows[0];
 
           const { queueCaseAssignmentNotification } = await import('../queues/notificationQueue');
 
           // Get verification type name
           const vtQuery = `SELECT name FROM verification_types WHERE id = $1`;
-          const vtResult = await client.query(vtQuery, [newTask.verification_type_id]);
+          const vtResult = await client.query(vtQuery, [newTask.verificationTypeId]);
           const verificationType = vtResult.rows[0]?.name || 'Unknown';
 
           await queueCaseAssignmentNotification({
             userId: assignedTo,
-            caseId: newTask.case_id,
-            caseNumber: caseData.case_number,
+            caseId: newTask.caseId,
+            caseNumber: caseData.caseNumber,
             taskId: newTask.id,
-            taskNumber: newTask.task_number,
+            taskNumber: newTask.taskNumber,
             customerName: caseData.customerName,
             verificationType,
             assignmentType: 'assignment',
@@ -517,7 +517,7 @@ export class VerificationTasksController {
       }
 
       // Sync case status
-      await CaseStatusSyncService.recalculateCaseStatus(newTask.case_id);
+      await CaseStatusSyncService.recalculateCaseStatus(newTask.caseId);
 
       res.status(201).json({
         success: true,
@@ -550,7 +550,7 @@ export class VerificationTasksController {
     const {
       page = 1,
       limit = 50,
-      sortBy = 'created_at',
+      sortBy = 'createdAt',
       sortOrder = 'desc',
       status,
       priority,
@@ -561,7 +561,7 @@ export class VerificationTasksController {
       search,
       dateFrom,
       dateTo,
-      task_type: taskType,
+      taskType: taskType,
     } = req.query;
 
     try {
@@ -750,20 +750,23 @@ export class VerificationTasksController {
 
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-      // Validate sortBy to prevent SQL injection
-      const allowedSortFields = [
-        'created_at',
-        'updated_at',
-        'assigned_at',
-        'priority',
-        'status',
-        'task_number',
-      ];
-      const safeSortBy = allowedSortFields.includes(sortBy as string) ? sortBy : 'created_at';
+      // API contract: sortBy is camelCase; we map it to the snake_case DB column.
+      // Whitelist prevents SQL injection.
+      const sortFieldMap: Record<string, string> = {
+        createdAt: 'created_at',
+        updatedAt: 'updated_at',
+        assignedAt: 'assigned_at',
+        completedAt: 'completed_at',
+        startedAt: 'started_at',
+        priority: 'priority',
+        status: 'status',
+        taskNumber: 'task_number',
+      };
+      const safeSortColumn = sortFieldMap[sortBy as string] || 'created_at';
       const safeSortOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
       // Get total count
-      const countResult = await pool.query(
+      const countResult = await dbQuery(
         `
         SELECT COUNT(*) as total
         FROM verification_tasks vt
@@ -776,7 +779,7 @@ export class VerificationTasksController {
       const totalTasks = parseInt(countResult.rows[0].total);
 
       // Get tasks with populated data
-      const tasksResult = await pool.query(
+      const tasksResult = await dbQuery(
         `
         SELECT
           vt.*,
@@ -802,7 +805,7 @@ export class VerificationTasksController {
         LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
         LEFT JOIN task_commission_calculations tcc ON vt.id = tcc.verification_task_id
         ${whereClause}
-        ORDER BY vt.${typeof safeSortBy === 'string' || typeof safeSortBy === 'number' ? String(safeSortBy) : 'created_at'} ${safeSortOrder}
+        ORDER BY vt.${safeSortColumn} ${safeSortOrder}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `,
         [...params, Number(limit), offset]
@@ -810,66 +813,66 @@ export class VerificationTasksController {
 
       const tasks = tasksResult.rows.map(row => ({
         id: row.id,
-        taskNumber: row.task_number,
-        caseId: row.case_id,
-        taskType: row.task_type,
-        parentTaskId: row.parent_task_id,
-        caseNumber: row.case_number,
-        customerName: row.customer_name,
-        caseStatus: row.case_status,
-        client: row.client_name ? { name: row.client_name } : null,
-        product: row.product_name ? { name: row.product_name } : null,
+        taskNumber: row.taskNumber,
+        caseId: row.caseId,
+        taskType: row.taskType,
+        parentTaskId: row.parentTaskId,
+        caseNumber: row.caseNumber,
+        customerName: row.customerName,
+        caseStatus: row.caseStatus,
+        client: row.clientName ? { name: row.clientName } : null,
+        product: row.productName ? { name: row.productName } : null,
         verificationType: {
-          id: row.verification_type_id,
-          name: row.verification_type_name,
+          id: row.verificationTypeId,
+          name: row.verificationTypeName,
         },
-        verificationTypeName: row.verification_type_name, // Add for frontend compatibility
-        taskTitle: row.task_title,
-        taskDescription: row.task_description,
+        verificationTypeName: row.verificationTypeName, // Add for frontend compatibility
+        taskTitle: row.taskTitle,
+        taskDescription: row.taskDescription,
         status: row.status,
         priority: row.priority,
-        assignedTo: row.assigned_to
+        assignedTo: row.assignedTo
           ? {
-              id: row.assigned_to,
-              name: row.assigned_to_name || row['assignedToName'],
-              employeeId: row.assigned_to_employee_id || row['assignedToEmployeeId'],
+              id: row.assignedTo,
+              name: row.assignedToName || row['assignedToName'],
+              employeeId: row.assignedToEmployeeId || row['assignedToEmployeeId'],
             }
           : null,
-        assignedToName: row.assigned_to_name || row['assignedToName'],
-        assignedToEmployeeId: row.assigned_to_employee_id || row['assignedToEmployeeId'],
-        assignedBy: row.assigned_by
+        assignedToName: row.assignedToName || row['assignedToName'],
+        assignedToEmployeeId: row.assignedToEmployeeId || row['assignedToEmployeeId'],
+        assignedBy: row.assignedBy
           ? {
-              id: row.assigned_by,
-              name: row.assigned_by_name || row['assignedByName'],
+              id: row.assignedBy,
+              name: row.assignedByName || row['assignedByName'],
             }
           : null,
-        assignedByName: row.assigned_by_name || row['assignedByName'],
-        verificationOutcome: row.verification_outcome,
-        rateType: row.rate_type_name
+        assignedByName: row.assignedByName || row['assignedByName'],
+        verificationOutcome: row.verificationOutcome,
+        rateType: row.rateTypeName
           ? {
-              id: row.rate_type_id,
-              name: row.rate_type_name,
+              id: row.rateTypeId,
+              name: row.rateTypeName,
             }
           : null,
-        rateTypeName: row.rate_type_name, // Add for frontend compatibility
-        estimatedAmount: parseFloat(row.estimated_amount || '0'),
-        actualAmount: parseFloat(row.actual_amount || '0'),
+        rateTypeName: row.rateTypeName, // Add for frontend compatibility
+        estimatedAmount: parseFloat(row.estimatedAmount || '0'),
+        actualAmount: parseFloat(row.actualAmount || '0'),
         address: row.address,
         pincode: row.pincode,
         trigger: row.trigger,
-        applicantType: row.applicant_type,
-        assignedAt: row.assigned_at,
-        startedAt: row.started_at,
-        completedAt: row.completed_at,
-        estimatedCompletionDate: row.estimated_completion_date,
-        commissionStatus: row.commission_status,
-        calculatedCommission: parseFloat(row.calculated_commission || '0'),
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
+        applicantType: row.applicantType,
+        assignedAt: row.assignedAt,
+        startedAt: row.startedAt,
+        completedAt: row.completedAt,
+        estimatedCompletionDate: row.estimatedCompletionDate,
+        commissionStatus: row.commissionStatus,
+        calculatedCommission: parseFloat(row.calculatedCommission || '0'),
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
       }));
 
       // Calculate statistics
-      const statsResult = await pool.query(
+      const statsResult = await dbQuery(
         `
         SELECT
           COUNT(*) FILTER (WHERE vt.status = 'PENDING') as pending_count,
@@ -905,19 +908,19 @@ export class VerificationTasksController {
             totalPages: Math.ceil(totalTasks / Number(limit)),
           },
           statistics: {
-            pending: parseInt(stats.pending_count || '0'),
-            assigned: parseInt(stats.assigned_count || '0'),
-            inProgress: parseInt(stats.in_progress_count || '0'),
-            completed: parseInt(stats.completed_count || '0'),
-            revoked: parseInt(stats.revoked_count || '0'),
-            onHold: parseInt(stats.on_hold_count || '0'),
-            urgent: parseInt(stats.urgent_count || '0'),
-            highPriority: parseInt(stats.high_priority_count || '0'),
-            totalAgents: parseInt(stats.total_agents || '0'),
-            longRunning: parseInt(stats.long_running_count || '0'),
-            avgDuration: parseFloat(stats.avg_duration_hours || '0'),
-            avgTurnaround: parseFloat(stats.avg_turnaround_hours || '0'),
-            completedToday: parseInt(stats.completed_today_count || '0'),
+            pending: parseInt(stats.pendingCount || '0'),
+            assigned: parseInt(stats.assignedCount || '0'),
+            inProgress: parseInt(stats.inProgressCount || '0'),
+            completed: parseInt(stats.completedCount || '0'),
+            revoked: parseInt(stats.revokedCount || '0'),
+            onHold: parseInt(stats.onHoldCount || '0'),
+            urgent: parseInt(stats.urgentCount || '0'),
+            highPriority: parseInt(stats.highPriorityCount || '0'),
+            totalAgents: parseInt(stats.totalAgents || '0'),
+            longRunning: parseInt(stats.longRunningCount || '0'),
+            avgDuration: parseFloat(stats.avgDurationHours || '0'),
+            avgTurnaround: parseFloat(stats.avgTurnaroundHours || '0'),
+            completedToday: parseInt(stats.completedTodayCount || '0'),
           },
         },
         message: 'Verification tasks retrieved successfully',
@@ -940,8 +943,8 @@ export class VerificationTasksController {
     const rawCaseId = String(req.params.caseId || '');
     const caseId = Array.isArray(rawCaseId) ? String(rawCaseId[0]) : String(rawCaseId || '');
     const status = (req.query.status as unknown as string) || '';
-    const assignedTo = (req.query.assigned_to as unknown as string) || '';
-    const verificationTypeId = (req.query.verification_type_id as unknown as string) || '';
+    const assignedTo = (req.query.assignedTo as unknown as string) || '';
+    const verificationTypeId = (req.query.verificationTypeId as unknown as string) || '';
 
     try {
       // First, resolve the case ID - it could be a case number or UUID
@@ -950,7 +953,7 @@ export class VerificationTasksController {
       // Check if caseId is a number (case number) and convert to UUID
       if (/^\d+$/.test(caseId)) {
         const caseQuery = 'SELECT id FROM cases WHERE case_id = $1';
-        const caseResult = await pool.query(caseQuery, [parseInt(caseId)]);
+        const caseResult = await dbQuery(caseQuery, [parseInt(caseId)]);
 
         if (caseResult.rows.length === 0) {
           res.status(404).json({
@@ -963,7 +966,7 @@ export class VerificationTasksController {
         actualCaseId = caseResult.rows[0].id;
       }
 
-      const whereConditions = ['vt.case_id = $1'];
+      const whereConditions = ['vt.caseId = $1'];
       const queryParams: (string | number | boolean | null | undefined)[] = [actualCaseId];
       let paramIndex = 2;
 
@@ -988,8 +991,8 @@ export class VerificationTasksController {
 
       const whereClause = whereConditions.join(' AND ');
 
-      // Get case information including trigger and applicant_type
-      const caseResult = await pool.query(
+      // Get case information including trigger and applicantType
+      const caseResult = await dbQuery(
         `
         SELECT
           c.id, c.case_id as case_number, c.customer_name as customer_name,
@@ -1018,7 +1021,7 @@ export class VerificationTasksController {
         const scopedUserIds = await getScopedOperationalUserIds(req.user.id);
 
         if (scopedUserIds) {
-          const scopeCheck = await pool.query(
+          const scopeCheck = await dbQuery(
             `SELECT 1
              FROM cases c
              LEFT JOIN verification_tasks vt ON vt.case_id = c.id
@@ -1045,8 +1048,8 @@ export class VerificationTasksController {
             getAssignedProductIds(req.user.id),
           ]);
 
-          const caseClientId = Number(caseInfo.client_id);
-          const caseProductId = Number(caseInfo.product_id);
+          const caseClientId = Number(caseInfo.clientId);
+          const caseProductId = Number(caseInfo.productId);
 
           if (
             !assignedClientIds ||
@@ -1067,7 +1070,7 @@ export class VerificationTasksController {
       }
 
       // Get verification tasks with populated data
-      const tasksResult = await pool.query(
+      const tasksResult = await dbQuery(
         `
         SELECT 
           vt.*,
@@ -1092,53 +1095,53 @@ export class VerificationTasksController {
 
       const tasks = tasksResult.rows.map(row => ({
         id: row.id,
-        task_number: row.task_number,
-        case_id: row.case_id,
-        case_number: caseInfo.case_number,
-        customer_name: caseInfo.customer_name,
-        verification_type_id: row.verification_type_id,
-        verification_type_name: row.verification_type_name,
-        task_title: row.task_title,
-        task_description: row.task_description,
+        taskNumber: row.taskNumber,
+        caseId: row.caseId,
+        caseNumber: caseInfo.caseNumber,
+        customerName: caseInfo.customerName,
+        verificationTypeId: row.verificationTypeId,
+        verificationTypeName: row.verificationTypeName,
+        taskTitle: row.taskTitle,
+        taskDescription: row.taskDescription,
         status: row.status,
         priority: row.priority,
-        assigned_to: row.assigned_to,
-        assigned_to_name: row.assigned_to_name,
-        assigned_to_employee_id: row.assigned_to_employee_id,
-        assigned_by: row.assigned_by,
-        assigned_by_name: row.assigned_by_name,
-        verification_outcome: row.verification_outcome,
-        rate_type_id: row.rate_type_id,
-        rate_type_name: row.rate_type_name,
-        estimated_amount: parseFloat(row.estimated_amount || '0'),
-        actual_amount: parseFloat(row.actual_amount || '0'),
+        assignedTo: row.assignedTo,
+        assignedToName: row.assignedToName,
+        assignedToEmployeeId: row.assignedToEmployeeId,
+        assignedBy: row.assignedBy,
+        assignedByName: row.assignedByName,
+        verificationOutcome: row.verificationOutcome,
+        rateTypeId: row.rateTypeId,
+        rateTypeName: row.rateTypeName,
+        estimatedAmount: parseFloat(row.estimatedAmount || '0'),
+        actualAmount: parseFloat(row.actualAmount || '0'),
         address: row.address,
         pincode: row.pincode,
-        area_id: row.area_id,
-        // Use task-level trigger/applicant_type if available, otherwise fall back to case-level
+        areaId: row.areaId,
+        // Use task-level trigger/applicantType if available, otherwise fall back to case-level
         trigger: row.trigger || caseInfo.trigger,
-        applicant_type: row.applicant_type || caseInfo.applicant_type,
-        assigned_at: row.assigned_at,
-        started_at: row.started_at,
-        completed_at: row.completed_at,
-        task_type: row.task_type,
-        parent_task_id: row.parent_task_id,
-        estimated_completion_date: row.estimated_completion_date,
-        commission_status: row.commission_status,
-        calculated_commission: parseFloat(row.calculated_commission || '0'),
-        created_at: row.created_at,
-        updated_at: row.updated_at,
+        applicantType: row.applicantType || caseInfo.applicantType,
+        assignedAt: row.assignedAt,
+        startedAt: row.startedAt,
+        completedAt: row.completedAt,
+        taskType: row.taskType,
+        parentTaskId: row.parentTaskId,
+        estimatedCompletionDate: row.estimatedCompletionDate,
+        commissionStatus: row.commissionStatus,
+        calculatedCommission: parseFloat(row.calculatedCommission || '0'),
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
       }));
 
       res.json({
         success: true,
         data: {
-          case_id: actualCaseId,
-          case_number: caseInfo.case_number,
-          customer_name: caseInfo.customer_name,
-          total_tasks: parseInt(caseInfo.total_tasks_count || '0'),
-          completed_tasks: parseInt(caseInfo.completed_tasks_count || '0'),
-          completion_percentage: parseFloat(caseInfo.case_completion_percentage || '0'),
+          caseId: actualCaseId,
+          caseNumber: caseInfo.caseNumber,
+          customerName: caseInfo.customerName,
+          totalTasks: parseInt(caseInfo.totalTasksCount || '0'),
+          completedTasks: parseInt(caseInfo.completedTasksCount || '0'),
+          completionPercentage: parseFloat(caseInfo.caseCompletionPercentage || '0'),
           tasks,
         },
         message: 'Verification tasks retrieved successfully',
@@ -1165,7 +1168,7 @@ export class VerificationTasksController {
 
     try {
       // First, fetch the current task to check if it's a REVISIT task and validate territory updates
-      const currentTaskResult = await pool.query(
+      const currentTaskResult = await dbQuery(
         `SELECT vt.task_type, vt.status, vt.started_at, vt.pincode, vt.area_id,
                 vt.verification_type_id, c.client_id as client_id, c.product_id as product_id
          FROM verification_tasks vt
@@ -1184,25 +1187,25 @@ export class VerificationTasksController {
       }
 
       const currentTask = currentTaskResult.rows[0];
-      const _isRevisitTask = currentTask.task_type === 'REVISIT';
+      const _isRevisitTask = currentTask.taskType === 'REVISIT';
 
       // Work Order Protection: Lock operational fields if task has started
       const isLocked =
         currentTask.status === 'IN_PROGRESS' ||
         currentTask.status === 'COMPLETED' ||
         currentTask.status === 'REVOKED' ||
-        currentTask.started_at !== null;
+        currentTask.startedAt !== null;
 
       if (isLocked) {
         const restrictedFields = [
           'address',
           'pincode',
           'areaId',
-          'area_id',
+          'areaId',
           'rateTypeId',
-          'rate_type_id',
+          'rateTypeId',
           'verificationTypeId',
-          'verification_type_id',
+          'verificationTypeId',
         ];
 
         const attemptedRestrictedUpdates = Object.keys(updateData).filter(
@@ -1237,31 +1240,31 @@ export class VerificationTasksController {
       const updateDataAny = updateData as Record<string, unknown>;
       const hasPincodeChange = updateDataAny.pincode !== undefined;
       const hasAreaChange =
-        updateDataAny.areaId !== undefined || updateDataAny.area_id !== undefined;
+        updateDataAny.areaId !== undefined || updateDataAny.areaId !== undefined;
 
       if (hasPincodeChange || hasAreaChange) {
         const nextPincode = hasPincodeChange ? updateDataAny.pincode : currentTask.pincode;
         const nextAreaId =
-          updateDataAny.area_id !== undefined
-            ? updateDataAny.area_id
+          updateDataAny.areaId !== undefined
+            ? updateDataAny.areaId
             : updateDataAny.areaId !== undefined
               ? updateDataAny.areaId
-              : currentTask.area_id;
+              : currentTask.areaId;
 
         const territoryValidation =
           await VerificationTaskCreationService.validateTerritoryAndFinancialConfig(pool, {
-            clientId: Number(currentTask.client_id),
-            productId: Number(currentTask.product_id),
-            verificationTypeId: Number(currentTask.verification_type_id),
+            clientId: Number(currentTask.clientId),
+            productId: Number(currentTask.productId),
+            verificationTypeId: Number(currentTask.verificationTypeId),
             pincode: nextPincode,
             areaId: nextAreaId,
           });
 
         // Normalize/lock territory fields so partial updates cannot leave task inconsistent.
         updateDataAny.pincode = String(nextPincode);
-        updateDataAny.area_id = territoryValidation.areaId;
+        updateDataAny.areaId = territoryValidation.areaId;
         delete updateDataAny.areaId;
-        updateDataAny.rate_type_id = territoryValidation.rateTypeId;
+        updateDataAny.rateTypeId = territoryValidation.rateTypeId;
       }
 
       logger.info('=== UPDATE TASK DEBUG ===', {
@@ -1296,7 +1299,7 @@ export class VerificationTasksController {
       }
 
       // If this is a REVISIT task being updated, we do NOT want to convert it to a regular task
-      // The requirement is to keep task_type = 'REVISIT'
+      // The requirement is to keep taskType = 'REVISIT'
       // if (isRevisitTask) {
       //   updateFields.push(`task_type = NULL`);
       //   logger.info('Converting REVISIT task to regular task', { taskId });
@@ -1306,9 +1309,9 @@ export class VerificationTasksController {
       if (isAssignment && updateData.assignedTo) {
         // Update status to ASSIGNED if currently PENDING
         updateFields.push(`status = CASE WHEN status = 'PENDING' THEN 'ASSIGNED' ELSE status END`);
-        // Set assigned_at timestamp
+        // Set assignedAt timestamp
         updateFields.push(`assigned_at = NOW()`);
-        // Set assigned_by to current user
+        // Set assignedBy to current user
         updateFields.push(`assigned_by = $${paramIndex}`);
         queryParams.push(userId);
         paramIndex++;
@@ -1330,7 +1333,7 @@ export class VerificationTasksController {
         updateFields,
       });
 
-      const result = await pool.query(updateQuery, queryParams);
+      const result = await dbQuery(updateQuery, queryParams);
 
       logger.info('=== UPDATE QUERY RESULT ===', {
         rowCount: result.rowCount,
@@ -1349,12 +1352,12 @@ export class VerificationTasksController {
       const updatedTask = result.rows[0];
 
       // Sync case status
-      await CaseStatusSyncService.recalculateCaseStatus(updatedTask.case_id);
+      await CaseStatusSyncService.recalculateCaseStatus(updatedTask.caseId);
 
       // If this was an assignment, create assignment history
       if (isAssignment && updateData.assignedTo) {
         try {
-          await pool.query(
+          await dbQuery(
             `
             INSERT INTO task_assignment_history (
               verification_task_id, case_id, assigned_to, assigned_by,
@@ -1363,7 +1366,7 @@ export class VerificationTasksController {
           `,
             [
               taskId,
-              updatedTask.case_id,
+              updatedTask.caseId,
               updateData.assignedTo,
               userId,
               'Task assigned during case edit',
@@ -1389,10 +1392,10 @@ export class VerificationTasksController {
       logger.info('=== TASK UPDATE COMPLETE ===', {
         taskId,
         updatedStatus: updatedTask.status,
-        updatedAssignedTo: updatedTask.assigned_to,
-        updatedAssignedBy: updatedTask.assigned_by,
-        updatedAssignedAt: updatedTask.assigned_at,
-        taskType: updatedTask.task_type,
+        updatedAssignedTo: updatedTask.assignedTo,
+        updatedAssignedBy: updatedTask.assignedBy,
+        updatedAssignedAt: updatedTask.assignedAt,
+        taskType: updatedTask.taskType,
       });
 
       res.json({
@@ -1424,7 +1427,7 @@ export class VerificationTasksController {
 
     const placeholders = taskIds.map((_, index) => `$${index + 1}`).join(',');
 
-    const result = await pool.query(
+    const result = await dbQuery(
       `
       SELECT 
         vt.*,
@@ -1471,7 +1474,7 @@ export class VerificationTasksController {
       return;
     }
 
-    const client = await pool.connect();
+    const client = wrapClient(await pool.connect());
 
     try {
       await client.query('BEGIN');
@@ -1495,7 +1498,7 @@ export class VerificationTasksController {
       const currentTask = taskResult.rows[0];
       const taskCaseScopeResult = await client.query(
         'SELECT client_id, product_id FROM cases WHERE id = $1',
-        [currentTask.case_id]
+        [currentTask.caseId]
       );
       if (taskCaseScopeResult.rows.length === 0) {
         await client.query('ROLLBACK');
@@ -1529,14 +1532,14 @@ export class VerificationTasksController {
         }
       }
 
-      const previousAssignee = currentTask.assigned_to;
+      const previousAssignee = currentTask.assignedTo;
       const previousStatus = currentTask.status;
 
       const isRevoked = previousStatus === 'REVOKED';
       const mustRevokeFirst =
         !isRevoked &&
         (previousStatus === 'IN_PROGRESS' ||
-          (currentTask.started_at !== null && previousStatus !== 'COMPLETED'));
+          (currentTask.startedAt !== null && previousStatus !== 'COMPLETED'));
 
       let finalTask;
       let actionType = 'assignment';
@@ -1585,7 +1588,7 @@ export class VerificationTasksController {
         `,
           [
             taskId,
-            currentTask.case_id,
+            currentTask.caseId,
             previousAssignee,
             assignedTo,
             userId,
@@ -1595,7 +1598,7 @@ export class VerificationTasksController {
           ]
         );
       } else {
-        actionType = 'reassignment_after_revoke';
+        actionType = 'reassignmentAfterRevoke';
         finalTask = await VerificationTasksController.createReplacementTask(
           client,
           currentTask,
@@ -1618,7 +1621,7 @@ export class VerificationTasksController {
           previousAssignee,
           newAssignee: assignedTo,
           assignmentReason,
-          actionType: isRevoked ? 'revoke_recreate' : 'update',
+          actionType: isRevoked ? 'revokeRecreate' : 'update',
         },
       });
 
@@ -1632,24 +1635,24 @@ export class VerificationTasksController {
           FROM cases c
           WHERE c.id = $1
         `;
-        const caseResult = await client.query(caseQuery, [currentTask.case_id]);
+        const caseResult = await client.query(caseQuery, [currentTask.caseId]);
         const caseData = caseResult.rows[0];
 
         // Get verification type name
         const vtQuery = `
           SELECT name FROM verification_types WHERE id = $1
         `;
-        const vtResult = await client.query(vtQuery, [currentTask.verification_type_id]);
+        const vtResult = await client.query(vtQuery, [currentTask.verificationTypeId]);
         const verificationType = vtResult.rows[0]?.name || 'Unknown';
 
         // Queue notification
         const { queueCaseAssignmentNotification } = await import('../queues/notificationQueue');
         await queueCaseAssignmentNotification({
           userId: assignedTo,
-          caseId: currentTask.case_id,
-          caseNumber: caseData.case_number,
+          caseId: currentTask.caseId,
+          caseNumber: caseData.caseNumber,
           taskId: finalTask.id,
-          taskNumber: finalTask.task_number, // Use new task number if recreated
+          taskNumber: finalTask.taskNumber, // Use new task number if recreated
           customerName: caseData.customerName,
           verificationType,
           assignmentType: actionType as 'assignment' | 'reassignment',
@@ -1662,7 +1665,7 @@ export class VerificationTasksController {
       }
 
       // Sync case status
-      await CaseStatusSyncService.recalculateCaseStatus(currentTask.case_id);
+      await CaseStatusSyncService.recalculateCaseStatus(currentTask.caseId);
 
       res.json({
         success: true,
@@ -1716,7 +1719,7 @@ export class VerificationTasksController {
       return;
     }
 
-    const client = await pool.connect();
+    const client = wrapClient(await pool.connect());
 
     try {
       await client.query('BEGIN');
@@ -1776,10 +1779,10 @@ export class VerificationTasksController {
           message: 'Task already revoked',
           data: {
             taskId: task.id,
-            taskNumber: task.task_number,
+            taskNumber: task.taskNumber,
             status: 'REVOKED',
-            revokedAt: task.revoked_at,
-            reason: task.revocation_reason,
+            revokedAt: task.revokedAt,
+            reason: task.revocationReason,
           },
         });
         return;
@@ -1789,7 +1792,7 @@ export class VerificationTasksController {
         taskId,
         revokedByUserId: userId,
         revokedByRole: 'ADMIN',
-        revokedFromUserId: task.assigned_to,
+        revokedFromUserId: task.assignedTo,
         revokeReason: reason,
         previousStatus: task.status,
       });
@@ -1817,23 +1820,23 @@ export class VerificationTasksController {
         entityType: 'VERIFICATION_TASK',
         entityId: taskId,
         details: {
-          taskNumber: task.task_number,
+          taskNumber: task.taskNumber,
           previousStatus: task.status,
-          revokedFromUserId: task.assigned_to,
+          revokedFromUserId: task.assignedTo,
           revokeReason: reason,
         },
       });
 
       await client.query('COMMIT');
 
-      await CaseStatusSyncService.recalculateCaseStatus(task.case_id);
+      await CaseStatusSyncService.recalculateCaseStatus(task.caseId);
 
       res.json({
         success: true,
         message: 'Task revoked successfully',
         data: {
           taskId: task.id,
-          taskNumber: task.task_number,
+          taskNumber: task.taskNumber,
           status: 'REVOKED',
           revokedAt: new Date().toISOString(),
           reason,
@@ -1883,13 +1886,13 @@ export class VerificationTasksController {
     if (!verificationOutcome) {
       res.status(400).json({
         success: false,
-        message: 'verification_outcome is required',
+        message: 'verificationOutcome is required',
         error: { code: 'INVALID_INPUT' },
       });
       return;
     }
 
-    const client = await pool.connect();
+    const client = wrapClient(await pool.connect());
 
     try {
       await client.query('BEGIN');
@@ -1915,7 +1918,7 @@ export class VerificationTasksController {
       const task = taskResult.rows[0];
 
       // 3. Assignment validation
-      if (task.assigned_to !== userId) {
+      if (task.assignedTo !== userId) {
         await client.query('ROLLBACK');
         res.status(403).json({
           success: false,
@@ -1939,10 +1942,10 @@ export class VerificationTasksController {
       // 5. Evidence validation (CRITICAL)
 
       // A) Location must exist
-      // A) Location must exist (Schema fix: use case_id and recordedAt)
+      // A) Location must exist (Schema fix: use caseId and recordedAt)
       const locationResult = await client.query(
         `SELECT id, recorded_at FROM locations WHERE case_id = $1 ORDER BY recorded_at DESC LIMIT 1`,
-        [task.case_id]
+        [task.caseId]
       );
       if (locationResult.rows.length === 0) {
         await client.query('ROLLBACK');
@@ -1990,7 +1993,7 @@ export class VerificationTasksController {
       // 6. Time consistency check
       // Convert timestamps to Date objects for comparison
       const locationTime = new Date(location.recordedAt);
-      const formTime = new Date(form.submitted_at);
+      const formTime = new Date(form.submittedAt);
 
       if (formTime < locationTime) {
         await client.query('ROLLBACK');
@@ -2018,7 +2021,7 @@ export class VerificationTasksController {
       const completedTask = updateResult.rows[0];
 
       // Calculate commission if rate type is available
-      if (completedTask.rate_type_id && completedTask.assigned_to) {
+      if (completedTask.rateTypeId && completedTask.assignedTo) {
         try {
           const { autoCalculateCommissionForTask } = await import(
             './commissionManagementController'
@@ -2032,7 +2035,7 @@ export class VerificationTasksController {
       // 8. Logging
       logger.info('Verification task completed with validated evidence', {
         taskId,
-        caseId: task.case_id,
+        caseId: task.caseId,
         userId,
         photoCount,
         formId: form.id,
@@ -2056,7 +2059,7 @@ export class VerificationTasksController {
       await client.query('COMMIT');
 
       // Sync case status
-      await CaseStatusSyncService.recalculateCaseStatus(task.case_id);
+      await CaseStatusSyncService.recalculateCaseStatus(task.caseId);
 
       res.json({
         success: true,
@@ -2086,7 +2089,7 @@ export class VerificationTasksController {
     const priority = (req.query.priority as unknown as string) || '';
 
     try {
-      const whereConditions = ['vt.assigned_to = $1'];
+      const whereConditions = ['vt.assignedTo = $1'];
       const queryParams: (string | undefined)[] = [userId];
       let paramIndex = 2;
 
@@ -2105,7 +2108,7 @@ export class VerificationTasksController {
       const whereClause = whereConditions.join(' AND ');
 
       // Get tasks with case information
-      const tasksResult = await pool.query(
+      const tasksResult = await dbQuery(
         `
         SELECT
           vt.id, vt.task_number, vt.case_id, vt.task_title,
@@ -2131,7 +2134,7 @@ export class VerificationTasksController {
       );
 
       // Get summary statistics
-      const summaryResult = await pool.query(
+      const summaryResult = await dbQuery(
         `
         SELECT
           COUNT(*) as total_assigned,
@@ -2153,13 +2156,13 @@ export class VerificationTasksController {
         data: {
           tasks: tasksResult.rows,
           summary: {
-            total_assigned: parseInt(summary.total_assigned),
+            totalAssigned: parseInt(summary.totalAssigned),
             pending: parseInt(summary.pending),
-            in_progress: parseInt(summary.in_progress),
-            completed_today: parseInt(summary.completed_today),
-            completed_this_week: parseInt(summary.completed_this_week),
-            total_earnings: parseFloat(summary.total_earnings),
-            pending_commission: 0, // Will be calculated from commission table
+            inProgress: parseInt(summary.inProgress),
+            completedToday: parseInt(summary.completedToday),
+            completedThisWeek: parseInt(summary.completedThisWeek),
+            totalEarnings: parseFloat(summary.totalEarnings),
+            pendingCommission: 0, // Will be calculated from commission table
           },
         },
         message: 'Tasks retrieved successfully',
@@ -2187,7 +2190,7 @@ export class VerificationTasksController {
 
     try {
       // Get task details
-      const taskResult = await pool.query(
+      const taskResult = await dbQuery(
         `
         SELECT vt.*, vtype.name as verification_type_name
         FROM verification_tasks vt
@@ -2216,8 +2219,8 @@ export class VerificationTasksController {
         // For COMPLETED tasks, run full validation
         validation = await TaskCompletionValidator.validateTaskCompletion(
           taskId,
-          task.verification_type_name,
-          task.verification_outcome || 'POSITIVE'
+          task.verificationTypeName,
+          task.verificationOutcome || 'POSITIVE'
         );
       } else {
         // For non-completed tasks, just check current state
@@ -2230,7 +2233,7 @@ export class VerificationTasksController {
 
       logger.info('Task validation check', {
         taskId,
-        taskNumber: task.task_number,
+        taskNumber: task.taskNumber,
         status: task.status,
         isValid: validation.isValid,
         errorCount: validation.errors.length,
@@ -2240,11 +2243,11 @@ export class VerificationTasksController {
         success: true,
         data: {
           taskId,
-          taskNumber: task.task_number,
+          taskNumber: task.taskNumber,
           status: task.status,
-          verificationOutcome: task.verification_outcome,
-          verificationType: task.verification_type_name,
-          completedAt: task.completed_at,
+          verificationOutcome: task.verificationOutcome,
+          verificationType: task.verificationTypeName,
+          completedAt: task.completedAt,
           isValid: validation.isValid,
           errors: validation.errors,
           warnings: validation.warnings,
@@ -2292,7 +2295,7 @@ export class VerificationTasksController {
   }
 
   /**
-   * Helper method to convert camelCase to snake_case
+   * Helper method to convert camelCase to snakeCase
    */
   private static camelToSnakeCase(str: string): string {
     return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
@@ -2312,7 +2315,7 @@ export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Respons
       search,
       dateFrom,
       dateTo,
-      task_type: taskType,
+      taskType: taskType,
     } = req.query;
 
     const conditions: string[] = [];
@@ -2403,7 +2406,7 @@ export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Respons
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const result = await pool.query(
+    const result = await dbQuery(
       `
       SELECT
         vt.task_number,
@@ -2458,33 +2461,33 @@ export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Respons
     const worksheet = workbook.addWorksheet('Tasks Export');
 
     worksheet.columns = [
-      { header: 'Task #', key: 'task_number', width: 15 },
-      { header: 'Case #', key: 'case_number', width: 12 },
-      { header: 'Customer Name', key: 'customer_name', width: 25 },
-      { header: 'Customer Phone', key: 'customer_phone', width: 15 },
-      { header: 'Task Title', key: 'task_title', width: 25 },
-      { header: 'Task Type', key: 'task_type', width: 12 },
-      { header: 'Verification Type', key: 'verification_type_name', width: 22 },
-      { header: 'Client', key: 'client_name', width: 20 },
-      { header: 'Product', key: 'product_name', width: 20 },
+      { header: 'Task #', key: 'taskNumber', width: 15 },
+      { header: 'Case #', key: 'caseNumber', width: 12 },
+      { header: 'Customer Name', key: 'customerName', width: 25 },
+      { header: 'Customer Phone', key: 'customerPhone', width: 15 },
+      { header: 'Task Title', key: 'taskTitle', width: 25 },
+      { header: 'Task Type', key: 'taskType', width: 12 },
+      { header: 'Verification Type', key: 'verificationTypeName', width: 22 },
+      { header: 'Client', key: 'clientName', width: 20 },
+      { header: 'Product', key: 'productName', width: 20 },
       { header: 'Address', key: 'address', width: 35 },
       { header: 'Pincode', key: 'pincode', width: 10 },
-      { header: 'Area', key: 'area_name', width: 15 },
+      { header: 'Area', key: 'areaName', width: 15 },
       { header: 'Status', key: 'status', width: 15 },
       { header: 'Priority', key: 'priority', width: 12 },
-      { header: 'Assigned To', key: 'assigned_to_name', width: 20 },
-      { header: 'Assigned To (Emp ID)', key: 'assigned_to_employee_id', width: 18 },
-      { header: 'Assigned By', key: 'assigned_by_name', width: 20 },
-      { header: 'Rate Type', key: 'rate_type_name', width: 18 },
-      { header: 'Estimated Amount', key: 'estimated_amount', width: 18 },
-      { header: 'Actual Amount', key: 'actual_amount', width: 15 },
+      { header: 'Assigned To', key: 'assignedToName', width: 20 },
+      { header: 'Assigned To (Emp ID)', key: 'assignedToEmployeeId', width: 18 },
+      { header: 'Assigned By', key: 'assignedByName', width: 20 },
+      { header: 'Rate Type', key: 'rateTypeName', width: 18 },
+      { header: 'Estimated Amount', key: 'estimatedAmount', width: 18 },
+      { header: 'Actual Amount', key: 'actualAmount', width: 15 },
       { header: 'Trigger', key: 'trigger', width: 15 },
-      { header: 'Applicant Type', key: 'applicant_type', width: 15 },
-      { header: 'Created At', key: 'created_at', width: 20 },
-      { header: 'Assigned At', key: 'assigned_at', width: 20 },
-      { header: 'Started At', key: 'started_at', width: 20 },
-      { header: 'Completed At', key: 'completed_at', width: 20 },
-      { header: 'TAT (Days)', key: 'tat_days', width: 12 },
+      { header: 'Applicant Type', key: 'applicantType', width: 15 },
+      { header: 'Created At', key: 'createdAt', width: 20 },
+      { header: 'Assigned At', key: 'assignedAt', width: 20 },
+      { header: 'Started At', key: 'startedAt', width: 20 },
+      { header: 'Completed At', key: 'completedAt', width: 20 },
+      { header: 'TAT (Days)', key: 'tatDays', width: 12 },
     ];
 
     // Style header row
@@ -2494,35 +2497,33 @@ export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Respons
 
     tasks.forEach((task: Record<string, unknown>) => {
       worksheet.addRow({
-        task_number: task.task_number,
-        case_number: task.case_number,
-        customer_name: task.customer_name,
-        customer_phone: task.customer_phone,
-        task_title: task.task_title,
-        task_type: task.task_type || 'NORMAL',
-        verification_type_name: task.verification_type_name,
-        client_name: task.client_name,
-        product_name: task.product_name,
+        taskNumber: task.taskNumber,
+        caseNumber: task.caseNumber,
+        customerName: task.customerName,
+        customerPhone: task.customerPhone,
+        taskTitle: task.taskTitle,
+        taskType: task.taskType || 'NORMAL',
+        verificationTypeName: task.verificationTypeName,
+        clientName: task.clientName,
+        productName: task.productName,
         address: task.address,
         pincode: task.pincode,
-        area_name: task.area_name,
+        areaName: task.areaName,
         status: task.status,
         priority: task.priority,
-        assigned_to_name: task.assigned_to_name || 'Unassigned',
-        assigned_to_employee_id: task.assigned_to_employee_id,
-        assigned_by_name: task.assigned_by_name,
-        rate_type_name: task.rate_type_name,
-        estimated_amount: task.estimated_amount ? Number(task.estimated_amount) : null,
-        actual_amount: task.actual_amount ? Number(task.actual_amount) : null,
+        assignedToName: task.assignedToName || 'Unassigned',
+        assignedToEmployeeId: task.assignedToEmployeeId,
+        assignedByName: task.assignedByName,
+        rateTypeName: task.rateTypeName,
+        estimatedAmount: task.estimatedAmount ? Number(task.estimatedAmount) : null,
+        actualAmount: task.actualAmount ? Number(task.actualAmount) : null,
         trigger: task.trigger,
-        applicant_type: task.applicant_type,
-        created_at: task.created_at ? new Date(task.created_at as string).toLocaleString() : '',
-        assigned_at: task.assigned_at ? new Date(task.assigned_at as string).toLocaleString() : '',
-        started_at: task.started_at ? new Date(task.started_at as string).toLocaleString() : '',
-        completed_at: task.completed_at
-          ? new Date(task.completed_at as string).toLocaleString()
-          : '',
-        tat_days: task.tat_days ? Number(task.tat_days) : null,
+        applicantType: task.applicantType,
+        createdAt: task.createdAt ? new Date(task.createdAt as string).toLocaleString() : '',
+        assignedAt: task.assignedAt ? new Date(task.assignedAt as string).toLocaleString() : '',
+        startedAt: task.startedAt ? new Date(task.startedAt as string).toLocaleString() : '',
+        completedAt: task.completedAt ? new Date(task.completedAt as string).toLocaleString() : '',
+        tatDays: task.tatDays ? Number(task.tatDays) : null,
       });
     });
 

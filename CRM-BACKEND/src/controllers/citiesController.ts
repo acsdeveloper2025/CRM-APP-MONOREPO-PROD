@@ -1,5 +1,6 @@
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
+import { redact } from '@/utils/logRedact';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/db';
 import type { QueryParams } from '@/types/database';
@@ -37,7 +38,7 @@ export const getCities = async (req: AuthenticatedRequest, res: Response) => {
         co.name as country,
         c.created_at,
         c.updated_at,
-        0 as "pincodeCount"
+        0 as "pincode_count"
       FROM cities c
       JOIN states s ON c.state_id = s.id
       JOIN countries co ON c.country_id = co.id
@@ -67,20 +68,17 @@ export const getCities = async (req: AuthenticatedRequest, res: Response) => {
       params.push(`%${search}%`);
     }
 
-    // Apply sorting
-    const validSortFields = ['name', 'state', 'country', 'createdAt', 'updatedAt'];
-    const sortField: string = validSortFields.includes(sortBy as string)
-      ? (sortBy as string)
-      : 'name';
+    // API contract: sortBy is camelCase; map to snake_case DB column (or joined table).
+    const sortColumnMap: Record<string, string> = {
+      name: 'c.name',
+      state: 's.name',
+      country: 'co.name',
+      createdAt: 'c.created_at',
+      updatedAt: 'c.updated_at',
+    };
     const sortDirection: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
-
-    if (sortField === 'state') {
-      sql += ` ORDER BY s.name ${sortDirection}`;
-    } else if (sortField === 'country') {
-      sql += ` ORDER BY co.name ${sortDirection}`;
-    } else {
-      sql += ` ORDER BY c.${sortField} ${sortDirection}`;
-    }
+    const sortExpr = sortColumnMap[sortBy as string] || 'c.name';
+    sql += ` ORDER BY ${sortExpr} ${sortDirection}`;
 
     // Apply pagination
     const pageNum = parseInt(page as string, 10);
@@ -203,7 +201,7 @@ export const getCityById = async (req: AuthenticatedRequest, res: Response) => {
 // POST /api/cities - Create new city
 export const createCity = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    logger.info('Creating city with data:', { body: req.body, userId: req.user?.id });
+    logger.info('Creating city', { body: redact(req.body), userId: req.user?.id });
     const { name, state, country } = req.body;
 
     if (!name || !state || !country) {

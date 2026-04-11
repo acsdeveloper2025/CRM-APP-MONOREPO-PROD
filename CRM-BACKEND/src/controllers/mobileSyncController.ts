@@ -158,12 +158,12 @@ export class MobileSyncController {
       }: MobileSyncUploadRequest & { actions?: MobileQueuedAction[] } = req.body;
       const userId = req.user?.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
-      void MobileTelemetryService.increment('sync_request_rate', 1, { direction: 'upload' });
+      void MobileTelemetryService.increment('syncRequestRate', 1, { direction: 'upload' });
 
       const retryCount = MobileSyncController.extractRetryCount(req.body);
       if (retryCount > 0) {
-        void MobileTelemetryService.increment('retry_count', retryCount, {
-          endpoint: 'sync_upload',
+        void MobileTelemetryService.increment('retryCount', retryCount, {
+          endpoint: 'syncUpload',
         });
       }
 
@@ -309,15 +309,15 @@ export class MobileSyncController {
           results: syncResults,
         },
       });
-      void MobileTelemetryService.observeDuration('sync_upload_duration', Date.now() - startedAt, {
+      void MobileTelemetryService.observeDuration('syncUploadDuration', Date.now() - startedAt, {
         status: 'success',
       });
     } catch (error) {
       logger.error('Sync upload error:', error);
-      void MobileTelemetryService.increment('sync_failures', 1, {
-        endpoint: 'sync_upload',
+      void MobileTelemetryService.increment('syncFailures', 1, {
+        endpoint: 'syncUpload',
       });
-      void MobileTelemetryService.observeDuration('sync_upload_duration', Date.now() - startedAt, {
+      void MobileTelemetryService.observeDuration('syncUploadDuration', Date.now() - startedAt, {
         status: 'error',
       });
       res.status(500).json({
@@ -377,7 +377,7 @@ export class MobileSyncController {
 
     const task = taskResult.rows[0];
 
-    if (isExecutionActor && task.assigned_to !== userId) {
+    if (isExecutionActor && task.assignedTo !== userId) {
       throw new Error('Access denied. Task is not assigned to user.');
     }
 
@@ -398,7 +398,7 @@ export class MobileSyncController {
         [entityId]
       );
 
-      await CaseStatusSyncService.recalculateCaseStatus(task.case_id as string);
+      await CaseStatusSyncService.recalculateCaseStatus(task.caseId as string);
       syncResults.processedCases++;
       return;
     }
@@ -426,7 +426,7 @@ export class MobileSyncController {
       const limit = Math.min(Math.max(1, requestedLimit), MobileSyncController.MAX_SYNC_PAGE_SIZE);
       const offset = Math.max(0, Number(req.query.offset) || 0);
       const queryLimit = limit + 1;
-      void MobileTelemetryService.increment('sync_request_rate', 1, { direction: 'download' });
+      void MobileTelemetryService.increment('syncRequestRate', 1, { direction: 'download' });
 
       const syncTimestamp = lastSyncTimestamp
         ? new Date(lastSyncTimestamp)
@@ -551,15 +551,15 @@ export class MobileSyncController {
       const attachmentChanges: MobileAttachmentDeltaChange[] = changedAttachments.map(
         attachment => ({
           entity: 'attachment',
-          id: String(attachment.attachment_id),
+          id: String(attachment.attachmentId),
           changes: {
-            attachmentId: String(attachment.attachment_id),
-            taskId: String(attachment.task_id),
+            attachmentId: String(attachment.attachmentId),
+            taskId: String(attachment.taskId),
             type: String(attachment.type || 'verification'),
-            fileName: String(attachment.file_name || ''),
-            fileSize: Number(attachment.file_size || 0),
-            mimeType: String(attachment.mime_type || ''),
-            capturedAt: new Date(attachment.captured_at).toISOString(),
+            fileName: String(attachment.fileName || ''),
+            fileSize: Number(attachment.fileSize || 0),
+            mimeType: String(attachment.mimeType || ''),
+            capturedAt: new Date(attachment.capturedAt).toISOString(),
             latitude:
               attachment.latitude === null || typeof attachment.latitude === 'undefined'
                 ? null
@@ -573,8 +573,8 @@ export class MobileSyncController {
                 ? attachment.address
                 : null,
             uploaded: Boolean(attachment.uploaded),
-            createdAt: new Date(attachment.created_at).toISOString(),
-            updatedAt: new Date(attachment.updated_at).toISOString(),
+            createdAt: new Date(attachment.createdAt).toISOString(),
+            updatedAt: new Date(attachment.updatedAt).toISOString(),
           },
         })
       );
@@ -595,16 +595,16 @@ export class MobileSyncController {
         addressPincode: caseItem.pincode || '',
         latitude: caseItem.latitude,
         longitude: caseItem.longitude,
-        status: caseItem.task_status
-          ? caseItem.task_status.toUpperCase().replace(/\s+/g, '_')
+        status: caseItem.taskStatus
+          ? caseItem.taskStatus.toUpperCase().replace(/\s+/g, '_')
           : 'ASSIGNED',
         priority: caseItem.taskPriority || caseItem.priority || 'MEDIUM',
-        assignedAt: caseItem.assigned_at
-          ? new Date(caseItem.assigned_at).toISOString()
-          : new Date(caseItem.task_created_at || caseItem.createdAt).toISOString(),
-        updatedAt: new Date(caseItem.task_updated_at || caseItem.updatedAt).toISOString(),
-        completedAt: caseItem.task_completed_at
-          ? new Date(caseItem.task_completed_at).toISOString()
+        assignedAt: caseItem.assignedAt
+          ? new Date(caseItem.assignedAt).toISOString()
+          : new Date(caseItem.taskCreatedAt || caseItem.createdAt).toISOString(),
+        updatedAt: new Date(caseItem.taskUpdatedAt || caseItem.updatedAt).toISOString(),
+        completedAt: caseItem.taskCompletedAt
+          ? new Date(caseItem.taskCompletedAt).toISOString()
           : undefined,
         notes: caseItem.taskTrigger || caseItem.trigger || '',
         verificationType: caseItem.verificationTypeName || caseItem.verificationType,
@@ -612,17 +612,17 @@ export class MobileSyncController {
         applicantType: caseItem.taskApplicantType || caseItem.applicantType,
         backendContactNumber: caseItem.backendContactNumber, // Backend Contact Number
         createdByBackendUser: caseItem.createdByUserName || caseItem.createdByBackendUser || '',
-        assignedToFieldUser: caseItem.assigned_user_name || caseItem.taskAssignedTo || '',
+        assignedToFieldUser: caseItem.assignedUserName || caseItem.taskAssignedTo || '',
         verificationTaskId: caseItem.verificationTaskId,
         verificationTaskNumber: caseItem.verificationTaskNumber,
-        isRevoked: caseItem.task_status === 'REVOKED',
-        revokedAt: caseItem.revoked_at ? new Date(caseItem.revoked_at).toISOString() : undefined,
-        revokedBy: caseItem.revoked_by || undefined,
-        revokedByName: caseItem.revoked_by_name || undefined,
-        revokeReason: caseItem.revocation_reason || undefined,
-        inProgressAt: caseItem.started_at ? new Date(caseItem.started_at).toISOString() : undefined,
-        savedAt: caseItem.saved_at ? new Date(caseItem.saved_at).toISOString() : undefined,
-        isSaved: Boolean(caseItem.is_saved || caseItem.task_status === 'SAVED'),
+        isRevoked: caseItem.taskStatus === 'REVOKED',
+        revokedAt: caseItem.revokedAt ? new Date(caseItem.revokedAt).toISOString() : undefined,
+        revokedBy: caseItem.revokedBy || undefined,
+        revokedByName: caseItem.revokedByName || undefined,
+        revokeReason: caseItem.revocationReason || undefined,
+        inProgressAt: caseItem.startedAt ? new Date(caseItem.startedAt).toISOString() : undefined,
+        savedAt: caseItem.savedAt ? new Date(caseItem.savedAt).toISOString() : undefined,
+        isSaved: Boolean(caseItem.isSaved || caseItem.taskStatus === 'SAVED'),
         client: {
           id: caseItem.clientId || 0, // Use number instead of string
           name: caseItem.clientName || '', // Client
@@ -697,13 +697,9 @@ export class MobileSyncController {
           hasMore: response.hasMore,
         },
       });
-      void MobileTelemetryService.observeDuration(
-        'sync_download_duration',
-        Date.now() - startedAt,
-        {
-          status: 'success',
-        }
-      );
+      void MobileTelemetryService.observeDuration('syncDownloadDuration', Date.now() - startedAt, {
+        status: 'success',
+      });
     } catch (error) {
       logger.error('❌ Sync download error:', error);
       logger.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
@@ -712,16 +708,12 @@ export class MobileSyncController {
         userId: req.user?.id,
         executionActor: isFieldExecutionActor(req.user),
       });
-      void MobileTelemetryService.increment('sync_failures', 1, {
-        endpoint: 'sync_download',
+      void MobileTelemetryService.increment('syncFailures', 1, {
+        endpoint: 'syncDownload',
       });
-      void MobileTelemetryService.observeDuration(
-        'sync_download_duration',
-        Date.now() - startedAt,
-        {
-          status: 'error',
-        }
-      );
+      void MobileTelemetryService.observeDuration('syncDownloadDuration', Date.now() - startedAt, {
+        status: 'error',
+      });
 
       res.status(500).json({
         success: false,
@@ -755,7 +747,7 @@ export class MobileSyncController {
       }
 
       const record = current as Record<string, unknown>;
-      const retryCandidate = record.retry_count ?? record.retryCount;
+      const retryCandidate = record.retryCount ?? record.retryCount;
       if (
         typeof retryCandidate === 'number' &&
         Number.isFinite(retryCandidate) &&
@@ -822,6 +814,24 @@ export class MobileSyncController {
     }
   }
 
+  // Allowlist of case columns that a mobile sync client is permitted to update.
+  // This is the single source of truth — any key in the sync payload that is
+  // not in this set is silently dropped (and logged as a warning). Mobile
+  // cannot modify assignment, tenancy, FK references, audit columns, or
+  // computed/quality fields. Identifiers map camelCase (API) → snake_case (DB).
+  private static readonly MOBILE_CASE_UPDATE_ALLOWLIST: Record<string, string> = {
+    status: 'status',
+    priority: 'priority',
+    customerName: 'customer_name',
+    customerPhone: 'customer_phone',
+    customerCallingCode: 'customer_calling_code',
+    panNumber: 'pan_number',
+    trigger: 'trigger',
+    verificationOutcome: 'verification_outcome',
+    verificationData: 'verification_data',
+    backendContactNumber: 'backend_contact_number',
+  };
+
   // Helper method to process case changes
   private static async processCaseChange(
     caseChange: {
@@ -866,13 +876,34 @@ export class MobileSyncController {
           return;
         }
 
-        // Update case
+        // Update case. Column names are looked up in the allowlist so that an
+        // attacker cannot inject SQL via JSON keys, and cannot mass-assign
+        // fields outside the permitted set (e.g. tenancy or assignment).
         const sets: string[] = [];
         const vals10: QueryParams = [];
         let idx = 1;
-        for (const [key, value] of Object.entries(data)) {
-          sets.push(`"${key}" = $${idx++}`);
-          vals10.push(value);
+        const payload = (data ?? {}) as Record<string, unknown>;
+        const droppedKeys: string[] = [];
+        for (const [key, value] of Object.entries(payload)) {
+          const dbColumn = MobileSyncController.MOBILE_CASE_UPDATE_ALLOWLIST[key];
+          if (!dbColumn) {
+            droppedKeys.push(key);
+            continue;
+          }
+          sets.push(`${dbColumn} = $${idx++}`);
+          vals10.push(value as string | number | boolean | Date | null);
+        }
+        if (droppedKeys.length > 0) {
+          logger.warn('Mobile sync: dropped unknown/forbidden case fields', {
+            caseId: id,
+            userId,
+            droppedKeys,
+          });
+        }
+        if (sets.length === 0) {
+          // Nothing to update; skip silently (common when mobile sends a
+          // payload that only contained forbidden fields).
+          break;
         }
         sets.push(`updated_at = CURRENT_TIMESTAMP`);
         vals10.push(id);
@@ -896,6 +927,19 @@ export class MobileSyncController {
     }
   }
 
+  // Allowlist of attachment columns a mobile sync client may create.
+  // camelCase API key → snake_case DB column. Audit columns (uploaded_by,
+  // created_at) are populated from session/server side, not from the payload.
+  private static readonly MOBILE_ATTACHMENT_CREATE_ALLOWLIST: Record<string, string> = {
+    filename: 'filename',
+    originalName: 'original_name',
+    filePath: 'file_path',
+    fileSize: 'file_size',
+    mimeType: 'mime_type',
+    caseId: 'case_id',
+    verificationTaskId: 'verification_task_id',
+  };
+
   // Helper method to process attachment changes
   private static async processAttachmentChange(
     attachmentChange: {
@@ -907,19 +951,36 @@ export class MobileSyncController {
     userId: string,
     syncResults: SyncResults
   ) {
-    const { id, action, data, timestamp } = attachmentChange;
+    const { id, action, data } = attachmentChange;
 
     switch (action) {
       case 'CREATE': {
-        // Create attachment record (file should already be uploaded)
-        const attCols: string[] = ['id', 'uploadedById', 'uploadedAt'];
-        const attVals: QueryParams = [id, userId, new Date(timestamp)];
-        let _attIdx = 4;
-        for (const [key, value] of Object.entries(data)) {
-          attCols.push(`"${key}"`);
-          attVals.push(value);
-          _attIdx++;
+        // Server-populated audit columns (never from mobile payload).
+        const attCols: string[] = ['id', 'uploaded_by'];
+        const attVals: QueryParams = [id, userId];
+
+        // Payload columns pass through the allowlist; anything else is
+        // dropped so a mobile client cannot inject SQL via JSON keys or
+        // mass-assign forbidden fields (e.g. another user's id).
+        const payload = (data ?? {}) as Record<string, unknown>;
+        const droppedKeys: string[] = [];
+        for (const [key, value] of Object.entries(payload)) {
+          const dbColumn = MobileSyncController.MOBILE_ATTACHMENT_CREATE_ALLOWLIST[key];
+          if (!dbColumn) {
+            droppedKeys.push(key);
+            continue;
+          }
+          attCols.push(dbColumn);
+          attVals.push(value as string | number | boolean | Date | null);
         }
+        if (droppedKeys.length > 0) {
+          logger.warn('Mobile sync: dropped unknown/forbidden attachment fields', {
+            attachmentId: id,
+            userId,
+            droppedKeys,
+          });
+        }
+
         const attPlaceholders = attVals.map((_, i) => `$${i + 1}`).join(', ');
         await query(
           `INSERT INTO attachments (${attCols.join(', ')}) VALUES (${attPlaceholders})`,
@@ -985,9 +1046,9 @@ export class MobileSyncController {
       }
 
       targetTaskId = taskRes.rows[0].id as string;
-      targetCaseId = taskRes.rows[0].case_id as string;
-      targetCaseNumber = taskRes.rows[0].case_number as string;
-      assignedTo = (taskRes.rows[0].assigned_to as string | null) || null;
+      targetCaseId = taskRes.rows[0].caseId as string;
+      targetCaseNumber = taskRes.rows[0].caseNumber as string;
+      assignedTo = (taskRes.rows[0].assignedTo as string | null) || null;
     } else if (normalizedCaseToken) {
       const isNumericCaseNumber = /^\d+$/.test(normalizedCaseToken);
       const caseFilter = isNumericCaseNumber ? `c.case_id = $1::int` : `c.id = $1::uuid`;
@@ -1007,9 +1068,9 @@ export class MobileSyncController {
       }
 
       targetTaskId = taskRes.rows[0].id as string;
-      targetCaseId = taskRes.rows[0].case_id as string;
-      targetCaseNumber = taskRes.rows[0].case_number as string;
-      assignedTo = (taskRes.rows[0].assigned_to as string | null) || null;
+      targetCaseId = taskRes.rows[0].caseId as string;
+      targetCaseNumber = taskRes.rows[0].caseNumber as string;
+      assignedTo = (taskRes.rows[0].assignedTo as string | null) || null;
     } else {
       throw new Error('taskId or caseId is required for location sync');
     }

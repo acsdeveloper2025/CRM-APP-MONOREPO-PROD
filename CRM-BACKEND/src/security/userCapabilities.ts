@@ -18,7 +18,7 @@ export type UserCapabilityProfile = {
 
 type UserCapabilityRow = {
   id: string;
-  is_active: boolean;
+  isActive: boolean;
   teamLeaderId: string | null;
   managerId: string | null;
   permissionCodes: string[] | null;
@@ -33,16 +33,16 @@ export const loadUserCapabilityProfile = async (
     `
       SELECT
         u.id,
-        u.is_active as is_active,
-        u.team_leader_id as "teamLeaderId",
-        u.manager_id as "managerId",
+        u.is_active as "is_active",
+        u.team_leader_id as "team_leader_id",
+        u.manager_id as "manager_id",
         COALESCE((
           SELECT ARRAY_AGG(DISTINCT p.code ORDER BY p.code)
           FROM user_roles ur
           JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
           JOIN permissions p ON p.id = rp.permission_id
           WHERE ur.user_id = u.id
-        ), ARRAY[]::varchar[]) as "permissionCodes"
+        ), ARRAY[]::varchar[]) as "permission_codes"
       FROM users u
       WHERE u.id = $1
         AND u.deleted_at IS NULL
@@ -59,7 +59,7 @@ export const loadUserCapabilityProfile = async (
   const permissionCodes = row.permissionCodes || [];
   return {
     id: row.id,
-    isActive: row.is_active,
+    isActive: row.isActive,
     teamLeaderId: row.teamLeaderId ?? null,
     managerId: row.managerId ?? null,
     permissionCodes,

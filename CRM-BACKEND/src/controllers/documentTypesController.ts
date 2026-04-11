@@ -25,11 +25,16 @@ export const getDocumentTypes = async (req: AuthenticatedRequest, res: Response)
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Validate sort field
-    const allowedSortFields = ['name', 'code', 'createdAt', 'updatedAt'];
+    // API contract: sortBy is camelCase; map to snake_case DB column.
+    const sortColumnMap: Record<string, string> = {
+      name: 'name',
+      code: 'code',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    };
     const sortByStr = typeof sortBy === 'string' ? sortBy : 'name';
     const sortOrderStr = typeof sortOrder === 'string' ? sortOrder : 'asc';
-    const sortField: string = allowedSortFields.includes(sortByStr) ? sortByStr : 'name';
+    const sortField: string = sortColumnMap[sortByStr] || 'name';
     const sortDirection: 'ASC' | 'DESC' = sortOrderStr.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     // Get total count
@@ -63,7 +68,7 @@ export const getDocumentTypes = async (req: AuthenticatedRequest, res: Response)
         GROUP BY document_type_id
       ) pdt_count ON dt.id = pdt_count.document_type_id
       ${whereClause}
-      ORDER BY dt."${sortField}" ${sortDirection}
+      ORDER BY dt.${sortField} ${sortDirection}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
@@ -111,8 +116,8 @@ export const getDocumentTypeById = async (req: AuthenticatedRequest, res: Respon
         dt.code,
         dt.created_at,
         dt.updated_at,
-        COALESCE(cdt_count.client_count, 0) as "clientCount",
-        COALESCE(pdt_count.product_count, 0) as "productCount"
+        COALESCE(cdt_count.client_count, 0) as "client_count",
+        COALESCE(pdt_count.product_count, 0) as "product_count"
       FROM document_types dt
       LEFT JOIN (
         SELECT document_type_id, COUNT(*) as client_count

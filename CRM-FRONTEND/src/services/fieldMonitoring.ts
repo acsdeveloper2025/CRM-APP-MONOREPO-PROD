@@ -38,7 +38,7 @@ export type FieldMonitoringRosterItem = {
     lng: number;
     time: string | null;
     freshness: 'fresh' | 'stale';
-    source: 'locations' | 'form_submissions' | 'verificationTasks';
+    source: 'locations' | 'formSubmissions' | 'verificationTasks';
   } | null;
   operatingArea: string | null;
   operatingPincode: string | null;
@@ -91,7 +91,7 @@ export type FieldMonitoringUserDetail = {
     lng: number;
     accuracy: number | null;
     recordedAt: string | null;
-    source: 'locations' | 'form_submissions' | 'verificationTasks';
+    source: 'locations' | 'formSubmissions' | 'verificationTasks';
   } | null;
   openAssignments: Array<{
     task: {

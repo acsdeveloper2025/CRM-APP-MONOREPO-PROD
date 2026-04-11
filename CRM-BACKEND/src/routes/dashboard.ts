@@ -174,7 +174,7 @@ router.get(
       .withMessage('Limit must be between 1 and 500'),
     query('sortBy')
       .optional()
-      .isIn(['days_overdue', 'task_number', 'customer_name', 'status', 'priority', 'created_at'])
+      .isIn(['daysOverdue', 'taskNumber', 'customerName', 'status', 'priority', 'createdAt'])
       .withMessage('Invalid sort column'),
     query('sortOrder')
       .optional()

@@ -203,13 +203,34 @@ process.on('SIGINT', () => void gracefulShutdown('SIGINT'));
 
 // Handle uncaught exceptions
 process.on('uncaughtException', error => {
-  logger.error('Uncaught Exception:', error);
+  logger.error('Uncaught Exception', {
+    message: error.message,
+    stack: error.stack,
+    name: error.name,
+  });
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
+process.on('unhandledRejection', (reason: unknown) => {
+  // Log the reason properly so we can actually debug. Winston's logger.error
+  // only serializes the second argument, so pack everything into a single
+  // metadata object.
+  const err = reason as Error | undefined;
+  const fallbackMessage =
+    reason instanceof Error
+      ? reason.message
+      : typeof reason === 'string'
+        ? reason
+        : JSON.stringify(reason);
+  logger.error('Unhandled Rejection', {
+    message: err?.message ?? fallbackMessage,
+    stack: err?.stack,
+    name: err?.name,
+    reason: err ? undefined : reason,
+  });
+  // Do NOT exit — an unhandled rejection in a background job (socket emit,
+  // cache invalidation, notification queue, etc.) should not bring down the
+  // whole HTTP server. Log it and keep serving.
 });
 
 // Start the server

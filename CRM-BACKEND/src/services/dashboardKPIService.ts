@@ -1,4 +1,4 @@
-import { pool } from '@/config/database';
+import { query } from '@/config/database';
 import type { QueryParams } from '@/types/database';
 
 /**
@@ -24,40 +24,40 @@ import type { QueryParams } from '@/types/database';
 
 export interface MetricWithTrend {
   value: number;
-  previous_period_value: number;
-  change_percent: number;
+  previousPeriodValue: number;
+  changePercent: number;
 }
 
 export interface VerificationOperationsKPI {
   meta: {
-    generated_at: string;
+    generatedAt: string;
     period: 'last_7_days';
-    comparison_period: 'previous_7_days';
-    filters_applied: Record<string, unknown>;
+    comparisonPeriod: 'previous_7_days';
+    filtersApplied: Record<string, unknown>;
   };
 
   // --- CORE OPERATIONAL METRICS ---
   workload: {
-    total_tasks: MetricWithTrend; // Created in period
-    open_tasks: MetricWithTrend; // Snapshot (Pending/Assigned/InProgress)
-    in_progress_tasks: MetricWithTrend; // Snapshot (InProgress)
-    completed_today: number; // Absolute value for "Today"
-    overdue_tasks: MetricWithTrend; // Snapshot
-    sla_risk_tasks: MetricWithTrend; // Snapshot
-    avg_overdue_days: number; // Average days overdue for active overdue tasks
+    totalTasks: MetricWithTrend; // Created in period
+    openTasks: MetricWithTrend; // Snapshot (Pending/Assigned/InProgress)
+    inProgressTasks: MetricWithTrend; // Snapshot (InProgress)
+    completedToday: number; // Absolute value for "Today"
+    overdueTasks: MetricWithTrend; // Snapshot
+    slaRiskTasks: MetricWithTrend; // Snapshot
+    avgOverdueDays: number; // Average days overdue for active overdue tasks
   };
 
   performance: {
-    avg_tat_days: MetricWithTrend; // Days
-    first_visit_success_rate: MetricWithTrend; // %
-    revisit_rate: MetricWithTrend; // %
+    avgTatDays: MetricWithTrend; // Days
+    firstVisitSuccessRate: MetricWithTrend; // %
+    revisitRate: MetricWithTrend; // %
   };
 
   financial: {
-    billable_tasks: MetricWithTrend; // Completed/Approved
-    estimated_amount: MetricWithTrend; // Currency
-    actual_amount: MetricWithTrend; // Currency
-    collection_efficiency_percent: MetricWithTrend;
+    billableTasks: MetricWithTrend; // Completed/Approved
+    estimatedAmount: MetricWithTrend; // Currency
+    actualAmount: MetricWithTrend; // Currency
+    collectionEfficiencyPercent: MetricWithTrend;
   };
 
   // --- KYC VERIFICATION METRICS ---
@@ -67,35 +67,35 @@ export interface VerificationOperationsKPI {
     passed: number;
     failed: number;
     referred: number;
-    verified_today: number;
+    verifiedToday: number;
   };
 
   // --- LEGACY COMPATIBILITY (For Existing Frontend Cards) ---
-  legacy_compatibility: {
+  legacyCompatibility: {
     cases: {
       total: MetricWithTrend; // Created in period
-      in_progress: MetricWithTrend; // Snapshot
+      inProgress: MetricWithTrend; // Snapshot
       completed: MetricWithTrend; // Completed in period
       closed: MetricWithTrend; // Snapshot (if 'CLOSED' status exists) or Synonym for Completed
     };
     tasks: {
-      total: MetricWithTrend; // Alias for workload.total_tasks
-      in_progress: MetricWithTrend; // Alias for workload.in_progress_tasks
+      total: MetricWithTrend; // Alias for workload.totalTasks
+      inProgress: MetricWithTrend; // Alias for workload.inProgressTasks
       completed: MetricWithTrend; // Completed in period
       revoked: MetricWithTrend; // Status = 'REVOKED'
-      on_hold: MetricWithTrend; // Status = 'ON_HOLD'
+      onHold: MetricWithTrend; // Status = 'ON_HOLD'
     };
     clients: {
       total: MetricWithTrend; // Total in DB (Volume)? Usually Snapshot 'Active'
       active: MetricWithTrend; // Active Cases in Period OR Status=Active
     };
-    field_agents: {
+    fieldAgents: {
       total: MetricWithTrend; // Registered Agents
-      active_today: MetricWithTrend; // Submitted/Updated task today
+      activeToday: MetricWithTrend; // Submitted/Updated task today
     };
-    today_ops: {
-      completed_tasks: MetricWithTrend; // vs Yesterday
-      assigned_tasks: MetricWithTrend; // vs Yesterday
+    todayOps: {
+      completedTasks: MetricWithTrend; // vs Yesterday
+      assignedTasks: MetricWithTrend; // vs Yesterday
     };
   };
 }
@@ -326,13 +326,13 @@ export class DashboardKPIService {
     `;
 
     const [taskRes, casesRes, clientsRes, agentsRes, perfRes, kycRes] = await Promise.all([
-      pool.query(coreQuery, params),
-      pool.query(casesQuery, clientId ? [clientId] : []),
-      pool.query(clientsQuery),
-      pool.query(agentsQuery),
-      pool.query(
+      query(coreQuery, params),
+      query(casesQuery, clientId ? [clientId] : []),
+      query(clientsQuery),
+      query(agentsQuery),
+      query(
         `WITH date_ranges AS (
-        SELECT 
+        SELECT
           NOW() as cp_end,
           NOW() - INTERVAL '7 days' as cp_start,
           NOW() - INTERVAL '7 days' as pp_end,
@@ -343,38 +343,38 @@ export class DashboardKPIService {
         WHERE ${whereClause}
       )
       SELECT
-        AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/86400) 
-          FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) 
+        AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/86400)
+          FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges))
           as cp_avg_tat,
-        
-        AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/86400) 
-          FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) 
+
+        AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/86400)
+          FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges))
           as pp_avg_tat
       FROM filtered_tasks`,
         params
       ),
-      pool.query(kycQuery),
+      query(kycQuery),
     ]);
 
     const stats = taskRes.rows[0];
     const caseStats = casesRes.rows[0] || {
-      cp_total: 0,
-      pp_total: 0,
-      cp_active: 0,
-      pp_active: 0,
-      cp_completed: 0,
-      pp_completed: 0,
+      cpTotal: 0,
+      ppTotal: 0,
+      cpActive: 0,
+      ppActive: 0,
+      cpCompleted: 0,
+      ppCompleted: 0,
     };
     const clientStats = clientsRes.rows[0] || { total: 0, active: 0 };
-    const agentStats = agentsRes.rows[0] || { total_agents: 0, active_today: 0 };
-    const perfStats = perfRes.rows[0] || { cp_avg_tat: 0, pp_avg_tat: 0 };
+    const agentStats = agentsRes.rows[0] || { totalAgents: 0, activeToday: 0 };
+    const perfStats = perfRes.rows[0] || { cpAvgTat: 0, ppAvgTat: 0 };
     const kycStats = kycRes.rows[0] || {
       total: 0,
       pending: 0,
       passed: 0,
       failed: 0,
       referred: 0,
-      verified_today: 0,
+      verifiedToday: 0,
     };
 
     // Helper to build Metric (no trend for static entities unless we track history, using flat value for now)
@@ -389,49 +389,49 @@ export class DashboardKPIService {
       }
       return {
         value: Number(c.toFixed(2)), // Round to 2 decimals
-        previous_period_value: Number(p.toFixed(2)),
-        change_percent: Number(change.toFixed(1)),
+        previousPeriodValue: Number(p.toFixed(2)),
+        changePercent: Number(change.toFixed(1)),
       };
     };
 
     // Helper for Snapshot/Static metrics where we don't track history yet (Flat trend)
     const buildStaticMetric = (val: string | number): MetricWithTrend => ({
       value: Number(val) || 0,
-      previous_period_value: Number(val) || 0, // Assume stable for now
-      change_percent: 0,
+      previousPeriodValue: Number(val) || 0, // Assume stable for now
+      changePercent: 0,
     });
 
     return {
       meta: {
-        generated_at: new Date().toISOString(),
+        generatedAt: new Date().toISOString(),
         period: 'last_7_days',
-        comparison_period: 'previous_7_days',
-        filters_applied: filters,
+        comparisonPeriod: 'previous_7_days',
+        filtersApplied: filters,
       },
 
       workload: {
-        total_tasks: buildMetric(stats.cp_created, stats.pp_created),
-        open_tasks: buildMetric(stats.cp_open, stats.pp_open),
-        in_progress_tasks: buildMetric(stats.cp_in_progress, stats.pp_in_progress),
-        completed_today: Number(stats.completed_today),
-        overdue_tasks: buildStaticMetric(stats.cp_overdue),
-        sla_risk_tasks: buildStaticMetric(stats.cp_sla_risk),
-        avg_overdue_days: Number(Number(stats.cp_avg_overdue_days || 0).toFixed(1)),
+        totalTasks: buildMetric(stats.cpCreated, stats.ppCreated),
+        openTasks: buildMetric(stats.cpOpen, stats.ppOpen),
+        inProgressTasks: buildMetric(stats.cpInProgress, stats.ppInProgress),
+        completedToday: Number(stats.completedToday),
+        overdueTasks: buildStaticMetric(stats.cpOverdue),
+        slaRiskTasks: buildStaticMetric(stats.cpSlaRisk),
+        avgOverdueDays: Number(Number(stats.cpAvgOverdueDays || 0).toFixed(1)),
       },
 
       performance: {
-        avg_tat_days: buildMetric(perfStats.cp_avg_tat, perfStats.pp_avg_tat),
-        first_visit_success_rate: buildMetric(0, 0),
-        revisit_rate: buildMetric(0, 0),
+        avgTatDays: buildMetric(perfStats.cpAvgTat, perfStats.ppAvgTat),
+        firstVisitSuccessRate: buildMetric(0, 0),
+        revisitRate: buildMetric(0, 0),
       },
 
       financial: {
-        billable_tasks: buildMetric(stats.cp_completed, stats.pp_completed), // Using Completed as proxy for billable
-        estimated_amount: buildMetric(stats.cp_est_amt, stats.pp_est_amt),
-        actual_amount: buildMetric(stats.cp_act_amt, stats.pp_act_amt),
-        collection_efficiency_percent: buildMetric(
-          (Number(stats.cp_act_amt) / (Number(stats.cp_est_amt) || 1)) * 100,
-          (Number(stats.pp_act_amt) / (Number(stats.pp_est_amt) || 1)) * 100
+        billableTasks: buildMetric(stats.cpCompleted, stats.ppCompleted), // Using Completed as proxy for billable
+        estimatedAmount: buildMetric(stats.cpEstAmt, stats.ppEstAmt),
+        actualAmount: buildMetric(stats.cpActAmt, stats.ppActAmt),
+        collectionEfficiencyPercent: buildMetric(
+          (Number(stats.cpActAmt) / (Number(stats.cpEstAmt) || 1)) * 100,
+          (Number(stats.ppActAmt) / (Number(stats.ppEstAmt) || 1)) * 100
         ),
       },
 
@@ -441,35 +441,35 @@ export class DashboardKPIService {
         passed: Number(kycStats.passed) || 0,
         failed: Number(kycStats.failed) || 0,
         referred: Number(kycStats.referred) || 0,
-        verified_today: Number(kycStats.verified_today) || 0,
+        verifiedToday: Number(kycStats.verifiedToday) || 0,
       },
 
-      legacy_compatibility: {
+      legacyCompatibility: {
         cases: {
-          total: buildMetric(caseStats.cp_total, caseStats.pp_total),
-          in_progress: buildMetric(caseStats.cp_active, caseStats.pp_active),
-          completed: buildMetric(caseStats.cp_completed, caseStats.pp_completed),
+          total: buildMetric(caseStats.cpTotal, caseStats.ppTotal),
+          inProgress: buildMetric(caseStats.cpActive, caseStats.ppActive),
+          completed: buildMetric(caseStats.cpCompleted, caseStats.ppCompleted),
           closed: buildMetric(0, 0),
         },
         tasks: {
-          total: buildMetric(stats.cp_created, stats.pp_created),
-          in_progress: buildMetric(stats.cp_in_progress, stats.pp_in_progress),
-          completed: buildMetric(stats.cp_completed, stats.pp_completed),
-          revoked: buildMetric(stats.cp_revoked, stats.pp_revoked),
-          on_hold: buildMetric(stats.cp_on_hold, stats.pp_on_hold),
+          total: buildMetric(stats.cpCreated, stats.ppCreated),
+          inProgress: buildMetric(stats.cpInProgress, stats.ppInProgress),
+          completed: buildMetric(stats.cpCompleted, stats.ppCompleted),
+          revoked: buildMetric(stats.cpRevoked, stats.ppRevoked),
+          onHold: buildMetric(stats.cpOnHold, stats.ppOnHold),
         },
         clients: {
           total: buildStaticMetric(clientStats.total),
           active: buildStaticMetric(clientStats.active),
         },
-        field_agents: {
-          total: buildStaticMetric(agentStats.total_agents),
-          active_today: buildStaticMetric(agentStats.active_today),
+        fieldAgents: {
+          total: buildStaticMetric(agentStats.totalAgents),
+          activeToday: buildStaticMetric(agentStats.activeToday),
         },
-        today_ops: {
+        todayOps: {
           // Special Case: Comparison is TODAY vs YESTERDAY
-          completed_tasks: buildMetric(stats.today_completed, stats.yesterday_completed),
-          assigned_tasks: buildMetric(stats.today_assigned, stats.yesterday_assigned),
+          completedTasks: buildMetric(stats.todayCompleted, stats.yesterdayCompleted),
+          assignedTasks: buildMetric(stats.todayAssigned, stats.yesterdayAssigned),
         },
       },
     };

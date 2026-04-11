@@ -36,13 +36,13 @@ router.use(authenticateToken);
  * Body:
  * {
  *   "format": "pdf" | "excel" | "csv" | "json",
- *   report_type: "form-submissions" | "agent-performance" | "case-analytics" | "validation-status",
- *   date_from: "2024-01-01",
- *   date_to: "2024-01-31",
- *   "filters": { form_type: "RESIDENCE", agent_id: "uuid" },
+ *   reportType: "form-submissions" | "agent-performance" | "case-analytics" | "validation-status",
+ *   dateFrom: "2024-01-01",
+ *   dateTo: "2024-01-31",
+ *   "filters": { formType: "RESIDENCE", agentId: "uuid" },
  *   "options": {
- *     include_charts: true,
- *     include_summary: true,
+ *     includeCharts: true,
+ *     includeSummary: true,
  *     "template": "standard",
  *     "orientation": "portrait",
  *     "delimiter": ",",

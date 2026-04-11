@@ -16,18 +16,17 @@ export interface VerificationTask {
   priority: TaskPriority;
   
   // Assignment Details
-  assignedTo?: {
-    id: string;
-    name: string;
-    employeeId?: string;
-  } | null;
-  assignedToName?: string; // Keep for backward compatibility if needed
-  assignedToEmployeeId?: string;
-  assignedBy?: {
-    id: string;
-    name: string;
-  } | null;
-  assignedByName?: string;
+  // The API returns assignee info as flat denormalized fields: the UUID of
+  // the assignee plus sibling `assignedToName` / `assignedToEmployeeId`
+  // populated by a JOIN on users. A previous version of this interface
+  // modeled `assignedTo` as a nested object which silently broke every
+  // consumer — the API response string gets cast to `{ id, name, ... }` and
+  // `task.assignedTo?.name` returns `undefined` at runtime.
+  assignedTo?: string | null;
+  assignedToName?: string | null;
+  assignedToEmployeeId?: string | null;
+  assignedBy?: string | null;
+  assignedByName?: string | null;
   assignedAt?: string;
   
   // Status and Progress

@@ -35,7 +35,7 @@ const storage = multer.diskStorage({
             caseId = taskResult.rows[0].case_id;
           }
         } catch (error) {
-          logger.error('Error resolving caseId from taskId in storage:', error);
+          logger.error('Error resolving case_id from task_id in storage:', error);
         } finally {
           const uploadDir = path.join(
             process.cwd(),

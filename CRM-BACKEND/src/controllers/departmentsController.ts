@@ -89,10 +89,10 @@ export const getDepartmentById = async (req: AuthenticatedRequest, res: Response
     const departmentQuery = `
       SELECT 
         d.*,
-        dh.name as "departmentHeadName",
-        u1.name as "createdByName",
-        u2.name as "updatedByName",
-        (SELECT COUNT(*) FROM users WHERE department_id = d.id) as "userCount"
+        dh.name as "department_head_name",
+        u1.name as "created_by_name",
+        u2.name as "updated_by_name",
+        (SELECT COUNT(*) FROM users WHERE department_id = d.id) as "user_count"
       FROM departments d
       LEFT JOIN users dh ON d.department_head_id = dh.id
       LEFT JOIN users u1 ON d.created_by = u1.id

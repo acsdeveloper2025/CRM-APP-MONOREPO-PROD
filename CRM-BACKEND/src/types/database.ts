@@ -43,36 +43,36 @@ export interface CaseRow {
 
 export interface VerificationTaskRow {
   id: string;
-  task_number: string;
-  case_id: string;
-  verification_type_id: number;
-  verification_type_name?: string;
+  taskNumber: string;
+  caseId: string;
+  verificationTypeId: number;
+  verificationTypeName?: string;
   status: string;
   priority?: string;
-  assigned_to?: string;
-  assigned_by?: string;
-  assigned_at?: Date;
+  assignedTo?: string;
+  assignedBy?: string;
+  assignedAt?: Date;
   address?: string;
   pincode?: string;
   trigger?: string;
-  applicant_type?: string;
-  rate_type_id?: number;
-  rate_type_name?: string;
-  rate_type_description?: string;
-  estimated_amount?: number;
-  actual_amount?: number;
-  verification_outcome?: string;
-  started_at?: Date;
-  completed_at?: Date;
-  saved_at?: Date;
-  is_saved?: boolean;
-  revoked_at?: Date;
-  revoked_by?: string;
-  revocation_reason?: string;
-  created_at: Date;
-  updated_at: Date;
-  assigned_user_name?: string;
-  revoked_by_name?: string;
+  applicantType?: string;
+  rateTypeId?: number;
+  rateTypeName?: string;
+  rateTypeDescription?: string;
+  estimatedAmount?: number;
+  actualAmount?: number;
+  verificationOutcome?: string;
+  startedAt?: Date;
+  completedAt?: Date;
+  savedAt?: Date;
+  isSaved?: boolean;
+  revokedAt?: Date;
+  revokedBy?: string;
+  revocationReason?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  assignedUserName?: string;
+  revokedByName?: string;
 }
 
 export interface UserRow {
@@ -146,10 +146,9 @@ export interface AttachmentRow {
 
 export interface VerificationAttachmentRow {
   id: string;
-  case_id: string;
-  caseId?: number;
-  verification_type: string;
-  verification_task_id?: string;
+  caseId: string;
+  verificationType: string;
+  verificationTaskId?: string;
   filename: string;
   originalName: string;
   mimeType: string;
@@ -201,96 +200,96 @@ export interface RateTypeRow {
 
 export interface ResidenceVerificationRow {
   id: string;
-  case_id: string;
-  verification_task_id?: string;
-  customer_name?: string;
-  verification_outcome?: string;
-  final_status?: string;
-  met_person_name?: string;
-  met_person_relation?: string;
-  address_locatable?: string;
-  address_rating?: string;
-  house_status?: string;
-  total_family_members?: number;
-  total_earning_member?: number;
-  working_status?: string;
-  company_name?: string;
-  staying_period?: string;
-  staying_status?: string;
-  document_shown_status?: string;
-  document_type?: string;
+  caseId: string;
+  verificationTaskId?: string;
+  customerName?: string;
+  verificationOutcome?: string;
+  finalStatus?: string;
+  metPersonName?: string;
+  metPersonRelation?: string;
+  addressLocatable?: string;
+  addressRating?: string;
+  houseStatus?: string;
+  totalFamilyMembers?: number;
+  totalEarningMember?: number;
+  workingStatus?: string;
+  companyName?: string;
+  stayingPeriod?: string;
+  stayingStatus?: string;
+  documentShownStatus?: string;
+  documentType?: string;
   locality?: string;
-  address_structure?: string;
+  addressStructure?: string;
   landmark1?: string;
   landmark2?: string;
   landmark3?: string;
   landmark4?: string;
-  political_connection?: string;
-  dominated_area?: string;
-  feedback_from_neighbour?: string;
-  other_observation?: string;
-  call_remark?: string;
-  created_at: Date;
-  updated_at: Date;
+  politicalConnection?: string;
+  dominatedArea?: string;
+  feedbackFromNeighbour?: string;
+  otherObservation?: string;
+  callRemark?: string;
+  createdAt: Date;
+  updatedAt: Date;
   [key: string]: unknown; // Allow additional dynamic fields
 }
 
 export interface OfficeVerificationRow {
   id: string;
-  case_id: string;
-  verification_task_id?: string;
-  customer_name?: string;
-  verification_outcome?: string;
-  final_status?: string;
-  company_name?: string;
-  business_type?: string;
-  number_of_employees?: number;
-  office_area?: string;
-  address_locatable?: string;
-  address_rating?: string;
+  caseId: string;
+  verificationTaskId?: string;
+  customerName?: string;
+  verificationOutcome?: string;
+  finalStatus?: string;
+  companyName?: string;
+  businessType?: string;
+  numberOfEmployees?: number;
+  officeArea?: string;
+  addressLocatable?: string;
+  addressRating?: string;
   locality?: string;
-  address_structure?: string;
+  addressStructure?: string;
   landmark1?: string;
   landmark2?: string;
   landmark3?: string;
   landmark4?: string;
-  political_connection?: string;
-  dominated_area?: string;
-  feedback_from_neighbour?: string;
-  other_observation?: string;
-  call_remark?: string;
-  created_at: Date;
-  updated_at: Date;
+  politicalConnection?: string;
+  dominatedArea?: string;
+  feedbackFromNeighbour?: string;
+  otherObservation?: string;
+  callRemark?: string;
+  createdAt: Date;
+  updatedAt: Date;
   [key: string]: unknown;
 }
 
 export interface BusinessVerificationRow {
   id: string;
-  case_id: string;
-  verification_task_id?: string;
-  customer_name?: string;
-  verification_outcome?: string;
-  final_status?: string;
-  business_name?: string;
-  business_type?: string;
-  license_number?: string;
-  annual_turnover?: number;
-  customer_footfall?: string;
-  address_locatable?: string;
-  address_rating?: string;
+  caseId: string;
+  verificationTaskId?: string;
+  customerName?: string;
+  verificationOutcome?: string;
+  finalStatus?: string;
+  businessName?: string;
+  businessType?: string;
+  licenseNumber?: string;
+  annualTurnover?: number;
+  customerFootfall?: string;
+  addressLocatable?: string;
+  addressRating?: string;
   locality?: string;
-  address_structure?: string;
+  addressStructure?: string;
   landmark1?: string;
   landmark2?: string;
   landmark3?: string;
   landmark4?: string;
-  political_connection?: string;
-  dominated_area?: string;
-  feedback_from_neighbour?: string;
-  other_observation?: string;
-  call_remark?: string;
-  created_at: Date;
-  updated_at: Date;
+  politicalConnection?: string;
+  dominatedArea?: string;
+  feedbackFromNeighbour?: string;
+  otherObservation?: string;
+  callRemark?: string;
+  createdAt: Date;
+  updatedAt: Date;
   [key: string]: unknown;
 }
 
@@ -300,7 +299,10 @@ export interface BusinessVerificationRow {
 
 /**
  * Type for SQL query parameter arrays
- * Use this instead of any[] for query parameters
+ * Use this instead of any[] for query parameters. Allows `unknown` so that
+ * dynamically-built parameter lists (e.g. from `buildInsert`) can be passed
+ * without noisy casts; pg itself is responsible for rejecting values it can't
+ * serialize at runtime.
  */
 export type QueryParams = (
   | string
@@ -311,6 +313,8 @@ export type QueryParams = (
   | undefined
   | number[]
   | string[]
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents -- intentional fallback for JSONB payloads that may hold any shape; the explicit constituents above document the common cases for readers.
+  | unknown
 )[];
 
 /**

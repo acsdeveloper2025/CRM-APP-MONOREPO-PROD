@@ -1,4 +1,4 @@
-import { query, pool } from '../config/database';
+import { query, pool, wrapClient } from '../config/database';
 import { logger } from '../config/logger';
 import { PoolClient } from 'pg';
 
@@ -57,7 +57,7 @@ export class EnterpriseMobileSyncService {
 
     try {
       // Use database transaction for consistency
-      const client = await pool.connect();
+      const client = wrapClient(await pool.connect());
 
       try {
         await client.query('BEGIN');
@@ -206,10 +206,10 @@ export class EnterpriseMobileSyncService {
         c.priority,
         -- Get latest form submission
         (SELECT COUNT(*) FROM form_submissions fs 
-         WHERE fs.case_id = c.id AND fs.created_at > $2) as "newFormSubmissions",
+         WHERE fs.case_id = c.id AND fs.created_at > $2) as "new_form_submissions",
         -- Get latest attachments
         (SELECT COUNT(*) FROM attachments a 
-         WHERE a.case_id = c.id AND a.uploaded_at > $2) as "newAttachments"
+         WHERE a.case_id = c.id AND a.uploaded_at > $2) as "new_attachments"
       FROM cases c
       WHERE c.assigned_to = $1
         AND c.updated_at > $2
@@ -350,11 +350,11 @@ export class EnterpriseMobileSyncService {
     try {
       const statsQuery = `
         SELECT 
-          COUNT(DISTINCT user_id) as "activeUsers",
-          COUNT(DISTINCT device_id) as "activeDevices",
-          AVG(sync_count) as "avgSyncCount",
-          MAX(last_sync_at) as "lastSyncTime",
-          COUNT(CASE WHEN last_sync_at > NOW() - INTERVAL '1 hour' THEN 1 END) as "recentSyncs"
+          COUNT(DISTINCT user_id) as "active_users",
+          COUNT(DISTINCT device_id) as "active_devices",
+          AVG(sync_count) as "avg_sync_count",
+          MAX(last_sync_at) as "last_sync_time",
+          COUNT(CASE WHEN last_sync_at > NOW() - INTERVAL '1 hour' THEN 1 END) as "recent_syncs"
         FROM mobile_device_sync
         WHERE last_sync_at > NOW() - INTERVAL '24 hours'
       `;

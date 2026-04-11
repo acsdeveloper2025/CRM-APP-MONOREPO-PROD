@@ -1,6 +1,6 @@
 import type { Response } from 'express';
 import { DeduplicationService, type DeduplicationCriteria } from '@/services/deduplicationService';
-import { pool } from '@/config/database';
+import { pool, query as dbQuery } from '@/config/database';
 import { logger } from '@/utils/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 
@@ -237,8 +237,8 @@ export const getDuplicateClusters = async (req: AuthenticatedRequest, res: Respo
     `;
 
     const [clustersResult, countResult] = await Promise.all([
-      pool.query(query, [limit, offset]),
-      pool.query(countQuery),
+      dbQuery(query, [limit, offset]),
+      dbQuery(countQuery),
     ]);
 
     const clusters = clustersResult.rows;
@@ -364,7 +364,7 @@ export const searchGlobalDuplicates = async (req: AuthenticatedRequest, res: Res
       WHERE (${searchConditions.join(' OR ')})
     `;
 
-    const countResult = await pool.query(countQuery, searchParams);
+    const countResult = await dbQuery(countQuery, searchParams);
     const total = parseInt(countResult.rows[0]?.total || '0');
 
     // Get paginated results
@@ -390,7 +390,7 @@ export const searchGlobalDuplicates = async (req: AuthenticatedRequest, res: Res
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
-    const result = await pool.query(query, [...searchParams, limit, offset]);
+    const result = await dbQuery(query, [...searchParams, limit, offset]);
 
     // Deduplicate results in memory (since we removed DISTINCT ON)
     const uniqueCases = new Map();

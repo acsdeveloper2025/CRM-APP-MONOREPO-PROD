@@ -61,25 +61,25 @@ export const loadUserAuthContext = async (userId: string): Promise<DbUserAuthCon
           JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
           JOIN permissions p ON p.id = rp.permission_id
           WHERE ur.user_id = u.id
-        ), ARRAY[]::varchar[]) as "permissionCodes",
+        ), ARRAY[]::varchar[]) as "permission_codes",
         COALESCE((
           SELECT ARRAY_AGG(DISTINCT uca.client_id ORDER BY uca.client_id)
           FROM user_client_assignments uca
           WHERE uca.user_id = u.id
-        ), ARRAY[]::int[]) as "assignedClientIds",
+        ), ARRAY[]::int[]) as "assigned_client_ids",
         COALESCE((
           SELECT ARRAY_AGG(DISTINCT upa.product_id ORDER BY upa.product_id)
           FROM user_product_assignments upa
           WHERE upa.user_id = u.id
-        ), ARRAY[]::int[]) as "assignedProductIds",
+        ), ARRAY[]::int[]) as "assigned_product_ids",
         COALESCE((
           SELECT ARRAY_AGG(DISTINCT rv.name ORDER BY rv.name)
           FROM user_roles ur
           JOIN roles_v2 rv ON rv.id = ur.role_id
           WHERE ur.user_id = u.id
         ), ARRAY[]::varchar[]) as roles,
-        u.team_leader_id as "teamLeaderId",
-        u.manager_id as "managerId"
+        u.team_leader_id as "team_leader_id",
+        u.manager_id as "manager_id"
       FROM users u
       WHERE u.id = $1
       LIMIT 1
@@ -124,46 +124,15 @@ const buildRequestCapabilities = (
   };
 };
 
-const verifyTokenAndSetUser = (
+const verifyTokenAndSetUser = async (
   token: string,
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
-): void => {
+): Promise<void> => {
+  let decoded: JwtPayload;
   try {
-    const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
-    void (async () => {
-      const userContext = await loadUserAuthContext(decoded.userId);
-      if (!userContext) {
-        res.status(401).json({
-          success: false,
-          message: 'User not found',
-          error: { code: 'UNAUTHORIZED' },
-        });
-        return;
-      }
-
-      req.user = {
-        id: userContext.id,
-        permissionCodes: userContext.permissionCodes,
-        capabilities: buildRequestCapabilities(userContext),
-        assignedClientIds: userContext.assignedClientIds,
-        assignedProductIds: userContext.assignedProductIds,
-        roles: userContext.roles,
-        primaryRole: getPrimaryRoleNameFromRbac(userContext.roles),
-        teamLeaderId: userContext.teamLeaderId,
-        managerId: userContext.managerId,
-        ...(decoded.deviceId && { deviceId: decoded.deviceId }),
-      };
-      next();
-    })().catch(error => {
-      logger.error('Failed to load authenticated user context:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to load user context',
-        error: { code: 'AUTH_CONTEXT_LOAD_ERROR' },
-      });
-    });
+    decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
   } catch (error) {
     logger.error('Token verification failed:', error);
     const response: ApiResponse = {
@@ -174,6 +143,40 @@ const verifyTokenAndSetUser = (
       },
     };
     res.status(401).json(response);
+    return;
+  }
+
+  try {
+    const userContext = await loadUserAuthContext(decoded.userId);
+    if (!userContext) {
+      res.status(401).json({
+        success: false,
+        message: 'User not found',
+        error: { code: 'UNAUTHORIZED' },
+      });
+      return;
+    }
+
+    req.user = {
+      id: userContext.id,
+      permissionCodes: userContext.permissionCodes,
+      capabilities: buildRequestCapabilities(userContext),
+      assignedClientIds: userContext.assignedClientIds,
+      assignedProductIds: userContext.assignedProductIds,
+      roles: userContext.roles,
+      primaryRole: getPrimaryRoleNameFromRbac(userContext.roles),
+      teamLeaderId: userContext.teamLeaderId,
+      managerId: userContext.managerId,
+      ...(decoded.deviceId && { deviceId: decoded.deviceId }),
+    };
+    next();
+  } catch (error) {
+    logger.error('Failed to load authenticated user context:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to load user context',
+      error: { code: 'AUTH_CONTEXT_LOAD_ERROR' },
+    });
   }
 };
 
@@ -198,7 +201,14 @@ export const authenticateToken = (
     return;
   }
 
-  verifyTokenAndSetUser(token, req, res, next);
+  verifyTokenAndSetUser(token, req, res, next).catch(error => {
+    logger.error('Unhandled authenticateToken error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Authentication failed',
+      error: { code: 'AUTH_ERROR' },
+    });
+  });
 };
 
 // Flexible authentication that supports both header and query parameter
@@ -225,7 +235,14 @@ export const authenticateTokenFlexible = (
     return;
   }
 
-  verifyTokenAndSetUser(token, req, res, next);
+  verifyTokenAndSetUser(token, req, res, next).catch(error => {
+    logger.error('Unhandled authenticateTokenFlexible error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Authentication failed',
+      error: { code: 'AUTH_ERROR' },
+    });
+  });
 };
 
 export const requireRole = (_allowedRoles: unknown[]) => {
@@ -254,58 +271,10 @@ export const requireAdmin = requireRole([]);
 export const requireBackendOrAdmin = requireRole([]);
 export const requireFieldOrHigher = requireRole([]);
 
-// Enhanced auth middleware that loads user permissions
-export const auth = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
-  try {
-    // First run the basic token authentication
-    authenticateToken(req, res, () => {
-      void (async () => {
-        if (!req.user) {
-          return; // authenticateToken already handled the response
-        }
-
-        try {
-          const userData = await loadUserAuthContext(req.user.id);
-          if (userData) {
-            req.user.permissionCodes = userData.permissionCodes;
-            req.user.capabilities = buildRequestCapabilities(userData);
-            req.user.assignedClientIds = userData.assignedClientIds;
-            req.user.assignedProductIds = userData.assignedProductIds;
-            req.user.roles = userData.roles;
-            req.user.primaryRole = getPrimaryRoleNameFromRbac(userData.roles);
-            req.user.teamLeaderId = userData.teamLeaderId;
-            req.user.managerId = userData.managerId;
-          }
-
-          next();
-        } catch (error) {
-          logger.error('Error loading user permissions:', error);
-          const response: ApiResponse = {
-            success: false,
-            message: 'Failed to load user permissions',
-            error: { code: 'PERMISSION_LOAD_ERROR' },
-          };
-          res.status(500).json(response);
-        }
-      })().catch(error => {
-        logger.error('Auth middleware inner error:', error);
-        res.status(500).json({
-          success: false,
-          message: 'Internal server error',
-          error: { code: 'INTERNAL_ERROR' },
-        });
-      });
-    });
-  } catch (error) {
-    logger.error('Auth middleware error:', error);
-    const response: ApiResponse = {
-      success: false,
-      message: 'Authentication failed',
-      error: { code: 'AUTH_ERROR' },
-    };
-    res.status(500).json(response);
-  }
-};
+// Enhanced auth middleware that loads user permissions.
+// verifyTokenAndSetUser already populates the full capability profile, so this
+// wrapper just forwards to authenticateToken for backwards compatibility.
+export const auth = authenticateToken;
 
 // Permission-based access control middleware
 export const requirePermission = (resource: string, action: string) => {

@@ -1,7 +1,7 @@
 import { Worker, type Job } from 'bullmq';
 import { config } from '../config';
 import { logger } from '../config/logger';
-import { query, pool } from '../config/database';
+import { query, pool, wrapClient } from '../config/database';
 import { createAuditLog } from '../utils/auditLogger';
 import { queueCaseAssignmentNotification } from '../queues/notificationQueue';
 import { loadExecutionEligibleUser } from '@/security/userCapabilities';
@@ -71,7 +71,7 @@ async function processCaseReassignment(
   assignedById: string,
   reason: string
 ): Promise<AssignmentResult> {
-  const client = await pool.connect();
+  const client = wrapClient(await pool.connect());
 
   try {
     await client.query('BEGIN');
@@ -257,7 +257,7 @@ async function processSingleAssignment(
   assignedById: string,
   reason?: string
 ): Promise<AssignmentResult> {
-  const client = await pool.connect();
+  const client = wrapClient(await pool.connect());
 
   try {
     await client.query('BEGIN');

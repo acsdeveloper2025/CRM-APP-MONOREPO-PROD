@@ -6,10 +6,10 @@ export const LayoutProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // Initialize state from localStorage to persist across refreshes
   const [expandedMenus, setExpandedMenusState] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('sidebar_expanded');
+      const saved = localStorage.getItem('sidebarExpanded');
       return saved ? JSON.parse(saved) : [];
     } catch (error) {
-      logger.error('Failed to parse sidebar_expanded from localStorage', error);
+      logger.error('Failed to parse sidebarExpanded from localStorage', error);
       return [];
     }
   });
@@ -17,9 +17,9 @@ export const LayoutProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // Persist state changes to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem('sidebar_expanded', JSON.stringify(expandedMenus));
+      localStorage.setItem('sidebarExpanded', JSON.stringify(expandedMenus));
     } catch (error) {
-      logger.error('Failed to save sidebar_expanded to localStorage', error);
+      logger.error('Failed to save sidebarExpanded to localStorage', error);
     }
   }, [expandedMenus]);
 

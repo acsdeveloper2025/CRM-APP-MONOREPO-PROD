@@ -19,8 +19,8 @@ import sharp from 'sharp';
 const attachments: Record<string, unknown>[] = [
   {
     id: 'attachment_1',
-    filename: 'residence_photo_1.jpg',
-    originalName: 'front_view.jpg',
+    filename: 'residencePhoto1.jpg',
+    originalName: 'frontView.jpg',
     mimeType: 'image/jpeg',
     size: 1024000,
     caseId: 'case_3',
@@ -33,8 +33,8 @@ const attachments: Record<string, unknown>[] = [
   },
   {
     id: 'attachment_2',
-    filename: 'verification_report.pdf',
-    originalName: 'verification_report.pdf',
+    filename: 'verificationReport.pdf',
+    originalName: 'verificationReport.pdf',
     mimeType: 'application/pdf',
     size: 512000,
     caseId: 'case_3',
@@ -73,10 +73,10 @@ const enforceBackendUserCaseScope = async (
 
   const { query } = await import('@/config/database');
   const caseResult = await query<{
-    client_id: number;
-    product_id: number;
-    created_by_backend_user: string | null;
-    assigned_to: string | null;
+    clientId: number;
+    productId: number;
+    createdByBackendUser: string | null;
+    assignedTo: string | null;
   }>(
     `SELECT client_id, product_id, created_by_backend_user, assigned_to FROM cases WHERE id = $1`,
     [caseUuid]
@@ -120,8 +120,8 @@ const enforceBackendUserCaseScope = async (
 
   const row = caseResult.rows[0];
   return (
-    assignedClientIds.includes(Number(row.client_id)) &&
-    assignedProductIds.includes(Number(row.product_id))
+    assignedClientIds.includes(Number(row.clientId)) &&
+    assignedProductIds.includes(Number(row.productId))
   );
 };
 
@@ -196,7 +196,7 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
           // description,
           // category = 'DOCUMENT',
           // isPublic = false,
-          verification_task_id: verificationTaskId,
+          verificationTaskId: verificationTaskId,
         } = req.body;
 
         if (!files || files.length === 0) {
@@ -297,7 +297,7 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
               caseId,
               caseUUID, // Add the case UUID for mobile compatibility
 
-              verificationTaskId || null, // Add verification_task_id if provided
+              verificationTaskId || null, // Add verificationTaskId if provided
             ]
           );
 
@@ -465,7 +465,7 @@ export const getAttachmentById = async (req: AuthenticatedRequest, res: Response
     const backendScopeOk = await enforceBackendUserCaseScope(
       userId,
       req.user,
-      attachment.case_id as string | undefined
+      attachment.caseId as string | undefined
     );
     if (!backendScopeOk) {
       return res.status(403).json({
@@ -549,7 +549,7 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
     const backendScopeOk = await enforceBackendUserCaseScope(
       userId,
       req.user,
-      attachment.case_id as string | undefined
+      attachment.caseId as string | undefined
     );
     if (!backendScopeOk) {
       return res.status(403).json({
@@ -708,7 +708,7 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
     const backendScopeOk = await enforceBackendUserCaseScope(
       userId,
       req.user,
-      attachment.case_id as string | undefined
+      attachment.caseId as string | undefined
     );
     if (!backendScopeOk) {
       return res.status(403).json({
@@ -807,7 +807,7 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
     const backendScopeOk = await enforceBackendUserCaseScope(
       userId,
       req.user,
-      attachment.case_id as string | undefined
+      attachment.caseId as string | undefined
     );
     if (!backendScopeOk) {
       return res.status(403).json({

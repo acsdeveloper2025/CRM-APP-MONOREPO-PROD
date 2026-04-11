@@ -103,9 +103,9 @@ export class QueryOptimizationService {
           JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
           JOIN permissions p ON p.id = rp.permission_id
           WHERE ur.user_id = u.id
-        ), ARRAY[]::text[]) as "rolePermissions",
-        d.name as "departmentName", d.description as "departmentDescription",
-        des.name as "designationName"
+        ), ARRAY[]::text[]) as "role_permissions",
+        d.name as "department_name", d.description as "department_description",
+        des.name as "designation_name"
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id  
       LEFT JOIN designations des ON u.designation_id = des.id
@@ -142,10 +142,10 @@ export class QueryOptimizationService {
     const query = `
       SELECT 
         c.id, c.name, c.code, c.created_at, c.updated_at,
-        COUNT(DISTINCT cp.product_id) as "productCount",
-        COUNT(DISTINCT cases.case_id) as "caseCount",
-        COUNT(DISTINCT CASE WHEN cases.status = 'COMPLETED' THEN cases.case_id END) as "completedCases",
-        COUNT(DISTINCT CASE WHEN cases.status = 'PENDING' THEN cases.case_id END) as "pendingCases"
+        COUNT(DISTINCT cp.product_id) as "product_count",
+        COUNT(DISTINCT cases.case_id) as "case_count",
+        COUNT(DISTINCT CASE WHEN cases.status = 'COMPLETED' THEN cases.case_id END) as "completed_cases",
+        COUNT(DISTINCT CASE WHEN cases.status = 'PENDING' THEN cases.case_id END) as "pending_cases"
       FROM clients c
       LEFT JOIN client_products cp ON c.id = cp.client_id
       LEFT JOIN cases ON c.id = cases.client_id
@@ -175,12 +175,12 @@ export class QueryOptimizationService {
       SELECT 
         c.case_id, c.customer_name, c.customer_phone, c.address,
         c.status, c.priority, c.created_at, c.updated_at,
-        cl.name as client_name, cl.code as "clientCode",
-        u.name as "assignedToName", u.employee_id,
-        p.name as product_name, p.code as "productCode",
-        vt.name as verification_type_name, vt.code as "verificationTypeCode",
-        COUNT(DISTINCT a.id) as "attachmentCount",
-        COUNT(DISTINCT al.id) as "auditLogCount"
+        cl.name as client_name, cl.code as "client_code",
+        u.name as "assigned_to_name", u.employee_id,
+        p.name as product_name, p.code as "product_code",
+        vt.name as verification_type_name, vt.code as "verification_type_code",
+        COUNT(DISTINCT a.id) as "attachment_count",
+        COUNT(DISTINCT al.id) as "audit_log_count"
       FROM cases c
       LEFT JOIN clients cl ON c.client_id = cl.id
       LEFT JOIN users u ON c.assigned_to = u.id
@@ -351,35 +351,16 @@ export class QueryOptimizationService {
     return Math.abs(hash).toString(16);
   }
 
-  /**
-   * Analyze query performance
-   */
-  /**
-   * Analyze query performance
-   */
-  async analyzeQueryPerformance(queryText: string): Promise<{
-    executionTime: number;
-    planningTime: number;
-    totalTime: number;
-    plan: Record<string, unknown>;
-  }> {
-    const explainQuery = `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${queryText}`;
-
-    try {
-      const result = await this.pool.query(explainQuery);
-      const plan = result.rows[0]['QUERY PLAN'][0];
-
-      return {
-        executionTime: plan['Execution Time'],
-        planningTime: plan['Planning Time'],
-        totalTime: plan['Execution Time'] + plan['Planning Time'],
-        plan,
-      };
-    } catch (error) {
-      logger.error('Failed to analyze query performance:', error);
-      throw error;
-    }
-  }
+  // analyzeQueryPerformance() was REMOVED on 2026-04-10.
+  //
+  // The old implementation ran `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${queryText}`
+  // where queryText was passed in as a plain string. `EXPLAIN ANALYZE` actually
+  // EXECUTES the statement, so passing an INSERT/UPDATE/DELETE would mutate
+  // the database. The method had zero callers anywhere in the codebase, so
+  // rather than gating it behind a feature flag (which can be flipped on in
+  // prod), we deleted it. If query-plan analysis is needed, run it manually
+  // via psql or a dedicated admin endpoint that accepts only a whitelisted
+  // set of SELECT statements.
 
   /**
    * Get slow queries report

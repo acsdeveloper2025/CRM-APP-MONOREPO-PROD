@@ -268,7 +268,7 @@ export const getAuditLogById = (req: AuthenticatedRequest, res: Response) => {
           COALESCE(u.name, 'System') as user_name,
           al.action,
           COALESCE(al.entity_type, 'SYSTEM') as resource,
-          al.entity_id as "resourceId",
+          al.entity_id as "resource_id",
           COALESCE(al.details, '{}'::jsonb) as details,
           COALESCE(al.ip_address, '') as ip_address,
           COALESCE(al.user_agent, '') as user_agent,

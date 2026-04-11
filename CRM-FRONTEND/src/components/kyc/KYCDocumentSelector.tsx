@@ -354,12 +354,18 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                           />
                         </div>
                         <div>
-                          <Label className="text-xs text-gray-500">Assign To</Label>
+                          <Label className="text-xs text-gray-500">
+                            Assign To <span className="text-red-500">*</span>
+                          </Label>
                           <Select
                             value={doc.assignedTo || ''}
                             onValueChange={(v) => updateDocField(doc.documentTypeCode, 'assignedTo', v)}
                           >
-                            <SelectTrigger className="h-7 text-xs mt-0.5">
+                            <SelectTrigger
+                              className={`h-7 text-xs mt-0.5 ${
+                                !doc.assignedTo ? 'border-red-400 focus:border-red-500' : ''
+                              }`}
+                            >
                               <SelectValue placeholder="Select verifier..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -370,6 +376,11 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                               ))}
                             </SelectContent>
                           </Select>
+                          {!doc.assignedTo && (
+                            <p className="text-[10px] text-red-500 mt-0.5">
+                              Required — KYC tasks cannot be created unassigned
+                            </p>
+                          )}
                         </div>
                         <div>
                           <Label className="text-xs text-gray-500">File</Label>

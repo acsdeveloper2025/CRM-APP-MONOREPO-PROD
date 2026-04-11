@@ -47,7 +47,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     // Find user by username
     const userRes = await query(
-      `SELECT u.id, u.name, u.username, u.email, u.password_hash as "passwordHash", u.employee_id as "employeeId", u.designation, u.department, u.profile_photo_url as "profilePhotoUrl"
+      `SELECT u.id, u.name, u.username, u.email, u.password_hash as "password_hash", u.employee_id as "employee_id", u.designation, u.department, u.profile_photo_url as "profile_photo_url"
        FROM users u
        WHERE u.username = $1`,
       [username]
@@ -322,7 +322,7 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
         u.is_active,
         u.last_login,
         u.created_at,
-        d.name as "departmentName"
+        d.name as "department_name"
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
       WHERE u.id = $1
@@ -355,7 +355,7 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
            WHERE ur.user_id = u.id
            ORDER BY rv2.name
            LIMIT 1
-         ) as "roleId",
+         ) as "role_id",
          COALESCE((
            SELECT array_agg(DISTINCT rv2.name)
            FROM user_roles ur

@@ -41,7 +41,7 @@ export const TATMonitoringPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'critical' | 'all'>('critical');
   const [criticalPage, setCriticalPage] = useState(1);
   const [allPage, setAllPage] = useState(1);
-  const [sortBy, setSortBy] = useState('days_overdue');
+  const [sortBy, setSortBy] = useState('daysOverdue');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Unified search with 800ms debounce
@@ -194,7 +194,7 @@ export const TATMonitoringPage: React.FC = () => {
                 </TableHead>
                 <TableHead>Verification Type</TableHead>
                 <TableHead>Assigned To</TableHead>
-                <TableHead className="cursor-pointer" onClick={() => handleSort('days_overdue')}>
+                <TableHead className="cursor-pointer" onClick={() => handleSort('daysOverdue')}>
                   <div className="flex items-center space-x-1">
                     <span>Days Overdue</span>
                     <ArrowUpDown className="h-4 w-4" />

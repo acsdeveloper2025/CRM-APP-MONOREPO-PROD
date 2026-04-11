@@ -32,11 +32,11 @@ interface UserQueryResult {
 }
 
 interface UserPincodeRow {
-  pincode_id: number;
+  pincodeId: number;
 }
 
 interface UserAreaRow {
-  area_id: number;
+  areaId: number;
 }
 
 export class MobileAuthController {
@@ -58,7 +58,7 @@ export class MobileAuthController {
 
       // Find user
       const userRes = await query<UserQueryResult>(
-        `SELECT u.id, u.name, u.username, u.email, u.password_hash as "passwordHash", u.employee_id as "employeeId", u.designation, u.department, u.profile_photo_url as "profilePhotoUrl"
+        `SELECT u.id, u.name, u.username, u.email, u.password_hash as "password_hash", u.employee_id as "employee_id", u.designation, u.department, u.profile_photo_url as "profile_photo_url"
          FROM users u
          WHERE u.username = $1`,
         [username]
@@ -171,17 +171,17 @@ export class MobileAuthController {
       if (isFieldExecutionActor(authProfile)) {
         // Fetch assigned pincodes
         const pincodesRes = await query<UserPincodeRow>(
-          'SELECT pincode_id FROM user_pincode_assignments WHERE user_id = $1 AND is_active = true',
+          'SELECT pincode_id as "pincode_id" FROM user_pincode_assignments WHERE user_id = $1 AND is_active = true',
           [user.id]
         );
-        assignedPincodes = pincodesRes.rows.map(row => row.pincode_id);
+        assignedPincodes = pincodesRes.rows.map(row => row.pincodeId);
 
         // Fetch assigned areas
         const areasRes = await query<UserAreaRow>(
-          'SELECT area_id FROM user_area_assignments WHERE user_id = $1 AND is_active = true',
+          'SELECT area_id as "area_id" FROM user_area_assignments WHERE user_id = $1 AND is_active = true',
           [user.id]
         );
-        assignedAreas = areasRes.rows.map(row => row.area_id);
+        assignedAreas = areasRes.rows.map(row => row.areaId);
       }
 
       await createAuditLog({

@@ -1,5 +1,5 @@
 import type { Response } from 'express';
-import { query, pool } from '@/config/database';
+import { query, pool, wrapClient } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import type { QueryParams } from '@/types/database';
@@ -76,12 +76,14 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
+    // API contract: sortBy is sent as camelCase by the frontend; we map it to
+    // the snake_case DB column here.
     const allowedSortColumns: Record<string, string> = {
-      created_at: 'kdv.created_at',
-      document_type: 'kdv.document_type',
-      verification_status: 'kdv.verification_status',
-      customer_name: 'c.customer_name',
-      case_number: 'c.case_id',
+      createdAt: 'kdv.created_at',
+      documentType: 'kdv.document_type',
+      verificationStatus: 'kdv.verification_status',
+      customerName: 'c.customer_name',
+      caseNumber: 'c.case_id',
     };
     const sortCol = allowedSortColumns[sortBy as string] || 'kdv.created_at';
     const sortDir = (sortOrder as string)?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
@@ -232,7 +234,7 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
       });
     }
 
-    const client = await pool.connect();
+    const client = wrapClient(await pool.connect());
     try {
       await client.query('BEGIN');
 
@@ -251,8 +253,8 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
         return res.status(404).json({ success: false, message: 'KYC task not found' });
       }
 
-      const verificationTaskId = updateResult.rows[0].verification_task_id as string;
-      const caseId = updateResult.rows[0].case_id as string;
+      const verificationTaskId = updateResult.rows[0].verificationTaskId as string;
+      const caseId = updateResult.rows[0].caseId as string;
 
       // Check if ALL KYC docs for this task are verified
       const pendingDocs = await client.query(
@@ -273,8 +275,8 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
         );
 
         const resultMap: Record<string, number> = {};
-        docResults.rows.forEach((r: { verification_status: string; cnt: string }) => {
-          resultMap[r.verification_status] = parseInt(r.cnt);
+        docResults.rows.forEach((r: { verificationStatus: string; cnt: string }) => {
+          resultMap[r.verificationStatus] = parseInt(r.cnt);
         });
 
         let overallOutcome = 'KYC_VERIFIED';
@@ -354,7 +356,7 @@ export const assignKYCTask = async (req: AuthenticatedRequest, res: Response) =>
        SET assigned_to = $1, assigned_by = $2, assigned_at = CURRENT_TIMESTAMP,
            status = 'ASSIGNED', updated_at = CURRENT_TIMESTAMP
        WHERE id = $3 AND (status = 'PENDING' OR assigned_to IS NULL)`,
-      [assignedTo, userId, result.rows[0].verification_task_id]
+      [assignedTo, userId, result.rows[0].verificationTaskId]
     );
 
     res.json({ success: true, message: 'KYC task assigned', data: { id: taskId } });

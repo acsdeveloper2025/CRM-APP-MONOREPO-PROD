@@ -24,7 +24,7 @@ export interface ConditionalRule {
 
 export const CONDITIONAL_FIELD_RULES: Record<string, ConditionalRule[]> = {
   // Door Status Conditionals
-  door_status: [
+  doorStatus: [
     {
       parentField: 'door_status',
       operator: 'equals',

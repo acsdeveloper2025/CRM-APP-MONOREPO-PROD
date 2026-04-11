@@ -112,10 +112,10 @@ export const getAssignmentsByCombination = async (req: AuthenticatedRequest, res
       `SELECT 
         rt.id as rate_type_id,
         rt.name as rate_type_name,
-        rt.description as "rateTypeDescription",
-        CASE WHEN rta.id IS NOT NULL THEN true ELSE false END as "isAssigned",
+        rt.description as "rate_type_description",
+        CASE WHEN rta.id IS NOT NULL THEN true ELSE false END as "is_assigned",
         rta.id as assignment_id,
-        rta.is_active as "assignmentActive"
+        rta.is_active as "assignment_active"
        FROM rate_types rt
        LEFT JOIN rate_type_assignments rta ON rt.id = rta.rate_type_id 
          AND rta.client_id = $1 

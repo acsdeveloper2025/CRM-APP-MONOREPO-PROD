@@ -26,24 +26,21 @@ export const getVerificationTypes = async (req: AuthenticatedRequest, res: Respo
     const countRes = await query<{ count: string }>(countQuery, queryParams);
     const totalCount = Number(countRes.rows[0]?.count || 0);
 
-    // Get verification types with pagination and search
-    const sortCol = [
-      'name',
-      'code',
-      'category',
-      'basePrice',
-      'estimatedTime',
-      'createdAt',
-      'updatedAt',
-    ].includes(typeof sortBy === 'string' ? sortBy : '')
-      ? typeof sortBy === 'string'
-        ? sortBy
-        : ''
-      : 'name';
+    // API contract: sortBy is camelCase; map to snake_case DB column.
+    const sortColumnMap: Record<string, string> = {
+      name: 'name',
+      code: 'code',
+      category: 'category',
+      basePrice: 'base_price',
+      estimatedTime: 'estimated_time',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    };
+    const sortCol = sortColumnMap[typeof sortBy === 'string' ? sortBy : ''] || 'name';
     const sortDir =
-      typeof sortOrder === 'string' ? sortOrder : 'asc'.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+      typeof sortOrder === 'string' && sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
-    const dataQuery = `SELECT id, name, code, description, is_active, created_at, updated_at FROM verification_types ${whereClause} ORDER BY "${sortCol}" ${sortDir} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    const dataQuery = `SELECT id, name, code, description, is_active, created_at, updated_at FROM verification_types ${whereClause} ORDER BY ${sortCol} ${sortDir} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     const dataParams = [...queryParams, Number(limit), (Number(page) - 1) * Number(limit)];
     const vtRes = await query(dataQuery, dataParams);
     const verificationTypes = vtRes.rows;
