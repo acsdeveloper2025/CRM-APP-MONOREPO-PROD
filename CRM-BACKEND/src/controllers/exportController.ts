@@ -219,8 +219,10 @@ export const downloadReport = async (req: Request, res: Response) => {
 // Get export history
 export const getExportHistory = (req: AuthenticatedRequest, res: Response) => {
   try {
-    const limit = Number(req.query.limit) || 50;
-    const offset = Number(req.query.offset) || 0;
+    // M13: clamp now, before persistence lands — once this is backed
+    // by a real table the unvalidated limit becomes a cheap DoS.
+    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 500);
+    const offset = Math.max(Number(req.query.offset) || 0, 0);
     const userId = req.user?.id;
 
     // Mock export history - ready to connect to export_history table when persistence layer is available

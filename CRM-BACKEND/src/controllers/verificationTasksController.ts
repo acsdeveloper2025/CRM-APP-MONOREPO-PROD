@@ -1652,20 +1652,23 @@ export class VerificationTasksController {
 
       // Send notification to assigned user
       try {
-        // Get case and user details for notification
-        const caseQuery = `
-          SELECT c.id, c.case_id as case_number, c.customer_name
-          FROM cases c
-          WHERE c.id = $1
-        `;
-        const caseResult = await client.query(caseQuery, [currentTask.caseId]);
+        // M14: fire the independent case + verification-type lookups
+        // in parallel. They have no data dependency on each other and
+        // the row lock acquired earlier by `FOR UPDATE` has already
+        // been released by the COMMIT above, so there's nothing to
+        // hold open while these run serially.
+        const [caseResult, vtResult] = await Promise.all([
+          client.query(
+            `SELECT c.id, c.case_id as case_number, c.customer_name
+             FROM cases c
+             WHERE c.id = $1`,
+            [currentTask.caseId]
+          ),
+          client.query(`SELECT name FROM verification_types WHERE id = $1`, [
+            currentTask.verificationTypeId,
+          ]),
+        ]);
         const caseData = caseResult.rows[0];
-
-        // Get verification type name
-        const vtQuery = `
-          SELECT name FROM verification_types WHERE id = $1
-        `;
-        const vtResult = await client.query(vtQuery, [currentTask.verificationTypeId]);
         const verificationType = vtResult.rows[0]?.name || 'Unknown';
 
         // Queue notification

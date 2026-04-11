@@ -508,7 +508,11 @@ export class MobileSyncController {
              c.updated_at > $${syncTimestampParamIndex}
              OR COALESCE(vtask.task_updated_at, c.updated_at) > $${syncTimestampParamIndex}
            )
-         ORDER BY COALESCE(vtask.task_updated_at, c.updated_at) ASC
+         -- M9: secondary tiebreaker on c.id so offset-based pagination
+         -- is deterministic when multiple rows share the same updated_at
+         -- (e.g. a batch import). Without it, OFFSET can skip or
+         -- duplicate rows and corrupt the offline store.
+         ORDER BY COALESCE(vtask.task_updated_at, c.updated_at) ASC, c.id ASC
          LIMIT $${limitParamIndex}
          OFFSET $${offsetParamIndex}`,
         vals

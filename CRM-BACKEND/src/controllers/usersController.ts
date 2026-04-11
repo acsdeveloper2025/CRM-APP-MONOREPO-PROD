@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { query, withTransaction } from '@/config/database';
 import { logger } from '@/config/logger';
+import { config } from '@/config';
 import { redact } from '@/utils/logRedact';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { EmailDeliveryService } from '@/services/EmailDeliveryService';
@@ -718,7 +719,10 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // M2: use config.bcryptRounds (12) instead of the literal 10 that was
+    // used here historically — newly created users were getting weaker
+    // hashes than existing users whose passwords were reset.
+    const hashedPassword = await bcrypt.hash(password, config.bcryptRounds);
 
     // Determine role using RBAC role UUID or canonical role name
     let finalRole: string | null = null;
@@ -2122,7 +2126,7 @@ export const generateTemporaryPassword = async (req: AuthenticatedRequest, res: 
       Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-2).toUpperCase();
 
     // Hash the temporary password
-    const hashedPassword = await bcrypt.hash(tempPassword, 12);
+    const hashedPassword = await bcrypt.hash(tempPassword, config.bcryptRounds);
 
     // Update user's password
     await query(
@@ -2265,7 +2269,7 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response) =
     }
 
     // Hash new password
-    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+    const hashedNewPassword = await bcrypt.hash(newPassword, config.bcryptRounds);
 
     // Update password
     await query(
@@ -2341,7 +2345,7 @@ export const resetPassword = async (req: AuthenticatedRequest, res: Response) =>
     const user = userCheck.rows[0];
 
     // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    const hashedPassword = await bcrypt.hash(newPassword, config.bcryptRounds);
 
     // Update password
     await query(
