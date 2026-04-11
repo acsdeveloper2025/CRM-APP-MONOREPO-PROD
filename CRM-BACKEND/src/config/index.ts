@@ -188,7 +188,11 @@ export const config = {
     // Mobile Feature Flags
     enableOfflineMode: process.env.MOBILE_ENABLE_OFFLINE_MODE === 'true',
     enableBackgroundSync: process.env.MOBILE_ENABLE_BACKGROUND_SYNC === 'true',
-    enableBiometricAuth: process.env.MOBILE_ENABLE_BIOMETRIC_AUTH === 'true',
+    // Phase E4: enableBiometricAuth removed — the flag was set for
+    // months but the mobile client never implemented biometric auth.
+    // If/when that feature lands, reintroduce the flag behind a real
+    // implementation instead of advertising a security property that
+    // does not exist.
     enableDarkMode: process.env.MOBILE_ENABLE_DARK_MODE === 'true',
     enableAnalytics: process.env.MOBILE_ENABLE_ANALYTICS === 'true',
   },

@@ -444,7 +444,9 @@ export interface MobileAppConfigResponse {
   features: {
     offlineMode: boolean;
     backgroundSync: boolean;
-    biometricAuth: boolean;
+    // Phase E4: biometricAuth was advertised as a feature flag for
+    // months but never implemented on the mobile client. Removed
+    // from the contract so no future caller assumes it works.
     darkMode: boolean;
     analytics: boolean;
   };
