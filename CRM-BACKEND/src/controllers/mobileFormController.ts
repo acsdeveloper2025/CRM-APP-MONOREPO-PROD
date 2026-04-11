@@ -709,17 +709,24 @@ export class MobileFormController {
           .jpeg({ quality: 80 })
           .toFile(thumbnailPath);
 
-        // Save to verificationAttachments table
+        // Save to verification_attachments table.
+        //
+        // CRITICAL FIX: the prior INSERT listed `case_id` twice in
+        // the column list and passed 14 values for 13 distinct
+        // columns. Postgres rejects this at parse time with
+        // `column "case_id" specified more than once`, so the
+        // entire mobile form image-upload path was broken. Removed
+        // the duplicate column and the stale "will be set later"
+        // null placeholder.
         const attachmentResult = await query(
           `INSERT INTO verification_attachments (
-            case_id, case_id, verification_type, verification_task_id, filename, original_name,
+            case_id, verification_type, verification_task_id, filename, original_name,
             mime_type, file_size, file_path, thumbnail_path, uploaded_by,
             geo_location, photo_type, submission_id
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
           RETURNING id, filename, file_path, thumbnail_path, created_at`,
           [
             caseId,
-            null, // caseId integer - will be set later if needed
             verificationType,
             verificationTaskId || null, // ✅ Link to verification task
             filename,
@@ -2526,10 +2533,13 @@ export class MobileFormController {
             `SELECT form_submission_id FROM task_form_submissions WHERE verification_task_id = $1 LIMIT 1`,
             [task.taskId]
           );
+          // Phase B3: `task.task_id` is undefined after the
+          // camelizeRow flip; use the camelCase form consistent
+          // with the rest of this function.
           const actualSubmissionId =
             tfsRes.rows[0]?.formSubmissionId ||
             (imagesRes.rows.length > 0 ? imagesRes.rows[0].submissionId : null) ||
-            `${verificationType.toLowerCase()}_${task.task_id}_${Date.now()}`;
+            `${verificationType.toLowerCase()}_${task.taskId}_${Date.now()}`;
 
           // Create comprehensive form submission WITH TASK INFORMATION
           const submission: FormSubmissionData = {
