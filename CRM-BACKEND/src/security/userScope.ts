@@ -33,6 +33,18 @@ const loadScopeUser = async (userId: string, db?: Queryable): Promise<ScopeUserR
   return result.rows[0] ?? null;
 };
 
+/**
+ * Maximum depth the manager-hierarchy recursive CTE is allowed to walk.
+ *
+ * The users table has a self-referencing `manager_id` FK with no cycle
+ * constraint, so a misconfigured row (user is their own manager, or a
+ * cycle A→B→A) would send WITH RECURSIVE into an infinite loop until it
+ * exhausts the query budget. Capping depth + tracking the visited path
+ * guarantees the query terminates even on corrupt data. 16 levels is
+ * roughly 65k leaf users per root — well above any real org chart.
+ */
+const MAX_MANAGED_TREE_DEPTH = 16;
+
 export const getSubordinateUsers = async (
   userId: string,
   db?: Queryable
@@ -51,20 +63,29 @@ export const getSubordinateUsers = async (
     executor.query<{ id: string }>(
       `
         WITH RECURSIVE managed_users AS (
-          SELECT u.id
+          SELECT
+            u.id,
+            1 AS depth,
+            ARRAY[u.id] AS path
           FROM users u
           WHERE u.deleted_at IS NULL
             AND u.manager_id = $1
-          UNION
-          SELECT child.id
+          UNION ALL
+          SELECT
+            child.id,
+            parent_scope.depth + 1,
+            parent_scope.path || child.id
           FROM users child
-          JOIN managed_users parent_scope ON child.manager_id = parent_scope.id
+          JOIN managed_users parent_scope
+            ON child.manager_id = parent_scope.id
           WHERE child.deleted_at IS NULL
+            AND parent_scope.depth < $2
+            AND NOT (child.id = ANY(parent_scope.path))
         )
         SELECT DISTINCT id
         FROM managed_users
       `,
-      [userId]
+      [userId, MAX_MANAGED_TREE_DEPTH]
     ),
   ]);
 

@@ -110,9 +110,24 @@ export const query = async <T = any>(
   return transformResult(result);
 };
 
+/**
+ * Maximum exponential backoff delay (ms) between retry attempts. Capping
+ * the sleep prevents a long queue of retries from holding a connection
+ * open for several seconds each while the database catches up.
+ */
+const MAX_TRANSACTION_RETRY_DELAY_MS = 400;
+
+/**
+ * Number of retry attempts for deadlock/serialization failures. Bumped
+ * from 3 → 6 for high-concurrency workloads: under 2000+ concurrent
+ * users the old ceiling surfaced too many deadlocks as 5xx responses
+ * even though a second or third attempt would have succeeded.
+ */
+const DEFAULT_TRANSACTION_MAX_RETRIES = 6;
+
 export const withTransaction = async <T>(
   fn: (client: PoolClient) => Promise<T>,
-  maxRetries = 3
+  maxRetries = DEFAULT_TRANSACTION_MAX_RETRIES
 ): Promise<T> => {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     const client = wrapClient(await pool.connect());
@@ -133,8 +148,12 @@ export const withTransaction = async <T>(
             code: pgCode,
           }
         );
-        // Exponential backoff: 100ms, 200ms, 400ms...
-        await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, attempt - 1)));
+        // Exponential backoff capped at MAX_TRANSACTION_RETRY_DELAY_MS:
+        // 100ms, 200ms, 400ms, 400ms, 400ms — total worst-case wait is
+        // ~1.5s across 6 attempts, which is well below the request
+        // timeout but enough to let transient contention clear.
+        const backoffMs = Math.min(100 * Math.pow(2, attempt - 1), MAX_TRANSACTION_RETRY_DELAY_MS);
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
         continue;
       }
 
