@@ -127,7 +127,7 @@ import {
   validateDsaConnectorRequiredFields as _validateDsaConnectorRequiredFields,
   getDsaConnectorAvailableDbColumns as _getDsaConnectorAvailableDbColumns,
 } from '../utils/dsaConnectorFormFieldMapping';
-import { query } from '@/config/database';
+import { query, withTransaction } from '@/config/database';
 import path from 'path';
 import fs from 'fs/promises';
 import sharp from 'sharp';
@@ -2957,95 +2957,102 @@ export class MobileFormController {
         },
       };
 
-      // Update verification task status to COMPLETED
-      await query(
-        `
+      // Finding #3: wrap all write operations + the consistent re-read in a
+      // single transaction so the task-completed state cannot exist without
+      // the corresponding verification report + form-submission link.
+      const updatedCase = await withTransaction(async client => {
+        // a. Update verification task status to COMPLETED
+        await client.query(
+          `
         UPDATE verification_tasks
         SET status = 'COMPLETED',
             completed_at = CURRENT_TIMESTAMP,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
       `,
-        [taskId || verificationTaskId]
-      );
+          [taskId || verificationTaskId]
+        );
 
-      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
-      await CaseStatusSyncService.recalculateCaseStatus(caseId);
+        // b. Update case status based on ALL tasks (pass the tx client!)
+        await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
-      // Update case with verification data (without changing status)
-      await query(
-        `UPDATE cases SET verification_data = $1, verification_type = 'RESIDENCE', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
-        [JSON.stringify(verificationData), verificationOutcome, caseId]
-      );
-      const caseUpd = await query(
-        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
-        [caseId]
-      );
-      const updatedCase = caseUpd.rows[0];
+        // c. Update case with verification data (without changing status)
+        await client.query(
+          `UPDATE cases SET verification_data = $1, verification_type = 'RESIDENCE', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          [JSON.stringify(verificationData), verificationOutcome, caseId]
+        );
 
-      // Create comprehensive residence verification report using all available fields
-      const dbInsertData: Record<string, unknown> = {
-        // Core case information
-        caseId,
-        verificationTaskId: taskId,
-        formType,
-        verificationOutcome,
-        customerName: updatedCase.customerName || 'Unknown',
-        customerPhone: updatedCase.backendContactNumber || null,
-        customerEmail: null, // Not available from case data
+        // d. Re-read the case inside the transaction
+        const caseUpd = await client.query(
+          `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
+          [caseId]
+        );
+        const updated = caseUpd.rows[0];
 
-        // Verification metadata
-        verificationDate: new Date().toISOString().split('T')[0],
-        verificationTime: new Date().toTimeString().split(' ')[0],
-        verifiedBy: userId,
-        totalImages:
-          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
-          uploadedImages.length ||
-          0,
-        totalSelfies:
-          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
-          uploadedImages.filter(img => img.photoType === 'selfie').length ||
-          0,
-        remarks: formData.remarks || `${formType} residence verification completed`,
+        // Create comprehensive residence verification report using all available fields
+        const dbInsertData: Record<string, unknown> = {
+          // Core case information
+          caseId,
+          verificationTaskId: taskId,
+          formType,
+          verificationOutcome,
+          customerName: updated.customerName || 'Unknown',
+          customerPhone: updated.backendContactNumber || null,
+          customerEmail: null, // Not available from case data
 
-        // Merge all mapped form data (already includes defaults for missing fields)
-        ...mappedFormData,
-      };
+          // Verification metadata
+          verificationDate: new Date().toISOString().split('T')[0],
+          verificationTime: new Date().toTimeString().split(' ')[0],
+          verifiedBy: userId,
+          totalImages:
+            (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+            uploadedImages.length ||
+            0,
+          totalSelfies:
+            (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+            uploadedImages.filter(img => img.photoType === 'selfie').length ||
+            0,
+          remarks: formData.remarks || `${formType} residence verification completed`,
 
-      // Log comprehensive database insert data for debugging
-      const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(
-        ([_, value]) => value !== null && value !== undefined && value !== ''
-      );
+          // Merge all mapped form data (already includes defaults for missing fields)
+          ...mappedFormData,
+        };
 
-      logger.info(`📝 Final database insert data for ${formType} residence verification:`, {
-        totalFields: Object.keys(dbInsertData).length,
-        populatedFields: populatedFields.length,
-        fieldsWithNullValues: nullFields.length,
-        fieldCoveragePercentage: Math.round(
-          (populatedFields.length / Object.keys(dbInsertData).length) * 100
-        ),
-        nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
-      });
+        // Log comprehensive database insert data for debugging
+        const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
+        const populatedFields = Object.entries(dbInsertData).filter(
+          ([_, value]) => value !== null && value !== undefined && value !== ''
+        );
 
-      // Build dynamic INSERT query based on available data
-      const { columns, placeholders, values } = buildInsert(dbInsertData);
+        logger.info(`📝 Final database insert data for ${formType} residence verification:`, {
+          totalFields: Object.keys(dbInsertData).length,
+          populatedFields: populatedFields.length,
+          fieldsWithNullValues: nullFields.length,
+          fieldCoveragePercentage: Math.round(
+            (populatedFields.length / Object.keys(dbInsertData).length) * 100
+          ),
+          nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
+          samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
+        });
 
-      const insertQuery = `
+        // Build dynamic INSERT query based on available data
+        const { columns, placeholders, values } = buildInsert(dbInsertData);
+
+        const insertQuery = `
         INSERT INTO residence_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
-      logger.info(`📝 Inserting residence verification with ${columns.length} fields:`, columns);
+        logger.info(`📝 Inserting residence verification with ${columns.length} fields:`, columns);
 
-      await query(insertQuery, values);
+        // e. Insert the verification report
+        await client.query(insertQuery, values);
 
-      // STAGE-2D: Strict Task Completion - Populate taskFormSubmissions
-      try {
-        await query(
+        // f. STAGE-2D: Strict Task Completion - Populate taskFormSubmissions.
+        //    Any failure here now rolls back the whole submission (Finding #3).
+        await client.query(
           `INSERT INTO task_form_submissions (
-            id, verification_task_id, case_id, form_submission_id, form_type, 
+            id, verification_task_id, case_id, form_submission_id, form_type,
             submitted_by, submitted_at, validation_status
           ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
           [
@@ -3058,13 +3065,12 @@ export class MobileFormController {
           ]
         );
         logger.info(`✅ Linked residence form submission to task ${targetTaskId}`);
-      } catch (linkError) {
-        logger.error('Failed to link form submission to task:', linkError);
-        // Don't fail the request, but log critical error
-      }
 
-      // Remove auto-save data (autoSaves table doesn't have formType column)
-      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+        // g. Remove auto-save data (autoSaves table doesn't have formType column)
+        await client.query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+
+        return updated;
+      });
 
       await createAuditLog({
         action: 'RESIDENCE_VERIFICATION_SUBMITTED',
@@ -3355,96 +3361,100 @@ export class MobileFormController {
         },
       };
 
-      // Update verification task status to COMPLETED
-      await query(
-        `
+      // Finding #3: wrap writes + consistent re-read in a single transaction.
+      const updatedCase = await withTransaction(async client => {
+        // a. Update verification task status to COMPLETED
+        await client.query(
+          `
         UPDATE verification_tasks
         SET status = 'COMPLETED',
             completed_at = CURRENT_TIMESTAMP,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
       `,
-        [taskId || verificationTaskId]
-      );
+          [taskId || verificationTaskId]
+        );
 
-      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
-      await CaseStatusSyncService.recalculateCaseStatus(caseId);
+        // b. Recalculate case status (pass tx client)
+        await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
-      // Update case with verification data (without changing status)
-      await query(
-        `UPDATE cases SET verification_data = $1, verification_type = 'OFFICE', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
-        [JSON.stringify(verificationData), verificationOutcome, caseId]
-      );
-      const caseUpd = await query(
-        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
-        [caseId]
-      );
-      const updatedCase = caseUpd.rows[0];
+        // c. Update case with verification data (without changing status)
+        await client.query(
+          `UPDATE cases SET verification_data = $1, verification_type = 'OFFICE', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          [JSON.stringify(verificationData), verificationOutcome, caseId]
+        );
 
-      // Commission is now handled at the verification task level.
-      // Legacy Case-level commission trigger removed to avoid duplication.
+        // d. Re-read case inside transaction
+        const caseUpd = await client.query(
+          `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
+          [caseId]
+        );
+        const updated = caseUpd.rows[0];
 
-      // Create comprehensive office verification report using all available fields
-      const dbInsertData: Record<string, unknown> = {
-        // Core case information
-        caseId,
-        verificationTaskId: taskId,
-        formType,
-        verificationOutcome,
-        customerName: updatedCase.customerName || 'Unknown',
-        customerPhone: updatedCase.backendContactNumber || null,
-        customerEmail: null, // Not available from case data
+        // Commission is now handled at the verification task level.
+        // Legacy Case-level commission trigger removed to avoid duplication.
 
-        // Verification metadata
-        verificationDate: new Date().toISOString().split('T')[0],
-        verificationTime: new Date().toTimeString().split(' ')[0],
-        verifiedBy: userId,
-        totalImages:
-          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
-          uploadedImages.length ||
-          0,
-        totalSelfies:
-          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
-          uploadedImages.filter(img => img.photoType === 'selfie').length ||
-          0,
-        remarks: formData.remarks || `${formType} office verification completed`,
+        // Create comprehensive office verification report using all available fields
+        const dbInsertData: Record<string, unknown> = {
+          // Core case information
+          caseId,
+          verificationTaskId: taskId,
+          formType,
+          verificationOutcome,
+          customerName: updated.customerName || 'Unknown',
+          customerPhone: updated.backendContactNumber || null,
+          customerEmail: null, // Not available from case data
 
-        // Merge all mapped form data
-        ...mappedFormData,
-      };
+          // Verification metadata
+          verificationDate: new Date().toISOString().split('T')[0],
+          verificationTime: new Date().toTimeString().split(' ')[0],
+          verifiedBy: userId,
+          totalImages:
+            (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+            uploadedImages.length ||
+            0,
+          totalSelfies:
+            (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+            uploadedImages.filter(img => img.photoType === 'selfie').length ||
+            0,
+          remarks: formData.remarks || `${formType} office verification completed`,
 
-      // Build dynamic INSERT query based on available data
-      const { columns, placeholders, values } = buildInsert(dbInsertData);
+          // Merge all mapped form data
+          ...mappedFormData,
+        };
 
-      const insertQuery = `
+        // Build dynamic INSERT query based on available data
+        const { columns, placeholders, values } = buildInsert(dbInsertData);
+
+        const insertQuery = `
         INSERT INTO office_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
-      // Log comprehensive database insert data for debugging
-      const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(
-        ([_, value]) => value !== null && value !== undefined && value !== ''
-      );
+        // Log comprehensive database insert data for debugging
+        const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
+        const populatedFields = Object.entries(dbInsertData).filter(
+          ([_, value]) => value !== null && value !== undefined && value !== ''
+        );
 
-      logger.info(`📝 Final database insert data for ${formType} office verification:`, {
-        totalFields: Object.keys(dbInsertData).length,
-        populatedFields: populatedFields.length,
-        fieldsWithNullValues: nullFields.length,
-        fieldCoveragePercentage: Math.round(
-          (populatedFields.length / Object.keys(dbInsertData).length) * 100
-        ),
-        nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
-      });
+        logger.info(`📝 Final database insert data for ${formType} office verification:`, {
+          totalFields: Object.keys(dbInsertData).length,
+          populatedFields: populatedFields.length,
+          fieldsWithNullValues: nullFields.length,
+          fieldCoveragePercentage: Math.round(
+            (populatedFields.length / Object.keys(dbInsertData).length) * 100
+          ),
+          nullFieldNames: nullFields.map(([key]) => key).slice(0, 10),
+          samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)),
+        });
 
-      logger.info(`📝 Inserting office verification with ${columns.length} fields:`, columns);
+        logger.info(`📝 Inserting office verification with ${columns.length} fields:`, columns);
 
-      await query(insertQuery, values);
+        // e. Insert the verification report
+        await client.query(insertQuery, values);
 
-      // Populate taskFormSubmissions for duplicate prevention
-      try {
-        await query(
+        // f. Populate taskFormSubmissions (no swallow — Finding #3).
+        await client.query(
           `INSERT INTO task_form_submissions (
             id, verification_task_id, case_id, form_submission_id, form_type,
             submitted_by, submitted_at, validation_status
@@ -3452,12 +3462,12 @@ export class MobileFormController {
           [uuidv4(), targetTaskId, caseId, uuidv4(), 'OFFICE_VERIFICATION', userId]
         );
         logger.info(`✅ Linked office form submission to task ${targetTaskId}`);
-      } catch (linkError) {
-        logger.error('Failed to link office form submission to task:', linkError);
-      }
 
-      // Remove auto-save data
-      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+        // g. Remove auto-save data
+        await client.query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+
+        return updated;
+      });
 
       await createAuditLog({
         action: 'OFFICE_VERIFICATION_SUBMITTED',
@@ -3757,114 +3767,118 @@ export class MobileFormController {
         },
       };
 
-      // Update verification task status to COMPLETED
-      await query(
-        `
+      // Finding #3: wrap writes + consistent re-read in a single transaction.
+      const updatedCase = await withTransaction(async client => {
+        // a. Update verification task status to COMPLETED
+        await client.query(
+          `
         UPDATE verification_tasks
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
       `,
-        [taskId || verificationTaskId]
-      );
+          [taskId || verificationTaskId]
+        );
 
-      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
-      await CaseStatusSyncService.recalculateCaseStatus(caseId);
+        // b. Recalculate case status (pass tx client)
+        await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
-      // Update case with verification data (without changing status)
-      await query(
-        `UPDATE cases SET verification_data = $1, verification_type = 'BUSINESS', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
-        [JSON.stringify(verificationData), verificationOutcome, caseId]
-      );
-      const caseUpd = await query(
-        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
-        [caseId]
-      );
-      const updatedCase = caseUpd.rows[0];
+        // c. Update case with verification data (without changing status)
+        await client.query(
+          `UPDATE cases SET verification_data = $1, verification_type = 'BUSINESS', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          [JSON.stringify(verificationData), verificationOutcome, caseId]
+        );
 
-      // Commission is now handled at the verification task level.
-      // Legacy Case-level commission trigger removed to avoid duplication.
+        // d. Re-read case inside transaction
+        const caseUpd = await client.query(
+          `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
+          [caseId]
+        );
+        const updated = caseUpd.rows[0];
 
-      // Create comprehensive business verification report using all available fields
-      const dbInsertData: Record<string, unknown> = {
-        // Core case information
-        caseId,
-        verificationTaskId: taskId,
-        formType,
-        verificationOutcome,
-        customerName: updatedCase.customerName || 'Unknown',
-        customerPhone: updatedCase.backendContactNumber || null,
-        customerEmail: null, // Not available from case data
+        // Commission is now handled at the verification task level.
+        // Legacy Case-level commission trigger removed to avoid duplication.
 
-        // Verification metadata
-        verificationDate: new Date().toISOString().split('T')[0],
-        verificationTime: new Date().toTimeString().split(' ')[0],
-        verifiedBy: userId,
-        totalImages:
-          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
-          uploadedImages.length ||
-          0,
-        totalSelfies:
-          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
-          uploadedImages.filter(img => img.photoType === 'selfie').length ||
-          0,
-        remarks: formData.remarks || `${formType} business verification completed`,
+        // Create comprehensive business verification report using all available fields
+        const dbInsertData: Record<string, unknown> = {
+          // Core case information
+          caseId,
+          verificationTaskId: taskId,
+          formType,
+          verificationOutcome,
+          customerName: updated.customerName || 'Unknown',
+          customerPhone: updated.backendContactNumber || null,
+          customerEmail: null, // Not available from case data
 
-        // Merge all mapped form data
-        ...mappedFormData,
-      };
+          // Verification metadata
+          verificationDate: new Date().toISOString().split('T')[0],
+          verificationTime: new Date().toTimeString().split(' ')[0],
+          verifiedBy: userId,
+          totalImages:
+            (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+            uploadedImages.length ||
+            0,
+          totalSelfies:
+            (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+            uploadedImages.filter(img => img.photoType === 'selfie').length ||
+            0,
+          remarks: formData.remarks || `${formType} business verification completed`,
 
-      // Ensure finalStatus is always provided (required field)
-      if (!dbInsertData['finalStatus']) {
-        // Map outcome to finalStatus if not provided
-        const outcomeToFinalStatusMap: Record<string, string> = {
-          VERIFIED: 'Positive',
-          NOT_VERIFIED: 'Negative',
-          FRAUD: 'Fraud',
-          REFER: 'Refer',
-          HOLD: 'Hold',
-          PARTIAL: 'Refer',
+          // Merge all mapped form data
+          ...mappedFormData,
         };
 
-        const outcome = formData.outcome || 'VERIFIED';
-        const resolvedFinalStatus = outcomeToFinalStatusMap[outcome] || 'Positive';
-        dbInsertData.finalStatus = resolvedFinalStatus;
-        logger.info(
-          `🔧 Auto-mapped outcome '${String(outcome)}' to finalStatus '${resolvedFinalStatus}'`
-        );
-      }
+        // Ensure finalStatus is always provided (required field)
+        if (!dbInsertData['finalStatus']) {
+          // Map outcome to finalStatus if not provided
+          const outcomeToFinalStatusMap: Record<string, string> = {
+            VERIFIED: 'Positive',
+            NOT_VERIFIED: 'Negative',
+            FRAUD: 'Fraud',
+            REFER: 'Refer',
+            HOLD: 'Hold',
+            PARTIAL: 'Refer',
+          };
 
-      const { columns, placeholders, values } = buildInsert(dbInsertData);
-      logger.info(`🔍 Columns for SQL insert:`, columns);
+          const outcome = formData.outcome || 'VERIFIED';
+          const resolvedFinalStatus = outcomeToFinalStatusMap[outcome] || 'Positive';
+          dbInsertData.finalStatus = resolvedFinalStatus;
+          logger.info(
+            `🔧 Auto-mapped outcome '${String(outcome)}' to finalStatus '${resolvedFinalStatus}'`
+          );
+        }
 
-      const insertQuery = `
+        const { columns, placeholders, values } = buildInsert(dbInsertData);
+        logger.info(`🔍 Columns for SQL insert:`, columns);
+
+        const insertQuery = `
         INSERT INTO business_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
-      // Log comprehensive database insert data for debugging
-      const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(
-        ([_, value]) => value !== null && value !== undefined && value !== ''
-      );
+        // Log comprehensive database insert data for debugging
+        const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
+        const populatedFields = Object.entries(dbInsertData).filter(
+          ([_, value]) => value !== null && value !== undefined && value !== ''
+        );
 
-      logger.info(`📝 Final database insert data for ${formType} business verification:`, {
-        totalFields: Object.keys(dbInsertData).length,
-        populatedFields: populatedFields.length,
-        fieldsWithNullValues: nullFields.length,
-        fieldCoveragePercentage: Math.round(
-          (populatedFields.length / Object.keys(dbInsertData).length) * 100
-        ),
-        nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
-      });
+        logger.info(`📝 Final database insert data for ${formType} business verification:`, {
+          totalFields: Object.keys(dbInsertData).length,
+          populatedFields: populatedFields.length,
+          fieldsWithNullValues: nullFields.length,
+          fieldCoveragePercentage: Math.round(
+            (populatedFields.length / Object.keys(dbInsertData).length) * 100
+          ),
+          nullFieldNames: nullFields.map(([key]) => key).slice(0, 10),
+          samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)),
+        });
 
-      logger.info(`📝 Inserting business verification with ${columns.length} fields:`, columns);
+        logger.info(`📝 Inserting business verification with ${columns.length} fields:`, columns);
 
-      await query(insertQuery, values);
+        // e. Insert the verification report
+        await client.query(insertQuery, values);
 
-      // Populate taskFormSubmissions for duplicate prevention
-      try {
-        await query(
+        // f. Populate taskFormSubmissions (no swallow — Finding #3).
+        await client.query(
           `INSERT INTO task_form_submissions (
             id, verification_task_id, case_id, form_submission_id, form_type,
             submitted_by, submitted_at, validation_status
@@ -3872,12 +3886,12 @@ export class MobileFormController {
           [uuidv4(), targetTaskId, caseId, uuidv4(), 'BUSINESS_VERIFICATION', userId]
         );
         logger.info(`✅ Linked business form submission to task ${targetTaskId}`);
-      } catch (linkError) {
-        logger.error('Failed to link business form submission to task:', linkError);
-      }
 
-      // Remove auto-save data
-      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+        // g. Remove auto-save data
+        await client.query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+
+        return updated;
+      });
 
       await createAuditLog({
         action: 'BUSINESS_VERIFICATION_SUBMITTED',
@@ -4141,94 +4155,98 @@ export class MobileFormController {
         },
       };
 
-      // Update verification task status to COMPLETED
-      await query(
-        `
+      // Finding #3: wrap writes + consistent re-read in a single transaction.
+      const updatedCase = await withTransaction(async client => {
+        // a. Update verification task status to COMPLETED
+        await client.query(
+          `
         UPDATE verification_tasks
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
       `,
-        [taskId || verificationTaskId]
-      );
+          [taskId || verificationTaskId]
+        );
 
-      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
-      await CaseStatusSyncService.recalculateCaseStatus(caseId);
+        // b. Recalculate case status (pass tx client)
+        await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
-      // Update case with verification data (without changing status)
-      await query(
-        `UPDATE cases SET verification_data = $1, verification_type = 'BUILDER', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
-        [JSON.stringify(verificationData), verificationOutcome, caseId]
-      );
-      const caseUpd = await query(
-        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
-        [caseId]
-      );
-      const updatedCase = caseUpd.rows[0];
+        // c. Update case with verification data (without changing status)
+        await client.query(
+          `UPDATE cases SET verification_data = $1, verification_type = 'BUILDER', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          [JSON.stringify(verificationData), verificationOutcome, caseId]
+        );
 
-      // Commission is now handled at the verification task level.
-      // Legacy Case-level commission trigger removed to avoid duplication.
+        // d. Re-read case inside transaction
+        const caseUpd = await client.query(
+          `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
+          [caseId]
+        );
+        const updated = caseUpd.rows[0];
 
-      // Create comprehensive builder verification report using all available fields
-      const dbInsertData: Record<string, unknown> = {
-        // Core case information
-        caseId,
-        verificationTaskId: taskId,
-        formType,
-        verificationOutcome,
-        customerName: updatedCase.customerName || 'Unknown',
-        customerPhone: updatedCase.backendContactNumber || null,
-        customerEmail: null, // Not available from case data
+        // Commission is now handled at the verification task level.
+        // Legacy Case-level commission trigger removed to avoid duplication.
 
-        // Verification metadata
-        verificationDate: new Date().toISOString().split('T')[0],
-        verificationTime: new Date().toTimeString().split(' ')[0],
-        verifiedBy: userId,
-        totalImages:
-          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
-          uploadedImages.length ||
-          0,
-        totalSelfies:
-          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
-          uploadedImages.filter(img => img.photoType === 'selfie').length ||
-          0,
-        remarks: formData.remarks || `${formType} builder verification completed`,
+        // Create comprehensive builder verification report using all available fields
+        const dbInsertData: Record<string, unknown> = {
+          // Core case information
+          caseId,
+          verificationTaskId: taskId,
+          formType,
+          verificationOutcome,
+          customerName: updated.customerName || 'Unknown',
+          customerPhone: updated.backendContactNumber || null,
+          customerEmail: null, // Not available from case data
 
-        // Merge all mapped form data
-        ...mappedFormData,
-      };
+          // Verification metadata
+          verificationDate: new Date().toISOString().split('T')[0],
+          verificationTime: new Date().toTimeString().split(' ')[0],
+          verifiedBy: userId,
+          totalImages:
+            (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+            uploadedImages.length ||
+            0,
+          totalSelfies:
+            (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+            uploadedImages.filter(img => img.photoType === 'selfie').length ||
+            0,
+          remarks: formData.remarks || `${formType} builder verification completed`,
 
-      const { columns, placeholders, values } = buildInsert(dbInsertData);
-      logger.info('🔍 Columns for SQL insert:', columns);
+          // Merge all mapped form data
+          ...mappedFormData,
+        };
 
-      const insertQuery = `
+        const { columns, placeholders, values } = buildInsert(dbInsertData);
+        logger.info('🔍 Columns for SQL insert:', columns);
+
+        const insertQuery = `
         INSERT INTO builder_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
-      // Log comprehensive database insert data for debugging
-      const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(
-        ([_, value]) => value !== null && value !== undefined && value !== ''
-      );
+        // Log comprehensive database insert data for debugging
+        const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
+        const populatedFields = Object.entries(dbInsertData).filter(
+          ([_, value]) => value !== null && value !== undefined && value !== ''
+        );
 
-      logger.info(`📝 Final database insert data for ${formType} builder verification:`, {
-        totalFields: Object.keys(dbInsertData).length,
-        populatedFields: populatedFields.length,
-        fieldsWithNullValues: nullFields.length,
-        fieldCoveragePercentage: Math.round(
-          (populatedFields.length / Object.keys(dbInsertData).length) * 100
-        ),
-        nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
-      });
+        logger.info(`📝 Final database insert data for ${formType} builder verification:`, {
+          totalFields: Object.keys(dbInsertData).length,
+          populatedFields: populatedFields.length,
+          fieldsWithNullValues: nullFields.length,
+          fieldCoveragePercentage: Math.round(
+            (populatedFields.length / Object.keys(dbInsertData).length) * 100
+          ),
+          nullFieldNames: nullFields.map(([key]) => key).slice(0, 10),
+          samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)),
+        });
 
-      logger.info(`📝 Inserting builder verification with ${columns.length} fields:`, columns);
+        logger.info(`📝 Inserting builder verification with ${columns.length} fields:`, columns);
 
-      await query(insertQuery, values);
+        // e. Insert the verification report
+        await client.query(insertQuery, values);
 
-      // Populate taskFormSubmissions for duplicate prevention
-      try {
-        await query(
+        // f. Populate taskFormSubmissions (no swallow — Finding #3).
+        await client.query(
           `INSERT INTO task_form_submissions (
             id, verification_task_id, case_id, form_submission_id, form_type,
             submitted_by, submitted_at, validation_status
@@ -4236,12 +4254,12 @@ export class MobileFormController {
           [uuidv4(), taskId || verificationTaskId, caseId, uuidv4(), 'BUILDER_VERIFICATION', userId]
         );
         logger.info(`✅ Linked builder form submission to task ${verificationTaskId}`);
-      } catch (linkError) {
-        logger.error('Failed to link builder form submission to task:', linkError);
-      }
 
-      // Remove auto-save data
-      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+        // g. Remove auto-save data
+        await client.query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+
+        return updated;
+      });
 
       await createAuditLog({
         action: 'BUILDER_VERIFICATION_SUBMITTED',
@@ -4376,19 +4394,7 @@ export class MobileFormController {
         submissionData.attachmentIds || []
       );
 
-      // Update verification task status to COMPLETED
-      await query(
-        `UPDATE verification_tasks
-         SET status = 'COMPLETED',
-             completed_at = CURRENT_TIMESTAMP,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = $1`,
-        [taskId]
-      );
-
-      await CaseStatusSyncService.recalculateCaseStatus(caseId);
-
-      // Prepare verification data for cases table
+      // Prepare verification data for cases table (pure JS — safe above the tx)
       const verificationData = {
         formType: 'RESIDENCE_CUM_OFFICE',
         submissionId,
@@ -4411,62 +4417,79 @@ export class MobileFormController {
         },
       };
 
-      // Update case with verification data
-      await query(
-        `UPDATE cases SET verification_data = $1, verification_type = 'RESIDENCE_CUM_OFFICE', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
-        [JSON.stringify(verificationData), verificationOutcome, caseId]
-      );
-      const caseUpd = await query(
-        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
-        [caseId]
-      );
-      const updatedCase = caseUpd.rows[0];
+      // Finding #3: wrap writes + consistent re-read in a single transaction.
+      const updatedCase = await withTransaction(async client => {
+        // a. Update verification task status to COMPLETED
+        await client.query(
+          `UPDATE verification_tasks
+         SET status = 'COMPLETED',
+             completed_at = CURRENT_TIMESTAMP,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+          [taskId]
+        );
 
-      // Build the report data using mapped fields
-      const mappedFormData = preparedData;
-      const dbInsertData: Record<string, unknown> = {
-        caseId,
-        verificationTaskId: taskId,
-        formType,
-        verificationOutcome,
-        customerName: updatedCase.customerName || 'Unknown',
-        customerPhone: updatedCase.backendContactNumber || null,
-        customerEmail: null,
-        verificationDate: new Date().toISOString().split('T')[0],
-        verificationTime: new Date().toTimeString().split(' ')[0],
-        verifiedBy: userId,
-        totalImages:
-          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
-          uploadedImages.length ||
-          0,
-        totalSelfies:
-          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
-          uploadedImages.filter(img => img.photoType === 'selfie').length ||
-          0,
-        remarks:
-          submissionData.formData.remarks ||
-          `${formType} residence-cum-office verification completed`,
-        ...mappedFormData,
-      };
+        // b. Recalculate case status (pass tx client)
+        await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
-      // Build dynamic INSERT query
-      const { columns, placeholders, values } = buildInsert(dbInsertData);
+        // c. Update case with verification data
+        await client.query(
+          `UPDATE cases SET verification_data = $1, verification_type = 'RESIDENCE_CUM_OFFICE', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          [JSON.stringify(verificationData), verificationOutcome, caseId]
+        );
 
-      const insertQuery = `
+        // d. Re-read case inside transaction
+        const caseUpd = await client.query(
+          `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
+          [caseId]
+        );
+        const updated = caseUpd.rows[0];
+
+        // Build the report data using mapped fields
+        const mappedFormData = preparedData;
+        const dbInsertData: Record<string, unknown> = {
+          caseId,
+          verificationTaskId: taskId,
+          formType,
+          verificationOutcome,
+          customerName: updated.customerName || 'Unknown',
+          customerPhone: updated.backendContactNumber || null,
+          customerEmail: null,
+          verificationDate: new Date().toISOString().split('T')[0],
+          verificationTime: new Date().toTimeString().split(' ')[0],
+          verifiedBy: userId,
+          totalImages:
+            (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+            uploadedImages.length ||
+            0,
+          totalSelfies:
+            (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+            uploadedImages.filter(img => img.photoType === 'selfie').length ||
+            0,
+          remarks:
+            submissionData.formData.remarks ||
+            `${formType} residence-cum-office verification completed`,
+          ...mappedFormData,
+        };
+
+        // Build dynamic INSERT query
+        const { columns, placeholders, values } = buildInsert(dbInsertData);
+
+        const insertQuery = `
         INSERT INTO residence_cum_office_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
-      logger.info(
-        `📝 Inserting residence-cum-office verification with ${columns.length} fields:`,
-        columns
-      );
+        logger.info(
+          `📝 Inserting residence-cum-office verification with ${columns.length} fields:`,
+          columns
+        );
 
-      await query(insertQuery, values);
+        // e. Insert the verification report
+        await client.query(insertQuery, values);
 
-      // Populate taskFormSubmissions for duplicate prevention
-      try {
-        await query(
+        // f. Populate taskFormSubmissions (no swallow — Finding #3).
+        await client.query(
           `INSERT INTO task_form_submissions (
             id, verification_task_id, case_id, form_submission_id, form_type,
             submitted_by, submitted_at, validation_status
@@ -4474,12 +4497,12 @@ export class MobileFormController {
           [uuidv4(), taskId, caseId, uuidv4(), 'RESIDENCE_CUM_OFFICE_VERIFICATION', userId]
         );
         logger.info(`✅ Linked residence-cum-office form submission to task ${taskId}`);
-      } catch (linkError) {
-        logger.error('Failed to link residence-cum-office form submission to task:', linkError);
-      }
 
-      // Remove auto-save data
-      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+        // g. Remove auto-save data
+        await client.query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+
+        return updated;
+      });
 
       await createAuditLog({
         action: 'RESIDENCE_CUM_OFFICE_VERIFICATION_SUBMITTED',
@@ -4753,97 +4776,101 @@ export class MobileFormController {
         },
       };
 
-      // Update verification task status to COMPLETED
-      await query(
-        `
+      // Finding #3: wrap writes + consistent re-read in a single transaction.
+      const updatedCase = await withTransaction(async client => {
+        // a. Update verification task status to COMPLETED
+        await client.query(
+          `
         UPDATE verification_tasks
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
       `,
-        [taskId || verificationTaskId]
-      );
+          [taskId || verificationTaskId]
+        );
 
-      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
-      await CaseStatusSyncService.recalculateCaseStatus(caseId);
+        // b. Recalculate case status (pass tx client)
+        await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
-      // Update case with verification data (without changing status)
-      await query(
-        `UPDATE cases SET verification_data = $1, verification_type = 'DSA_CONNECTOR', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
-        [JSON.stringify(verificationData), verificationOutcome, caseId]
-      );
-      const caseUpd = await query(
-        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
-        [caseId]
-      );
-      const updatedCase = caseUpd.rows[0];
+        // c. Update case with verification data (without changing status)
+        await client.query(
+          `UPDATE cases SET verification_data = $1, verification_type = 'DSA_CONNECTOR', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          [JSON.stringify(verificationData), verificationOutcome, caseId]
+        );
 
-      // Commission is now handled at the verification task level.
-      // Legacy Case-level commission trigger removed to avoid duplication.
+        // d. Re-read case inside transaction
+        const caseUpd = await client.query(
+          `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
+          [caseId]
+        );
+        const updated = caseUpd.rows[0];
 
-      // Create comprehensive DSA/DST Connector verification report using all available fields
-      const dbInsertData: Record<string, unknown> = {
-        // Core case information
-        caseId,
-        verificationTaskId: taskId,
-        formType,
-        verificationOutcome,
-        customerName: updatedCase.customerName || 'Unknown',
-        customerPhone: updatedCase.backendContactNumber || null,
-        customerEmail: null, // Not available from case data
+        // Commission is now handled at the verification task level.
+        // Legacy Case-level commission trigger removed to avoid duplication.
 
-        // Verification metadata
-        verificationDate: new Date().toISOString().split('T')[0],
-        verificationTime: new Date().toTimeString().split(' ')[0],
-        verifiedBy: userId,
-        totalImages:
-          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
-          uploadedImages.length ||
-          0,
-        totalSelfies:
-          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
-          uploadedImages.filter(img => img.photoType === 'selfie').length ||
-          0,
-        remarks: formData.remarks || `${formType} DSA/DST Connector verification completed`,
+        // Create comprehensive DSA/DST Connector verification report using all available fields
+        const dbInsertData: Record<string, unknown> = {
+          // Core case information
+          caseId,
+          verificationTaskId: taskId,
+          formType,
+          verificationOutcome,
+          customerName: updated.customerName || 'Unknown',
+          customerPhone: updated.backendContactNumber || null,
+          customerEmail: null, // Not available from case data
 
-        // Merge all mapped form data
-        ...mappedFormData,
-      };
+          // Verification metadata
+          verificationDate: new Date().toISOString().split('T')[0],
+          verificationTime: new Date().toTimeString().split(' ')[0],
+          verifiedBy: userId,
+          totalImages:
+            (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+            uploadedImages.length ||
+            0,
+          totalSelfies:
+            (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+            uploadedImages.filter(img => img.photoType === 'selfie').length ||
+            0,
+          remarks: formData.remarks || `${formType} DSA/DST Connector verification completed`,
 
-      const { columns, placeholders, values } = buildInsert(dbInsertData);
-      logger.info('🔍 Columns for SQL insert:', columns);
+          // Merge all mapped form data
+          ...mappedFormData,
+        };
 
-      const insertQuery = `
+        const { columns, placeholders, values } = buildInsert(dbInsertData);
+        logger.info('🔍 Columns for SQL insert:', columns);
+
+        const insertQuery = `
         INSERT INTO dsa_connector_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
-      // Log comprehensive database insert data for debugging
-      const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(
-        ([_, value]) => value !== null && value !== undefined && value !== ''
-      );
+        // Log comprehensive database insert data for debugging
+        const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
+        const populatedFields = Object.entries(dbInsertData).filter(
+          ([_, value]) => value !== null && value !== undefined && value !== ''
+        );
 
-      logger.info(`📝 Final database insert data for ${formType} DSA Connector verification:`, {
-        totalFields: Object.keys(dbInsertData).length,
-        populatedFields: populatedFields.length,
-        fieldsWithNullValues: nullFields.length,
-        fieldCoveragePercentage: Math.round(
-          (populatedFields.length / Object.keys(dbInsertData).length) * 100
-        ),
-        nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
-      });
+        logger.info(`📝 Final database insert data for ${formType} DSA Connector verification:`, {
+          totalFields: Object.keys(dbInsertData).length,
+          populatedFields: populatedFields.length,
+          fieldsWithNullValues: nullFields.length,
+          fieldCoveragePercentage: Math.round(
+            (populatedFields.length / Object.keys(dbInsertData).length) * 100
+          ),
+          nullFieldNames: nullFields.map(([key]) => key).slice(0, 10),
+          samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)),
+        });
 
-      logger.info(
-        `📝 Inserting DSA/DST Connector verification with ${columns.length} fields:`,
-        columns
-      );
+        logger.info(
+          `📝 Inserting DSA/DST Connector verification with ${columns.length} fields:`,
+          columns
+        );
 
-      await query(insertQuery, values);
+        // e. Insert the verification report
+        await client.query(insertQuery, values);
 
-      // Populate taskFormSubmissions for duplicate prevention
-      try {
-        await query(
+        // f. Populate taskFormSubmissions (no swallow — Finding #3).
+        await client.query(
           `INSERT INTO task_form_submissions (
             id, verification_task_id, case_id, form_submission_id, form_type,
             submitted_by, submitted_at, validation_status
@@ -4858,12 +4885,12 @@ export class MobileFormController {
           ]
         );
         logger.info(`✅ Linked DSA Connector form submission to task ${verificationTaskId}`);
-      } catch (linkError) {
-        logger.error('Failed to link DSA Connector form submission to task:', linkError);
-      }
 
-      // Remove auto-save data
-      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+        // g. Remove auto-save data
+        await client.query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+
+        return updated;
+      });
 
       await createAuditLog({
         action: 'DSA_CONNECTOR_VERIFICATION_SUBMITTED',
@@ -4998,19 +5025,7 @@ export class MobileFormController {
         submissionData.attachmentIds || []
       );
 
-      // Update verification task status to COMPLETED
-      await query(
-        `UPDATE verification_tasks
-         SET status = 'COMPLETED',
-             completed_at = CURRENT_TIMESTAMP,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = $1`,
-        [taskId]
-      );
-
-      await CaseStatusSyncService.recalculateCaseStatus(caseId);
-
-      // Prepare verification data for cases table
+      // Prepare verification data for cases table (pure JS — safe above the tx)
       const verificationData = {
         formType: 'PROPERTY_INDIVIDUAL',
         submissionId,
@@ -5033,62 +5048,79 @@ export class MobileFormController {
         },
       };
 
-      // Update case with verification data
-      await query(
-        `UPDATE cases SET verification_data = $1, verification_type = 'PROPERTY_INDIVIDUAL', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
-        [JSON.stringify(verificationData), verificationOutcome, caseId]
-      );
-      const caseUpd = await query(
-        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
-        [caseId]
-      );
-      const updatedCase = caseUpd.rows[0];
+      // Finding #3: wrap writes + consistent re-read in a single transaction.
+      const updatedCase = await withTransaction(async client => {
+        // a. Update verification task status to COMPLETED
+        await client.query(
+          `UPDATE verification_tasks
+         SET status = 'COMPLETED',
+             completed_at = CURRENT_TIMESTAMP,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+          [taskId]
+        );
 
-      // Build the report data using mapped fields
-      const mappedFormData = preparedData;
-      const dbInsertData: Record<string, unknown> = {
-        caseId,
-        verificationTaskId: taskId,
-        formType,
-        verificationOutcome,
-        customerName: updatedCase.customerName || 'Unknown',
-        customerPhone: updatedCase.backendContactNumber || null,
-        customerEmail: null,
-        verificationDate: new Date().toISOString().split('T')[0],
-        verificationTime: new Date().toTimeString().split(' ')[0],
-        verifiedBy: userId,
-        totalImages:
-          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
-          uploadedImages.length ||
-          0,
-        totalSelfies:
-          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
-          uploadedImages.filter(img => img.photoType === 'selfie').length ||
-          0,
-        remarks:
-          submissionData.formData.remarks ||
-          `${formType} property individual verification completed`,
-        ...mappedFormData,
-      };
+        // b. Recalculate case status (pass tx client)
+        await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
-      // Build dynamic INSERT query
-      const { columns, placeholders, values } = buildInsert(dbInsertData);
+        // c. Update case with verification data
+        await client.query(
+          `UPDATE cases SET verification_data = $1, verification_type = 'PROPERTY_INDIVIDUAL', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          [JSON.stringify(verificationData), verificationOutcome, caseId]
+        );
 
-      const insertQuery = `
+        // d. Re-read case inside transaction
+        const caseUpd = await client.query(
+          `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
+          [caseId]
+        );
+        const updated = caseUpd.rows[0];
+
+        // Build the report data using mapped fields
+        const mappedFormData = preparedData;
+        const dbInsertData: Record<string, unknown> = {
+          caseId,
+          verificationTaskId: taskId,
+          formType,
+          verificationOutcome,
+          customerName: updated.customerName || 'Unknown',
+          customerPhone: updated.backendContactNumber || null,
+          customerEmail: null,
+          verificationDate: new Date().toISOString().split('T')[0],
+          verificationTime: new Date().toTimeString().split(' ')[0],
+          verifiedBy: userId,
+          totalImages:
+            (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+            uploadedImages.length ||
+            0,
+          totalSelfies:
+            (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+            uploadedImages.filter(img => img.photoType === 'selfie').length ||
+            0,
+          remarks:
+            submissionData.formData.remarks ||
+            `${formType} property individual verification completed`,
+          ...mappedFormData,
+        };
+
+        // Build dynamic INSERT query
+        const { columns, placeholders, values } = buildInsert(dbInsertData);
+
+        const insertQuery = `
         INSERT INTO property_individual_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
-      logger.info(
-        `📝 Inserting property individual verification with ${columns.length} fields:`,
-        columns
-      );
+        logger.info(
+          `📝 Inserting property individual verification with ${columns.length} fields:`,
+          columns
+        );
 
-      await query(insertQuery, values);
+        // e. Insert the verification report
+        await client.query(insertQuery, values);
 
-      // Populate taskFormSubmissions for duplicate prevention
-      try {
-        await query(
+        // f. Populate taskFormSubmissions (no swallow — Finding #3).
+        await client.query(
           `INSERT INTO task_form_submissions (
             id, verification_task_id, case_id, form_submission_id, form_type,
             submitted_by, submitted_at, validation_status
@@ -5096,12 +5128,12 @@ export class MobileFormController {
           [uuidv4(), taskId, caseId, uuidv4(), 'PROPERTY_INDIVIDUAL_VERIFICATION', userId]
         );
         logger.info(`✅ Linked Property Individual form submission to task ${taskId}`);
-      } catch (linkError) {
-        logger.error('Failed to link Property Individual form submission to task:', linkError);
-      }
 
-      // Remove auto-save data
-      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+        // g. Remove auto-save data
+        await client.query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+
+        return updated;
+      });
 
       await createAuditLog({
         action: 'PROPERTY_INDIVIDUAL_VERIFICATION_SUBMITTED',
@@ -5371,91 +5403,98 @@ export class MobileFormController {
         },
       };
 
-      // Update verification task status to COMPLETED
-      await query(
-        `
+      // Finding #3: wrap writes + consistent re-read in a single transaction.
+      const updatedCase = await withTransaction(async client => {
+        // a. Update verification task status to COMPLETED
+        await client.query(
+          `
         UPDATE verification_tasks
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
       `,
-        [taskId || verificationTaskId]
-      );
+          [taskId || verificationTaskId]
+        );
 
-      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
-      await CaseStatusSyncService.recalculateCaseStatus(caseId);
+        // b. Recalculate case status (pass tx client)
+        await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
-      // Update case with verification data (without changing status)
-      await query(
-        `UPDATE cases SET verification_data = $1, verification_type = 'PROPERTY_APF', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
-        [JSON.stringify(verificationData), verificationOutcome, caseId]
-      );
-      const caseUpd = await query(
-        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
-        [caseId]
-      );
-      const updatedCase = caseUpd.rows[0];
+        // c. Update case with verification data (without changing status)
+        await client.query(
+          `UPDATE cases SET verification_data = $1, verification_type = 'PROPERTY_APF', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          [JSON.stringify(verificationData), verificationOutcome, caseId]
+        );
 
-      // Create comprehensive Property APF verification report using all available fields
-      const dbInsertData: Record<string, unknown> = {
-        // Core case information
-        caseId,
-        verificationTaskId: taskId,
-        formType,
-        verificationOutcome,
-        customerName: updatedCase.customerName || 'Unknown',
-        customerPhone: updatedCase.backendContactNumber || null,
-        customerEmail: null, // Not available from case data
+        // d. Re-read case inside transaction
+        const caseUpd = await client.query(
+          `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
+          [caseId]
+        );
+        const updated = caseUpd.rows[0];
 
-        // Verification metadata
-        verificationDate: new Date().toISOString().split('T')[0],
-        verificationTime: new Date().toTimeString().split(' ')[0],
-        verifiedBy: userId,
-        totalImages:
-          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
-          uploadedImages.length ||
-          0,
-        totalSelfies:
-          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
-          uploadedImages.filter(img => img.photoType === 'selfie').length ||
-          0,
-        remarks: formData.remarks || `${formType} Property APF verification completed`,
+        // Create comprehensive Property APF verification report using all available fields
+        const dbInsertData: Record<string, unknown> = {
+          // Core case information
+          caseId,
+          verificationTaskId: taskId,
+          formType,
+          verificationOutcome,
+          customerName: updated.customerName || 'Unknown',
+          customerPhone: updated.backendContactNumber || null,
+          customerEmail: null, // Not available from case data
 
-        // Merge all mapped form data
-        ...mappedFormData,
-      };
+          // Verification metadata
+          verificationDate: new Date().toISOString().split('T')[0],
+          verificationTime: new Date().toTimeString().split(' ')[0],
+          verifiedBy: userId,
+          totalImages:
+            (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+            uploadedImages.length ||
+            0,
+          totalSelfies:
+            (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+            uploadedImages.filter(img => img.photoType === 'selfie').length ||
+            0,
+          remarks: formData.remarks || `${formType} Property APF verification completed`,
 
-      const { columns, placeholders, values } = buildInsert(dbInsertData);
-      logger.info('🔍 Columns for SQL insert:', columns);
+          // Merge all mapped form data
+          ...mappedFormData,
+        };
 
-      const insertQuery = `
+        const { columns, placeholders, values } = buildInsert(dbInsertData);
+        logger.info('🔍 Columns for SQL insert:', columns);
+
+        const insertQuery = `
         INSERT INTO property_apf_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
-      // Log comprehensive database insert data for debugging
-      const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(
-        ([_, value]) => value !== null && value !== undefined && value !== ''
-      );
+        // Log comprehensive database insert data for debugging
+        const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
+        const populatedFields = Object.entries(dbInsertData).filter(
+          ([_, value]) => value !== null && value !== undefined && value !== ''
+        );
 
-      logger.info(`📝 Final database insert data for ${formType} Property APF verification:`, {
-        totalFields: Object.keys(dbInsertData).length,
-        populatedFields: populatedFields.length,
-        fieldsWithNullValues: nullFields.length,
-        fieldCoveragePercentage: Math.round(
-          (populatedFields.length / Object.keys(dbInsertData).length) * 100
-        ),
-        nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
-      });
+        logger.info(`📝 Final database insert data for ${formType} Property APF verification:`, {
+          totalFields: Object.keys(dbInsertData).length,
+          populatedFields: populatedFields.length,
+          fieldsWithNullValues: nullFields.length,
+          fieldCoveragePercentage: Math.round(
+            (populatedFields.length / Object.keys(dbInsertData).length) * 100
+          ),
+          nullFieldNames: nullFields.map(([key]) => key).slice(0, 10),
+          samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)),
+        });
 
-      logger.info(`📝 Inserting Property APF verification with ${columns.length} fields:`, columns);
+        logger.info(
+          `📝 Inserting Property APF verification with ${columns.length} fields:`,
+          columns
+        );
 
-      await query(insertQuery, values);
+        // e. Insert the verification report
+        await client.query(insertQuery, values);
 
-      // Populate taskFormSubmissions for duplicate prevention
-      try {
-        await query(
+        // f. Populate taskFormSubmissions (no swallow — Finding #3).
+        await client.query(
           `INSERT INTO task_form_submissions (
             id, verification_task_id, case_id, form_submission_id, form_type,
             submitted_by, submitted_at, validation_status
@@ -5470,12 +5509,12 @@ export class MobileFormController {
           ]
         );
         logger.info(`✅ Linked Property APF form submission to task ${verificationTaskId}`);
-      } catch (linkError) {
-        logger.error('Failed to link Property APF form submission to task:', linkError);
-      }
 
-      // Remove auto-save data
-      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+        // g. Remove auto-save data
+        await client.query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+
+        return updated;
+      });
 
       await createAuditLog({
         action: 'PROPERTY_APF_VERIFICATION_SUBMITTED',
@@ -5747,91 +5786,95 @@ export class MobileFormController {
         },
       };
 
-      // Update verification task status to COMPLETED
-      await query(
-        `
+      // Finding #3: wrap writes + consistent re-read in a single transaction.
+      const updatedCase = await withTransaction(async client => {
+        // a. Update verification task status to COMPLETED
+        await client.query(
+          `
         UPDATE verification_tasks
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
       `,
-        [taskId || verificationTaskId]
-      );
+          [taskId || verificationTaskId]
+        );
 
-      // Update case status based on ALL tasks (only mark as COMPLETED if all tasks are done)
-      await CaseStatusSyncService.recalculateCaseStatus(caseId);
+        // b. Recalculate case status (pass tx client)
+        await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
-      // Update case with verification data (without changing status)
-      await query(
-        `UPDATE cases SET verification_data = $1, verification_type = 'NOC', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
-        [JSON.stringify(verificationData), verificationOutcome, caseId]
-      );
-      const caseUpd = await query(
-        `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
-        [caseId]
-      );
-      const updatedCase = caseUpd.rows[0];
+        // c. Update case with verification data (without changing status)
+        await client.query(
+          `UPDATE cases SET verification_data = $1, verification_type = 'NOC', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          [JSON.stringify(verificationData), verificationOutcome, caseId]
+        );
 
-      // Create comprehensive NOC verification report using all available fields
-      const dbInsertData: Record<string, unknown> = {
-        // Core case information
-        caseId,
-        verificationTaskId: taskId,
-        formType,
-        verificationOutcome,
-        customerName: updatedCase.customerName || 'Unknown',
-        customerPhone: updatedCase.backendContactNumber || null,
-        customerEmail: null, // Not available from case data
+        // d. Re-read case inside transaction
+        const caseUpd = await client.query(
+          `SELECT id, case_id, status, completed_at, customer_name, backend_contact_number FROM cases WHERE id = $1`,
+          [caseId]
+        );
+        const updated = caseUpd.rows[0];
 
-        // Verification metadata
-        verificationDate: new Date().toISOString().split('T')[0],
-        verificationTime: new Date().toTimeString().split(' ')[0],
-        verifiedBy: userId,
-        totalImages:
-          (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
-          uploadedImages.length ||
-          0,
-        totalSelfies:
-          (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
-          uploadedImages.filter(img => img.photoType === 'selfie').length ||
-          0,
-        remarks: formData.remarks || `${formType} NOC verification completed`,
+        // Create comprehensive NOC verification report using all available fields
+        const dbInsertData: Record<string, unknown> = {
+          // Core case information
+          caseId,
+          verificationTaskId: taskId,
+          formType,
+          verificationOutcome,
+          customerName: updated.customerName || 'Unknown',
+          customerPhone: updated.backendContactNumber || null,
+          customerEmail: null, // Not available from case data
 
-        // Merge all mapped form data
-        ...mappedFormData,
-      };
+          // Verification metadata
+          verificationDate: new Date().toISOString().split('T')[0],
+          verificationTime: new Date().toTimeString().split(' ')[0],
+          verifiedBy: userId,
+          totalImages:
+            (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
+            uploadedImages.length ||
+            0,
+          totalSelfies:
+            (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
+            uploadedImages.filter(img => img.photoType === 'selfie').length ||
+            0,
+          remarks: formData.remarks || `${formType} NOC verification completed`,
 
-      const { columns, placeholders, values } = buildInsert(dbInsertData);
-      logger.info('🔍 Columns for SQL insert:', columns);
+          // Merge all mapped form data
+          ...mappedFormData,
+        };
 
-      const insertQuery = `
+        const { columns, placeholders, values } = buildInsert(dbInsertData);
+        logger.info('🔍 Columns for SQL insert:', columns);
+
+        const insertQuery = `
         INSERT INTO noc_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
-      // Log comprehensive database insert data for debugging
-      const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
-      const populatedFields = Object.entries(dbInsertData).filter(
-        ([_, value]) => value !== null && value !== undefined && value !== ''
-      );
+        // Log comprehensive database insert data for debugging
+        const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
+        const populatedFields = Object.entries(dbInsertData).filter(
+          ([_, value]) => value !== null && value !== undefined && value !== ''
+        );
 
-      logger.info(`📝 Final database insert data for ${formType} NOC verification:`, {
-        totalFields: Object.keys(dbInsertData).length,
-        populatedFields: populatedFields.length,
-        fieldsWithNullValues: nullFields.length,
-        fieldCoveragePercentage: Math.round(
-          (populatedFields.length / Object.keys(dbInsertData).length) * 100
-        ),
-        nullFieldNames: nullFields.map(([key]) => key).slice(0, 10), // Show first 10 null fields
-        samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)), // Show first 10 populated fields
-      });
+        logger.info(`📝 Final database insert data for ${formType} NOC verification:`, {
+          totalFields: Object.keys(dbInsertData).length,
+          populatedFields: populatedFields.length,
+          fieldsWithNullValues: nullFields.length,
+          fieldCoveragePercentage: Math.round(
+            (populatedFields.length / Object.keys(dbInsertData).length) * 100
+          ),
+          nullFieldNames: nullFields.map(([key]) => key).slice(0, 10),
+          samplePopulatedData: Object.fromEntries(populatedFields.slice(0, 10)),
+        });
 
-      logger.info(`📝 Inserting NOC verification with ${columns.length} fields:`, columns);
+        logger.info(`📝 Inserting NOC verification with ${columns.length} fields:`, columns);
 
-      await query(insertQuery, values);
+        // e. Insert the verification report
+        await client.query(insertQuery, values);
 
-      // Populate taskFormSubmissions for duplicate prevention
-      try {
-        await query(
+        // f. Populate taskFormSubmissions (no swallow — Finding #3).
+        await client.query(
           `INSERT INTO task_form_submissions (
             id, verification_task_id, case_id, form_submission_id, form_type,
             submitted_by, submitted_at, validation_status
@@ -5839,12 +5882,12 @@ export class MobileFormController {
           [uuidv4(), taskId || verificationTaskId, caseId, uuidv4(), 'NOC_VERIFICATION', userId]
         );
         logger.info(`✅ Linked NOC form submission to task ${verificationTaskId}`);
-      } catch (linkError) {
-        logger.error('Failed to link NOC form submission to task:', linkError);
-      }
 
-      // Remove auto-save data
-      await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+        // g. Remove auto-save data
+        await client.query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
+
+        return updated;
+      });
 
       await createAuditLog({
         action: 'NOC_VERIFICATION_SUBMITTED',
