@@ -13,6 +13,37 @@ import {
   isScopedOperationsUser,
 } from '@/security/rbacAccess';
 
+// Phase C1: process-local TTL cache for the user auth context.
+//
+// loadUserAuthContext() runs a large multi-join (user_roles →
+// role_permissions → permissions + user_client_assignments +
+// user_product_assignments + roles_v2) on every authenticated request.
+// Capability profiles change rarely (only when an admin edits roles or
+// assignments), so a short TTL is both safe and dramatically cheaper
+// than rehydrating the full graph per request.
+//
+// Implementation notes:
+//  - Cache is process-local. In a PM2 cluster each worker maintains
+//    its own map; an admin mutation propagates in at most the TTL per
+//    worker. A Redis-backed variant can be layered on later without
+//    changing the cache shape.
+//  - `invalidateAuthContextCache(userId?)` clears a single entry or
+//    the whole cache. Admin handlers that mutate user_roles /
+//    role_permissions / user_*_assignments can call this to flush
+//    immediately instead of waiting for the TTL.
+//  - The cached object is frozen so accidental mutation in a
+//    middleware chain never leaks into the next request.
+const AUTH_CONTEXT_CACHE_TTL_MS = 30_000;
+const authContextCache = new Map<string, { context: DbUserAuthContext; expiresAt: number }>();
+
+export function invalidateAuthContextCache(userId?: string): void {
+  if (userId) {
+    authContextCache.delete(userId);
+  } else {
+    authContextCache.clear();
+  }
+}
+
 export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
@@ -43,6 +74,13 @@ type DbUserAuthContext = {
 };
 
 export const loadUserAuthContext = async (userId: string): Promise<DbUserAuthContext | null> => {
+  // Fast path: return cached profile if still fresh.
+  const now = Date.now();
+  const cached = authContextCache.get(userId);
+  if (cached && cached.expiresAt > now) {
+    return cached.context;
+  }
+
   const userResult = await query<{
     id: string;
     permissionCodes: string[] | null;
@@ -92,15 +130,17 @@ export const loadUserAuthContext = async (userId: string): Promise<DbUserAuthCon
     return null;
   }
 
-  return {
+  const context: DbUserAuthContext = Object.freeze({
     id: row.id,
-    permissionCodes: row.permissionCodes || [],
-    assignedClientIds: row.assignedClientIds || [],
-    assignedProductIds: row.assignedProductIds || [],
-    roles: row.roles || [],
+    permissionCodes: Object.freeze(row.permissionCodes || []) as string[],
+    assignedClientIds: Object.freeze(row.assignedClientIds || []) as number[],
+    assignedProductIds: Object.freeze(row.assignedProductIds || []) as number[],
+    roles: Object.freeze(row.roles || []) as string[],
     teamLeaderId: row.teamLeaderId ?? null,
     managerId: row.managerId ?? null,
-  };
+  });
+  authContextCache.set(userId, { context, expiresAt: now + AUTH_CONTEXT_CACHE_TTL_MS });
+  return context;
 };
 
 const buildRequestCapabilities = (
