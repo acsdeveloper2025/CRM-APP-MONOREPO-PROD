@@ -195,6 +195,23 @@ export const config = {
     // does not exist.
     enableDarkMode: process.env.MOBILE_ENABLE_DARK_MODE === 'true',
     enableAnalytics: process.env.MOBILE_ENABLE_ANALYTICS === 'true',
+
+    // Phase E1: SSL pinning kill switch.
+    //
+    // `pinningEnabled` — when false the mobile app falls back to
+    //   standard TLS without pinning. Flip to false ONLY as an
+    //   emergency escape hatch for a rotated cert that slipped
+    //   through the overlap window.
+    //
+    // `pinSha256s` — comma-separated SHA256 fingerprints of the
+    //   public keys (NOT the certs — public keys survive renewal
+    //   when the same private key is reused). Set both the current
+    //   and the next rotation value in one env for overlap.
+    pinningEnabled: process.env.MOBILE_PINNING_ENABLED !== 'false',
+    pinSha256s: (process.env.MOBILE_PIN_SHA256S || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(s => s.length > 0),
   },
 };
 

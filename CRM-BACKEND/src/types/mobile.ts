@@ -456,6 +456,24 @@ export interface MobileAppConfigResponse {
     locationAccuracyThreshold: number;
     syncBatchSize: number;
   };
+  /**
+   * Phase E1: SSL certificate pinning kill switch.
+   *
+   * The mobile app reads this block on boot (and on every successful
+   * /auth/app-config hit) to decide whether to enforce certificate
+   * pinning against `pinSha256s`. If `enabled` is false, the app
+   * bypasses pinning entirely — this is the emergency escape hatch
+   * for a rotated cert without forcing every field agent to
+   * reinstall.
+   *
+   * `pinSha256s` is a set of public-key SHA256 fingerprints. Matching
+   * ANY fingerprint is a pass — so Ops can ship a new cert by
+   * publishing both the old and new pin for the overlap window.
+   */
+  pinning: {
+    enabled: boolean;
+    pinSha256s: string[];
+  };
   endpoints: {
     apiBaseUrl: string;
     wsUrl: string;
