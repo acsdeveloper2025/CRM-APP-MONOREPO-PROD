@@ -2250,12 +2250,38 @@ export const createCase = [
       }
     };
 
-    try {
-      if (!requireControllerPermission(req, res, 'case.create')) {
-        await cleanupFiles();
-        return;
-      }
+    // Permission + auth checks BEFORE the outer try/finally block.
+    // Previously the `requireControllerPermission` check lived inside
+    // the main try, which made a reader wonder whether the finally's
+    // `if (client) client.release()` ran on early return. It does —
+    // but `client` is still undefined at that point, so the guard
+    // no-ops correctly. That's not obvious from a cold read, and any
+    // future refactor that initializes `client` earlier would
+    // accidentally introduce a real leak.
+    //
+    // Hoisting the check out of the try block makes it structurally
+    // impossible to reach `pool.connect()` without passing
+    // permission, so the finally's guard is genuinely belt-and-
+    // suspenders instead of load-bearing. The route-level
+    // `authorize('case.create')` middleware is the primary gate;
+    // this in-handler check is defense in depth against a future
+    // route wiring mistake.
+    if (!requireControllerPermission(req, res, 'case.create')) {
+      await cleanupFiles();
+      return;
+    }
 
+    const userId = req.user?.id;
+    if (!userId) {
+      await cleanupFiles();
+      return res.status(401).json({
+        success: false,
+        message: 'User authentication required',
+        error: { code: 'UNAUTHORIZED' },
+      });
+    }
+
+    try {
       // ========== ACQUIRE DATABASE CONNECTION WITH TIMEOUT ==========
       const connectionTimeout = setTimeout(() => {
         logger.error('Database connection timeout', { userId: req.user?.id });
@@ -2285,16 +2311,11 @@ export const createCase = [
 
       await client.query('BEGIN');
 
-      const userId = req.user?.id;
-      if (!userId) {
-        await client.query('ROLLBACK');
-        await cleanupFiles();
-        return res.status(401).json({
-          success: false,
-          message: 'User authentication required',
-          error: { code: 'UNAUTHORIZED' },
-        });
-      }
+      // `userId` was hoisted above the try block so unauthenticated
+      // users never reach pool.connect(). The hoisted const is in
+      // scope here; this block used to re-declare and check it
+      // inside the transaction, which wasted a connection + BEGIN
+      // for every missing-auth request.
 
       // ========== PARSE AND VALIDATE REQUEST DATA ==========
       let requestData: CreateCaseRequest;
