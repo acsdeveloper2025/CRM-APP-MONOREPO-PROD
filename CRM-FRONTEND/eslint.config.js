@@ -88,11 +88,40 @@ export default tseslint.config(
       'brace-style': ['error', '1tbs', { allowSingleLine: true }],
 
       // Code style rules
+      //
+      // camelCase-only enforcement for the frontend. The backend was
+      // flipped to camelCase in Phase B3 (camelizeRow at the pg query
+      // layer), so every API response the frontend sees is already
+      // camelCase. Any snake_case identifier in this codebase is
+      // therefore either:
+      //   (a) drift we want to catch early, or
+      //   (b) an explicit exemption we need to document.
+      //
+      // `properties: 'always'` tightens the prior `properties: 'never'`
+      // so own-object-literal keys are ALSO required to be camelCase.
+      // `ignoreDestructuring: true` stays on as a safety valve for
+      // destructuring shapes that come from third-party libraries
+      // (react-day-picker's `range_end` etc — the calendar adapter
+      // already wraps those). `ignoreImports: true` stays on so we
+      // can keep importing snake_case identifiers from third-party
+      // modules without a per-import eslint-disable.
+      //
+      // `allow` holds the documented exemptions — anything matching
+      // these patterns is legal snake_case. Every entry below has a
+      // real external counterpart the frontend cannot rename.
       'camelcase': ['error', {
-        properties: 'never',
+        properties: 'always',
         ignoreDestructuring: true,
         ignoreImports: true,
-        allow: ['^UNSAFE_'],
+        allow: [
+          '^UNSAFE_',
+          // Socket.IO + Firebase event names (external contract).
+          '^connect_error$',
+          '^permissions_updated$',
+          // react-day-picker UI enum member names routed through
+          // components/ui/calendar-adapter.ts.
+          '^range_(start|middle|end)$',
+        ],
       }],
       // Disabled id-match for React components (PascalCase is standard)
       'id-match': 'off',
