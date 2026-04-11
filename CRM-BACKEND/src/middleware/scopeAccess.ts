@@ -108,6 +108,19 @@ export interface ScopeAccessHelpers {
    * waiting for the 30s TTL.
    */
   invalidate: (userId?: string) => void;
+  /**
+   * Phase F4: snapshot of process-local cache stats for /health/deep.
+   * Each worker reports its own counters.
+   */
+  getStats: () => ScopeCacheStats;
+}
+
+export interface ScopeCacheStats {
+  dimension: string;
+  size: number;
+  hits: number;
+  misses: number;
+  hitRate: number;
 }
 
 /**
@@ -135,13 +148,17 @@ export function createScopeAccess(config: ScopeAccessConfig): ScopeAccessHelpers
   //    changes if desired.
   const assignedIdsCache = new Map<string, { ids: number[]; expiresAt: number }>();
   const CACHE_TTL_MS = 30_000;
+  let cacheHits = 0;
+  let cacheMisses = 0;
 
   const getAssignedIds = async (userId: string): Promise<number[]> => {
     const now = Date.now();
     const cached = assignedIdsCache.get(userId);
     if (cached && cached.expiresAt > now) {
+      cacheHits += 1;
       return cached.ids;
     }
+    cacheMisses += 1;
     try {
       const result = await query<{ entityId: number }>(
         `SELECT ${config.assignmentColumn} AS "entity_id" FROM ${config.assignmentTable} WHERE user_id = $1`,
@@ -364,10 +381,22 @@ export function createScopeAccess(config: ScopeAccessConfig): ScopeAccessHelpers
     }
   };
 
+  const getStats = (): ScopeCacheStats => {
+    const total = cacheHits + cacheMisses;
+    return {
+      dimension: config.dimension,
+      size: assignedIdsCache.size,
+      hits: cacheHits,
+      misses: cacheMisses,
+      hitRate: total === 0 ? 0 : Number((cacheHits / total).toFixed(4)),
+    };
+  };
+
   return {
     getAssignedIds,
     validateEntityAccess,
     validateCaseEntityAccess,
     invalidate,
+    getStats,
   };
 }

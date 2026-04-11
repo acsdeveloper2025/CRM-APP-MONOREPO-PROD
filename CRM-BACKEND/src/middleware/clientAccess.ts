@@ -36,6 +36,8 @@ export const validateCaseAccess = clientScope.validateCaseEntityAccess;
  * takes effect immediately instead of waiting for the 30s TTL.
  */
 export const invalidateClientScopeCache = clientScope.invalidate;
+/** Phase F4: snapshot of the client-scope cache for /health/deep. */
+export const getClientScopeCacheStats = clientScope.getStats;
 
 /**
  * Middleware to add client filtering to query parameters for scoped users.

@@ -31,6 +31,8 @@ export const validateCaseProductAccess = productScope.validateCaseEntityAccess;
  * change takes effect immediately instead of waiting for the 30s TTL.
  */
 export const invalidateProductScopeCache = productScope.invalidate;
+/** Phase F4: snapshot of the product-scope cache for /health/deep. */
+export const getProductScopeCacheStats = productScope.getStats;
 
 /**
  * Middleware to add product filtering to query parameters for scoped users.
