@@ -1,3 +1,11 @@
+// Phase F1: OpenTelemetry bootstrap MUST be the first import so the
+// SDK's auto-instrumentations can patch express / pg / ioredis
+// before those modules are required by the rest of the app. The
+// module has side effects at load time (starts the SDK if
+// OTEL_ENABLED=true) AND exports shutdownTracing for the graceful
+// shutdown path.
+import { shutdownTracing } from './tracing';
+
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
@@ -205,6 +213,10 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
 
     // Disconnect from database
     await disconnectDatabase();
+
+    // Phase F1: flush any buffered OTel spans before the process
+    // exits so the last few seconds of traces reach the collector.
+    await shutdownTracing();
 
     clearTimeout(shutdownTimeout);
     logger.info('Graceful shutdown completed');
