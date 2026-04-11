@@ -1479,9 +1479,21 @@ export class VerificationTasksController {
     try {
       await client.query('BEGIN');
 
-      // Get current task details
+      // Phase D2: lock the task row for the lifetime of the reassign
+      // transaction. Without FOR UPDATE, two admins racing to reassign
+      // the same task can both pass the revocable-check and both issue
+      // the UPDATE/INSERT below, producing duplicate
+      // task_assignment_history rows or — via createReplacementTask —
+      // duplicate ACTIVE tasks for the same (case_id,
+      // verification_type_id). The partial unique index added in
+      // migration 013 is the belt; this is the suspenders.
       const taskResult = await client.query(
-        'SELECT id, case_id, verification_type_id, status, assigned_to, address, pincode, latitude, longitude, priority, area_id, rate_type_id, started_at, completed_at, created_at, updated_at FROM verification_tasks WHERE id = $1',
+        `SELECT id, case_id, verification_type_id, status, assigned_to,
+                address, pincode, latitude, longitude, priority, area_id,
+                rate_type_id, started_at, completed_at, created_at, updated_at
+         FROM verification_tasks
+         WHERE id = $1
+         FOR UPDATE`,
         [taskId]
       );
 
