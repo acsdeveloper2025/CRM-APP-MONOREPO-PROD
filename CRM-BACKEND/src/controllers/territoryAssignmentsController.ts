@@ -142,7 +142,15 @@ export const getFieldAgentTerritories = async (req: AuthenticatedRequest, res: R
       ) area_agg ON upa.user_id = area_agg.user_id AND upa.pincode_id = area_agg.pincode_id
       ${whereClause}
       GROUP BY u.id, u.name, u.username, u.employee_id, u.is_active
-      ORDER BY ${typeof sortBy === 'string' && sortBy === 'userName' ? 'u.name' : typeof sortBy === 'string' ? `u."${sortBy}"` : 'u.name'} ${typeof sortOrder === 'string' ? sortOrder.toUpperCase() : 'ASC'}
+      ORDER BY ${(() => {
+        const sortColumnMap: Record<string, string> = {
+          userName: 'u.name',
+          username: 'u.username',
+          employeeId: 'u.employee_id',
+          isActive: 'u.is_active',
+        };
+        return sortColumnMap[typeof sortBy === 'string' ? sortBy : ''] || 'u.name';
+      })()} ${typeof sortOrder === 'string' && sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC'}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 

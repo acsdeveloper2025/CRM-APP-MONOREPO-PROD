@@ -394,24 +394,24 @@ export class NotificationService {
     const selectQuery = `
       SELECT 
         user_id as user_id,
-        case_assignment_enabled as "caseAssignmentEnabled",
-        case_assignment_push as "caseAssignmentPush",
-        case_assignment_websocket as "caseAssignmentWebsocket",
-        case_reassignment_enabled as "caseReassignmentEnabled",
-        case_reassignment_push as "caseReassignmentPush",
-        case_reassignment_websocket as "caseReassignmentWebsocket",
-        case_completion_enabled as "caseCompletionEnabled",
-        case_completion_push as "caseCompletionPush",
-        case_completion_websocket as "caseCompletionWebsocket",
-        case_revocation_enabled as "caseRevocationEnabled",
-        case_revocation_push as "caseRevocationPush",
-        case_revocation_websocket as "caseRevocationWebsocket",
-        system_notifications_enabled as "systemNotificationsEnabled",
-        system_notifications_push as "systemNotificationsPush",
-        system_notifications_websocket as "systemNotificationsWebsocket",
-        quiet_hours_enabled as "quietHoursEnabled",
-        quiet_hours_start as "quietHoursStart",
-        quiet_hours_end as "quietHoursEnd"
+        case_assignment_enabled as "case_assignment_enabled",
+        case_assignment_push as "case_assignment_push",
+        case_assignment_websocket as "case_assignment_websocket",
+        case_reassignment_enabled as "case_reassignment_enabled",
+        case_reassignment_push as "case_reassignment_push",
+        case_reassignment_websocket as "case_reassignment_websocket",
+        case_completion_enabled as "case_completion_enabled",
+        case_completion_push as "case_completion_push",
+        case_completion_websocket as "case_completion_websocket",
+        case_revocation_enabled as "case_revocation_enabled",
+        case_revocation_push as "case_revocation_push",
+        case_revocation_websocket as "case_revocation_websocket",
+        system_notifications_enabled as "system_notifications_enabled",
+        system_notifications_push as "system_notifications_push",
+        system_notifications_websocket as "system_notifications_websocket",
+        quiet_hours_enabled as "quiet_hours_enabled",
+        quiet_hours_start as "quiet_hours_start",
+        quiet_hours_end as "quiet_hours_end"
       FROM notification_preferences 
       WHERE user_id = $1
     `;
@@ -448,7 +448,7 @@ export class NotificationService {
       SELECT 
         id, user_id as user_id,
         device_id as device_id,
-        platform, push_token as "pushToken", is_active as is_active
+        platform, push_token as "push_token", is_active as is_active
       FROM notification_tokens 
       WHERE user_id = $1 AND is_active = true
     `;

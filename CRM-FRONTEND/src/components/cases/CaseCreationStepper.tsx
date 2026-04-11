@@ -251,10 +251,36 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       return;
     }
 
+    // Business rule: a case must have at least one task (field or KYC).
+    const fieldTaskCount = (caseType === 'field' || caseType === 'both') ? tasks.length : 0;
+    const kycTaskCount = (caseType === 'kyc' || caseType === 'both') ? kycDocuments.length : 0;
+    if (fieldTaskCount === 0 && kycTaskCount === 0) {
+      toast.error('A case must include at least one field verification task or KYC task');
+      return;
+    }
+
     // Validate KYC documents are selected when case type requires them
     if ((caseType === 'kyc' || caseType === 'both') && kycDocuments.length === 0) {
       toast.error('Please select at least one KYC document for verification');
       return;
+    }
+
+    // Business rule: every task must be assigned at creation time.
+    // Field tasks → field executive; KYC tasks → centralized (backend) user.
+    if (fieldTaskCount > 0) {
+      const unassignedField = tasks.findIndex(t => !t.assignedTo);
+      if (unassignedField !== -1) {
+        toast.error(`Field task ${unassignedField + 1} must be assigned to a field executive before submitting`);
+        return;
+      }
+    }
+    if (kycTaskCount > 0) {
+      const unassignedKyc = kycDocuments.findIndex(d => !d.assignedTo);
+      if (unassignedKyc !== -1) {
+        const docLabel = kycDocuments[unassignedKyc]?.documentTypeCode || `KYC document ${unassignedKyc + 1}`;
+        toast.error(`"${docLabel}" must be assigned to a centralized user before submitting`);
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -486,8 +512,14 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
         toast.success(`Case created successfully with ${taskSummary || 'tasks'}!`);
 
-        if (onSuccess && response.data?.case?.caseId) {
-          onSuccess(response.data.case.caseId.toString());
+        // Always navigate on success. Prefer the user-friendly caseId (numeric)
+        // so the detail page URL is readable; fall back to the UUID, and if
+        // neither is present let the parent route to the cases list.
+        const navigateId =
+          (response.data?.case?.caseId != null ? String(response.data.case.caseId) : null) ||
+          (response.data?.case?.id ? String(response.data.case.id) : null);
+        if (onSuccess) {
+          onSuccess(navigateId ?? '');
         }
       } else {
         toast.error(response.message || 'Failed to create case');

@@ -51,51 +51,51 @@ interface Invoice {
 
 type InvoiceListRow = {
   id: number;
-  invoice_number: string;
-  client_id: number;
-  product_id: number | null;
-  client_name: string;
+  invoiceNumber: string;
+  clientId: number;
+  productId: number | null;
+  clientName: string;
   amount: string;
-  subtotal_amount: string;
-  tax_amount: string;
-  total_amount: string;
+  subtotalAmount: string;
+  taxAmount: string;
+  totalAmount: string;
   currency: string;
   status: string;
-  issue_date: string;
-  due_date: string;
-  paid_date: string | null;
+  issueDate: string;
+  dueDate: string;
+  paidDate: string | null;
   notes: string | null;
-  created_at: string;
-  updated_at: string;
-  payment_method: string | null;
-  transaction_id: string | null;
-  client_code: string | null;
-  client_email: string | null;
-  client_phone: string | null;
+  createdAt: string;
+  updatedAt: string;
+  paymentMethod: string | null;
+  transactionId: string | null;
+  clientCode: string | null;
+  clientEmail: string | null;
+  clientPhone: string | null;
 };
 
 type InvoiceItemRow = {
   id: number;
-  invoice_id: number;
+  invoiceId: number;
   description: string;
   quantity: number;
-  unit_price: string;
+  unitPrice: string;
   amount: string;
-  case_ids: string[] | null;
+  caseIds: string[] | null;
 };
 
 type InvoiceTaskCandidateRow = {
   id: string;
-  case_id: string;
-  verification_type_id: number | null;
-  rate_type_id: number | null;
-  actual_amount: string | null;
-  estimated_amount: string | null;
-  area_id: number | null;
-  task_title: string | null;
-  pincode_id: number | null;
-  client_id: number;
-  product_id: number;
+  caseId: string;
+  verificationTypeId: number | null;
+  rateTypeId: number | null;
+  actualAmount: string | null;
+  estimatedAmount: string | null;
+  areaId: number | null;
+  taskTitle: string | null;
+  pincodeId: number | null;
+  clientId: number;
+  productId: number;
 };
 
 type CreateInvoiceBody = {
@@ -245,7 +245,7 @@ const buildScopeSql = (
       conditions.push('1 = 0');
     } else {
       params.push(scope.assignedClientIds);
-      conditions.push(`i.client_id = ANY($${params.length}::int[])`);
+      conditions.push(`i.clientId = ANY($${params.length}::int[])`);
     }
   }
 
@@ -254,7 +254,7 @@ const buildScopeSql = (
       conditions.push('1 = 0');
     } else {
       params.push(scope.assignedProductIds);
-      conditions.push(`(i.product_id IS NULL OR i.product_id = ANY($${params.length}::int[]))`);
+      conditions.push(`(i.productId IS NULL OR i.productId = ANY($${params.length}::int[]))`);
     }
   }
 };
@@ -283,18 +283,18 @@ const loadInvoiceItems = async (invoiceIds: number[]): Promise<Map<number, Invoi
 
   const map = new Map<number, InvoiceItem[]>();
   result.rows.forEach(row => {
-    const current = map.get(Number(row.invoice_id)) || [];
+    const current = map.get(Number(row.invoiceId)) || [];
     current.push({
       id: String(row.id),
-      invoiceId: String(row.invoice_id),
+      invoiceId: String(row.invoiceId),
       description: row.description,
       quantity: Number(row.quantity),
-      unitPrice: toNumber(row.unit_price),
+      unitPrice: toNumber(row.unitPrice),
       amount: toNumber(row.amount),
       totalPrice: toNumber(row.amount),
-      caseIds: Array.isArray(row.case_ids) ? row.case_ids : [],
+      caseIds: Array.isArray(row.caseIds) ? row.caseIds : [],
     });
-    map.set(Number(row.invoice_id), current);
+    map.set(Number(row.invoiceId), current);
   });
 
   return map;
@@ -305,32 +305,32 @@ const mapDbInvoiceRow = (
   itemsMap: Map<number, InvoiceItem[]>
 ): Invoice & { productId?: number | null } => ({
   id: String(row.id),
-  invoiceNumber: row.invoice_number,
-  clientId: String(row.client_id),
-  clientName: row.client_name,
+  invoiceNumber: row.invoiceNumber,
+  clientId: String(row.clientId),
+  clientName: row.clientName,
   client: {
-    id: String(row.client_id),
-    name: row.client_name,
-    code: row.client_code || String(row.client_id),
-    ...(row.client_email ? { email: row.client_email } : {}),
-    ...(row.client_phone ? { phone: row.client_phone } : {}),
+    id: String(row.clientId),
+    name: row.clientName,
+    code: row.clientCode || String(row.clientId),
+    ...(row.clientEmail ? { email: row.clientEmail } : {}),
+    ...(row.clientPhone ? { phone: row.clientPhone } : {}),
   },
-  productId: row.product_id,
+  productId: row.productId,
   amount: toNumber(row.amount),
-  subtotalAmount: toNumber(row.subtotal_amount),
+  subtotalAmount: toNumber(row.subtotalAmount),
   currency: row.currency,
   status: row.status,
-  dueDate: row.due_date,
-  issueDate: row.issue_date,
-  paidDate: row.paid_date,
+  dueDate: row.dueDate,
+  issueDate: row.issueDate,
+  paidDate: row.paidDate,
   items: itemsMap.get(Number(row.id)) || [],
-  taxAmount: toNumber(row.tax_amount),
-  totalAmount: toNumber(row.total_amount),
+  taxAmount: toNumber(row.taxAmount),
+  totalAmount: toNumber(row.totalAmount),
   notes: row.notes || '',
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-  ...(row.payment_method ? { paymentMethod: row.payment_method } : {}),
-  ...(row.transaction_id ? { transactionId: row.transaction_id } : {}),
+  createdAt: row.createdAt,
+  updatedAt: row.updatedAt,
+  ...(row.paymentMethod ? { paymentMethod: row.paymentMethod } : {}),
+  ...(row.transactionId ? { transactionId: row.transactionId } : {}),
 });
 
 const getInvoicesFromDb = async (
@@ -360,13 +360,13 @@ const getInvoicesFromDb = async (
 
   if (clientId) {
     params.push(Number(clientId));
-    conditions.push(`i.client_id = $${params.length}`);
+    conditions.push(`i.clientId = $${params.length}`);
   }
 
   if (status && typeof status === 'string') {
     const normalizedStatus = status.toUpperCase();
     if (normalizedStatus === STATUS.OVERDUE) {
-      conditions.push(`i.status = '${STATUS.SENT}' AND i.paid_date IS NULL AND i.due_date < NOW()`);
+      conditions.push(`i.status = '${STATUS.SENT}' AND i.paidDate IS NULL AND i.dueDate < NOW()`);
     } else {
       params.push(normalizedStatus);
       conditions.push(`i.status = $${params.length}`);
@@ -376,36 +376,36 @@ const getInvoicesFromDb = async (
   if (search && typeof search === 'string' && search.trim()) {
     params.push(`%${search.trim()}%`);
     conditions.push(`(
-      i.invoice_number ILIKE $${params.length} OR
-      i.client_name ILIKE $${params.length} OR
+      i.invoiceNumber ILIKE $${params.length} OR
+      i.clientName ILIKE $${params.length} OR
       COALESCE(i.notes, '') ILIKE $${params.length}
     )`);
   }
 
   if (typeof dateFrom === 'string' && dateFrom) {
     params.push(dateFrom);
-    conditions.push(`i.issue_date >= $${params.length}`);
+    conditions.push(`i.issueDate >= $${params.length}`);
   }
 
   if (typeof dateTo === 'string' && dateTo) {
     params.push(dateTo);
-    conditions.push(`i.issue_date <= $${params.length}`);
+    conditions.push(`i.issueDate <= $${params.length}`);
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
   const safeSortByMap: Record<string, string> = {
-    invoiceNumber: 'i.invoice_number',
-    clientName: 'i.client_name',
+    invoiceNumber: 'i.invoiceNumber',
+    clientName: 'i.clientName',
     amount: 'i.amount',
-    totalAmount: 'i.total_amount',
-    issueDate: 'i.issue_date',
-    dueDate: 'i.due_date',
+    totalAmount: 'i.totalAmount',
+    issueDate: 'i.issueDate',
+    dueDate: 'i.dueDate',
     status: 'i.status',
-    createdAt: 'i.created_at',
+    createdAt: 'i.createdAt',
   };
   const sortByValue = typeof sortBy === 'string' ? sortBy : 'issueDate';
   const sortOrderValue = typeof sortOrder === 'string' ? sortOrder : 'desc';
-  const safeSortBy = safeSortByMap[sortByValue] || 'i.issue_date';
+  const safeSortBy = safeSortByMap[sortByValue] || 'i.issueDate';
   const safeSortOrder = sortOrderValue.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
   const pageNum = Math.max(1, Number(page) || 1);
   const limitNum = Math.max(1, Math.min(500, Number(limit) || 20));
@@ -421,29 +421,29 @@ const getInvoicesFromDb = async (
   const rows = await query<InvoiceListRow>(
     `SELECT
        i.id,
-       i.invoice_number,
-       i.client_id,
-       i.product_id,
-       i.client_name,
+       i.invoiceNumber,
+       i.clientId,
+       i.productId,
+       i.clientName,
        i.amount::text,
-       i.subtotal_amount::text,
-       i.tax_amount::text,
-       i.total_amount::text,
+       i.subtotalAmount::text,
+       i.taxAmount::text,
+       i.totalAmount::text,
        i.currency,
        i.status,
-       i.issue_date::text,
-       i.due_date::text,
-       i.paid_date::text,
+       i.issueDate::text,
+       i.dueDate::text,
+       i.paidDate::text,
        i.notes,
-       i.created_at::text,
-       i.updated_at::text,
-       i.payment_method,
-       i.transaction_id,
+       i.createdAt::text,
+       i.updatedAt::text,
+       i.paymentMethod,
+       i.transactionId,
        c.code as client_code,
        c.email as client_email,
        c.phone as client_phone
      FROM invoices i
-     LEFT JOIN clients c ON c.id = i.client_id
+     LEFT JOIN clients c ON c.id = i.clientId
      ${whereClause}
      ORDER BY ${safeSortBy} ${safeSortOrder}
      LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
@@ -531,13 +531,13 @@ const getInvoiceByIdFromDb = async (
           Number(row.id),
           result.rows.map(itemRow => ({
             id: String(itemRow.id),
-            invoiceId: String(itemRow.invoice_id),
+            invoiceId: String(itemRow.invoiceId),
             description: itemRow.description,
             quantity: Number(itemRow.quantity),
-            unitPrice: toNumber(itemRow.unit_price),
+            unitPrice: toNumber(itemRow.unitPrice),
             amount: toNumber(itemRow.amount),
             totalPrice: toNumber(itemRow.amount),
-            caseIds: Array.isArray(itemRow.case_ids) ? itemRow.case_ids : [],
+            caseIds: Array.isArray(itemRow.caseIds) ? itemRow.caseIds : [],
           }))
         );
         return map;
@@ -545,7 +545,7 @@ const getInvoiceByIdFromDb = async (
     : await loadInvoiceItems([Number(row.id)]);
 
   const mapped = normalizeInvoiceForResponse(mapDbInvoiceRow(row, itemsMap));
-  if (!invoiceAllowedByScope({ clientId: mapped.clientId, productId: row.product_id }, scope)) {
+  if (!invoiceAllowedByScope({ clientId: mapped.clientId, productId: row.productId }, scope)) {
     return null;
   }
 
@@ -562,13 +562,13 @@ const getInvoiceStatsFromDb = async (
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
   const result = await query<{
-    total_invoices: string;
-    draft_invoices: string;
-    sent_invoices: string;
-    cancelled_invoices: string;
-    overdue_invoices: string;
-    total_amount: string;
-    outstanding_amount: string;
+    totalInvoices: string;
+    draftInvoices: string;
+    sentInvoices: string;
+    cancelledInvoices: string;
+    overdueInvoices: string;
+    totalAmount: string;
+    outstandingAmount: string;
   }>(
     `SELECT
        COUNT(*)::text as total_invoices,
@@ -577,31 +577,31 @@ const getInvoiceStatsFromDb = async (
        COUNT(*) FILTER (WHERE i.status = '${STATUS.CANCELLED}')::text as cancelled_invoices,
        COUNT(*) FILTER (WHERE i.status = '${STATUS.SENT}' AND i.paid_date IS NULL AND i.due_date < NOW())::text as overdue_invoices,
        COALESCE(SUM(i.total_amount), 0)::text as total_amount,
-       COALESCE(SUM(i.total_amount) FILTER (WHERE i.status = '${STATUS.SENT}' AND i.paid_date IS NULL), 0)::text as outstanding_amount
+       COALESCE(SUM(i.total_amount) FILTER (WHERE i.status = '${STATUS.SENT}' AND i.paidDate IS NULL), 0)::text as outstanding_amount
      FROM invoices i
      ${whereClause}`,
     params
   );
 
   const stats = result.rows[0];
-  const totalAmount = toNumber(stats?.total_amount);
+  const totalAmount = toNumber(stats?.totalAmount);
 
   return {
-    totalInvoices: Number(stats?.total_invoices || 0),
+    totalInvoices: Number(stats?.totalInvoices || 0),
     paidInvoices: 0,
-    pendingInvoices: Number(stats?.sent_invoices || 0),
-    overdueInvoices: Number(stats?.overdue_invoices || 0),
+    pendingInvoices: Number(stats?.sentInvoices || 0),
+    overdueInvoices: Number(stats?.overdueInvoices || 0),
     totalAmount,
     paidAmount: 0,
-    pendingAmount: toNumber(stats?.outstanding_amount),
+    pendingAmount: toNumber(stats?.outstandingAmount),
     collectionRate: 0,
     statusDistribution: {
-      DRAFT: Number(stats?.draft_invoices || 0),
-      SENT: Number(stats?.sent_invoices || 0),
+      DRAFT: Number(stats?.draftInvoices || 0),
+      SENT: Number(stats?.sentInvoices || 0),
       APPROVED: 0,
       PAID: 0,
-      CANCELLED: Number(stats?.cancelled_invoices || 0),
-      OVERDUE: Number(stats?.overdue_invoices || 0),
+      CANCELLED: Number(stats?.cancelledInvoices || 0),
+      OVERDUE: Number(stats?.overdueInvoices || 0),
     },
     clientDistribution: {},
     period,
@@ -612,7 +612,7 @@ const getInvoiceStatsFromDb = async (
 const getInvoiceScopeRecord = async (
   id: string
 ): Promise<{ clientId: string; productId: number | null; status: string } | null> => {
-  const result = await query<{ client_id: number; product_id: number | null; status: string }>(
+  const result = await query<{ clientId: number; productId: number | null; status: string }>(
     'SELECT client_id, product_id, status FROM invoices WHERE id = $1 LIMIT 1',
     [Number(id)]
   );
@@ -623,8 +623,8 @@ const getInvoiceScopeRecord = async (
   }
 
   return {
-    clientId: String(row.client_id),
-    productId: row.product_id,
+    clientId: String(row.clientId),
+    productId: row.productId,
     status: row.status,
   };
 };
@@ -680,14 +680,14 @@ const getNextInvoiceIdentity = async (
 const resolveTaskBillingAmount = async (
   task: InvoiceTaskCandidateRow
 ): Promise<{ amount: number; rateTypeId: number | null }> => {
-  const candidateRateTypeId = toMaybeNumber(task.rate_type_id);
-  if (task.verification_type_id && task.pincode_id) {
+  const candidateRateTypeId = toMaybeNumber(task.rateTypeId);
+  if (task.verificationTypeId && task.pincodeId) {
     const validation = await financialConfigurationValidator.validateTaskConfiguration(
-      task.client_id,
-      task.product_id,
-      task.verification_type_id,
-      task.pincode_id,
-      task.area_id,
+      task.clientId,
+      task.productId,
+      task.verificationTypeId,
+      task.pincodeId,
+      task.areaId,
       candidateRateTypeId
     );
 
@@ -699,7 +699,7 @@ const resolveTaskBillingAmount = async (
     }
   }
 
-  const fallbackAmount = toNumber(task.actual_amount) || toNumber(task.estimated_amount);
+  const fallbackAmount = toNumber(task.actualAmount) || toNumber(task.estimatedAmount);
   if (fallbackAmount > 0) {
     return {
       amount: fallbackAmount,
@@ -720,23 +720,23 @@ const loadCompletedUnbilledTasks = async (
   billingPeriodFrom?: string,
   billingPeriodTo?: string
 ): Promise<InvoiceTaskCandidateRow[]> => {
-  const conditions: string[] = [`c.client_id = $1`, `vt.status = 'COMPLETED'`, `iit.id IS NULL`];
+  const conditions: string[] = [`c.clientId = $1`, `vt.status = 'COMPLETED'`, `iit.id IS NULL`];
   const params: Array<string | number | string[] | number[]> = [clientId];
 
   if (scope.restricted) {
     if (scope.assignedClientIds && scope.assignedClientIds.length > 0) {
       params.push(scope.assignedClientIds);
-      conditions.push(`c.client_id = ANY($${params.length}::int[])`);
+      conditions.push(`c.clientId = ANY($${params.length}::int[])`);
     }
     if (scope.assignedProductIds && scope.assignedProductIds.length > 0) {
       params.push(scope.assignedProductIds);
-      conditions.push(`c.product_id = ANY($${params.length}::int[])`);
+      conditions.push(`c.productId = ANY($${params.length}::int[])`);
     }
   }
 
   if (productId) {
     params.push(productId);
-    conditions.push(`c.product_id = $${params.length}`);
+    conditions.push(`c.productId = $${params.length}`);
   }
 
   if (selectedTaskIds.length > 0) {
@@ -746,7 +746,7 @@ const loadCompletedUnbilledTasks = async (
 
   if (selectedCaseIds.length > 0) {
     params.push(selectedCaseIds);
-    conditions.push(`vt.case_id = ANY($${params.length}::uuid[])`);
+    conditions.push(`vt.caseId = ANY($${params.length}::uuid[])`);
   }
 
   if (billingPeriodFrom) {
@@ -762,22 +762,22 @@ const loadCompletedUnbilledTasks = async (
   const result = await client.query<InvoiceTaskCandidateRow>(
     `SELECT
        vt.id,
-       vt.case_id,
-       vt.verification_type_id,
-       vt.rate_type_id,
-       vt.actual_amount::text,
-       vt.estimated_amount::text,
-       vt.area_id,
-       vt.task_title,
+       vt.caseId,
+       vt.verificationTypeId,
+       vt.rateTypeId,
+       vt.actualAmount::text,
+       vt.estimatedAmount::text,
+       vt.areaId,
+       vt.taskTitle,
        p.id as pincode_id,
-       c.client_id as client_id,
-       c.product_id as product_id
+       c.clientId as client_id,
+       c.productId as product_id
      FROM verification_tasks vt
-     JOIN cases c ON c.id = vt.case_id
+     JOIN cases c ON c.id = vt.caseId
      LEFT JOIN pincodes p ON p.code = COALESCE(vt.pincode, c."pincode")
      LEFT JOIN invoice_item_tasks iit ON iit.verification_task_id = vt.id
      WHERE ${conditions.join(' AND ')}
-     ORDER BY COALESCE(vt.completed_at, vt.updated_at, vt.created_at) ASC`,
+     ORDER BY COALESCE(vt.completed_at, vt.updatedAt, vt.createdAt) ASC`,
     params
   );
 
@@ -865,17 +865,17 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
         for (const task of taskCandidates) {
           const resolved = await resolveTaskBillingAmount(task);
           generatedLines.push({
-            description: task.task_title || `Verification Task ${task.id}`,
+            description: task.taskTitle || `Verification Task ${task.id}`,
             quantity: 1,
             unitPrice: resolved.amount,
             amount: resolved.amount,
-            verificationTypeId: task.verification_type_id,
+            verificationTypeId: task.verificationTypeId,
             rateTypeId: resolved.rateTypeId,
-            productId: task.product_id,
+            productId: task.productId,
             linkedTasks: [
               {
                 taskId: task.id,
-                caseId: task.case_id,
+                caseId: task.caseId,
                 billedAmount: resolved.amount,
               },
             ],
@@ -1180,19 +1180,19 @@ const regenerateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) =
   try {
     await withTransaction(async client => {
       const linkedTasks = await client.query<{
-        link_id: number;
-        invoice_item_id: number;
-        verification_task_id: string;
-        case_id: string;
-        verification_type_id: number | null;
-        rate_type_id: number | null;
-        actual_amount: string | null;
-        estimated_amount: string | null;
-        area_id: number | null;
-        task_title: string | null;
-        pincode_id: number | null;
-        client_id: number;
-        product_id: number;
+        linkId: number;
+        invoiceItemId: number;
+        verificationTaskId: string;
+        caseId: string;
+        verificationTypeId: number | null;
+        rateTypeId: number | null;
+        actualAmount: string | null;
+        estimatedAmount: string | null;
+        areaId: number | null;
+        taskTitle: string | null;
+        pincodeId: number | null;
+        clientId: number;
+        productId: number;
       }>(
         `SELECT
            iit.id as link_id,
@@ -1223,21 +1223,21 @@ const regenerateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) =
 
       for (const linkedTask of linkedTasks.rows) {
         const resolved = await resolveTaskBillingAmount({
-          id: linkedTask.verification_task_id,
-          case_id: linkedTask.case_id,
-          verification_type_id: linkedTask.verification_type_id,
-          rate_type_id: linkedTask.rate_type_id,
-          actual_amount: linkedTask.actual_amount,
-          estimated_amount: linkedTask.estimated_amount,
-          area_id: linkedTask.area_id,
-          task_title: linkedTask.task_title,
-          pincode_id: linkedTask.pincode_id,
-          client_id: linkedTask.client_id,
-          product_id: linkedTask.product_id,
+          id: linkedTask.verificationTaskId,
+          caseId: linkedTask.caseId,
+          verificationTypeId: linkedTask.verificationTypeId,
+          rateTypeId: linkedTask.rateTypeId,
+          actualAmount: linkedTask.actualAmount,
+          estimatedAmount: linkedTask.estimatedAmount,
+          areaId: linkedTask.areaId,
+          taskTitle: linkedTask.taskTitle,
+          pincodeId: linkedTask.pincodeId,
+          clientId: linkedTask.clientId,
+          productId: linkedTask.productId,
         });
 
         await client.query(`UPDATE invoice_item_tasks SET billed_amount = $2 WHERE id = $1`, [
-          linkedTask.link_id,
+          linkedTask.linkId,
           resolved.amount,
         ]);
       }
@@ -1341,11 +1341,11 @@ const transitionInvoiceStatus = async (
   }
 
   await withTransaction(async client => {
-    const updateFields: string[] = ['status = $1::varchar', 'updated_at = CURRENT_TIMESTAMP'];
+    const updateFields: string[] = ['status = $1::varchar', 'updatedAt = CURRENT_TIMESTAMP'];
     const params: Array<string | number | null> = [nextStatus];
 
     if (extraUpdate?.sentAt) {
-      updateFields.push('sent_at = CURRENT_TIMESTAMP');
+      updateFields.push('sentAt = CURRENT_TIMESTAMP');
     }
 
     if (extraUpdate?.notes) {
@@ -1627,20 +1627,20 @@ export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Resp
       params.push(status as string);
     }
     if (clientId) {
-      conditions.push(`i.client_id = $${idx++}`);
+      conditions.push(`i.clientId = $${idx++}`);
       params.push(Number(clientId));
     }
     if (dateFrom) {
-      conditions.push(`i.issue_date >= $${idx++}`);
+      conditions.push(`i.issueDate >= $${idx++}`);
       params.push(dateFrom as string);
     }
     if (dateTo) {
-      conditions.push(`i.issue_date <= $${idx++}`);
+      conditions.push(`i.issueDate <= $${idx++}`);
       params.push(`${dateTo as string} 23:59:59`);
     }
 
     if (scope.assignedClientIds && scope.assignedClientIds.length > 0) {
-      conditions.push(`i.client_id = ANY($${idx++}::int[])`);
+      conditions.push(`i.clientId = ANY($${idx++}::int[])`);
       params.push(scope.assignedClientIds as unknown as number);
     }
 
@@ -1649,20 +1649,20 @@ export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Resp
     const result = await query(
       `
       SELECT
-        i.invoice_number,
+        i.invoiceNumber,
         c.name as client_name,
         i.status,
-        i.issue_date,
-        i.due_date,
-        i.subtotal_amount as subtotal,
-        i.tax_amount,
-        i.total_amount,
+        i.issueDate,
+        i.dueDate,
+        i.subtotalAmount as subtotal,
+        i.taxAmount,
+        i.totalAmount,
         i.notes,
-        i.created_at
+        i.createdAt
       FROM invoices i
-      LEFT JOIN clients c ON i.client_id = c.id
+      LEFT JOIN clients c ON i.clientId = c.id
       ${whereClause}
-      ORDER BY i.created_at DESC
+      ORDER BY i.createdAt DESC
     `,
       params
     );
@@ -1671,16 +1671,16 @@ export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Resp
     const worksheet = workbook.addWorksheet('Invoices');
 
     worksheet.columns = [
-      { header: 'Invoice #', key: 'invoice_number', width: 22 },
-      { header: 'Client', key: 'client_name', width: 25 },
+      { header: 'Invoice #', key: 'invoiceNumber', width: 22 },
+      { header: 'Client', key: 'clientName', width: 25 },
       { header: 'Status', key: 'status', width: 14 },
-      { header: 'Issue Date', key: 'issue_date', width: 18 },
-      { header: 'Due Date', key: 'due_date', width: 18 },
+      { header: 'Issue Date', key: 'issueDate', width: 18 },
+      { header: 'Due Date', key: 'dueDate', width: 18 },
       { header: 'Subtotal', key: 'subtotal', width: 14 },
-      { header: 'Tax Amount', key: 'tax_amount', width: 14 },
-      { header: 'Total Amount', key: 'total_amount', width: 16 },
+      { header: 'Tax Amount', key: 'taxAmount', width: 14 },
+      { header: 'Total Amount', key: 'totalAmount', width: 16 },
       { header: 'Notes', key: 'notes', width: 30 },
-      { header: 'Created At', key: 'created_at', width: 20 },
+      { header: 'Created At', key: 'createdAt', width: 20 },
     ];
 
     worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
@@ -1690,11 +1690,11 @@ export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Resp
       worksheet.addRow({
         ...row,
         subtotal: row.subtotal ? Number(row.subtotal) : 0,
-        tax_amount: row.tax_amount ? Number(row.tax_amount) : 0,
-        total_amount: row.total_amount ? Number(row.total_amount) : 0,
-        issue_date: row.issue_date ? new Date(row.issue_date as string).toLocaleDateString() : '',
-        due_date: row.due_date ? new Date(row.due_date as string).toLocaleDateString() : '',
-        created_at: row.created_at ? new Date(row.created_at as string).toLocaleString() : '',
+        taxAmount: row.taxAmount ? Number(row.taxAmount) : 0,
+        totalAmount: row.totalAmount ? Number(row.totalAmount) : 0,
+        issueDate: row.issueDate ? new Date(row.issueDate as string).toLocaleDateString() : '',
+        dueDate: row.dueDate ? new Date(row.dueDate as string).toLocaleDateString() : '',
+        createdAt: row.createdAt ? new Date(row.createdAt as string).toLocaleString() : '',
       });
     });
 

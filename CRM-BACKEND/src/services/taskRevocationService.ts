@@ -81,9 +81,9 @@ export class TaskRevocationService {
 
   static async getLatestRevocation(taskId: string): Promise<{
     id: number;
-    revoked_from_user_id: string | null;
-    revoked_by_role: 'ADMIN' | 'FE';
-    revoked_at: string;
+    revokedFromUserId: string | null;
+    revokedByRole: 'ADMIN' | 'FE';
+    revokedAt: string;
     reassigned: boolean;
   } | null> {
     const result = await query(
@@ -106,9 +106,9 @@ export class TaskRevocationService {
       (result.rows[0] as
         | {
             id: number;
-            revoked_from_user_id: string | null;
-            revoked_by_role: 'ADMIN' | 'FE';
-            revoked_at: string;
+            revokedFromUserId: string | null;
+            revokedByRole: 'ADMIN' | 'FE';
+            revokedAt: string;
             reassigned: boolean;
           }
         | undefined) || null
@@ -116,7 +116,7 @@ export class TaskRevocationService {
   }
 
   static async getRevokedAssignmentIdsForUser(userId: string): Promise<string[]> {
-    const result = await query<{ task_id: string }>(
+    const result = await query<{ taskId: string }>(
       `
         SELECT DISTINCT tr.task_id
         FROM task_revocations tr
@@ -128,6 +128,6 @@ export class TaskRevocationService {
       [userId]
     );
 
-    return result.rows.map(row => row.task_id);
+    return result.rows.map(row => row.taskId);
   }
 }

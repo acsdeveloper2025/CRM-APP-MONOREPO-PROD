@@ -70,27 +70,25 @@ export const getRates = async (req: AuthenticatedRequest, res: Response) => {
 
     // Get rates with pagination
     const offset = (Number(page) - 1) * Number(limit);
-    const allowedSortColumns = [
-      'clientName',
-      'productName',
-      'verificationTypeName',
-      'rateTypeName',
-      'amount',
-      'createdAt',
-      'updatedAt',
-    ];
-    const sortCol: string = allowedSortColumns.includes(typeof sortBy === 'string' ? sortBy : '')
-      ? typeof sortBy === 'string'
-        ? sortBy
-        : ''
-      : 'clientName';
+    // API contract: sortBy is camelCase; map to snake_case view column.
+    const sortColumnMap: Record<string, string> = {
+      clientName: 'client_name',
+      productName: 'product_name',
+      verificationTypeName: 'verification_type_name',
+      rateTypeName: 'rate_type_name',
+      amount: 'amount',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    };
+    const sortCol: string =
+      sortColumnMap[typeof sortBy === 'string' ? sortBy : ''] || 'client_name';
     const sortOrderStr = typeof sortOrder === 'string' ? sortOrder : 'asc';
     const sortDir: 'ASC' | 'DESC' = sortOrderStr.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     const listRes = await query(
       `SELECT * FROM rate_management_view
        ${whereClause}
-       ORDER BY "${sortCol}" ${sortDir}
+       ORDER BY ${sortCol} ${sortDir}
        LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
       [...values, Number(limit), offset]
     );
@@ -145,9 +143,9 @@ export const getAvailableRateTypesForAssignment = async (
       `SELECT 
         rt.id as rate_type_id,
         rt.name as rate_type_name,
-        rt.description as "rateTypeDescription",
-        CASE WHEN r.id IS NOT NULL THEN r.amount ELSE NULL END as "currentAmount",
-        CASE WHEN r.id IS NOT NULL THEN true ELSE false END as "hasRate"
+        rt.description as "rate_type_description",
+        CASE WHEN r.id IS NOT NULL THEN r.amount ELSE NULL END as "current_amount",
+        CASE WHEN r.id IS NOT NULL THEN true ELSE false END as "has_rate"
        FROM rate_type_assignments rta
        JOIN rate_types rt ON rta.rate_type_id = rt.id
        LEFT JOIN rates r ON rta.client_id = r.client_id 
@@ -346,9 +344,9 @@ export const getRateStats = async (req: AuthenticatedRequest, res: Response) => 
         COUNT(*)::int as total,
         COUNT(CASE WHEN is_active = true THEN 1 END)::int as active,
         COUNT(CASE WHEN is_active = false THEN 1 END)::int as inactive,
-        AVG(amount)::numeric(10,2) as averageAmount,
-        MIN(amount)::numeric(10,2) as minAmount,
-        MAX(amount)::numeric(10,2) as maxAmount
+        AVG(amount)::numeric(10,2) as average_amount,
+        MIN(amount)::numeric(10,2) as min_amount,
+        MAX(amount)::numeric(10,2) as max_amount
       FROM rates
     `);
     const stats = statsRes.rows[0];

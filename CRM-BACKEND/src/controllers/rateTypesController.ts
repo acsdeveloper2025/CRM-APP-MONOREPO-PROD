@@ -42,21 +42,23 @@ export const getRateTypes = async (req: AuthenticatedRequest, res: Response) => 
 
     // Get rate types with pagination
     const offset = (Number(page) - 1) * Number(limit);
-    const sortCol = ['name', 'description', 'isActive', 'createdAt', 'updatedAt'].includes(
-      typeof sortBy === 'string' ? sortBy : ''
-    )
-      ? typeof sortBy === 'string'
-        ? sortBy
-        : ''
-      : 'name';
+    // API contract: sortBy is camelCase; map to snake_case DB column.
+    const sortColumnMap: Record<string, string> = {
+      name: 'name',
+      description: 'description',
+      isActive: 'is_active',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    };
+    const sortCol = sortColumnMap[typeof sortBy === 'string' ? sortBy : ''] || 'name';
     const sortDir =
-      typeof sortOrder === 'string' ? sortOrder : 'asc'.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+      typeof sortOrder === 'string' && sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     const listRes = await query(
       `SELECT id, name, description, is_active, created_at, updated_at
        FROM rate_types
        ${whereClause}
-       ORDER BY "${sortCol}" ${sortDir}
+       ORDER BY ${sortCol} ${sortDir}
        LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
       [...values, Number(limit), offset]
     );
@@ -201,7 +203,7 @@ export const getAvailableRateTypesForCase = async (req: AuthenticatedRequest, re
         rt.is_active,
         r.amount,
         r.currency,
-        CASE WHEN r.id IS NOT NULL THEN true ELSE false END as "hasRate"
+        CASE WHEN r.id IS NOT NULL THEN true ELSE false END as "has_rate"
        FROM rate_type_assignments rta
        JOIN rate_types rt ON rta.rate_type_id = rt.id
        LEFT JOIN rates r ON rta.client_id = r.client_id

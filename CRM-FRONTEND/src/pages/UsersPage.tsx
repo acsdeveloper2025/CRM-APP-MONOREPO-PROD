@@ -89,18 +89,18 @@ export function UsersPage() {
   const [actPage, setActPage] = useState(1);
   const actSearch = useUnifiedSearch({
     syncWithUrl: true,
-    urlParamName: 'act_search',
+    urlParamName: 'actSearch',
   });
   const actFilters = useUnifiedFilters<{ fromDate?: string; toDate?: string; userId?: string }>({
     syncWithUrl: true,
-    urlParamPrefix: 'act_',
+    urlParamPrefix: 'act',
   });
 
   // 3. Sessions Tab State
   const [sessPage, setSessPage] = useState(1);
   const sessSearch = useUnifiedSearch({
     syncWithUrl: true,
-    urlParamName: 'sess_search',
+    urlParamName: 'sessSearch',
   });
 
   // Independent pagination resets

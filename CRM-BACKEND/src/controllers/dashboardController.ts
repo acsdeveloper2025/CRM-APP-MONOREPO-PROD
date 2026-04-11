@@ -2,7 +2,7 @@ import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { DashboardKPIService } from '@/services/dashboardKPIService';
-import { pool } from '@/config/database';
+import { query as dbQuery } from '@/config/database';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
 import { resolveDataScope } from '@/security/dataScope';
@@ -67,8 +67,8 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
 
     // Derived assignments (Stabilization: defaults for now)
     // Pending + Assigned = Open - InProgress
-    const openTasksVal = kpi.workload.open_tasks.value;
-    const inProgressVal = kpi.workload.in_progress_tasks.value;
+    const openTasksVal = kpi.workload.openTasks.value;
+    const inProgressVal = kpi.workload.inProgressTasks.value;
     const derivedPending = Math.max(0, openTasksVal - inProgressVal);
 
     const dashboardData = {
@@ -78,23 +78,22 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
         end: new Date().toISOString(),
       },
       operationalWorkload: {
-        totalTasks: kpi.workload.total_tasks.value,
-        openTasks: kpi.workload.open_tasks.value,
-        completedTasks: kpi.financial.billable_tasks.value, // Using billable/completed count
-        todaysOutput: kpi.workload.completed_today,
-        financialExposure: kpi.financial.actual_amount.value,
-        inProgressCases: kpi.legacy_compatibility.cases.in_progress.value,
+        totalTasks: kpi.workload.totalTasks.value,
+        openTasks: kpi.workload.openTasks.value,
+        completedTasks: kpi.financial.billableTasks.value, // Using billable/completed count
+        todaysOutput: kpi.workload.completedToday,
+        financialExposure: kpi.financial.actualAmount.value,
+        inProgressCases: kpi.legacyCompatibility.cases.inProgress.value,
       },
       managementSummary: {
-        totalCases: kpi.legacy_compatibility.cases.total.value,
-        averageCaseTAT: kpi.performance.avg_tat_days.value,
+        totalCases: kpi.legacyCompatibility.cases.total.value,
+        averageCaseTAT: kpi.performance.avgTatDays.value,
         completionRate:
-          kpi.workload.total_tasks.value > 0
+          kpi.workload.totalTasks.value > 0
             ? Number(
-                (
-                  (kpi.financial.billable_tasks.value / kpi.workload.total_tasks.value) *
-                  100
-                ).toFixed(2)
+                ((kpi.financial.billableTasks.value / kpi.workload.totalTasks.value) * 100).toFixed(
+                  2
+                )
               )
             : 0,
       },
@@ -102,8 +101,8 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
         pending: derivedPending,
         assigned: 0, // Not explicitly tracked in aggregate KPI yet
         inProgress: inProgressVal,
-        completed: kpi.legacy_compatibility.tasks.completed.value,
-        revoked: kpi.legacy_compatibility.tasks.revoked.value,
+        completed: kpi.legacyCompatibility.tasks.completed.value,
+        revoked: kpi.legacyCompatibility.tasks.revoked.value,
       },
     };
 
@@ -213,9 +212,9 @@ export const getPerformanceMetrics = async (req: AuthenticatedRequest, res: Resp
 
     const kpi = await DashboardKPIService.getKPIs(filters);
 
-    const totalCases = kpi.legacy_compatibility.tasks.total.value; // Using Task count as per classification
-    const completedCases = kpi.legacy_compatibility.tasks.completed.value;
-    const avgTurnaroundDays = kpi.performance.avg_tat_days.value;
+    const totalCases = kpi.legacyCompatibility.tasks.total.value; // Using Task count as per classification
+    const completedCases = kpi.legacyCompatibility.tasks.completed.value;
+    const avgTurnaroundDays = kpi.performance.avgTatDays.value;
 
     const overall = {
       totalCases,
@@ -273,8 +272,8 @@ export const getDashboardStats = async (req: AuthenticatedRequest, res: Response
 
     const kpi = await DashboardKPIService.getKPIs(filters);
 
-    const totalCases = kpi.legacy_compatibility.cases.total.value;
-    const completedCases = kpi.legacy_compatibility.cases.completed.value;
+    const totalCases = kpi.legacyCompatibility.cases.total.value;
+    const completedCases = kpi.legacyCompatibility.cases.completed.value;
 
     const dashboardStats = {
       period: period || 'month',
@@ -285,14 +284,14 @@ export const getDashboardStats = async (req: AuthenticatedRequest, res: Response
       stats: {
         totalCases,
         pendingCases: 0, // Not explicitly separated in KPI yet
-        inProgressCases: kpi.legacy_compatibility.cases.in_progress.value,
+        inProgressCases: kpi.legacyCompatibility.cases.inProgress.value,
         completedCases,
         rejectedCases: 0, // Not explicitly separated in KPI interface yet
-        revokedTasks: kpi.legacy_compatibility.tasks.revoked.value,
-        totalClients: kpi.legacy_compatibility.clients.total.value,
-        activeUsers: kpi.legacy_compatibility.field_agents.total.value,
+        revokedTasks: kpi.legacyCompatibility.tasks.revoked.value,
+        totalClients: kpi.legacyCompatibility.clients.total.value,
+        activeUsers: kpi.legacyCompatibility.fieldAgents.total.value,
         completionRate: totalCases > 0 ? Math.round((completedCases / totalCases) * 100) : 0,
-        avgTurnaroundDays: kpi.performance.avg_tat_days.value,
+        avgTurnaroundDays: kpi.performance.avgTatDays.value,
       },
     };
 
@@ -399,7 +398,7 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
       threshold = '1',
       page = 1,
       limit = 20,
-      sortBy = 'days_overdue',
+      sortBy = 'daysOverdue',
       sortOrder = 'desc',
       search,
       priority,
@@ -470,14 +469,14 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
 
     const whereClause = conditions.join(' AND ');
 
-    // Sort mapping
+    // API contract: sortBy is camelCase; we map it to the snake_case DB column.
     const sortFieldMap: Record<string, string> = {
-      task_number: 'vt.task_number',
-      customer_name: 'c.customer_name',
-      days_overdue: 'days_overdue',
+      taskNumber: 'vt.task_number',
+      customerName: 'c.customer_name',
+      daysOverdue: 'days_overdue',
       status: 'vt.status',
       priority: 'vt.priority',
-      created_at: 'vt.created_at',
+      createdAt: 'vt.created_at',
     };
     const orderBy = sortFieldMap[sortBy as string] || 'days_overdue';
     const direction = sortOrder === 'asc' ? 'ASC' : 'DESC';
@@ -511,8 +510,8 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
     `;
 
     const [tasksRes, countRes] = await Promise.all([
-      pool.query(query, [...params, limitNum, offset]),
-      pool.query(countQuery, params),
+      dbQuery(query, [...params, limitNum, offset]),
+      dbQuery(countQuery, params),
     ]);
 
     const totalCount = parseInt(countRes.rows[0].count);
@@ -575,15 +574,15 @@ export const getTATStats = async (req: AuthenticatedRequest, res: Response) => {
     const kpi = await DashboardKPIService.getKPIs(filters);
 
     const tatStats = {
-      criticalOverdue: kpi.workload.sla_risk_tasks.value,
-      totalOverdue: kpi.workload.overdue_tasks.value,
-      totalActiveTasks: kpi.workload.open_tasks.value,
-      onTrack: Math.max(0, kpi.workload.open_tasks.value - kpi.workload.overdue_tasks.value),
-      avgOverdueDays: kpi.workload.avg_overdue_days,
-      completedToday: kpi.workload.completed_today,
+      criticalOverdue: kpi.workload.slaRiskTasks.value,
+      totalOverdue: kpi.workload.overdueTasks.value,
+      totalActiveTasks: kpi.workload.openTasks.value,
+      onTrack: Math.max(0, kpi.workload.openTasks.value - kpi.workload.overdueTasks.value),
+      avgOverdueDays: kpi.workload.avgOverdueDays,
+      completedToday: kpi.workload.completedToday,
       overduePercentage:
-        kpi.workload.open_tasks.value > 0
-          ? Math.round((kpi.workload.overdue_tasks.value / kpi.workload.open_tasks.value) * 100)
+        kpi.workload.openTasks.value > 0
+          ? Math.round((kpi.workload.overdueTasks.value / kpi.workload.openTasks.value) * 100)
           : 0,
     };
 
@@ -632,7 +631,7 @@ export const getSLARiskMonitoring = async (req: AuthenticatedRequest, res: Respo
     // Using 'sla_risk_tasks' metric for 'critical' count proxy.
     // Detailed list is empty to satisfy "No Direct SQL" rule.
 
-    const criticalCount = kpi.workload.sla_risk_tasks.value;
+    const criticalCount = kpi.workload.slaRiskTasks.value;
 
     const slaRiskData = {
       summary: {
@@ -640,7 +639,7 @@ export const getSLARiskMonitoring = async (req: AuthenticatedRequest, res: Respo
         warning: 0,
         critical: criticalCount,
         breached: 0, // Not explicitly separate in minimal KPI yet (or maybe is included in risk?)
-        total: kpi.workload.open_tasks.value,
+        total: kpi.workload.openTasks.value,
       },
       criticalTasks: [], // Empty list
     };

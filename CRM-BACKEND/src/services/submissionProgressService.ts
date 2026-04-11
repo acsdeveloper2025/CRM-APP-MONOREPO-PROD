@@ -40,22 +40,22 @@ export interface SubmissionProgress {
 
 interface SubmissionProgressRow {
   id: string;
-  case_id: string;
-  verification_type: string;
+  caseId: string;
+  verificationType: string;
   status: 'PREPARING' | 'UPLOADING' | 'SUBMITTING' | 'COMPLETED' | 'FAILED';
-  overall_progress: number;
-  current_step: string;
+  overallProgress: number;
+  currentStep: string;
   steps: string;
-  start_time: string;
-  end_time?: string;
-  estimated_time_remaining?: number;
-  bytes_uploaded?: number;
-  total_bytes?: number;
-  upload_speed?: number;
-  compression_stats?: string;
-  retry_info?: string;
-  created_at: string;
-  updated_at: string;
+  startTime: string;
+  endTime?: string;
+  estimatedTimeRemaining?: number;
+  bytesUploaded?: number;
+  totalBytes?: number;
+  uploadSpeed?: number;
+  compressionStats?: string;
+  retryInfo?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface RetryQueueItem {
@@ -101,8 +101,8 @@ class SubmissionProgressService {
     }> = [
       { id: 'validation', name: 'Validating Form Data', status: 'PENDING', progress: 0 },
       { id: 'compression', name: 'Optimizing Data', status: 'PENDING', progress: 0 },
-      { id: 'upload_photos', name: 'Uploading Photos', status: 'PENDING', progress: 0 },
-      { id: 'submit_form', name: 'Submitting Verification', status: 'PENDING', progress: 0 },
+      { id: 'uploadPhotos', name: 'Uploading Photos', status: 'PENDING', progress: 0 },
+      { id: 'submitForm', name: 'Submitting Verification', status: 'PENDING', progress: 0 },
       { id: 'confirmation', name: 'Processing Confirmation', status: 'PENDING', progress: 0 },
     ];
 
@@ -220,7 +220,7 @@ class SubmissionProgressService {
     values.push(id); // For WHERE clause
 
     if (updateFields.length === 1) {
-      // Only updated_at
+      // Only updatedAt
       return this.getSubmissionProgress(id);
     }
 
@@ -398,22 +398,22 @@ class SubmissionProgressService {
   private mapRowToSubmissionProgress(row: SubmissionProgressRow): SubmissionProgress {
     return {
       id: row.id,
-      caseId: row.case_id,
-      verificationType: row.verification_type,
+      caseId: row.caseId,
+      verificationType: row.verificationType,
       status: row.status,
-      overallProgress: row.overall_progress,
-      currentStep: row.current_step,
+      overallProgress: row.overallProgress,
+      currentStep: row.currentStep,
       steps: JSON.parse(row.steps || '[]'),
-      startTime: row.start_time,
-      endTime: row.end_time,
-      estimatedTimeRemaining: row.estimated_time_remaining,
-      bytesUploaded: row.bytes_uploaded,
-      totalBytes: row.total_bytes,
-      uploadSpeed: row.upload_speed,
-      compressionStats: row.compression_stats ? JSON.parse(row.compression_stats) : undefined,
-      retryInfo: row.retry_info ? JSON.parse(row.retry_info) : undefined,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      startTime: row.startTime,
+      endTime: row.endTime,
+      estimatedTimeRemaining: row.estimatedTimeRemaining,
+      bytesUploaded: row.bytesUploaded,
+      totalBytes: row.totalBytes,
+      uploadSpeed: row.uploadSpeed,
+      compressionStats: row.compressionStats ? JSON.parse(row.compressionStats) : undefined,
+      retryInfo: row.retryInfo ? JSON.parse(row.retryInfo) : undefined,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
     };
   }
 }

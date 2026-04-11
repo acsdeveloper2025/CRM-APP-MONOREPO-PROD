@@ -116,7 +116,7 @@ export type FieldUserLatestLocation = {
   lng: number;
   accuracy: number | null;
   recordedAt: Date | null;
-  source: 'locations' | 'form_submissions' | 'verification_tasks';
+  source: 'locations' | 'formSubmissions' | 'verificationTasks';
 };
 
 export type FieldUserOperatingArea = {
@@ -255,7 +255,7 @@ export class FieldMonitoringService {
             JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
             JOIN permissions p ON p.id = rp.permission_id
             WHERE ur.user_id = u.id
-          ), ARRAY[]::varchar[]) as "permissionCodes"
+          ), ARRAY[]::varchar[]) as "permission_codes"
         FROM users u
         WHERE u.deleted_at IS NULL
           AND u.is_active = true
@@ -591,11 +591,11 @@ export class FieldMonitoringService {
         `
           SELECT
             assigned_to as user_id,
-            MAX(started_at) as "maxStartedAt",
-            MAX(submitted_at) as "maxSubmittedAt",
-            MAX(updated_at) as "maxUpdatedAt",
-            MAX(current_assigned_at) as "maxCurrentAssignedAt",
-            MAX(assigned_at) as "maxAssignedAt"
+            MAX(started_at) as "max_started_at",
+            MAX(submitted_at) as "max_submitted_at",
+            MAX(updated_at) as "max_updated_at",
+            MAX(current_assigned_at) as "max_current_assigned_at",
+            MAX(assigned_at) as "max_assigned_at"
           FROM verification_tasks
           WHERE assigned_to = ANY($1::uuid[])
           GROUP BY assigned_to
@@ -695,7 +695,7 @@ export class FieldMonitoringService {
           SELECT DISTINCT ON (fs.submitted_by)
             fs.submitted_by as user_id,
             fs.geo_location as geo_location,
-            fs.submitted_at as "submittedAt"
+            fs.submitted_at as "submitted_at"
           FROM form_submissions fs
           WHERE fs.submitted_by = ANY($1::uuid[])
             AND fs.geo_location IS NOT NULL
@@ -716,7 +716,7 @@ export class FieldMonitoringService {
               vt.assigned_at::timestamptz,
               vt.updated_at::timestamptz,
               vt.created_at::timestamptz
-            ) as "activityAt"
+            ) as "activity_at"
           FROM verification_tasks vt
           WHERE vt.assigned_to = ANY($1::uuid[])
             AND vt.latitude IS NOT NULL
@@ -769,7 +769,7 @@ export class FieldMonitoringService {
         lng: coordinates.lng,
         accuracy: coordinates.accuracy,
         recordedAt: this.toDate(row.submittedAt),
-        source: 'form_submissions',
+        source: 'formSubmissions',
       });
     });
 
@@ -790,7 +790,7 @@ export class FieldMonitoringService {
         lng,
         accuracy: null,
         recordedAt: this.toDate(row.activityAt),
-        source: 'verification_tasks',
+        source: 'verificationTasks',
       });
     });
 
@@ -811,10 +811,10 @@ export class FieldMonitoringService {
       `
         SELECT DISTINCT ON (vt.assigned_to)
           vt.assigned_to as user_id,
-          vt.id as "verificationTaskId",
+          vt.id as "verification_task_id",
           vt.pincode,
           vt.area_id as area_id,
-          a.name as "areaName"
+          a.name as "area_name"
         FROM verification_tasks vt
         LEFT JOIN areas a ON a.id = vt.area_id
         WHERE vt.assigned_to = ANY($1::uuid[])
@@ -874,7 +874,7 @@ export class FieldMonitoringService {
             uaa.pincode_id as pincode_id,
             p.code as pincode_code,
             uaa.area_id as area_id,
-            a.name as "areaName"
+            a.name as "area_name"
           FROM user_area_assignments uaa
           JOIN pincodes p ON p.id = uaa.pincode_id
           JOIN areas a ON a.id = uaa.area_id
@@ -945,19 +945,19 @@ export class FieldMonitoringService {
       `
         SELECT
           vt.assigned_to as user_id,
-          vt.id as "taskId",
-          vt.task_number as "taskNumber",
+          vt.id as "task_id",
+          vt.task_number as "task_number",
           vt.status,
           vt.priority,
           vt.started_at as started_at,
           vt.assigned_at as assigned_at,
-          vt.current_assigned_at as "currentAssignedAt",
+          vt.current_assigned_at as "current_assigned_at",
           vt.pincode,
           c.id as case_id,
           c.case_id as case_number,
           c.customer_name as customer_name,
           c.customer_phone as customer_phone,
-          c.status as "caseStatus"
+          c.status as "case_status"
         FROM verification_tasks vt
         JOIN cases c ON c.id = vt.case_id
         WHERE vt.assigned_to = ANY($1::uuid[])

@@ -209,7 +209,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
       typeof formData.annualTurnover === 'number' &&
       formData.monthlyBusinessVolume * 12 > formData.annualTurnover * 1.2
     ) {
-      warnings.push('monthlyBusinessVolume seems inconsistent with annualTurnover');
+      warnings.push('monthly_business_volume seems inconsistent with annual_turnover');
     }
 
     // Team size validation

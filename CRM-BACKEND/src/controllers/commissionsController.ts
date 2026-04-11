@@ -102,17 +102,16 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const validSortColumns = [
-      'createdAt',
-      'commissionAmount',
-      'status',
-      'caseCompletedAt',
-      'approvedAt',
-      'paidAt',
-    ];
-    const safeSortBy: string = validSortColumns.includes(sortBy as string)
-      ? `"${sortBy as string}"`
-      : 'created_at';
+    // API contract: sortBy is camelCase; map to snake_case DB column.
+    const sortColumnMap: Record<string, string> = {
+      createdAt: 'created_at',
+      commissionAmount: 'commission_amount',
+      status: 'status',
+      caseCompletedAt: 'case_completed_at',
+      approvedAt: 'approved_at',
+      paidAt: 'paid_at',
+    };
+    const safeSortBy: string = sortColumnMap[sortBy as string] || 'created_at';
     const safeSortOrder: 'ASC' | 'DESC' = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
     const limitNum = Math.max(1, Number(limit) || 20);
@@ -186,9 +185,9 @@ export const getCommissionById = async (req: AuthenticatedRequest, res: Response
       SELECT
         cc.*,
         u.name as user_name,
-        u.email as "userEmail",
-        u2.name as "approvedByName",
-        u3.name as "paidByName"
+        u.email as "user_email",
+        u2.name as "approved_by_name",
+        u3.name as "paid_by_name"
       FROM commission_calculations cc
       LEFT JOIN users u ON cc.user_id = u.id
       LEFT JOIN users u2 ON cc.approved_by = u2.id
@@ -264,8 +263,8 @@ export const approveCommission = async (req: AuthenticatedRequest, res: Response
     `;
     const checkResult = await query<{
       status: string;
-      user_id: string;
-      client_id: number;
+      userId: string;
+      clientId: number;
       scopeProductId: number | null;
     }>(checkSql, [id]);
 
@@ -280,8 +279,8 @@ export const approveCommission = async (req: AuthenticatedRequest, res: Response
     if (
       !valueAllowedByScope(
         {
-          userId: checkResult.rows[0].user_id,
-          clientId: Number(checkResult.rows[0].client_id),
+          userId: checkResult.rows[0].userId,
+          clientId: Number(checkResult.rows[0].clientId),
           productId: toOptionalNumber(checkResult.rows[0].scopeProductId),
         },
         scope
@@ -363,9 +362,9 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
     `;
     const checkResult = await query<{
       status: string;
-      paid_at: string | null;
-      user_id: string;
-      client_id: number;
+      paidAt: string | null;
+      userId: string;
+      clientId: number;
       scopeProductId: number | null;
     }>(checkSql, [id]);
 
@@ -380,8 +379,8 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
     if (
       !valueAllowedByScope(
         {
-          userId: checkResult.rows[0].user_id,
-          clientId: Number(checkResult.rows[0].client_id),
+          userId: checkResult.rows[0].userId,
+          clientId: Number(checkResult.rows[0].clientId),
           productId: toOptionalNumber(checkResult.rows[0].scopeProductId),
         },
         scope
@@ -402,7 +401,7 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
       });
     }
 
-    if (checkResult.rows[0].paid_at) {
+    if (checkResult.rows[0].paidAt) {
       return res.status(400).json({
         success: false,
         message: 'Commission is already marked as paid',
@@ -469,8 +468,8 @@ interface SummaryStats {
 }
 
 interface UserSummaryStats extends SummaryStats {
-  user_id: string;
-  user_name: string;
+  userId: string;
+  userName: string;
 }
 
 export const getCommissionSummary = async (req: AuthenticatedRequest, res: Response) => {
@@ -543,8 +542,8 @@ export const getCommissionSummary = async (req: AuthenticatedRequest, res: Respo
         paidCommissions: Number(stats.paidCommissions || 0),
         paidAmount: Number(stats.paidAmount || 0),
         userSummary: userSummaryResult.rows.map(row => ({
-          userId: row.user_id,
-          userName: row.user_name,
+          userId: row.userId,
+          userName: row.userName,
           totalCommissions: Number(row.totalCommissions),
           totalAmount: Number(row.totalAmount),
           paidAmount: Number(row.paidAmount),

@@ -1,5 +1,6 @@
 import { Pool, type PoolClient, type QueryResult } from 'pg';
 import type { QueryParams } from '@/types/database';
+import { camelizeRow } from '@/utils/rowTransform';
 import { logger } from './logger';
 
 const connectionString = process.env.DATABASE_URL;
@@ -45,12 +46,68 @@ logger.info('Database pool configured for enterprise scale', {
   maxCapacity: '500 connections',
 });
 
+// ============================================================================
+// camelCase row auto-conversion (the single conversion point for the backend)
+// ----------------------------------------------------------------------------
+// The `query()` export and the client handed to every `withTransaction()`
+// callback both route through `transformResult()`, which mutates each row
+// in place to add camelCase aliases alongside the existing snake_case keys.
+//
+// The transform is ADDITIVE (see rowTransform.ts): every snake_case column
+// also gets a camelCase alias on the same row object. Legacy code reading
+// `row.snake_case_field` keeps working, and new code reads `row.camelCaseField`.
+// Once all legacy reads are migrated, the transform can be tightened to pure
+// replacement. This is the same strategy the mobile app uses in its SQLite
+// DatabaseService.normalizeRow.
+//
+// The transform is SHALLOW — it only touches the top-level keys of the row.
+// JSONB column values are never inspected, so user-supplied payloads like
+// `id_details: { user_id: 5 }` keep their original keys intact.
+// ============================================================================
+
+const transformResult = <T>(result: QueryResult<T>): QueryResult<T> => {
+  if (result && Array.isArray(result.rows)) {
+    for (let i = 0; i < result.rows.length; i++) {
+      const row = result.rows[i];
+      if (row && typeof row === 'object' && !Array.isArray(row)) {
+        camelizeRow(row as Record<string, unknown>);
+      }
+    }
+  }
+  return result;
+};
+
+/**
+ * Wrap a PoolClient's `query` method so every result is camelized before it
+ * reaches the caller. Used inside `withTransaction()` so that
+ * `await client.query(...)` inside a callback returns rows with camelCase keys.
+ * Mutates the client in place and returns it for chaining.
+ *
+ * Exported so that legacy call sites doing manual `pool.connect()` + BEGIN/COMMIT
+ * can keep the wrapping contract until they are migrated to `withTransaction()`.
+ * New code should use `withTransaction()` instead of manual transactions.
+ */
+export const wrapClient = (client: PoolClient): PoolClient => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const originalQuery: any = client.query.bind(client);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (client as any).query = async function wrappedClientQuery(
+    ...args: unknown[]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): Promise<any> {
+    const result = await originalQuery(...args);
+    return transformResult(result);
+  };
+  return client;
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const query = async <T = any>(
   text: string,
   params: QueryParams = []
 ): Promise<QueryResult<T>> => {
-  return pool.query<T>(text, params);
+  const result = await pool.query<T>(text, params);
+  return transformResult(result);
 };
 
 export const withTransaction = async <T>(
@@ -58,7 +115,7 @@ export const withTransaction = async <T>(
   maxRetries = 3
 ): Promise<T> => {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    const client = await pool.connect();
+    const client = wrapClient(await pool.connect());
     try {
       await client.query('BEGIN');
       const result = await fn(client);

@@ -140,7 +140,7 @@ export const createCommissionRateType = async (req: AuthenticatedRequest, res: R
     const result = await query(
       `INSERT INTO commission_rate_types (rate_type_id, commission_amount, currency, is_active, created_by)
        VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, rate_type_id as rate_type_id, commission_amount as "commissionAmount", 
+       RETURNING id, rate_type_id as rate_type_id, commission_amount as "commission_amount", 
                  currency, is_active as is_active,
                  created_by as created_by, created_at as created_at, updated_at as updated_at`,
       [rateTypeId, commissionAmount, currency, isActive, req.user?.id]
@@ -365,8 +365,8 @@ export const getFieldUserCommissionAssignments = async (
       scope,
       conditions: scopeConditions,
       params: queryParams as unknown as Array<string | number | boolean | string[] | number[]>,
-      userExpr: 'fuca.user_id',
-      clientExpr: 'fuca.client_id',
+      userExpr: 'fuca.userId',
+      clientExpr: 'fuca.clientId',
     });
     whereClause = scopeConditions.join(' AND ');
     paramCount = queryParams.length;
@@ -607,8 +607,8 @@ export const updateFieldUserCommissionAssignment = async (
     if (
       !valueAllowedByScope(
         {
-          userId: existingAssignment.rows[0].user_id,
-          clientId: existingAssignment.rows[0].client_id ?? null,
+          userId: existingAssignment.rows[0].userId,
+          clientId: existingAssignment.rows[0].clientId ?? null,
         },
         scope
       )
@@ -697,8 +697,8 @@ export const deleteFieldUserCommissionAssignment = async (
     if (
       !valueAllowedByScope(
         {
-          userId: existingAssignment.rows[0].user_id,
-          clientId: existingAssignment.rows[0].client_id ?? null,
+          userId: existingAssignment.rows[0].userId,
+          clientId: existingAssignment.rows[0].clientId ?? null,
         },
         scope
       )
@@ -798,9 +798,9 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
       scope,
       conditions: scopeConditions,
       params: queryParams as unknown as Array<string | number | boolean | string[] | number[]>,
-      userExpr: 'cc.user_id',
-      clientExpr: 'cc.client_id',
-      productExpr: 'cases.product_id',
+      userExpr: 'cc.userId',
+      clientExpr: 'cc.clientId',
+      productExpr: 'cases.productId',
     });
     whereClause = scopeConditions.join(' AND ');
     paramCount = queryParams.length;
@@ -936,8 +936,8 @@ export const calculateCommissionForCompletedCase = async (
     }
 
     const caseData = caseResult.rows[0];
-    const scopedProductId = Number.isFinite(Number(caseData.product_id))
-      ? Number(caseData.product_id)
+    const scopedProductId = Number.isFinite(Number(caseData.productId))
+      ? Number(caseData.productId)
       : Number.isFinite(Number(caseData.productId))
         ? Number(caseData.productId)
         : null;
@@ -945,8 +945,8 @@ export const calculateCommissionForCompletedCase = async (
     if (
       !valueAllowedByScope(
         {
-          userId: (caseData.assigned_to as string | null) ?? null,
-          clientId: Number.isFinite(Number(caseData.client_id)) ? Number(caseData.client_id) : null,
+          userId: (caseData.assignedTo as string | null) ?? null,
+          clientId: Number.isFinite(Number(caseData.clientId)) ? Number(caseData.clientId) : null,
           productId: scopedProductId,
         },
         scope
@@ -994,9 +994,9 @@ export const calculateCommissionForCompletedCase = async (
     `;
 
     const assignmentResult = await query(assignmentQuery, [
-      caseData.assigned_to,
-      caseData.rate_type_id,
-      caseData.client_id,
+      caseData.assignedTo,
+      caseData.rateTypeId,
+      caseData.clientId,
     ]);
 
     if (assignmentResult.rows.length === 0) {
@@ -1008,8 +1008,8 @@ export const calculateCommissionForCompletedCase = async (
     }
 
     const assignment = assignmentResult.rows[0];
-    const baseAmount = caseData.rate_amount || 0;
-    const commissionAmount = assignment.commission_amount || 0;
+    const baseAmount = caseData.rateAmount || 0;
+    const commissionAmount = assignment.commissionAmount || 0;
     const calculatedCommission = commissionAmount; // Fixed amount
 
     // Create commission calculation record
@@ -1022,10 +1022,10 @@ export const calculateCommissionForCompletedCase = async (
 
     const newCalculation = await query(insertQuery, [
       caseId,
-      caseData.case_number,
-      caseData.assigned_to,
-      caseData.client_id,
-      caseData.rate_type_id,
+      caseData.caseNumber,
+      caseData.assignedTo,
+      caseData.clientId,
+      caseData.rateTypeId,
       baseAmount,
       commissionAmount,
       calculatedCommission,
@@ -1037,8 +1037,8 @@ export const calculateCommissionForCompletedCase = async (
     logger.info('Created commission calculation for completed case', {
       userId: req.user?.id,
       caseId,
-      caseNumber: caseData.case_number,
-      fieldUserId: caseData.assigned_to,
+      caseNumber: caseData.caseNumber,
+      fieldUserId: caseData.assignedTo,
       calculatedCommission,
     });
 
@@ -1097,12 +1097,12 @@ export const autoCalculateCommissionForCase = async (caseId: string): Promise<bo
 
     const caseData = caseResult.rows[0];
 
-    if (!caseData.rate_type_id) {
+    if (!caseData.rateTypeId) {
       logger.info(`⚠️ No rate type assigned for case: ${caseId}`);
       return false;
     }
 
-    if (!caseData.user_id) {
+    if (!caseData.userId) {
       logger.info(`⚠️ No user assigned to case: ${caseId}`);
       return false;
     }
@@ -1125,9 +1125,9 @@ export const autoCalculateCommissionForCase = async (caseId: string): Promise<bo
     `;
 
     const assignmentResult = await query(assignmentQuery, [
-      caseData.user_id,
-      caseData.rate_type_id,
-      caseData.client_id,
+      caseData.userId,
+      caseData.rateTypeId,
+      caseData.clientId,
     ]);
 
     if (assignmentResult.rows.length === 0) {
@@ -1145,7 +1145,7 @@ export const autoCalculateCommissionForCase = async (caseId: string): Promise<bo
       WHERE case_id = $1 AND user_id = $2
     `;
 
-    const existingResult = await query(existingQuery, [caseId, caseData.user_id]);
+    const existingResult = await query(existingQuery, [caseId, caseData.userId]);
 
     if (existingResult.rows.length > 0) {
       logger.info(`ℹ️ Commission already calculated for case: ${caseId}`);
@@ -1153,8 +1153,8 @@ export const autoCalculateCommissionForCase = async (caseId: string): Promise<bo
     }
 
     // Calculate commission
-    const commissionAmount = parseFloat(assignment.commission_amount);
-    const baseAmount = parseFloat(caseData.base_amount) || 0;
+    const commissionAmount = parseFloat(assignment.commissionAmount);
+    const baseAmount = parseFloat(caseData.baseAmount) || 0;
 
     // Insert commission calculation
     const insertQuery = `
@@ -1182,16 +1182,16 @@ export const autoCalculateCommissionForCase = async (caseId: string): Promise<bo
 
     const insertResult = await query(insertQuery, [
       caseId,
-      caseData.case_number,
-      caseData.user_id,
-      caseData.client_id,
-      caseData.rate_type_id,
+      caseData.caseNumber,
+      caseData.userId,
+      caseData.clientId,
+      caseData.rateTypeId,
       baseAmount,
       commissionAmount,
       assignment.currency,
       'FIXED_AMOUNT',
       'CALCULATED',
-      caseData.case_completed_at,
+      caseData.caseCompletedAt,
     ]);
 
     const calculation = insertResult.rows[0];
@@ -1251,12 +1251,12 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
       return false;
     }
 
-    if (!taskData.rate_type_id) {
+    if (!taskData.rateTypeId) {
       logger.info(`⚠️ No rate type assigned for task: ${taskId}`);
       return false;
     }
 
-    if (!taskData.user_id) {
+    if (!taskData.userId) {
       logger.info(`⚠️ No user assigned to task: ${taskId}`);
       return false;
     }
@@ -1279,9 +1279,9 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
     `;
 
     const assignmentResult = await query(assignmentQuery, [
-      taskData.user_id,
-      taskData.rate_type_id,
-      taskData.client_id,
+      taskData.userId,
+      taskData.rateTypeId,
+      taskData.clientId,
     ]);
 
     if (assignmentResult.rows.length === 0) {
@@ -1294,11 +1294,11 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
     const assignment = assignmentResult.rows[0];
 
     // Calculate commission
-    const commissionAmount = parseFloat(assignment.commission_amount);
-    const baseAmount = parseFloat(taskData.base_amount) || 0;
+    const commissionAmount = parseFloat(assignment.commissionAmount);
+    const baseAmount = parseFloat(taskData.baseAmount) || 0;
 
     // IDEMPOTENT INSERT: Use ON CONFLICT DO NOTHING for concurrency safety
-    // The UNIQUE constraint on verification_task_id prevents duplicates
+    // The UNIQUE constraint on verificationTaskId prevents duplicates
     const insertQuery = `
       INSERT INTO commission_calculations (
         id,
@@ -1327,18 +1327,18 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
 
     const insertResult = await query(insertQuery, [
       taskId,
-      taskData.case_id,
-      taskData.case_number,
-      taskData.user_id,
-      taskData.client_id,
-      taskData.rate_type_id,
+      taskData.caseId,
+      taskData.caseNumber,
+      taskData.userId,
+      taskData.clientId,
+      taskData.rateTypeId,
       baseAmount,
       commissionAmount,
-      commissionAmount, // calculated_commission
+      commissionAmount, // calculatedCommission
       assignment.currency,
       'FIXED_AMOUNT',
       'CALCULATED',
-      taskData.task_completed_at,
+      taskData.taskCompletedAt,
     ]);
 
     // Check if insert was successful or skipped due to conflict
@@ -1387,9 +1387,9 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       scope,
       conditions: calcConditions,
       params: calcParams,
-      userExpr: 'cc.user_id',
-      clientExpr: 'cc.client_id',
-      productExpr: 'cases.product_id',
+      userExpr: 'cc.userId',
+      clientExpr: 'cc.clientId',
+      productExpr: 'cases.productId',
     });
     const calcWhere = calcConditions.length ? `WHERE ${calcConditions.join(' AND ')}` : '';
 
@@ -1417,8 +1417,8 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       scope,
       conditions: assignmentConditions,
       params: assignmentParams,
-      userExpr: 'user_id',
-      clientExpr: 'client_id',
+      userExpr: 'userId',
+      clientExpr: 'clientId',
     });
     const assignmentWhere = assignmentConditions.length
       ? `AND ${assignmentConditions.join(' AND ')}`
@@ -1431,7 +1431,7 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       ${assignmentWhere}
     `;
     const activeUsersResult = await query(activeUsersQuery, assignmentParams);
-    const activeUsers = activeUsersResult.rows[0]?.active_users || 0;
+    const activeUsers = activeUsersResult.rows[0]?.activeUsers || 0;
 
     // Get total assignments count
     const assignmentsQuery = `
@@ -1440,7 +1440,7 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       ${assignmentConditions.length ? `WHERE ${assignmentConditions.join(' AND ')}` : ''}
     `;
     const assignmentsResult = await query(assignmentsQuery, assignmentParams);
-    const totalAssignments = assignmentsResult.rows[0]?.total_assignments || 0;
+    const totalAssignments = assignmentsResult.rows[0]?.totalAssignments || 0;
 
     // Get top performing user
     const topUserQuery = `
@@ -1455,7 +1455,7 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       LIMIT 1
     `;
     const topUserResult = await query(topUserQuery, calcParams);
-    const topUser = topUserResult.rows[0]?.user_name || null;
+    const topUser = topUserResult.rows[0]?.userName || null;
 
     // Get most used rate type
     const topRateTypeQuery = `
@@ -1466,8 +1466,8 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
         assignmentConditions.length
           ? `WHERE ${assignmentConditions
               .join(' AND ')
-              .replace(/\buser_id\b/g, 'fuca.user_id')
-              .replace(/\bclient_id\b/g, 'fuca.client_id')}`
+              .replace(/\buserId\b/g, 'fuca.userId')
+              .replace(/\bclientId\b/g, 'fuca.clientId')}`
           : ''
       }
       GROUP BY fuca.rate_type_id, rt.name
@@ -1475,7 +1475,7 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       LIMIT 1
     `;
     const topRateTypeResult = await query(topRateTypeQuery, assignmentParams);
-    const topRateType = topRateTypeResult.rows[0]?.rate_type_name || null;
+    const topRateType = topRateTypeResult.rows[0]?.rateTypeName || null;
 
     // Get total rate types count
     const rateTypesQuery = `
@@ -1484,7 +1484,7 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       WHERE is_active = true
     `;
     const rateTypesResult = await query(rateTypesQuery);
-    const totalRateTypes = rateTypesResult.rows[0]?.total_rate_types || 0;
+    const totalRateTypes = rateTypesResult.rows[0]?.totalRateTypes || 0;
 
     // Get today's stats
     const todayQuery = `
@@ -1506,34 +1506,33 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       ${assignmentConditions.length ? `AND ${assignmentConditions.join(' AND ')}` : ''}
     `;
     const thisWeekResult = await query(thisWeekQuery, assignmentParams);
-    const newAssignmentsWeek = thisWeekResult.rows[0]?.new_assignments_week || 0;
+    const newAssignmentsWeek = thisWeekResult.rows[0]?.newAssignmentsWeek || 0;
 
     const commissionStats = {
       // Basic stats
-      totalCommissions: parseInt(stats.total_calculations) || 0,
-      totalAmount:
-        parseFloat(stats.total_paid_amount) + parseFloat(stats.total_pending_amount) || 0,
-      pendingCommissions: parseInt(stats.pending_calculations) || 0,
-      pendingAmount: parseFloat(stats.total_pending_amount) || 0,
-      approvedCommissions: parseInt(stats.approved_calculations) || 0,
+      totalCommissions: parseInt(stats.totalCalculations) || 0,
+      totalAmount: parseFloat(stats.totalPaidAmount) + parseFloat(stats.totalPendingAmount) || 0,
+      pendingCommissions: parseInt(stats.pendingCalculations) || 0,
+      pendingAmount: parseFloat(stats.totalPendingAmount) || 0,
+      approvedCommissions: parseInt(stats.approvedCalculations) || 0,
       approvedAmount: 0, // Can be calculated if needed
-      paidCommissions: parseInt(stats.paid_calculations) || 0,
-      paidAmount: parseFloat(stats.total_paid_amount) || 0,
-      rejectedCommissions: parseInt(stats.rejected_calculations) || 0,
+      paidCommissions: parseInt(stats.paidCalculations) || 0,
+      paidAmount: parseFloat(stats.totalPaidAmount) || 0,
+      rejectedCommissions: parseInt(stats.rejectedCalculations) || 0,
       rejectedAmount: 0, // Can be calculated if needed
       currency: 'INR',
 
       // Frontend specific stats
-      totalCommissionPaid: parseFloat(stats.total_paid_amount) || 0,
-      totalCommissionPending: parseFloat(stats.total_pending_amount) || 0,
+      totalCommissionPaid: parseFloat(stats.totalPaidAmount) || 0,
+      totalCommissionPending: parseFloat(stats.totalPendingAmount) || 0,
       activeFieldUsers: parseInt(activeUsers) || 0,
       totalAssignments: parseInt(totalAssignments) || 0,
-      averageCommissionPerCase: parseFloat(stats.average_commission) || 0,
+      averageCommissionPerCase: parseFloat(stats.averageCommission) || 0,
       topPerformingUser: topUser,
       mostUsedRateType: topRateType,
       totalRateTypes: parseInt(totalRateTypes) || 0,
-      casesCompletedToday: parseInt(todayStats.calculations_today) || 0,
-      commissionCalculatedToday: parseFloat(todayStats.commission_today) || 0,
+      casesCompletedToday: parseInt(todayStats.calculationsToday) || 0,
+      commissionCalculatedToday: parseFloat(todayStats.commissionToday) || 0,
       newAssignmentsThisWeek: parseInt(newAssignmentsWeek) || 0,
       paymentBatchesPending: 0, // Can be implemented when payment batches are added
     };
@@ -1634,23 +1633,23 @@ export const exportCommissionsToExcel = async (req: AuthenticatedRequest, res: R
     const worksheet = workbook.addWorksheet('Commissions');
 
     worksheet.columns = [
-      { header: 'Case #', key: 'case_number', width: 12 },
-      { header: 'Customer', key: 'customer_name', width: 25 },
-      { header: 'Task #', key: 'task_number', width: 15 },
-      { header: 'Task Title', key: 'task_title', width: 22 },
-      { header: 'Verification Type', key: 'verification_type_name', width: 20 },
-      { header: 'Field Agent', key: 'field_agent_name', width: 20 },
-      { header: 'Agent ID', key: 'field_agent_id', width: 12 },
-      { header: 'Client', key: 'client_name', width: 20 },
-      { header: 'Product', key: 'product_name', width: 18 },
-      { header: 'Rate Type', key: 'rate_type_name', width: 15 },
-      { header: 'Base Amount', key: 'base_amount', width: 12 },
-      { header: 'Commission Amount', key: 'calculated_commission', width: 18 },
-      { header: 'Status', key: 'commission_status', width: 12 },
-      { header: 'Payment Reference', key: 'payment_reference', width: 20 },
-      { header: 'Verification Outcome', key: 'verification_outcome', width: 18 },
-      { header: 'Task Completed', key: 'task_completed_at', width: 20 },
-      { header: 'Created At', key: 'created_at', width: 20 },
+      { header: 'Case #', key: 'caseNumber', width: 12 },
+      { header: 'Customer', key: 'customerName', width: 25 },
+      { header: 'Task #', key: 'taskNumber', width: 15 },
+      { header: 'Task Title', key: 'taskTitle', width: 22 },
+      { header: 'Verification Type', key: 'verificationTypeName', width: 20 },
+      { header: 'Field Agent', key: 'fieldAgentName', width: 20 },
+      { header: 'Agent ID', key: 'fieldAgentId', width: 12 },
+      { header: 'Client', key: 'clientName', width: 20 },
+      { header: 'Product', key: 'productName', width: 18 },
+      { header: 'Rate Type', key: 'rateTypeName', width: 15 },
+      { header: 'Base Amount', key: 'baseAmount', width: 12 },
+      { header: 'Commission Amount', key: 'calculatedCommission', width: 18 },
+      { header: 'Status', key: 'commissionStatus', width: 12 },
+      { header: 'Payment Reference', key: 'paymentReference', width: 20 },
+      { header: 'Verification Outcome', key: 'verificationOutcome', width: 18 },
+      { header: 'Task Completed', key: 'taskCompletedAt', width: 20 },
+      { header: 'Created At', key: 'createdAt', width: 20 },
     ];
 
     worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
@@ -1659,12 +1658,12 @@ export const exportCommissionsToExcel = async (req: AuthenticatedRequest, res: R
     result.rows.forEach((row: Record<string, unknown>) => {
       worksheet.addRow({
         ...row,
-        base_amount: row.base_amount ? Number(row.base_amount) : null,
-        calculated_commission: row.calculated_commission ? Number(row.calculated_commission) : null,
-        task_completed_at: row.task_completed_at
-          ? new Date(row.task_completed_at as string).toLocaleString()
+        baseAmount: row.baseAmount ? Number(row.baseAmount) : null,
+        calculatedCommission: row.calculatedCommission ? Number(row.calculatedCommission) : null,
+        taskCompletedAt: row.taskCompletedAt
+          ? new Date(row.taskCompletedAt as string).toLocaleString()
           : '',
-        created_at: row.created_at ? new Date(row.created_at as string).toLocaleString() : '',
+        createdAt: row.createdAt ? new Date(row.createdAt as string).toLocaleString() : '',
       });
     });
 

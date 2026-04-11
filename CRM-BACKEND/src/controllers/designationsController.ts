@@ -108,12 +108,12 @@ export const getDesignationById = async (req: Request, res: Response) => {
         d.name,
         d.description,
         d.department_id,
-        dept.name as "departmentName",
+        dept.name as "department_name",
         d.is_active,
         d.created_at,
         d.updated_at,
-        creator.name as "createdByName",
-        updater.name as "updatedByName"
+        creator.name as "created_by_name",
+        updater.name as "updated_by_name"
       FROM designations d
       LEFT JOIN departments dept ON d.department_id = dept.id
       LEFT JOIN users creator ON d.created_by = creator.id

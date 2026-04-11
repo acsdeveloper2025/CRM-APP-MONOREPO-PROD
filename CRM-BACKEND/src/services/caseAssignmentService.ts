@@ -247,12 +247,12 @@ export class CaseAssignmentService {
           cah.assigned_at,
           cah.reason,
           cah.batch_id,
-          from_user.name as "fromUserName",
-          from_user.email as "fromUserEmail",
-          to_user.name as "toUserName",
-          to_user.email as "toUserEmail",
-          assigned_by.name as "assignedByName",
-          assigned_by.email as "assignedByEmail"
+          from_user.name as "from_user_name",
+          from_user.email as "from_user_email",
+          to_user.name as "to_user_name",
+          to_user.email as "to_user_email",
+          assigned_by.name as "assigned_by_name",
+          assigned_by.email as "assigned_by_email"
         FROM case_assignment_history cah
         LEFT JOIN users from_user ON cah.from_user_id = from_user.id
         LEFT JOIN users to_user ON cah.to_user_id = to_user.id

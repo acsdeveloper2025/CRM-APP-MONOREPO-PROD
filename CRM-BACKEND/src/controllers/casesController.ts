@@ -1,7 +1,8 @@
 import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
-import { pool } from '../config/database';
+import { redact } from '../utils/logRedact';
+import { pool, query as dbQuery, wrapClient } from '../config/database';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -277,18 +278,19 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     // Build FINAL WHERE clause for listing
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Validate sort column and implement custom sorting logic
-    const allowedSortColumns = [
-      'createdAt',
-      'updatedAt',
-      'customerName',
-      'priority',
-      'status',
-      'caseId',
-      'completedAt',
-      'pendingDuration',
-    ];
-    let safeSortBy = allowedSortColumns.includes(sortBy) ? sortBy : 'caseId';
+    // API contract: sortBy is camelCase; map to snake_case DB column name.
+    // `pendingDuration` is a computed expression handled below.
+    const sortColumnMap: Record<string, string> = {
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      customerName: 'customer_name',
+      priority: 'priority',
+      status: 'status',
+      caseId: 'case_id',
+      completedAt: 'completed_at',
+    };
+    let safeSortBy =
+      sortBy && (sortColumnMap[sortBy] || sortBy === 'pendingDuration') ? sortBy : 'caseId';
     let safeSortOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
     // Custom sorting logic based on status filter
@@ -320,7 +322,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       ${whereClause}
     `;
 
-    const countResult = await pool.query(countQuery, params);
+    const countResult = await dbQuery(countQuery, params);
     const total = parseInt(countResult.rows[0].total);
 
     // Get case statistics for metric cards (ignoring the active tab's status filter)
@@ -346,7 +348,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       LEFT JOIN verification_tasks vt ON c.id = vt.case_id
       ${baseWhereClause}
     `;
-    const statsResult = await pool.query(statsQuery, baseParams);
+    const statsResult = await dbQuery(statsQuery, baseParams);
     const statistics = statsResult.rows[0];
 
     // Enhanced query with all 13 required fields for mobile app and custom sorting
@@ -369,7 +371,8 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
           END ${safeSortOrder}
       `;
     } else {
-      orderByClause = `ORDER BY c."${typeof safeSortBy === 'string' || typeof safeSortBy === 'number' ? String(safeSortBy) : 'createdAt'}" ${safeSortOrder}`;
+      const safeColumn = sortColumnMap[safeSortBy] || 'created_at';
+      orderByClause = `ORDER BY c.${safeColumn} ${safeSortOrder}`;
     }
 
     const casesQuery = `
@@ -448,7 +451,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
 
     // Execute query with performance monitoring
     const queryStartTime = Date.now();
-    const casesResult = await pool.query(casesQuery, params);
+    const casesResult = await dbQuery(casesQuery, params);
     const queryTime = Date.now() - queryStartTime;
 
     // Calculate pagination info
@@ -745,7 +748,7 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
       }
     }
 
-    const result = await pool.query(caseQuery, queryParams);
+    const result = await dbQuery(caseQuery, queryParams);
 
     if (result.rows.length === 0) {
       const message = isExecutionActor
@@ -779,54 +782,54 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
       ORDER BY a.created_at ASC, v.created_at ASC, vi.visit_number DESC
     `;
 
-    const hierarchyResult = await pool.query(hierarchyQuery, [caseRow.id]);
+    const hierarchyResult = await dbQuery(hierarchyQuery, [caseRow.id]);
 
     // Group hierarchy data
     const applicantsMap = new Map();
 
     hierarchyResult.rows.forEach(row => {
-      if (!row.applicant_id) {
+      if (!row.applicantId) {
         return;
       }
 
-      if (!applicantsMap.has(row.applicant_id)) {
-        applicantsMap.set(row.applicant_id, {
-          id: row.applicant_id,
-          name: row.applicant_name,
-          mobile: row.applicant_mobile,
-          role: row.applicant_role,
+      if (!applicantsMap.has(row.applicantId)) {
+        applicantsMap.set(row.applicantId, {
+          id: row.applicantId,
+          name: row.applicantName,
+          mobile: row.applicantMobile,
+          role: row.applicantRole,
           verifications: new Map(),
         });
       }
 
-      const applicant = applicantsMap.get(row.applicant_id);
+      const applicant = applicantsMap.get(row.applicantId);
 
-      if (row.verification_id) {
-        if (!applicant.verifications.has(row.verification_id)) {
-          applicant.verifications.set(row.verification_id, {
-            id: row.verification_id,
-            verification_type_id: row.verification_type_id,
-            verification_type_name: row.verification_type_name,
+      if (row.verificationId) {
+        if (!applicant.verifications.has(row.verificationId)) {
+          applicant.verifications.set(row.verificationId, {
+            id: row.verificationId,
+            verificationTypeId: row.verificationTypeId,
+            verificationTypeName: row.verificationTypeName,
             address: row.address,
-            pincode_id: row.pincode_id,
+            pincodeId: row.pincodeId,
             visits: [],
           });
         }
 
-        const verification = applicant.verifications.get(row.verification_id);
+        const verification = applicant.verifications.get(row.verificationId);
 
-        if (row.visit_id) {
+        if (row.visitId) {
           verification.visits.push({
-            id: row.visit_id,
-            status: row.visit_status,
-            visit_number: row.visit_number,
-            assigned_to: row.visit_assigned_to
+            id: row.visitId,
+            status: row.visitStatus,
+            visitNumber: row.visitNumber,
+            assignedTo: row.visitAssignedTo
               ? {
-                  id: row.visit_assigned_to,
-                  name: row.visit_assigned_to_name,
+                  id: row.visitAssignedTo,
+                  name: row.visitAssignedToName,
                 }
               : null,
-            completed_at: row.visit_completed_at,
+            completedAt: row.visitCompletedAt,
           });
         }
       }
@@ -1036,10 +1039,10 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
 
       logger.info('📝 Executing cases table update', {
         query: updateQuery,
-        values: values.map((v, i) => `$${i + 1} = ${String(v)}`),
+        values: values.map((v, i) => `$${i + 1} = ${JSON.stringify(v)}`),
       });
 
-      const result = await pool.query(updateQuery, values);
+      const result = await dbQuery(updateQuery, values);
 
       if (result.rows.length === 0) {
         return res.status(404).json({
@@ -1055,7 +1058,7 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
       // Work Order Protection for Case-driven updates
       // If we are updating address or rateTypeId, we MUST check if the target task is locked
       if (rateTypeId !== undefined || address !== undefined) {
-        const targetTaskId = taskId; // Should be provided, but might check case_id if not
+        const targetTaskId = taskId; // Should be provided, but might check caseId if not
 
         let lockCheckQuery = '';
         let lockCheckParams: (string | number)[] = [];
@@ -1074,14 +1077,14 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
           // Looking at line 879: `values.push(id)`.
         }
 
-        const lockCheckResult = await pool.query(lockCheckQuery, lockCheckParams);
+        const lockCheckResult = await dbQuery(lockCheckQuery, lockCheckParams);
 
         const hasLockedTask = lockCheckResult.rows.some(
           t =>
             t.status === 'IN_PROGRESS' ||
             t.status === 'COMPLETED' ||
             t.status === 'REVOKED' ||
-            t.started_at !== null
+            t.startedAt !== null
         );
 
         if (hasLockedTask) {
@@ -1145,7 +1148,7 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
       if (taskUpdateFields.length > 0) {
         taskUpdateFields.push(`updated_at = NOW()`);
 
-        // ✅ CRITICAL FIX: Use taskId if provided, otherwise fall back to case_id
+        // ✅ CRITICAL FIX: Use taskId if provided, otherwise fall back to caseId
         // This ensures we update the specific task being edited, not all tasks for the case
         const whereClause = taskId ? `id = $${taskParamIndex}` : `case_id = $${taskParamIndex}`;
 
@@ -1160,12 +1163,12 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
 
         logger.info('📝 Executing verification_tasks table update', {
           query: taskUpdateQuery,
-          values: taskValues.map((v, i) => `$${i + 1} = ${String(v)}`),
+          values: taskValues.map((v, i) => `$${i + 1} = ${JSON.stringify(v)}`),
           whereClause,
           taskId,
         });
 
-        const taskResult = await pool.query(taskUpdateQuery, taskValues);
+        const taskResult = await dbQuery(taskUpdateQuery, taskValues);
 
         logger.info('✅ Verification task update result', {
           rowsAffected: taskResult.rowCount,
@@ -1173,8 +1176,8 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
             ? {
                 id: taskResult.rows[0].id,
                 status: taskResult.rows[0].status,
-                assigned_to: taskResult.rows[0].assigned_to,
-                rate_type_id: taskResult.rows[0].rate_type_id,
+                assignedTo: taskResult.rows[0].assignedTo,
+                rateTypeId: taskResult.rows[0].rateTypeId,
               }
             : null,
         });
@@ -1668,7 +1671,7 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
       ORDER BY c.case_id DESC
     `;
 
-    const result = await pool.query(query, queryParams);
+    const result = await dbQuery(query, queryParams);
     const cases = result.rows;
 
     // Create Excel workbook
@@ -1683,45 +1686,45 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
 
     // Define columns based on export type
     const baseColumns = [
-      { header: 'Case ID', key: 'case_id', width: 12 },
-      { header: 'Customer Name', key: 'customer_name', width: 25 },
-      { header: 'Customer Phone', key: 'customer_phone', width: 15 },
-      { header: 'Client', key: 'client_name', width: 20 },
-      { header: 'Product', key: 'product_name', width: 20 },
-      { header: 'Verification Type', key: 'verification_type_name', width: 25 },
-      { header: 'Area', key: 'area_type', width: 15 },
-      { header: 'Rate Type', key: 'rate_type_name', width: 20 },
+      { header: 'Case ID', key: 'caseId', width: 12 },
+      { header: 'Customer Name', key: 'customerName', width: 25 },
+      { header: 'Customer Phone', key: 'customerPhone', width: 15 },
+      { header: 'Client', key: 'clientName', width: 20 },
+      { header: 'Product', key: 'productName', width: 20 },
+      { header: 'Verification Type', key: 'verificationTypeName', width: 25 },
+      { header: 'Area', key: 'areaType', width: 15 },
+      { header: 'Rate Type', key: 'rateTypeName', width: 20 },
       { header: 'Status', key: 'status', width: 15 },
       { header: 'Priority', key: 'priority', width: 12 },
-      { header: 'Assigned To', key: 'assigned_to_name', width: 20 },
+      { header: 'Assigned To', key: 'assignedToName', width: 20 },
       { header: 'Address', key: 'address', width: 30 },
       { header: 'Pincode', key: 'pincode', width: 10 },
-      { header: 'Created At', key: 'created_at', width: 20 },
-      { header: 'Updated At', key: 'updated_at', width: 20 },
-      { header: 'Total Tasks', key: 'total_tasks', width: 12 },
-      { header: 'Completed Tasks', key: 'completed_tasks', width: 15 },
-      { header: 'Pending Tasks', key: 'pending_tasks', width: 14 },
+      { header: 'Created At', key: 'createdAt', width: 20 },
+      { header: 'Updated At', key: 'updatedAt', width: 20 },
+      { header: 'Total Tasks', key: 'totalTasks', width: 12 },
+      { header: 'Completed Tasks', key: 'completedTasks', width: 15 },
+      { header: 'Pending Tasks', key: 'pendingTasks', width: 14 },
     ];
 
     // Add specific columns based on export type
     if (exportType === 'completed') {
       baseColumns.push(
-        { header: 'Completed At', key: 'completed_at', width: 20 },
-        { header: 'Verification Outcome', key: 'verification_outcome', width: 20 },
-        { header: 'Assigned By Backend User', key: 'created_by_backend_user_name', width: 25 }
+        { header: 'Completed At', key: 'completedAt', width: 20 },
+        { header: 'Verification Outcome', key: 'verificationOutcome', width: 20 },
+        { header: 'Assigned By Backend User', key: 'createdByBackendUserName', width: 25 }
       );
     } else if (exportType === 'pending' || exportType === 'in-progress') {
       baseColumns.push(
-        { header: 'Pending Duration (Hours)', key: 'pending_duration_hours', width: 20 },
-        { header: 'Assigned By Backend User', key: 'created_by_backend_user_name', width: 25 }
+        { header: 'Pending Duration (Hours)', key: 'pendingDurationHours', width: 20 },
+        { header: 'Assigned By Backend User', key: 'createdByBackendUserName', width: 25 }
       );
     } else {
       // For 'all' cases, include all columns
       baseColumns.push(
-        { header: 'Completed At', key: 'completed_at', width: 20 },
-        { header: 'Verification Outcome', key: 'verification_outcome', width: 20 },
-        { header: 'Pending Duration (Hours)', key: 'pending_duration_hours', width: 20 },
-        { header: 'Assigned By Backend User', key: 'created_by_backend_user_name', width: 25 }
+        { header: 'Completed At', key: 'completedAt', width: 20 },
+        { header: 'Verification Outcome', key: 'verificationOutcome', width: 20 },
+        { header: 'Pending Duration (Hours)', key: 'pendingDurationHours', width: 20 },
+        { header: 'Assigned By Backend User', key: 'createdByBackendUserName', width: 25 }
       );
     }
 
@@ -1739,34 +1742,34 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     // Add data rows
     cases.forEach((caseItem: Record<string, unknown>) => {
       const rowData: Record<string, unknown> = {
-        case_id: caseItem.case_id,
-        customer_name: caseItem.customer_name,
-        customer_phone: caseItem.customer_phone,
-        client_name: caseItem.client_name,
-        product_name: caseItem.product_name,
-        verification_type_name: caseItem.verification_type_name,
+        caseId: caseItem.caseId,
+        customerName: caseItem.customerName,
+        customerPhone: caseItem.customerPhone,
+        clientName: caseItem.clientName,
+        productName: caseItem.productName,
+        verificationTypeName: caseItem.verificationTypeName,
         status: caseItem.status,
         priority: caseItem.priority,
-        assigned_to_name: caseItem.assigned_to_name || 'Unassigned',
+        assignedToName: caseItem.assignedToName || 'Unassigned',
         address: caseItem.address,
         pincode: caseItem.pincode,
-        created_at: caseItem.created_at
-          ? new Date(caseItem.created_at as string).toLocaleString()
+        createdAt: caseItem.createdAt
+          ? new Date(caseItem.createdAt as string).toLocaleString()
           : '',
-        updated_at: caseItem.updated_at
-          ? new Date(caseItem.updated_at as string).toLocaleString()
+        updatedAt: caseItem.updatedAt
+          ? new Date(caseItem.updatedAt as string).toLocaleString()
           : '',
-        completed_at: caseItem.completed_at
-          ? new Date(caseItem.completed_at as string).toLocaleString()
+        completedAt: caseItem.completedAt
+          ? new Date(caseItem.completedAt as string).toLocaleString()
           : '',
-        verification_outcome: caseItem.verification_outcome || '',
-        created_by_backend_user_name: caseItem.created_by_backend_user_name || 'Unknown',
-        pending_duration_hours: caseItem.pending_duration_seconds
-          ? Math.round(((caseItem.pending_duration_seconds as number) / 3600) * 100) / 100
+        verificationOutcome: caseItem.verificationOutcome || '',
+        createdByBackendUserName: caseItem.createdByBackendUserName || 'Unknown',
+        pendingDurationHours: caseItem.pendingDurationSeconds
+          ? Math.round(((caseItem.pendingDurationSeconds as number) / 3600) * 100) / 100
           : '',
-        total_tasks: Number(caseItem.total_tasks) || 0,
-        completed_tasks: Number(caseItem.completed_tasks) || 0,
-        pending_tasks: Number(caseItem.pending_tasks) || 0,
+        totalTasks: Number(caseItem.totalTasks) || 0,
+        completedTasks: Number(caseItem.completedTasks) || 0,
+        pendingTasks: Number(caseItem.pendingTasks) || 0,
       };
 
       worksheet.addRow(rowData);
@@ -1846,7 +1849,7 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
 
   try {
     // Get case information
-    const caseResult = await pool.query(
+    const caseResult = await dbQuery(
       `
       SELECT
         c.*,
@@ -1875,7 +1878,7 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
     if (isScopedOperationsUser(req.user) && req.user?.id) {
       const scopedUserIds = await getScopedOperationalUserIds(req.user.id);
       if (scopedUserIds) {
-        const scopeCheck = await pool.query(
+        const scopeCheck = await dbQuery(
           `SELECT 1
            FROM cases c
            LEFT JOIN verification_tasks vt ON vt.case_id = c.id
@@ -1921,7 +1924,7 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
     }
 
     // Get task summary
-    const taskSummaryResult = await pool.query(
+    const taskSummaryResult = await dbQuery(
       `
       SELECT
         COUNT(*) as total_tasks,
@@ -1940,7 +1943,7 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
     const taskSummary = taskSummaryResult.rows[0];
 
     // Get financial summary
-    const financialSummaryResult = await pool.query(
+    const financialSummaryResult = await dbQuery(
       `
       SELECT
         COALESCE(SUM(estimated_amount), 0) as total_estimated_amount,
@@ -1956,7 +1959,7 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
     const financialSummary = financialSummaryResult.rows[0];
 
     // Get commission summary
-    const commissionSummaryResult = await pool.query(
+    const commissionSummaryResult = await dbQuery(
       `
       SELECT
         COALESCE(SUM(calculated_commission), 0) as total_commission,
@@ -1971,7 +1974,7 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
     const commissionSummary = commissionSummaryResult.rows[0];
 
     // Get recent activities
-    const recentActivitiesResult = await pool.query(
+    const recentActivitiesResult = await dbQuery(
       `
       SELECT
         'TASK_CREATED' as type,
@@ -2023,42 +2026,42 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
       data: {
         case: {
           id: caseInfo.id,
-          case_number: caseInfo.caseId,
-          customer_name: caseInfo.customerName,
-          customer_phone: caseInfo.customerPhone,
-          customer_email: caseInfo.customerEmail,
-          client_name: caseInfo.client_name,
-          product_name: caseInfo.product_name,
+          caseNumber: caseInfo.caseId,
+          customerName: caseInfo.customerName,
+          customerPhone: caseInfo.customerPhone,
+          customerEmail: caseInfo.customerEmail,
+          clientName: caseInfo.clientName,
+          productName: caseInfo.productName,
           status: caseInfo.status,
           priority: caseInfo.priority,
           address: caseInfo.address,
           pincode: caseInfo.pincode,
-          has_multiple_tasks: caseInfo.has_multiple_tasks,
-          total_tasks_count: parseInt(caseInfo.total_tasks_count || '0'),
-          completed_tasks_count: parseInt(caseInfo.completed_tasks_count || '0'),
-          case_completion_percentage: parseFloat(caseInfo.case_completion_percentage || '0'),
-          created_at: caseInfo.createdAt,
-          created_by_name: caseInfo.created_by_name,
+          hasMultipleTasks: caseInfo.hasMultipleTasks,
+          totalTasksCount: parseInt(caseInfo.totalTasksCount || '0'),
+          completedTasksCount: parseInt(caseInfo.completedTasksCount || '0'),
+          caseCompletionPercentage: parseFloat(caseInfo.caseCompletionPercentage || '0'),
+          createdAt: caseInfo.createdAt,
+          createdByName: caseInfo.createdByName,
         },
-        task_summary: {
-          total_tasks: parseInt(taskSummary.total_tasks),
-          pending_tasks: parseInt(taskSummary.pending_tasks),
-          assigned_tasks: parseInt(taskSummary.assigned_tasks),
-          in_progress_tasks: parseInt(taskSummary.in_progress_tasks),
-          completed_tasks: parseInt(taskSummary.completed_tasks),
-          cancelled_tasks: parseInt(taskSummary.cancelled_tasks),
-          on_hold_tasks: parseInt(taskSummary.on_hold_tasks),
+        taskSummary: {
+          totalTasks: parseInt(taskSummary.totalTasks),
+          pendingTasks: parseInt(taskSummary.pendingTasks),
+          assignedTasks: parseInt(taskSummary.assignedTasks),
+          inProgressTasks: parseInt(taskSummary.inProgressTasks),
+          completedTasks: parseInt(taskSummary.completedTasks),
+          cancelledTasks: parseInt(taskSummary.cancelledTasks),
+          onHoldTasks: parseInt(taskSummary.onHoldTasks),
         },
-        financial_summary: {
-          total_estimated_amount: parseFloat(financialSummary.total_estimated_amount),
-          total_actual_amount: parseFloat(financialSummary.total_actual_amount),
-          completed_amount: parseFloat(financialSummary.completed_amount),
-          pending_amount: parseFloat(financialSummary.pending_amount),
-          total_commission: parseFloat(commissionSummary.total_commission),
-          paid_commission: parseFloat(commissionSummary.paid_commission),
-          pending_commission: parseFloat(commissionSummary.pending_commission),
+        financialSummary: {
+          totalEstimatedAmount: parseFloat(financialSummary.totalEstimatedAmount),
+          totalActualAmount: parseFloat(financialSummary.totalActualAmount),
+          completedAmount: parseFloat(financialSummary.completedAmount),
+          pendingAmount: parseFloat(financialSummary.pendingAmount),
+          totalCommission: parseFloat(commissionSummary.totalCommission),
+          paidCommission: parseFloat(commissionSummary.paidCommission),
+          pendingCommission: parseFloat(commissionSummary.pendingCommission),
         },
-        recent_activities: recentActivitiesResult.rows,
+        recentActivities: recentActivitiesResult.rows,
       },
       message: 'Case summary retrieved successfully',
     });
@@ -2103,10 +2106,9 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
     }
 
     if (!resolvedPincodeId && resolvedPincodeCode) {
-      const pincodeLookup = await pool.query(
-        `SELECT id, code FROM pincodes WHERE code = $1 LIMIT 1`,
-        [resolvedPincodeCode]
-      );
+      const pincodeLookup = await dbQuery(`SELECT id, code FROM pincodes WHERE code = $1 LIMIT 1`, [
+        resolvedPincodeCode,
+      ]);
 
       if (!pincodeLookup.rows[0]) {
         return res.status(400).json({
@@ -2119,10 +2121,9 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
       resolvedPincodeId = Number(pincodeLookup.rows[0].id);
       resolvedPincodeCode = pincodeLookup.rows[0].code;
     } else if (resolvedPincodeId && !resolvedPincodeCode) {
-      const pincodeLookup = await pool.query(
-        `SELECT id, code FROM pincodes WHERE id = $1 LIMIT 1`,
-        [resolvedPincodeId]
-      );
+      const pincodeLookup = await dbQuery(`SELECT id, code FROM pincodes WHERE id = $1 LIMIT 1`, [
+        resolvedPincodeId,
+      ]);
 
       if (!pincodeLookup.rows[0]) {
         return res.status(400).json({
@@ -2135,7 +2136,7 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
       resolvedPincodeCode = pincodeLookup.rows[0].code;
     }
 
-    const areaValidation = await pool.query(
+    const areaValidation = await dbQuery(
       `SELECT 1
        FROM pincode_areas
        WHERE area_id = $1 AND pincode_id = $2
@@ -2151,8 +2152,8 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
       });
     }
 
-    // Direct rate type lookup from service_zone_rules (no service zone indirection)
-    const rateTypeRuleResult = await pool.query(
+    // Direct rate type lookup from serviceZoneRules (no service zone indirection)
+    const rateTypeRuleResult = await dbQuery(
       `SELECT rate_type_id
        FROM service_zone_rules
        WHERE client_id = $1
@@ -2164,8 +2165,8 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
       [clientId, productId, resolvedPincodeId, areaId]
     );
 
-    const mappedRateTypeId = rateTypeRuleResult.rows[0]?.rate_type_id
-      ? Number(rateTypeRuleResult.rows[0].rate_type_id)
+    const mappedRateTypeId = rateTypeRuleResult.rows[0]?.rateTypeId
+      ? Number(rateTypeRuleResult.rows[0].rateTypeId)
       : null;
 
     const validationResult = await financialConfigurationValidator.validateTaskConfiguration(
@@ -2261,7 +2262,7 @@ export const createCase = [
       }, 5000); // 5 second warning
 
       try {
-        client = await pool.connect();
+        client = wrapClient(await pool.connect());
         clearTimeout(connectionTimeout);
       } catch (connError: unknown) {
         clearTimeout(connectionTimeout);
@@ -2298,7 +2299,14 @@ export const createCase = [
       // ========== PARSE AND VALIDATE REQUEST DATA ==========
       let requestData: CreateCaseRequest;
       try {
-        logger.info('REQ BODY:', JSON.stringify(req.body, null, 2));
+        // Log only the shape of the request, with sensitive fields masked.
+        // Previously this dumped the entire body verbatim which leaked PAN
+        // numbers, KYC document metadata, and occasionally credentials.
+        logger.debug('createCase request received', {
+          bodyKeys: Object.keys(req.body || {}),
+          hasFormData: !!req.body?.data,
+          payload: redact(req.body),
+        });
         if (req.body.data) {
           // FormData format (with file uploads)
           requestData = JSON.parse(req.body.data);
@@ -2336,6 +2344,28 @@ export const createCase = [
       const caseDetails = requestData.caseDetails;
       const verificationTasksFromRequest = requestData.verificationTasks;
       let applicantsData = requestData.applicants;
+      // Normalize legacy snakeCase payloads at the controller boundary while
+      // keeping the internal API contract camelCase.
+      const getNumericField = (
+        record: Record<string, unknown>,
+        ...fieldNames: string[]
+      ): number | null => {
+        for (const fieldName of fieldNames) {
+          const value = record[fieldName];
+          if (value === undefined || value === null) {
+            continue;
+          }
+          const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+          if (stringValue.trim() === '') {
+            continue;
+          }
+          const parsedValue = Number(value);
+          if (!Number.isNaN(parsedValue) && parsedValue > 0) {
+            return parsedValue;
+          }
+        }
+        return null;
+      };
 
       if (
         (!Array.isArray(applicantsData) || applicantsData.length === 0) &&
@@ -2348,7 +2378,7 @@ export const createCase = [
             name: string;
             mobile: string;
             role: string;
-            pan_number?: string;
+            panNumber?: string;
             verifications: CreateVerificationTask[];
           }
         >();
@@ -2398,20 +2428,19 @@ export const createCase = [
               ''
           );
           const panNumber = String(
-            ((task.applicant as Record<string, unknown> | undefined)?.pan_number as string) ||
+            ((task.applicant as Record<string, unknown> | undefined)?.panNumber as string) ||
               caseDetails?.panNumber ||
               ''
           );
-          const verificationTypeId = Number(
-            task.verificationTypeId || task.verificationTypeId || 0
-          );
+          const verificationTypeId =
+            getNumericField(task, 'verificationTypeId', 'verificationTypeId') || 0;
           if (!verificationTypeId) {
             continue;
           }
 
           const pincodeIdFromTask =
-            task.pincode_id && Number(task.pincode_id)
-              ? Number(task.pincode_id)
+            task.pincodeId && Number(task.pincodeId)
+              ? Number(task.pincodeId)
               : await resolvePincodeId(task.pincode);
 
           const applicantKey = `${role}:${mobile || name}`;
@@ -2420,17 +2449,20 @@ export const createCase = [
               name,
               mobile,
               role,
-              pan_number: panNumber || undefined,
+              panNumber: panNumber || undefined,
               verifications: [],
             });
           }
 
           applicantsMap.get(applicantKey).verifications.push({
-            verification_type_id: verificationTypeId,
+            verificationTypeId,
             address: task.address || null,
-            pincode_id: pincodeIdFromTask,
-            assigned_to: task.assigned_to || task.assignedTo || null,
-            sla_deadline: task.estimatedCompletionDate || task.sla_deadline || null,
+            pincodeId:
+              getNumericField(task, 'pincodeId', 'pincodeId') || pincodeIdFromTask || undefined,
+            assignedTo: (task.assignedTo || task.assignedTo || null) as string | null,
+            estimatedCompletionDate: (task.estimatedCompletionDate || task.slaDeadline || null) as
+              | string
+              | null,
           } as unknown as CreateVerificationTask);
         }
 
@@ -2438,11 +2470,11 @@ export const createCase = [
       }
 
       logger.info('Parsed applicants:', applicantsData);
-      logger.info('Parsed verification_tasks:', verificationTasksFromRequest);
+      logger.info('Parsed verificationTasks:', verificationTasksFromRequest);
 
       // ========== COMPREHENSIVE VALIDATION ==========
       if (!caseDetails || typeof caseDetails !== 'object') {
-        const validationError = new Error('case_details is required');
+        const validationError = new Error('caseDetails is required');
         (validationError as DatabaseError).code = 'VALIDATION_ERROR';
         throw validationError;
       }
@@ -2474,17 +2506,31 @@ export const createCase = [
         (verificationTypeId ? Number(verificationTypeId) : null) ||
         (Array.isArray(verificationTasksFromRequest) &&
         verificationTasksFromRequest.length > 0 &&
-        Number((verificationTasksFromRequest[0] as Record<string, unknown>).verification_type_id)
-          ? Number(
-              (verificationTasksFromRequest[0] as Record<string, unknown>).verification_type_id
+        getNumericField(
+          verificationTasksFromRequest[0] as Record<string, unknown>,
+          'verificationTypeId',
+          'verificationTypeId'
+        )
+          ? getNumericField(
+              verificationTasksFromRequest[0] as Record<string, unknown>,
+              'verificationTypeId',
+              'verificationTypeId'
             )
           : null) ||
         (Array.isArray(applicantsData) &&
         applicantsData.length > 0 &&
         Array.isArray(applicantsData[0].verifications) &&
         applicantsData[0].verifications.length > 0 &&
-        Number(applicantsData[0].verifications[0].verification_type_id)
-          ? Number(applicantsData[0].verifications[0].verification_type_id)
+        getNumericField(
+          applicantsData[0].verifications[0] as Record<string, unknown>,
+          'verificationTypeId',
+          'verificationTypeId'
+        )
+          ? getNumericField(
+              applicantsData[0].verifications[0] as Record<string, unknown>,
+              'verificationTypeId',
+              'verificationTypeId'
+            )
           : null);
       const resolvedCaseApplicantType =
         (applicantType ? String(applicantType) : null) ||
@@ -2493,11 +2539,11 @@ export const createCase = [
           : null) ||
         (Array.isArray(verificationTasksFromRequest) &&
         verificationTasksFromRequest.length > 0 &&
-        ((verificationTasksFromRequest[0] as Record<string, unknown>).applicant_type ||
+        ((verificationTasksFromRequest[0] as Record<string, unknown>).applicantType ||
           (verificationTasksFromRequest[0] as Record<string, unknown>).applicantType)
           ? String(
               ((verificationTasksFromRequest[0] as Record<string, unknown>)
-                .applicant_type as string) ||
+                .applicantType as string) ||
                 ((verificationTasksFromRequest[0] as Record<string, unknown>)
                   .applicantType as string)
             )
@@ -2554,14 +2600,65 @@ export const createCase = [
         throw validationError;
       }
 
+      // ========== BUSINESS RULE: AT LEAST ONE TASK, EVERY TASK ASSIGNED ==========
+      // A case cannot be created without at least one field verification task
+      // OR at least one KYC verification task. Every task must be assigned to
+      // a user at creation time. The "Unassigned" state is not permitted.
+      const fieldTaskCount = Array.isArray(verificationTasksFromRequest)
+        ? verificationTasksFromRequest.length
+        : 0;
+      const kycTaskCount = Array.isArray(kycDocumentsForValidation)
+        ? kycDocumentsForValidation.length
+        : 0;
+
+      if (fieldTaskCount === 0 && kycTaskCount === 0) {
+        const err = new Error(
+          'A case must include at least one field verification task or KYC verification task'
+        );
+        (err as DatabaseError).code = 'VALIDATION_ERROR';
+        throw err;
+      }
+
+      if (fieldTaskCount > 0) {
+        for (let i = 0; i < fieldTaskCount; i++) {
+          const task = (verificationTasksFromRequest as Record<string, unknown>[])[i];
+          const taskAssignee = task?.assignedTo;
+          if (!taskAssignee || (typeof taskAssignee === 'string' && taskAssignee.trim() === '')) {
+            const taskTitleLabel =
+              typeof task?.taskTitle === 'string' ? ` ("${task.taskTitle}")` : '';
+            const err = new Error(
+              `Field task ${i + 1}${taskTitleLabel} must be assigned to a field executive at creation time`
+            );
+            (err as DatabaseError).code = 'VALIDATION_ERROR';
+            throw err;
+          }
+        }
+      }
+
+      if (kycTaskCount > 0) {
+        for (let i = 0; i < kycTaskCount; i++) {
+          const doc = (kycDocumentsForValidation as Record<string, unknown>[])[i];
+          const docAssignee = doc?.assignedTo;
+          if (!docAssignee || (typeof docAssignee === 'string' && docAssignee.trim() === '')) {
+            const docTypeLabel =
+              typeof doc?.documentType === 'string' ? ` ("${doc.documentType}")` : '';
+            const err = new Error(
+              `KYC document ${i + 1}${docTypeLabel} must be assigned to a centralized user at creation time`
+            );
+            (err as DatabaseError).code = 'VALIDATION_ERROR';
+            throw err;
+          }
+        }
+      }
+
       // ========== VALIDATE MASTER DATA EXISTS ==========
       const [clientCheck, productCheck, productClientCheck] = await Promise.all([
         client.query('SELECT id, is_active FROM clients WHERE id = $1', [resolvedClientId]),
         client.query('SELECT id, is_active FROM products WHERE id = $1', [resolvedProductId]),
-        client.query(
-          'SELECT 1 FROM client_products WHERE client_id = $1 AND product_id = $2',
-          [resolvedClientId, resolvedProductId]
-        ),
+        client.query('SELECT 1 FROM client_products WHERE client_id = $1 AND product_id = $2', [
+          resolvedClientId,
+          resolvedProductId,
+        ]),
       ]);
 
       if (clientCheck.rows.length === 0) {
@@ -2569,7 +2666,7 @@ export const createCase = [
         (err as DatabaseError).code = 'VALIDATION_ERROR';
         throw err;
       }
-      if (!clientCheck.rows[0].is_active) {
+      if (!clientCheck.rows[0].isActive) {
         const err = new Error('Client is inactive');
         (err as DatabaseError).code = 'VALIDATION_ERROR';
         throw err;
@@ -2579,7 +2676,7 @@ export const createCase = [
         (err as DatabaseError).code = 'VALIDATION_ERROR';
         throw err;
       }
-      if (!productCheck.rows[0].is_active) {
+      if (!productCheck.rows[0].isActive) {
         const err = new Error('Product is inactive');
         (err as DatabaseError).code = 'VALIDATION_ERROR';
         throw err;
@@ -2634,17 +2731,31 @@ export const createCase = [
 
         if (appData.verifications && Array.isArray(appData.verifications)) {
           for (const verData of appData.verifications) {
+            const verificationData = verData as Record<string, unknown>;
+            const resolvedVerificationTypeId = getNumericField(
+              verificationData,
+              'verificationTypeId',
+              'verificationTypeId'
+            );
             const pincodeId =
-              verData.pincode_id ||
-              (verData.pincode
-                ? (await client.query('SELECT id FROM pincodes WHERE code = $1', [verData.pincode]))
-                    .rows[0]?.id
+              getNumericField(verificationData, 'pincodeId', 'pincodeId') ||
+              (verificationData.pincode
+                ? (
+                    await client.query('SELECT id FROM pincodes WHERE code = $1', [
+                      verificationData.pincode,
+                    ])
+                  ).rows[0]?.id
                 : null);
 
             const verificationResult = await client.query(
               `INSERT INTO verifications (applicant_id, verification_type_id, address, pincode_id)
                VALUES ($1, $2, $3, $4) RETURNING *`,
-              [applicant.id, verData.verification_type_id, verData.address, pincodeId]
+              [
+                applicant.id,
+                resolvedVerificationTypeId,
+                verificationData.address as string | null,
+                pincodeId,
+              ]
             );
             const verification = verificationResult.rows[0];
             const visits = [];
@@ -2653,7 +2764,15 @@ export const createCase = [
             const visitResult = await client.query(
               `INSERT INTO visits (verification_id, visit_number, status, assigned_to, sla_deadline)
                VALUES ($1, 1, 'PENDING', $2, $3) RETURNING *`,
-              [verification.id, verData.assigned_to || null, verData.sla_deadline || null]
+              [
+                verification.id,
+                (verificationData.assignedTo || verificationData.assignedTo || null) as
+                  | string
+                  | null,
+                (verificationData.estimatedCompletionDate ||
+                  verificationData.slaDeadline ||
+                  null) as string | null,
+              ]
             );
             visits.push(visitResult.rows[0]);
 
@@ -2672,14 +2791,14 @@ export const createCase = [
       }
 
       // Build verification tasks payload:
-      // 1) Prefer explicit verification_tasks from request
+      // 1) Prefer explicit verificationTasks from request
       // 2) Fallback to applicants[].verifications[]
       let tasksToCreate: Record<string, unknown>[] = [];
 
       if (Array.isArray(verificationTasksFromRequest) && verificationTasksFromRequest.length > 0) {
         tasksToCreate = verificationTasksFromRequest as unknown as Record<string, unknown>[];
       } else {
-        // Cache pincode_id -> pincode code resolution to avoid repeated queries
+        // Cache pincodeId -> pincode code resolution to avoid repeated queries
         const pincodeCodeCache = new Map<number, string>();
 
         const resolvePincodeCode = async (pincodeId?: number): Promise<string | null> => {
@@ -2712,7 +2831,7 @@ export const createCase = [
                 : await resolvePincodeCode(
                     Number(
                       (verData as Record<string, unknown>).pincodeId ||
-                        (verData as Record<string, unknown>).pincode_id ||
+                        (verData as Record<string, unknown>).pincodeId ||
                         0
                     ) || undefined
                   );
@@ -2723,22 +2842,22 @@ export const createCase = [
 
             tasksToCreate.push({
               verificationTypeId:
-                (verData as Record<string, unknown>).verification_type_id ||
+                (verData as Record<string, unknown>).verificationTypeId ||
                 (verData as Record<string, unknown>).verificationTypeId,
               taskTitle: `Verification for ${appData.name}`,
               taskDescription: 'Auto-generated task from case creation',
               priority: caseDetails.priority || 'MEDIUM',
               assignedTo:
-                (verData as Record<string, unknown>).assigned_to ||
+                (verData as Record<string, unknown>).assignedTo ||
                 (verData as Record<string, unknown>).assignedTo ||
                 null,
               address: (verData as Record<string, unknown>).address,
               pincode: pincodeCode,
               estimatedCompletionDate:
-                (verData as Record<string, unknown>).sla_deadline ||
+                (verData as Record<string, unknown>).slaDeadline ||
                 (verData as Record<string, unknown>).estimatedCompletionDate,
               areaId:
-                (verData as Record<string, unknown>).area_id ||
+                (verData as Record<string, unknown>).areaId ||
                 (verData as Record<string, unknown>).areaId ||
                 null,
               applicantType: appData.role || 'APPLICANT',
@@ -2778,9 +2897,18 @@ export const createCase = [
 
       if (kycDocuments && kycDocuments.length > 0) {
         for (const doc of kycDocuments) {
-          const hasAssignment = !!doc.assignedTo;
+          // Business rule: every KYC task MUST be assigned to a centralized
+          // (backend) user at creation time. "Unassigned" KYC tasks are not
+          // allowed.
+          if (!doc.assignedTo || String(doc.assignedTo).trim() === '') {
+            const assigneeError = new Error(
+              `KYC document "${doc.documentType}" must be assigned to a centralized user at creation time`
+            );
+            (assigneeError as DatabaseError).code = 'VALIDATION_ERROR';
+            throw assigneeError;
+          }
 
-          // Look up KYC rate from documentTypeRates (client + product + kyc_document_type)
+          // Look up KYC rate from documentTypeRates (client + product + kycDocumentType)
           let rateAmount: number | null = null;
           const kycDocTypeRes = await client.query(
             `SELECT id FROM kyc_document_types WHERE code = $1 AND is_active = true`,
@@ -2813,36 +2941,36 @@ export const createCase = [
             }
           }
 
-          // Create a verification_task with task_type = 'KYC'
+          // Create a verificationTask with taskType = 'KYC'. The assignee is
+          // validated above so this INSERT always uses the ASSIGNED state.
           const kycTaskResult = await client.query(
             `INSERT INTO verification_tasks (
               case_id, task_title, task_description, priority, status,
               task_type, created_by, estimated_amount,
               assigned_to, assigned_by, assigned_at
-            ) VALUES ($1, $2, $3, 'MEDIUM', $4, 'KYC', $5, $6, $7, $8, $9)
+            ) VALUES ($1, $2, $3, 'MEDIUM', 'ASSIGNED', 'KYC', $4, $5, $6, $7, NOW())
             RETURNING id`,
             [
               newCase.id,
               `KYC: ${doc.documentType.replace(/_/g, ' ')}`,
               `KYC document verification for ${doc.documentType}`,
-              hasAssignment ? 'ASSIGNED' : 'PENDING',
               userId,
               rateAmount,
-              doc.assignedTo || null,
-              hasAssignment ? userId : null,
-              hasAssignment ? new Date() : null,
+              doc.assignedTo,
+              userId,
             ]
           );
 
           const kycTaskId = kycTaskResult.rows[0].id;
 
-          // Create the KYC document verification record
+          // Create the KYC document verification record. Assignee is
+          // guaranteed by the validation above.
           await client.query(
             `INSERT INTO kyc_document_verifications (
               verification_task_id, case_id, document_type, document_number,
               document_holder_name, verification_status, document_details, description,
               assigned_to, assigned_by, assigned_at, rate_amount
-            ) VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, $7, $8, $9, $10, $11)`,
+            ) VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, $7, $8, $9, NOW(), $10)`,
             [
               kycTaskId,
               newCase.id,
@@ -2851,9 +2979,8 @@ export const createCase = [
               doc.documentHolderName || requestData.caseDetails?.customerName || null,
               JSON.stringify(doc.documentDetails || {}),
               doc.description || null,
-              doc.assignedTo || null,
-              hasAssignment ? userId : null,
-              hasAssignment ? new Date() : null,
+              doc.assignedTo,
+              userId,
               rateAmount,
             ]
           );
@@ -2953,7 +3080,7 @@ export const createCase = [
         // Not null violation
         return res.status(400).json({
           success: false,
-          message: 'Required field missing',
+          message: `Required field missing: ${err.column || 'unknown'}`,
           error: {
             code: 'NULL_VIOLATION',
             column: err.column,

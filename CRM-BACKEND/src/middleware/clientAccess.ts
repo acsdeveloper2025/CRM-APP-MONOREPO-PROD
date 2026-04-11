@@ -286,11 +286,11 @@ export const addClientFiltering = async (
     if (scopedClientIds.length === 0) {
       // User has no client assignments, they should see no data
       (req as RequestWithClientFilter).clientFilter = [];
-      logger.info('Set clientFilter to empty array - no assignments');
+      logger.info('Set client_filter to empty array - no assignments');
     } else {
       // Add client filtering to the request
       (req as RequestWithClientFilter).clientFilter = scopedClientIds;
-      logger.info('Set clientFilter', {
+      logger.info('Set client_filter', {
         scopedClientIds,
         clientFilter: (req as RequestWithClientFilter).clientFilter,
       });

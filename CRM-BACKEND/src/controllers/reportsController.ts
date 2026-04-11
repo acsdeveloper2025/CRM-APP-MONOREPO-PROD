@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
-import { pool } from '@/config/database';
+import { query as dbQuery } from '@/config/database';
 import { QueryParams } from '@/types/database';
 import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
@@ -12,42 +12,42 @@ import { CaseAnalyticsRow } from '../types/reports';
 import ExcelJS from 'exceljs';
 
 interface MISReportRow {
-  task_id: number;
-  task_number: string;
-  task_title: string;
-  task_verification_type: string;
-  task_status: string;
-  task_priority: string;
-  assigned_field_user: string;
-  field_user_employee_id: string;
+  taskId: number;
+  taskNumber: string;
+  taskTitle: string;
+  taskVerificationType: string;
+  taskStatus: string;
+  taskPriority: string;
+  assignedFieldUser: string;
+  fieldUserEmployeeId: string;
   address: string;
   pincode: string;
-  rate_type: string;
-  estimated_amount: number;
-  actual_amount: number;
-  task_created_date: string;
-  task_started_date: string;
-  task_completion_date: string;
-  task_tat_days: number;
+  rateType: string;
+  estimatedAmount: number;
+  actualAmount: number;
+  taskCreatedDate: string;
+  taskStartedDate: string;
+  taskCompletionDate: string;
+  taskTatDays: number;
   trigger: string;
-  applicant_type: string;
-  form_submission_id: string;
-  form_type: string;
-  form_submitted_date: string;
-  form_validation_status: string;
-  case_number: string;
-  customer_name: string;
-  customer_phone: string;
-  customer_calling_code: string;
-  client_name: string;
-  client_code: string;
-  product_name: string;
-  case_status: string;
-  case_priority: string;
-  case_created_date: string;
-  backend_user_name: string;
-  backend_user_employee_id: string;
-  verification_type_name: string;
+  applicantType: string;
+  formSubmissionId: string;
+  formType: string;
+  formSubmittedDate: string;
+  formValidationStatus: string;
+  caseNumber: string;
+  customerName: string;
+  customerPhone: string;
+  customerCallingCode: string;
+  clientName: string;
+  clientCode: string;
+  productName: string;
+  caseStatus: string;
+  casePriority: string;
+  caseCreatedDate: string;
+  backendUserName: string;
+  backendUserEmployeeId: string;
+  verificationTypeName: string;
 }
 
 interface DashboardSummaryRow {
@@ -102,7 +102,7 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
       Array.isArray(req.query.offset) ? req.query.offset[0] : req.query.offset || 0
     );
 
-    // Build WHERE conditions using CORRECT snake_case column names
+    // Build WHERE conditions using CORRECT snakeCase column names
     const conditions: string[] = [];
     const params: QueryParams = [];
     let paramIndex = 1;
@@ -143,10 +143,10 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
         ) {
           conditions.push('FALSE');
         } else {
-          conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
+          conditions.push(`c.clientId = ANY($${paramIndex}::int[])`);
           params.push(assignedClientIds);
           paramIndex++;
-          conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
+          conditions.push(`c.productId = ANY($${paramIndex}::int[])`);
           params.push(assignedProductIds);
           paramIndex++;
         }
@@ -154,39 +154,39 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
     }
 
     if (dateFrom) {
-      conditions.push(`tfs.submitted_at >= $${paramIndex}`);
+      conditions.push(`tfs.submittedAt >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`tfs.submitted_at <= $${paramIndex}`);
+      conditions.push(`tfs.submittedAt <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
     if (agentId) {
-      conditions.push(`tfs.submitted_by = $${paramIndex}`);
+      conditions.push(`tfs.submittedBy = $${paramIndex}`);
       params.push(agentId);
       paramIndex++;
     }
     if (validationStatus) {
-      conditions.push(`tfs.validation_status = $${paramIndex}`);
+      conditions.push(`tfs.validationStatus = $${paramIndex}`);
       params.push(validationStatus);
       paramIndex++;
     }
     if (caseId) {
-      conditions.push(`tfs.case_id = $${paramIndex}`);
+      conditions.push(`tfs.caseId = $${paramIndex}`);
       params.push(caseId);
       paramIndex++;
     }
     if (formType) {
-      conditions.push(`tfs.form_type = $${paramIndex}`);
+      conditions.push(`tfs.formType = $${paramIndex}`);
       params.push(formType);
       paramIndex++;
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Get form submissions from task_form_submissions table (using snake_case)
+    // Get form submissions from taskFormSubmissions table (using snakeCase)
     const query = `
       SELECT
         tfs.id,
@@ -214,9 +214,9 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
     `;
 
     params.push(limit, offset);
-    const result = await pool.query(query, params);
+    const result = await dbQuery(query, params);
 
-    // Get summary statistics (using snake_case)
+    // Get summary statistics (using snakeCase)
     const summaryQuery = `
       SELECT
         COUNT(*) as total_submissions,
@@ -231,20 +231,20 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
     `;
 
     const summaryParams = params.slice(0, -2); // Remove limit and offset
-    const summaryResult = await pool.query(summaryQuery, summaryParams);
+    const summaryResult = await dbQuery(summaryQuery, summaryParams);
     const summary = summaryResult.rows[0] || {
-      total_submissions: 0,
-      valid_submissions: 0,
-      pending_submissions: 0,
-      invalid_submissions: 0,
-      residence_forms: 0,
-      office_forms: 0,
-      business_forms: 0,
+      totalSubmissions: 0,
+      validSubmissions: 0,
+      pendingSubmissions: 0,
+      invalidSubmissions: 0,
+      residenceForms: 0,
+      officeForms: 0,
+      businessForms: 0,
     };
 
     logger.info('Form submissions fetched', {
       userId: req.user?.id,
-      total: summary.total_submissions,
+      total: summary.totalSubmissions,
       filters: { formType, dateFrom, dateTo, agentId, validationStatus },
     });
 
@@ -253,18 +253,18 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
       data: {
         submissions: result.rows,
         summary: {
-          totalSubmissions: Number(summary.total_submissions),
-          validSubmissions: Number(summary.valid_submissions),
-          pendingSubmissions: Number(summary.pending_submissions),
-          invalidSubmissions: Number(summary.invalid_submissions),
-          residenceForms: Number(summary.residence_forms),
-          officeForms: Number(summary.office_forms),
-          businessForms: Number(summary.business_forms),
+          totalSubmissions: Number(summary.totalSubmissions),
+          validSubmissions: Number(summary.validSubmissions),
+          pendingSubmissions: Number(summary.pendingSubmissions),
+          invalidSubmissions: Number(summary.invalidSubmissions),
+          residenceForms: Number(summary.residenceForms),
+          officeForms: Number(summary.officeForms),
+          businessForms: Number(summary.businessForms),
         },
         pagination: {
           limit,
           offset,
-          total: Number(summary.total_submissions),
+          total: Number(summary.totalSubmissions),
         },
       },
       message: 'Form submissions retrieved successfully (table may be empty)',
@@ -307,19 +307,19 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
 
     if (dateFrom) {
       const alias = formType.toUpperCase() === 'RESIDENCE' ? 'r' : 'o';
-      conditions.push(`${alias}.created_at >= $${paramIndex}`);
+      conditions.push(`${alias}.createdAt >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
       const alias = formType.toUpperCase() === 'RESIDENCE' ? 'r' : 'o';
-      conditions.push(`${alias}.created_at <= $${paramIndex}`);
+      conditions.push(`${alias}.createdAt <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
     if (agentId) {
       const alias = formType.toUpperCase() === 'RESIDENCE' ? 'r' : 'o';
-      conditions.push(`${alias}.created_by = $${paramIndex}`);
+      conditions.push(`${alias}.createdBy = $${paramIndex}`);
       params.push(agentId);
       paramIndex++;
     }
@@ -366,7 +366,7 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
     }
 
     params.push(limit, offset);
-    const result = await pool.query(query, params);
+    const result = await dbQuery(query, params);
 
     res.json({
       success: true,
@@ -402,19 +402,19 @@ export const getFormValidationStatus = async (req: AuthenticatedRequest, res: Re
     let paramIndex = 1;
 
     if (dateFrom) {
-      conditions.push(`created_at >= $${paramIndex}`);
+      conditions.push(`createdAt >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`created_at <= $${paramIndex}`);
+      conditions.push(`createdAt <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Get validation status from task_form_submissions (using snake_case)
+    // Get validation status from taskFormSubmissions (using snakeCase)
     const validationQuery = `
       SELECT
         form_type,
@@ -431,7 +431,7 @@ export const getFormValidationStatus = async (req: AuthenticatedRequest, res: Re
       ORDER BY form_type
     `;
 
-    const validationResult = await pool.query(validationQuery, params);
+    const validationResult = await dbQuery(validationQuery, params);
 
     const summary = validationResult.rows.reduce(
       (
@@ -443,10 +443,10 @@ export const getFormValidationStatus = async (req: AuthenticatedRequest, res: Re
         },
         row
       ) => {
-        acc.totalForms += parseInt(row.total_forms);
-        acc.validatedForms += parseInt(row.validated_forms);
-        acc.pendingForms += parseInt(row.pending_forms);
-        acc.invalidForms += parseInt(row.invalid_forms || 0);
+        acc.totalForms += parseInt(row.totalForms);
+        acc.validatedForms += parseInt(row.validatedForms);
+        acc.pendingForms += parseInt(row.pendingForms);
+        acc.invalidForms += parseInt(row.invalidForms || 0);
         return acc;
       },
       { totalForms: 0, validatedForms: 0, pendingForms: 0, invalidForms: 0 }
@@ -492,22 +492,22 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
     let paramIndex = 1;
 
     if (dateFrom) {
-      conditions.push(`c.created_at >= $${paramIndex}`);
+      conditions.push(`c.createdAt >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`c.created_at <= $${paramIndex}`);
+      conditions.push(`c.createdAt <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
     if (clientId) {
-      conditions.push(`c.client_id = $${paramIndex}`);
+      conditions.push(`c.clientId = $${paramIndex}`);
       params.push(parseInt(clientId));
       paramIndex++;
     }
     if (agentId) {
-      conditions.push(`c.assigned_to = $${paramIndex}`);
+      conditions.push(`c.assignedTo = $${paramIndex}`);
       params.push(agentId);
       paramIndex++;
     }
@@ -519,7 +519,7 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Get comprehensive case analytics using multi-task architecture (snake_case)
+    // Get comprehensive case analytics using multi-task architecture (snakeCase)
     const analyticsQuery = `
       SELECT
         c.*,
@@ -553,7 +553,7 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
       ORDER BY c.created_at DESC
     `;
 
-    const analyticsResult = await pool.query(analyticsQuery, params);
+    const analyticsResult = await dbQuery(analyticsQuery, params);
 
     // Calculate summary metrics
     const cases = analyticsResult.rows;
@@ -611,13 +611,13 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
 
     // Get case details
     const caseQuery = `
-      SELECT c.*, cl.name as client_name, u.name as "agentName"
+      SELECT c.*, cl.name as client_name, u.name as "agent_name"
       FROM cases c
       LEFT JOIN clients cl ON c.client_id = cl.id
       LEFT JOIN users u ON c.assigned_to = u.id
       WHERE c.case_id = $1
     `;
-    const caseResult = await pool.query(caseQuery, [caseId]);
+    const caseResult = await dbQuery(caseQuery, [caseId]);
 
     if (caseResult.rows.length === 0) {
       return res.status(404).json({
@@ -630,7 +630,7 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
     const caseData = caseResult.rows[0];
 
     if (isFieldExecutionActor(req.user)) {
-      const taskAccess = await pool.query(
+      const taskAccess = await dbQuery(
         `SELECT 1
          FROM verification_tasks vt
          JOIN cases c ON vt.case_id = c.id
@@ -650,7 +650,7 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
     if (isScopedOperationsUser(req.user) && req.user?.id) {
       const scopedUserIds = await getScopedOperationalUserIds(req.user.id);
       if (scopedUserIds) {
-        const scopeCheck = await pool.query(
+        const scopeCheck = await dbQuery(
           `SELECT 1
            FROM cases c
            LEFT JOIN verification_tasks vt ON vt.case_id = c.id
@@ -754,7 +754,7 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
       ORDER BY event_date ASC
     `;
 
-    const timelineResult = await pool.query(timelineQuery, [caseId]);
+    const timelineResult = await dbQuery(timelineQuery, [caseId]);
 
     res.json({
       success: true,
@@ -763,10 +763,10 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
         timeline: timelineResult.rows,
         summary: {
           totalEvents: timelineResult.rows.length,
-          formsSubmitted: timelineResult.rows.filter(e => e.event_type.includes('FORM_SUBMITTED'))
+          formsSubmitted: timelineResult.rows.filter(e => e.eventType.includes('FORM_SUBMITTED'))
             .length,
           attachmentsUploaded: timelineResult.rows.filter(
-            e => e.event_type === 'ATTACHMENT_UPLOADED'
+            e => e.eventType === 'ATTACHMENT_UPLOADED'
           ).length,
         },
       },
@@ -798,22 +798,22 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
     let paramIndex = 1;
 
     if (dateFrom) {
-      conditions.push(`vt.created_at >= $${paramIndex}`);
+      conditions.push(`vt.createdAt >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`vt.created_at <= $${paramIndex}`);
+      conditions.push(`vt.createdAt <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
     if (agentId) {
-      conditions.push(`vt.assigned_to = $${paramIndex}`);
+      conditions.push(`vt.assignedTo = $${paramIndex}`);
       params.push(agentId);
       paramIndex++;
     }
     if (departmentId) {
-      conditions.push(`u.department_id = $${paramIndex}`);
+      conditions.push(`u.departmentId = $${paramIndex}`);
       params.push(parseInt(departmentId));
       paramIndex++;
     }
@@ -853,20 +853,20 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
       ORDER BY vt.created_at DESC
     `;
 
-    const result = await pool.query(performanceQuery, params);
+    const result = await dbQuery(performanceQuery, params);
     const tasks = result.rows;
 
     interface AgentPerformanceAccumulator {
       id: string;
       name: string;
-      employee_id: string;
-      total_tasks: number;
-      completed_tasks: number;
-      in_tat: number;
-      out_tat: number;
-      local_tasks: number;
-      ogl_tasks: number;
-      total_amount: number;
+      employeeId: string;
+      totalTasks: number;
+      completedTasks: number;
+      inTat: number;
+      outTat: number;
+      localTasks: number;
+      oglTasks: number;
+      totalAmount: number;
       clients: Set<string>;
       products: Set<string>;
       tasks: Record<string, unknown>[];
@@ -876,20 +876,20 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
     const agentMap = new Map<string, AgentPerformanceAccumulator>();
 
     tasks.forEach(task => {
-      const taskAgentId = task.agent_id;
+      const taskAgentId = task.agentId;
 
       if (!agentMap.has(taskAgentId)) {
         agentMap.set(taskAgentId, {
-          id: task.agent_id,
-          name: task.agent_name,
-          employee_id: task.employee_id,
-          total_tasks: 0,
-          completed_tasks: 0,
-          in_tat: 0,
-          out_tat: 0,
-          local_tasks: 0,
-          ogl_tasks: 0,
-          total_amount: 0,
+          id: task.agentId,
+          name: task.agentName,
+          employeeId: task.employeeId,
+          totalTasks: 0,
+          completedTasks: 0,
+          inTat: 0,
+          outTat: 0,
+          localTasks: 0,
+          oglTasks: 0,
+          totalAmount: 0,
           clients: new Set(),
           products: new Set(),
           tasks: [],
@@ -897,42 +897,42 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
       }
 
       const agent = agentMap.get(taskAgentId);
-      agent.total_tasks++;
+      agent.totalTasks++;
       agent.tasks.push(task);
 
       if (task.status === 'COMPLETED') {
-        agent.completed_tasks++;
+        agent.completedTasks++;
 
         // TAT calculation (assuming 2 days TAT)
-        if (task.completion_days !== null) {
-          if (task.completion_days <= 2) {
-            agent.in_tat++;
+        if (task.completionDays !== null) {
+          if (task.completionDays <= 2) {
+            agent.inTat++;
           } else {
-            agent.out_tat++;
+            agent.outTat++;
           }
         }
       }
 
       // Rate type
-      if (task.rate_type?.toLowerCase().includes('local')) {
-        agent.local_tasks++;
-      } else if (task.rate_type?.toLowerCase().includes('ogl')) {
-        agent.ogl_tasks++;
+      if (task.rateType?.toLowerCase().includes('local')) {
+        agent.localTasks++;
+      } else if (task.rateType?.toLowerCase().includes('ogl')) {
+        agent.oglTasks++;
       }
 
       // Amount
-      if (task.actual_amount) {
-        agent.total_amount += parseFloat(task.actual_amount);
-      } else if (task.estimated_amount) {
-        agent.total_amount += parseFloat(task.estimated_amount);
+      if (task.actualAmount) {
+        agent.totalAmount += parseFloat(task.actualAmount);
+      } else if (task.estimatedAmount) {
+        agent.totalAmount += parseFloat(task.estimatedAmount);
       }
 
       // Clients and products
-      if (task.client_name) {
-        agent.clients.add(task.client_name);
+      if (task.clientName) {
+        agent.clients.add(task.clientName);
       }
-      if (task.product_name) {
-        agent.products.add(task.product_name);
+      if (task.productName) {
+        agent.products.add(task.productName);
       }
     });
 
@@ -940,23 +940,23 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
     const agents = Array.from(agentMap.values()).map(agent => ({
       id: agent.id,
       name: agent.name,
-      employee_id: agent.employee_id,
-      total_tasks: agent.total_tasks,
-      completed_tasks: agent.completed_tasks,
-      pending_tasks: agent.total_tasks - agent.completed_tasks,
-      in_tat: agent.in_tat,
-      out_tat: agent.out_tat,
-      local_tasks: agent.local_tasks,
-      ogl_tasks: agent.ogl_tasks,
-      total_amount: Math.round(agent.total_amount * 100) / 100,
+      employeeId: agent.employeeId,
+      totalTasks: agent.totalTasks,
+      completedTasks: agent.completedTasks,
+      pendingTasks: agent.totalTasks - agent.completedTasks,
+      inTat: agent.inTat,
+      outTat: agent.outTat,
+      localTasks: agent.localTasks,
+      oglTasks: agent.oglTasks,
+      totalAmount: Math.round(agent.totalAmount * 100) / 100,
       clients: Array.from(agent.clients),
       products: Array.from(agent.products),
-      completion_rate:
-        agent.total_tasks > 0 ? Math.round((agent.completed_tasks / agent.total_tasks) * 100) : 0,
+      completionRate:
+        agent.totalTasks > 0 ? Math.round((agent.completedTasks / agent.totalTasks) * 100) : 0,
     }));
 
     // Sort by total tasks
-    agents.sort((a, b) => b.total_tasks - a.total_tasks);
+    agents.sort((a, b) => b.totalTasks - a.totalTasks);
 
     res.json({
       success: true,
@@ -964,9 +964,9 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
         summary: {
           totalAgents: agents.length,
           totalTasks: tasks.length,
-          completedTasks: agents.reduce((sum, a) => sum + a.completed_tasks, 0),
-          inTAT: agents.reduce((sum, a) => sum + a.in_tat, 0),
-          outTAT: agents.reduce((sum, a) => sum + a.out_tat, 0),
+          completedTasks: agents.reduce((sum, a) => sum + a.completedTasks, 0),
+          inTat: agents.reduce((sum, a) => sum + a.inTat, 0),
+          outTat: agents.reduce((sum, a) => sum + a.outTat, 0),
         },
         agents,
         generatedAt: new Date().toISOString(),
@@ -993,7 +993,7 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
 
     // Verify agent exists
     const agentQuery = `
-      SELECT u.*, d.name as "departmentName"
+      SELECT u.*, d.name as "department_name"
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
       WHERE u.id = $1
@@ -1005,7 +1005,7 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
           WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
         )
     `;
-    const agentResult = await pool.query(agentQuery, [agentId]);
+    const agentResult = await dbQuery(agentQuery, [agentId]);
 
     if (agentResult.rows.length === 0) {
       return res.status(404).json({
@@ -1017,17 +1017,17 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
 
     const agent = agentResult.rows[0];
 
-    const conditions: string[] = ['c.assigned_to = $1'];
+    const conditions: string[] = ['c.assignedTo = $1'];
     const params: QueryParams = [agentId];
     let paramIndex = 2;
 
     if (dateFrom) {
-      conditions.push(`c.created_at >= $${paramIndex}`);
+      conditions.push(`c.createdAt >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`c.created_at <= $${paramIndex}`);
+      conditions.push(`c.createdAt <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
@@ -1052,7 +1052,7 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
       ORDER BY work_date DESC
     `;
 
-    const productivityResult = await pool.query(productivityQuery, params);
+    const productivityResult = await dbQuery(productivityQuery, params);
 
     res.json({
       success: true,
@@ -1062,11 +1062,11 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
         summary: {
           totalWorkDays: productivityResult.rows.length,
           avgCasesPerDay:
-            productivityResult.rows.reduce((sum, day) => sum + parseInt(day.cases_assigned), 0) /
+            productivityResult.rows.reduce((sum, day) => sum + parseInt(day.casesAssigned), 0) /
               productivityResult.rows.length || 0,
           avgFormsPerDay:
             productivityResult.rows.reduce(
-              (sum, day) => sum + parseInt(day.residence_forms) + parseInt(day.office_forms),
+              (sum, day) => sum + parseInt(day.residenceForms) + parseInt(day.officeForms),
               0
             ) / productivityResult.rows.length || 0,
         },
@@ -1103,12 +1103,12 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
     const backendScope = await getBackendUserReportScope(req);
 
     if (dateFrom) {
-      conditions.push(`c.created_at >= $${paramIndex}`);
+      conditions.push(`c.createdAt >= $${paramIndex}`);
       params.push(dateFrom as string);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`c.created_at <= $${paramIndex}`);
+      conditions.push(`c.createdAt <= $${paramIndex}`);
       params.push(dateTo as string);
       paramIndex++;
     }
@@ -1118,12 +1118,12 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
       paramIndex++;
     }
     if (clientId) {
-      conditions.push(`c.client_id = $${paramIndex}`);
+      conditions.push(`c.clientId = $${paramIndex}`);
       params.push(parseInt(clientId as string));
       paramIndex++;
     }
     if (assignedToId) {
-      conditions.push(`c.assigned_to = $${paramIndex}`);
+      conditions.push(`c.assignedTo = $${paramIndex}`);
       params.push(assignedToId as string);
       paramIndex++;
     }
@@ -1147,12 +1147,12 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
       paramIndex++;
     }
     if (backendScope.clientIds) {
-      conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.clientId = ANY($${paramIndex}::int[])`);
       params.push(backendScope.clientIds);
       paramIndex++;
     }
     if (backendScope.productIds) {
-      conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.productId = ANY($${paramIndex}::int[])`);
       params.push(backendScope.productIds);
       paramIndex++;
     }
@@ -1175,7 +1175,7 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
       ORDER BY c.created_at DESC
     `;
 
-    const casesResult = await pool.query(casesQuery, params);
+    const casesResult = await dbQuery(casesQuery, params);
     const filteredCases = casesResult.rows;
 
     // Calculate summary statistics
@@ -1272,7 +1272,7 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
       userParamIndex++;
     }
     if (isActive !== undefined) {
-      userConditions.push(`u.is_active = $${userParamIndex}`);
+      userConditions.push(`u.isActive = $${userParamIndex}`);
       userParams.push(isActive === 'true');
       userParamIndex++;
     }
@@ -1290,7 +1290,7 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
       ORDER BY u.name
     `;
 
-    const usersResult = await pool.query(usersQuery, userParams);
+    const usersResult = await dbQuery(usersQuery, userParams);
 
     const report = {
       summary: {
@@ -1336,7 +1336,7 @@ export const getClientReport = async (req: AuthenticatedRequest, res: Response) 
     let paramIndex = 1;
 
     if (isActive !== undefined) {
-      conditions.push(`cl.is_active = $${paramIndex}`);
+      conditions.push(`cl.isActive = $${paramIndex}`);
       params.push(isActive === 'true');
       paramIndex++;
     }
@@ -1353,7 +1353,7 @@ export const getClientReport = async (req: AuthenticatedRequest, res: Response) 
       ORDER BY cl.name
     `;
 
-    const clientsResult = await pool.query(clientsQuery, params);
+    const clientsResult = await dbQuery(clientsQuery, params);
 
     const report = {
       summary: {
@@ -1390,14 +1390,14 @@ export const getDashboardReport = async (req: AuthenticatedRequest, res: Respons
     const summaryQuery = `
       SELECT 
         (SELECT COUNT(*) FROM cases) as total_cases,
-        (SELECT COUNT(*) FROM cases WHERE status = 'PENDING') as "pendingCases",
-        (SELECT COUNT(*) FROM cases WHERE status = 'IN_PROGRESS') as "inProgressCases",
-        (SELECT COUNT(*) FROM cases WHERE status = 'COMPLETED') as "completedCases",
-        (SELECT COUNT(*) FROM users WHERE is_active = true) as "activeUsers",
-        (SELECT COUNT(*) FROM clients WHERE is_active = true) as "activeClients"
+        (SELECT COUNT(*) FROM cases WHERE status = 'PENDING') as "pending_cases",
+        (SELECT COUNT(*) FROM cases WHERE status = 'IN_PROGRESS') as "in_progress_cases",
+        (SELECT COUNT(*) FROM cases WHERE status = 'COMPLETED') as "completed_cases",
+        (SELECT COUNT(*) FROM users WHERE is_active = true) as "active_users",
+        (SELECT COUNT(*) FROM clients WHERE is_active = true) as "active_clients"
     `;
 
-    const summaryResult = await pool.query<DashboardSummaryRow>(summaryQuery);
+    const summaryResult = await dbQuery<DashboardSummaryRow>(summaryQuery);
     const summary = summaryResult.rows[0];
 
     res.json({
@@ -1459,31 +1459,31 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
 
     // Date filters - use task created date
     if (dateFrom) {
-      conditions.push(`vt.created_at >= $${paramIndex}`);
+      conditions.push(`vt.createdAt >= $${paramIndex}`);
       params.push(dateFrom as string);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`vt.created_at <= $${paramIndex}`);
+      conditions.push(`vt.createdAt <= $${paramIndex}`);
       params.push(dateTo as string);
       paramIndex++;
     }
 
     // Client and Product filters
     if (clientId) {
-      conditions.push(`c.client_id = $${paramIndex}`);
+      conditions.push(`c.clientId = $${paramIndex}`);
       params.push(parseInt(clientId as string));
       paramIndex++;
     }
     if (productId) {
-      conditions.push(`c.product_id = $${paramIndex}`);
+      conditions.push(`c.productId = $${paramIndex}`);
       params.push(parseInt(productId as string));
       paramIndex++;
     }
 
     // Verification Type filter - use task verification type
     if (verificationTypeId) {
-      conditions.push(`vt.verification_type_id = $${paramIndex}`);
+      conditions.push(`vt.verificationTypeId = $${paramIndex}`);
       params.push(parseInt(verificationTypeId as string));
       paramIndex++;
     }
@@ -1497,7 +1497,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
 
     // Backend User filter
     if (backendUserId) {
-      conditions.push(`c.created_by_backend_user = $${paramIndex}`);
+      conditions.push(`c.createdByBackendUser = $${paramIndex}`);
       params.push(backendUserId as string);
       paramIndex++;
     }
@@ -1511,7 +1511,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
 
     // Field Agent filter - direct task assignment
     if (fieldAgentId) {
-      conditions.push(`vt.assigned_to = $${paramIndex}`);
+      conditions.push(`vt.assignedTo = $${paramIndex}`);
       params.push(fieldAgentId as string);
       paramIndex++;
     }
@@ -1525,12 +1525,12 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
       paramIndex++;
     }
     if (backendScope.clientIds) {
-      conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.clientId = ANY($${paramIndex}::int[])`);
       params.push(backendScope.clientIds);
       paramIndex++;
     }
     if (backendScope.productIds) {
-      conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.productId = ANY($${paramIndex}::int[])`);
       params.push(backendScope.productIds);
       paramIndex++;
     }
@@ -1558,7 +1558,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
       LEFT JOIN users bu ON c.created_by_backend_user = bu.id
       ${whereClause}
     `;
-    const countResult = await pool.query(countQuery, params);
+    const countResult = await dbQuery(countQuery, params);
     const totalRecords = parseInt(countResult.rows[0].total);
 
     // Main MIS data query - TASK-CENTRIC APPROACH
@@ -1646,7 +1646,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
     `;
 
     params.push(limitNum, offset);
-    const result = await pool.query(query, params);
+    const result = await dbQuery(query, params);
 
     // Calculate summary statistics - TASK-BASED
     const summaryQuery = `
@@ -1670,7 +1670,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
     `;
 
     // Remove LIMIT and OFFSET parameters for summary query (last 2 params)
-    const summaryResult = await pool.query(summaryQuery, params.slice(0, -2));
+    const summaryResult = await dbQuery(summaryQuery, params.slice(0, -2));
     const summary = summaryResult.rows[0];
 
     logger.info('MIS data retrieved (task-centric)', {
@@ -1684,15 +1684,15 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
       success: true,
       data: result.rows,
       summary: {
-        total_tasks: parseInt(summary.total_tasks) || 0,
-        total_estimated_amount: parseFloat(summary.total_estimated_amount) || 0,
-        total_actual_amount: parseFloat(summary.total_actual_amount) || 0,
-        completed_tasks: parseInt(summary.completed_tasks) || 0,
-        task_completion_rate:
-          summary.total_tasks > 0
-            ? Math.round((parseInt(summary.completed_tasks) / parseInt(summary.total_tasks)) * 100)
+        totalTasks: parseInt(summary.totalTasks) || 0,
+        totalEstimatedAmount: parseFloat(summary.totalEstimatedAmount) || 0,
+        totalActualAmount: parseFloat(summary.totalActualAmount) || 0,
+        completedTasks: parseInt(summary.completedTasks) || 0,
+        taskCompletionRate:
+          summary.totalTasks > 0
+            ? Math.round((parseInt(summary.completedTasks) / parseInt(summary.totalTasks)) * 100)
             : 0,
-        avg_tat_days: parseFloat(summary.avg_tat_days) || 0,
+        avgTatDays: parseFloat(summary.avgTatDays) || 0,
       },
       pagination: {
         page: pageNum,
@@ -1749,31 +1749,31 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
 
     // Date filters - use task created date
     if (dateFrom) {
-      conditions.push(`vt.created_at >= $${paramIndex}`);
+      conditions.push(`vt.createdAt >= $${paramIndex}`);
       params.push(dateFrom as string);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`vt.created_at <= $${paramIndex}`);
+      conditions.push(`vt.createdAt <= $${paramIndex}`);
       params.push(dateTo as string);
       paramIndex++;
     }
 
     // Client and Product filters
     if (clientId) {
-      conditions.push(`c.client_id = $${paramIndex}`);
+      conditions.push(`c.clientId = $${paramIndex}`);
       params.push(parseInt(clientId as string));
       paramIndex++;
     }
     if (productId) {
-      conditions.push(`c.product_id = $${paramIndex}`);
+      conditions.push(`c.productId = $${paramIndex}`);
       params.push(parseInt(productId as string));
       paramIndex++;
     }
 
     // Verification Type filter - use task verification type
     if (verificationTypeId) {
-      conditions.push(`vt.verification_type_id = $${paramIndex}`);
+      conditions.push(`vt.verificationTypeId = $${paramIndex}`);
       params.push(parseInt(verificationTypeId as string));
       paramIndex++;
     }
@@ -1787,7 +1787,7 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
 
     // Backend User filter
     if (backendUserId) {
-      conditions.push(`c.created_by_backend_user = $${paramIndex}`);
+      conditions.push(`c.createdByBackendUser = $${paramIndex}`);
       params.push(backendUserId as string);
       paramIndex++;
     }
@@ -1801,7 +1801,7 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
 
     // Field Agent filter - direct task assignment
     if (fieldAgentId) {
-      conditions.push(`vt.assigned_to = $${paramIndex}`);
+      conditions.push(`vt.assignedTo = $${paramIndex}`);
       params.push(fieldAgentId as string);
       paramIndex++;
     }
@@ -1815,12 +1815,12 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       paramIndex++;
     }
     if (backendScope.clientIds) {
-      conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.clientId = ANY($${paramIndex}::int[])`);
       params.push(backendScope.clientIds);
       paramIndex++;
     }
     if (backendScope.productIds) {
-      conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.productId = ANY($${paramIndex}::int[])`);
       params.push(backendScope.productIds);
       paramIndex++;
     }
@@ -1902,7 +1902,7 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       ORDER BY vt.created_at DESC
     `;
 
-    const result = await pool.query<MISReportRow>(query, params);
+    const result = await dbQuery<MISReportRow>(query, params);
 
     if (format === 'EXCEL') {
       // Create Excel workbook
@@ -1912,46 +1912,46 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       // Define columns - TASK-FIRST ORDER
       worksheet.columns = [
         // Task-Level Data (PRIMARY)
-        { header: 'Task ID', key: 'task_id', width: 12 },
-        { header: 'Task Number', key: 'task_number', width: 15 },
-        { header: 'Task Title', key: 'task_title', width: 30 },
-        { header: 'Verification Type', key: 'verification_type_name', width: 25 },
-        { header: 'Task Status', key: 'task_status', width: 15 },
-        { header: 'Task Priority', key: 'task_priority', width: 12 },
-        { header: 'Field Agent', key: 'assigned_field_user', width: 20 },
-        { header: 'Field Agent ID', key: 'field_user_employee_id', width: 15 },
+        { header: 'Task ID', key: 'taskId', width: 12 },
+        { header: 'Task Number', key: 'taskNumber', width: 15 },
+        { header: 'Task Title', key: 'taskTitle', width: 30 },
+        { header: 'Verification Type', key: 'verificationTypeName', width: 25 },
+        { header: 'Task Status', key: 'taskStatus', width: 15 },
+        { header: 'Task Priority', key: 'taskPriority', width: 12 },
+        { header: 'Field Agent', key: 'assignedFieldUser', width: 20 },
+        { header: 'Field Agent ID', key: 'fieldUserEmployeeId', width: 15 },
         { header: 'Address', key: 'address', width: 40 },
         { header: 'Pincode', key: 'pincode', width: 10 },
-        { header: 'Area', key: 'area_name', width: 20 },
-        { header: 'Rate Type', key: 'rate_type', width: 15 },
-        { header: 'Estimated Amount', key: 'estimated_amount', width: 18 },
-        { header: 'Actual Amount', key: 'actual_amount', width: 15 },
-        { header: 'Task Created Date', key: 'task_created_date', width: 20 },
-        { header: 'Task Started Date', key: 'task_started_date', width: 20 },
-        { header: 'Task Completion Date', key: 'task_completion_date', width: 20 },
-        { header: 'Task TAT (Days)', key: 'task_tat_days', width: 15 },
+        { header: 'Area', key: 'areaName', width: 20 },
+        { header: 'Rate Type', key: 'rateType', width: 15 },
+        { header: 'Estimated Amount', key: 'estimatedAmount', width: 18 },
+        { header: 'Actual Amount', key: 'actualAmount', width: 15 },
+        { header: 'Task Created Date', key: 'taskCreatedDate', width: 20 },
+        { header: 'Task Started Date', key: 'taskStartedDate', width: 20 },
+        { header: 'Task Completion Date', key: 'taskCompletionDate', width: 20 },
+        { header: 'Task TAT (Days)', key: 'taskTatDays', width: 15 },
         { header: 'Trigger', key: 'trigger', width: 30 },
-        { header: 'Applicant Type', key: 'applicant_type', width: 20 },
+        { header: 'Applicant Type', key: 'applicantType', width: 20 },
 
         // Form Submission Data
-        { header: 'Form Submission ID', key: 'form_submission_id', width: 15 },
-        { header: 'Form Type', key: 'form_type', width: 20 },
-        { header: 'Form Submitted Date', key: 'form_submitted_date', width: 20 },
-        { header: 'Form Validation Status', key: 'form_validation_status', width: 20 },
+        { header: 'Form Submission ID', key: 'formSubmissionId', width: 15 },
+        { header: 'Form Type', key: 'formType', width: 20 },
+        { header: 'Form Submitted Date', key: 'formSubmittedDate', width: 20 },
+        { header: 'Form Validation Status', key: 'formValidationStatus', width: 20 },
 
         // Case-Level Data (SECONDARY/REFERENCE)
-        { header: 'Case Number', key: 'case_number', width: 15 },
-        { header: 'Customer Name', key: 'customer_name', width: 25 },
-        { header: 'Customer Phone', key: 'customer_phone', width: 15 },
-        { header: 'Calling Code', key: 'customer_calling_code', width: 12 },
-        { header: 'Client Name', key: 'client_name', width: 20 },
-        { header: 'Client Code', key: 'client_code', width: 15 },
-        { header: 'Product', key: 'product_name', width: 20 },
-        { header: 'Case Status', key: 'case_status', width: 15 },
-        { header: 'Case Priority', key: 'case_priority', width: 12 },
-        { header: 'Case Created Date', key: 'case_created_date', width: 20 },
-        { header: 'Backend User', key: 'backend_user_name', width: 20 },
-        { header: 'Backend User ID', key: 'backend_user_employee_id', width: 15 },
+        { header: 'Case Number', key: 'caseNumber', width: 15 },
+        { header: 'Customer Name', key: 'customerName', width: 25 },
+        { header: 'Customer Phone', key: 'customerPhone', width: 15 },
+        { header: 'Calling Code', key: 'customerCallingCode', width: 12 },
+        { header: 'Client Name', key: 'clientName', width: 20 },
+        { header: 'Client Code', key: 'clientCode', width: 15 },
+        { header: 'Product', key: 'productName', width: 20 },
+        { header: 'Case Status', key: 'caseStatus', width: 15 },
+        { header: 'Case Priority', key: 'casePriority', width: 12 },
+        { header: 'Case Created Date', key: 'caseCreatedDate', width: 20 },
+        { header: 'Backend User', key: 'backendUserName', width: 20 },
+        { header: 'Backend User ID', key: 'backendUserEmployeeId', width: 15 },
       ];
 
       // Style header row
@@ -2035,43 +2035,43 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       result.rows.forEach(row => {
         const values = [
           // Task-Level Data (PRIMARY)
-          row.task_id || '',
-          row.task_number || '',
-          `"${row.task_title || ''}"`,
-          `"${row.task_verification_type || ''}"`,
-          row.task_status || '',
-          row.task_priority || '',
-          `"${row.assigned_field_user || ''}"`,
-          row.field_user_employee_id || '',
+          row.taskId || '',
+          row.taskNumber || '',
+          `"${row.taskTitle || ''}"`,
+          `"${row.taskVerificationType || ''}"`,
+          row.taskStatus || '',
+          row.taskPriority || '',
+          `"${row.assignedFieldUser || ''}"`,
+          row.fieldUserEmployeeId || '',
           `"${row.address || ''}"`,
           row.pincode || '',
-          row.rate_type || '',
-          row.estimated_amount || 0,
-          row.actual_amount || 0,
-          row.task_created_date || '',
-          row.task_started_date || '',
-          row.task_completion_date || '',
-          row.task_tat_days || '',
+          row.rateType || '',
+          row.estimatedAmount || 0,
+          row.actualAmount || 0,
+          row.taskCreatedDate || '',
+          row.taskStartedDate || '',
+          row.taskCompletionDate || '',
+          row.taskTatDays || '',
           `"${row.trigger || ''}"`,
-          row.applicant_type || '',
+          row.applicantType || '',
           // Form Submission Data
-          row.form_submission_id || '',
-          row.form_type || '',
-          row.form_submitted_date || '',
-          row.form_validation_status || '',
+          row.formSubmissionId || '',
+          row.formType || '',
+          row.formSubmittedDate || '',
+          row.formValidationStatus || '',
           // Case-Level Data (SECONDARY/REFERENCE)
-          row.case_number,
-          `"${row.customer_name || ''}"`,
-          row.customer_phone || '',
-          row.customer_calling_code || '',
-          `"${row.client_name || ''}"`,
-          row.client_code || '',
-          `"${row.product_name || ''}"`,
-          row.case_status || '',
-          row.case_priority || '',
-          row.case_created_date || '',
-          `"${row.backend_user_name || ''}"`,
-          row.backend_user_employee_id || '',
+          row.caseNumber,
+          `"${row.customerName || ''}"`,
+          row.customerPhone || '',
+          row.customerCallingCode || '',
+          `"${row.clientName || ''}"`,
+          row.clientCode || '',
+          `"${row.productName || ''}"`,
+          row.caseStatus || '',
+          row.casePriority || '',
+          row.caseCreatedDate || '',
+          `"${row.backendUserName || ''}"`,
+          row.backendUserEmployeeId || '',
         ];
         csvRows.push(values.join(','));
       });
@@ -2160,13 +2160,13 @@ const buildInvoiceReportScope = async (req: AuthenticatedRequest) => {
   }
 
   if (backendScope.clientIds) {
-    conditions.push(`i.client_id = ANY($${paramIndex}::int[])`);
+    conditions.push(`i.clientId = ANY($${paramIndex}::int[])`);
     params.push(backendScope.clientIds);
     paramIndex++;
   }
 
   if (backendScope.productIds) {
-    conditions.push(`(i.product_id IS NULL OR i.product_id = ANY($${paramIndex}::int[]))`);
+    conditions.push(`(i.productId IS NULL OR i.productId = ANY($${paramIndex}::int[]))`);
     params.push(backendScope.productIds);
     paramIndex++;
   }
@@ -2180,13 +2180,13 @@ const buildInvoiceReportQuery = async (req: AuthenticatedRequest, includePaginat
   let paramIndex = initialParamIndex;
 
   if (input.clientId) {
-    conditions.push(`i.client_id = $${paramIndex}`);
+    conditions.push(`i.clientId = $${paramIndex}`);
     params.push(Number(input.clientId));
     paramIndex++;
   }
 
   if (input.productId) {
-    conditions.push(`i.product_id = $${paramIndex}`);
+    conditions.push(`i.productId = $${paramIndex}`);
     params.push(Number(input.productId));
     paramIndex++;
   }
@@ -2198,13 +2198,13 @@ const buildInvoiceReportQuery = async (req: AuthenticatedRequest, includePaginat
   }
 
   if (input.dateFrom) {
-    conditions.push(`i.issue_date >= $${paramIndex}`);
+    conditions.push(`i.issueDate >= $${paramIndex}`);
     params.push(input.dateFrom);
     paramIndex++;
   }
 
   if (input.dateTo) {
-    conditions.push(`i.issue_date <= $${paramIndex}`);
+    conditions.push(`i.issueDate <= $${paramIndex}`);
     params.push(input.dateTo);
     paramIndex++;
   }
@@ -2279,28 +2279,28 @@ export const getInvoicesReport = async (req: AuthenticatedRequest, res: Response
   try {
     const reportQuery = await buildInvoiceReportQuery(req, true);
     const [countResult, dataResult] = await Promise.all([
-      pool.query<{ total: string }>(reportQuery.countQuery, reportQuery.params),
-      pool.query<{
+      dbQuery<{ total: string }>(reportQuery.countQuery, reportQuery.params),
+      dbQuery<{
         id: number;
-        invoice_number: string;
-        client_id: number;
-        product_id: number | null;
-        client_name: string;
+        invoiceNumber: string;
+        clientId: number;
+        productId: number | null;
+        clientName: string;
         status: string;
         currency: string;
-        issue_date: string;
-        due_date: string;
-        paid_date: string | null;
-        subtotal_amount: string;
-        tax_amount: string;
-        total_amount: string;
+        issueDate: string;
+        dueDate: string;
+        paidDate: string | null;
+        subtotalAmount: string;
+        taxAmount: string;
+        totalAmount: string;
         notes: string | null;
-        created_at: string;
-        updated_at: string;
-        client_code: string | null;
-        product_name: string | null;
-        item_count: number;
-        total_quantity: number;
+        createdAt: string;
+        updatedAt: string;
+        clientCode: string | null;
+        productName: string | null;
+        itemCount: number;
+        totalQuantity: number;
       }>(reportQuery.dataQuery, reportQuery.dataParams),
     ]);
 
@@ -2310,25 +2310,25 @@ export const getInvoicesReport = async (req: AuthenticatedRequest, res: Response
       success: true,
       data: dataResult.rows.map(row => ({
         id: row.id,
-        invoiceNumber: row.invoice_number,
-        clientId: row.client_id,
-        productId: row.product_id,
-        clientName: row.client_name,
-        clientCode: row.client_code,
-        productName: row.product_name,
+        invoiceNumber: row.invoiceNumber,
+        clientId: row.clientId,
+        productId: row.productId,
+        clientName: row.clientName,
+        clientCode: row.clientCode,
+        productName: row.productName,
         status: row.status,
         currency: row.currency,
-        issueDate: row.issue_date,
-        dueDate: row.due_date,
-        paidDate: row.paid_date,
-        subtotalAmount: Number(row.subtotal_amount || 0),
-        taxAmount: Number(row.tax_amount || 0),
-        totalAmount: Number(row.total_amount || 0),
+        issueDate: row.issueDate,
+        dueDate: row.dueDate,
+        paidDate: row.paidDate,
+        subtotalAmount: Number(row.subtotalAmount || 0),
+        taxAmount: Number(row.taxAmount || 0),
+        totalAmount: Number(row.totalAmount || 0),
         notes: row.notes || '',
-        itemCount: row.item_count,
-        totalQuantity: row.total_quantity,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
+        itemCount: row.itemCount,
+        totalQuantity: row.totalQuantity,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
       })),
       pagination: {
         page: reportQuery.page,
@@ -2350,17 +2350,17 @@ export const getInvoicesReport = async (req: AuthenticatedRequest, res: Response
 export const downloadInvoicesReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const reportQuery = await buildInvoiceReportQuery(req, false);
-    const result = await pool.query<{
-      invoice_number: string;
-      client_name: string;
-      product_name: string | null;
+    const result = await dbQuery<{
+      invoiceNumber: string;
+      clientName: string;
+      productName: string | null;
       status: string;
-      issue_date: string;
-      due_date: string;
-      paid_date: string | null;
-      subtotal_amount: string;
-      tax_amount: string;
-      total_amount: string;
+      issueDate: string;
+      dueDate: string;
+      paidDate: string | null;
+      subtotalAmount: string;
+      taxAmount: string;
+      totalAmount: string;
       currency: string;
     }>(reportQuery.dataQuery, reportQuery.dataParams);
 
@@ -2382,16 +2382,16 @@ export const downloadInvoicesReport = async (req: AuthenticatedRequest, res: Res
     result.rows.forEach(row => {
       csvRows.push(
         [
-          row.invoice_number,
-          `"${row.client_name || ''}"`,
-          `"${row.product_name || ''}"`,
+          row.invoiceNumber,
+          `"${row.clientName || ''}"`,
+          `"${row.productName || ''}"`,
           row.status,
-          row.issue_date || '',
-          row.due_date || '',
-          row.paid_date || '',
-          row.subtotal_amount || '0',
-          row.tax_amount || '0',
-          row.total_amount || '0',
+          row.issueDate || '',
+          row.dueDate || '',
+          row.paidDate || '',
+          row.subtotalAmount || '0',
+          row.taxAmount || '0',
+          row.totalAmount || '0',
           row.currency || 'INR',
         ].join(',')
       );

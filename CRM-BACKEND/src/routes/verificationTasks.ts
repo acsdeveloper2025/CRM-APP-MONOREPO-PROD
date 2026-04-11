@@ -13,7 +13,7 @@ import {
   validateTaskAssignment,
 } from '../middleware/taskValidation';
 import { validateTaskRecordAccess } from '../middleware/taskAuthorization';
-import { pool } from '../config/db';
+import { pool, query as dbQuery, wrapClient } from '../config/db';
 import { authorize } from '@/middleware/authorize';
 import { isScopedOperationsUser } from '@/security/rbacAccess';
 import { EnterpriseCache, CacheInvalidationPatterns } from '@/middleware/enterpriseCache';
@@ -192,7 +192,7 @@ router.get(
     try {
       const { taskId } = req.params;
 
-      const result = await pool.query(
+      const result = await dbQuery(
         `
         SELECT 
           tah.*,
@@ -237,7 +237,7 @@ router.get(
     try {
       const { taskId } = req.params;
 
-      const result = await pool.query(
+      const result = await dbQuery(
         `
         SELECT 
           vt.*,
@@ -374,7 +374,7 @@ router.post(
           return;
         }
 
-        const scopeCheck = await pool.query(
+        const scopeCheck = await dbQuery(
           `SELECT COUNT(*)::int AS denied_count
            FROM verification_tasks vt
            JOIN cases c ON c.id = vt.case_id
@@ -396,7 +396,7 @@ router.post(
         }
       }
 
-      const client = await pool.connect();
+      const client = wrapClient(await pool.connect());
 
       try {
         await client.query('BEGIN');
@@ -453,7 +453,7 @@ router.post(
         res.json({
           success: true,
           data: {
-            updated_tasks: updatedTasks.length,
+            updatedTasksCount: updatedTasks.length,
             tasks: updatedTasks,
           },
           message: `${updatedTasks.length} tasks assigned successfully`,

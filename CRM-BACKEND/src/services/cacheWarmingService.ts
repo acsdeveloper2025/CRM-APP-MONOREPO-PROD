@@ -1,6 +1,6 @@
 import { EnterpriseCacheService } from './enterpriseCacheService';
 import { logger } from '../config/logger';
-import { pool } from '../config/database';
+import { query as dbQuery } from '../config/database';
 import { CANONICAL_RBAC_ROLE_NAMES } from '@/constants/rbacRoles';
 
 /**
@@ -40,7 +40,7 @@ export class CacheWarmingService {
    */
   private static async warmClientCache(): Promise<void> {
     try {
-      const result = await pool.query(`
+      const result = await dbQuery(`
         SELECT id, name, email, phone, address, is_active, created_at, updated_at
         FROM clients
         WHERE is_active = true
@@ -59,7 +59,7 @@ export class CacheWarmingService {
    */
   private static async warmVerificationTypesCache(): Promise<void> {
     try {
-      const result = await pool.query(`
+      const result = await dbQuery(`
         SELECT id, name, description, is_active, created_at, updated_at
         FROM verification_types
         WHERE is_active = true
@@ -78,7 +78,7 @@ export class CacheWarmingService {
    */
   private static async warmProductsCache(): Promise<void> {
     try {
-      const result = await pool.query(`
+      const result = await dbQuery(`
         SELECT id, name, description, is_active, created_at, updated_at
         FROM products
         WHERE is_active = true
@@ -97,7 +97,7 @@ export class CacheWarmingService {
    */
   private static async warmRateTypesCache(): Promise<void> {
     try {
-      const result = await pool.query(`
+      const result = await dbQuery(`
         SELECT id, name, description, is_active, created_at, updated_at
         FROM rate_types
         WHERE is_active = true
@@ -128,7 +128,7 @@ export class CacheWarmingService {
       }>;
 
       for (const profile of profiles) {
-        const result = await pool.query(
+        const result = await dbQuery(
           `
           SELECT
             u.id,
@@ -143,11 +143,11 @@ export class CacheWarmingService {
             u.is_active,
 
             -- Assignment arrays for BACKEND_USER role
-            COALESCE(client_arrays.ids, ARRAY[]::int[]) as "assignedClients",
-            COALESCE(product_arrays.ids, ARRAY[]::int[]) as "assignedProducts",
+            COALESCE(client_arrays.ids, ARRAY[]::int[]) as "assigned_clients",
+            COALESCE(product_arrays.ids, ARRAY[]::int[]) as "assigned_products",
 
             -- Assignment arrays for FIELD_AGENT role
-            COALESCE(pincode_arrays.ids, ARRAY[]::int[]) as "assignedPincodes",
+            COALESCE(pincode_arrays.ids, ARRAY[]::int[]) as "assigned_pincodes",
             COALESCE(area_arrays.ids, ARRAY[]::int[]) as assigned_areas
           FROM users u
           LEFT JOIN (
@@ -215,7 +215,7 @@ export class CacheWarmingService {
       }
 
       // Cache all active users
-      const allResult = await pool.query(`
+      const allResult = await dbQuery(`
         SELECT
           u.id,
           u.username,
@@ -229,11 +229,11 @@ export class CacheWarmingService {
           u.is_active,
 
           -- Assignment arrays for BACKEND_USER role
-          COALESCE(client_arrays.ids, ARRAY[]::int[]) as "assignedClients",
-          COALESCE(product_arrays.ids, ARRAY[]::int[]) as "assignedProducts",
+          COALESCE(client_arrays.ids, ARRAY[]::int[]) as "assigned_clients",
+          COALESCE(product_arrays.ids, ARRAY[]::int[]) as "assigned_products",
 
           -- Assignment arrays for FIELD_AGENT role
-          COALESCE(pincode_arrays.ids, ARRAY[]::int[]) as "assignedPincodes",
+          COALESCE(pincode_arrays.ids, ARRAY[]::int[]) as "assigned_pincodes",
           COALESCE(area_arrays.ids, ARRAY[]::int[]) as assigned_areas
         FROM users u
         LEFT JOIN (
@@ -298,7 +298,7 @@ export class CacheWarmingService {
   private static async warmRecentCasesCache(): Promise<void> {
     try {
       // Cache recent pending cases (most frequently accessed)
-      const pendingResult = await pool.query(`
+      const pendingResult = await dbQuery(`
         SELECT
           c.id, c.case_id, c.customer_name, c.status, c.priority,
           c.created_at, c.updated_at,
@@ -314,7 +314,7 @@ export class CacheWarmingService {
       logger.debug(`✓ Warmed recent pending cases cache: ${pendingResult.rows.length} cases`);
 
       // Cache recent in-progress cases
-      const inProgressResult = await pool.query(`
+      const inProgressResult = await dbQuery(`
         SELECT
           c.id, c.case_id, c.customer_name, c.status, c.priority,
           c.created_at, c.updated_at,
@@ -341,7 +341,7 @@ export class CacheWarmingService {
   private static async warmAnalyticsCache(): Promise<void> {
     try {
       // Cache case statistics
-      const statsResult = await pool.query(`
+      const statsResult = await dbQuery(`
         SELECT 
           status,
           COUNT(*) as count
@@ -361,15 +361,15 @@ export class CacheWarmingService {
       logger.debug(`✓ Warmed case stats cache`);
 
       // Cache field agent workload (based on task-level assignments)
-      const workloadResult = await pool.query(`
+      const workloadResult = await dbQuery(`
         SELECT
           u.id,
           u.username,
           u.name,
           COUNT(DISTINCT vt.case_id) as total_cases,
-          COUNT(DISTINCT CASE WHEN c.status = 'PENDING' THEN vt.case_id END) as "pendingCases",
-          COUNT(DISTINCT CASE WHEN c.status = 'IN_PROGRESS' THEN vt.case_id END) as "inProgressCases",
-          COUNT(DISTINCT CASE WHEN c.status = 'COMPLETED' THEN vt.case_id END) as "completedCases"
+          COUNT(DISTINCT CASE WHEN c.status = 'PENDING' THEN vt.case_id END) as "pending_cases",
+          COUNT(DISTINCT CASE WHEN c.status = 'IN_PROGRESS' THEN vt.case_id END) as "in_progress_cases",
+          COUNT(DISTINCT CASE WHEN c.status = 'COMPLETED' THEN vt.case_id END) as "completed_cases"
         FROM users u
         LEFT JOIN verification_tasks vt ON u.id = vt.assigned_to
         LEFT JOIN cases c ON vt.case_id = c.id

@@ -76,7 +76,7 @@ const LEGACY_TO_RBAC: Record<string, string> = {
   'designations.create': 'role.manage',
   'designations.update': 'role.manage',
   'designations.delete': 'role.manage',
-  'role_management.read': 'role.manage',
+  'roleManagement.read': 'role.manage',
 };
 
 const hasPermissionCode = (user: { permissions?: unknown; permissionCodes?: string[] } | null, code: string) => {

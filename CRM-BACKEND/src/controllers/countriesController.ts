@@ -54,15 +54,17 @@ export const getCountries = async (req: AuthenticatedRequest, res: Response) => 
       params.push(`%${search}%`);
     }
 
-    // Apply sorting
-    const validSortFields = ['name', 'code', 'continent', 'createdAt', 'updatedAt'];
-    const sortField: string = validSortFields.includes(sortBy as string)
-      ? (sortBy as string)
-      : 'name';
+    // API contract: sortBy is camelCase; map to snake_case DB column.
+    const sortColumnMap: Record<string, string> = {
+      name: 'name',
+      code: 'code',
+      continent: 'continent',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    };
+    const sortField: string = sortColumnMap[sortBy as string] || 'name';
     const sortDirection: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
-    const sortFieldExpr: string =
-      sortField === 'createdAt' || sortField === 'updatedAt' ? `"${sortField}"` : sortField;
-    sql += ` ORDER BY ${sortFieldExpr} ${sortDirection}`;
+    sql += ` ORDER BY ${sortField} ${sortDirection}`;
 
     // Apply pagination
     const pageNum = parseInt(page as string, 10);

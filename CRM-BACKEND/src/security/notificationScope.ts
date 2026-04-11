@@ -42,19 +42,19 @@ type ViewerContext = {
 
 type TaskScopeRow = {
   id: string;
-  case_id: string;
-  assigned_to: string | null;
-  area_id: number | null;
-  pincode_id: number | null;
-  client_id: number;
-  product_id: number;
+  caseId: string;
+  assignedTo: string | null;
+  areaId: number | null;
+  pincodeId: number | null;
+  clientId: number;
+  productId: number;
 };
 
 type CaseScopeRow = {
   id: string;
-  assigned_to: string | null;
-  client_id: number;
-  product_id: number;
+  assignedTo: string | null;
+  clientId: number;
+  productId: number;
   taskAssignees: string[] | null;
   areaIds: number[] | null;
   pincodeIds: number[] | null;
@@ -191,9 +191,9 @@ const loadCaseScopeRows = async (
             NULL::uuid as assigned_to,
             c.client_id as client_id,
             c.product_id as product_id,
-            ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.assigned_to), NULL) as "taskAssignees",
-            ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.area_id), NULL) as "areaIds",
-            ARRAY_REMOVE(ARRAY_AGG(DISTINCT p_scope.id), NULL) as "pincodeIds"
+            ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.assigned_to), NULL) as "task_assignees",
+            ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.area_id), NULL) as "area_ids",
+            ARRAY_REMOVE(ARRAY_AGG(DISTINCT p_scope.id), NULL) as "pincode_ids"
           FROM cases c
           LEFT JOIN verification_tasks vt ON vt.case_id = c.id
           LEFT JOIN pincodes p_scope ON p_scope.code = vt.pincode
@@ -209,9 +209,9 @@ const loadCaseScopeRows = async (
         NULL::uuid as assigned_to,
         c.client_id as client_id,
         c.product_id as product_id,
-        ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.assigned_to), NULL) as "taskAssignees",
-        ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.area_id), NULL) as "areaIds",
-        ARRAY_REMOVE(ARRAY_AGG(DISTINCT p_scope.id), NULL) as "pincodeIds"
+        ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.assigned_to), NULL) as "task_assignees",
+        ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.area_id), NULL) as "area_ids",
+        ARRAY_REMOVE(ARRAY_AGG(DISTINCT p_scope.id), NULL) as "pincode_ids"
       FROM cases c
       LEFT JOIN verification_tasks vt ON vt.case_id = c.id
       LEFT JOIN pincodes p_scope ON p_scope.code = vt.pincode
@@ -238,19 +238,19 @@ const canAccessTask = (task: TaskScopeRow | undefined, viewerContext: ViewerCont
     const pincodeSet = toArraySet(viewerContext.assignedPincodeIds);
 
     return (
-      task.assigned_to === viewerContext.viewer.id ||
-      (task.area_id !== null && Boolean(areaSet?.has(task.area_id))) ||
-      (task.pincode_id !== null && Boolean(pincodeSet?.has(task.pincode_id)))
+      task.assignedTo === viewerContext.viewer.id ||
+      (task.areaId !== null && Boolean(areaSet?.has(task.areaId))) ||
+      (task.pincodeId !== null && Boolean(pincodeSet?.has(task.pincodeId)))
     );
   }
 
   if (viewerContext.isScopedOps) {
     if (viewerContext.hierarchyUserIds) {
-      return viewerContext.hierarchyUserIds.includes(task.assigned_to || '');
+      return viewerContext.hierarchyUserIds.includes(task.assignedTo || '');
     }
 
-    const clientAllowed = viewerContext.assignedClientIds?.includes(task.client_id) ?? false;
-    const productAllowed = viewerContext.assignedProductIds?.includes(task.product_id) ?? false;
+    const clientAllowed = viewerContext.assignedClientIds?.includes(task.clientId) ?? false;
+    const productAllowed = viewerContext.assignedProductIds?.includes(task.productId) ?? false;
     return clientAllowed && productAllowed;
   }
 
@@ -274,7 +274,7 @@ const canAccessCase = (
     const pincodeSet = toArraySet(viewerContext.assignedPincodeIds);
 
     return (
-      caseRow.assigned_to === viewerContext.viewer.id ||
+      caseRow.assignedTo === viewerContext.viewer.id ||
       caseRow.taskAssignees?.includes(viewerContext.viewer.id) === true ||
       arraysOverlap(caseRow.areaIds || undefined, areaSet) ||
       arraysOverlap(caseRow.pincodeIds || undefined, pincodeSet)
@@ -284,7 +284,7 @@ const canAccessCase = (
   if (viewerContext.isScopedOps) {
     if (viewerContext.hierarchyUserIds) {
       return (
-        viewerContext.hierarchyUserIds.includes(caseRow.assigned_to || '') ||
+        viewerContext.hierarchyUserIds.includes(caseRow.assignedTo || '') ||
         arraysOverlap(
           caseRow.taskAssignees || undefined,
           toArraySet(viewerContext.hierarchyUserIds)
@@ -292,8 +292,8 @@ const canAccessCase = (
       );
     }
 
-    const clientAllowed = viewerContext.assignedClientIds?.includes(caseRow.client_id) ?? false;
-    const productAllowed = viewerContext.assignedProductIds?.includes(caseRow.product_id) ?? false;
+    const clientAllowed = viewerContext.assignedClientIds?.includes(caseRow.clientId) ?? false;
+    const productAllowed = viewerContext.assignedProductIds?.includes(caseRow.productId) ?? false;
     return clientAllowed && productAllowed;
   }
 

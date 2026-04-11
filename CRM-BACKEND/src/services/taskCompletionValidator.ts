@@ -47,7 +47,7 @@ export interface ValidationResult {
 import { VerificationTaskRow } from '../types/database';
 
 interface TaskDetails extends VerificationTaskRow {
-  verification_type_name: string;
+  verificationTypeName: string;
 }
 
 export class TaskCompletionValidator {
@@ -324,7 +324,7 @@ export class TaskCompletionValidator {
   private static validateTaskStarted(task: TaskDetails): ValidationResult {
     const errors: string[] = [];
 
-    if (!task.started_at) {
+    if (!task.startedAt) {
       errors.push('Task must be started before it can be completed');
     }
 
@@ -392,8 +392,8 @@ export class TaskCompletionValidator {
       if (newStatus === 'COMPLETED') {
         const completionValidation = await this.validateTaskCompletion(
           taskId,
-          task.verification_type_name,
-          task.verification_outcome || 'POSITIVE'
+          task.verificationTypeName,
+          task.verificationOutcome || 'POSITIVE'
         );
         errors.push(...completionValidation.errors);
         warnings.push(...completionValidation.warnings);

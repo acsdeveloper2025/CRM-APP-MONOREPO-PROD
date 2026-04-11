@@ -181,7 +181,7 @@ export class DeduplicationService {
       // Skip recording if this is a CREATE_NEW decision with placeholder caseId
       // The decision will be recorded when the actual case is created
       if (decision.decision === 'CREATE_NEW' && decision.caseId === 'NEW_CASE_PLACEHOLDER') {
-        logger.info('Skipping deduplication audit for CREATE_NEW with placeholder caseId', {
+        logger.info('Skipping deduplication audit for CREATE_NEW with placeholder case_id', {
           decision,
           performedBy,
         });
@@ -240,7 +240,7 @@ export class DeduplicationService {
       const query = `
         SELECT 
           cda.*,
-          u.name as "performedByName"
+          u.name as "performed_by_name"
         FROM case_deduplication_audit cda
         LEFT JOIN users u ON cda.performed_by = u.id
         WHERE cda.case_id = $1

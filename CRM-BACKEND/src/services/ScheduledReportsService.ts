@@ -1,6 +1,6 @@
 // Disabled require-await rule for this file as some methods are async for consistency
 import * as cron from 'node-cron';
-import { pool } from '../config/database';
+import { query as dbQuery } from '../config/database';
 import { logger } from '../utils/logger';
 import { PDFExportService } from './PDFExportService';
 import { ExcelExportService } from './ExcelExportService';
@@ -28,17 +28,17 @@ export interface ScheduledReport {
 interface ScheduledReportRow {
   id: string;
   name: string;
-  report_type: 'form-submissions' | 'agent-performance' | 'case-analytics' | 'validation-status';
+  reportType: 'form-submissions' | 'agent-performance' | 'case-analytics' | 'validation-status';
   format: 'pdf' | 'excel' | 'csv' | 'json';
   frequency: 'daily' | 'weekly' | 'monthly';
   recipients: string | string[];
   filters: string | Record<string, unknown>;
   options: string | Record<string, unknown>;
-  is_active: boolean;
-  created_by: string;
-  created_at: Date | string;
-  last_run?: Date | string;
-  next_run?: Date | string;
+  isActive: boolean;
+  createdBy: string;
+  createdAt: Date | string;
+  lastRun?: Date | string;
+  nextRun?: Date | string;
 }
 
 export class ScheduledReportsService {
@@ -61,7 +61,7 @@ export class ScheduledReportsService {
     }
 
     try {
-      // Create scheduled_reports table if it doesn't exist
+      // Create scheduledReports table if it doesn't exist
       await this.createScheduledReportsTable();
 
       // Load and schedule existing reports
@@ -99,7 +99,7 @@ export class ScheduledReportsService {
       CREATE INDEX IF NOT EXISTS idx_scheduled_reports_created_by ON scheduled_reports(created_by);
     `;
 
-    await pool.query(createTableQuery);
+    await dbQuery(createTableQuery);
   }
 
   private async loadAndScheduleReports(): Promise<void> {
@@ -112,7 +112,7 @@ export class ScheduledReportsService {
         ORDER BY created_at DESC
       `;
 
-      const result = await pool.query(query);
+      const result = await dbQuery(query);
       const reports = result.rows;
 
       // Schedule all reports in parallel instead of sequentially (N+1 fix)
@@ -155,7 +155,7 @@ export class ScheduledReportsService {
         nextRun,
       ];
 
-      const result = await pool.query(query, values);
+      const result = await dbQuery(query, values);
       const createdReport = this.mapDbRowToScheduledReport(result.rows[0]);
 
       // Schedule the report
@@ -242,7 +242,7 @@ export class ScheduledReportsService {
 
       values.push(id);
 
-      const result = await pool.query(query, values);
+      const result = await dbQuery(query, values);
 
       if (result.rows.length === 0) {
         throw new Error('Scheduled report not found');
@@ -271,7 +271,7 @@ export class ScheduledReportsService {
 
       // Delete from database
       const query = 'DELETE FROM scheduled_reports WHERE id = $1';
-      await pool.query(query, [id]);
+      await dbQuery(query, [id]);
 
       logger.info(`Deleted scheduled report: ${id}`);
     } catch (error) {
@@ -294,7 +294,7 @@ export class ScheduledReportsService {
 
       query += ' ORDER BY created_at DESC LIMIT 500';
 
-      const result = await pool.query(query, values);
+      const result = await dbQuery(query, values);
       return result.rows.map(row => this.mapDbRowToScheduledReport(row));
     } catch (error) {
       logger.error('Error fetching scheduled reports:', error);
@@ -454,12 +454,12 @@ export class ScheduledReportsService {
 
       // Get the report to calculate next run
       const reportQuery = 'SELECT frequency FROM scheduled_reports WHERE id = $1';
-      const reportResult = await pool.query(reportQuery, [reportId]);
+      const reportResult = await dbQuery(reportQuery, [reportId]);
 
       if (reportResult.rows.length > 0) {
         const frequency = reportResult.rows[0].frequency;
         const nextRun = this.calculateNextRun(frequency);
-        await pool.query(query, [nextRun, reportId]);
+        await dbQuery(query, [nextRun, reportId]);
       }
     } catch (error) {
       logger.error('Error updating report run times:', error);
@@ -538,7 +538,7 @@ export class ScheduledReportsService {
     return {
       id: row.id,
       name: row.name,
-      reportType: row.report_type,
+      reportType: row.reportType,
       format: row.format,
       frequency: row.frequency,
       recipients: Array.isArray(row.recipients)
@@ -546,11 +546,11 @@ export class ScheduledReportsService {
         : JSON.parse(row.recipients || '[]'),
       filters: typeof row.filters === 'object' ? row.filters : JSON.parse(row.filters || '{}'),
       options: typeof row.options === 'object' ? row.options : JSON.parse(row.options || '{}'),
-      isActive: row.is_active,
-      createdBy: row.created_by,
-      createdAt: new Date(row.created_at),
-      lastRun: row.last_run ? new Date(row.last_run) : undefined,
-      nextRun: row.next_run ? new Date(row.next_run) : undefined,
+      isActive: row.isActive,
+      createdBy: row.createdBy,
+      createdAt: new Date(row.createdAt),
+      lastRun: row.lastRun ? new Date(row.lastRun) : undefined,
+      nextRun: row.nextRun ? new Date(row.nextRun) : undefined,
     };
   }
 

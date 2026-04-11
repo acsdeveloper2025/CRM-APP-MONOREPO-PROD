@@ -1,5 +1,5 @@
 import type { Response } from 'express';
-import { pool } from '../config/database';
+import { query as dbQuery } from '../config/database';
 import { logger } from '../utils/logger';
 import { createAuditLog } from '../utils/auditLogger';
 import type { AuthenticatedRequest } from '../middleware/auth';
@@ -33,7 +33,7 @@ export const generateFormSubmissionReport = async (req: AuthenticatedRequest, re
     const caseUuidQuery = `
       SELECT id, case_id FROM cases WHERE case_id = $1
     `;
-    const caseUuidResult = await pool.query(caseUuidQuery, [parseInt(caseId)]);
+    const caseUuidResult = await dbQuery(caseUuidQuery, [parseInt(caseId)]);
 
     if (caseUuidResult.rows.length === 0) {
       return res.status(404).json({
@@ -52,7 +52,7 @@ export const generateFormSubmissionReport = async (req: AuthenticatedRequest, re
       LEFT JOIN clients cl ON c.client_id = cl.id
       WHERE c.id = $1
     `;
-    const caseResult = await pool.query(caseQuery, [caseUuid]);
+    const caseResult = await dbQuery(caseQuery, [caseUuid]);
 
     if (caseResult.rows.length === 0) {
       return res.status(404).json({
@@ -203,7 +203,7 @@ export const getFormSubmissionReport = async (req: AuthenticatedRequest, res: Re
     const caseUuidQuery = `
       SELECT id FROM cases WHERE case_id = $1
     `;
-    const caseUuidResult = await pool.query(caseUuidQuery, [parseInt(caseId)]);
+    const caseUuidResult = await dbQuery(caseUuidQuery, [parseInt(caseId)]);
 
     if (caseUuidResult.rows.length === 0) {
       return res.status(404).json({
@@ -221,7 +221,7 @@ export const getFormSubmissionReport = async (req: AuthenticatedRequest, res: Re
       LIMIT 1
     `;
 
-    const result = await pool.query(query, [caseUuid, submissionId]);
+    const result = await dbQuery(query, [caseUuid, submissionId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({
@@ -316,7 +316,7 @@ export const getReportStatistics = async (req: AuthenticatedRequest, res: Respon
       FROM ai_reports ${whereClause}
     `;
 
-    const result = await pool.query(statsQuery, params);
+    const result = await dbQuery(statsQuery, params);
     const stats = result.rows[0];
 
     res.json({
@@ -367,7 +367,7 @@ async function getFormSubmissionData(
   }
 
   const query = `SELECT * FROM ${tableName} WHERE case_id = $1 ORDER BY created_at DESC LIMIT 1`;
-  const result = await pool.query(query, [caseId]);
+  const result = await dbQuery(query, [caseId]);
 
   return result.rows.length > 0 ? result.rows[0] : null;
 }
@@ -385,7 +385,7 @@ async function getSubmissionPhotos(caseId: string, _submissionId: string) {
       ORDER BY created_at DESC
     `;
 
-    const result = await pool.query(query, [caseId]);
+    const result = await dbQuery(query, [caseId]);
 
     return result.rows.map(row => ({
       type: 'verification',
@@ -415,12 +415,7 @@ async function saveAIReport(
     RETURNING id, created_at
   `;
 
-  const result = await pool.query(query, [
-    caseId,
-    submissionId,
-    JSON.stringify(reportData),
-    userId,
-  ]);
+  const result = await dbQuery(query, [caseId, submissionId, JSON.stringify(reportData), userId]);
 
   return result.rows[0];
 }

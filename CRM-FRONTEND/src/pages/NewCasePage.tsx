@@ -260,7 +260,12 @@ export const NewCasePage: React.FC = () => {
   }, [isEditMode, caseData, pincodesResponse, areasResponse, verificationTasksResponse, caseAttachmentsResponse, editCaseId, editTaskId]);
 
   const handleSuccess = (caseId: string) => {
-    navigate(`/cases/${caseId}`);
+    if (caseId && caseId.trim() !== '') {
+      navigate(`/cases/${caseId}`);
+    } else {
+      // No id returned — route to the list so the user sees the new case at the top.
+      navigate('/cases');
+    }
   };
 
   const handleCancel = () => {

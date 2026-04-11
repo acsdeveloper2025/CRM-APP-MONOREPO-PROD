@@ -59,7 +59,7 @@ export const RevokedTasksPage: React.FC = () => {
   const [paginationState, setPaginationState] = useState({
     page: 1,
     limit: 20,
-    sortBy: 'revoked_at',
+    sortBy: 'revokedAt',
     sortOrder: 'desc' as 'asc' | 'desc',
     status: 'REVOKED',
   });

@@ -167,11 +167,12 @@ app.use(sanitizeInput);
 // form/script cannot read or attach them. This is inherently CSRF-safe by design.
 // See: https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html
 
-// Auto-convert API response data from snake_case to camelCase
-// This is the SINGLE point of conversion — internal code keeps using row.snake_case,
-// conversion happens ONLY at the HTTP response boundary via res.json() override.
-import { camelCaseResponse } from '@/middleware/camelCaseResponse';
-app.use(camelCaseResponse);
+// Convention: snake_case is used for PostgreSQL columns only. Every other
+// layer — controllers, services, HTTP request bodies, HTTP response bodies,
+// frontend, mobile — uses camelCase. Conversion from snake_case to camelCase
+// happens at the pg pool boundary (src/config/db.ts + src/utils/rowTransform.ts)
+// so query results reach controllers already camelized. Services that build
+// response DTOs by hand MUST use camelCase keys directly.
 
 // Performance monitoring — request timing + memory tracking
 app.use(performanceMonitoring);

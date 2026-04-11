@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { query, withTransaction } from '@/config/database';
 import { logger } from '@/config/logger';
+import { redact } from '@/utils/logRedact';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { EmailDeliveryService } from '@/services/EmailDeliveryService';
 import ExcelJS from 'exceljs';
@@ -80,15 +81,15 @@ const loadHierarchyRefUser = async (
     `
       SELECT
         u.id,
-        u.team_leader_id as "teamLeaderId",
-        u.manager_id as "managerId",
+        u.team_leader_id as "team_leader_id",
+        u.manager_id as "manager_id",
         COALESCE((
           SELECT ARRAY_AGG(DISTINCT p.code ORDER BY p.code)
           FROM user_roles ur
           JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
           JOIN permissions p ON p.id = rp.permission_id
           WHERE ur.user_id = u.id
-        ), ARRAY[]::varchar[]) as "permissionCodes"
+        ), ARRAY[]::varchar[]) as "permission_codes"
       FROM users u
       WHERE u.id = $1
         AND u.deleted_at IS NULL
@@ -145,7 +146,7 @@ const loadRolePermissionCodes = async (db: DbExecutor, roleName: string): Promis
       SELECT COALESCE(
         ARRAY_AGG(DISTINCT p.code ORDER BY p.code) FILTER (WHERE p.code IS NOT NULL),
         ARRAY[]::varchar[]
-      ) as "permissionCodes"
+      ) as "permission_codes"
       FROM roles_v2 rv
       LEFT JOIN role_permissions rp ON rp.role_id = rv.id AND rp.allowed = true
       LEFT JOIN permissions p ON p.id = rp.permission_id
@@ -646,7 +647,7 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
 // POST /api/users - Create new user
 export const createUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    logger.info('Creating user with data:', { body: req.body, userId: req.user?.id });
+    logger.info('Creating user', { body: redact(req.body), userId: req.user?.id });
 
     const {
       name,
@@ -785,8 +786,8 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
           employee_id, designation, phone, team_leader_id, manager_id, is_active, created_at, updated_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         RETURNING id, name, username, email, role, department_id, designation_id,
-                  employee_id, designation, phone, team_leader_id as "teamLeaderId",
-                  manager_id as "managerId", is_active, created_at, updated_at
+                  employee_id, designation, phone, team_leader_id as "team_leader_id",
+                  manager_id as "manager_id", is_active, created_at, updated_at
       `;
 
       const insertRes = await client.query(createUserQuery, [
@@ -871,7 +872,7 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
 
     // Check if user exists
     const userExistsQuery = `
-      SELECT id, role, team_leader_id as "teamLeaderId", manager_id as "managerId"
+      SELECT id, role, team_leader_id as "team_leader_id", manager_id as "manager_id"
       FROM users
       WHERE id = $1
     `;
@@ -1351,10 +1352,10 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
     // Get basic user counts
     const userCountsQuery = `
       SELECT
-        COUNT(*) as "totalUsers",
-        COUNT(CASE WHEN is_active = true THEN 1 END) as "activeUsers",
-        COUNT(CASE WHEN is_active = false THEN 1 END) as "inactiveUsers",
-        COUNT(CASE WHEN created_at >= DATE_TRUNC('month', CURRENT_DATE) THEN 1 END) as "newUsersThisMonth"
+        COUNT(*) as "total_users",
+        COUNT(CASE WHEN is_active = true THEN 1 END) as "active_users",
+        COUNT(CASE WHEN is_active = false THEN 1 END) as "inactive_users",
+        COUNT(CASE WHEN created_at >= DATE_TRUNC('month', CURRENT_DATE) THEN 1 END) as "new_users_this_month"
       FROM users
       WHERE deleted_at IS NULL
     `;
@@ -1391,7 +1392,7 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
       SELECT
         id as user_id,
         name as user_name,
-        last_login as "lastLoginAt"
+        last_login as "last_login_at"
       FROM users
       WHERE last_login >= NOW() - INTERVAL '24 hours'
         AND deleted_at IS NULL
@@ -1676,9 +1677,9 @@ export const getUserClientAssignments = async (req: AuthenticatedRequest, res: R
         uca.created_at,
         uca.updated_at,
         c.name as client_name,
-        c.code as "clientCode",
-        c.email as "clientEmail",
-        c.is_active as "clientIsActive"
+        c.code as "client_code",
+        c.email as "client_email",
+        c.is_active as "client_is_active"
       FROM user_client_assignments uca
       JOIN clients c ON uca.client_id = c.id
       WHERE uca.user_id = $1
@@ -1909,8 +1910,8 @@ export const getUserProductAssignments = async (req: AuthenticatedRequest, res: 
         upa.assigned_at,
         upa.assigned_by,
         p.name as product_name,
-        p.description as "productDescription",
-        u.name as "assignedByName"
+        p.description as "product_description",
+        u.name as "assigned_by_name"
       FROM user_product_assignments upa
       JOIN products p ON upa.product_id = p.id
       LEFT JOIN users u ON upa.assigned_by = u.id
@@ -2239,7 +2240,7 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response) =
 
     // Check if user exists and get current password
     const userCheck = await query(
-      'SELECT id, name, username, password_hash as "passwordHash" FROM users WHERE id = $1',
+      'SELECT id, name, username, password_hash as "password_hash" FROM users WHERE id = $1',
       [id]
     );
 

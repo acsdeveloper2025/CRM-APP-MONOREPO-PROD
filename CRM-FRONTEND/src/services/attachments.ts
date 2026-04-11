@@ -3,12 +3,17 @@ import type { ApiResponse } from '@/types/api';
 
 export interface Attachment {
   id: string;
-  caseId: number;
-  caseId: string;
+  /**
+   * Backend may send the case association as either a numeric `case_id` or a
+   * UUID `id` depending on the endpoint, so both shapes are accepted here.
+   */
+  caseId: string | number;
   filename: string;
   originalName: string;
   filePath: string;
+  /** Canonical size field returned by the backend (in bytes). */
   fileSize: number;
+  /** Legacy alias sent by some mobile upload paths. Prefer `fileSize`. */
   size?: number;
   mimeType: string;
   category?: 'PHOTO' | 'DOCUMENT' | 'VIDEO' | 'AUDIO' | 'OTHER';

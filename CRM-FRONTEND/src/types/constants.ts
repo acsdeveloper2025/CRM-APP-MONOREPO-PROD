@@ -51,15 +51,18 @@ export const CASE_STATUS = {
 export type CaseStatusType = typeof CASE_STATUS[keyof typeof CASE_STATUS];
 
 // Case Priority
+// Priority is a string literal across the API contract — backend stores
+// `cases.priority` as VARCHAR (`'LOW'|'MEDIUM'|'HIGH'|'URGENT'`) and the
+// frontend reads those same strings. The earlier numeric 1-5 definition
+// drifted from the backend and silently broke filtering/sorting.
 export const CASE_PRIORITY = {
-  LOW: 1,
-  MEDIUM: 2,
-  HIGH: 3,
-  URGENT: 4,
-  CRITICAL: 5
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  URGENT: 'URGENT',
 } as const;
 
-export type CasePriorityType = typeof CASE_PRIORITY[keyof typeof CASE_PRIORITY];
+export type CasePriorityType = (typeof CASE_PRIORITY)[keyof typeof CASE_PRIORITY];
 
 // Form Types
 export const FORM_TYPES = {

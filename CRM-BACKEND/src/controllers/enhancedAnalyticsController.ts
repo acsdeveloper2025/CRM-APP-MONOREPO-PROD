@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { pool } from '../config/database';
+import { query as dbQuery } from '../config/database';
 import { logger } from '../utils/logger';
 
 /**
@@ -104,8 +104,8 @@ export const getEnhancedFormSubmissions = async (req: Request, res: Response) =>
     `;
 
     const [submissionsResult, summaryResult] = await Promise.all([
-      pool.query(submissionsQuery, queryParams),
-      pool.query(summaryQuery, queryParams.slice(0, -2)), // Remove limit/offset for summary
+      dbQuery(submissionsQuery, queryParams),
+      dbQuery(summaryQuery, queryParams.slice(0, -2)), // Remove limit/offset for summary
     ]);
 
     res.json({
@@ -249,8 +249,8 @@ export const getEnhancedAgentPerformance = async (req: Request, res: Response) =
     `;
 
     const [performanceResult, summaryResult] = await Promise.all([
-      pool.query(performanceQuery, queryParams),
-      pool.query(summaryQuery, queryParams),
+      dbQuery(performanceQuery, queryParams),
+      dbQuery(summaryQuery, queryParams),
     ]);
 
     let dailyData = null;
@@ -273,7 +273,7 @@ export const getEnhancedAgentPerformance = async (req: Request, res: Response) =
         LIMIT 30
       `;
 
-      const dailyParams = [agentId];
+      const dailyParams: string[] = [agentId as string];
       if (dateFrom) {
         dailyParams.push(dateFrom as string);
       }
@@ -281,7 +281,7 @@ export const getEnhancedAgentPerformance = async (req: Request, res: Response) =
         dailyParams.push(dateTo as string);
       }
 
-      const dailyResult = await pool.query(dailyQuery, dailyParams);
+      const dailyResult = await dbQuery(dailyQuery, dailyParams);
       dailyData = dailyResult.rows;
     }
 
@@ -310,7 +310,7 @@ export const getEnhancedAgentPerformance = async (req: Request, res: Response) =
       LIMIT 10
     `;
 
-    const topPerformersResult = await pool.query(topPerformersQuery, queryParams);
+    const topPerformersResult = await dbQuery(topPerformersQuery, queryParams);
 
     res.json({
       success: true,
@@ -451,8 +451,8 @@ export const getEnhancedCaseAnalytics = async (req: Request, res: Response) => {
     `;
 
     const [casesResult, summaryResult] = await Promise.all([
-      pool.query(casesQuery, queryParams),
-      pool.query(summaryQuery, queryParams.slice(0, -2)),
+      dbQuery(casesQuery, queryParams),
+      dbQuery(summaryQuery, queryParams.slice(0, -2)),
     ]);
 
     let timelineData = null;
@@ -473,7 +473,7 @@ export const getEnhancedCaseAnalytics = async (req: Request, res: Response) => {
         ORDER BY case_id, event_timestamp DESC
       `;
 
-      const timelineResult = await pool.query(timelineQuery, [caseIds]);
+      const timelineResult = await dbQuery(timelineQuery, [caseIds]);
       timelineData = timelineResult.rows;
     }
 
@@ -583,8 +583,8 @@ export const getFormValidationAnalytics = async (req: Request, res: Response) =>
     `;
 
     const [validationResult, fieldValidationResult] = await Promise.all([
-      pool.query(validationQuery, queryParams),
-      pool.query(fieldValidationQuery, queryParams),
+      dbQuery(validationQuery, queryParams),
+      dbQuery(fieldValidationQuery, queryParams),
     ]);
 
     res.json({

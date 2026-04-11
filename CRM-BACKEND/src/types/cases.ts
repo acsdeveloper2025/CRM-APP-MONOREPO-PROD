@@ -26,6 +26,8 @@ export interface CreateVerificationTask {
   estimatedAmount?: number;
   address?: string;
   pincode?: string;
+  pincodeId?: number;
+  areaId?: number;
   trigger?: string;
   documentType?: string;
   documentNumber?: string;

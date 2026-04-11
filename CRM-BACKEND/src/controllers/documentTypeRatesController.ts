@@ -63,26 +63,23 @@ export const getDocumentTypeRates = async (req: AuthenticatedRequest, res: Respo
 
     // Get rates with pagination
     const offset = (Number(page) - 1) * Number(limit);
-    const allowedSortColumns = [
-      'clientName',
-      'productName',
-      'documentTypeName',
-      'amount',
-      'createdAt',
-      'updatedAt',
-    ];
-    const sortCol = allowedSortColumns.includes(typeof sortBy === 'string' ? sortBy : '')
-      ? typeof sortBy === 'string'
-        ? sortBy
-        : ''
-      : 'clientName';
+    // API contract: sortBy is camelCase; map to snake_case view column.
+    const sortColumnMap: Record<string, string> = {
+      clientName: 'client_name',
+      productName: 'product_name',
+      documentTypeName: 'document_type_name',
+      amount: 'amount',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    };
+    const sortCol = sortColumnMap[typeof sortBy === 'string' ? sortBy : ''] || 'client_name';
     const sortDir =
-      typeof sortOrder === 'string' ? sortOrder : 'asc'.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+      typeof sortOrder === 'string' && sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     const listRes = await query<Record<string, unknown>>(
       `SELECT * FROM document_type_rates_view
        ${whereClause}
-       ORDER BY "${sortCol}" ${sortDir}
+       ORDER BY ${sortCol} ${sortDir}
        LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
       [...values, Number(limit), offset]
     );
@@ -293,13 +290,13 @@ export const getDocumentTypeRateStats = async (req: AuthenticatedRequest, res: R
   try {
     const statsRes = await query(`
       SELECT 
-        COUNT(*)::int as "totalRates",
-        COUNT(DISTINCT client_id)::int as "totalClients",
-        COUNT(DISTINCT product_id)::int as "totalProducts",
-        COUNT(DISTINCT document_type_id)::int as "totalDocumentTypes",
-        COALESCE(AVG(amount), 0)::numeric(10,2) as "averageRate",
-        COALESCE(MIN(amount), 0)::numeric(10,2) as "minRate",
-        COALESCE(MAX(amount), 0)::numeric(10,2) as "maxRate"
+        COUNT(*)::int as "total_rates",
+        COUNT(DISTINCT client_id)::int as "total_clients",
+        COUNT(DISTINCT product_id)::int as "total_products",
+        COUNT(DISTINCT document_type_id)::int as "total_document_types",
+        COALESCE(AVG(amount), 0)::numeric(10,2) as "average_rate",
+        COALESCE(MIN(amount), 0)::numeric(10,2) as "min_rate",
+        COALESCE(MAX(amount), 0)::numeric(10,2) as "max_rate"
       FROM document_type_rates
       WHERE is_active = true
     `);

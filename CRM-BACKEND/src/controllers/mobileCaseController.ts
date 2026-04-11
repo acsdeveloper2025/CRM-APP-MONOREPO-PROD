@@ -493,7 +493,7 @@ export class MobileCaseController {
         data: {
           cases: mobileCases,
           tasks: mobileCases, // Alias for cases to support mobile app calling /tasks
-          revoked_assignment_ids: revokedAssignmentIds,
+          revokedAssignmentIds,
           pagination: {
             page: Number(page),
             limit: take,
@@ -538,17 +538,17 @@ export class MobileCaseController {
 
       let caseSql = `
         SELECT c.*,
-               cl.id as client_id, cl.name as client_name, cl.code as "clientCode",
-               p.id as product_id, p.name as product_name, p.code as "productCode",
-               vtype.id as verification_type_id, vtype.name as verification_type_name, vtype.code as "verificationTypeCode",
-               cu.name as "createdByUserName",
-               vtask.id as "verificationTaskId",
-               vtask.task_number as "verificationTaskNumber",
-               vtask.address as "taskAddress",
-               vtask.trigger as "taskTrigger",
-               vtask.priority as "taskPriority",
-               vtask.applicant_type as "taskApplicantType",
-               vtask.assigned_to as "taskAssignedTo",
+               cl.id as client_id, cl.name as client_name, cl.code as "client_code",
+               p.id as product_id, p.name as product_name, p.code as "product_code",
+               vtype.id as verification_type_id, vtype.name as verification_type_name, vtype.code as "verification_type_code",
+               cu.name as "created_by_user_name",
+               vtask.id as "verification_task_id",
+               vtask.task_number as "verification_task_number",
+               vtask.address as "task_address",
+               vtask.trigger as "task_trigger",
+               vtask.priority as "task_priority",
+               vtask.applicant_type as "task_applicant_type",
+               vtask.assigned_to as "task_assigned_to",
                vtask.assigned_user_name
         FROM cases c
         LEFT JOIN clients cl ON cl.id = c.client_id

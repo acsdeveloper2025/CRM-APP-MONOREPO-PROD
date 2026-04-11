@@ -11,6 +11,7 @@ import type {
   BusinessVerificationRow,
 } from '../types/database';
 import { isFieldExecutionActor, userHasPermission } from '../security/rbacAccess';
+import { buildInsert } from '../utils/rowTransform';
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -99,7 +100,7 @@ import {
 import {
   mapBuilderFormDataToDatabase as _mapBuilderFormDataToDatabase,
   validateBuilderRequiredFields as _validateBuilderRequiredFields,
-  getBuilderAvailableDbColumns,
+  getBuilderAvailableDbColumns as _getBuilderAvailableDbColumns,
 } from '../utils/builderFormFieldMapping';
 import {
   mapResidenceCumOfficeFormDataToDatabase as _mapResidenceCumOfficeFormDataToDatabase,
@@ -109,12 +110,12 @@ import {
 import {
   mapNocFormDataToDatabase as _mapNocFormDataToDatabase,
   validateNocRequiredFields as _validateNocRequiredFields,
-  getNocAvailableDbColumns,
+  getNocAvailableDbColumns as _getNocAvailableDbColumns,
 } from '../utils/nocFormFieldMapping';
 import {
   mapPropertyApfFormDataToDatabase as _mapPropertyApfFormDataToDatabase,
   validatePropertyApfRequiredFields as _validatePropertyApfRequiredFields,
-  getPropertyApfAvailableDbColumns,
+  getPropertyApfAvailableDbColumns as _getPropertyApfAvailableDbColumns,
 } from '../utils/propertyApfFormFieldMapping';
 import {
   mapPropertyIndividualFormDataToDatabase as _mapPropertyIndividualFormDataToDatabase,
@@ -124,7 +125,7 @@ import {
 import {
   mapDsaConnectorFormDataToDatabase as _mapDsaConnectorFormDataToDatabase,
   validateDsaConnectorRequiredFields as _validateDsaConnectorRequiredFields,
-  getDsaConnectorAvailableDbColumns,
+  getDsaConnectorAvailableDbColumns as _getDsaConnectorAvailableDbColumns,
 } from '../utils/dsaConnectorFormFieldMapping';
 import { query } from '@/config/database';
 import path from 'path';
@@ -227,7 +228,7 @@ export class MobileFormController {
         formType,
         data: payload,
       },
-      retryCount: Number((req.body as { retry_count?: number })?.retry_count || 0),
+      retryCount: Number((req.body as { retryCount?: number })?.retryCount || 0),
     });
   }
 
@@ -351,7 +352,7 @@ export class MobileFormController {
 
       // 2. Assignment Validation (field-agent ownership)
       const assignmentError = MobileFormController.assertAssignedExecutionActor(
-        task.assigned_to,
+        task.assignedTo,
         userId,
         user
       );
@@ -376,9 +377,9 @@ export class MobileFormController {
         success: true,
         data: {
           taskId: task.id,
-          caseId: task.case_id,
+          caseId: task.caseId,
           caseNumber: task.caseNumber || null,
-          taskNumber: task.task_number,
+          taskNumber: task.taskNumber,
           verificationTypeName: task.verificationTypeName,
         },
       };
@@ -408,12 +409,12 @@ export class MobileFormController {
     // Legacy resolver kept for backward compatibility if needed,
     // but validateTaskSubmission is preferred for strict flow.
     try {
-      // Step 1: Query verification_tasks table to get caseId
+      // Step 1: Query verificationTasks table to get caseId
       const taskQuery = await query(
         `SELECT 
           vt.id,
           vt.case_id as case_id,
-          vt.task_number as "taskNumber",
+          vt.task_number as "task_number",
           vt.status,
           vt.assigned_to as assigned_to,
           vtype.name as verification_type_name,
@@ -495,7 +496,7 @@ export class MobileFormController {
         task,
       };
     } catch (error) {
-      logger.error('Error resolving caseId from taskId:', error);
+      logger.error('Error resolving case_id from task_id:', error);
       return {
         success: false,
         error: {
@@ -603,7 +604,7 @@ export class MobileFormController {
     );
 
     return attachmentResult.rows.map(row => {
-      let geoLocation = row.geo_location;
+      let geoLocation = row.geoLocation;
       if (typeof geoLocation === 'string') {
         try {
           geoLocation = JSON.parse(geoLocation);
@@ -615,10 +616,10 @@ export class MobileFormController {
       return {
         id: row.id,
         filename: row.filename,
-        url: row.file_path,
-        thumbnailUrl: row.thumbnail_path,
-        uploadedAt: row.created_at.toISOString(),
-        photoType: row.photo_type,
+        url: row.filePath,
+        thumbnailUrl: row.thumbnailPath,
+        uploadedAt: row.createdAt.toISOString(),
+        photoType: row.photoType,
         geoLocation,
       };
     });
@@ -635,8 +636,8 @@ export class MobileFormController {
       [taskId]
     );
     return {
-      totalImages: parseInt(result.rows[0]?.total_images || '0', 10),
-      totalSelfies: parseInt(result.rows[0]?.total_selfies || '0', 10),
+      totalImages: parseInt(result.rows[0]?.totalImages || '0', 10),
+      totalSelfies: parseInt(result.rows[0]?.totalSelfies || '0', 10),
     };
   }
 
@@ -708,7 +709,7 @@ export class MobileFormController {
           .jpeg({ quality: 80 })
           .toFile(thumbnailPath);
 
-        // Save to verification_attachments table
+        // Save to verificationAttachments table
         const attachmentResult = await query(
           `INSERT INTO verification_attachments (
             case_id, case_id, verification_type, verification_task_id, filename, original_name,
@@ -790,7 +791,7 @@ export class MobileFormController {
     // Customer Information Section
     if (formData.customerName || formData.bankName || formData.product) {
       sections.push({
-        id: 'customer_info',
+        id: 'customerInfo',
         title: 'Customer Information',
         order: 1,
         isRequired: true,
@@ -830,7 +831,7 @@ export class MobileFormController {
     // Address Verification Section
     if (formData.addressLocatable || formData.addressRating || formData.houseStatus) {
       sections.push({
-        id: 'address_verification',
+        id: 'addressVerification',
         title: 'Address Verification',
         order: 2,
         isRequired: true,
@@ -873,7 +874,7 @@ export class MobileFormController {
       (formData.metPersonName || formData.relation || formData.totalFamilyMembers)
     ) {
       sections.push({
-        id: 'personal_details',
+        id: 'personalDetails',
         title: 'Personal Details',
         order: 3,
         isRequired: true,
@@ -943,7 +944,7 @@ export class MobileFormController {
     // Property Details Section
     if (formData.locality || formData.addressStructure || formData.doorColor) {
       sections.push({
-        id: 'property_details',
+        id: 'propertyDetails',
         title: 'Property Details',
         order: 4,
         isRequired: false,
@@ -1001,7 +1002,7 @@ export class MobileFormController {
     // Final Status Section
     if (formData.finalStatus || formData.outcome) {
       sections.push({
-        id: 'final_status',
+        id: 'finalStatus',
         title: 'Final Status',
         order: 10,
         isRequired: true,
@@ -1123,857 +1124,857 @@ export class MobileFormController {
     const normalizedType = MobileFormController.normalizeVerificationType(verificationType);
 
     // Map common fields
-    formData.customerName = report.customer_name;
-    formData.outcome = report.verification_outcome;
-    formData.finalStatus = report.final_status;
-    formData.metPersonName = report.met_person_name;
-    formData.callRemark = report.call_remark;
+    formData.customerName = report.customerName;
+    formData.outcome = report.verificationOutcome;
+    formData.finalStatus = report.finalStatus;
+    formData.metPersonName = report.metPersonName;
+    formData.callRemark = report.callRemark;
 
     // Map location fields
-    formData.addressLocatable = report.address_locatable;
-    formData.addressRating = report.address_rating;
+    formData.addressLocatable = report.addressLocatable;
+    formData.addressRating = report.addressRating;
     formData.locality = report.locality;
-    formData.addressStructure = report.address_structure;
+    formData.addressStructure = report.addressStructure;
     formData.landmark1 = report.landmark1;
     formData.landmark2 = report.landmark2;
     formData.landmark3 = report.landmark3;
     formData.landmark4 = report.landmark4;
 
     // Map area assessment fields
-    formData.politicalConnection = report.political_connection;
-    formData.dominatedArea = report.dominated_area;
-    formData.feedbackFromNeighbour = report.feedback_from_neighbour;
-    formData.otherObservation = report.other_observation;
+    formData.politicalConnection = report.politicalConnection;
+    formData.dominatedArea = report.dominatedArea;
+    formData.feedbackFromNeighbour = report.feedbackFromNeighbour;
+    formData.otherObservation = report.otherObservation;
 
     // Map verification type specific fields
     if (normalizedType === 'RESIDENCE') {
-      formData.houseStatus = report.house_status;
-      formData.metPersonRelation = report.met_person_relation;
-      formData.metPersonStatus = report.met_person_status;
-      formData.totalFamilyMembers = report.total_family_members;
-      formData.totalEarningMember = report.total_earning_member;
-      formData.workingStatus = report.working_status;
-      formData.companyName = report.company_name;
-      formData.stayingPeriod = report.staying_period;
-      formData.stayingStatus = report.staying_status;
-      formData.documentShownStatus = report.document_shown_status;
-      formData.documentType = report.document_type;
-      formData.doorColor = report.door_color;
-      formData.doorNamePlateStatus = report.door_nameplate_status;
-      formData.nameOnDoorPlate = report.name_on_door_plate;
-      formData.societyNamePlateStatus = report.society_nameplate_status;
-      formData.nameOnSocietyBoard = report.name_on_society_board;
-      formData.addressStructureColor = report.address_structure_color;
-      formData.applicantStayingFloor = report.applicant_staying_floor;
-      formData.addressFloor = report.address_floor;
+      formData.houseStatus = report.houseStatus;
+      formData.metPersonRelation = report.metPersonRelation;
+      formData.metPersonStatus = report.metPersonStatus;
+      formData.totalFamilyMembers = report.totalFamilyMembers;
+      formData.totalEarningMember = report.totalEarningMember;
+      formData.workingStatus = report.workingStatus;
+      formData.companyName = report.companyName;
+      formData.stayingPeriod = report.stayingPeriod;
+      formData.stayingStatus = report.stayingStatus;
+      formData.documentShownStatus = report.documentShownStatus;
+      formData.documentType = report.documentType;
+      formData.doorColor = report.doorColor;
+      formData.doorNamePlateStatus = report.doorNameplateStatus;
+      formData.nameOnDoorPlate = report.nameOnDoorPlate;
+      formData.societyNamePlateStatus = report.societyNameplateStatus;
+      formData.nameOnSocietyBoard = report.nameOnSocietyBoard;
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.applicantStayingFloor = report.applicantStayingFloor;
+      formData.addressFloor = report.addressFloor;
 
       // Nameplate fields
-      formData.companyNamePlateStatus = report.company_nameplate_status;
-      formData.nameOnCompanyBoard = report.name_on_company_board;
+      formData.companyNamePlateStatus = report.companyNameplateStatus;
+      formData.nameOnCompanyBoard = report.nameOnCompanyBoard;
 
       // Area and accommodation
-      formData.approxArea = report.approx_area;
+      formData.approxArea = report.approxArea;
 
       // TPC (Third Party Confirmation) fields
-      formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.nameOfTpc1 = report.tpc_name1;
-      formData.tpcConfirmation1 = report.tpc_confirmation1;
-      formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.nameOfTpc2 = report.tpc_name2;
-      formData.tpcConfirmation2 = report.tpc_confirmation2;
+      formData.tpcMetPerson1 = report.tpcMetPerson1;
+      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcConfirmation1 = report.tpcConfirmation1;
+      formData.tpcMetPerson2 = report.tpcMetPerson2;
+      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Form type specific fields
-      formData.shiftedPeriod = report.shifted_period;
-      formData.currentLocation = report.current_location;
-      formData.premisesStatus = report.premises_status;
-      formData.roomStatus = report.room_status;
-      formData.stayingPersonName = report.staying_person_name;
-      formData.entryRestrictionReason = report.entry_restriction_reason;
-      formData.securityPersonName = report.security_person_name;
-      formData.metPersonConfirmation = report.met_person_confirmation;
-      formData.accessDenied = report.access_denied;
-      formData.nameOfMetPerson = report.name_of_met_person;
-      formData.metPersonType = report.met_person_type;
-      formData.applicantStayingStatus = report.applicant_staying_status;
-      formData.contactPerson = report.contact_person;
-      formData.alternateContact = report.alternate_contact;
+      formData.shiftedPeriod = report.shiftedPeriod;
+      formData.currentLocation = report.currentLocation;
+      formData.premisesStatus = report.premisesStatus;
+      formData.roomStatus = report.roomStatus;
+      formData.stayingPersonName = report.stayingPersonName;
+      formData.entryRestrictionReason = report.entryRestrictionReason;
+      formData.securityPersonName = report.securityPersonName;
+      formData.metPersonConfirmation = report.metPersonConfirmation;
+      formData.accessDenied = report.accessDenied;
+      formData.nameOfMetPerson = report.nameOfMetPerson;
+      formData.metPersonType = report.metPersonType;
+      formData.applicantStayingStatus = report.applicantStayingStatus;
+      formData.contactPerson = report.contactPerson;
+      formData.alternateContact = report.alternateContact;
 
       // Assessment
-      formData.holdReason = report.hold_reason;
-      formData.recommendationStatus = report.recommendation_status;
+      formData.holdReason = report.holdReason;
+      formData.recommendationStatus = report.recommendationStatus;
     } else if (normalizedType === 'OFFICE') {
       formData.designation = report.designation;
-      formData.applicantDesignation = report.applicant_designation;
-      formData.officeStatus = report.office_status;
-      formData.officeExistence = report.office_existence;
-      formData.officeType = report.office_type;
-      formData.companyNatureOfBusiness = report.company_nature_of_business;
-      formData.businessPeriod = report.business_period;
-      formData.establishmentPeriod = report.establishment_period;
-      formData.staffStrength = report.staff_strength;
-      formData.staffSeen = report.staff_seen;
-      formData.workingPeriod = report.working_period;
-      formData.workingStatus = report.working_status;
-      formData.officeApproxArea = report.office_approx_area;
-      formData.documentShown = report.document_shown;
-      formData.documentType = report.document_type;
-      formData.addressFloor = report.address_floor;
-      formData.companyNamePlateStatus = report.company_nameplate_status;
-      formData.nameOnBoard = report.name_on_company_board;
-      formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.nameOfTpc1 = report.tpc_name1;
-      formData.tpcConfirmation1 = report.tpc_confirmation1;
-      formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.nameOfTpc2 = report.tpc_name2;
-      formData.tpcConfirmation2 = report.tpc_confirmation2;
+      formData.applicantDesignation = report.applicantDesignation;
+      formData.officeStatus = report.officeStatus;
+      formData.officeExistence = report.officeExistence;
+      formData.officeType = report.officeType;
+      formData.companyNatureOfBusiness = report.companyNatureOfBusiness;
+      formData.businessPeriod = report.businessPeriod;
+      formData.establishmentPeriod = report.establishmentPeriod;
+      formData.staffStrength = report.staffStrength;
+      formData.staffSeen = report.staffSeen;
+      formData.workingPeriod = report.workingPeriod;
+      formData.workingStatus = report.workingStatus;
+      formData.officeApproxArea = report.officeApproxArea;
+      formData.documentShown = report.documentShown;
+      formData.documentType = report.documentType;
+      formData.addressFloor = report.addressFloor;
+      formData.companyNamePlateStatus = report.companyNameplateStatus;
+      formData.nameOnBoard = report.nameOnCompanyBoard;
+      formData.tpcMetPerson1 = report.tpcMetPerson1;
+      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcConfirmation1 = report.tpcConfirmation1;
+      formData.tpcMetPerson2 = report.tpcMetPerson2;
+      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Visual details
-      formData.addressStructureColor = report.address_structure_color;
-      formData.doorColor = report.door_color;
-      formData.applicantWorkingPremises = report.applicant_working_premises;
-      formData.sittingLocation = report.sitting_location;
-      formData.currentCompanyName = report.current_company_name;
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.doorColor = report.doorColor;
+      formData.applicantWorkingPremises = report.applicantWorkingPremises;
+      formData.sittingLocation = report.sittingLocation;
+      formData.currentCompanyName = report.currentCompanyName;
 
       // Shifted fields
-      formData.shiftedPeriod = report.shifted_period;
-      formData.oldOfficeShiftedPeriod = report.old_office_shifted_period;
-      formData.currentCompanyPeriod = report.current_company_period;
-      formData.premisesStatus = report.premises_status;
+      formData.shiftedPeriod = report.shiftedPeriod;
+      formData.oldOfficeShiftedPeriod = report.oldOfficeShiftedPeriod;
+      formData.currentCompanyPeriod = report.currentCompanyPeriod;
+      formData.premisesStatus = report.premisesStatus;
 
       // Entry restricted fields
-      formData.nameOfMetPerson = report.name_of_met_person;
-      formData.metPersonType = report.met_person_type;
-      formData.metPersonConfirmation = report.met_person_confirmation;
-      formData.applicantWorkingStatus = report.applicant_working_status;
+      formData.nameOfMetPerson = report.nameOfMetPerson;
+      formData.metPersonType = report.metPersonType;
+      formData.metPersonConfirmation = report.metPersonConfirmation;
+      formData.applicantWorkingStatus = report.applicantWorkingStatus;
 
       // Untraceable fields
-      formData.contactPerson = report.contact_person;
+      formData.contactPerson = report.contactPerson;
 
       // Assessment
-      formData.otherExtraRemark = report.other_extra_remark;
-      formData.holdReason = report.hold_reason;
-      formData.recommendationStatus = report.recommendation_status;
+      formData.otherExtraRemark = report.otherExtraRemark;
+      formData.holdReason = report.holdReason;
+      formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
     } else if (normalizedType === 'BUSINESS') {
       // Basic Information
       formData.designation = report.designation;
-      formData.applicantDesignation = report.applicant_designation;
+      formData.applicantDesignation = report.applicantDesignation;
 
       // Business Details
-      formData.businessStatus = report.business_status;
-      formData.businessType = report.business_type;
-      formData.companyNatureOfBusiness = report.company_nature_of_business;
-      formData.businessPeriod = report.business_period;
-      formData.establishmentPeriod = report.establishment_period;
-      formData.businessExistence = report.business_existence;
-      formData.businessActivity = report.business_activity;
-      formData.businessSetup = report.business_setup;
-      formData.businessApproxArea = report.business_approx_area;
-      formData.staffStrength = report.staff_strength;
-      formData.staffSeen = report.staff_seen;
-      formData.ownershipType = report.ownership_type;
-      formData.ownerName = report.owner_name;
-      formData.businessOwnerName = report.business_owner_name;
-      formData.nameOfCompanyOwners = report.name_of_company_owners;
+      formData.businessStatus = report.businessStatus;
+      formData.businessType = report.businessType;
+      formData.companyNatureOfBusiness = report.companyNatureOfBusiness;
+      formData.businessPeriod = report.businessPeriod;
+      formData.establishmentPeriod = report.establishmentPeriod;
+      formData.businessExistence = report.businessExistence;
+      formData.businessActivity = report.businessActivity;
+      formData.businessSetup = report.businessSetup;
+      formData.businessApproxArea = report.businessApproxArea;
+      formData.staffStrength = report.staffStrength;
+      formData.staffSeen = report.staffSeen;
+      formData.ownershipType = report.ownershipType;
+      formData.ownerName = report.ownerName;
+      formData.businessOwnerName = report.businessOwnerName;
+      formData.nameOfCompanyOwners = report.nameOfCompanyOwners;
 
       // Working Details
-      formData.workingPeriod = report.working_period;
-      formData.workingStatus = report.working_status;
-      formData.applicantWorkingPremises = report.applicant_working_premises;
-      formData.applicantWorkingStatus = report.applicant_working_status;
+      formData.workingPeriod = report.workingPeriod;
+      formData.workingStatus = report.workingStatus;
+      formData.applicantWorkingPremises = report.applicantWorkingPremises;
+      formData.applicantWorkingStatus = report.applicantWorkingStatus;
 
       // Document Verification
-      formData.documentShown = report.document_shown;
-      formData.documentType = report.document_type;
+      formData.documentShown = report.documentShown;
+      formData.documentType = report.documentType;
 
       // Location Details
-      formData.addressFloor = report.address_floor;
-      formData.addressStatus = report.address_status;
-      formData.premisesStatus = report.premises_status;
-      formData.companyNamePlateStatus = report.company_nameplate_status;
-      formData.nameOnBoard = report.name_on_company_board;
-      formData.addressStructureColor = report.address_structure_color;
-      formData.doorColor = report.door_color;
+      formData.addressFloor = report.addressFloor;
+      formData.addressStatus = report.addressStatus;
+      formData.premisesStatus = report.premisesStatus;
+      formData.companyNamePlateStatus = report.companyNameplateStatus;
+      formData.nameOnBoard = report.nameOnCompanyBoard;
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.doorColor = report.doorColor;
 
       // TPC Details
-      formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.nameOfTpc1 = report.tpc_name1;
-      formData.tpcConfirmation1 = report.tpc_confirmation1;
-      formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.nameOfTpc2 = report.tpc_name2;
-      formData.tpcConfirmation2 = report.tpc_confirmation2;
+      formData.tpcMetPerson1 = report.tpcMetPerson1;
+      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcConfirmation1 = report.tpcConfirmation1;
+      formData.tpcMetPerson2 = report.tpcMetPerson2;
+      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Shifting Details
-      formData.shiftedPeriod = report.shifted_period;
-      formData.oldBusinessShiftedPeriod = report.old_business_shifted_period;
-      formData.currentCompanyName = report.current_company_name;
-      formData.currentCompanyPeriod = report.current_company_period;
+      formData.shiftedPeriod = report.shiftedPeriod;
+      formData.oldBusinessShiftedPeriod = report.oldBusinessShiftedPeriod;
+      formData.currentCompanyName = report.currentCompanyName;
+      formData.currentCompanyPeriod = report.currentCompanyPeriod;
 
       // Contact & Communication
-      formData.contactPerson = report.contact_person;
-      formData.callRemark = report.call_remark;
-      formData.nameOfMetPerson = report.name_of_met_person;
-      formData.metPersonType = report.met_person_type;
-      formData.metPersonConfirmation = report.met_person_confirmation;
+      formData.contactPerson = report.contactPerson;
+      formData.callRemark = report.callRemark;
+      formData.nameOfMetPerson = report.nameOfMetPerson;
+      formData.metPersonType = report.metPersonType;
+      formData.metPersonConfirmation = report.metPersonConfirmation;
 
       // Area Assessment
-      formData.otherExtraRemark = report.other_extra_remark;
-      formData.holdReason = report.hold_reason;
-      formData.recommendationStatus = report.recommendation_status;
+      formData.otherExtraRemark = report.otherExtraRemark;
+      formData.holdReason = report.holdReason;
+      formData.recommendationStatus = report.recommendationStatus;
     } else if (normalizedType === 'PROPERTY_APF') {
       // Basic Information
-      formData.customerName = report.customer_name;
-      formData.metPersonName = report.met_person_name;
-      formData.metPersonDesignation = report.met_person_designation;
-      formData.metPersonRelation = report.met_person_relation;
-      formData.metPersonContact = report.met_person_contact;
+      formData.customerName = report.customerName;
+      formData.metPersonName = report.metPersonName;
+      formData.metPersonDesignation = report.metPersonDesignation;
+      formData.metPersonRelation = report.metPersonRelation;
+      formData.metPersonContact = report.metPersonContact;
 
       // Address Information
       formData.locality = report.locality;
-      formData.addressLocatable = report.address_locatable;
-      formData.addressRating = report.address_rating;
-      formData.addressStructure = report.address_structure;
-      formData.addressStructureColor = report.address_structure_color;
-      formData.addressFloor = report.address_floor;
-      formData.doorColor = report.door_color;
+      formData.addressLocatable = report.addressLocatable;
+      formData.addressRating = report.addressRating;
+      formData.addressStructure = report.addressStructure;
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.addressFloor = report.addressFloor;
+      formData.doorColor = report.doorColor;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
       formData.landmark4 = report.landmark4;
 
       // Property Details
-      formData.propertyType = report.property_type;
-      formData.propertyStatus = report.property_status;
-      formData.propertyOwnership = report.property_ownership;
-      formData.propertyAge = report.property_age;
-      formData.propertyCondition = report.property_condition;
-      formData.propertyArea = report.property_area;
-      formData.propertyValue = report.property_value;
-      formData.marketValue = report.market_value;
-      formData.buildingStatus = report.building_status;
-      formData.constructionActivity = report.construction_activity;
-      formData.activityStopReason = report.activity_stop_reason;
+      formData.propertyType = report.propertyType;
+      formData.propertyStatus = report.propertyStatus;
+      formData.propertyOwnership = report.propertyOwnership;
+      formData.propertyAge = report.propertyAge;
+      formData.propertyCondition = report.propertyCondition;
+      formData.propertyArea = report.propertyArea;
+      formData.propertyValue = report.propertyValue;
+      formData.marketValue = report.marketValue;
+      formData.buildingStatus = report.buildingStatus;
+      formData.constructionActivity = report.constructionActivity;
+      formData.activityStopReason = report.activityStopReason;
 
       // APF Details
-      formData.apfStatus = report.apf_status;
-      formData.apfNumber = report.apf_number;
-      formData.apfIssueDate = report.apf_issue_date;
-      formData.apfExpiryDate = report.apf_expiry_date;
-      formData.apfIssuingAuthority = report.apf_issuing_authority;
-      formData.apfValidityStatus = report.apf_validity_status;
-      formData.apfAmount = report.apf_amount;
-      formData.apfUtilizedAmount = report.apf_utilized_amount;
-      formData.apfBalanceAmount = report.apf_balance_amount;
+      formData.apfStatus = report.apfStatus;
+      formData.apfNumber = report.apfNumber;
+      formData.apfIssueDate = report.apfIssueDate;
+      formData.apfExpiryDate = report.apfExpiryDate;
+      formData.apfIssuingAuthority = report.apfIssuingAuthority;
+      formData.apfValidityStatus = report.apfValidityStatus;
+      formData.apfAmount = report.apfAmount;
+      formData.apfUtilizedAmount = report.apfUtilizedAmount;
+      formData.apfBalanceAmount = report.apfBalanceAmount;
 
       // Project Information
-      formData.projectName = report.project_name;
-      formData.projectStatus = report.project_status;
-      formData.projectApprovalStatus = report.project_approval_status;
-      formData.projectCompletionPercentage = report.project_completion_percentage;
-      formData.projectStartDate = report.project_started_date;
-      formData.projectEndDate = report.project_completion_date;
-      formData.projectStartedDate = report.project_started_date;
-      formData.projectCompletionDate = report.project_completion_date;
-      formData.totalUnits = report.total_units;
-      formData.completedUnits = report.completed_units;
-      formData.soldUnits = report.sold_units;
-      formData.availableUnits = report.available_units;
-      formData.possessionStatus = report.possession_status;
-      formData.totalBuildingsInProject = report.total_buildings_in_project;
-      formData.totalFlats = report.total_flats;
-      formData.totalFlatsInBuilding = report.total_flats_in_building;
-      formData.totalWing = report.total_wing;
+      formData.projectName = report.projectName;
+      formData.projectStatus = report.projectStatus;
+      formData.projectApprovalStatus = report.projectApprovalStatus;
+      formData.projectCompletionPercentage = report.projectCompletionPercentage;
+      formData.projectStartDate = report.projectStartedDate;
+      formData.projectEndDate = report.projectCompletionDate;
+      formData.projectStartedDate = report.projectStartedDate;
+      formData.projectCompletionDate = report.projectCompletionDate;
+      formData.totalUnits = report.totalUnits;
+      formData.completedUnits = report.completedUnits;
+      formData.soldUnits = report.soldUnits;
+      formData.availableUnits = report.availableUnits;
+      formData.possessionStatus = report.possessionStatus;
+      formData.totalBuildingsInProject = report.totalBuildingsInProject;
+      formData.totalFlats = report.totalFlats;
+      formData.totalFlatsInBuilding = report.totalFlatsInBuilding;
+      formData.totalWing = report.totalWing;
 
       // Staff Information
-      formData.staffSeen = report.staff_seen;
-      formData.staffStrength = report.staff_strength;
+      formData.staffSeen = report.staffSeen;
+      formData.staffStrength = report.staffStrength;
 
       // Name Plates & Boards
-      formData.companyNameBoard = report.company_name_board;
-      formData.nameOnBoard = report.name_on_board;
+      formData.companyNameBoard = report.companyNameBoard;
+      formData.nameOnBoard = report.nameOnBoard;
 
       // Document Verification
-      formData.documentShownStatus = report.document_shown_status;
-      formData.documentType = report.document_type;
-      formData.documentVerificationStatus = report.document_verification_status;
+      formData.documentShownStatus = report.documentShownStatus;
+      formData.documentType = report.documentType;
+      formData.documentVerificationStatus = report.documentVerificationStatus;
 
       // Third Party Confirmation
-      formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.nameOfTpc1 = report.tpc_name1;
-      formData.tpcConfirmation1 = report.tpc_confirmation1;
-      formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.nameOfTpc2 = report.tpc_name2;
-      formData.tpcConfirmation2 = report.tpc_confirmation2;
+      formData.tpcMetPerson1 = report.tpcMetPerson1;
+      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcConfirmation1 = report.tpcConfirmation1;
+      formData.tpcMetPerson2 = report.tpcMetPerson2;
+      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Builder Information
-      formData.builderName = report.builder_name;
-      formData.builderContact = report.builder_contact;
-      formData.developerName = report.developer_name;
-      formData.developerContact = report.developer_contact;
-      formData.builderRegistrationNumber = report.builder_registration_number;
-      formData.reraRegistrationNumber = report.rera_registration_number;
+      formData.builderName = report.builderName;
+      formData.builderContact = report.builderContact;
+      formData.developerName = report.developerName;
+      formData.developerContact = report.developerContact;
+      formData.builderRegistrationNumber = report.builderRegistrationNumber;
+      formData.reraRegistrationNumber = report.reraRegistrationNumber;
 
       // Loan Information
-      formData.loanAmount = report.loan_amount;
-      formData.loanPurpose = report.loan_purpose;
-      formData.loanStatus = report.loan_status;
-      formData.bankName = report.bank_name;
-      formData.loanAccountNumber = report.loan_account_number;
-      formData.emiAmount = report.emi_amount;
+      formData.loanAmount = report.loanAmount;
+      formData.loanPurpose = report.loanPurpose;
+      formData.loanStatus = report.loanStatus;
+      formData.bankName = report.bankName;
+      formData.loanAccountNumber = report.loanAccountNumber;
+      formData.emiAmount = report.emiAmount;
 
       // Legal & Clearance
-      formData.legalClearance = report.legal_clearance;
-      formData.titleClearance = report.title_clearance;
-      formData.encumbranceStatus = report.encumbrance_status;
-      formData.litigationStatus = report.litigation_status;
+      formData.legalClearance = report.legalClearance;
+      formData.titleClearance = report.titleClearance;
+      formData.encumbranceStatus = report.encumbranceStatus;
+      formData.litigationStatus = report.litigationStatus;
 
       // Shifting & Contact Details
-      formData.shiftedPeriod = report.shifted_period;
-      formData.currentLocation = report.current_location;
-      formData.premisesStatus = report.premises_status;
-      formData.entryRestrictionReason = report.entry_restriction_reason;
-      formData.securityPersonName = report.security_person_name;
-      formData.securityConfirmation = report.security_confirmation;
-      formData.contactPerson = report.contact_person;
-      formData.callRemark = report.call_remark;
+      formData.shiftedPeriod = report.shiftedPeriod;
+      formData.currentLocation = report.currentLocation;
+      formData.premisesStatus = report.premisesStatus;
+      formData.entryRestrictionReason = report.entryRestrictionReason;
+      formData.securityPersonName = report.securityPersonName;
+      formData.securityConfirmation = report.securityConfirmation;
+      formData.contactPerson = report.contactPerson;
+      formData.callRemark = report.callRemark;
 
       // Infrastructure & Area Assessment
-      formData.infrastructureStatus = report.infrastructure_status;
-      formData.roadConnectivity = report.road_connectivity;
-      formData.politicalConnection = report.political_connection;
-      formData.dominatedArea = report.dominated_area;
-      formData.feedbackFromNeighbour = report.feedback_from_neighbour;
-      formData.otherObservation = report.other_observation;
-      formData.propertyConcerns = report.property_concerns;
-      formData.financialConcerns = report.financial_concerns;
-      formData.finalStatus = report.final_status;
-      formData.holdReason = report.hold_reason;
-      formData.recommendationStatus = report.recommendation_status;
+      formData.infrastructureStatus = report.infrastructureStatus;
+      formData.roadConnectivity = report.roadConnectivity;
+      formData.politicalConnection = report.politicalConnection;
+      formData.dominatedArea = report.dominatedArea;
+      formData.feedbackFromNeighbour = report.feedbackFromNeighbour;
+      formData.otherObservation = report.otherObservation;
+      formData.propertyConcerns = report.propertyConcerns;
+      formData.financialConcerns = report.financialConcerns;
+      formData.finalStatus = report.finalStatus;
+      formData.holdReason = report.holdReason;
+      formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
 
       // Entry restricted fields (additional)
-      formData.nameOfMetPerson = report.name_of_met_person;
-      formData.metPersonConfirmation = report.met_person_confirmation;
+      formData.nameOfMetPerson = report.nameOfMetPerson;
+      formData.metPersonConfirmation = report.metPersonConfirmation;
       formData.designation = report.designation;
     } else if (normalizedType === 'PROPERTY_INDIVIDUAL') {
       // Basic Information
-      formData.customerName = report.customer_name;
-      formData.metPersonName = report.met_person_name;
-      formData.metPersonDesignation = report.met_person_designation;
-      formData.metPersonRelation = report.met_person_relation;
-      formData.metPersonContact = report.met_person_contact;
+      formData.customerName = report.customerName;
+      formData.metPersonName = report.metPersonName;
+      formData.metPersonDesignation = report.metPersonDesignation;
+      formData.metPersonRelation = report.metPersonRelation;
+      formData.metPersonContact = report.metPersonContact;
 
       // Address Information
       formData.locality = report.locality;
-      formData.addressLocatable = report.address_locatable;
-      formData.addressRating = report.address_rating;
-      formData.addressStructure = report.address_structure;
-      formData.addressStructureColor = report.address_structure_color;
-      formData.addressFloor = report.address_floor;
-      formData.doorColor = report.door_color;
+      formData.addressLocatable = report.addressLocatable;
+      formData.addressRating = report.addressRating;
+      formData.addressStructure = report.addressStructure;
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.addressFloor = report.addressFloor;
+      formData.doorColor = report.doorColor;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
       formData.landmark4 = report.landmark4;
 
       // Property Details
-      formData.propertyType = report.property_type;
-      formData.propertyStatus = report.property_status;
-      formData.propertyOwnership = report.property_ownership;
-      formData.propertyAge = report.property_age;
-      formData.propertyCondition = report.property_condition;
-      formData.propertyArea = report.property_area;
-      formData.propertyValue = report.property_value;
-      formData.marketValue = report.market_value;
-      formData.propertyLocation = report.property_location;
-      formData.propertyDescription = report.property_description;
-      formData.propertyAmenities = report.property_amenities;
-      formData.constructionType = report.construction_type;
-      formData.constructionYear = report.construction_year;
-      formData.renovationYear = report.renovation_year;
+      formData.propertyType = report.propertyType;
+      formData.propertyStatus = report.propertyStatus;
+      formData.propertyOwnership = report.propertyOwnership;
+      formData.propertyAge = report.propertyAge;
+      formData.propertyCondition = report.propertyCondition;
+      formData.propertyArea = report.propertyArea;
+      formData.propertyValue = report.propertyValue;
+      formData.marketValue = report.marketValue;
+      formData.propertyLocation = report.propertyLocation;
+      formData.propertyDescription = report.propertyDescription;
+      formData.propertyAmenities = report.propertyAmenities;
+      formData.constructionType = report.constructionType;
+      formData.constructionYear = report.constructionYear;
+      formData.renovationYear = report.renovationYear;
 
       // Owner Information
-      formData.ownerName = report.owner_name;
-      formData.ownerAge = report.owner_age;
-      formData.ownerOccupation = report.owner_occupation;
-      formData.ownerIncome = report.owner_income;
-      formData.ownerRelation = report.owner_relation;
-      formData.previousOwnerName = report.previous_owner_name;
+      formData.ownerName = report.ownerName;
+      formData.ownerAge = report.ownerAge;
+      formData.ownerOccupation = report.ownerOccupation;
+      formData.ownerIncome = report.ownerIncome;
+      formData.ownerRelation = report.ownerRelation;
+      formData.previousOwnerName = report.previousOwnerName;
 
       // Individual Information
-      formData.individualName = report.individual_name;
-      formData.individualAge = report.individual_age;
-      formData.individualOccupation = report.individual_occupation;
-      formData.individualEducation = report.individual_education;
-      formData.individualMaritalStatus = report.individual_marital_status;
-      formData.individualExperience = report.individual_experience;
-      formData.individualIncome = report.individual_income;
-      formData.yearsOfResidence = report.years_of_residence;
+      formData.individualName = report.individualName;
+      formData.individualAge = report.individualAge;
+      formData.individualOccupation = report.individualOccupation;
+      formData.individualEducation = report.individualEducation;
+      formData.individualMaritalStatus = report.individualMaritalStatus;
+      formData.individualExperience = report.individualExperience;
+      formData.individualIncome = report.individualIncome;
+      formData.yearsOfResidence = report.yearsOfResidence;
 
       // Family & Employment
-      formData.familyMembers = report.family_members;
-      formData.earningMembers = report.earning_members;
-      formData.employmentType = report.employment_type;
-      formData.employerName = report.employer_name;
-      formData.employmentDuration = report.employment_duration;
-      formData.incomeSource = report.income_source;
-      formData.monthlyIncome = report.monthly_income;
-      formData.annualIncome = report.annual_income;
+      formData.familyMembers = report.familyMembers;
+      formData.earningMembers = report.earningMembers;
+      formData.employmentType = report.employmentType;
+      formData.employerName = report.employerName;
+      formData.employmentDuration = report.employmentDuration;
+      formData.incomeSource = report.incomeSource;
+      formData.monthlyIncome = report.monthlyIncome;
+      formData.annualIncome = report.annualIncome;
 
       // Business Information
-      formData.businessName = report.business_name;
-      formData.businessType = report.business_type;
-      formData.businessIncome = report.business_income;
-      formData.businessExperience = report.business_experience;
+      formData.businessName = report.businessName;
+      formData.businessType = report.businessType;
+      formData.businessIncome = report.businessIncome;
+      formData.businessExperience = report.businessExperience;
 
       // Financial Information
-      formData.loanAmount = report.loan_amount;
-      formData.emiAmount = report.emi_amount;
-      formData.bankName = report.bank_name;
-      formData.loanAgainstProperty = report.loan_against_property;
+      formData.loanAmount = report.loanAmount;
+      formData.emiAmount = report.emiAmount;
+      formData.bankName = report.bankName;
+      formData.loanAgainstProperty = report.loanAgainstProperty;
 
       // Legal & Documentation
-      formData.propertyDocuments = report.property_documents;
-      formData.documentVerificationStatus = report.document_verification_status;
-      formData.titleClearStatus = report.title_clear_status;
-      formData.mutationStatus = report.mutation_status;
-      formData.taxPaymentStatus = report.tax_payment_status;
-      formData.legalIssues = report.legal_issues;
+      formData.propertyDocuments = report.propertyDocuments;
+      formData.documentVerificationStatus = report.documentVerificationStatus;
+      formData.titleClearStatus = report.titleClearStatus;
+      formData.mutationStatus = report.mutationStatus;
+      formData.taxPaymentStatus = report.taxPaymentStatus;
+      formData.legalIssues = report.legalIssues;
 
       // Utilities & Amenities
-      formData.electricityConnection = report.electricity_connection;
-      formData.waterConnection = report.water_connection;
-      formData.gasConnection = report.gas_connection;
-      formData.internetConnection = report.internet_connection;
-      formData.publicTransport = report.public_transport;
-      formData.roadConnectivity = report.road_connectivity;
-      formData.safetySecurity = report.safety_security;
+      formData.electricityConnection = report.electricityConnection;
+      formData.waterConnection = report.waterConnection;
+      formData.gasConnection = report.gasConnection;
+      formData.internetConnection = report.internetConnection;
+      formData.publicTransport = report.publicTransport;
+      formData.roadConnectivity = report.roadConnectivity;
+      formData.safetySecurity = report.safetySecurity;
 
       // Third Party Confirmation
-      formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.nameOfTpc1 = report.tpc_name1;
-      formData.tpcConfirmation1 = report.tpc_confirmation1;
-      formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.nameOfTpc2 = report.tpc_name2;
-      formData.tpcConfirmation2 = report.tpc_confirmation2;
-      formData.neighbor1Name = report.neighbor1_name;
-      formData.neighbor1Confirmation = report.neighbor1_confirmation;
-      formData.neighbor2Name = report.neighbor2_name;
-      formData.neighbor2Confirmation = report.neighbor2_confirmation;
+      formData.tpcMetPerson1 = report.tpcMetPerson1;
+      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcConfirmation1 = report.tpcConfirmation1;
+      formData.tpcMetPerson2 = report.tpcMetPerson2;
+      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcConfirmation2 = report.tpcConfirmation2;
+      formData.neighbor1Name = report.neighbor1Name;
+      formData.neighbor1Confirmation = report.neighbor1Confirmation;
+      formData.neighbor2Name = report.neighbor2Name;
+      formData.neighbor2Confirmation = report.neighbor2Confirmation;
 
       // Shifting & Contact Details
-      formData.shiftedPeriod = report.shifted_period;
-      formData.currentLocation = report.current_location;
-      formData.premisesStatus = report.premises_status;
-      formData.entryRestrictionReason = report.entry_restriction_reason;
-      formData.securityPersonName = report.security_person_name;
-      formData.securityConfirmation = report.security_confirmation;
-      formData.contactPerson = report.contact_person;
-      formData.callRemark = report.call_remark;
+      formData.shiftedPeriod = report.shiftedPeriod;
+      formData.currentLocation = report.currentLocation;
+      formData.premisesStatus = report.premisesStatus;
+      formData.entryRestrictionReason = report.entryRestrictionReason;
+      formData.securityPersonName = report.securityPersonName;
+      formData.securityConfirmation = report.securityConfirmation;
+      formData.contactPerson = report.contactPerson;
+      formData.callRemark = report.callRemark;
 
       // Area Assessment & Reputation
-      formData.localityReputation = report.locality_reputation;
-      formData.infrastructureStatus = report.infrastructure_status;
-      formData.politicalConnection = report.political_connection;
-      formData.dominatedArea = report.dominated_area;
-      formData.feedbackFromNeighbour = report.feedback_from_neighbour;
-      formData.otherObservation = report.other_observation;
-      formData.propertyConcerns = report.property_concerns;
-      formData.verificationChallenges = report.verification_challenges;
-      formData.finalStatus = report.final_status;
-      formData.holdReason = report.hold_reason;
-      formData.recommendationStatus = report.recommendation_status;
+      formData.localityReputation = report.localityReputation;
+      formData.infrastructureStatus = report.infrastructureStatus;
+      formData.politicalConnection = report.politicalConnection;
+      formData.dominatedArea = report.dominatedArea;
+      formData.feedbackFromNeighbour = report.feedbackFromNeighbour;
+      formData.otherObservation = report.otherObservation;
+      formData.propertyConcerns = report.propertyConcerns;
+      formData.verificationChallenges = report.verificationChallenges;
+      formData.finalStatus = report.finalStatus;
+      formData.holdReason = report.holdReason;
+      formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
     } else if (normalizedType === 'NOC') {
       // Basic Information
-      formData.customerName = report.customer_name;
-      formData.metPersonName = report.met_person_name;
-      formData.metPersonDesignation = report.met_person_designation;
-      formData.metPersonRelation = report.met_person_relation;
-      formData.metPersonContact = report.met_person_contact;
+      formData.customerName = report.customerName;
+      formData.metPersonName = report.metPersonName;
+      formData.metPersonDesignation = report.metPersonDesignation;
+      formData.metPersonRelation = report.metPersonRelation;
+      formData.metPersonContact = report.metPersonContact;
 
       // Address Information
       formData.locality = report.locality;
-      formData.addressLocatable = report.address_locatable;
-      formData.addressRating = report.address_rating;
-      formData.addressStructure = report.address_structure;
-      formData.addressStructureColor = report.address_structure_color;
-      formData.addressFloor = report.address_floor;
-      formData.doorColor = report.door_color;
+      formData.addressLocatable = report.addressLocatable;
+      formData.addressRating = report.addressRating;
+      formData.addressStructure = report.addressStructure;
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.addressFloor = report.addressFloor;
+      formData.doorColor = report.doorColor;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
       formData.landmark4 = report.landmark4;
 
       // NOC Information
-      formData.nocType = report.noc_type;
-      formData.nocStatus = report.noc_status;
-      formData.nocNumber = report.noc_number;
-      formData.nocIssueDate = report.noc_issue_date;
-      formData.nocExpiryDate = report.noc_expiry_date;
-      formData.nocIssuingAuthority = report.noc_issuing_authority;
-      formData.nocValidityStatus = report.noc_validity_status;
+      formData.nocType = report.nocType;
+      formData.nocStatus = report.nocStatus;
+      formData.nocNumber = report.nocNumber;
+      formData.nocIssueDate = report.nocIssueDate;
+      formData.nocExpiryDate = report.nocExpiryDate;
+      formData.nocIssuingAuthority = report.nocIssuingAuthority;
+      formData.nocValidityStatus = report.nocValidityStatus;
 
       // Property & Project Information
-      formData.propertyType = report.property_type;
-      formData.projectName = report.project_name;
-      formData.projectStatus = report.project_status;
-      formData.constructionStatus = report.construction_status;
-      formData.projectApprovalStatus = report.project_approval_status;
-      formData.totalUnits = report.total_units;
-      formData.completedUnits = report.completed_units;
-      formData.soldUnits = report.sold_units;
-      formData.possessionStatus = report.possession_status;
+      formData.propertyType = report.propertyType;
+      formData.projectName = report.projectName;
+      formData.projectStatus = report.projectStatus;
+      formData.constructionStatus = report.constructionStatus;
+      formData.projectApprovalStatus = report.projectApprovalStatus;
+      formData.totalUnits = report.totalUnits;
+      formData.completedUnits = report.completedUnits;
+      formData.soldUnits = report.soldUnits;
+      formData.possessionStatus = report.possessionStatus;
 
       // Builder & Developer Information
-      formData.builderName = report.builder_name;
-      formData.builderContact = report.builder_contact;
-      formData.developerName = report.developer_name;
-      formData.developerContact = report.developer_contact;
-      formData.builderRegistrationNumber = report.builder_registration_number;
+      formData.builderName = report.builderName;
+      formData.builderContact = report.builderContact;
+      formData.developerName = report.developerName;
+      formData.developerContact = report.developerContact;
+      formData.builderRegistrationNumber = report.builderRegistrationNumber;
 
       // Document Verification
-      formData.documentShownStatus = report.document_shown_status;
-      formData.documentType = report.document_type;
-      formData.documentVerificationStatus = report.document_verification_status;
+      formData.documentShownStatus = report.documentShownStatus;
+      formData.documentType = report.documentType;
+      formData.documentVerificationStatus = report.documentVerificationStatus;
 
       // Third Party Confirmation
-      formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.nameOfTpc1 = report.tpc_name1;
-      formData.tpcConfirmation1 = report.tpc_confirmation1;
-      formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.nameOfTpc2 = report.tpc_name2;
-      formData.tpcConfirmation2 = report.tpc_confirmation2;
+      formData.tpcMetPerson1 = report.tpcMetPerson1;
+      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcConfirmation1 = report.tpcConfirmation1;
+      formData.tpcMetPerson2 = report.tpcMetPerson2;
+      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Shifting & Contact Details
-      formData.shiftedPeriod = report.shifted_period;
-      formData.currentLocation = report.current_location;
-      formData.premisesStatus = report.premises_status;
-      formData.entryRestrictionReason = report.entry_restriction_reason;
-      formData.securityPersonName = report.security_person_name;
-      formData.securityConfirmation = report.security_confirmation;
-      formData.contactPerson = report.contact_person;
-      formData.callRemark = report.call_remark;
+      formData.shiftedPeriod = report.shiftedPeriod;
+      formData.currentLocation = report.currentLocation;
+      formData.premisesStatus = report.premisesStatus;
+      formData.entryRestrictionReason = report.entryRestrictionReason;
+      formData.securityPersonName = report.securityPersonName;
+      formData.securityConfirmation = report.securityConfirmation;
+      formData.contactPerson = report.contactPerson;
+      formData.callRemark = report.callRemark;
 
       // Clearances & Compliance
-      formData.environmentalClearance = report.environmental_clearance;
-      formData.fireSafetyClearance = report.fire_safety_clearance;
-      formData.pollutionClearance = report.pollution_clearance;
-      formData.waterConnectionStatus = report.water_connection_status;
-      formData.electricityConnectionStatus = report.electricity_connection_status;
-      formData.complianceIssues = report.compliance_issues;
-      formData.regulatoryConcerns = report.regulatory_concerns;
+      formData.environmentalClearance = report.environmentalClearance;
+      formData.fireSafetyClearance = report.fireSafetyClearance;
+      formData.pollutionClearance = report.pollutionClearance;
+      formData.waterConnectionStatus = report.waterConnectionStatus;
+      formData.electricityConnectionStatus = report.electricityConnectionStatus;
+      formData.complianceIssues = report.complianceIssues;
+      formData.regulatoryConcerns = report.regulatoryConcerns;
 
       // Infrastructure & Assessment
-      formData.infrastructureStatus = report.infrastructure_status;
-      formData.roadConnectivity = report.road_connectivity;
-      formData.politicalConnection = report.political_connection;
-      formData.dominatedArea = report.dominated_area;
-      formData.feedbackFromNeighbour = report.feedback_from_neighbour;
-      formData.otherObservation = report.other_observation;
+      formData.infrastructureStatus = report.infrastructureStatus;
+      formData.roadConnectivity = report.roadConnectivity;
+      formData.politicalConnection = report.politicalConnection;
+      formData.dominatedArea = report.dominatedArea;
+      formData.feedbackFromNeighbour = report.feedbackFromNeighbour;
+      formData.otherObservation = report.otherObservation;
 
       // Final Status & Recommendations
-      formData.finalStatus = report.final_status;
-      formData.holdReason = report.hold_reason;
-      formData.recommendationStatus = report.recommendation_status;
+      formData.finalStatus = report.finalStatus;
+      formData.holdReason = report.holdReason;
+      formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
     } else if (normalizedType === 'BUILDER') {
       // Basic Information
-      formData.customerName = report.customer_name;
-      formData.metPersonName = report.met_person_name;
+      formData.customerName = report.customerName;
+      formData.metPersonName = report.metPersonName;
       formData.designation = report.designation;
-      formData.applicantDesignation = report.applicant_designation;
+      formData.applicantDesignation = report.applicantDesignation;
 
       // Address Information
       formData.locality = report.locality;
-      formData.addressLocatable = report.address_locatable;
-      formData.addressRating = report.address_rating;
-      formData.addressStructure = report.address_structure;
-      formData.addressStructureColor = report.address_structure_color;
-      formData.addressFloor = report.address_floor;
-      formData.doorColor = report.door_color;
+      formData.addressLocatable = report.addressLocatable;
+      formData.addressRating = report.addressRating;
+      formData.addressStructure = report.addressStructure;
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.addressFloor = report.addressFloor;
+      formData.doorColor = report.doorColor;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
       formData.landmark4 = report.landmark4;
 
       // Builder Information
-      formData.builderName = report.builder_name;
-      formData.builderOwnerName = report.builder_owner_name;
-      formData.builderType = report.builder_type;
-      formData.companyNatureOfBusiness = report.company_nature_of_business;
-      formData.businessPeriod = report.business_period;
-      formData.establishmentPeriod = report.establishment_period;
-      formData.workingPeriod = report.working_period;
-      formData.workingStatus = report.working_status;
-      formData.applicantWorkingStatus = report.applicant_working_status;
+      formData.builderName = report.builderName;
+      formData.builderOwnerName = report.builderOwnerName;
+      formData.builderType = report.builderType;
+      formData.companyNatureOfBusiness = report.companyNatureOfBusiness;
+      formData.businessPeriod = report.businessPeriod;
+      formData.establishmentPeriod = report.establishmentPeriod;
+      formData.workingPeriod = report.workingPeriod;
+      formData.workingStatus = report.workingStatus;
+      formData.applicantWorkingStatus = report.applicantWorkingStatus;
 
       // Office Information
-      formData.officeStatus = report.office_status;
-      formData.officeExistence = report.office_existence;
-      formData.officeApproxArea = report.office_approx_area;
-      formData.companyNamePlateStatus = report.company_nameplate_status;
-      formData.nameOnBoard = report.name_on_company_board;
-      formData.addressStructureColor = report.address_structure_color;
-      formData.doorColor = report.door_color;
+      formData.officeStatus = report.officeStatus;
+      formData.officeExistence = report.officeExistence;
+      formData.officeApproxArea = report.officeApproxArea;
+      formData.companyNamePlateStatus = report.companyNameplateStatus;
+      formData.nameOnBoard = report.nameOnCompanyBoard;
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.doorColor = report.doorColor;
 
       // Staff Information
-      formData.staffStrength = report.staff_strength;
-      formData.staffSeen = report.staff_seen;
+      formData.staffStrength = report.staffStrength;
+      formData.staffSeen = report.staffSeen;
 
       // Document Verification
-      formData.documentShown = report.document_shown;
+      formData.documentShown = report.documentShown;
 
       // Third Party Confirmation
-      formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.nameOfTpc1 = report.tpc_name1;
-      formData.tpcConfirmation1 = report.tpc_confirmation1;
-      formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.nameOfTpc2 = report.tpc_name2;
-      formData.tpcConfirmation2 = report.tpc_confirmation2;
+      formData.tpcMetPerson1 = report.tpcMetPerson1;
+      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcConfirmation1 = report.tpcConfirmation1;
+      formData.tpcMetPerson2 = report.tpcMetPerson2;
+      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Entry restricted fields
-      formData.nameOfMetPerson = report.name_of_met_person;
-      formData.metPersonType = report.met_person_type;
-      formData.metPersonConfirmation = report.met_person_confirmation;
+      formData.nameOfMetPerson = report.nameOfMetPerson;
+      formData.metPersonType = report.metPersonType;
+      formData.metPersonConfirmation = report.metPersonConfirmation;
 
       // Shifting & Contact Details
-      formData.shiftedPeriod = report.shifted_period;
-      formData.oldOfficeShiftedPeriod = report.old_office_shifted_period;
-      formData.currentCompanyName = report.current_company_name;
-      formData.currentCompanyPeriod = report.current_company_period;
-      formData.premisesStatus = report.premises_status;
-      formData.contactPerson = report.contact_person;
-      formData.callRemark = report.call_remark;
+      formData.shiftedPeriod = report.shiftedPeriod;
+      formData.oldOfficeShiftedPeriod = report.oldOfficeShiftedPeriod;
+      formData.currentCompanyName = report.currentCompanyName;
+      formData.currentCompanyPeriod = report.currentCompanyPeriod;
+      formData.premisesStatus = report.premisesStatus;
+      formData.contactPerson = report.contactPerson;
+      formData.callRemark = report.callRemark;
 
       // Assessment & Feedback
-      formData.politicalConnection = report.political_connection;
-      formData.dominatedArea = report.dominated_area;
-      formData.feedbackFromNeighbour = report.feedback_from_neighbour;
-      formData.otherObservation = report.other_observation;
-      formData.otherExtraRemark = report.other_extra_remark;
+      formData.politicalConnection = report.politicalConnection;
+      formData.dominatedArea = report.dominatedArea;
+      formData.feedbackFromNeighbour = report.feedbackFromNeighbour;
+      formData.otherObservation = report.otherObservation;
+      formData.otherExtraRemark = report.otherExtraRemark;
 
       // Final Status & Recommendations
-      formData.finalStatus = report.final_status;
-      formData.holdReason = report.hold_reason;
-      formData.recommendationStatus = report.recommendation_status;
+      formData.finalStatus = report.finalStatus;
+      formData.holdReason = report.holdReason;
+      formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
     } else if (normalizedType === 'DSA_CONNECTOR') {
       // Basic Information
-      formData.customerName = report.customer_name;
-      formData.metPersonName = report.met_person_name;
-      formData.metPersonDesignation = report.met_person_designation;
-      formData.metPersonRelation = report.met_person_relation;
-      formData.metPersonContact = report.met_person_contact;
+      formData.customerName = report.customerName;
+      formData.metPersonName = report.metPersonName;
+      formData.metPersonDesignation = report.metPersonDesignation;
+      formData.metPersonRelation = report.metPersonRelation;
+      formData.metPersonContact = report.metPersonContact;
 
       // Address Information
       formData.locality = report.locality;
-      formData.addressLocatable = report.address_locatable;
-      formData.addressRating = report.address_rating;
-      formData.addressStructure = report.address_structure;
-      formData.addressStructureColor = report.address_structure_color;
-      formData.addressFloor = report.address_floor;
-      formData.doorColor = report.door_color;
+      formData.addressLocatable = report.addressLocatable;
+      formData.addressRating = report.addressRating;
+      formData.addressStructure = report.addressStructure;
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.addressFloor = report.addressFloor;
+      formData.doorColor = report.doorColor;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
       formData.landmark4 = report.landmark4;
 
       // Connector Information
-      formData.connectorType = report.connector_type;
-      formData.connectorCode = report.connector_code;
-      formData.connectorName = report.connector_name;
-      formData.connectorDesignation = report.connector_designation;
-      formData.connectorExperience = report.connector_experience;
-      formData.connectorStatus = report.connector_status;
+      formData.connectorType = report.connectorType;
+      formData.connectorCode = report.connectorCode;
+      formData.connectorName = report.connectorName;
+      formData.connectorDesignation = report.connectorDesignation;
+      formData.connectorExperience = report.connectorExperience;
+      formData.connectorStatus = report.connectorStatus;
 
       // Business Information
-      formData.businessName = report.business_name;
-      formData.businessType = report.business_type;
-      formData.businessRegistrationNumber = report.business_registration_number;
-      formData.businessEstablishmentYear = report.business_establishment_year;
-      formData.businessOperational = report.business_operational;
-      formData.businessHours = report.business_hours;
-      formData.weekendOperations = report.weekend_operations;
-      formData.customerFootfall = report.customer_footfall;
-      formData.previousBusinessName = report.previous_business_name;
+      formData.businessName = report.businessName;
+      formData.businessType = report.businessType;
+      formData.businessRegistrationNumber = report.businessRegistrationNumber;
+      formData.businessEstablishmentYear = report.businessEstablishmentYear;
+      formData.businessOperational = report.businessOperational;
+      formData.businessHours = report.businessHours;
+      formData.weekendOperations = report.weekendOperations;
+      formData.customerFootfall = report.customerFootfall;
+      formData.previousBusinessName = report.previousBusinessName;
 
       // Office Information
-      formData.officeType = report.office_type;
-      formData.officeArea = report.office_area;
-      formData.officeRent = report.office_rent;
+      formData.officeType = report.officeType;
+      formData.officeArea = report.officeArea;
+      formData.officeRent = report.officeRent;
 
       // Staff Information
-      formData.totalStaff = report.total_staff;
-      formData.salesStaff = report.sales_staff;
-      formData.supportStaff = report.support_staff;
-      formData.teamSize = report.team_size;
+      formData.totalStaff = report.totalStaff;
+      formData.salesStaff = report.salesStaff;
+      formData.supportStaff = report.supportStaff;
+      formData.teamSize = report.teamSize;
 
       // Financial Information
-      formData.monthlyBusinessVolume = report.monthly_business_volume;
-      formData.averageMonthlySales = report.average_monthly_sales;
-      formData.annualTurnover = report.annual_turnover;
-      formData.monthlyIncome = report.monthly_income;
-      formData.commissionStructure = report.commission_structure;
-      formData.paymentTerms = report.payment_terms;
-      formData.bankAccountDetails = report.bank_account_details;
+      formData.monthlyBusinessVolume = report.monthlyBusinessVolume;
+      formData.averageMonthlySales = report.averageMonthlySales;
+      formData.annualTurnover = report.annualTurnover;
+      formData.monthlyIncome = report.monthlyIncome;
+      formData.commissionStructure = report.commissionStructure;
+      formData.paymentTerms = report.paymentTerms;
+      formData.bankAccountDetails = report.bankAccountDetails;
 
       // Technology & Infrastructure
-      formData.computerSystems = report.computer_systems;
-      formData.internetConnection = report.internet_connection;
-      formData.softwareSystems = report.software_systems;
-      formData.posTerminals = report.pos_terminals;
-      formData.printerScanner = report.printer_scanner;
-      formData.infrastructureStatus = report.infrastructure_status;
+      formData.computerSystems = report.computerSystems;
+      formData.internetConnection = report.internetConnection;
+      formData.softwareSystems = report.softwareSystems;
+      formData.posTerminals = report.posTerminals;
+      formData.printerScanner = report.printerScanner;
+      formData.infrastructureStatus = report.infrastructureStatus;
 
       // Compliance & Licensing
-      formData.licenseStatus = report.license_status;
-      formData.licenseNumber = report.license_number;
-      formData.licenseExpiryDate = report.license_expiry_date;
-      formData.complianceStatus = report.compliance_status;
-      formData.auditStatus = report.audit_status;
-      formData.trainingStatus = report.training_status;
+      formData.licenseStatus = report.licenseStatus;
+      formData.licenseNumber = report.licenseNumber;
+      formData.licenseExpiryDate = report.licenseExpiryDate;
+      formData.complianceStatus = report.complianceStatus;
+      formData.auditStatus = report.auditStatus;
+      formData.trainingStatus = report.trainingStatus;
 
       // Third Party Confirmation
-      formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.nameOfTpc1 = report.tpc_name1;
-      formData.tpcConfirmation1 = report.tpc_confirmation1;
-      formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.nameOfTpc2 = report.tpc_name2;
-      formData.tpcConfirmation2 = report.tpc_confirmation2;
+      formData.tpcMetPerson1 = report.tpcMetPerson1;
+      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcConfirmation1 = report.tpcConfirmation1;
+      formData.tpcMetPerson2 = report.tpcMetPerson2;
+      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Shifting & Contact Details
-      formData.shiftedPeriod = report.shifted_period;
-      formData.currentLocation = report.current_location;
-      formData.premisesStatus = report.premises_status;
-      formData.entryRestrictionReason = report.entry_restriction_reason;
-      formData.securityPersonName = report.security_person_name;
-      formData.securityConfirmation = report.security_confirmation;
-      formData.contactPerson = report.contact_person;
-      formData.callRemark = report.call_remark;
+      formData.shiftedPeriod = report.shiftedPeriod;
+      formData.currentLocation = report.currentLocation;
+      formData.premisesStatus = report.premisesStatus;
+      formData.entryRestrictionReason = report.entryRestrictionReason;
+      formData.securityPersonName = report.securityPersonName;
+      formData.securityConfirmation = report.securityConfirmation;
+      formData.contactPerson = report.contactPerson;
+      formData.callRemark = report.callRemark;
 
       // Market Analysis & Assessment
-      formData.marketPresence = report.market_presence;
-      formData.competitorAnalysis = report.competitor_analysis;
-      formData.marketReputation = report.market_reputation;
-      formData.customerFeedback = report.customer_feedback;
-      formData.commercialViability = report.commercial_viability;
-      formData.growthPotential = report.growth_potential;
+      formData.marketPresence = report.marketPresence;
+      formData.competitorAnalysis = report.competitorAnalysis;
+      formData.marketReputation = report.marketReputation;
+      formData.customerFeedback = report.customerFeedback;
+      formData.commercialViability = report.commercialViability;
+      formData.growthPotential = report.growthPotential;
 
       // Risk Assessment & Final Status
-      formData.politicalConnection = report.political_connection;
-      formData.dominatedArea = report.dominated_area;
-      formData.feedbackFromNeighbour = report.feedback_from_neighbour;
-      formData.otherObservation = report.other_observation;
-      formData.businessConcerns = report.business_concerns;
-      formData.operationalChallenges = report.operational_challenges;
-      formData.riskAssessment = report.risk_assessment;
-      formData.finalStatus = report.final_status;
-      formData.holdReason = report.hold_reason;
-      formData.recommendationStatus = report.recommendation_status;
+      formData.politicalConnection = report.politicalConnection;
+      formData.dominatedArea = report.dominatedArea;
+      formData.feedbackFromNeighbour = report.feedbackFromNeighbour;
+      formData.otherObservation = report.otherObservation;
+      formData.businessConcerns = report.businessConcerns;
+      formData.operationalChallenges = report.operationalChallenges;
+      formData.riskAssessment = report.riskAssessment;
+      formData.finalStatus = report.finalStatus;
+      formData.holdReason = report.holdReason;
+      formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
     } else if (normalizedType === 'RESIDENCE_CUM_OFFICE') {
       // Basic Information
-      formData.customerName = report.customer_name;
-      formData.metPersonName = report.met_person_name;
-      formData.metPersonRelation = report.met_person_relation;
+      formData.customerName = report.customerName;
+      formData.metPersonName = report.metPersonName;
+      formData.metPersonRelation = report.metPersonRelation;
       formData.designation = report.designation;
-      formData.applicantDesignation = report.applicant_designation;
+      formData.applicantDesignation = report.applicantDesignation;
 
       // Address Information
       formData.locality = report.locality;
-      formData.addressLocatable = report.address_locatable;
-      formData.addressRating = report.address_rating;
-      formData.addressStructure = report.address_structure;
-      formData.addressStructureColor = report.address_structure_color;
-      formData.addressFloor = report.address_floor;
-      formData.doorColor = report.door_color;
+      formData.addressLocatable = report.addressLocatable;
+      formData.addressRating = report.addressRating;
+      formData.addressStructure = report.addressStructure;
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.addressFloor = report.addressFloor;
+      formData.doorColor = report.doorColor;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
       formData.landmark4 = report.landmark4;
 
       // Residence Information
-      formData.houseStatus = report.house_status;
-      formData.totalFamilyMembers = report.total_family_members;
-      formData.totalEarningMember = report.total_earning_member;
-      formData.stayingPeriod = report.staying_period;
-      formData.stayingStatus = report.staying_status;
-      formData.stayingPersonName = report.staying_person_name;
-      formData.doorNamePlateStatus = report.door_nameplate_status;
-      formData.nameOnDoorPlate = report.name_on_door_plate;
-      formData.societyNamePlateStatus = report.society_nameplate_status;
-      formData.nameOnSocietyBoard = report.name_on_society_board;
+      formData.houseStatus = report.houseStatus;
+      formData.totalFamilyMembers = report.totalFamilyMembers;
+      formData.totalEarningMember = report.totalEarningMember;
+      formData.stayingPeriod = report.stayingPeriod;
+      formData.stayingStatus = report.stayingStatus;
+      formData.stayingPersonName = report.stayingPersonName;
+      formData.doorNamePlateStatus = report.doorNameplateStatus;
+      formData.nameOnDoorPlate = report.nameOnDoorPlate;
+      formData.societyNamePlateStatus = report.societyNameplateStatus;
+      formData.nameOnSocietyBoard = report.nameOnSocietyBoard;
 
       // Applicant Information
-      formData.applicantStayingStatus = report.applicant_staying_status;
-      formData.applicantWorkingStatus = report.applicant_working_status;
-      formData.applicantWorkingPremises = report.applicant_working_premises;
+      formData.applicantStayingStatus = report.applicantStayingStatus;
+      formData.applicantWorkingStatus = report.applicantWorkingStatus;
+      formData.applicantWorkingPremises = report.applicantWorkingPremises;
 
       // Office Information
-      formData.officeStatus = report.office_status;
-      formData.officeExistence = report.office_existence;
-      formData.officeType = report.office_type;
-      formData.companyNatureOfBusiness = report.company_nature_of_business;
-      formData.businessPeriod = report.business_period;
-      formData.establishmentPeriod = report.establishment_period;
-      formData.workingPeriod = report.working_period;
-      formData.workingStatus = report.working_status;
-      formData.approxArea = report.approx_area;
-      formData.sittingLocation = report.sitting_location;
-      formData.currentCompanyName = report.current_company_name;
-      formData.companyNamePlateStatus = report.company_nameplate_status;
-      formData.nameOnBoard = report.name_on_company_board;
+      formData.officeStatus = report.officeStatus;
+      formData.officeExistence = report.officeExistence;
+      formData.officeType = report.officeType;
+      formData.companyNatureOfBusiness = report.companyNatureOfBusiness;
+      formData.businessPeriod = report.businessPeriod;
+      formData.establishmentPeriod = report.establishmentPeriod;
+      formData.workingPeriod = report.workingPeriod;
+      formData.workingStatus = report.workingStatus;
+      formData.approxArea = report.approxArea;
+      formData.sittingLocation = report.sittingLocation;
+      formData.currentCompanyName = report.currentCompanyName;
+      formData.companyNamePlateStatus = report.companyNameplateStatus;
+      formData.nameOnBoard = report.nameOnCompanyBoard;
 
       // Staff Information
-      formData.staffStrength = report.staff_strength;
-      formData.staffSeen = report.staff_seen;
+      formData.staffStrength = report.staffStrength;
+      formData.staffSeen = report.staffSeen;
 
       // Document Verification
-      formData.documentShownStatus = report.document_shown_status;
-      formData.documentType = report.document_type;
+      formData.documentShownStatus = report.documentShownStatus;
+      formData.documentType = report.documentType;
 
       // Third Party Confirmation
-      formData.tpcMetPerson1 = report.tpc_met_person1;
-      formData.nameOfTpc1 = report.tpc_name1;
-      formData.tpcConfirmation1 = report.tpc_confirmation1;
-      formData.tpcMetPerson2 = report.tpc_met_person2;
-      formData.nameOfTpc2 = report.tpc_name2;
-      formData.tpcConfirmation2 = report.tpc_confirmation2;
+      formData.tpcMetPerson1 = report.tpcMetPerson1;
+      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcConfirmation1 = report.tpcConfirmation1;
+      formData.tpcMetPerson2 = report.tpcMetPerson2;
+      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Entry restricted fields
-      formData.nameOfMetPerson = report.name_of_met_person;
-      formData.metPersonType = report.met_person_type;
-      formData.metPersonConfirmation = report.met_person_confirmation;
+      formData.nameOfMetPerson = report.nameOfMetPerson;
+      formData.metPersonType = report.metPersonType;
+      formData.metPersonConfirmation = report.metPersonConfirmation;
 
       // Shifting & Contact Details
-      formData.shiftedPeriod = report.shifted_period;
-      formData.oldOfficeShiftedPeriod = report.old_office_shifted_period;
-      formData.currentCompanyName = report.current_company_name;
-      formData.currentCompanyPeriod = report.current_company_period;
-      formData.premisesStatus = report.premises_status;
-      formData.contactPerson = report.contact_person;
-      formData.callRemark = report.call_remark;
+      formData.shiftedPeriod = report.shiftedPeriod;
+      formData.oldOfficeShiftedPeriod = report.oldOfficeShiftedPeriod;
+      formData.currentCompanyName = report.currentCompanyName;
+      formData.currentCompanyPeriod = report.currentCompanyPeriod;
+      formData.premisesStatus = report.premisesStatus;
+      formData.contactPerson = report.contactPerson;
+      formData.callRemark = report.callRemark;
 
       // Area Assessment & Final Status
-      formData.politicalConnection = report.political_connection;
-      formData.dominatedArea = report.dominated_area;
-      formData.feedbackFromNeighbour = report.feedback_from_neighbour;
-      formData.otherObservation = report.other_observation;
-      formData.otherExtraRemark = report.other_extra_remark;
-      formData.finalStatus = report.final_status;
-      formData.holdReason = report.hold_reason;
-      formData.recommendationStatus = report.recommendation_status;
+      formData.politicalConnection = report.politicalConnection;
+      formData.dominatedArea = report.dominatedArea;
+      formData.feedbackFromNeighbour = report.feedbackFromNeighbour;
+      formData.otherObservation = report.otherObservation;
+      formData.otherExtraRemark = report.otherExtraRemark;
+      formData.finalStatus = report.finalStatus;
+      formData.holdReason = report.holdReason;
+      formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
-      formData.entryRestrictionReason = report.entry_restriction_reason;
-      formData.securityPersonName = report.security_person_name;
-      formData.accessDenied = report.access_denied;
-      formData.nameOfMetPerson = report.name_of_met_person;
-      formData.metPersonType = report.met_person_type;
-      formData.applicantStayingStatus = report.applicant_staying_status;
-      formData.contactPerson = report.contact_person;
-      formData.alternateContact = report.alternate_contact;
-      formData.holdReason = report.hold_reason;
+      formData.entryRestrictionReason = report.entryRestrictionReason;
+      formData.securityPersonName = report.securityPersonName;
+      formData.accessDenied = report.accessDenied;
+      formData.nameOfMetPerson = report.nameOfMetPerson;
+      formData.metPersonType = report.metPersonType;
+      formData.applicantStayingStatus = report.applicantStayingStatus;
+      formData.contactPerson = report.contactPerson;
+      formData.alternateContact = report.alternateContact;
+      formData.holdReason = report.holdReason;
     }
 
     return formData;
@@ -1986,48 +1987,48 @@ export class MobileFormController {
   ): FormSection[] {
     return [
       {
-        id: 'basic_information',
+        id: 'basicInformation',
         title: 'Basic Information',
         description: 'Customer and verification details',
         order: 1,
         fields: [
           {
-            id: 'customer_name',
+            id: 'customerName',
             name: 'customerName',
             label: 'Customer Name',
             type: 'text',
-            value: report.customer_name,
-            displayValue: report.customer_name || 'Not provided',
+            value: report.customerName,
+            displayValue: report.customerName || 'Not provided',
             isRequired: true,
             validation: { isValid: true, errors: [] },
           },
           {
-            id: 'verification_outcome',
+            id: 'verificationOutcome',
             name: 'verificationOutcome',
             label: 'Verification Outcome',
             type: 'select',
-            value: report.verification_outcome,
-            displayValue: report.verification_outcome || 'Not provided',
+            value: report.verificationOutcome,
+            displayValue: report.verificationOutcome || 'Not provided',
             isRequired: true,
             validation: { isValid: true, errors: [] },
           },
           {
-            id: 'met_person_name',
+            id: 'metPersonName',
             name: 'metPersonName',
             label: 'Met Person Name',
             type: 'text',
-            value: report.met_person_name,
-            displayValue: report.met_person_name || 'Not provided',
+            value: report.metPersonName,
+            displayValue: report.metPersonName || 'Not provided',
             isRequired: false,
             validation: { isValid: true, errors: [] },
           },
           {
-            id: 'call_remark',
+            id: 'callRemark',
             name: 'callRemark',
             label: 'Call Remark',
             type: 'select',
-            value: report.call_remark,
-            displayValue: report.call_remark || 'Not provided',
+            value: report.callRemark,
+            displayValue: report.callRemark || 'Not provided',
             isRequired: false,
             validation: { isValid: true, errors: [] },
           },
@@ -2036,7 +2037,7 @@ export class MobileFormController {
         defaultExpanded: true,
       },
       {
-        id: 'location_details',
+        id: 'locationDetails',
         title: 'Location Details',
         description: 'Address and location information',
         order: 2,
@@ -2096,38 +2097,38 @@ export class MobileFormController {
         defaultExpanded: true,
       },
       {
-        id: 'area_assessment',
+        id: 'areaAssessment',
         title: 'Area Assessment',
         description: 'Area and final assessment details',
         order: 3,
         fields: [
           {
-            id: 'dominated_area',
+            id: 'dominatedArea',
             name: 'dominatedArea',
             label: 'Dominated Area',
             type: 'select',
-            value: report.dominated_area,
-            displayValue: report.dominated_area || 'Not provided',
+            value: report.dominatedArea,
+            displayValue: report.dominatedArea || 'Not provided',
             isRequired: false,
             validation: { isValid: true, errors: [] },
           },
           {
-            id: 'other_observation',
+            id: 'otherObservation',
             name: 'otherObservation',
             label: 'Other Observations',
             type: 'textarea',
-            value: report.other_observation,
-            displayValue: report.other_observation || 'Not provided',
+            value: report.otherObservation,
+            displayValue: report.otherObservation || 'Not provided',
             isRequired: false,
             validation: { isValid: true, errors: [] },
           },
           {
-            id: 'final_status',
+            id: 'finalStatus',
             name: 'finalStatus',
             label: 'Final Status',
             type: 'select',
-            value: report.final_status,
-            displayValue: report.final_status || 'Not provided',
+            value: report.finalStatus,
+            displayValue: report.finalStatus || 'Not provided',
             isRequired: true,
             validation: { isValid: true, errors: [] },
           },
@@ -2457,8 +2458,8 @@ export class MobileFormController {
 
       // For each task, fetch its form submission (if exists)
       for (const task of tasks) {
-        const verificationType = task.verification_type_name || 'RESIDENCE';
-        logger.info(`Processing task ${task.task_number} - Type: ${verificationType}`);
+        const verificationType = task.verificationTypeName || 'RESIDENCE';
+        logger.info(`Processing task ${task.taskNumber} - Type: ${verificationType}`);
 
         // Determine which report table to query based on verification type
         let reportTableName = '';
@@ -2495,12 +2496,12 @@ export class MobileFormController {
           reportTableName = 'residenceVerificationReports';
         }
 
-        // Query for reports with this verification_task_id
+        // Query for reports with this verificationTaskId
         reportSql = `SELECT * FROM "${reportTableName}" WHERE verification_task_id = $1 LIMIT 1`;
-        const reportRes = await query(reportSql, [task.task_id]);
+        const reportRes = await query(reportSql, [task.taskId]);
 
         logger.info(
-          `Found ${reportRes.rows.length} reports in ${reportTableName} for task ${task.task_number}`
+          `Found ${reportRes.rows.length} reports in ${reportTableName} for task ${task.taskNumber}`
         );
 
         // Process each report (there should be only one per task, but handle multiple just in case)
@@ -2513,50 +2514,50 @@ export class MobileFormController {
             WHERE case_id = $1 AND verification_task_id = $2
             ORDER BY created_at
           `;
-          const imagesRes = await query(imagesSql, [caseData.id, task.task_id]);
+          const imagesRes = await query(imagesSql, [caseData.id, task.taskId]);
 
           // Get user info
           const userSql = `SELECT name, username FROM users WHERE id = $1`;
-          const userRes = await query(userSql, [report.verified_by]);
+          const userRes = await query(userSql, [report.verifiedBy]);
           const userName = userRes.rows[0]?.name || userRes.rows[0]?.username || 'Unknown User';
 
-          // Get the actual submission ID from task_form_submissions first, then fall back to images
+          // Get the actual submission ID from taskFormSubmissions first, then fall back to images
           const tfsRes = await query(
             `SELECT form_submission_id FROM task_form_submissions WHERE verification_task_id = $1 LIMIT 1`,
-            [task.task_id]
+            [task.taskId]
           );
           const actualSubmissionId =
-            tfsRes.rows[0]?.form_submission_id ||
-            (imagesRes.rows.length > 0 ? imagesRes.rows[0].submission_id : null) ||
+            tfsRes.rows[0]?.formSubmissionId ||
+            (imagesRes.rows.length > 0 ? imagesRes.rows[0].submissionId : null) ||
             `${verificationType.toLowerCase()}_${task.task_id}_${Date.now()}`;
 
           // Create comprehensive form submission WITH TASK INFORMATION
           const submission: FormSubmissionData = {
             id: actualSubmissionId,
             caseId,
-            formType: report.form_type || 'POSITIVE', // Use the actual form type from database
+            formType: report.formType || 'POSITIVE', // Use the actual form type from database
             verificationType,
-            outcome: report.verification_outcome || 'Unknown',
+            outcome: report.verificationOutcome || 'Unknown',
             status: 'SUBMITTED',
-            submittedAt: report.verification_date
+            submittedAt: report.verificationDate
               ? `${report.verification_date}T00:00:00.000Z`
               : new Date().toISOString(),
-            submittedBy: report.verified_by,
+            submittedBy: report.verifiedBy,
             submittedByName: userName,
 
             // NEW: Add task information to submission
-            verificationTaskId: task.task_id,
-            verificationTaskNumber: task.task_number || '',
-            verificationTypeName: task.verification_type_name || '',
-            assignedTo: task.assigned_to,
-            assignedToName: task.assigned_to_name,
-            taskStatus: task.task_status,
+            verificationTaskId: task.taskId,
+            verificationTaskNumber: task.taskNumber || '',
+            verificationTypeName: task.verificationTypeName || '',
+            assignedTo: task.assignedTo,
+            assignedToName: task.assignedToName,
+            taskStatus: task.taskStatus,
 
             // Create comprehensive form sections using all available data
             sections: MobileFormController.createComprehensiveFormSectionsFromReport(
               report,
               verificationType,
-              report.form_type || 'POSITIVE'
+              report.formType || 'POSITIVE'
             ),
 
             // Convert verification images to photos format
@@ -2590,14 +2591,14 @@ export class MobileFormController {
               latitude: 0,
               longitude: 0,
               accuracy: 0,
-              timestamp: report.verification_date
+              timestamp: report.verificationDate
                 ? `${report.verification_date}T00:00:00.000Z`
                 : new Date().toISOString(),
               address: 'Verification location',
             },
 
             metadata: {
-              submissionTimestamp: report.verification_date
+              submissionTimestamp: report.verificationDate
                 ? `${report.verification_date}T00:00:00.000Z`
                 : new Date().toISOString(),
               deviceInfo: {
@@ -2788,7 +2789,7 @@ export class MobileFormController {
 
       const {
         caseId,
-        caseNumber,
+        caseNumber: _caseNumber,
         taskId: targetTaskId,
         taskNumber,
         verificationTypeName,
@@ -2973,26 +2974,25 @@ export class MobileFormController {
       const updatedCase = caseUpd.rows[0];
 
       // Create comprehensive residence verification report using all available fields
-      const dbInsertData = {
+      const dbInsertData: Record<string, unknown> = {
         // Core case information
-        case_id: caseId,
-        verification_task_id: taskId,
-        caseId: caseNumber,
-        form_type: formType,
-        verification_outcome: verificationOutcome,
-        customer_name: updatedCase.customerName || 'Unknown',
-        customer_phone: updatedCase.backendContactNumber || null,
-        customer_email: null, // Not available from case data
+        caseId,
+        verificationTaskId: taskId,
+        formType,
+        verificationOutcome,
+        customerName: updatedCase.customerName || 'Unknown',
+        customerPhone: updatedCase.backendContactNumber || null,
+        customerEmail: null, // Not available from case data
 
         // Verification metadata
-        verification_date: new Date().toISOString().split('T')[0],
-        verification_time: new Date().toTimeString().split(' ')[0],
-        verified_by: userId,
-        total_images:
+        verificationDate: new Date().toISOString().split('T')[0],
+        verificationTime: new Date().toTimeString().split(' ')[0],
+        verifiedBy: userId,
+        totalImages:
           (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
           uploadedImages.length ||
           0,
-        total_selfies:
+        totalSelfies:
           (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
           uploadedImages.filter(img => img.photoType === 'selfie').length ||
           0,
@@ -3020,13 +3020,10 @@ export class MobileFormController {
       });
 
       // Build dynamic INSERT query based on available data
-      const columns = Object.keys(dbInsertData).filter(key => dbInsertData[key] !== undefined);
-      const values = columns.map(key => dbInsertData[key]);
-      const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
-      const columnNames = columns.map(col => `"${col}"`).join(', ');
+      const { columns, placeholders, values } = buildInsert(dbInsertData);
 
       const insertQuery = `
-        INSERT INTO residence_verification_reports (${columnNames})
+        INSERT INTO residence_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
@@ -3034,7 +3031,7 @@ export class MobileFormController {
 
       await query(insertQuery, values);
 
-      // STAGE-2D: Strict Task Completion - Populate task_form_submissions
+      // STAGE-2D: Strict Task Completion - Populate taskFormSubmissions
       try {
         await query(
           `INSERT INTO task_form_submissions (
@@ -3042,10 +3039,10 @@ export class MobileFormController {
             submitted_by, submitted_at, validation_status
           ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
           [
-            uuidv4(), // task_form_submission record ID
+            uuidv4(), // taskFormSubmission record ID
             targetTaskId,
             caseId,
-            uuidv4(), // NEW: form_submission_id (mandatory)
+            uuidv4(), // NEW: formSubmissionId (mandatory)
             'RESIDENCE_VERIFICATION',
             userId,
           ]
@@ -3056,7 +3053,7 @@ export class MobileFormController {
         // Don't fail the request, but log critical error
       }
 
-      // Remove auto-save data (autoSaves table doesn't have form_type column)
+      // Remove auto-save data (autoSaves table doesn't have formType column)
       await query(`DELETE FROM auto_saves WHERE case_id = $1::uuid`, [caseId]);
 
       await createAuditLog({
@@ -3181,7 +3178,7 @@ export class MobileFormController {
 
       const {
         caseId,
-        caseNumber,
+        caseNumber: _caseNumber,
         taskId: targetTaskId,
         taskNumber,
         verificationTypeName,
@@ -3191,7 +3188,7 @@ export class MobileFormController {
 
       // Verify case exists (additional validation)
       const caseQuery = await query(
-        `SELECT id, case_id, customer_name, backend_contact_number as "systemContact" FROM cases WHERE id = $1`,
+        `SELECT id, case_id, customer_name, backend_contact_number as "system_contact" FROM cases WHERE id = $1`,
         [caseId]
       );
       if (caseQuery.rows.length === 0) {
@@ -3378,26 +3375,25 @@ export class MobileFormController {
       // Legacy Case-level commission trigger removed to avoid duplication.
 
       // Create comprehensive office verification report using all available fields
-      const dbInsertData = {
+      const dbInsertData: Record<string, unknown> = {
         // Core case information
-        case_id: caseId,
-        verification_task_id: taskId,
-        caseId: caseNumber,
-        form_type: formType,
-        verification_outcome: verificationOutcome,
-        customer_name: updatedCase.customerName || 'Unknown',
-        customer_phone: updatedCase.backendContactNumber || null,
-        customer_email: null, // Not available from case data
+        caseId,
+        verificationTaskId: taskId,
+        formType,
+        verificationOutcome,
+        customerName: updatedCase.customerName || 'Unknown',
+        customerPhone: updatedCase.backendContactNumber || null,
+        customerEmail: null, // Not available from case data
 
         // Verification metadata
-        verification_date: new Date().toISOString().split('T')[0],
-        verification_time: new Date().toTimeString().split(' ')[0],
-        verified_by: userId,
-        total_images:
+        verificationDate: new Date().toISOString().split('T')[0],
+        verificationTime: new Date().toTimeString().split(' ')[0],
+        verifiedBy: userId,
+        totalImages:
           (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
           uploadedImages.length ||
           0,
-        total_selfies:
+        totalSelfies:
           (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
           uploadedImages.filter(img => img.photoType === 'selfie').length ||
           0,
@@ -3408,13 +3404,10 @@ export class MobileFormController {
       };
 
       // Build dynamic INSERT query based on available data
-      const columns = Object.keys(dbInsertData).filter(key => dbInsertData[key] !== undefined);
-      const values = columns.map(key => dbInsertData[key]);
-      const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
-      const columnNames = columns.map(col => `"${col}"`).join(', ');
+      const { columns, placeholders, values } = buildInsert(dbInsertData);
 
       const insertQuery = `
-        INSERT INTO office_verification_reports (${columnNames})
+        INSERT INTO office_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
@@ -3439,7 +3432,7 @@ export class MobileFormController {
 
       await query(insertQuery, values);
 
-      // Populate task_form_submissions for duplicate prevention
+      // Populate taskFormSubmissions for duplicate prevention
       try {
         await query(
           `INSERT INTO task_form_submissions (
@@ -3576,7 +3569,7 @@ export class MobileFormController {
 
       const {
         caseId,
-        caseNumber,
+        caseNumber: _caseNumber,
         taskId: targetTaskId,
         taskNumber,
         verificationTypeName,
@@ -3597,7 +3590,7 @@ export class MobileFormController {
 
       // Validate case exists
       const caseQuery = await query(
-        `SELECT id, case_id, customer_name, backend_contact_number as "systemContact" FROM cases WHERE id = $1`,
+        `SELECT id, case_id, customer_name, backend_contact_number as "system_contact" FROM cases WHERE id = $1`,
         [caseId]
       );
       if (caseQuery.rows.length === 0) {
@@ -3782,26 +3775,25 @@ export class MobileFormController {
       // Legacy Case-level commission trigger removed to avoid duplication.
 
       // Create comprehensive business verification report using all available fields
-      const dbInsertData = {
+      const dbInsertData: Record<string, unknown> = {
         // Core case information
-        case_id: caseId,
-        verification_task_id: taskId,
-        caseId: caseNumber,
-        form_type: formType,
-        verification_outcome: verificationOutcome,
-        customer_name: updatedCase.customerName || 'Unknown',
-        customer_phone: updatedCase.backendContactNumber || null,
-        customer_email: null, // Not available from case data
+        caseId,
+        verificationTaskId: taskId,
+        formType,
+        verificationOutcome,
+        customerName: updatedCase.customerName || 'Unknown',
+        customerPhone: updatedCase.backendContactNumber || null,
+        customerEmail: null, // Not available from case data
 
         // Verification metadata
-        verification_date: new Date().toISOString().split('T')[0],
-        verification_time: new Date().toTimeString().split(' ')[0],
-        verified_by: userId,
-        total_images:
+        verificationDate: new Date().toISOString().split('T')[0],
+        verificationTime: new Date().toTimeString().split(' ')[0],
+        verifiedBy: userId,
+        totalImages:
           (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
           uploadedImages.length ||
           0,
-        total_selfies:
+        totalSelfies:
           (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
           uploadedImages.filter(img => img.photoType === 'selfie').length ||
           0,
@@ -3811,9 +3803,9 @@ export class MobileFormController {
         ...mappedFormData,
       };
 
-      // Ensure final_status is always provided (required field)
-      if (!dbInsertData['final_status']) {
-        // Map outcome to final_status if not provided
+      // Ensure finalStatus is always provided (required field)
+      if (!dbInsertData['finalStatus']) {
+        // Map outcome to finalStatus if not provided
         const outcomeToFinalStatusMap: Record<string, string> = {
           VERIFIED: 'Positive',
           NOT_VERIFIED: 'Negative',
@@ -3824,30 +3816,18 @@ export class MobileFormController {
         };
 
         const outcome = formData.outcome || 'VERIFIED';
-        dbInsertData['final_status'] = outcomeToFinalStatusMap[outcome] || 'Positive';
+        const resolvedFinalStatus = outcomeToFinalStatusMap[outcome] || 'Positive';
+        dbInsertData.finalStatus = resolvedFinalStatus;
         logger.info(
-          `🔧 Auto-mapped outcome '${outcome}' to final_status '${dbInsertData['final_status']}'`
+          `🔧 Auto-mapped outcome '${String(outcome)}' to finalStatus '${resolvedFinalStatus}'`
         );
       }
 
-      // Build dynamic INSERT query based on available data
-      // Filter out any camelCase fields that might have been accidentally included
-      const columns = Object.keys(dbInsertData)
-        .filter(key => dbInsertData[key] !== undefined)
-        .filter(key => {
-          // Only include snake_case database column names, exclude camelCase fields
-          // Allow specific fields that don't have underscores but are valid DB columns
-          return key.includes('_') || ['id', 'caseId', 'remarks', 'locality'].includes(key);
-        });
-
-      const values = columns.map(key => dbInsertData[key]);
-      const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
-      const columnNames = columns.map(col => `"${col}"`).join(', ');
-
-      logger.info(`🔍 Filtered columns for SQL insert:`, columns);
+      const { columns, placeholders, values } = buildInsert(dbInsertData);
+      logger.info(`🔍 Columns for SQL insert:`, columns);
 
       const insertQuery = `
-        INSERT INTO business_verification_reports (${columnNames})
+        INSERT INTO business_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
@@ -3872,7 +3852,7 @@ export class MobileFormController {
 
       await query(insertQuery, values);
 
-      // Populate task_form_submissions for duplicate prevention
+      // Populate taskFormSubmissions for duplicate prevention
       try {
         await query(
           `INSERT INTO task_form_submissions (
@@ -4025,7 +4005,7 @@ export class MobileFormController {
 
       logger.info(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
       logger.info(
-        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
+        `✅ Verification task validated: ${task.taskNumber} (Type: ${task.verificationTypeName})`
       );
 
       // Determine form type and verification outcome based on form data
@@ -4125,7 +4105,7 @@ export class MobileFormController {
       );
 
       logger.info(
-        `✅ Processed ${uploadedImages.length} verification images for builder verification (Task: ${task.task_number})`
+        `✅ Processed ${uploadedImages.length} verification images for builder verification (Task: ${task.taskNumber})`
       );
 
       // Prepare verification data (excluding old attachment references)
@@ -4179,26 +4159,25 @@ export class MobileFormController {
       // Legacy Case-level commission trigger removed to avoid duplication.
 
       // Create comprehensive builder verification report using all available fields
-      const dbInsertData = {
+      const dbInsertData: Record<string, unknown> = {
         // Core case information
-        case_id: caseId,
-        verification_task_id: taskId,
-        caseId: parseInt(updatedCase.caseId) || null,
-        form_type: formType,
-        verification_outcome: verificationOutcome,
-        customer_name: updatedCase.customerName || 'Unknown',
-        customer_phone: updatedCase.backendContactNumber || null,
-        customer_email: null, // Not available from case data
+        caseId,
+        verificationTaskId: taskId,
+        formType,
+        verificationOutcome,
+        customerName: updatedCase.customerName || 'Unknown',
+        customerPhone: updatedCase.backendContactNumber || null,
+        customerEmail: null, // Not available from case data
 
         // Verification metadata
-        verification_date: new Date().toISOString().split('T')[0],
-        verification_time: new Date().toTimeString().split(' ')[0],
-        verified_by: userId,
-        total_images:
+        verificationDate: new Date().toISOString().split('T')[0],
+        verificationTime: new Date().toTimeString().split(' ')[0],
+        verifiedBy: userId,
+        totalImages:
           (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
           uploadedImages.length ||
           0,
-        total_selfies:
+        totalSelfies:
           (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
           uploadedImages.filter(img => img.photoType === 'selfie').length ||
           0,
@@ -4208,42 +4187,11 @@ export class MobileFormController {
         ...mappedFormData,
       };
 
-      // Get valid database columns for builder verification
-      const availableDbColumns = getBuilderAvailableDbColumns();
-
-      // Add essential system fields that are always required
-      const essentialFields = [
-        'case_id',
-        'caseId',
-        'form_type',
-        'verification_outcome',
-        'customer_name',
-        'customer_phone',
-        'customer_email',
-        'verification_date',
-        'verification_time',
-        'verified_by',
-        'total_images',
-        'total_selfies',
-        'remarks',
-      ];
-      const allValidColumns = [...new Set([...availableDbColumns, ...essentialFields])];
-
-      // Filter columns to only include valid database columns
-      const filteredColumns = Object.keys(dbInsertData)
-        .filter(key => dbInsertData[key] !== undefined)
-        .filter(key => allValidColumns.includes(key));
-
-      logger.info('🔍 Filtered columns for SQL insert:', filteredColumns);
-
-      // Build dynamic INSERT query based on filtered columns
-      const columns = filteredColumns;
-      const values = columns.map(key => dbInsertData[key]);
-      const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
-      const columnNames = columns.map(col => `"${col}"`).join(', ');
+      const { columns, placeholders, values } = buildInsert(dbInsertData);
+      logger.info('🔍 Columns for SQL insert:', columns);
 
       const insertQuery = `
-        INSERT INTO builder_verification_reports (${columnNames})
+        INSERT INTO builder_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
@@ -4268,7 +4216,7 @@ export class MobileFormController {
 
       await query(insertQuery, values);
 
-      // Populate task_form_submissions for duplicate prevention
+      // Populate taskFormSubmissions for duplicate prevention
       try {
         await query(
           `INSERT INTO task_form_submissions (
@@ -4466,23 +4414,22 @@ export class MobileFormController {
 
       // Build the report data using mapped fields
       const mappedFormData = preparedData;
-      const dbInsertData = {
-        case_id: caseId,
-        verification_task_id: taskId,
-        caseId: parseInt(updatedCase.caseId) || null,
-        form_type: formType,
-        verification_outcome: verificationOutcome,
-        customer_name: updatedCase.customerName || 'Unknown',
-        customer_phone: updatedCase.backendContactNumber || null,
-        customer_email: null,
-        verification_date: new Date().toISOString().split('T')[0],
-        verification_time: new Date().toTimeString().split(' ')[0],
-        verified_by: userId,
-        total_images:
+      const dbInsertData: Record<string, unknown> = {
+        caseId,
+        verificationTaskId: taskId,
+        formType,
+        verificationOutcome,
+        customerName: updatedCase.customerName || 'Unknown',
+        customerPhone: updatedCase.backendContactNumber || null,
+        customerEmail: null,
+        verificationDate: new Date().toISOString().split('T')[0],
+        verificationTime: new Date().toTimeString().split(' ')[0],
+        verifiedBy: userId,
+        totalImages:
           (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
           uploadedImages.length ||
           0,
-        total_selfies:
+        totalSelfies:
           (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
           uploadedImages.filter(img => img.photoType === 'selfie').length ||
           0,
@@ -4493,13 +4440,10 @@ export class MobileFormController {
       };
 
       // Build dynamic INSERT query
-      const columns = Object.keys(dbInsertData).filter(key => dbInsertData[key] !== undefined);
-      const values = columns.map(key => dbInsertData[key]);
-      const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
-      const columnNames = columns.map(col => `"${col}"`).join(', ');
+      const { columns, placeholders, values } = buildInsert(dbInsertData);
 
       const insertQuery = `
-        INSERT INTO residence_cum_office_verification_reports (${columnNames})
+        INSERT INTO residence_cum_office_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
@@ -4510,7 +4454,7 @@ export class MobileFormController {
 
       await query(insertQuery, values);
 
-      // Populate task_form_submissions for duplicate prevention
+      // Populate taskFormSubmissions for duplicate prevention
       try {
         await query(
           `INSERT INTO task_form_submissions (
@@ -4655,7 +4599,7 @@ export class MobileFormController {
 
       logger.info(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
       logger.info(
-        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
+        `✅ Verification task validated: ${task.taskNumber} (Type: ${task.verificationTypeName})`
       );
 
       if (!formData) {
@@ -4773,7 +4717,7 @@ export class MobileFormController {
       );
 
       logger.info(
-        `✅ Processed ${uploadedImages.length} verification images for DSA/DST Connector verification (Task: ${task.task_number})`
+        `✅ Processed ${uploadedImages.length} verification images for DSA/DST Connector verification (Task: ${task.taskNumber})`
       );
 
       // Prepare verification data (excluding old attachment references)
@@ -4827,26 +4771,25 @@ export class MobileFormController {
       // Legacy Case-level commission trigger removed to avoid duplication.
 
       // Create comprehensive DSA/DST Connector verification report using all available fields
-      const dbInsertData = {
+      const dbInsertData: Record<string, unknown> = {
         // Core case information
-        case_id: caseId,
-        verification_task_id: taskId,
-        caseId: parseInt(updatedCase.caseId) || null,
-        form_type: formType,
-        verification_outcome: verificationOutcome,
-        customer_name: updatedCase.customerName || 'Unknown',
-        customer_phone: updatedCase.backendContactNumber || null,
-        customer_email: null, // Not available from case data
+        caseId,
+        verificationTaskId: taskId,
+        formType,
+        verificationOutcome,
+        customerName: updatedCase.customerName || 'Unknown',
+        customerPhone: updatedCase.backendContactNumber || null,
+        customerEmail: null, // Not available from case data
 
         // Verification metadata
-        verification_date: new Date().toISOString().split('T')[0],
-        verification_time: new Date().toTimeString().split(' ')[0],
-        verified_by: userId,
-        total_images:
+        verificationDate: new Date().toISOString().split('T')[0],
+        verificationTime: new Date().toTimeString().split(' ')[0],
+        verifiedBy: userId,
+        totalImages:
           (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
           uploadedImages.length ||
           0,
-        total_selfies:
+        totalSelfies:
           (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
           uploadedImages.filter(img => img.photoType === 'selfie').length ||
           0,
@@ -4856,42 +4799,11 @@ export class MobileFormController {
         ...mappedFormData,
       };
 
-      // Get valid database columns for DSA Connector verification
-      const availableDbColumns = getDsaConnectorAvailableDbColumns();
-
-      // Add essential system fields that are always required
-      const essentialFields = [
-        'case_id',
-        'caseId',
-        'form_type',
-        'verification_outcome',
-        'customer_name',
-        'customer_phone',
-        'customer_email',
-        'verification_date',
-        'verification_time',
-        'verified_by',
-        'total_images',
-        'total_selfies',
-        'remarks',
-      ];
-      const allValidColumns = [...new Set([...availableDbColumns, ...essentialFields])];
-
-      // Filter columns to only include valid database columns
-      const filteredColumns = Object.keys(dbInsertData)
-        .filter(key => dbInsertData[key] !== undefined)
-        .filter(key => allValidColumns.includes(key));
-
-      logger.info('🔍 Filtered columns for SQL insert:', filteredColumns);
-
-      // Build dynamic INSERT query based on filtered columns
-      const columns = filteredColumns;
-      const values = columns.map(key => dbInsertData[key]);
-      const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
-      const columnNames = columns.map(col => `"${col}"`).join(', ');
+      const { columns, placeholders, values } = buildInsert(dbInsertData);
+      logger.info('🔍 Columns for SQL insert:', columns);
 
       const insertQuery = `
-        INSERT INTO dsa_connector_verification_reports (${columnNames})
+        INSERT INTO dsa_connector_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
@@ -4919,7 +4831,7 @@ export class MobileFormController {
 
       await query(insertQuery, values);
 
-      // Populate task_form_submissions for duplicate prevention
+      // Populate taskFormSubmissions for duplicate prevention
       try {
         await query(
           `INSERT INTO task_form_submissions (
@@ -5124,23 +5036,22 @@ export class MobileFormController {
 
       // Build the report data using mapped fields
       const mappedFormData = preparedData;
-      const dbInsertData = {
-        case_id: caseId,
-        verification_task_id: taskId,
-        caseId: parseInt(updatedCase.caseId) || null,
-        form_type: formType,
-        verification_outcome: verificationOutcome,
-        customer_name: updatedCase.customerName || 'Unknown',
-        customer_phone: updatedCase.backendContactNumber || null,
-        customer_email: null,
-        verification_date: new Date().toISOString().split('T')[0],
-        verification_time: new Date().toTimeString().split(' ')[0],
-        verified_by: userId,
-        total_images:
+      const dbInsertData: Record<string, unknown> = {
+        caseId,
+        verificationTaskId: taskId,
+        formType,
+        verificationOutcome,
+        customerName: updatedCase.customerName || 'Unknown',
+        customerPhone: updatedCase.backendContactNumber || null,
+        customerEmail: null,
+        verificationDate: new Date().toISOString().split('T')[0],
+        verificationTime: new Date().toTimeString().split(' ')[0],
+        verifiedBy: userId,
+        totalImages:
           (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
           uploadedImages.length ||
           0,
-        total_selfies:
+        totalSelfies:
           (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
           uploadedImages.filter(img => img.photoType === 'selfie').length ||
           0,
@@ -5151,13 +5062,10 @@ export class MobileFormController {
       };
 
       // Build dynamic INSERT query
-      const columns = Object.keys(dbInsertData).filter(key => dbInsertData[key] !== undefined);
-      const values = columns.map(key => dbInsertData[key]);
-      const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
-      const columnNames = columns.map(col => `"${col}"`).join(', ');
+      const { columns, placeholders, values } = buildInsert(dbInsertData);
 
       const insertQuery = `
-        INSERT INTO property_individual_verification_reports (${columnNames})
+        INSERT INTO property_individual_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
@@ -5168,7 +5076,7 @@ export class MobileFormController {
 
       await query(insertQuery, values);
 
-      // Populate task_form_submissions for duplicate prevention
+      // Populate taskFormSubmissions for duplicate prevention
       try {
         await query(
           `INSERT INTO task_form_submissions (
@@ -5309,7 +5217,7 @@ export class MobileFormController {
 
       logger.info(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
       logger.info(
-        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
+        `✅ Verification task validated: ${task.taskNumber} (Type: ${task.verificationTypeName})`
       );
 
       if (!formData) {
@@ -5427,7 +5335,7 @@ export class MobileFormController {
       );
 
       logger.info(
-        `✅ Processed ${uploadedImages.length} verification images for Property APF verification (Task: ${task.task_number})`
+        `✅ Processed ${uploadedImages.length} verification images for Property APF verification (Task: ${task.taskNumber})`
       );
 
       // Prepare verification data (excluding old attachment references)
@@ -5478,26 +5386,25 @@ export class MobileFormController {
       const updatedCase = caseUpd.rows[0];
 
       // Create comprehensive Property APF verification report using all available fields
-      const dbInsertData = {
+      const dbInsertData: Record<string, unknown> = {
         // Core case information
-        case_id: caseId,
-        verification_task_id: taskId,
-        caseId: parseInt(updatedCase.caseId) || null,
-        form_type: formType,
-        verification_outcome: verificationOutcome,
-        customer_name: updatedCase.customerName || 'Unknown',
-        customer_phone: updatedCase.backendContactNumber || null,
-        customer_email: null, // Not available from case data
+        caseId,
+        verificationTaskId: taskId,
+        formType,
+        verificationOutcome,
+        customerName: updatedCase.customerName || 'Unknown',
+        customerPhone: updatedCase.backendContactNumber || null,
+        customerEmail: null, // Not available from case data
 
         // Verification metadata
-        verification_date: new Date().toISOString().split('T')[0],
-        verification_time: new Date().toTimeString().split(' ')[0],
-        verified_by: userId,
-        total_images:
+        verificationDate: new Date().toISOString().split('T')[0],
+        verificationTime: new Date().toTimeString().split(' ')[0],
+        verifiedBy: userId,
+        totalImages:
           (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
           uploadedImages.length ||
           0,
-        total_selfies:
+        totalSelfies:
           (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
           uploadedImages.filter(img => img.photoType === 'selfie').length ||
           0,
@@ -5507,42 +5414,11 @@ export class MobileFormController {
         ...mappedFormData,
       };
 
-      // Get valid database columns for Property APF verification
-      const availableDbColumns = getPropertyApfAvailableDbColumns();
-
-      // Add essential system fields that are always required
-      const essentialFields = [
-        'case_id',
-        'caseId',
-        'form_type',
-        'verification_outcome',
-        'customer_name',
-        'customer_phone',
-        'customer_email',
-        'verification_date',
-        'verification_time',
-        'verified_by',
-        'total_images',
-        'total_selfies',
-        'remarks',
-      ];
-      const allValidColumns = [...new Set([...availableDbColumns, ...essentialFields])];
-
-      // Filter columns to only include valid database columns
-      const filteredColumns = Object.keys(dbInsertData)
-        .filter(key => dbInsertData[key] !== undefined)
-        .filter(key => allValidColumns.includes(key));
-
-      logger.info('🔍 Filtered columns for SQL insert:', filteredColumns);
-
-      // Build dynamic INSERT query based on filtered columns
-      const columns = filteredColumns;
-      const values = columns.map(key => dbInsertData[key]);
-      const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
-      const columnNames = columns.map(col => `"${col}"`).join(', ');
+      const { columns, placeholders, values } = buildInsert(dbInsertData);
+      logger.info('🔍 Columns for SQL insert:', columns);
 
       const insertQuery = `
-        INSERT INTO property_apf_verification_reports (${columnNames})
+        INSERT INTO property_apf_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
@@ -5567,7 +5443,7 @@ export class MobileFormController {
 
       await query(insertQuery, values);
 
-      // Populate task_form_submissions for duplicate prevention
+      // Populate taskFormSubmissions for duplicate prevention
       try {
         await query(
           `INSERT INTO task_form_submissions (
@@ -5727,7 +5603,7 @@ export class MobileFormController {
 
       logger.info(`✅ Resolved caseId: ${caseId} from taskId: ${taskId}`);
       logger.info(
-        `✅ Verification task validated: ${task.task_number} (Type: ${task.verification_type_name})`
+        `✅ Verification task validated: ${task.taskNumber} (Type: ${task.verificationTypeName})`
       );
 
       if (!formData) {
@@ -5835,7 +5711,7 @@ export class MobileFormController {
       );
 
       logger.info(
-        `✅ Processed ${uploadedImages.length} verification images for NOC verification (Task: ${task.task_number})`
+        `✅ Processed ${uploadedImages.length} verification images for NOC verification (Task: ${task.taskNumber})`
       );
 
       // Prepare verification data (excluding old attachment references)
@@ -5886,26 +5762,25 @@ export class MobileFormController {
       const updatedCase = caseUpd.rows[0];
 
       // Create comprehensive NOC verification report using all available fields
-      const dbInsertData = {
+      const dbInsertData: Record<string, unknown> = {
         // Core case information
-        case_id: caseId,
-        verification_task_id: taskId,
-        caseId: parseInt(updatedCase.caseId) || null,
-        form_type: formType,
-        verification_outcome: verificationOutcome,
-        customer_name: updatedCase.customerName || 'Unknown',
-        customer_phone: updatedCase.backendContactNumber || null,
-        customer_email: null, // Not available from case data
+        caseId,
+        verificationTaskId: taskId,
+        formType,
+        verificationOutcome,
+        customerName: updatedCase.customerName || 'Unknown',
+        customerPhone: updatedCase.backendContactNumber || null,
+        customerEmail: null, // Not available from case data
 
         // Verification metadata
-        verification_date: new Date().toISOString().split('T')[0],
-        verification_time: new Date().toTimeString().split(' ')[0],
-        verified_by: userId,
-        total_images:
+        verificationDate: new Date().toISOString().split('T')[0],
+        verificationTime: new Date().toTimeString().split(' ')[0],
+        verifiedBy: userId,
+        totalImages:
           (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
           uploadedImages.length ||
           0,
-        total_selfies:
+        totalSelfies:
           (await MobileFormController.countTaskAttachments(taskId)).totalSelfies ||
           uploadedImages.filter(img => img.photoType === 'selfie').length ||
           0,
@@ -5915,42 +5790,11 @@ export class MobileFormController {
         ...mappedFormData,
       };
 
-      // Get valid database columns for NOC verification
-      const availableDbColumns = getNocAvailableDbColumns();
-
-      // Add essential system fields that are always required
-      const essentialFields = [
-        'case_id',
-        'caseId',
-        'form_type',
-        'verification_outcome',
-        'customer_name',
-        'customer_phone',
-        'customer_email',
-        'verification_date',
-        'verification_time',
-        'verified_by',
-        'total_images',
-        'total_selfies',
-        'remarks',
-      ];
-      const allValidColumns = [...new Set([...availableDbColumns, ...essentialFields])];
-
-      // Filter columns to only include valid database columns
-      const filteredColumns = Object.keys(dbInsertData)
-        .filter(key => dbInsertData[key] !== undefined)
-        .filter(key => allValidColumns.includes(key));
-
-      logger.info('🔍 Filtered columns for SQL insert:', filteredColumns);
-
-      // Build dynamic INSERT query based on filtered columns
-      const columns = filteredColumns;
-      const values = columns.map(key => dbInsertData[key]);
-      const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
-      const columnNames = columns.map(col => `"${col}"`).join(', ');
+      const { columns, placeholders, values } = buildInsert(dbInsertData);
+      logger.info('🔍 Columns for SQL insert:', columns);
 
       const insertQuery = `
-        INSERT INTO noc_verification_reports (${columnNames})
+        INSERT INTO noc_verification_reports (${columns})
         VALUES (${placeholders})
       `;
 
@@ -5975,7 +5819,7 @@ export class MobileFormController {
 
       await query(insertQuery, values);
 
-      // Populate task_form_submissions for duplicate prevention
+      // Populate taskFormSubmissions for duplicate prevention
       try {
         await query(
           `INSERT INTO task_form_submissions (

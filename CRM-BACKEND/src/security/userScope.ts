@@ -21,8 +21,8 @@ const loadScopeUser = async (userId: string, db?: Queryable): Promise<ScopeUserR
     `
       SELECT
         u.id,
-        u.team_leader_id as "teamLeaderId",
-        u.manager_id as "managerId"
+        u.team_leader_id as "team_leader_id",
+        u.manager_id as "manager_id"
       FROM users u
       WHERE u.id = $1
       LIMIT 1

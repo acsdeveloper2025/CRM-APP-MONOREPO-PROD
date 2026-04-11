@@ -51,7 +51,7 @@ const assignPincodesValidation = [
   param('userId').isUUID().withMessage('User ID must be a valid UUID'),
   body('pincodeIds')
     .isArray({ max: 50 })
-    .withMessage('pincodeIds must be an array with maximum 50 pincode IDs'),
+    .withMessage('pincode_ids must be an array with maximum 50 pincode IDs'),
   body('pincodeIds.*')
     .optional()
     .isInt({ min: 1 })

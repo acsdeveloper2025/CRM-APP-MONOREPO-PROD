@@ -447,7 +447,7 @@ export function validatePropertyIndividualRequiredFields(
       warnings.push('propertyDocuments should be specified for self-owned property');
     }
     if (formData.loanAgainstProperty === 'Yes' && !formData.bankName) {
-      warnings.push('bankName should be specified when loan against property exists');
+      warnings.push('bank_name should be specified when loan against property exists');
     }
     if (formData.tpcMetPerson1 === 'Yes' && !formData.nameOfTpc1) {
       warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is Yes');

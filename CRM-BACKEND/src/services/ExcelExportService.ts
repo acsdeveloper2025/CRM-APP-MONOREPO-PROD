@@ -1,7 +1,7 @@
 // Disabled no-return-await rule for Excel export service as it uses return await pattern
 // Disabled require-await rule for Excel export service as some methods are async for consistency
 import ExcelJS from 'exceljs';
-import { pool } from '../config/database';
+import { query as dbQuery } from '../config/database';
 import { logger } from '../utils/logger';
 import path from 'path';
 import fs from 'fs/promises';
@@ -120,19 +120,19 @@ export class ExcelExportService {
     let paramIndex = 1;
 
     if (dateFrom) {
-      whereConditions.push(`fs.submitted_at >= $${paramIndex}`);
+      whereConditions.push(`fs.submittedAt >= $${paramIndex}`);
       queryParams.push(dateFrom);
       paramIndex++;
     }
 
     if (dateTo) {
-      whereConditions.push(`fs.submitted_at <= $${paramIndex}`);
+      whereConditions.push(`fs.submittedAt <= $${paramIndex}`);
       queryParams.push(dateTo);
       paramIndex++;
     }
 
     if (filters?.formType) {
-      whereConditions.push(`fs.form_type = $${paramIndex}`);
+      whereConditions.push(`fs.formType = $${paramIndex}`);
       queryParams.push(filters.formType as string);
       paramIndex++;
     }
@@ -198,9 +198,9 @@ export class ExcelExportService {
     `;
 
     const [submissionsResult, summaryResult, formTypeResult] = await Promise.all([
-      pool.query(submissionsQuery, queryParams),
-      pool.query(summaryQuery, queryParams),
-      pool.query(formTypeQuery, queryParams),
+      dbQuery(submissionsQuery, queryParams),
+      dbQuery(summaryQuery, queryParams),
+      dbQuery(formTypeQuery, queryParams),
     ]);
 
     return {
@@ -291,8 +291,8 @@ export class ExcelExportService {
     `;
 
     const [performanceResult, dailyResult] = await Promise.all([
-      pool.query(performanceQuery, queryParams),
-      pool.query(dailyQuery, queryParams),
+      dbQuery(performanceQuery, queryParams),
+      dbQuery(dailyQuery, queryParams),
     ]);
 
     return {
@@ -314,13 +314,13 @@ export class ExcelExportService {
     let paramIndex = 1;
 
     if (dateFrom) {
-      whereConditions.push(`created_at >= $${paramIndex}`);
+      whereConditions.push(`createdAt >= $${paramIndex}`);
       queryParams.push(dateFrom);
       paramIndex++;
     }
 
     if (dateTo) {
-      whereConditions.push(`created_at <= $${paramIndex}`);
+      whereConditions.push(`createdAt <= $${paramIndex}`);
       queryParams.push(dateTo);
       paramIndex++;
     }
@@ -348,8 +348,8 @@ export class ExcelExportService {
     `;
 
     const [casesResult, summaryResult] = await Promise.all([
-      pool.query(casesQuery, queryParams),
-      pool.query(summaryQuery, queryParams),
+      dbQuery(casesQuery, queryParams),
+      dbQuery(summaryQuery, queryParams),
     ]);
 
     return {
@@ -371,13 +371,13 @@ export class ExcelExportService {
     let paramIndex = 1;
 
     if (dateFrom) {
-      whereConditions.push(`fs.submitted_at >= $${paramIndex}`);
+      whereConditions.push(`fs.submittedAt >= $${paramIndex}`);
       queryParams.push(dateFrom);
       paramIndex++;
     }
 
     if (dateTo) {
-      whereConditions.push(`fs.submitted_at <= $${paramIndex}`);
+      whereConditions.push(`fs.submittedAt <= $${paramIndex}`);
       queryParams.push(dateTo);
       paramIndex++;
     }
@@ -400,7 +400,7 @@ export class ExcelExportService {
       ORDER BY fs.form_type, fs.validation_status
     `;
 
-    const result = await pool.query(validationQuery, queryParams);
+    const result = await dbQuery(validationQuery, queryParams);
 
     return {
       validationData: result.rows,
@@ -475,18 +475,18 @@ export class ExcelExportService {
     // Data rows
     data.submissions.forEach((submission: FormSubmissionRow) => {
       dataSheet.addRow([
-        submission.form_type,
-        submission.validation_status,
-        submission.agent_name || 'N/A',
-        submission.employee_id || 'N/A',
-        submission.case_number,
-        submission.customer_name,
-        submission.submission_score || 'N/A',
-        submission.overall_quality_score || 'N/A',
-        submission.photos_count || 0,
-        submission.time_spent_minutes || 'N/A',
-        submission.network_quality || 'N/A',
-        new Date(submission.submitted_at).toLocaleDateString(),
+        submission.formType,
+        submission.validationStatus,
+        submission.agentName || 'N/A',
+        submission.employeeId || 'N/A',
+        submission.caseNumber,
+        submission.customerName,
+        submission.submissionScore || 'N/A',
+        submission.overallQualityScore || 'N/A',
+        submission.photosCount || 0,
+        submission.timeSpentMinutes || 'N/A',
+        submission.networkQuality || 'N/A',
+        new Date(submission.submittedAt).toLocaleDateString(),
       ]);
     });
 
@@ -502,10 +502,10 @@ export class ExcelExportService {
 
       data.formTypeBreakdown.forEach((item: FormTypeBreakdownRow) => {
         breakdownSheet.addRow([
-          item.form_type,
-          item.validation_status,
+          item.formType,
+          item.validationStatus,
           item.count,
-          item.avg_score ? parseFloat(String(item.avg_score)).toFixed(2) : 'N/A',
+          item.avgScore ? parseFloat(String(item.avgScore)).toFixed(2) : 'N/A',
         ]);
       });
 
@@ -541,25 +541,25 @@ export class ExcelExportService {
 
     data.agents.forEach((agent: AgentPerformanceRow) => {
       const completionRate =
-        agent.total_cases_assigned > 0
-          ? `${((agent.cases_completed / agent.total_cases_assigned) * 100).toFixed(1)}%`
+        agent.totalCasesAssigned > 0
+          ? `${((agent.casesCompleted / agent.totalCasesAssigned) * 100).toFixed(1)}%`
           : 'N/A';
 
       summarySheet.addRow([
         agent.name,
         agent.employeeId || 'N/A',
-        agent.department_name || 'N/A',
-        agent.performance_rating || 'N/A',
-        agent.active_days,
-        agent.total_cases_assigned,
-        agent.cases_completed,
+        agent.departmentName || 'N/A',
+        agent.performanceRating || 'N/A',
+        agent.activeDays,
+        agent.totalCasesAssigned,
+        agent.casesCompleted,
         completionRate,
-        agent.total_forms_submitted,
-        agent.avg_quality_score ? parseFloat(String(agent.avg_quality_score)).toFixed(1) : 'N/A',
-        agent.avg_validation_rate
-          ? `${parseFloat(String(agent.avg_validation_rate)).toFixed(1)}%`
+        agent.totalFormsSubmitted,
+        agent.avgQualityScore ? parseFloat(String(agent.avgQualityScore)).toFixed(1) : 'N/A',
+        agent.avgValidationRate
+          ? `${parseFloat(String(agent.avgValidationRate)).toFixed(1)}%`
           : 'N/A',
-        agent.total_distance ? parseFloat(String(agent.total_distance)).toFixed(1) : 'N/A',
+        agent.totalDistance ? parseFloat(String(agent.totalDistance)).toFixed(1) : 'N/A',
       ]);
     });
 
@@ -588,17 +588,17 @@ export class ExcelExportService {
       data.dailyPerformance.forEach((daily: DailyPerformanceRow) => {
         dailySheet.addRow([
           new Date(daily.date).toLocaleDateString(),
-          daily.agent_name,
+          daily.agentName,
           daily.employeeId || 'N/A',
-          daily.cases_assigned || 0,
-          daily.cases_completed || 0,
-          daily.forms_submitted || 0,
-          daily.quality_score ? parseFloat(String(daily.quality_score)).toFixed(1) : 'N/A',
-          daily.validation_success_rate
-            ? `${parseFloat(String(daily.validation_success_rate)).toFixed(1)}%`
+          daily.casesAssigned || 0,
+          daily.casesCompleted || 0,
+          daily.formsSubmitted || 0,
+          daily.qualityScore ? parseFloat(String(daily.qualityScore)).toFixed(1) : 'N/A',
+          daily.validationSuccessRate
+            ? `${parseFloat(String(daily.validationSuccessRate)).toFixed(1)}%`
             : 'N/A',
-          daily.active_hours ? parseFloat(String(daily.active_hours)).toFixed(1) : 'N/A',
-          daily.total_distance_km ? parseFloat(String(daily.total_distance_km)).toFixed(1) : 'N/A',
+          daily.activeHours ? parseFloat(String(daily.activeHours)).toFixed(1) : 'N/A',
+          daily.totalDistanceKm ? parseFloat(String(daily.totalDistanceKm)).toFixed(1) : 'N/A',
         ]);
       });
 
@@ -644,16 +644,16 @@ export class ExcelExportService {
       casesSheet.addRow([
         caseItem.caseId,
         caseItem.customerName,
-        caseItem.agent_name || 'Unassigned',
-        caseItem.client_name || 'N/A',
+        caseItem.agentName || 'Unassigned',
+        caseItem.clientName || 'N/A',
         caseItem.status,
         caseItem.priority || 'N/A',
-        caseItem.completion_days ? parseFloat(String(caseItem.completion_days)).toFixed(1) : 'N/A',
-        caseItem.quality_score || 'N/A',
-        caseItem.form_completion_percentage || 'N/A',
-        caseItem.actual_forms_submitted || 0,
-        caseItem.valid_forms || 0,
-        caseItem.attachment_count || 0,
+        caseItem.completionDays ? parseFloat(String(caseItem.completionDays)).toFixed(1) : 'N/A',
+        caseItem.qualityScore || 'N/A',
+        caseItem.formCompletionPercentage || 'N/A',
+        caseItem.actualFormsSubmitted || 0,
+        caseItem.validForms || 0,
+        caseItem.attachmentCount || 0,
         new Date(caseItem.createdAt).toLocaleDateString(),
         new Date(caseItem.updatedAt).toLocaleDateString(),
       ]);
@@ -684,15 +684,13 @@ export class ExcelExportService {
 
     data.validationData.forEach((item: ValidationStatusRow) => {
       validationSheet.addRow([
-        item.form_type,
-        item.validation_status,
-        item.form_count,
-        item.avg_submission_score
-          ? parseFloat(String(item.avg_submission_score)).toFixed(2)
-          : 'N/A',
-        item.avg_quality_score ? parseFloat(String(item.avg_quality_score)).toFixed(2) : 'N/A',
-        item.avg_completeness ? parseFloat(String(item.avg_completeness)).toFixed(2) : 'N/A',
-        item.avg_accuracy ? parseFloat(String(item.avg_accuracy)).toFixed(2) : 'N/A',
+        item.formType,
+        item.validationStatus,
+        item.formCount,
+        item.avgSubmissionScore ? parseFloat(String(item.avgSubmissionScore)).toFixed(2) : 'N/A',
+        item.avgQualityScore ? parseFloat(String(item.avgQualityScore)).toFixed(2) : 'N/A',
+        item.avgCompleteness ? parseFloat(String(item.avgCompleteness)).toFixed(2) : 'N/A',
+        item.avgAccuracy ? parseFloat(String(item.avgAccuracy)).toFixed(2) : 'N/A',
       ]);
     });
 

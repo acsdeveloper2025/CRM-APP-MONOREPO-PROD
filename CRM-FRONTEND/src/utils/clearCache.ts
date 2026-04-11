@@ -19,14 +19,18 @@ export const clearBrowserStorage = () => {
     if ('indexedDB' in window) {
       // Note: This is a simplified approach. In production, you might want to
       // specifically target your app's databases
-      indexedDB.databases?.().then(databases => {
-        databases.forEach(db => {
-          if (db.name?.includes('crm') || db.name?.includes('app')) {
-            indexedDB.deleteDatabase(db.name);
-            logger.warn(`✅ IndexedDB ${db.name} cleared`);
-          }
+      indexedDB.databases?.()
+        .then(databases => {
+          databases.forEach(db => {
+            if (db.name?.includes('crm') || db.name?.includes('app')) {
+              indexedDB.deleteDatabase(db.name);
+              logger.warn(`✅ IndexedDB ${db.name} cleared`);
+            }
+          });
+        })
+        .catch(error => {
+          logger.warn('Failed to enumerate IndexedDB databases:', error);
         });
-      });
     }
     
     return true;

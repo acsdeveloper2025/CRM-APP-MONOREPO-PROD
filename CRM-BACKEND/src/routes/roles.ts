@@ -46,7 +46,7 @@ router.put(
   [
     param('id').isUUID().withMessage('Role ID must be UUID'),
     body('permissionCodes').isArray().withMessage('permissionCodes must be an array'),
-    body('permissionCodes.*').isString().withMessage('permissionCodes values must be strings'),
+    body('permissionCodes.*').isString().withMessage('permission_codes values must be strings'),
   ],
   validate,
   updateRbacRolePermissions
