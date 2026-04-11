@@ -2,7 +2,11 @@
 
 import * as fs from 'fs';
 import admin from 'firebase-admin';
-import apn from 'node-apn';
+// node-apn upstream is unmaintained and bundles vulnerable versions of
+// jsonwebtoken and node-forge. @parse/node-apn is the actively
+// maintained fork (jsonwebtoken 9.x, node-forge 1.4.x) with a drop-in
+// compatible API.
+import apn from '@parse/node-apn';
 import { logger } from '../utils/logger';
 import { config } from '../config';
 import { query } from '../config/database';
@@ -425,12 +429,14 @@ export class PushNotificationService {
             results.errors.push({
               userId,
               error: failure.error?.message || String(failure.error),
-              status: failure.status,
+              status: String(failure.status),
             });
 
-            // Deactivate invalid tokens
+            // Deactivate invalid tokens. @parse/node-apn exposes
+            // `status` as a number (410) while the legacy node-apn
+            // used a string — accept both for forward compatibility.
             if (
-              failure.status === '410' ||
+              Number(failure.status) === 410 ||
               (failure.error && failure.error.toString().includes('BadDeviceToken'))
             ) {
               await this.deactivateToken(tokenId);
