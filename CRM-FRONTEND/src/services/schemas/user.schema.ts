@@ -59,3 +59,8 @@ export const UserSchema = z
   .passthrough();
 
 export type UserDto = z.infer<typeof UserSchema>;
+
+// Phase B6 expansion: the users list endpoint returns an array of
+// User plus pagination metadata. Kept permissive with .passthrough()
+// so evolving extra fields never break validation.
+export const UserListSchema = z.array(UserSchema);

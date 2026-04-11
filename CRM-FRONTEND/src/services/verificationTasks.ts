@@ -23,7 +23,6 @@ import { VerificationTaskSchema } from './schemas/verificationTask.schema';
  * Handles all API calls related to verification tasks
  */
 export class VerificationTasksService {
-
   /**
    * Get all verification tasks across all cases with filtering
    */
@@ -67,28 +66,60 @@ export class VerificationTasksService {
   }> {
     const params = new URLSearchParams();
 
-    if (filters?.page) {params.append('page', filters.page.toString());}
-    if (filters?.limit) {params.append('limit', filters.limit.toString());}
-    if (filters?.sortBy) {params.append('sortBy', filters.sortBy);}
-    if (filters?.sortOrder) {params.append('sortOrder', filters.sortOrder);}
-    if (filters?.status) {params.append('status', filters.status);}
-    if (filters?.priority) {params.append('priority', filters.priority);}
-    if (filters?.assignedTo) {params.append('assignedTo', filters.assignedTo);}
-    if (filters?.verificationTypeId) {params.append('verificationTypeId', filters.verificationTypeId.toString());}
-    if (filters?.clientId) {params.append('clientId', filters.clientId.toString());}
-    if (filters?.productId) {params.append('productId', filters.productId.toString());}
-    if (filters?.search) {params.append('search', filters.search);}
-    if (filters?.dateFrom) {params.append('dateFrom', filters.dateFrom);}
-    if (filters?.dateTo) {params.append('dateTo', filters.dateTo);}
-    if (filters?.taskType) {params.append('taskType', filters.taskType);}
+    if (filters?.page) {
+      params.append('page', filters.page.toString());
+    }
+    if (filters?.limit) {
+      params.append('limit', filters.limit.toString());
+    }
+    if (filters?.sortBy) {
+      params.append('sortBy', filters.sortBy);
+    }
+    if (filters?.sortOrder) {
+      params.append('sortOrder', filters.sortOrder);
+    }
+    if (filters?.status) {
+      params.append('status', filters.status);
+    }
+    if (filters?.priority) {
+      params.append('priority', filters.priority);
+    }
+    if (filters?.assignedTo) {
+      params.append('assignedTo', filters.assignedTo);
+    }
+    if (filters?.verificationTypeId) {
+      params.append('verificationTypeId', filters.verificationTypeId.toString());
+    }
+    if (filters?.clientId) {
+      params.append('clientId', filters.clientId.toString());
+    }
+    if (filters?.productId) {
+      params.append('productId', filters.productId.toString());
+    }
+    if (filters?.search) {
+      params.append('search', filters.search);
+    }
+    if (filters?.dateFrom) {
+      params.append('dateFrom', filters.dateFrom);
+    }
+    if (filters?.dateTo) {
+      params.append('dateTo', filters.dateTo);
+    }
+    if (filters?.taskType) {
+      params.append('taskType', filters.taskType);
+    }
 
     const response = await apiService.get(`/verification-tasks?${params.toString()}`);
     // Non-strict drift detection on the tasks list shape.
     if ((response as { data?: { tasks?: unknown[] } } | undefined)?.data?.tasks) {
-      validateResponse(z.array(VerificationTaskSchema), (response as { data: { tasks: unknown[] } }).data.tasks, {
-        service: 'verificationTasks',
-        endpoint: 'GET /verification-tasks',
-      });
+      validateResponse(
+        z.array(VerificationTaskSchema),
+        (response as { data: { tasks: unknown[] } }).data.tasks,
+        {
+          service: 'verificationTasks',
+          endpoint: 'GET /verification-tasks',
+        }
+      );
     }
     return response as unknown as {
       success: boolean;
@@ -123,7 +154,7 @@ export class VerificationTasksService {
     tasks: CreateVerificationTaskRequest[]
   ): Promise<CreateMultipleTasksResponse> {
     const response = await apiService.post(`/cases/${caseId}/verification-tasks`, {
-      tasks
+      tasks,
     });
     return response.data as unknown as CreateMultipleTasksResponse;
   }
@@ -131,10 +162,7 @@ export class VerificationTasksService {
   /**
    * Create a revisit task from an existing completed task
    */
-  static async revisitTask(
-    taskId: string,
-    assignedTo?: string
-  ): Promise<VerificationTaskResponse> {
+  static async revisitTask(taskId: string, assignedTo?: string): Promise<VerificationTaskResponse> {
     const response = await apiService.post(`/verification-tasks/revisit/${taskId}`, {
       assignedTo,
     });
@@ -150,12 +178,22 @@ export class VerificationTasksService {
   ): Promise<TasksForCaseResponse> {
     const params = new URLSearchParams();
 
-    if (filters?.status) {params.append('status', filters.status);}
-    if (filters?.assignedTo) {params.append('assignedTo', filters.assignedTo);}
-    if (filters?.verificationTypeId) {params.append('verificationTypeId', filters.verificationTypeId.toString());}
-    if (filters?.priority) {params.append('priority', filters.priority);}
+    if (filters?.status) {
+      params.append('status', filters.status);
+    }
+    if (filters?.assignedTo) {
+      params.append('assignedTo', filters.assignedTo);
+    }
+    if (filters?.verificationTypeId) {
+      params.append('verificationTypeId', filters.verificationTypeId.toString());
+    }
+    if (filters?.priority) {
+      params.append('priority', filters.priority);
+    }
 
-    const response = await apiService.get(`/cases/${caseId}/verification-tasks?${params.toString()}`);
+    const response = await apiService.get(
+      `/cases/${caseId}/verification-tasks?${params.toString()}`
+    );
     // apiService.get returns { success, data, message }
     // We return the full response to match TasksForCaseResponse type
     return response as TasksForCaseResponse;
@@ -166,6 +204,15 @@ export class VerificationTasksService {
    */
   static async getTaskById(taskId: string): Promise<VerificationTaskResponse> {
     const response = await apiService.get(`/verification-tasks/${taskId}`);
+    // Validate the task payload inside response.data without changing
+    // the runtime return shape — legacy callers expect the envelope
+    // to pass through untouched.
+    if (response.success && response.data) {
+      validateResponse(VerificationTaskSchema, response.data, {
+        service: 'verificationTasks',
+        endpoint: 'GET /verification-tasks/:id',
+      });
+    }
     return response.data as unknown as VerificationTaskResponse;
   }
 
@@ -177,6 +224,12 @@ export class VerificationTasksService {
     updateData: UpdateVerificationTaskRequest
   ): Promise<VerificationTaskResponse> {
     const response = await apiService.put(`/verification-tasks/${taskId}`, updateData);
+    if (response.success && response.data) {
+      validateResponse(VerificationTaskSchema, response.data, {
+        service: 'verificationTasks',
+        endpoint: 'PUT /verification-tasks/:id',
+      });
+    }
     return response.data as unknown as VerificationTaskResponse;
   }
 
@@ -190,9 +243,15 @@ export class VerificationTasksService {
     const backendData = {
       assignedTo: assignmentData.assignedTo,
       assignmentReason: assignmentData.assignmentReason,
-      priority: assignmentData.priority
+      priority: assignmentData.priority,
     };
     const response = await apiService.post(`/verification-tasks/${taskId}/assign`, backendData);
+    if (response.success && response.data) {
+      validateResponse(VerificationTaskSchema, response.data, {
+        service: 'verificationTasks',
+        endpoint: 'POST /verification-tasks/:id/assign',
+      });
+    }
     return response.data as unknown as VerificationTaskResponse;
   }
 
@@ -207,9 +266,15 @@ export class VerificationTasksService {
       verificationOutcome: completionData.verificationOutcome,
       actualAmount: completionData.actualAmount,
       completionNotes: completionData.completionNotes,
-      formSubmissionId: completionData.formSubmissionId
+      formSubmissionId: completionData.formSubmissionId,
     };
     const response = await apiService.post(`/verification-tasks/${taskId}/complete`, backendData);
+    if (response.success && response.data) {
+      validateResponse(VerificationTaskSchema, response.data, {
+        service: 'verificationTasks',
+        endpoint: 'POST /verification-tasks/:id/complete',
+      });
+    }
     return response.data as unknown as VerificationTaskResponse;
   }
 
@@ -218,6 +283,12 @@ export class VerificationTasksService {
    */
   static async startTask(taskId: string): Promise<VerificationTaskResponse> {
     const response = await apiService.post(`/verification-tasks/${taskId}/start`);
+    if (response.success && response.data) {
+      validateResponse(VerificationTaskSchema, response.data, {
+        service: 'verificationTasks',
+        endpoint: 'POST /verification-tasks/:id/start',
+      });
+    }
     return response.data as unknown as VerificationTaskResponse;
   }
 
@@ -225,12 +296,18 @@ export class VerificationTasksService {
    * Cancel a verification task
    */
   static async cancelTask(
-    taskId: string, 
+    taskId: string,
     cancellationReason?: string
   ): Promise<VerificationTaskResponse> {
     const response = await apiService.post(`/verification-tasks/${taskId}/revoke`, {
-      revokeReason: cancellationReason
+      revokeReason: cancellationReason,
     });
+    if (response.success && response.data) {
+      validateResponse(VerificationTaskSchema, response.data, {
+        service: 'verificationTasks',
+        endpoint: 'POST /verification-tasks/:id/revoke',
+      });
+    }
     return response.data as unknown as VerificationTaskResponse;
   }
 
@@ -241,13 +318,21 @@ export class VerificationTasksService {
     taskIds: string[],
     assignedTo: string,
     assignmentReason?: string
-  ): Promise<{ success: boolean; data: { updatedTasks: number; tasks: VerificationTask[] }; message: string }> {
+  ): Promise<{
+    success: boolean;
+    data: { updatedTasks: number; tasks: VerificationTask[] };
+    message: string;
+  }> {
     const response = await apiService.post('/verification-tasks/bulk-assign', {
       taskIds,
       assignedTo,
-      assignmentReason
+      assignmentReason,
     });
-    return response.data as unknown as { success: boolean; data: { updatedTasks: number; tasks: VerificationTask[] }; message: string };
+    return response.data as unknown as {
+      success: boolean;
+      data: { updatedTasks: number; tasks: VerificationTask[] };
+      message: string;
+    };
   }
 
   /**
@@ -316,7 +401,6 @@ export class VerificationTasksService {
     );
     return response.data;
   }
-
 }
 
 /**
@@ -324,7 +408,6 @@ export class VerificationTasksService {
  * Handles case operations with multi-verification support
  */
 export class EnhancedCasesService {
-  
   /**
    * Create case with multiple verification tasks
    * Uses unified /cases/create endpoint
@@ -363,7 +446,6 @@ export class EnhancedCasesService {
  * Handles verification task templates
  */
 export class TaskTemplatesService {
-  
   /**
    * Get available task templates
    */
@@ -428,7 +510,7 @@ export class TaskTemplatesService {
   ): Promise<CreateMultipleTasksResponse> {
     const response = await apiService.post(`/cases/${caseId}/verification-tasks/from-template`, {
       templateId,
-      customizations
+      customizations,
     });
     return response.data as unknown as CreateMultipleTasksResponse;
   }
@@ -439,7 +521,6 @@ export class TaskTemplatesService {
  * Handles commission-related operations for tasks
  */
 export class TaskCommissionService {
-  
   /**
    * Calculate commission for completed task
    */
