@@ -12,7 +12,10 @@ import {
   validateTaskUpdate,
   validateTaskAssignment,
 } from '../middleware/taskValidation';
-import { validateTaskRecordAccess } from '../middleware/taskAuthorization';
+import {
+  validateTaskRecordAccess,
+  validateAssignmentTargetScope,
+} from '../middleware/taskAuthorization';
 import { pool, query as dbQuery, wrapClient } from '../config/db';
 import { authorize } from '@/middleware/authorize';
 import { isScopedOperationsUser } from '@/security/rbacAccess';
@@ -113,6 +116,12 @@ router.post(
   EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   validateTaskRecordAccess,
   validateTaskAssignment,
+  // Scope-validate the assignedTo target after shape validation so
+  // we only hit the DB when the body is well-formed. See
+  // middleware/taskAuthorization.ts for rules (system-bypass pass,
+  // self-assign pass, otherwise target must cover task's
+  // client_id + product_id).
+  validateAssignmentTargetScope,
   VerificationTasksController.assignTask.bind(VerificationTasksController)
 );
 

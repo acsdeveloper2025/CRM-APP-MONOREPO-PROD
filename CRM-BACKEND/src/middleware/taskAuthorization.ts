@@ -1,6 +1,6 @@
 import type { Response, NextFunction } from 'express';
 import { query } from '@/config/database';
-import type { AuthenticatedRequest } from '@/middleware/auth';
+import { loadUserAuthContext, type AuthenticatedRequest } from '@/middleware/auth';
 import type { ApiResponse } from '@/types/api';
 import { logger } from '@/config/logger';
 import { getAssignedClientIds } from '@/middleware/clientAccess';
@@ -177,3 +177,145 @@ export const requireTaskAccess = async (
 };
 
 export const validateTaskRecordAccess = requireTaskAccess;
+
+/**
+ * Scope validation for POST /verification-tasks/:taskId/assign.
+ *
+ * `validateTaskRecordAccess` upstream already verifies the CALLER can
+ * see the task. This middleware closes the complementary hole: the
+ * body-supplied `assignedTo` target must also have scope that covers
+ * the task's (client_id, product_id) pair.
+ *
+ * Without this check a scoped-ops user with `case.reassign` on their
+ * own client scope could reassign a task to a field agent who has no
+ * access to that client — creating an orphaned assignment the target
+ * cannot open (because requireTaskAccess 403s them on read), and for
+ * unscoped field agents it would surface a case outside the
+ * business boundary the admin intended.
+ *
+ * Rules:
+ * - Target must exist and be loadable via loadUserAuthContext.
+ * - Target with system bypass (SUPER_ADMIN etc.) is always allowed —
+ *   they can see everything by construction.
+ * - Scoped target must have both the task's client_id in their
+ *   assigned_client_ids AND the task's product_id in their
+ *   assigned_product_ids. Empty assignment lists fail closed.
+ * - Self-assign (assignedTo === caller) is always allowed; the
+ *   caller has already passed validateTaskRecordAccess for the same
+ *   (client_id, product_id) tuple.
+ *
+ * Runs after validateTaskRecordAccess in the middleware chain, so
+ * we can trust req.params.taskId is a real task the caller can see.
+ */
+export const validateAssignmentTargetScope = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const rawTaskId = (req.params.taskId || req.params.id || req.body.taskId || '') as string;
+    const taskId = Array.isArray(rawTaskId) ? rawTaskId[0] : String(rawTaskId || '');
+
+    const rawAssignedTo = (req.body as Record<string, unknown> | undefined)?.assignedTo;
+    const assignedTo = typeof rawAssignedTo === 'string' ? rawAssignedTo : '';
+
+    if (!taskId || !assignedTo) {
+      // Shape errors are the job of validateTaskAssignment upstream;
+      // this middleware only runs once those pass.
+      next();
+      return;
+    }
+
+    // Self-assign shortcut — the caller is already scope-cleared for
+    // this task by requireTaskAccess, so there's nothing new to check.
+    if (req.user?.id === assignedTo) {
+      next();
+      return;
+    }
+
+    // Fetch the task's client + product so we know what the target
+    // needs to cover.
+    const taskScopeResult = await query<{ clientId: number; productId: number }>(
+      `SELECT c.client_id, c.product_id
+       FROM verification_tasks vt
+       JOIN cases c ON c.id = vt.case_id
+       WHERE vt.id = $1`,
+      [taskId]
+    );
+
+    if (taskScopeResult.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: 'Verification task not found',
+        error: { code: 'TASK_NOT_FOUND' },
+      });
+      return;
+    }
+
+    const { clientId: taskClientId, productId: taskProductId } = taskScopeResult.rows[0];
+
+    // Resolve the target user's scope. loadUserAuthContext caches
+    // per-user with a short TTL so repeated reassigns do not thrash
+    // the DB.
+    const targetContext = await loadUserAuthContext(assignedTo);
+    if (!targetContext) {
+      res.status(400).json({
+        success: false,
+        message: 'assignedTo user not found',
+        error: { code: 'ASSIGNEE_NOT_FOUND' },
+      });
+      return;
+    }
+
+    // System-bypass target (SUPER_ADMIN etc.) can see everything, so
+    // the check is trivially satisfied.
+    const targetUserShape = {
+      id: targetContext.id,
+      permissionCodes: [...targetContext.permissionCodes],
+    } as AuthenticatedRequest['user'];
+    if (hasSystemScopeBypass(targetUserShape)) {
+      next();
+      return;
+    }
+
+    const targetClientIds = targetContext.assignedClientIds ?? [];
+    const targetProductIds = targetContext.assignedProductIds ?? [];
+
+    const coversClient = targetClientIds.includes(Number(taskClientId));
+    const coversProduct = targetProductIds.includes(Number(taskProductId));
+
+    if (!coversClient || !coversProduct) {
+      logger.warn('Assignment target scope mismatch', {
+        callerId: req.user?.id,
+        taskId,
+        assignedTo,
+        taskClientId,
+        taskProductId,
+        targetClientCount: targetClientIds.length,
+        targetProductCount: targetProductIds.length,
+        coversClient,
+        coversProduct,
+      });
+      res.status(403).json({
+        success: false,
+        message: 'assignedTo user does not have access to this task scope',
+        error: {
+          code: 'ASSIGNEE_SCOPE_DENIED',
+          details: {
+            missing: [...(coversClient ? [] : ['client']), ...(coversProduct ? [] : ['product'])],
+          },
+        },
+      });
+      return;
+    }
+
+    next();
+  } catch (error) {
+    logger.error('Error in validateAssignmentTargetScope middleware:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
