@@ -30,6 +30,12 @@ const clientScope = createScopeAccess({
 export const getAssignedClientIds = clientScope.getAssignedIds;
 export const validateClientAccess = clientScope.validateEntityAccess;
 export const validateCaseAccess = clientScope.validateCaseEntityAccess;
+/**
+ * Invalidate the client-scope TTL cache for a user (or all users). Call
+ * from admin handlers that mutate user_client_assignments so the change
+ * takes effect immediately instead of waiting for the 30s TTL.
+ */
+export const invalidateClientScopeCache = clientScope.invalidate;
 
 /**
  * Middleware to add client filtering to query parameters for scoped users.

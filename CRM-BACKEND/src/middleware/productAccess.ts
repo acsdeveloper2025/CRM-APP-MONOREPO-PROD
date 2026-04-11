@@ -25,6 +25,12 @@ const productScope = createScopeAccess({
 export const getAssignedProductIds = productScope.getAssignedIds;
 export const validateProductAccess = productScope.validateEntityAccess;
 export const validateCaseProductAccess = productScope.validateCaseEntityAccess;
+/**
+ * Invalidate the product-scope TTL cache for a user (or all users).
+ * Call from admin handlers that mutate user_product_assignments so the
+ * change takes effect immediately instead of waiting for the 30s TTL.
+ */
+export const invalidateProductScopeCache = productScope.invalidate;
 
 /**
  * Middleware to add product filtering to query parameters for scoped users.
