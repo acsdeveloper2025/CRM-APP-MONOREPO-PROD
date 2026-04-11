@@ -96,6 +96,8 @@ const AsyncImage: React.FC<AsyncImageProps> = ({
     <img
       src={finalUrl}
       alt={alt}
+      loading="lazy"
+      decoding="async"
       className={className}
       onClick={onClick}
     />
@@ -140,6 +142,8 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ imageUrl, imageId, imageName,
             <img
               src={displayUrl}
               alt={imageName}
+              loading="lazy"
+              decoding="async"
               className="max-w-full max-h-[70vh] object-contain rounded-lg"
             />
           )}

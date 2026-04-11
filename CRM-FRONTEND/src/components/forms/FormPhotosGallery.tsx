@@ -45,6 +45,8 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ photo, isOpen, onClose }) => 
             <img
               src={photo.url}
               alt={`${photo.type} photo`}
+              loading="lazy"
+              decoding="async"
               className="max-w-full max-h-96 object-contain rounded-lg border"
             />
           </div>

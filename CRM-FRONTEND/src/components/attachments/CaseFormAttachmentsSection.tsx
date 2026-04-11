@@ -389,6 +389,8 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
                 <img
                   src={previewAttachment.preview}
                   alt={previewAttachment.name}
+                  loading="lazy"
+                  decoding="async"
                   className="max-w-full max-h-[70vh] object-contain"
                 />
               </div>

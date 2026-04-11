@@ -204,6 +204,8 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
                   <img
                     src={selectedAttachment.url}
                     alt={selectedAttachment.originalName}
+                    loading="lazy"
+                    decoding="async"
                     className="max-w-full max-h-[60vh] object-contain rounded-lg"
                   />
                 </div>
