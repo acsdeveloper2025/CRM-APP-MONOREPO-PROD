@@ -1,9 +1,8 @@
 import { apiService } from './api';
 import type { ApiResponse, PaginationQuery, PaginatedResponse } from '@/types/api';
-import type {
-  Rate,
-  AvailableRateType
-} from '@/types/rateManagement';
+import type { Rate, AvailableRateType } from '@/types/rateManagement';
+import { validateResponse } from './schemas/runtime';
+import { GenericEntityListSchema, GenericObjectSchema } from './schemas/generic.schema';
 
 export type { Rate, AvailableRateType };
 
@@ -23,7 +22,14 @@ export interface RateListQuery extends PaginationQuery {
   rateTypeId?: number; // Changed from string to number
   isActive?: boolean;
   search?: string;
-  sortBy?: 'clientName' | 'productName' | 'verificationTypeName' | 'rateTypeName' | 'amount' | 'createdAt' | 'updatedAt';
+  sortBy?:
+    | 'clientName'
+    | 'productName'
+    | 'verificationTypeName'
+    | 'rateTypeName'
+    | 'amount'
+    | 'createdAt'
+    | 'updatedAt';
   sortOrder?: 'asc' | 'desc';
 }
 
@@ -44,11 +50,30 @@ export interface RateStats {
 
 export class RatesService {
   async getRates(query: RateListQuery = {}): Promise<PaginatedResponse<Rate>> {
-    return apiService.get<Rate[]>('/rates', query) as Promise<PaginatedResponse<Rate>>;
+    const response = await apiService.get<Rate[]>('/rates', query);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'rates',
+        endpoint: 'GET /rates',
+      });
+    }
+    return response as unknown as PaginatedResponse<Rate>;
   }
 
-  async getAvailableRateTypesForAssignment(query: AvailableRateTypesQuery): Promise<ApiResponse<AvailableRateType[]>> {
-    return apiService.get('/rates/available-for-assignment', query);
+  async getAvailableRateTypesForAssignment(
+    query: AvailableRateTypesQuery
+  ): Promise<ApiResponse<AvailableRateType[]>> {
+    const response = await apiService.get<AvailableRateType[]>(
+      '/rates/available-for-assignment',
+      query
+    );
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'rates',
+        endpoint: 'GET /rates/available-for-assignment',
+      });
+    }
+    return response;
   }
 
   async createOrUpdateRate(data: CreateOrUpdateRateData): Promise<ApiResponse<void>> {
@@ -60,7 +85,14 @@ export class RatesService {
   }
 
   async getRateStats(): Promise<ApiResponse<RateStats>> {
-    return apiService.get('/rates/stats');
+    const response = await apiService.get<RateStats>('/rates/stats');
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'rates',
+        endpoint: 'GET /rates/stats',
+      });
+    }
+    return response;
   }
 
   // Helper method to get rates for a specific combination
@@ -96,18 +128,20 @@ export class RatesService {
       verificationTypeId,
       rateTypeId,
       amount,
-      currency
+      currency,
     });
   }
 
   // Helper method to get all rates with comprehensive filtering
-  async getAllRates(filters: {
-    clientId?: number; // Changed from string to number
-    productId?: number; // Changed from string to number
-    verificationTypeId?: number; // Changed from string to number
-    search?: string;
-    isActive?: boolean;
-  } = {}): Promise<PaginatedResponse<Rate>> {
+  async getAllRates(
+    filters: {
+      clientId?: number; // Changed from string to number
+      productId?: number; // Changed from string to number
+      verificationTypeId?: number; // Changed from string to number
+      search?: string;
+      isActive?: boolean;
+    } = {}
+  ): Promise<PaginatedResponse<Rate>> {
     return this.getRates({ ...filters, limit: 100 }); // Backend max limit is 100
   }
 }

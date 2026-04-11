@@ -1,6 +1,8 @@
 import { apiService, authenticatedFetch } from './api';
 import type { ApiResponse } from '@/types/api';
 import { logger } from '@/utils/logger';
+import { validateResponse } from './schemas/runtime';
+import { GenericEntityListSchema } from './schemas/generic.schema';
 
 // Cache for blob URLs to avoid re-fetching
 const blobUrlCache = new Map<string, string>();
@@ -37,19 +39,19 @@ class VerificationImagesService {
    * Get verification images for a case
    */
   async getVerificationImages(
-    caseId: string, 
+    caseId: string,
     query: VerificationImagesQuery = {}
   ): Promise<ApiResponse<VerificationImage[]>> {
     const params = new URLSearchParams();
-    
+
     if (query.verificationType) {
       params.append('verificationType', query.verificationType);
     }
-    
+
     if (query.submissionId) {
       params.append('submissionId', query.submissionId);
     }
-    
+
     if (query.photoType) {
       params.append('photoType', query.photoType);
     }
@@ -57,14 +59,21 @@ class VerificationImagesService {
     const queryString = params.toString();
     const url = `/cases/${caseId}/verification-images${queryString ? `?${queryString}` : ''}`;
 
-    return apiService.get<VerificationImage[]>(url);
+    const response = await apiService.get<VerificationImage[]>(url);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'verificationImages',
+        endpoint: 'GET /cases/:caseId/verification-images',
+      });
+    }
+    return response;
   }
 
   /**
    * Get verification images by submission ID
    */
   async getVerificationImagesBySubmission(
-    caseId: string, 
+    caseId: string,
     submissionId: string
   ): Promise<ApiResponse<VerificationImage[]>> {
     return this.getVerificationImages(caseId, { submissionId });
@@ -74,7 +83,7 @@ class VerificationImagesService {
    * Get verification images by type
    */
   async getVerificationImagesByType(
-    caseId: string, 
+    caseId: string,
     verificationType: string
   ): Promise<ApiResponse<VerificationImage[]>> {
     return this.getVerificationImages(caseId, { verificationType });
@@ -164,7 +173,9 @@ class VerificationImagesService {
 
       try {
         // Fetch the thumbnail as blob with authentication
-        const response = await authenticatedFetch(`/cases/verification-images/${imageId}/thumbnail`);
+        const response = await authenticatedFetch(
+          `/cases/verification-images/${imageId}/thumbnail`
+        );
 
         if (!response.ok) {
           throw new Error(`Failed to fetch thumbnail: ${response.statusText}`);
@@ -194,28 +205,34 @@ class VerificationImagesService {
    * Group verification images by submission
    */
   groupImagesBySubmission(images: VerificationImage[]): Record<string, VerificationImage[]> {
-    return images.reduce((groups, image) => {
-      const submissionId = image.submissionId;
-      if (!groups[submissionId]) {
-        groups[submissionId] = [];
-      }
-      groups[submissionId].push(image);
-      return groups;
-    }, {} as Record<string, VerificationImage[]>);
+    return images.reduce(
+      (groups, image) => {
+        const submissionId = image.submissionId;
+        if (!groups[submissionId]) {
+          groups[submissionId] = [];
+        }
+        groups[submissionId].push(image);
+        return groups;
+      },
+      {} as Record<string, VerificationImage[]>
+    );
   }
 
   /**
    * Group verification images by type
    */
   groupImagesByType(images: VerificationImage[]): Record<string, VerificationImage[]> {
-    return images.reduce((groups, image) => {
-      const photoType = image.photoType;
-      if (!groups[photoType]) {
-        groups[photoType] = [];
-      }
-      groups[photoType].push(image);
-      return groups;
-    }, {} as Record<string, VerificationImage[]>);
+    return images.reduce(
+      (groups, image) => {
+        const photoType = image.photoType;
+        if (!groups[photoType]) {
+          groups[photoType] = [];
+        }
+        groups[photoType].push(image);
+        return groups;
+      },
+      {} as Record<string, VerificationImage[]>
+    );
   }
 
   /**
@@ -231,7 +248,7 @@ class VerificationImagesService {
       verificationTypes: new Set<string>(),
     };
 
-    images.forEach(image => {
+    images.forEach((image) => {
       if (image.photoType === 'verification') {
         stats.verificationPhotos++;
       } else if (image.photoType === 'selfie') {

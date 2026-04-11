@@ -1,9 +1,7 @@
 import { apiService } from './api';
-import { 
-  Designation, 
-  CreateDesignationRequest, 
-  UpdateDesignationRequest 
-} from '@/types/user';
+import { Designation, CreateDesignationRequest, UpdateDesignationRequest } from '@/types/user';
+import { validateResponse } from './schemas/runtime';
+import { GenericEntitySchema, GenericEntityListSchema } from './schemas/generic.schema';
 
 export interface DesignationsResponse {
   success: boolean;
@@ -37,21 +35,43 @@ class DesignationsService {
   async getDesignations(params: DesignationsParams = {}): Promise<DesignationsResponse> {
     const searchParams = new URLSearchParams();
 
-    if (params.page) {searchParams.append('page', params.page.toString());}
-    if (params.limit) {searchParams.append('limit', params.limit.toString());}
-    if (params.search) {searchParams.append('search', params.search);}
-    if (params.isActive !== undefined) {searchParams.append('isActive', params.isActive.toString());}
-    if (params.departmentId) {searchParams.append('departmentId', params.departmentId.toString());}
+    if (params.page) {
+      searchParams.append('page', params.page.toString());
+    }
+    if (params.limit) {
+      searchParams.append('limit', params.limit.toString());
+    }
+    if (params.search) {
+      searchParams.append('search', params.search);
+    }
+    if (params.isActive !== undefined) {
+      searchParams.append('isActive', params.isActive.toString());
+    }
+    if (params.departmentId) {
+      searchParams.append('departmentId', params.departmentId.toString());
+    }
 
     const queryString = searchParams.toString();
     const url = queryString ? `${this.baseUrl}?${queryString}` : this.baseUrl;
 
     const response = await apiService.get<Designation[]>(url);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'designations',
+        endpoint: 'GET /designations',
+      });
+    }
     return response as DesignationsResponse;
   }
 
   async getDesignationById(id: number): Promise<DesignationResponse> {
     const response = await apiService.get<Designation>(`${this.baseUrl}/${id}`);
+    if (response?.success && response.data) {
+      validateResponse(GenericEntitySchema, response.data, {
+        service: 'designations',
+        endpoint: 'GET /designations/:id',
+      });
+    }
     return response as DesignationResponse;
   }
 
@@ -60,24 +80,37 @@ class DesignationsService {
     return response as DesignationResponse;
   }
 
-  async updateDesignation(id: number, data: UpdateDesignationRequest): Promise<DesignationResponse> {
+  async updateDesignation(
+    id: number,
+    data: UpdateDesignationRequest
+  ): Promise<DesignationResponse> {
     const response = await apiService.put<Designation>(`${this.baseUrl}/${id}`, data);
     return response as DesignationResponse;
   }
 
   async deleteDesignation(id: number): Promise<{ success: boolean; message: string }> {
-    const response = await apiService.delete<{ success: boolean; message: string }>(`${this.baseUrl}/${id}`);
+    const response = await apiService.delete<{ success: boolean; message: string }>(
+      `${this.baseUrl}/${id}`
+    );
     return response;
   }
 
   async getActiveDesignations(departmentId?: number): Promise<DesignationsResponse> {
     const searchParams = new URLSearchParams();
-    if (departmentId) {searchParams.append('departmentId', departmentId.toString());}
+    if (departmentId) {
+      searchParams.append('departmentId', departmentId.toString());
+    }
 
     const queryString = searchParams.toString();
     const url = queryString ? `${this.baseUrl}/active?${queryString}` : `${this.baseUrl}/active`;
 
     const response = await apiService.get<Designation[]>(url);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'designations',
+        endpoint: 'GET /designations/active',
+      });
+    }
     return response as DesignationsResponse;
   }
 
@@ -87,11 +120,14 @@ class DesignationsService {
   }
 
   // Helper method to search designations
-  async searchDesignations(searchTerm: string, departmentId?: number): Promise<DesignationsResponse> {
+  async searchDesignations(
+    searchTerm: string,
+    departmentId?: number
+  ): Promise<DesignationsResponse> {
     return this.getDesignations({
       search: searchTerm,
       departmentId,
-      isActive: true
+      isActive: true,
     });
   }
 }

@@ -1,11 +1,12 @@
 import { apiService } from './api';
 import type { ApiResponse, PaginatedResponse } from '@/types/api';
-import type {
-  RoleData,
-  CreateRoleRequest,
-  UpdateRoleRequest,
-  RolePermissions,
-} from '@/types/user';
+import { validateResponse } from './schemas/runtime';
+import {
+  GenericEntitySchema,
+  GenericEntityListSchema,
+  GenericObjectSchema,
+} from './schemas/generic.schema';
+import type { RoleData, CreateRoleRequest, UpdateRoleRequest, RolePermissions } from '@/types/user';
 
 export interface RolesQueryParams {
   page?: number;
@@ -72,68 +73,147 @@ const rbacCodesToLegacyPermissions = (codes: string[]): RolePermissions => {
     return permissions;
   }
 
-  if (set.has('user.create')) {permissions.users.create = true;}
-  if (set.has('user.view')) {permissions.users.read = true;}
-  if (set.has('user.update')) {permissions.users.update = true;}
-  if (set.has('user.delete')) {permissions.users.delete = true;}
+  if (set.has('user.create')) {
+    permissions.users.create = true;
+  }
+  if (set.has('user.view')) {
+    permissions.users.read = true;
+  }
+  if (set.has('user.update')) {
+    permissions.users.update = true;
+  }
+  if (set.has('user.delete')) {
+    permissions.users.delete = true;
+  }
 
-  if (set.has('role.manage')) {markAll(permissions.roles);}
-  if (set.has('permission.manage')) {permissions.roles.update = true;}
-  if (set.has('territory.assign')) {permissions.users.update = true;}
+  if (set.has('role.manage')) {
+    markAll(permissions.roles);
+  }
+  if (set.has('permission.manage')) {
+    permissions.roles.update = true;
+  }
+  if (set.has('territory.assign')) {
+    permissions.users.update = true;
+  }
 
-  if (set.has('case.create')) {permissions.cases.create = true;}
-  if (set.has('case.view')) {permissions.cases.read = true;}
-  if (set.has('case.update') || set.has('case.assign') || set.has('case.reassign')) {permissions.cases.update = true;}
-  if (set.has('case.delete')) {permissions.cases.delete = true;}
+  if (set.has('case.create')) {
+    permissions.cases.create = true;
+  }
+  if (set.has('case.view')) {
+    permissions.cases.read = true;
+  }
+  if (set.has('case.update') || set.has('case.assign') || set.has('case.reassign')) {
+    permissions.cases.update = true;
+  }
+  if (set.has('case.delete')) {
+    permissions.cases.delete = true;
+  }
 
-  if (set.has('visit.start') || set.has('visit.upload') || set.has('visit.submit') || set.has('visit.revoke') || set.has('visit.revisit') || set.has('task.revoke')) {
+  if (
+    set.has('visit.start') ||
+    set.has('visit.upload') ||
+    set.has('visit.submit') ||
+    set.has('visit.revoke') ||
+    set.has('visit.revisit') ||
+    set.has('task.revoke')
+  ) {
     permissions.tasks.read = true;
     permissions.tasks.update = true;
   }
-  if (set.has('task.revoke')) {permissions.tasks.delete = true;}
+  if (set.has('task.revoke')) {
+    permissions.tasks.delete = true;
+  }
 
-  if (set.has('report.generate')) {permissions.reports.create = true;}
-  if (set.has('report.download')) {permissions.reports.read = true;}
-  if (set.has('review.view')) {permissions.forms.read = true;}
-  if (set.has('review.approve') || set.has('review.rework')) {permissions.forms.update = true;}
+  if (set.has('report.generate')) {
+    permissions.reports.create = true;
+  }
+  if (set.has('report.download')) {
+    permissions.reports.read = true;
+  }
+  if (set.has('review.view')) {
+    permissions.forms.read = true;
+  }
+  if (set.has('review.approve') || set.has('review.rework')) {
+    permissions.forms.update = true;
+  }
 
-  if (set.has('billing.generate')) {permissions.billing.create = true;}
-  if (set.has('billing.download')) {permissions.billing.read = true;}
-  if (set.has('billing.approve')) {permissions.billing.update = true;}
+  if (set.has('billing.generate')) {
+    permissions.billing.create = true;
+  }
+  if (set.has('billing.download')) {
+    permissions.billing.read = true;
+  }
+  if (set.has('billing.approve')) {
+    permissions.billing.update = true;
+  }
 
-  if (set.has('dashboard.view')) {permissions.analytics.read = true;}
-  if (set.has('settings.manage')) {markAll(permissions.settings);}
+  if (set.has('dashboard.view')) {
+    permissions.analytics.read = true;
+  }
+  if (set.has('settings.manage')) {
+    markAll(permissions.settings);
+  }
 
   return permissions;
 };
 
 const legacyPermissionsToRbacCodes = (permissions?: Partial<RolePermissions>): string[] => {
-  if (!permissions) {return [];}
+  if (!permissions) {
+    return [];
+  }
   const out = new Set<string>();
 
   const users = permissions.users;
-  if (users?.create) {out.add('user.create');}
-  if (users?.read) {out.add('user.view');}
-  if (users?.update) {out.add('user.update');}
-  if (users?.delete) {out.add('user.delete');}
+  if (users?.create) {
+    out.add('user.create');
+  }
+  if (users?.read) {
+    out.add('user.view');
+  }
+  if (users?.update) {
+    out.add('user.update');
+  }
+  if (users?.delete) {
+    out.add('user.delete');
+  }
 
   const roles = permissions.roles;
-  if (roles?.create || roles?.read || roles?.update || roles?.delete) {out.add('role.manage');}
+  if (roles?.create || roles?.read || roles?.update || roles?.delete) {
+    out.add('role.manage');
+  }
 
   const cases = permissions.cases;
-  if (cases?.create) {out.add('case.create');}
-  if (cases?.read) {out.add('case.view');}
-  if (cases?.update) {out.add('case.update');}
-  if (cases?.delete) {out.add('case.delete');}
+  if (cases?.create) {
+    out.add('case.create');
+  }
+  if (cases?.read) {
+    out.add('case.view');
+  }
+  if (cases?.update) {
+    out.add('case.update');
+  }
+  if (cases?.delete) {
+    out.add('case.delete');
+  }
 
   const reports = permissions.reports;
-  if (reports?.create) {out.add('report.generate');}
-  if (reports?.read) {out.add('report.download');}
+  if (reports?.create) {
+    out.add('report.generate');
+  }
+  if (reports?.read) {
+    out.add('report.download');
+  }
 
   const billing = permissions.billing;
-  if (billing?.create) {out.add('billing.generate');}
-  if (billing?.read) {out.add('billing.download');}
-  if (billing?.update) {out.add('billing.approve');}
+  if (billing?.create) {
+    out.add('billing.generate');
+  }
+  if (billing?.read) {
+    out.add('billing.download');
+  }
+  if (billing?.update) {
+    out.add('billing.approve');
+  }
 
   const tasks = permissions.tasks;
   if (tasks?.read || tasks?.update || tasks?.create || tasks?.delete) {
@@ -146,14 +226,18 @@ const legacyPermissionsToRbacCodes = (permissions?: Partial<RolePermissions>): s
   }
 
   const forms = permissions.forms;
-  if (forms?.read) {out.add('review.view');}
+  if (forms?.read) {
+    out.add('review.view');
+  }
   if (forms?.update) {
     out.add('review.approve');
     out.add('review.rework');
   }
 
   const analytics = permissions.analytics;
-  if (analytics?.read) {out.add('dashboard.view');}
+  if (analytics?.read) {
+    out.add('dashboard.view');
+  }
 
   const settings = permissions.settings;
   if (settings?.read || settings?.create || settings?.update || settings?.delete) {
@@ -163,10 +247,7 @@ const legacyPermissionsToRbacCodes = (permissions?: Partial<RolePermissions>): s
   return Array.from(out);
 };
 
-const mapRbacRoleToLegacyRoleData = (
-  role: RbacRole,
-  permissionCodes: string[] = []
-): RoleData => ({
+const mapRbacRoleToLegacyRoleData = (role: RbacRole, permissionCodes: string[] = []): RoleData => ({
   id: role.id,
   name: role.name,
   description: role.description || '',
@@ -180,22 +261,38 @@ const mapRbacRoleToLegacyRoleData = (
 
 class RolesService {
   private async getRolePermissionCodes(roleId: string): Promise<string[]> {
-    const response = await apiService.get<RbacRolePermissionsResponse>(`/rbac/roles/${roleId}/permissions`);
+    const response = await apiService.get<RbacRolePermissionsResponse>(
+      `/rbac/roles/${roleId}/permissions`
+    );
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'roles',
+        endpoint: 'GET /rbac/roles/:roleId/permissions',
+      });
+    }
     return Array.isArray(response.data?.permissions) ? response.data.permissions : [];
   }
 
   async getRoles(params: RolesQueryParams = {}): Promise<PaginatedResponse<RoleData>> {
     const response = await apiService.get<RbacRole[]>('/roles');
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'roles',
+        endpoint: 'GET /roles',
+      });
+    }
     let roles = Array.isArray(response.data) ? response.data : [];
 
     if (params.search) {
       const q = params.search.toLowerCase();
-      roles = roles.filter(r =>
-        (r.name || '').toLowerCase().includes(q) || (r.description || '').toLowerCase().includes(q)
+      roles = roles.filter(
+        (r) =>
+          (r.name || '').toLowerCase().includes(q) ||
+          (r.description || '').toLowerCase().includes(q)
       );
     }
     if (params.systemRolesOnly) {
-      roles = roles.filter(r => !!r.isSystem);
+      roles = roles.filter((r) => !!r.isSystem);
     }
 
     const page = params.page || 1;
@@ -204,7 +301,7 @@ class RolesService {
     const pageRoles = roles.slice(start, start + limit);
 
     const roleRows = await Promise.all(
-      pageRoles.map(async role => {
+      pageRoles.map(async (role) => {
         const permissionCodes = await this.getRolePermissionCodes(role.id);
         return mapRbacRoleToLegacyRoleData(role, permissionCodes);
       })
@@ -227,7 +324,21 @@ class RolesService {
       apiService.get<RbacRole>(`/roles/${id}`),
       apiService.get<RbacRolePermissionsResponse>(`/roles/${id}/permissions`),
     ]);
-    const permissionCodes = Array.isArray(permsRes.data?.permissions) ? permsRes.data.permissions : [];
+    if (roleRes?.success && roleRes.data) {
+      validateResponse(GenericEntitySchema, roleRes.data, {
+        service: 'roles',
+        endpoint: 'GET /roles/:id',
+      });
+    }
+    if (permsRes?.success && permsRes.data && typeof permsRes.data === 'object') {
+      validateResponse(GenericObjectSchema, permsRes.data, {
+        service: 'roles',
+        endpoint: 'GET /roles/:id/permissions',
+      });
+    }
+    const permissionCodes = Array.isArray(permsRes.data?.permissions)
+      ? permsRes.data.permissions
+      : [];
     return {
       ...roleRes,
       data: roleRes.data ? mapRbacRoleToLegacyRoleData(roleRes.data, permissionCodes) : undefined,
@@ -274,4 +385,3 @@ class RolesService {
 }
 
 export const rolesService = new RolesService();
-

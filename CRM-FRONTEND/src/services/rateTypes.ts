@@ -6,8 +6,14 @@ import type {
   UpdateRateTypeData,
   RateTypeListQuery,
   RateTypeStats,
-  AvailableRateTypeForCase
+  AvailableRateTypeForCase,
 } from '@/types/rateManagement';
+import { validateResponse } from './schemas/runtime';
+import {
+  GenericEntitySchema,
+  GenericEntityListSchema,
+  GenericObjectSchema,
+} from './schemas/generic.schema';
 
 export type {
   RateType,
@@ -15,16 +21,30 @@ export type {
   UpdateRateTypeData,
   RateTypeListQuery,
   RateTypeStats,
-  AvailableRateTypeForCase
+  AvailableRateTypeForCase,
 };
 
 export class RateTypesService {
   async getRateTypes(query: RateTypeListQuery = {}): Promise<PaginatedResponse<RateType>> {
-    return apiService.get<RateType[]>('/rate-types', query) as Promise<PaginatedResponse<RateType>>;
+    const response = await apiService.get<RateType[]>('/rate-types', query);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'rateTypes',
+        endpoint: 'GET /rate-types',
+      });
+    }
+    return response as unknown as PaginatedResponse<RateType>;
   }
 
   async getRateTypeById(id: number): Promise<ApiResponse<RateType>> {
-    return apiService.get(`/rate-types/${id}`);
+    const response = await apiService.get<RateType>(`/rate-types/${id}`);
+    if (response?.success && response.data) {
+      validateResponse(GenericEntitySchema, response.data, {
+        service: 'rateTypes',
+        endpoint: 'GET /rate-types/:id',
+      });
+    }
+    return response;
   }
 
   async createRateType(data: CreateRateTypeData): Promise<ApiResponse<RateType>> {
@@ -40,7 +60,14 @@ export class RateTypesService {
   }
 
   async getRateTypeStats(): Promise<ApiResponse<RateTypeStats>> {
-    return apiService.get('/rate-types/stats');
+    const response = await apiService.get<RateTypeStats>('/rate-types/stats');
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'rateTypes',
+        endpoint: 'GET /rate-types/stats',
+      });
+    }
+    return response;
   }
 
   // Get all active rate types for dropdowns
@@ -50,7 +77,7 @@ export class RateTypesService {
       success: response.success,
       message: response.message,
       data: response.data || [],
-      error: response.error
+      error: response.error,
     };
   }
 
@@ -60,11 +87,21 @@ export class RateTypesService {
     productId: number,
     verificationTypeId: number
   ): Promise<ApiResponse<AvailableRateTypeForCase[]>> {
-    return apiService.get('/rate-types/available-for-case', {
-      clientId,
-      productId,
-      verificationTypeId
-    });
+    const response = await apiService.get<AvailableRateTypeForCase[]>(
+      '/rate-types/available-for-case',
+      {
+        clientId,
+        productId,
+        verificationTypeId,
+      }
+    );
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'rateTypes',
+        endpoint: 'GET /rate-types/available-for-case',
+      });
+    }
+    return response;
   }
 }
 

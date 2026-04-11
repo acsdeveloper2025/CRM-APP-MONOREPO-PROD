@@ -1,4 +1,6 @@
 import { apiService } from '@/services/api';
+import { validateResponse } from './schemas/runtime';
+import { GenericEntityListSchema, GenericObjectSchema } from './schemas/generic.schema';
 
 export interface RbacRole {
   id: string;
@@ -23,19 +25,36 @@ export interface RoleRouteAccess {
 }
 
 class RbacAdminService {
-  getPermissions() {
-    return apiService.get<PermissionDefinition[]>('/rbac/permissions');
+  async getPermissions() {
+    const response = await apiService.get<PermissionDefinition[]>('/rbac/permissions');
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'rbacAdmin',
+        endpoint: 'GET /rbac/permissions',
+      });
+    }
+    return response;
   }
 
-  getRoles() {
-    return apiService.get<RbacRole[]>('/rbac/roles');
+  async getRoles() {
+    const response = await apiService.get<RbacRole[]>('/rbac/roles');
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'rbacAdmin',
+        endpoint: 'GET /rbac/roles',
+      });
+    }
+    return response;
   }
 
   createRole(data: { name: string; description?: string; parentRoleId?: string | null }) {
     return apiService.post<RbacRole>('/rbac/roles', data);
   }
 
-  updateRole(id: string, data: { name?: string; description?: string; parentRoleId?: string | null }) {
+  updateRole(
+    id: string,
+    data: { name?: string; description?: string; parentRoleId?: string | null }
+  ) {
     return apiService.put<RbacRole>(`/rbac/roles/${id}`, data);
   }
 
@@ -43,18 +62,36 @@ class RbacAdminService {
     return apiService.delete(`/rbac/roles/${id}`);
   }
 
-  getRolePermissions(id: string) {
-    return apiService.get<{ roleId: string; permissions: string[]; matrix: Array<{ code: string; module: string; allowed: boolean }> }>(
-      `/rbac/roles/${id}/permissions`
-    );
+  async getRolePermissions(id: string) {
+    const response = await apiService.get<{
+      roleId: string;
+      permissions: string[];
+      matrix: Array<{ code: string; module: string; allowed: boolean }>;
+    }>(`/rbac/roles/${id}/permissions`);
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'rbacAdmin',
+        endpoint: 'GET /rbac/roles/:id/permissions',
+      });
+    }
+    return response;
   }
 
   updateRolePermissions(id: string, permissionCodes: string[]) {
     return apiService.put(`/rbac/roles/${id}/permissions`, { permissionCodes });
   }
 
-  getRoleRoutes(id: string) {
-    return apiService.get<{ roleId: string; routes: RoleRouteAccess[] }>(`/rbac/roles/${id}/routes`);
+  async getRoleRoutes(id: string) {
+    const response = await apiService.get<{ roleId: string; routes: RoleRouteAccess[] }>(
+      `/rbac/roles/${id}/routes`
+    );
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'rbacAdmin',
+        endpoint: 'GET /rbac/roles/:id/routes',
+      });
+    }
+    return response;
   }
 
   updateRoleRoutes(id: string, routes: RoleRouteAccess[]) {

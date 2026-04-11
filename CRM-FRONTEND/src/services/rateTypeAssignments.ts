@@ -1,8 +1,21 @@
 import { apiService } from './api';
 import type { ApiResponse, PaginationQuery, PaginatedResponse } from '@/types/api';
-import type {
-  RateTypeAssignment
-} from '@/types/rateManagement';
+import type { RateTypeAssignment } from '@/types/rateManagement';
+import { z } from 'zod';
+import { validateResponse } from './schemas/runtime';
+import { GenericEntityListSchema } from './schemas/generic.schema';
+
+// RateTypeAssignmentStatus uses rateTypeId (not id) as the key, so we
+// validate with an inline schema rather than GenericEntityListSchema.
+const RateTypeAssignmentStatusListSchema = z.array(
+  z
+    .object({
+      rateTypeId: z.union([z.string(), z.number()]),
+      rateTypeName: z.string().optional(),
+      isAssigned: z.boolean().optional(),
+    })
+    .passthrough()
+);
 
 export type { RateTypeAssignment };
 
@@ -45,19 +58,42 @@ export interface AssignmentsByCombinationQuery {
 }
 
 export class RateTypeAssignmentsService {
-  async getRateTypeAssignments(query: RateTypeAssignmentListQuery = {}): Promise<PaginatedResponse<RateTypeAssignment>> {
-    return apiService.get<RateTypeAssignment[]>('/rate-type-assignments', query) as Promise<PaginatedResponse<RateTypeAssignment>>;
+  async getRateTypeAssignments(
+    query: RateTypeAssignmentListQuery = {}
+  ): Promise<PaginatedResponse<RateTypeAssignment>> {
+    const response = await apiService.get<RateTypeAssignment[]>('/rate-type-assignments', query);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'rateTypeAssignments',
+        endpoint: 'GET /rate-type-assignments',
+      });
+    }
+    return response as unknown as PaginatedResponse<RateTypeAssignment>;
   }
 
-  async getAssignmentsByCombination(query: AssignmentsByCombinationQuery): Promise<ApiResponse<RateTypeAssignmentStatus[]>> {
-    return apiService.get('/rate-type-assignments/by-combination', query);
+  async getAssignmentsByCombination(
+    query: AssignmentsByCombinationQuery
+  ): Promise<ApiResponse<RateTypeAssignmentStatus[]>> {
+    const response = await apiService.get<RateTypeAssignmentStatus[]>(
+      '/rate-type-assignments/by-combination',
+      query
+    );
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(RateTypeAssignmentStatusListSchema, response.data, {
+        service: 'rateTypeAssignments',
+        endpoint: 'GET /rate-type-assignments/by-combination',
+      });
+    }
+    return response;
   }
 
   async bulkAssignRateTypes(data: BulkAssignRateTypesData): Promise<ApiResponse<void>> {
     return apiService.post('/rate-type-assignments/bulk-assign', data);
   }
 
-  async createRateTypeAssignment(data: CreateRateTypeAssignmentData): Promise<ApiResponse<RateTypeAssignment>> {
+  async createRateTypeAssignment(
+    data: CreateRateTypeAssignmentData
+  ): Promise<ApiResponse<RateTypeAssignment>> {
     return apiService.post('/rate-type-assignments', data);
   }
 

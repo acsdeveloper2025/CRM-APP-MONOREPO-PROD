@@ -1,5 +1,7 @@
 import { apiService } from './api';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
+import { validateResponse } from './schemas/runtime';
+import { GenericObjectSchema } from './schemas/generic.schema';
 
 // ===== PHASE 1: NEW DATA VISUALIZATION & REPORTING SERVICES =====
 
@@ -199,34 +201,112 @@ export interface CaseTimelineResponse {
 // Analytics Service Class
 export class AnalyticsService {
   // 1.1 Form Submission Data APIs
-  async getFormSubmissions(query: FormSubmissionQuery = {}): Promise<ApiResponse<FormSubmissionsResponse>> {
-    return apiService.get('/reports/form-submissions', query);
+  async getFormSubmissions(
+    query: FormSubmissionQuery = {}
+  ): Promise<ApiResponse<FormSubmissionsResponse>> {
+    const response = await apiService.get<FormSubmissionsResponse>(
+      '/reports/form-submissions',
+      query
+    );
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'analytics',
+        endpoint: 'GET /reports/form-submissions',
+      });
+    }
+    return response;
   }
 
-  async getFormSubmissionsByType(formType: string, query: Omit<FormSubmissionQuery, 'formType'> = {}): Promise<ApiResponse<FormSubmissionsResponse>> {
-    return apiService.get(`/reports/form-submissions/${formType}`, query);
+  async getFormSubmissionsByType(
+    formType: string,
+    query: Omit<FormSubmissionQuery, 'formType'> = {}
+  ): Promise<ApiResponse<FormSubmissionsResponse>> {
+    const response = await apiService.get<FormSubmissionsResponse>(
+      `/reports/form-submissions/${formType}`,
+      query
+    );
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'analytics',
+        endpoint: 'GET /reports/form-submissions/:type',
+      });
+    }
+    return response;
   }
 
-  async getFormValidationStatus(query: { dateFrom?: string; dateTo?: string } = {}): Promise<ApiResponse<FormValidationResponse>> {
-    return apiService.get('/reports/form-validation-status', query);
+  async getFormValidationStatus(
+    query: { dateFrom?: string; dateTo?: string } = {}
+  ): Promise<ApiResponse<FormValidationResponse>> {
+    const response = await apiService.get<FormValidationResponse>(
+      '/reports/form-validation-status',
+      query
+    );
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'analytics',
+        endpoint: 'GET /reports/form-validation-status',
+      });
+    }
+    return response;
   }
 
   // 1.2 Case Analytics APIs
-  async getCaseAnalytics(query: CaseAnalyticsQuery = {}): Promise<ApiResponse<CaseAnalyticsResponse>> {
-    return apiService.get('/reports/case-analytics', query);
+  async getCaseAnalytics(
+    query: CaseAnalyticsQuery = {}
+  ): Promise<ApiResponse<CaseAnalyticsResponse>> {
+    const response = await apiService.get<CaseAnalyticsResponse>('/reports/case-analytics', query);
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'analytics',
+        endpoint: 'GET /reports/case-analytics',
+      });
+    }
+    return response;
   }
 
   async getCaseTimeline(caseId: string): Promise<ApiResponse<CaseTimelineResponse>> {
-    return apiService.get(`/reports/case-timeline/${caseId}`);
+    const response = await apiService.get<CaseTimelineResponse>(`/reports/case-timeline/${caseId}`);
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'analytics',
+        endpoint: 'GET /reports/case-timeline/:caseId',
+      });
+    }
+    return response;
   }
 
   // 1.3 Agent Performance APIs
-  async getAgentPerformance(query: AgentPerformanceQuery = {}): Promise<ApiResponse<AgentPerformanceResponse>> {
-    return apiService.get('/reports/agent-performance', query);
+  async getAgentPerformance(
+    query: AgentPerformanceQuery = {}
+  ): Promise<ApiResponse<AgentPerformanceResponse>> {
+    const response = await apiService.get<AgentPerformanceResponse>(
+      '/reports/agent-performance',
+      query
+    );
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'analytics',
+        endpoint: 'GET /reports/agent-performance',
+      });
+    }
+    return response;
   }
 
-  async getAgentProductivity(agentId: string, query: AgentProductivityQuery = {}): Promise<ApiResponse<AgentProductivityResponse>> {
-    return apiService.get(`/reports/agent-productivity/${agentId}`, query);
+  async getAgentProductivity(
+    agentId: string,
+    query: AgentProductivityQuery = {}
+  ): Promise<ApiResponse<AgentProductivityResponse>> {
+    const response = await apiService.get<AgentProductivityResponse>(
+      `/reports/agent-productivity/${agentId}`,
+      query
+    );
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'analytics',
+        endpoint: 'GET /reports/agent-productivity/:agentId',
+      });
+    }
+    return response;
   }
 }
 

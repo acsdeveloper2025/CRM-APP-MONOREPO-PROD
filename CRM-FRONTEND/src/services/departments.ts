@@ -1,32 +1,55 @@
 import { apiService } from './api';
 import { ApiResponse, PaginatedResponse } from '@/types/api';
 import { Department, CreateDepartmentRequest, UpdateDepartmentRequest } from '@/types/user';
+import { validateResponse } from './schemas/runtime';
+import { GenericEntitySchema, GenericEntityListSchema } from './schemas/generic.schema';
 
 export interface DepartmentsQueryParams {
   page?: number;
   limit?: number;
   search?: string;
   includeInactive?: boolean;
-
 }
 
 class DepartmentsService {
   // Get all departments with pagination and filtering
-  async getDepartments(params: DepartmentsQueryParams = {}): Promise<PaginatedResponse<Department>> {
+  async getDepartments(
+    params: DepartmentsQueryParams = {}
+  ): Promise<PaginatedResponse<Department>> {
     const queryParams = new URLSearchParams();
-    
-    if (params.page) {queryParams.append('page', params.page.toString());}
-    if (params.limit) {queryParams.append('limit', params.limit.toString());}
-    if (params.search) {queryParams.append('search', params.search);}
-    if (params.includeInactive) {queryParams.append('includeInactive', params.includeInactive.toString());}
+
+    if (params.page) {
+      queryParams.append('page', params.page.toString());
+    }
+    if (params.limit) {
+      queryParams.append('limit', params.limit.toString());
+    }
+    if (params.search) {
+      queryParams.append('search', params.search);
+    }
+    if (params.includeInactive) {
+      queryParams.append('includeInactive', params.includeInactive.toString());
+    }
 
     const response = await apiService.get<Department[]>(`/departments?${queryParams.toString()}`);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'departments',
+        endpoint: 'GET /departments',
+      });
+    }
     return response as PaginatedResponse<Department>;
   }
 
   // Get department by ID
   async getDepartmentById(id: string | number): Promise<ApiResponse<Department>> {
     const response = await apiService.get<Department>(`/departments/${id}`);
+    if (response?.success && response.data) {
+      validateResponse(GenericEntitySchema, response.data, {
+        service: 'departments',
+        endpoint: 'GET /departments/:id',
+      });
+    }
     return response;
   }
 
@@ -37,7 +60,10 @@ class DepartmentsService {
   }
 
   // Update department
-  async updateDepartment(id: string | number, data: UpdateDepartmentRequest): Promise<ApiResponse<Department>> {
+  async updateDepartment(
+    id: string | number,
+    data: UpdateDepartmentRequest
+  ): Promise<ApiResponse<Department>> {
     const response = await apiService.put<Department>(`/departments/${id}`, data);
     return response;
   }
