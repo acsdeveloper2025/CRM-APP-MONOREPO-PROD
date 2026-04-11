@@ -1,10 +1,15 @@
 import type { ApiResponse } from '@/types/api';
-import type { AuthenticatedRequest } from '@/types/auth';
+import type { AuthenticatedRequest } from './auth';
 import type { Response } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
 import { redisClient } from '@/config/redis';
 import { logger } from '@/config/logger';
+import {
+  hasSystemScopeBypass,
+  isFieldExecutionActor,
+  isScopedOperationsUser,
+} from '@/security/rbacAccess';
 
 /**
  * Creates a Redis-backed store for distributed rate limiting.
@@ -142,3 +147,94 @@ export const mobileGeneralRateLimit = createRateLimiter(
   'AUTO',
   'mobile'
 );
+
+/**
+ * Role/capability-aware rate limiter.
+ *
+ * Picks one of four limits based on the caller's capability profile:
+ *   - SYSTEM     (systemScopeBypass = true): 5000 req / 15 min
+ *   - EXECUTION  (field agents):             10000 req / 15 min
+ *   - OPERATIONS (scoped backend users):     2000 req / 15 min
+ *   - DEFAULT    (everything else, incl. unauthenticated): 100 req / 15 min
+ *
+ * Implementation note: express-rate-limit's `limit` option accepts a
+ * function `(req, res) => number`, so a single limiter instance services
+ * all four buckets. The per-caller key is still unique (userId when
+ * authenticated, else IP via the standard IPv6-safe keyGenerator), so two
+ * users in the same bucket never share a counter.
+ *
+ * This was previously implemented in src/middleware/enterpriseRateLimit.ts
+ * on a separate Redis store via EnterpriseCacheService.increment. That
+ * file has been removed — everything now goes through the same
+ * rate-limit-redis store as the other tiers.
+ */
+export const roleBasedRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: (req: AuthenticatedRequest, _res: Response) => {
+    const user = req.user;
+    if (!user) {
+      return 100;
+    }
+    if (hasSystemScopeBypass(user)) {
+      return 5000;
+    }
+    if (isFieldExecutionActor(user)) {
+      return 10000;
+    }
+    if (isScopedOperationsUser(user)) {
+      return 2000;
+    }
+    return 100;
+  },
+  message: {
+    success: false,
+    message: 'Too many requests',
+    error: {
+      code: 'RATE_LIMIT_EXCEEDED',
+    },
+  } as ApiResponse,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: getStore('role'),
+  keyGenerator: (req: AuthenticatedRequest, _res: Response) => {
+    return req.user?.id ?? ipKeyGenerator(req.ip || 'unknown');
+  },
+});
+
+/**
+ * Reset the auth (login) rate-limit counter for a given client IP. Used
+ * by the admin POST /api/auth/reset-rate-limit endpoint when a legitimate
+ * user has been locked out after too many failed attempts.
+ *
+ * The key format matches express-rate-limit's IP-based keyGenerator so
+ * this only works for the authRateLimit limiter, which is the only one
+ * the admin reset endpoint is concerned with.
+ */
+export function resetAuthRateLimitForIp(ip: string): boolean {
+  try {
+    const key = ipKeyGenerator(ip || 'unknown');
+    // express-rate-limit's resetKey is synchronous for in-memory stores
+    // and returns void | Promise<void> for async stores. Calling it
+    // fire-and-forget is fine here — the admin UI only needs a best-
+    // effort signal and any Redis error is logged below.
+    authRateLimit.resetKey(key);
+    return true;
+  } catch (error) {
+    logger.error('Failed to reset auth rate limit key:', error);
+    return false;
+  }
+}
+
+/**
+ * Reset a role-based rate-limit counter for a given user id. Used by the
+ * admin POST /api/auth/reset-user-rate-limit/:userId endpoint.
+ */
+export function resetRoleRateLimitForUser(userId: string): boolean {
+  try {
+    roleBasedRateLimit.resetKey(userId);
+    return true;
+  } catch (error) {
+    logger.error('Failed to reset role rate limit key:', error);
+    return false;
+  }
+}
