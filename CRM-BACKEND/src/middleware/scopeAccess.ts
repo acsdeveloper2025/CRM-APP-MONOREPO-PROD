@@ -19,6 +19,36 @@ import { resolveCaseByIdentifier, type ResolvedCase } from '@/utils/caseLookup';
 
 export type ScopeSource = 'params' | 'body' | 'query';
 
+type Middleware = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) => Promise<Response | void> | Response | void;
+
+/**
+ * Run multiple middlewares in sequence as if express had a built-in
+ * "middleware chain → single middleware" adapter. Each middleware is
+ * invoked with a local `next` that advances to the next one. If any
+ * middleware sends a response (or rejects), the chain short-circuits.
+ *
+ * Used by the composite case-creation access check — each dimension's
+ * `validateEntityAccess('body')` runs in order so a failure in one
+ * surfaces as the appropriate dimension-specific error code.
+ */
+export function chainMiddleware(...middlewares: Middleware[]): Middleware {
+  return async (req, res, next) => {
+    let index = 0;
+    const runNext = async (): Promise<Response | void> => {
+      if (index >= middlewares.length) {
+        return next();
+      }
+      const current = middlewares[index++];
+      return current(req, res, runNext as NextFunction);
+    };
+    return runNext();
+  };
+}
+
 export interface ScopeAccessConfig {
   /**
    * Short dimension name used in log messages and error codes

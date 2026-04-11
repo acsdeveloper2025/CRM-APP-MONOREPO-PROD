@@ -8,10 +8,10 @@
 import type { Response, NextFunction } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from './auth';
-import { getAssignedProductIds } from './productAccess';
+import { validateProductAccess } from './productAccess';
 import { hasSystemScopeBypass, isScopedOperationsUser } from '@/security/rbacAccess';
 import { resolveDataScope } from '@/security/dataScope';
-import { createScopeAccess } from './scopeAccess';
+import { createScopeAccess, chainMiddleware } from './scopeAccess';
 
 interface RequestWithClientFilter extends AuthenticatedRequest {
   clientFilter?: number[];
@@ -84,95 +84,14 @@ export const addClientFiltering = async (
 };
 
 /**
- * Combined middleware for case creation: verifies both client and product
- * access in one pass using the body-supplied clientId/productId.
+ * Combined middleware for case creation: verifies both client AND product
+ * access in one pass using the body-supplied clientId/productId. Built as
+ * a chain of the two factory-produced `validateEntityAccess('body')`
+ * middlewares so both dimensions share exactly one implementation and
+ * return dimension-specific error codes (CLIENT_ACCESS_DENIED vs
+ * PRODUCT_ACCESS_DENIED) without copy-pasted branches.
  */
-export const validateCaseCreationAccess = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-): Promise<Response | void> => {
-  try {
-    const userId = req.user?.id;
-    const user = req.user;
-    const { clientId, productId } = req.body as { clientId?: unknown; productId?: unknown };
-
-    if (!userId || !user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required',
-        error: { code: 'UNAUTHORIZED' },
-      });
-    }
-
-    if (hasSystemScopeBypass(user)) {
-      return next();
-    }
-
-    if (!isScopedOperationsUser(user)) {
-      return next();
-    }
-
-    if (clientId == null || productId == null) {
-      return next();
-    }
-
-    const clientIdNum =
-      typeof clientId === 'number'
-        ? clientId
-        : typeof clientId === 'string'
-          ? parseInt(clientId, 10)
-          : Number.NaN;
-    const productIdNum =
-      typeof productId === 'number'
-        ? productId
-        : typeof productId === 'string'
-          ? parseInt(productId, 10)
-          : Number.NaN;
-
-    if (!Number.isFinite(clientIdNum) || !Number.isFinite(productIdNum)) {
-      return next();
-    }
-
-    const assignedClientIds = await getAssignedClientIds(userId);
-    if (assignedClientIds.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied: No clients assigned to your account',
-        error: { code: 'NO_CLIENT_ACCESS' },
-      });
-    }
-    if (!assignedClientIds.includes(clientIdNum)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied: You do not have access to this client',
-        error: { code: 'CLIENT_ACCESS_DENIED' },
-      });
-    }
-
-    const assignedProductIds = await getAssignedProductIds(userId);
-    if (assignedProductIds.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied: No products assigned to your account',
-        error: { code: 'NO_PRODUCT_ACCESS' },
-      });
-    }
-    if (!assignedProductIds.includes(productIdNum)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied: You do not have access to this product',
-        error: { code: 'PRODUCT_ACCESS_DENIED' },
-      });
-    }
-
-    return next();
-  } catch (error) {
-    logger.error('Error in case creation access validation:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error during access validation',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
-};
+export const validateCaseCreationAccess = chainMiddleware(
+  validateClientAccess('body'),
+  validateProductAccess('body')
+);
