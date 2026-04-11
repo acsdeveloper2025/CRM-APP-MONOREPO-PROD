@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { config } from '../config';
 import { logger } from '@/config/logger';
+import { verifyFileMagicBytes } from '@/utils/fileTypeGuard';
 
 // Validate mobile app version
 export const validateMobileVersion = (req: Request, res: Response, next: NextFunction) => {
@@ -97,7 +98,7 @@ export const validateMobileVersion = (req: Request, res: Response, next: NextFun
 // intentionally removed.
 
 // Validate file upload for mobile
-export const validateMobileFileUpload = (req: Request, res: Response, next: NextFunction) => {
+export const validateMobileFileUpload = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const files = req.files as Express.Multer.File[];
 
@@ -143,7 +144,7 @@ export const validateMobileFileUpload = (req: Request, res: Response, next: Next
         });
       }
 
-      // Check file type
+      // Check declared MIME against allowlist first (cheap).
       const allowedTypes = [
         ...config.mobile.allowedImageTypes,
         ...config.mobile.allowedDocumentTypes,
@@ -164,12 +165,41 @@ export const validateMobileFileUpload = (req: Request, res: Response, next: Next
           },
         });
       }
+
+      // Phase E2: sniff the actual bytes and reject if the declared
+      // MIME doesn't match the content. Multer memory storage keeps
+      // the buffer on file.buffer; this middleware is only wired to
+      // memory-storage uploads so the buffer is always present.
+      if (file.buffer) {
+        const verdict = await verifyFileMagicBytes(file.buffer, file.mimetype);
+        if (!verdict.ok) {
+          logger.warn('Mobile upload rejected by magic-byte check', {
+            filename: file.originalname,
+            claimedMime: file.mimetype,
+            detectedMime: verdict.detected?.mime,
+            reason: verdict.reason,
+          });
+          return res.status(400).json({
+            success: false,
+            message: verdict.reason || 'File content type mismatch',
+            error: {
+              code: 'FILE_CONTENT_MISMATCH',
+              details: {
+                filename: file.originalname,
+                claimedMime: file.mimetype,
+                detectedMime: verdict.detected?.mime,
+              },
+              timestamp: new Date().toISOString(),
+            },
+          });
+        }
+      }
     }
 
-    next();
+    return next();
   } catch (error) {
     logger.error('File upload validation error:', error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Internal server error',
       error: {
