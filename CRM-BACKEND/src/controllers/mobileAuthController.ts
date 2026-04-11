@@ -446,7 +446,9 @@ export class MobileAuthController {
         features: {
           offlineMode: config.mobile.enableOfflineMode,
           backgroundSync: config.mobile.enableBackgroundSync,
-          biometricAuth: config.mobile.enableBiometricAuth,
+          // biometricAuth removed in Phase E4 — never implemented on
+          // the mobile client. See src/types/mobile.ts for the
+          // removed contract field.
           darkMode: config.mobile.enableDarkMode,
           analytics: config.mobile.enableAnalytics,
         },
