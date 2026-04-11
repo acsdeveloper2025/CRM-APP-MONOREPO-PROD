@@ -5,22 +5,35 @@ import type {
   CreateDocumentTypeRateData,
   UpdateDocumentTypeRateData,
   DocumentTypeRateQuery,
-  DocumentTypeRateStats
+  DocumentTypeRateStats,
 } from '@/types/documentTypeRates';
+import { validateResponse } from './schemas/runtime';
+import { GenericEntityListSchema, GenericObjectSchema } from './schemas/generic.schema';
 
 export class DocumentTypeRatesService {
   /**
    * Get document type rates with filtering and pagination
    */
-  async getDocumentTypeRates(query: DocumentTypeRateQuery = {}): Promise<PaginatedResponse<DocumentTypeRate>> {
-    return apiService.get<DocumentTypeRate[]>('/document-type-rates', query) as Promise<PaginatedResponse<DocumentTypeRate>>;
+  async getDocumentTypeRates(
+    query: DocumentTypeRateQuery = {}
+  ): Promise<PaginatedResponse<DocumentTypeRate>> {
+    const response = await apiService.get<DocumentTypeRate[]>('/document-type-rates', query);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'documentTypeRates',
+        endpoint: 'GET /document-type-rates',
+      });
+    }
+    return response as unknown as PaginatedResponse<DocumentTypeRate>;
   }
 
   /**
    * Create or update a document type rate
    * If a rate already exists for the client-product-document type combination, it will be updated
    */
-  async createOrUpdateDocumentTypeRate(data: CreateDocumentTypeRateData): Promise<ApiResponse<void>> {
+  async createOrUpdateDocumentTypeRate(
+    data: CreateDocumentTypeRateData
+  ): Promise<ApiResponse<void>> {
     return apiService.post('/document-type-rates', data);
   }
 
@@ -35,7 +48,14 @@ export class DocumentTypeRatesService {
    * Get statistics for document type rates
    */
   async getDocumentTypeRateStats(): Promise<ApiResponse<DocumentTypeRateStats>> {
-    return apiService.get('/document-type-rates/stats');
+    const response = await apiService.get<DocumentTypeRateStats>('/document-type-rates/stats');
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'documentTypeRates',
+        endpoint: 'GET /document-type-rates/stats',
+      });
+    }
+    return response;
   }
 
   /**
@@ -55,7 +75,10 @@ export class DocumentTypeRatesService {
   /**
    * Helper method to get rates for a specific client-product combination
    */
-  async getRatesForClientProduct(clientId: number, productId: number): Promise<PaginatedResponse<DocumentTypeRate>> {
+  async getRatesForClientProduct(
+    clientId: number,
+    productId: number
+  ): Promise<PaginatedResponse<DocumentTypeRate>> {
     return this.getDocumentTypeRates({ clientId, productId, limit: 100 });
   }
 
@@ -67,12 +90,12 @@ export class DocumentTypeRatesService {
     productId: number,
     documentTypeId: number
   ): Promise<DocumentTypeRate | null> {
-    const response = await this.getDocumentTypeRates({ 
-      clientId, 
-      productId, 
-      documentTypeId, 
+    const response = await this.getDocumentTypeRates({
+      clientId,
+      productId,
+      documentTypeId,
       isActive: true,
-      limit: 1 
+      limit: 1,
     });
     return response.data && response.data.length > 0 ? response.data[0] : null;
   }
@@ -95,6 +118,5 @@ export type {
   CreateDocumentTypeRateData,
   UpdateDocumentTypeRateData,
   DocumentTypeRateQuery,
-  DocumentTypeRateStats
+  DocumentTypeRateStats,
 };
-

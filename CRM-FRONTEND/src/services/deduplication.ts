@@ -1,5 +1,7 @@
 import { apiService } from './api';
 import type { ApiResponse } from '@/types/api';
+import { validateResponse } from './schemas/runtime';
+import { GenericObjectSchema } from './schemas/generic.schema';
 
 export interface DeduplicationCriteria {
   customerName?: string;
@@ -63,7 +65,9 @@ export class DeduplicationService {
   /**
    * Search for potential duplicate cases
    */
-  async searchDuplicates(criteria: DeduplicationCriteria): Promise<ApiResponse<DeduplicationResult>> {
+  async searchDuplicates(
+    criteria: DeduplicationCriteria
+  ): Promise<ApiResponse<DeduplicationResult>> {
     return apiService.post('/cases/deduplication/search', criteria);
   }
 
@@ -78,7 +82,7 @@ export class DeduplicationService {
     return apiService.post('/cases/deduplication/decision', {
       decision,
       duplicatesFound,
-      searchCriteria
+      searchCriteria,
     });
   }
 
@@ -86,22 +90,55 @@ export class DeduplicationService {
    * Get deduplication history for a case
    */
   async getDeduplicationHistory(caseId: string): Promise<ApiResponse<unknown[]>> {
-    return apiService.get(`/cases/${caseId}/deduplication/history`);
+    const response = await apiService.get<unknown[]>(`/cases/${caseId}/deduplication/history`);
+    // History entries may not have an `id`, so validate only the outer
+    // array shape via a permissive object schema per-entry.
+    if (response?.success && Array.isArray(response.data)) {
+      response.data.forEach((entry) => {
+        if (entry && typeof entry === 'object') {
+          validateResponse(GenericObjectSchema, entry, {
+            service: 'deduplication',
+            endpoint: 'GET /cases/:caseId/deduplication/history',
+          });
+        }
+      });
+    }
+    return response;
   }
 
   /**
    * Get duplicate case clusters for admin review
    */
-  async getDuplicateClusters(page = 1, limit = 20): Promise<ApiResponse<{
-    clusters: DuplicateCluster[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-    };
-  }>> {
-    return apiService.get('/cases/deduplication/clusters', { page, limit });
+  async getDuplicateClusters(
+    page = 1,
+    limit = 20
+  ): Promise<
+    ApiResponse<{
+      clusters: DuplicateCluster[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>
+  > {
+    const response = await apiService.get<{
+      clusters: DuplicateCluster[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>('/cases/deduplication/clusters', { page, limit });
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'deduplication',
+        endpoint: 'GET /cases/deduplication/clusters',
+      });
+    }
+    return response;
   }
 
   /**
@@ -111,8 +148,8 @@ export class DeduplicationService {
     const errors: string[] = [];
 
     // Check if at least one criterion is provided
-    const hasValidCriteria = Object.values(criteria).some(value => 
-      value && typeof value === 'string' && value.trim().length > 0
+    const hasValidCriteria = Object.values(criteria).some(
+      (value) => value && typeof value === 'string' && value.trim().length > 0
     );
 
     if (!hasValidCriteria) {
@@ -142,7 +179,7 @@ export class DeduplicationService {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -187,31 +224,33 @@ export class DeduplicationService {
     },
     page = 1,
     limit = 20
-  ): Promise<ApiResponse<{
-    results: Array<{
-      id: string;
-      caseId: number;
-      caseNumber: string;
-      name: string;
-      mobile: string;
-      pan: string;
-      client: string;
-      product: string;
-      address: string;
-      status: string;
-      createdAt: string;
-      matchTypes: string[];
-      matchScore: number;
-    }>;
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-    };
-  }>> {
-    return apiService.post('/cases/dedupe/global-search', criteria, { 
-      params: { page, limit } 
+  ): Promise<
+    ApiResponse<{
+      results: Array<{
+        id: string;
+        caseId: number;
+        caseNumber: string;
+        name: string;
+        mobile: string;
+        pan: string;
+        client: string;
+        product: string;
+        address: string;
+        status: string;
+        createdAt: string;
+        matchTypes: string[];
+        matchScore: number;
+      }>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    }>
+  > {
+    return apiService.post('/cases/dedupe/global-search', criteria, {
+      params: { page, limit },
     });
   }
 }

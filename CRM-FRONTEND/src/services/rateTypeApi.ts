@@ -1,5 +1,12 @@
 import { apiService } from './api';
-import { RateType, CreateRateTypeData, UpdateRateTypeData, RateTypeListQuery } from '../types/rateManagement';
+import {
+  RateType,
+  CreateRateTypeData,
+  UpdateRateTypeData,
+  RateTypeListQuery,
+} from '../types/rateManagement';
+import { validateResponse } from './schemas/runtime';
+import { GenericEntitySchema, GenericEntityListSchema } from './schemas/generic.schema';
 
 export interface GetRateTypesResponse {
   data: RateType[];
@@ -15,15 +22,27 @@ export const rateTypeApi = {
   // Get all rate types with optional filtering
   async getRateTypes(params: RateTypeListQuery = {}): Promise<GetRateTypesResponse> {
     const response = await apiService.get<RateType[]>('/rate-types', params);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'rateTypeApi',
+        endpoint: 'GET /rate-types',
+      });
+    }
     return {
       data: response.data || [],
-      pagination: response.pagination
+      pagination: response.pagination,
     };
   },
 
   // Get rate type by ID
   async getRateTypeById(id: number): Promise<RateType> {
     const response = await apiService.get<RateType>(`/rate-types/${id}`);
+    if (response?.success && response.data) {
+      validateResponse(GenericEntitySchema, response.data, {
+        service: 'rateTypeApi',
+        endpoint: 'GET /rate-types/:id',
+      });
+    }
     if (!response.data) {
       throw new Error('Rate type not found');
     }
@@ -68,5 +87,5 @@ export const rateTypeApi = {
   // Export rate types
   async exportRateTypes(params: RateTypeListQuery = {}): Promise<Blob> {
     return apiService.getBlob('/rate-types/export', params);
-  }
+  },
 };

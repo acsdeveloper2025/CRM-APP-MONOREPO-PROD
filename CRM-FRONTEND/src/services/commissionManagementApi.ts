@@ -6,8 +6,10 @@ import {
   FieldUserCommissionAssignment,
   CreateFieldUserCommissionAssignmentData,
   CommissionCalculation,
-  CommissionStats
+  CommissionStats,
 } from '../types/commission';
+import { validateResponse } from './schemas/runtime';
+import { GenericEntityListSchema, GenericObjectSchema } from './schemas/generic.schema';
 
 export interface GetCommissionRateTypesParams {
   page?: number;
@@ -35,25 +37,48 @@ export interface GetCommissionCalculationsParams {
   status?: string;
 }
 
-
-
 export const commissionManagementApi = {
   // Commission Rate Types
-  async getCommissionRateTypes(params: GetCommissionRateTypesParams = {}): Promise<ApiResponse<CommissionRateType[]>> {
+  async getCommissionRateTypes(
+    params: GetCommissionRateTypesParams = {}
+  ): Promise<ApiResponse<CommissionRateType[]>> {
     const queryParams: Record<string, string | number | boolean> = {};
-    if (params.page) {queryParams.page = params.page;}
-    if (params.limit) {queryParams.limit = params.limit;}
-    if (params.search) {queryParams.search = params.search;}
-    if (params.isActive !== undefined) {queryParams.isActive = params.isActive;}
+    if (params.page) {
+      queryParams.page = params.page;
+    }
+    if (params.limit) {
+      queryParams.limit = params.limit;
+    }
+    if (params.search) {
+      queryParams.search = params.search;
+    }
+    if (params.isActive !== undefined) {
+      queryParams.isActive = params.isActive;
+    }
 
-    return apiService.get('/commission-management/rate-types', queryParams);
+    const response = await apiService.get<CommissionRateType[]>(
+      '/commission-management/rate-types',
+      queryParams
+    );
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'commissionManagementApi',
+        endpoint: 'GET /commission-management/rate-types',
+      });
+    }
+    return response;
   },
 
-  async createCommissionRateType(data: CreateCommissionRateTypeData): Promise<ApiResponse<CommissionRateType>> {
+  async createCommissionRateType(
+    data: CreateCommissionRateTypeData
+  ): Promise<ApiResponse<CommissionRateType>> {
     return apiService.post('/commission-management/rate-types', data);
   },
 
-  async updateCommissionRateType(id: number, data: Partial<CreateCommissionRateTypeData>): Promise<ApiResponse<CommissionRateType>> {
+  async updateCommissionRateType(
+    id: number,
+    data: Partial<CreateCommissionRateTypeData>
+  ): Promise<ApiResponse<CommissionRateType>> {
     return apiService.put(`/commission-management/rate-types/${id}`, data);
   },
 
@@ -62,23 +87,52 @@ export const commissionManagementApi = {
   },
 
   // Field User Commission Assignments
-  async getFieldUserCommissionAssignments(params: GetFieldUserAssignmentsParams = {}): Promise<ApiResponse<FieldUserCommissionAssignment[]>> {
+  async getFieldUserCommissionAssignments(
+    params: GetFieldUserAssignmentsParams = {}
+  ): Promise<ApiResponse<FieldUserCommissionAssignment[]>> {
     const queryParams: Record<string, string | number> = {};
-    if (params.page) {queryParams.page = params.page;}
-    if (params.limit) {queryParams.limit = params.limit;}
-    if (params.search) {queryParams.search = params.search;}
-    if (params.userId) {queryParams.userId = params.userId;}
-    if (params.rateTypeId) {queryParams.rateTypeId = params.rateTypeId;}
-    if (params.clientId) {queryParams.clientId = params.clientId;}
+    if (params.page) {
+      queryParams.page = params.page;
+    }
+    if (params.limit) {
+      queryParams.limit = params.limit;
+    }
+    if (params.search) {
+      queryParams.search = params.search;
+    }
+    if (params.userId) {
+      queryParams.userId = params.userId;
+    }
+    if (params.rateTypeId) {
+      queryParams.rateTypeId = params.rateTypeId;
+    }
+    if (params.clientId) {
+      queryParams.clientId = params.clientId;
+    }
 
-    return apiService.get('/commission-management/field-user-assignments', queryParams);
+    const response = await apiService.get<FieldUserCommissionAssignment[]>(
+      '/commission-management/field-user-assignments',
+      queryParams
+    );
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'commissionManagementApi',
+        endpoint: 'GET /commission-management/field-user-assignments',
+      });
+    }
+    return response;
   },
 
-  async createFieldUserCommissionAssignment(data: CreateFieldUserCommissionAssignmentData): Promise<ApiResponse<FieldUserCommissionAssignment>> {
+  async createFieldUserCommissionAssignment(
+    data: CreateFieldUserCommissionAssignmentData
+  ): Promise<ApiResponse<FieldUserCommissionAssignment>> {
     return apiService.post('/commission-management/field-user-assignments', data);
   },
 
-  async updateFieldUserCommissionAssignment(id: string, data: Partial<CreateFieldUserCommissionAssignmentData>): Promise<ApiResponse<FieldUserCommissionAssignment>> {
+  async updateFieldUserCommissionAssignment(
+    id: string,
+    data: Partial<CreateFieldUserCommissionAssignmentData>
+  ): Promise<ApiResponse<FieldUserCommissionAssignment>> {
     return apiService.put(`/commission-management/field-user-assignments/${id}`, data);
   },
 
@@ -87,17 +141,43 @@ export const commissionManagementApi = {
   },
 
   // Commission Calculations
-  async getCommissionCalculations(params: GetCommissionCalculationsParams = {}): Promise<ApiResponse<CommissionCalculation[]>> {
+  async getCommissionCalculations(
+    params: GetCommissionCalculationsParams = {}
+  ): Promise<ApiResponse<CommissionCalculation[]>> {
     const queryParams: Record<string, string | number> = {};
-    if (params.page) {queryParams.page = params.page;}
-    if (params.limit) {queryParams.limit = params.limit;}
-    if (params.search) {queryParams.search = params.search;}
-    if (params.userId) {queryParams.userId = params.userId;}
-    if (params.startDate) {queryParams.startDate = params.startDate;}
-    if (params.endDate) {queryParams.endDate = params.endDate;}
-    if (params.status) {queryParams.status = params.status;}
+    if (params.page) {
+      queryParams.page = params.page;
+    }
+    if (params.limit) {
+      queryParams.limit = params.limit;
+    }
+    if (params.search) {
+      queryParams.search = params.search;
+    }
+    if (params.userId) {
+      queryParams.userId = params.userId;
+    }
+    if (params.startDate) {
+      queryParams.startDate = params.startDate;
+    }
+    if (params.endDate) {
+      queryParams.endDate = params.endDate;
+    }
+    if (params.status) {
+      queryParams.status = params.status;
+    }
 
-    return apiService.get('/commission-management/calculations', queryParams);
+    const response = await apiService.get<CommissionCalculation[]>(
+      '/commission-management/calculations',
+      queryParams
+    );
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'commissionManagementApi',
+        endpoint: 'GET /commission-management/calculations',
+      });
+    }
+    return response;
   },
 
   async calculateCommissionForCase(caseId: string): Promise<ApiResponse<CommissionCalculation>> {
@@ -106,7 +186,14 @@ export const commissionManagementApi = {
 
   // Commission Statistics
   async getCommissionStats(): Promise<ApiResponse<CommissionStats>> {
-    return apiService.get('/commission-management/stats');
+    const response = await apiService.get<CommissionStats>('/commission-management/stats');
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'commissionManagementApi',
+        endpoint: 'GET /commission-management/stats',
+      });
+    }
+    return response;
   },
 
   // Export Functions
@@ -126,10 +213,18 @@ export const commissionManagementApi = {
 
   async exportCommissionCalculations(params: GetCommissionCalculationsParams = {}): Promise<Blob> {
     const queryParams: Record<string, string> = {};
-    if (params.userId) {queryParams.userId = params.userId;}
-    if (params.startDate) {queryParams.startDate = params.startDate;}
-    if (params.endDate) {queryParams.endDate = params.endDate;}
-    if (params.status) {queryParams.status = params.status;}
+    if (params.userId) {
+      queryParams.userId = params.userId;
+    }
+    if (params.startDate) {
+      queryParams.startDate = params.startDate;
+    }
+    if (params.endDate) {
+      queryParams.endDate = params.endDate;
+    }
+    if (params.status) {
+      queryParams.status = params.status;
+    }
 
     const response = await apiService.get('/commission-management/calculations', queryParams);
     const data = Array.isArray(response.data) ? response.data : [];
@@ -139,46 +234,68 @@ export const commissionManagementApi = {
 
   // Helper functions for CSV conversion
   convertRateTypesToCSV(data: CommissionRateType[]): string {
-    if (!data.length) {return '';}
+    if (!data.length) {
+      return '';
+    }
     const headers = ['ID', 'Rate Type ID', 'Commission Amount', 'Currency', 'Active', 'Created At'];
-    const rows = data.map(item => [
+    const rows = data.map((item) => [
       item.id || '',
       item.rateTypeId || '',
       item.commissionAmount || '',
       item.currency || '',
       item.isActive ? 'Yes' : 'No',
-      item.createdAt || ''
+      item.createdAt || '',
     ]);
-    return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    return [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
   },
 
   convertAssignmentsToCSV(data: FieldUserCommissionAssignment[]): string {
-    if (!data.length) {return '';}
-    const headers = ['User Name', 'Rate Type', 'Commission Amount', 'Currency', 'Status', 'Effective From', 'Effective To'];
-    const rows = data.map(item => [
+    if (!data.length) {
+      return '';
+    }
+    const headers = [
+      'User Name',
+      'Rate Type',
+      'Commission Amount',
+      'Currency',
+      'Status',
+      'Effective From',
+      'Effective To',
+    ];
+    const rows = data.map((item) => [
       item.userName || '',
       item.rateTypeName || '',
       item.commissionAmount || '',
       item.currency || '',
       item.isActive ? 'Active' : 'Inactive',
       item.effectiveFrom || '',
-      item.effectiveTo || ''
+      item.effectiveTo || '',
     ]);
-    return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    return [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
   },
 
   convertCalculationsToCSV(data: CommissionCalculation[]): string {
-    if (!data.length) {return '';}
-    const headers = ['Case ID', 'User Name', 'Rate Type', 'Commission Amount', 'Currency', 'Status', 'Calculated Date'];
-    const rows = data.map(item => [
+    if (!data.length) {
+      return '';
+    }
+    const headers = [
+      'Case ID',
+      'User Name',
+      'Rate Type',
+      'Commission Amount',
+      'Currency',
+      'Status',
+      'Calculated Date',
+    ];
+    const rows = data.map((item) => [
       item.caseId || '',
       item.userName || '',
       item.rateTypeName || '',
       item.commissionAmount || '',
       item.currency || '',
       item.status || '',
-      item.calculatedAt || ''
+      item.calculatedAt || '',
     ]);
-    return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
-  }
+    return [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+  },
 };

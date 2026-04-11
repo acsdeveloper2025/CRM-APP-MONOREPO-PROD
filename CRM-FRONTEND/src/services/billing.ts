@@ -1,14 +1,19 @@
 import { apiService } from './api';
-import type { 
-  Invoice, 
-  Commission, 
+import type {
+  Invoice,
+  Commission,
   CommissionSummary,
   CreateInvoiceData,
-  UpdateInvoiceData
+  UpdateInvoiceData,
 } from '@/types/billing';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
-
-
+import { validateResponse } from './schemas/runtime';
+import { InvoiceSchema, InvoiceListSchema } from './schemas/notification.schema';
+import {
+  GenericEntitySchema,
+  GenericEntityListSchema,
+  GenericObjectSchema,
+} from './schemas/generic.schema';
 
 export interface InvoiceQuery extends PaginationQuery {
   clientId?: string;
@@ -28,11 +33,25 @@ export interface CommissionQuery extends PaginationQuery {
 export class BillingService {
   // Invoice operations
   async getInvoices(query: InvoiceQuery = {}): Promise<ApiResponse<Invoice[]>> {
-    return apiService.get('/invoices', query);
+    const response = await apiService.get<Invoice[]>('/invoices', query);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(InvoiceListSchema, response.data, {
+        service: 'billing',
+        endpoint: 'GET /invoices',
+      });
+    }
+    return response;
   }
 
   async getInvoiceById(id: string): Promise<ApiResponse<Invoice>> {
-    return apiService.get(`/invoices/${id}`);
+    const response = await apiService.get<Invoice>(`/invoices/${id}`);
+    if (response?.success && response.data) {
+      validateResponse(InvoiceSchema, response.data, {
+        service: 'billing',
+        endpoint: 'GET /invoices/:id',
+      });
+    }
+    return response;
   }
 
   async createInvoice(data: CreateInvoiceData): Promise<ApiResponse<Invoice>> {
@@ -73,11 +92,25 @@ export class BillingService {
 
   // Commission operations
   async getCommissions(query: CommissionQuery = {}): Promise<ApiResponse<Commission[]>> {
-    return apiService.get('/commissions', query);
+    const response = await apiService.get<Commission[]>('/commissions', query);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'billing',
+        endpoint: 'GET /commissions',
+      });
+    }
+    return response;
   }
 
   async getCommissionById(id: string): Promise<ApiResponse<Commission>> {
-    return apiService.get(`/commissions/${id}`);
+    const response = await apiService.get<Commission>(`/commissions/${id}`);
+    if (response?.success && response.data) {
+      validateResponse(GenericEntitySchema, response.data, {
+        service: 'billing',
+        endpoint: 'GET /commissions/:id',
+      });
+    }
+    return response;
   }
 
   async approveCommission(id: string): Promise<ApiResponse<Commission>> {
@@ -96,11 +129,25 @@ export class BillingService {
     return this.getCommissions({ clientId });
   }
 
-  async getCommissionSummary(userId?: string, period?: string): Promise<ApiResponse<CommissionSummary>> {
+  async getCommissionSummary(
+    userId?: string,
+    period?: string
+  ): Promise<ApiResponse<CommissionSummary>> {
     const params: Record<string, string> = {};
-    if (userId) {params.userId = userId;}
-    if (period) {params.period = period;}
-    return apiService.get('/commissions/summary', params);
+    if (userId) {
+      params.userId = userId;
+    }
+    if (period) {
+      params.period = period;
+    }
+    const response = await apiService.get<CommissionSummary>('/commissions/summary', params);
+    if (response?.success && response.data) {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'billing',
+        endpoint: 'GET /commissions/summary',
+      });
+    }
+    return response;
   }
 
   // Bulk operations
@@ -114,35 +161,60 @@ export class BillingService {
 
   // Reports
   async getInvoiceReport(query: InvoiceQuery = {}): Promise<ApiResponse<unknown>> {
-    return apiService.get('/reports/invoices', query);
+    const response = await apiService.get<unknown>('/reports/invoices', query);
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'billing',
+        endpoint: 'GET /reports/invoices',
+      });
+    }
+    return response;
   }
 
   async getCommissionReport(query: CommissionQuery = {}): Promise<ApiResponse<unknown>> {
-    return apiService.get('/reports/commissions', query);
+    const response = await apiService.get<unknown>('/reports/commissions', query);
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'billing',
+        endpoint: 'GET /reports/commissions',
+      });
+    }
+    return response;
   }
 
   async downloadInvoiceReport(query: InvoiceQuery = {}): Promise<Blob> {
     const response = await apiService.postRaw<Blob>('/reports/invoices/download', query, {
-        responseType: 'blob'
+      responseType: 'blob',
     });
     return response.data;
   }
 
   async downloadCommissionReport(query: CommissionQuery = {}): Promise<Blob> {
     const response = await apiService.postRaw<Blob>('/reports/commissions/download', query, {
-        responseType: 'blob'
+      responseType: 'blob',
     });
     return response.data;
   }
 
-  async exportInvoicesToExcel(filters?: { status?: string; clientId?: string; dateFrom?: string; dateTo?: string }): Promise<Blob> {
+  async exportInvoicesToExcel(filters?: {
+    status?: string;
+    clientId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<Blob> {
     const params = new URLSearchParams();
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
-        if (value) {params.append(key, value);}
+        if (value) {
+          params.append(key, value);
+        }
       });
     }
-    const response = await apiService.getRaw<Blob>(`/invoices/export?${params.toString()}`, undefined, { responseType: 'blob' });
+    const response = await apiService.getRaw<Blob>(
+      `/invoices/export?${params.toString()}`,
+      undefined,
+      { responseType: 'blob' }
+    );
     return response.data;
   }
 }

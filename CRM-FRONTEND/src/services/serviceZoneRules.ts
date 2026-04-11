@@ -6,6 +6,8 @@ import type {
   CreateServiceZoneRuleData,
   UpdateServiceZoneRuleData,
 } from '@/types/rateManagement';
+import { validateResponse } from './schemas/runtime';
+import { GenericEntityListSchema } from './schemas/generic.schema';
 
 export interface ServiceZoneRuleListQuery {
   clientId?: number;
@@ -22,11 +24,25 @@ class ServiceZoneRulesService extends BaseApiService {
   }
 
   async listRules(query: ServiceZoneRuleListQuery = {}): Promise<ApiResponse<ServiceZoneRule[]>> {
-    return this.get('', query as Record<string, unknown>);
+    const response = await this.get<ServiceZoneRule[]>('', query as Record<string, unknown>);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'serviceZoneRules',
+        endpoint: 'GET /service-zone-rules',
+      });
+    }
+    return response;
   }
 
   async listServiceZones(): Promise<ApiResponse<RateType[]>> {
-    return this.get('/service-zones');
+    const response = await this.get<RateType[]>('/service-zones');
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'serviceZoneRules',
+        endpoint: 'GET /service-zone-rules/service-zones',
+      });
+    }
+    return response;
   }
 
   async createRule(data: CreateServiceZoneRuleData): Promise<ApiResponse<ServiceZoneRule>> {

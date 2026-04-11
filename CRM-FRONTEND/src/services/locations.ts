@@ -13,9 +13,15 @@ import type {
   UpdateCityData,
   CreatePincodeData,
   UpdatePincodeData,
-  AddPincodeAreasData
+  AddPincodeAreasData,
 } from '@/types/location';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
+import { validateResponse } from './schemas/runtime';
+import {
+  GenericEntitySchema,
+  GenericEntityListSchema,
+  GenericObjectSchema,
+} from './schemas/generic.schema';
 
 export interface LocationQuery extends PaginationQuery {
   search?: string;
@@ -27,11 +33,25 @@ export interface LocationQuery extends PaginationQuery {
 export class LocationsService {
   // Country operations
   async getCountries(query: LocationQuery = {}): Promise<ApiResponse<Country[]>> {
-    return apiService.get('/countries', query);
+    const response = await apiService.get<Country[]>('/countries', query);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'locations',
+        endpoint: 'GET /countries',
+      });
+    }
+    return response;
   }
 
   async getCountryById(id: string): Promise<ApiResponse<Country>> {
-    return apiService.get(`/countries/${id}`);
+    const response = await apiService.get<Country>(`/countries/${id}`);
+    if (response?.success && response.data) {
+      validateResponse(GenericEntitySchema, response.data, {
+        service: 'locations',
+        endpoint: 'GET /countries/:id',
+      });
+    }
+    return response;
   }
 
   async createCountry(data: CreateCountryData): Promise<ApiResponse<Country>> {
@@ -47,7 +67,14 @@ export class LocationsService {
   }
 
   async getCountriesStats(): Promise<ApiResponse<unknown>> {
-    return apiService.get('/countries/stats');
+    const response = await apiService.get<unknown>('/countries/stats');
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'locations',
+        endpoint: 'GET /countries/stats',
+      });
+    }
+    return response;
   }
 
   async getCountriesByContinent(continent: string): Promise<ApiResponse<Country[]>> {
@@ -56,11 +83,25 @@ export class LocationsService {
 
   // State operations
   async getStates(query: LocationQuery = {}): Promise<ApiResponse<State[]>> {
-    return apiService.get('/states', query);
+    const response = await apiService.get<State[]>('/states', query);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'locations',
+        endpoint: 'GET /states',
+      });
+    }
+    return response;
   }
 
   async getStateById(id: string): Promise<ApiResponse<State>> {
-    return apiService.get(`/states/${id}`);
+    const response = await apiService.get<State>(`/states/${id}`);
+    if (response?.success && response.data) {
+      validateResponse(GenericEntitySchema, response.data, {
+        service: 'locations',
+        endpoint: 'GET /states/:id',
+      });
+    }
+    return response;
   }
 
   async createState(data: CreateStateData): Promise<ApiResponse<State>> {
@@ -81,11 +122,25 @@ export class LocationsService {
 
   // City operations
   async getCities(query: LocationQuery = {}): Promise<ApiResponse<City[]>> {
-    return apiService.get('/cities', query);
+    const response = await apiService.get<City[]>('/cities', query);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'locations',
+        endpoint: 'GET /cities',
+      });
+    }
+    return response;
   }
 
   async getCityById(id: string): Promise<ApiResponse<City>> {
-    return apiService.get(`/cities/${id}`);
+    const response = await apiService.get<City>(`/cities/${id}`);
+    if (response?.success && response.data) {
+      validateResponse(GenericEntitySchema, response.data, {
+        service: 'locations',
+        endpoint: 'GET /cities/:id',
+      });
+    }
+    return response;
   }
 
   async createCity(data: CreateCityData): Promise<ApiResponse<City>> {
@@ -106,15 +161,36 @@ export class LocationsService {
 
   // Pincode operations
   async getPincodes(query: LocationQuery = {}): Promise<ApiResponse<Pincode[]>> {
-    return apiService.get('/pincodes', query);
+    const response = await apiService.get<Pincode[]>('/pincodes', query);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'locations',
+        endpoint: 'GET /pincodes',
+      });
+    }
+    return response;
   }
 
   async getPincodeById(id: string): Promise<ApiResponse<Pincode>> {
-    return apiService.get(`/pincodes/${id}`);
+    const response = await apiService.get<Pincode>(`/pincodes/${id}`);
+    if (response?.success && response.data) {
+      validateResponse(GenericEntitySchema, response.data, {
+        service: 'locations',
+        endpoint: 'GET /pincodes/:id',
+      });
+    }
+    return response;
   }
 
   async getPincodesByCity(cityId: string): Promise<ApiResponse<Pincode[]>> {
-    return apiService.get(`/cities/${cityId}/pincodes`);
+    const response = await apiService.get<Pincode[]>(`/cities/${cityId}/pincodes`);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'locations',
+        endpoint: 'GET /cities/:cityId/pincodes',
+      });
+    }
+    return response;
   }
 
   async createPincode(data: CreatePincodeData): Promise<ApiResponse<Pincode>> {
@@ -130,7 +206,14 @@ export class LocationsService {
   }
 
   async searchPincodes(query: string): Promise<ApiResponse<Pincode[]>> {
-    return apiService.get('/pincodes/search', { q: query });
+    const response = await apiService.get<Pincode[]>('/pincodes/search', { q: query });
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'locations',
+        endpoint: 'GET /pincodes/search',
+      });
+    }
+    return response;
   }
 
   // Bulk operations
@@ -166,19 +249,62 @@ export class LocationsService {
   }
 
   // Area operations
-  async getAreas(query: LocationQuery = {}): Promise<ApiResponse<{ id: string; name: string; usageCount: number; createdAt: string; updatedAt: string }[]>> {
-    return apiService.get('/areas', query);
+  async getAreas(
+    query: LocationQuery = {}
+  ): Promise<
+    ApiResponse<
+      { id: string; name: string; usageCount: number; createdAt: string; updatedAt: string }[]
+    >
+  > {
+    const response = await apiService.get<
+      { id: string; name: string; usageCount: number; createdAt: string; updatedAt: string }[]
+    >('/areas', query);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'locations',
+        endpoint: 'GET /areas',
+      });
+    }
+    return response;
   }
 
-  async getAreaById(id: string): Promise<ApiResponse<{ id: string; name: string; usageCount: number; createdAt: string; updatedAt: string }>> {
-    return apiService.get(`/areas/${id}`);
+  async getAreaById(
+    id: string
+  ): Promise<
+    ApiResponse<{
+      id: string;
+      name: string;
+      usageCount: number;
+      createdAt: string;
+      updatedAt: string;
+    }>
+  > {
+    const response = await apiService.get<{
+      id: string;
+      name: string;
+      usageCount: number;
+      createdAt: string;
+      updatedAt: string;
+    }>(`/areas/${id}`);
+    if (response?.success && response.data) {
+      validateResponse(GenericEntitySchema, response.data, {
+        service: 'locations',
+        endpoint: 'GET /areas/:id',
+      });
+    }
+    return response;
   }
 
-  async createArea(data: { name: string }): Promise<ApiResponse<{ id: string; name: string; createdAt: string; updatedAt: string }>> {
+  async createArea(data: {
+    name: string;
+  }): Promise<ApiResponse<{ id: string; name: string; createdAt: string; updatedAt: string }>> {
     return apiService.post('/areas', data);
   }
 
-  async updateArea(id: string, data: { name: string }): Promise<ApiResponse<{ id: string; name: string; updatedAt: string }>> {
+  async updateArea(
+    id: string,
+    data: { name: string }
+  ): Promise<ApiResponse<{ id: string; name: string; updatedAt: string }>> {
     return apiService.put(`/areas/${id}`, data);
   }
 
@@ -188,11 +314,21 @@ export class LocationsService {
 
   // Get areas for dropdown/selection
   async getStandaloneAreas(): Promise<ApiResponse<{ id: string; name: string }[]>> {
-    return apiService.get('/areas/standalone');
+    const response = await apiService.get<{ id: string; name: string }[]>('/areas/standalone');
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'locations',
+        endpoint: 'GET /areas/standalone',
+      });
+    }
+    return response;
   }
 
   // Pincode area management
-  async addPincodeAreas(pincodeId: string, data: AddPincodeAreasData): Promise<ApiResponse<PincodeArea[]>> {
+  async addPincodeAreas(
+    pincodeId: string,
+    data: AddPincodeAreasData
+  ): Promise<ApiResponse<PincodeArea[]>> {
     return apiService.post(`/pincodes/${pincodeId}/areas`, data);
   }
 
@@ -201,7 +337,16 @@ export class LocationsService {
   }
 
   async getAreasByPincode(pincodeId: number): Promise<ApiResponse<{ id: number; name: string }[]>> {
-    return apiService.get(`/pincodes/${pincodeId}/areas`);
+    const response = await apiService.get<{ id: number; name: string }[]>(
+      `/pincodes/${pincodeId}/areas`
+    );
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'locations',
+        endpoint: 'GET /pincodes/:pincodeId/areas',
+      });
+    }
+    return response;
   }
 }
 

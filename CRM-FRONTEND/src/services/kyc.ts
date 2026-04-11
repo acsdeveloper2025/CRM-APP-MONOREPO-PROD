@@ -1,5 +1,11 @@
 import { apiService } from './api';
 import type { ApiResponse } from '@/types/api';
+import { validateResponse } from './schemas/runtime';
+import {
+  GenericEntitySchema,
+  GenericEntityListSchema,
+  GenericObjectSchema,
+} from './schemas/generic.schema';
 
 export interface KYCCustomField {
   key: string;
@@ -69,18 +75,45 @@ export interface KYCTaskListQuery {
 
 class KYCService {
   async getDocumentTypes(): Promise<ApiResponse<KYCDocumentType[]>> {
-    return apiService.get('/kyc/document-types');
+    const response = await apiService.get<KYCDocumentType[]>('/kyc/document-types');
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'kyc',
+        endpoint: 'GET /kyc/document-types',
+      });
+    }
+    return response;
   }
 
   async listTasks(query: KYCTaskListQuery = {}): Promise<ApiResponse<KYCTaskListResponse>> {
-    return apiService.get('/kyc/tasks', query as Record<string, unknown>);
+    const response = await apiService.get<KYCTaskListResponse>(
+      '/kyc/tasks',
+      query as Record<string, unknown>
+    );
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'kyc',
+        endpoint: 'GET /kyc/tasks',
+      });
+    }
+    return response;
   }
 
   async getTaskDetail(taskId: string): Promise<ApiResponse<KYCTask>> {
-    return apiService.get(`/kyc/tasks/${taskId}`);
+    const response = await apiService.get<KYCTask>(`/kyc/tasks/${taskId}`);
+    if (response?.success && response.data) {
+      validateResponse(GenericEntitySchema, response.data, {
+        service: 'kyc',
+        endpoint: 'GET /kyc/tasks/:taskId',
+      });
+    }
+    return response;
   }
 
-  async verifyDocument(taskId: string, data: { status: string; remarks?: string; rejectionReason?: string }): Promise<ApiResponse<{ id: string; status: string }>> {
+  async verifyDocument(
+    taskId: string,
+    data: { status: string; remarks?: string; rejectionReason?: string }
+  ): Promise<ApiResponse<{ id: string; status: string }>> {
     return apiService.put(`/kyc/tasks/${taskId}/verify`, data);
   }
 
@@ -95,15 +128,32 @@ class KYCService {
   }
 
   async getTasksForCase(caseId: string): Promise<ApiResponse<KYCTask[]>> {
-    return apiService.get(`/kyc/cases/${caseId}/tasks`);
+    const response = await apiService.get<KYCTask[]>(`/kyc/cases/${caseId}/tasks`);
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'kyc',
+        endpoint: 'GET /kyc/cases/:caseId/tasks',
+      });
+    }
+    return response;
   }
 
-  getExportUrl(filters: { status?: string; documentType?: string; dateFrom?: string; dateTo?: string } = {}): string {
+  getExportUrl(
+    filters: { status?: string; documentType?: string; dateFrom?: string; dateTo?: string } = {}
+  ): string {
     const params = new URLSearchParams();
-    if (filters.status) {params.append('status', filters.status);}
-    if (filters.documentType) {params.append('documentType', filters.documentType);}
-    if (filters.dateFrom) {params.append('dateFrom', filters.dateFrom);}
-    if (filters.dateTo) {params.append('dateTo', filters.dateTo);}
+    if (filters.status) {
+      params.append('status', filters.status);
+    }
+    if (filters.documentType) {
+      params.append('documentType', filters.documentType);
+    }
+    if (filters.dateFrom) {
+      params.append('dateFrom', filters.dateFrom);
+    }
+    if (filters.dateTo) {
+      params.append('dateTo', filters.dateTo);
+    }
     return `/api/kyc/export?${params.toString()}`;
   }
 }

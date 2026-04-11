@@ -6,6 +6,8 @@ import type {
   AreasByPincode,
   AvailableFieldAgent,
 } from '@/types/territoryAssignment';
+import { validateResponse } from './schemas/runtime';
+import { GenericEntityListSchema, GenericObjectSchema } from './schemas/generic.schema';
 
 /**
  * Territory Assignments Service
@@ -26,6 +28,13 @@ class TerritoryAssignmentsService {
       `/areas/by-pincodes?pincodeIds=${pincodeIds.join(',')}`
     );
 
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'territoryAssignments',
+        endpoint: 'GET /areas/by-pincodes',
+      });
+    }
+
     return response.data || {};
   }
 
@@ -38,6 +47,13 @@ class TerritoryAssignmentsService {
     const response = await apiService.get<UserTerritoryAssignments>(
       `/users/${userId}/territory-assignments`
     );
+
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'territoryAssignments',
+        endpoint: 'GET /users/:userId/territory-assignments',
+      });
+    }
 
     return response.data || { pincodeAssignments: [] };
   }
@@ -88,9 +104,15 @@ class TerritoryAssignmentsService {
       `/users/field-agents/available?${params.toString()}`
     );
 
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'territoryAssignments',
+        endpoint: 'GET /users/field-agents/available',
+      });
+    }
+
     return response.data || [];
   }
 }
 
 export const territoryAssignmentsService = new TerritoryAssignmentsService();
-

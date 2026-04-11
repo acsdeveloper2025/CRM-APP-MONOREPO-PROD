@@ -1,5 +1,7 @@
 import { apiService } from './api';
 import type { ApiResponse } from '@/types/api';
+import { validateResponse } from './schemas/runtime';
+import { GenericObjectSchema } from './schemas/generic.schema';
 
 export type FieldMonitoringStats = {
   totalFieldUsers: number;
@@ -138,17 +140,43 @@ class FieldMonitoringService {
   private readonly baseUrl = '/field-monitoring';
 
   async getMonitoringStats(): Promise<ApiResponse<FieldMonitoringStats>> {
-    return apiService.get<FieldMonitoringStats>(`${this.baseUrl}/stats`);
+    const response = await apiService.get<FieldMonitoringStats>(`${this.baseUrl}/stats`);
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'fieldMonitoring',
+        endpoint: 'GET /field-monitoring/stats',
+      });
+    }
+    return response;
   }
 
   async getMonitoringRoster(
     query: FieldMonitoringRosterQuery = {}
   ): Promise<ApiResponse<FieldMonitoringRosterResponse>> {
-    return apiService.get<FieldMonitoringRosterResponse>(`${this.baseUrl}/users`, query);
+    const response = await apiService.get<FieldMonitoringRosterResponse>(
+      `${this.baseUrl}/users`,
+      query
+    );
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'fieldMonitoring',
+        endpoint: 'GET /field-monitoring/users',
+      });
+    }
+    return response;
   }
 
   async getUserMonitoringDetail(userId: string): Promise<ApiResponse<FieldMonitoringUserDetail>> {
-    return apiService.get<FieldMonitoringUserDetail>(`${this.baseUrl}/users/${userId}`);
+    const response = await apiService.get<FieldMonitoringUserDetail>(
+      `${this.baseUrl}/users/${userId}`
+    );
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'fieldMonitoring',
+        endpoint: 'GET /field-monitoring/users/:userId',
+      });
+    }
+    return response;
   }
 }
 
