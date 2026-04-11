@@ -4,7 +4,11 @@ import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-// cookie-parser not needed — API uses JWT Bearer tokens, not cookie-based auth
+// Phase E5: cookie-parser is now enabled so /auth/login can set an
+// HttpOnly Secure SameSite=Strict refresh-token cookie and
+// /auth/refresh-token can read it. The primary auth for API calls
+// is still JWT Bearer — only the refresh channel uses the cookie.
+import cookieParser from 'cookie-parser';
 import { config } from '@/config';
 import { logger } from '@/config/logger';
 import { errorHandler, notFoundHandler } from '@/middleware/errorHandler';
@@ -155,6 +159,9 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 // Body parsing middleware — 5MB default for JSON (mobile file uploads use Multer multipart, not JSON body)
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+// Phase E5: parse cookies so the auth refresh flow can read the
+// HttpOnly refresh-token cookie. Non-auth routes ignore it.
+app.use(cookieParser());
 
 // Input sanitization — strip XSS from request body and query strings
 import { sanitizeInput } from '@/middleware/sanitize';

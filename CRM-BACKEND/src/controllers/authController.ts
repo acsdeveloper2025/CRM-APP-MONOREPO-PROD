@@ -40,6 +40,38 @@ function parseDurationMs(duration: string): number {
   }
 }
 
+/**
+ * Phase E5: HttpOnly refresh-token cookie helpers.
+ *
+ * The cookie is scoped to REFRESH_COOKIE_PATH so no other route ever
+ * receives the token. Attributes:
+ *   - httpOnly: JS can't read it (XSS-resistant)
+ *   - secure:   only over HTTPS in production (dev keeps cleartext
+ *               so localhost still works)
+ *   - sameSite: 'strict' in prod to block cross-site CSRF; 'lax' in
+ *               dev for the cross-origin Vite dev server
+ *   - maxAge:   30 days, matching the jwtRefreshExpiresIn default
+ */
+const REFRESH_COOKIE_NAME = 'crm_refresh_token';
+const REFRESH_COOKIE_PATH = '/api/auth/refresh-token';
+
+const setRefreshTokenCookie = (res: Response, token: string): void => {
+  const isProd = config.nodeEnv === 'production';
+  res.cookie(REFRESH_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'strict' : 'lax',
+    path: REFRESH_COOKIE_PATH,
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
+};
+
+const clearRefreshTokenCookie = (res: Response): void => {
+  res.clearCookie(REFRESH_COOKIE_NAME, {
+    path: REFRESH_COOKIE_PATH,
+  });
+};
+
 export const login = async (req: Request, res: Response): Promise<void> => {
   // eslint-disable-next-line no-useless-catch
   try {
@@ -214,6 +246,20 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       },
     };
 
+    // Phase E5: dual-write the refresh token to an HttpOnly cookie
+    // in addition to the JSON body. The frontend can migrate to
+    // cookie-only at its own pace; the mobile client keeps reading
+    // from the body (cookies don't work the same on RN). Cookie
+    // attributes:
+    //   - httpOnly: JS can't read it (XSS-resistant)
+    //   - secure: only over HTTPS in prod (dev keeps cleartext so
+    //     localhost still works)
+    //   - sameSite: 'strict' in prod to block cross-site CSRF;
+    //     'lax' in dev for cross-origin Vite dev server
+    //   - path: '/api/auth/refresh-token' so the cookie is only
+    //     ever sent to the one endpoint that needs it
+    //   - maxAge: matches refresh token TTL
+    setRefreshTokenCookie(res, refreshToken);
     res.json(response);
   } catch (error) {
     throw error;
@@ -238,6 +284,11 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
       success: true,
       message: 'Logout successful',
     };
+
+    // Phase E5: also clear the HttpOnly refresh cookie so the
+    // browser stops sending it on subsequent requests. Cookie path
+    // must match the one used at set time.
+    clearRefreshTokenCookie(res);
 
     logger.info(`User ${req.user.id} logged out successfully`);
     res.json(response);
@@ -464,7 +515,13 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
 
 export const refreshToken = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { refreshToken: token } = req.body;
+    // Phase E5: accept the refresh token from EITHER the HttpOnly
+    // cookie (web) OR the JSON body (mobile / legacy web clients).
+    // The cookie is preferred when both are present.
+    const cookies = (req as Request & { cookies?: Record<string, string> }).cookies;
+    const cookieToken = cookies?.[REFRESH_COOKIE_NAME];
+    const bodyToken = (req.body as { refreshToken?: string } | undefined)?.refreshToken;
+    const token = cookieToken || bodyToken;
 
     if (!token) {
       res.status(400).json({
@@ -531,6 +588,16 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     const accessToken = jwt.sign(accessTokenPayload, config.jwtSecret, {
       expiresIn: config.jwtExpiresIn as string & jwt.SignOptions['expiresIn'],
     });
+
+    // Phase E5: if the caller was using the HttpOnly cookie path,
+    // re-issue the cookie with a fresh maxAge so every successful
+    // refresh extends the session by another 30 days (sliding
+    // session). If the caller supplied the token in the body (mobile
+    // / legacy web), skip the cookie re-issue — their storage path
+    // is outside our reach.
+    if (cookieToken) {
+      setRefreshTokenCookie(res, cookieToken);
+    }
 
     res.json({
       success: true,
