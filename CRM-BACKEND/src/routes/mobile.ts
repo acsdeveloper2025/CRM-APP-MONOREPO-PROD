@@ -13,8 +13,8 @@ import { MobileTelemetryController } from '../controllers/mobileTelemetryControl
 import { NotificationController } from '../controllers/notificationController';
 import { authenticateToken } from '../middleware/auth';
 import { authorize } from '../middleware/authorize';
-import { validateMobileVersion, mobileRateLimit } from '../middleware/mobileValidation';
-import { geoRateLimit, uploadRateLimit } from '../middleware/rateLimiter';
+import { validateMobileVersion } from '../middleware/mobileValidation';
+import { geoRateLimit, uploadRateLimit, mobileGeneralRateLimit } from '../middleware/rateLimiter';
 import { createMobileAuditLogs } from '../controllers/auditLogsController';
 import { idempotencyMiddleware } from '../middleware/idempotency';
 import { body } from 'express-validator';
@@ -32,8 +32,9 @@ const invalidateFieldMonitoring = EnterpriseCache.invalidate(
   { synchronous: true }
 );
 
-// Apply mobile-specific rate limiting - GENEROUS limits for field agents
-router.use(mobileRateLimit(10000, 15 * 60 * 1000)); // 10,000 requests per 15 minutes for high-volume field operations
+// Apply mobile-specific rate limiting - GENEROUS limits for field agents.
+// Distributed via Redis — see mobileGeneralRateLimit in rateLimiter.ts.
+router.use(mobileGeneralRateLimit);
 
 // Mobile Health Check Route
 router.get('/health', (req, res) => {

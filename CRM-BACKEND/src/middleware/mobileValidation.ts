@@ -1,6 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
 import { config } from '../config';
-import { redisClient } from '@/config/redis';
 import { logger } from '@/config/logger';
 
 // Validate mobile app version
@@ -90,95 +89,12 @@ export const validateMobileVersion = (req: Request, res: Response, next: NextFun
   }
 };
 
-// Rate limiting for mobile endpoints
-export const mobileRateLimit = (maxRequests = 100, windowMs: number = 15 * 60 * 1000) => {
-  const fallbackRequests = new Map<string, { count: number; resetTime: number }>();
-
-  return async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const identifier = req.ip || 'unknown'; // Use IP address instead of device ID
-      const now = Date.now();
-      const windowSeconds = Math.max(1, Math.ceil(windowMs / 1000));
-      const resetAt = now + windowMs;
-      const windowBucket = Math.floor(now / windowMs);
-
-      if (redisClient.isOpen) {
-        const key = `mobile:rate-limit:${identifier}:${windowBucket}`;
-        let currentCount = 0;
-
-        const pipeline = redisClient.multi();
-        pipeline.incr(key);
-        pipeline.expire(key, windowSeconds);
-        const redisResult = await pipeline.exec();
-        const incrementResult = redisResult?.[0];
-
-        if (typeof incrementResult === 'number') {
-          currentCount = incrementResult;
-        } else if (Array.isArray(incrementResult) && typeof incrementResult[1] === 'number') {
-          currentCount = incrementResult[1];
-        }
-
-        if (currentCount > maxRequests) {
-          return res.status(429).json({
-            success: false,
-            message: 'Too many requests',
-            error: {
-              code: 'RATE_LIMIT_EXCEEDED',
-              timestamp: new Date().toISOString(),
-            },
-            retryAfter: windowSeconds,
-          });
-        }
-
-        // Add rate limit headers
-        res.setHeader('X-RateLimit-Limit', maxRequests);
-        res.setHeader('X-RateLimit-Remaining', Math.max(0, maxRequests - currentCount));
-        res.setHeader('X-RateLimit-Reset', Math.ceil(resetAt / 1000));
-        return next();
-      }
-
-      // Fallback for scenarios where redis is unavailable
-      const windowStart = now - windowMs;
-      for (const [key, value] of fallbackRequests.entries()) {
-        if (value.resetTime < windowStart) {
-          fallbackRequests.delete(key);
-        }
-      }
-
-      let requestInfo = fallbackRequests.get(identifier);
-      if (!requestInfo || requestInfo.resetTime < windowStart) {
-        requestInfo = { count: 0, resetTime: resetAt };
-        fallbackRequests.set(identifier, requestInfo);
-      }
-
-      if (requestInfo.count >= maxRequests) {
-        return res.status(429).json({
-          success: false,
-          message: 'Too many requests',
-          error: {
-            code: 'RATE_LIMIT_EXCEEDED',
-            timestamp: new Date().toISOString(),
-          },
-          retryAfter: Math.ceil((requestInfo.resetTime - now) / 1000),
-        });
-      }
-
-      requestInfo.count++;
-
-      // Add rate limit headers
-      res.setHeader('X-RateLimit-Limit', maxRequests);
-      res.setHeader('X-RateLimit-Remaining', maxRequests - requestInfo.count);
-      res.setHeader('X-RateLimit-Reset', Math.ceil(requestInfo.resetTime / 1000));
-
-      next();
-    } catch (error) {
-      logger.error('Mobile rate limit error', {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      next(); // Continue on error to avoid blocking requests
-    }
-  };
-};
+// `mobileRateLimit` used to live here as a bespoke Redis/in-memory hybrid.
+// It was replaced by `mobileGeneralRateLimit` in src/middleware/rateLimiter.ts
+// which uses the same distributed express-rate-limit + rate-limit-redis
+// store as every other tier. The non-distributed in-memory fallback in the
+// old implementation allowed per-worker limit amplification and has been
+// intentionally removed.
 
 // Validate file upload for mobile
 export const validateMobileFileUpload = (req: Request, res: Response, next: NextFunction) => {
