@@ -458,6 +458,10 @@ export class MobileAuthController {
           locationAccuracyThreshold: config.mobile.locationAccuracyThreshold,
           syncBatchSize: config.mobile.syncBatchSize,
         },
+        pinning: {
+          enabled: config.mobile.pinningEnabled,
+          pinSha256s: config.mobile.pinSha256s,
+        },
         endpoints: {
           apiBaseUrl: getApiBaseUrl(req, { mobile: true }),
           wsUrl: getWsUrl(req),
