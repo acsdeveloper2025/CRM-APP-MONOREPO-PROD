@@ -16,6 +16,7 @@ import {
   startMetricsBatchFlush,
   stopMonitoringIntervals,
 } from '@/middleware/performanceMonitoring';
+import { startAuditLogProcessor, stopAuditLogProcessor } from '@/queues/auditLogQueue';
 // Migrations removed for production - use database import instead
 
 const server = createServer(app);
@@ -102,6 +103,11 @@ const startServer = async (): Promise<void> => {
       // per-request hot path.
       startMetricsBatchFlush();
 
+      // Phase D3: attach the bull worker that drains the audit log
+      // queue onto the audit_logs table. Writers enqueue via
+      // createAuditLog()/enqueueAuditLog(); this worker persists.
+      startAuditLogProcessor();
+
       // Schedule periodic cache refresh (every 10 minutes)
       cacheRefreshInterval = setInterval(
         () => {
@@ -167,6 +173,10 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
     void io.close(() => {
       logger.info('WebSocket server closed');
     });
+
+    // Close the audit log bull queue — drains in-flight jobs before
+    // shutting the worker down (Phase D3).
+    await stopAuditLogProcessor();
 
     // Close job queues (allow in-flight jobs to finish)
     await closeQueues();
