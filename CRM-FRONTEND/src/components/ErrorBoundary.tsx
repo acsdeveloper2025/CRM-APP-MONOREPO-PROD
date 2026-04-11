@@ -41,7 +41,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     logger.error('ErrorBoundary caught an error:', error, errorInfo);
-    
+
     this.setState({
       error,
       errorInfo,
@@ -55,7 +55,19 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private logErrorToService = (error: Error, errorInfo: ErrorInfo) => {
-    // In a real app, you would send this to your error monitoring service
+    // M20: the previous implementation read authUser from
+    // localStorage, parsed it, and shipped `userId` in the error
+    // telemetry payload. That turns every ErrorBoundary catch into
+    // a PII shipment — user identities flowing to whatever log
+    // aggregation this.logger is wired to, with no opt-in from the
+    // user and no guarantee the aggregator strips fields on
+    // ingestion. The userId was never used for correlation here
+    // (errorId is the correlation key) so it's pure leakage.
+    //
+    // Strip to stack + shape only. If correlation-to-user becomes
+    // a real requirement later, do it server-side by joining on
+    // the request's authenticated session instead of piping the
+    // id out of the browser.
     const errorData = {
       errorId: this.state.errorId,
       message: error.message,
@@ -63,19 +75,13 @@ export class ErrorBoundary extends Component<Props, State> {
       componentStack: errorInfo.componentStack,
       timestamp: new Date().toISOString(),
       userAgent: navigator.userAgent,
-      url: window.location.href,
-      userId: (() => {
-        try {
-          const authUser = localStorage.getItem('authUser');
-          return authUser ? JSON.parse(authUser).id : null;
-        } catch {
-          return null;
-        }
-      })(),
+      // Strip query/hash fragments — URLs can contain tokens or
+      // PII that ended up in the router state when the error fired.
+      url: window.location.pathname,
     };
 
     logger.error('Error logged:', errorData);
-    
+
     // Example: Send to monitoring service
     // errorMonitoringService.captureException(error, { extra: errorData });
   };
@@ -99,7 +105,7 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   private toggleDetails = () => {
-    this.setState(prev => ({ showDetails: !prev.showDetails }));
+    this.setState((prev) => ({ showDetails: !prev.showDetails }));
   };
 
   render() {
@@ -143,11 +149,19 @@ export class ErrorBoundary extends Component<Props, State> {
                   <RefreshCw className="h-4 w-4" />
                   <span>Try Again</span>
                 </Button>
-                <Button variant="outline" onClick={this.handleReload} className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={this.handleReload}
+                  className="flex items-center space-x-2"
+                >
                   <RefreshCw className="h-4 w-4" />
                   <span>Reload Page</span>
                 </Button>
-                <Button variant="outline" onClick={this.handleGoHome} className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={this.handleGoHome}
+                  className="flex items-center space-x-2"
+                >
                   <Home className="h-4 w-4" />
                   <span>Go Home</span>
                 </Button>
@@ -196,9 +210,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
               {/* Help Text */}
               <div className="text-center text-sm text-gray-600">
-                <p>
-                  If this problem persists, please contact support with the Error ID above.
-                </p>
+                <p>If this problem persists, please contact support with the Error ID above.</p>
               </div>
             </CardContent>
           </Card>
@@ -214,17 +226,23 @@ export class ErrorBoundary extends Component<Props, State> {
 export const useErrorHandler = () => {
   const handleError = React.useCallback((error: Error, errorInfo?: unknown) => {
     logger.error('Error caught by useErrorHandler:', error, errorInfo);
-    
-    // Log to monitoring service
+
+    // Log to monitoring service.
+    // M20: same treatment as the class ErrorBoundary above — keep
+    // pathname only, drop query / hash / hostname. Query strings
+    // can contain tokens that ended up in the router state when
+    // the error fired.
     const errorData = {
       message: error.message,
       stack: error.stack,
       timestamp: new Date().toISOString(),
-      url: window.location.href,
+      url: window.location.pathname,
       userAgent: navigator.userAgent,
-      ...(typeof errorInfo === 'object' && errorInfo !== null 
-        ? (errorInfo as Record<string, unknown>) 
-        : errorInfo !== undefined ? { info: errorInfo } : {}),
+      ...(typeof errorInfo === 'object' && errorInfo !== null
+        ? (errorInfo as Record<string, unknown>)
+        : errorInfo !== undefined
+          ? { info: errorInfo }
+          : {}),
     };
 
     logger.error('Error data:', errorData);

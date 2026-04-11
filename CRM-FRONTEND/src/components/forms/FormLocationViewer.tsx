@@ -1,18 +1,19 @@
-
 import { MapPin, Navigation, Clock, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FormGeoLocation } from '@/types/form';
+import { getGoogleMapsApiKey } from '@/config/googleMaps';
 
 interface FormLocationViewerProps {
   location: FormGeoLocation;
   readonly?: boolean;
 }
 
-const getGoogleMapsApiKey = (): string => import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim() || '';
-
-export function FormLocationViewer({ location, readonly: _readonly = true }: FormLocationViewerProps) {
+export function FormLocationViewer({
+  location,
+  readonly: _readonly = true,
+}: FormLocationViewerProps) {
   const getAccuracyBadge = (accuracy: number) => {
     if (accuracy <= 5) {
       return <Badge variant="default">High Accuracy</Badge>;
@@ -46,9 +47,7 @@ export function FormLocationViewer({ location, readonly: _readonly = true }: For
           <span>Location Information</span>
           {getAccuracyBadge(location.accuracy)}
         </CardTitle>
-        <CardDescription>
-          GPS coordinates captured during verification
-        </CardDescription>
+        <CardDescription>GPS coordinates captured during verification</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -112,12 +111,8 @@ export function FormLocationViewer({ location, readonly: _readonly = true }: For
                 <div className="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800/60">
                   <div className="text-center">
                     <MapPin className="h-8 w-8 mx-auto text-gray-600 mb-2" />
-                    <p className="text-sm text-gray-600">
-                      Map preview unavailable
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      Google Maps API key not configured
-                    </p>
+                    <p className="text-sm text-gray-600">Map preview unavailable</p>
+                    <p className="text-xs text-gray-600">Google Maps API key not configured</p>
                   </div>
                 </div>
               )}
@@ -126,27 +121,15 @@ export function FormLocationViewer({ location, readonly: _readonly = true }: For
 
           {/* Actions */}
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={openInGoogleMaps}
-            >
+            <Button variant="outline" size="sm" onClick={openInGoogleMaps}>
               <ExternalLink className="h-3 w-3 mr-1" />
               Open in Google Maps
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={openInAppleMaps}
-            >
+            <Button variant="outline" size="sm" onClick={openInAppleMaps}>
               <ExternalLink className="h-3 w-3 mr-1" />
               Open in Apple Maps
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={copyCoordinates}
-            >
+            <Button variant="outline" size="sm" onClick={copyCoordinates}>
               <Navigation className="h-3 w-3 mr-1" />
               Copy Coordinates
             </Button>
@@ -160,15 +143,16 @@ export function FormLocationViewer({ location, readonly: _readonly = true }: For
                 <strong>GPS Accuracy:</strong> ±{location.accuracy} meters
               </p>
               <p>
-                <strong>Quality:</strong> {
-                  location.accuracy <= 5 ? 'High - Suitable for precise location verification' :
-                  location.accuracy <= 20 ? 'Medium - Good for general location verification' :
-                  'Low - May require additional verification'
-                }
+                <strong>Quality:</strong>{' '}
+                {location.accuracy <= 5
+                  ? 'High - Suitable for precise location verification'
+                  : location.accuracy <= 20
+                    ? 'Medium - Good for general location verification'
+                    : 'Low - May require additional verification'}
               </p>
               <p>
-                <strong>Note:</strong> GPS accuracy can be affected by weather conditions, 
-                building structures, and device capabilities.
+                <strong>Note:</strong> GPS accuracy can be affected by weather conditions, building
+                structures, and device capabilities.
               </p>
             </div>
           </div>

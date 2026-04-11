@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
+import { getGoogleMapsApiKey } from '@/config/googleMaps';
 
 const GOOGLE_MAPS_SCRIPT_ID = 'crm-google-maps-script';
 const MARKERCLUSTERER_SCRIPT_ID = 'crm-markerclusterer-script';
-const getGoogleMapsApiKey = (): string => import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim() || '';
 
 // Marker clustering for 200+ markers at enterprise scale
 const loadMarkerClustererScript = async (): Promise<void> => {
@@ -18,7 +18,8 @@ const loadMarkerClustererScript = async (): Promise<void> => {
     const script = document.createElement('script');
     script.id = MARKERCLUSTERER_SCRIPT_ID;
     script.async = true;
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/js-marker-clusterer/1.0.0/markerclusterer_compiled.js';
+    script.src =
+      'https://cdnjs.cloudflare.com/ajax/libs/js-marker-clusterer/1.0.0/markerclusterer_compiled.js';
     script.onload = () => resolve();
     script.onerror = () => reject(new Error('Failed to load MarkerClusterer'));
     document.head.appendChild(script);
@@ -103,13 +104,19 @@ const loadGoogleMapsScript = async (): Promise<void> => {
   }
 
   mapsWindow.__crmGoogleMapsPromise = new Promise<void>((resolve, reject) => {
-    const existingScript = document.getElementById(GOOGLE_MAPS_SCRIPT_ID) as HTMLScriptElement | null;
+    const existingScript = document.getElementById(
+      GOOGLE_MAPS_SCRIPT_ID
+    ) as HTMLScriptElement | null;
 
     if (existingScript) {
       existingScript.addEventListener('load', () => resolve(), { once: true });
-      existingScript.addEventListener('error', () => reject(new Error('Failed to load Google Maps')), {
-        once: true,
-      });
+      existingScript.addEventListener(
+        'error',
+        () => reject(new Error('Failed to load Google Maps')),
+        {
+          once: true,
+        }
+      );
       return;
     }
 
@@ -280,9 +287,7 @@ export function GoogleMarkerMap({
         maxZoom: 15,
         gridSize: 60,
         minimumClusterSize: 3,
-        styles: [
-          { textColor: '#fff', url: '', height: 40, width: 40, textSize: 12 },
-        ],
+        styles: [{ textColor: '#fff', url: '', height: 40, width: 40, textSize: 12 }],
       });
     }
 
