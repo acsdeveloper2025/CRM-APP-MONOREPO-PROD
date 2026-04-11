@@ -376,6 +376,8 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
                   <img
                     src={previewUrl}
                     alt={previewAttachment.originalName}
+                    loading="lazy"
+                    decoding="async"
                     className="max-w-full max-h-[60vh] object-contain"
                   />
                 ) : (
