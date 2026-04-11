@@ -2224,6 +2224,26 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response) =
     const id = String(req.params.id || '');
     const { currentPassword, newPassword } = req.body;
 
+    // M1: the `user.update` permission gate upstream is necessary but
+    // not sufficient here. Without this check, a user with
+    // `user.update` who happened to know another user's current
+    // password (e.g. a temp password that was emailed to them, a
+    // leaked old password) could rotate it and lock the target out.
+    // Restrict cross-user changes to system-bypass roles only; every
+    // other caller must be changing their own password.
+    const callerId = req.user?.id;
+    if (id !== callerId && !hasSystemScopeBypass(req.user)) {
+      logger.warn('changePassword cross-user attempt denied', {
+        callerId,
+        targetId: id,
+      });
+      return res.status(403).json({
+        success: false,
+        message: 'You can only change your own password',
+        error: { code: 'FORBIDDEN' },
+      });
+    }
+
     // Validate input
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
