@@ -966,7 +966,12 @@ export class VerificationTasksController {
         actualCaseId = caseResult.rows[0].id;
       }
 
-      const whereConditions = ['vt.caseId = $1'];
+      // Phase B3 flipped camelizeRow to replace mode, which affects
+      // result rows only — SQL column references still use the
+      // underlying snake_case names. This WHERE clause previously
+      // read `vt.caseId`, which is not a real column; the endpoint
+      // would 500 on every call. Fixed to use the real column.
+      const whereConditions = ['vt.case_id = $1'];
       const queryParams: (string | number | boolean | null | undefined)[] = [actualCaseId];
       let paramIndex = 2;
 
@@ -1239,17 +1244,15 @@ export class VerificationTasksController {
 
       const updateDataAny = updateData as Record<string, unknown>;
       const hasPincodeChange = updateDataAny.pincode !== undefined;
-      const hasAreaChange =
-        updateDataAny.areaId !== undefined || updateDataAny.areaId !== undefined;
+      // Prior code had `updateDataAny.areaId !== undefined || updateDataAny
+      // .areaId !== undefined` — a tautology that always matched the
+      // single field. Collapsed to a single check. The ternary below
+      // had the same duplicated branch.
+      const hasAreaChange = updateDataAny.areaId !== undefined;
 
       if (hasPincodeChange || hasAreaChange) {
         const nextPincode = hasPincodeChange ? updateDataAny.pincode : currentTask.pincode;
-        const nextAreaId =
-          updateDataAny.areaId !== undefined
-            ? updateDataAny.areaId
-            : updateDataAny.areaId !== undefined
-              ? updateDataAny.areaId
-              : currentTask.areaId;
+        const nextAreaId = hasAreaChange ? updateDataAny.areaId : currentTask.areaId;
 
         const territoryValidation =
           await VerificationTaskCreationService.validateTerritoryAndFinancialConfig(pool, {
@@ -1260,10 +1263,13 @@ export class VerificationTasksController {
             areaId: nextAreaId,
           });
 
-        // Normalize/lock territory fields so partial updates cannot leave task inconsistent.
+        // Normalize/lock territory fields so partial updates cannot
+        // leave task inconsistent. Prior code assigned areaId then
+        // immediately `delete updateDataAny.areaId` — the delete
+        // undid the assignment so the validated value never reached
+        // the UPDATE query. Fixed to keep the assignment.
         updateDataAny.pincode = String(nextPincode);
         updateDataAny.areaId = territoryValidation.areaId;
-        delete updateDataAny.areaId;
         updateDataAny.rateTypeId = territoryValidation.rateTypeId;
       }
 
@@ -1460,8 +1466,13 @@ export class VerificationTasksController {
     const rawTaskId = String(req.params.taskId || '');
     const taskId = Array.isArray(rawTaskId) ? String(rawTaskId[0]) : String(rawTaskId || '');
     const body = req.body;
-    const assignedTo = body.assignedTo || body.assignedTo;
-    const assignmentReason = body.assignmentReason || body.assignmentReason;
+    // Prior code had `body.assignedTo || body.assignedTo` and
+    // `body.assignmentReason || body.assignmentReason` — redundant
+    // ORs that were leftover from a half-done camelCase/snake_case
+    // migration. Collapsed to single reads now that the whole
+    // backend is camelCase-only.
+    const assignedTo = body.assignedTo;
+    const assignmentReason = body.assignmentReason;
     const priority = body.priority;
     const userId = req.user?.id;
 

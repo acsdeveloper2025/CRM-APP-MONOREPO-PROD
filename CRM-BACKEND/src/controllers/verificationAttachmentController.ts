@@ -326,8 +326,8 @@ export class VerificationAttachmentController {
               photoType: attachment.photoType,
               geoLocation,
             })),
-            caseId: task.case_id,
-            verificationType: verificationType || task.verification_type,
+            caseId: task.caseId,
+            verificationType: verificationType || task.verificationType,
             submissionId,
             taskId,
           },
@@ -343,10 +343,14 @@ export class VerificationAttachmentController {
         });
       }
 
+      // Phase B3 replaced camelizeRow's additive alias with a
+      // replacing transform, so `task.case_id` and
+      // `task.verification_type` now return undefined. These were
+      // snake_case leftovers from before the flip — converted to
+      // camelCase reads to match the rest of the codebase.
       const targetTaskId = task.id;
-      const targetCaseId = task.case_id; // Auto-derived from task
-      const targetCaseNumber = task.case_number; // Auto-derived from task
-      const verificationTypeToUse = verificationType || task.verification_type; // Prefer payload but fallback to task
+      const targetCaseId = task.caseId; // Auto-derived from task
+      const verificationTypeToUse = verificationType || task.verificationType;
 
       logger.info(
         `🔗 Linked Attachment to Task: ${targetTaskId}, Case: ${targetCaseId}, File: ${files[0]?.originalname}`
@@ -392,20 +396,27 @@ export class VerificationAttachmentController {
               .toFile(thumbnailPath);
           }
 
-          // Save to verification_attachments table
+          // Save to verification_attachments table.
+          //
+          // CRITICAL FIX: the prior INSERT listed `case_id` twice in
+          // the column list and passed both targetCaseId AND
+          // targetCaseNumber into the same column. Postgres rejects
+          // this at parse time with `column "case_id" specified
+          // more than once`, so the entire verification attachment
+          // upload path was broken. Removed the duplicate column
+          // and the stale targetCaseNumber value.
           const attachmentResult = await query(
             `INSERT INTO verification_attachments (
-              case_id, case_id, verification_type, filename, original_name, 
-              mime_type, file_size, file_path, thumbnail_path, uploaded_by, 
+              case_id, verification_type, filename, original_name,
+              mime_type, file_size, file_path, thumbnail_path, uploaded_by,
               geo_location, photo_type, submission_id, verification_task_id, operation_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             ON CONFLICT (operation_id) WHERE operation_id IS NOT NULL
             DO UPDATE SET operation_id = EXCLUDED.operation_id
             RETURNING id, filename, original_name, mime_type, file_size, file_path,
                      thumbnail_path, created_at, photo_type, verification_task_id`,
             [
               targetCaseId,
-              targetCaseNumber,
               verificationTypeToUse,
               file.filename,
               file.originalname,
@@ -582,19 +593,23 @@ export class VerificationAttachmentController {
         queryParams
       );
 
+      // Phase B3: camelizeRow now replaces (rather than aliases)
+      // snake_case keys, so the result rows have camelCase
+      // property names. Prior code read `row.original_name` etc.
+      // which now return undefined after the flip.
       let attachments = result.rows.map(row => ({
         id: row.id,
         filename: row.filename,
-        originalName: row.original_name,
-        mimeType: row.mime_type,
-        size: row.file_size,
-        url: row.file_path,
-        thumbnailUrl: row.thumbnail_path,
-        uploadedAt: row.created_at.toISOString(),
-        photoType: row.photo_type,
-        verificationType: row.verification_type,
-        submissionId: row.submission_id,
-        geoLocation: row.geo_location,
+        originalName: row.originalName,
+        mimeType: row.mimeType,
+        size: row.fileSize,
+        url: row.filePath,
+        thumbnailUrl: row.thumbnailPath,
+        uploadedAt: (row.createdAt as Date).toISOString(),
+        photoType: row.photoType,
+        verificationType: row.verificationType,
+        submissionId: row.submissionId,
+        geoLocation: row.geoLocation,
       }));
 
       logger.info('📊 Found', attachments.length, 'images in verification_attachments table');
