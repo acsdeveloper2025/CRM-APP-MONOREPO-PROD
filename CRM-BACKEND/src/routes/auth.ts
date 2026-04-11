@@ -4,8 +4,11 @@ import { login, logout, getCurrentUser, refreshToken } from '@/controllers/authC
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
-import { authRateLimit } from '@/middleware/rateLimiter';
-import { EnterpriseRateLimit } from '@/middleware/enterpriseRateLimit';
+import {
+  authRateLimit,
+  resetAuthRateLimitForIp,
+  resetRoleRateLimitForUser,
+} from '@/middleware/rateLimiter';
 import { logger } from '@/config/logger';
 
 const router = Router();
@@ -26,14 +29,12 @@ const loginValidation = [
     .withMessage('Password must be at least 6 characters'),
 ];
 
-// Rate limit reset endpoint
-const resetRateLimit = async (req: Request, res: Response) => {
+// Rate limit reset endpoint — clears the authRateLimit counter for the
+// caller's IP. Used to unlock legitimate users who got rate-limited.
+const resetRateLimit = (req: Request, res: Response) => {
   try {
-    const { ip } = req;
-    const loginKey = `POST:/api/auth/login:${ip}`;
-
-    // Reset rate limit for login endpoint
-    const resetSuccess = await EnterpriseRateLimit.reset(loginKey);
+    const ip = req.ip || 'unknown';
+    const resetSuccess = resetAuthRateLimitForIp(ip);
 
     if (resetSuccess) {
       res.json({
@@ -55,11 +56,13 @@ const resetRateLimit = async (req: Request, res: Response) => {
   }
 };
 
-// Rate limit reset for specific user endpoint
-const resetUserRateLimit = async (req: Request, res: Response) => {
+// Rate limit reset for a specific user — clears the role-based limiter
+// counter for the given userId. If an IP is also supplied, the auth
+// limiter counter for that IP is cleared too.
+const resetUserRateLimit = (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
-    const { ip } = req.body; // IP address to reset rate limit for
+    const { ip } = req.body as { ip?: string };
 
     if (!userId) {
       return res.status(400).json({
@@ -68,26 +71,12 @@ const resetUserRateLimit = async (req: Request, res: Response) => {
       });
     }
 
-    // If IP is provided, reset for specific IP, otherwise reset for all common patterns
-    const keysToReset = [];
-
-    if (ip) {
-      keysToReset.push(`POST:/api/auth/login:${ip}`);
-    } else {
-      // Reset common rate limit patterns for this user
-      keysToReset.push(
-        `POST:/api/auth/login:${userId}`,
-        `user:${userId}:login`,
-        `user:${userId}:auth`
-      );
-    }
-
     let resetCount = 0;
-    for (const key of keysToReset) {
-      const resetSuccess = await EnterpriseRateLimit.reset(key);
-      if (resetSuccess) {
-        resetCount++;
-      }
+    if (resetRoleRateLimitForUser(userId)) {
+      resetCount += 1;
+    }
+    if (ip && resetAuthRateLimitForIp(ip)) {
+      resetCount += 1;
     }
 
     res.json({

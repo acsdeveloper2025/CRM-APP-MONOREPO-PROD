@@ -3,8 +3,7 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
-import { listRateLimit } from '@/middleware/rateLimiter';
-import { EnterpriseRateLimit, EnterpriseRateLimits } from '../middleware/enterpriseRateLimit';
+import { listRateLimit, roleBasedRateLimit } from '@/middleware/rateLimiter';
 import {
   EnterpriseCache,
   EnterpriseCacheConfigs,
@@ -260,7 +259,7 @@ const _reworkValidation = [
 router.get(
   '/',
   authorize('case.view'),
-  EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
+  roleBasedRateLimit,
   EnterpriseCache.create(EnterpriseCacheConfigs.caseList),
   listCasesValidation,
   validate,
@@ -274,7 +273,7 @@ router.get(
 router.post(
   '/config-validation',
   authorize('case.create'),
-  EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
+  roleBasedRateLimit,
   [
     body('clientId').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
     body('productId').isInt({ min: 1 }).withMessage('Product ID must be a positive integer'),
@@ -299,7 +298,7 @@ router.post(
 router.post(
   '/create',
   authorize('case.create'),
-  EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
+  roleBasedRateLimit,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate),
   validateCaseCreationAccess,
   createCase
@@ -312,7 +311,7 @@ router.post(
 router.post(
   '/dedupe/global-search',
   authorize('case.view'),
-  EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
+  roleBasedRateLimit,
   [
     body('mobile').optional().trim(),
     body('pan').optional().trim(),
@@ -332,7 +331,7 @@ router.post(
 router.get(
   '/:id/summary',
   authorize('case.view'),
-  EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
+  roleBasedRateLimit,
   [param('id').trim().notEmpty().withMessage('Case ID is required')],
   validate,
   validateCaseAccess,
@@ -344,7 +343,7 @@ router.get(
 router.get(
   '/export',
   authorize('case.view'),
-  EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
+  roleBasedRateLimit,
   [
     query('exportType')
       .optional()
@@ -365,7 +364,7 @@ router.get(
 router.get(
   '/:id',
   authorize('case.view'),
-  EnterpriseRateLimit.roleBasedLimiter(EnterpriseRateLimits.byRole),
+  roleBasedRateLimit,
   [param('id').trim().notEmpty().withMessage('Case ID is required')],
   validate,
   validateCaseAccess,
