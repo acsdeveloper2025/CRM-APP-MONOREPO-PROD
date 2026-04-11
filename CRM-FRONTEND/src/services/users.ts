@@ -12,14 +12,14 @@ import type {
   BulkUserOperation,
   RolePermission,
   UserClientAssignment,
-  UserProductAssignment
+  UserProductAssignment,
 } from '@/types/user';
 import type { FieldAgentAssignment } from '@/types/territoryAssignment';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
 import type { Role } from '@/types/auth';
 import { logger } from '@/utils/logger';
-
-
+import { validateResponse } from './schemas/runtime';
+import { UserSchema, UserListSchema } from './schemas/user.schema';
 
 export interface UserQuery extends PaginationQuery {
   role?: Role;
@@ -45,11 +45,25 @@ export interface SessionQuery extends PaginationQuery {
 export class UsersService {
   // User CRUD operations
   async getUsers(query: UserQuery = {}): Promise<ApiResponse<User[]>> {
-    return apiService.get<User[]>('/users', query);
+    const response = await apiService.get<User[]>('/users', query);
+    if (response.success && Array.isArray(response.data)) {
+      validateResponse(UserListSchema, response.data, {
+        service: 'users',
+        endpoint: 'GET /users',
+      });
+    }
+    return response;
   }
 
   async getUserById(id: string): Promise<ApiResponse<User>> {
-    return apiService.get<User>(`/users/${id}`);
+    const response = await apiService.get<User>(`/users/${id}`);
+    if (response.success && response.data) {
+      validateResponse(UserSchema, response.data, {
+        service: 'users',
+        endpoint: 'GET /users/:id',
+      });
+    }
+    return response;
   }
 
   async getUserProfile(id: string): Promise<ApiResponse<UserProfile>> {
@@ -85,20 +99,31 @@ export class UsersService {
     return apiService.post<void>('/users/reset-password', data);
   }
 
-  async generateTemporaryPassword(userId: string): Promise<ApiResponse<{ temporaryPassword: string }>> {
-    return apiService.post<{ temporaryPassword: string }>(`/users/${userId}/generate-temp-password`);
+  async generateTemporaryPassword(
+    userId: string
+  ): Promise<ApiResponse<{ temporaryPassword: string }>> {
+    return apiService.post<{ temporaryPassword: string }>(
+      `/users/${userId}/generate-temp-password`
+    );
   }
 
   // Profile photo management
-  async uploadProfilePhoto(userId: string, file: File): Promise<ApiResponse<{ profilePhotoUrl: string }>> {
+  async uploadProfilePhoto(
+    userId: string,
+    file: File
+  ): Promise<ApiResponse<{ profilePhotoUrl: string }>> {
     const formData = new FormData();
     formData.append('photo', file);
-    
-    return apiService.post<{ profilePhotoUrl: string }>(`/users/${userId}/profile-photo`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+
+    return apiService.post<{ profilePhotoUrl: string }>(
+      `/users/${userId}/profile-photo`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
   }
 
   async deleteProfilePhoto(userId: string): Promise<ApiResponse<void>> {
@@ -110,7 +135,10 @@ export class UsersService {
     return apiService.get<UserActivity[]>('/users/activities', query);
   }
 
-  async getUserActivityById(userId: string, query: ActivityQuery = {}): Promise<ApiResponse<UserActivity[]>> {
+  async getUserActivityById(
+    userId: string,
+    query: ActivityQuery = {}
+  ): Promise<ApiResponse<UserActivity[]>> {
     return apiService.get<UserActivity[]>(`/users/${userId}/activities`, query);
   }
 
@@ -154,18 +182,25 @@ export class UsersService {
   }
 
   // Bulk operations
-  async bulkUserOperation(operation: BulkUserOperation): Promise<ApiResponse<{ success: number; failed: number; errors: string[] }>> {
+  async bulkUserOperation(
+    operation: BulkUserOperation
+  ): Promise<ApiResponse<{ success: number; failed: number; errors: string[] }>> {
     return apiService.post('/users/bulk-operation', operation);
   }
 
-  async bulkActivateUsers(userIds: string[]): Promise<ApiResponse<{ success: number; failed: number }>> {
+  async bulkActivateUsers(
+    userIds: string[]
+  ): Promise<ApiResponse<{ success: number; failed: number }>> {
     return this.bulkUserOperation({
       userIds,
       operation: 'activate',
     });
   }
 
-  async bulkDeactivateUsers(userIds: string[], reason?: string): Promise<ApiResponse<{ success: number; failed: number }>> {
+  async bulkDeactivateUsers(
+    userIds: string[],
+    reason?: string
+  ): Promise<ApiResponse<{ success: number; failed: number }>> {
     return this.bulkUserOperation({
       userIds,
       operation: 'deactivate',
@@ -173,14 +208,19 @@ export class UsersService {
     });
   }
 
-  async bulkDeleteUsers(userIds: string[]): Promise<ApiResponse<{ success: number; failed: number }>> {
+  async bulkDeleteUsers(
+    userIds: string[]
+  ): Promise<ApiResponse<{ success: number; failed: number }>> {
     return this.bulkUserOperation({
       userIds,
       operation: 'delete',
     });
   }
 
-  async bulkChangeRole(userIds: string[], role: Role): Promise<ApiResponse<{ success: number; failed: number }>> {
+  async bulkChangeRole(
+    userIds: string[],
+    role: Role
+  ): Promise<ApiResponse<{ success: number; failed: number }>> {
     return this.bulkUserOperation({
       userIds,
       operation: 'changeRole',
@@ -189,10 +229,12 @@ export class UsersService {
   }
 
   // Import/Export
-  async importUsers(file: File): Promise<ApiResponse<{ imported: number; failed: number; errors: string[] }>> {
+  async importUsers(
+    file: File
+  ): Promise<ApiResponse<{ imported: number; failed: number; errors: string[] }>> {
     const formData = new FormData();
     formData.append('file', file);
-    
+
     return apiService.post('/users/import', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -202,7 +244,7 @@ export class UsersService {
 
   async exportUsers(query: UserQuery = {}, format: 'CSV' | 'EXCEL' = 'EXCEL'): Promise<Blob> {
     const response = await apiService.postRaw<Blob>(`/users/export?format=${format}`, query, {
-        responseType: 'blob'
+      responseType: 'blob',
     });
     return response.data;
   }
@@ -239,40 +281,44 @@ export class UsersService {
   async getFieldUsersByPincode(pincodeCode: string): Promise<ApiResponse<User[]>> {
     try {
       // Use territory assignments API to get field agents assigned to this pincode
-      const response = await apiService.get<FieldAgentAssignment[]>('/territory-assignments/field-agents', {
-        pincodeId: pincodeCode,
-        isActive: true,
-        limit: 100
-      });
+      const response = await apiService.get<FieldAgentAssignment[]>(
+        '/territory-assignments/field-agents',
+        {
+          pincodeId: pincodeCode,
+          isActive: true,
+          limit: 100,
+        }
+      );
 
       // Extract unique users from the territory assignments response
       if (response.data && Array.isArray(response.data)) {
-        const users = response.data.map((assignment) => ({
-          id: assignment.userId,
-          name: assignment.userName,
-          username: assignment.username,
-          employeeId: assignment.employeeId,
-          role: 'FIELD_AGENT' as Role,
-          isActive: assignment.isActive,
-          email: assignment.email || `${assignment.username}@example.com` // Fallback email if missing
-        } as User));
+        const users = response.data.map(
+          (assignment) =>
+            ({
+              id: assignment.userId,
+              name: assignment.userName,
+              username: assignment.username,
+              employeeId: assignment.employeeId,
+              role: 'FIELD_AGENT' as Role,
+              isActive: assignment.isActive,
+              email: assignment.email || `${assignment.username}@example.com`, // Fallback email if missing
+            }) as User
+        );
 
         // Remove duplicates based on user ID
-        const uniqueUsers = Array.from(
-          new Map(users.map(user => [user.id, user])).values()
-        );
+        const uniqueUsers = Array.from(new Map(users.map((user) => [user.id, user])).values());
 
         return {
           success: true,
           data: uniqueUsers,
-          message: 'Field users retrieved successfully'
+          message: 'Field users retrieved successfully',
         };
       }
 
       return {
         success: true,
         data: [],
-        message: 'No field users found for this pincode'
+        message: 'No field users found for this pincode',
       };
     } catch (error) {
       logger.error('Error fetching field users by pincode:', error);
@@ -289,7 +335,9 @@ export class UsersService {
     return apiService.get('/users/designations');
   }
 
-  async getDepartmentStats(): Promise<ApiResponse<{ department: string; userCount: number; activeCount: number }[]>> {
+  async getDepartmentStats(): Promise<
+    ApiResponse<{ department: string; userCount: number; activeCount: number }[]>
+  > {
     return apiService.get('/users/departments/stats');
   }
 
@@ -325,7 +373,9 @@ export class UsersService {
   }
 
   async assignPincodesToUser(userId: string, pincodeIds: number[]): Promise<ApiResponse<void>> {
-    return apiService.post(`/territory-assignments/field-agents/${userId}/pincodes`, { pincodeIds });
+    return apiService.post(`/territory-assignments/field-agents/${userId}/pincodes`, {
+      pincodeIds,
+    });
   }
 
   async removePincodeAssignment(userId: string, pincodeId: number): Promise<ApiResponse<void>> {

@@ -1,4 +1,6 @@
 import { apiService } from '@/services/api';
+import { validateResponse } from './schemas/runtime';
+import { NotificationListSchema } from './schemas/notification.schema';
 
 export interface AppNotification {
   id: string;
@@ -55,6 +57,13 @@ export const notificationService = {
       { useCache: false }
     )) as unknown as NotificationListApiResponse;
 
+    if (Array.isArray(response.data)) {
+      validateResponse(NotificationListSchema, response.data, {
+        service: 'notifications',
+        endpoint: 'GET /notifications',
+      });
+    }
+
     return {
       items: response.data || [],
       unreadCount: response.unreadCount || 0,
@@ -72,7 +81,9 @@ export const notificationService = {
   },
 
   async markUnread(notificationId: string) {
-    return apiService.put(`/notifications/${notificationId}/unread`, undefined, { useCache: false });
+    return apiService.put(`/notifications/${notificationId}/unread`, undefined, {
+      useCache: false,
+    });
   },
 
   async markAllRead() {
@@ -90,9 +101,13 @@ export const notificationService = {
   async validateNavigationTarget(notification: AppNotification): Promise<string | null> {
     try {
       if (notification.taskId) {
-        const response = await apiService.get(`/verification-tasks/${notification.taskId}`, undefined, {
-          useCache: false,
-        });
+        const response = await apiService.get(
+          `/verification-tasks/${notification.taskId}`,
+          undefined,
+          {
+            useCache: false,
+          }
+        );
         return response.success ? `/tasks/${notification.taskId}` : null;
       }
 
