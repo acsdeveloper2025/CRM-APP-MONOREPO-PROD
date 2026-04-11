@@ -233,8 +233,12 @@ export const usePerformanceMonitor = (componentName: string) => {
         renderTimes.current = renderTimes.current.slice(-100);
       }
 
-      // Log performance warnings in development
-      if (process.env.NODE_ENV === 'development') {
+      // Log performance warnings in development.
+      // M16: previously used `process.env.NODE_ENV` which is
+      // `undefined` in the Vite browser build — the warning path
+      // was silently dead. Use `import.meta.env.DEV` so the guard
+      // actually fires in dev and stays off in prod.
+      if (import.meta.env.DEV) {
         if (renderTime > 16) { // 60fps threshold
           logger.warn(`${componentName} render took ${renderTime.toFixed(2)}ms (>16ms)`);
         }

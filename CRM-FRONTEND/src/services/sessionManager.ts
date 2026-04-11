@@ -6,7 +6,13 @@ import { logger } from '@/utils/logger';
 // Timeouts in seconds
 const WARNING_TIMEOUT = 540; // 9 minutes
 const LOGOUT_TIMEOUT = 600; // 10 minutes
-const CHECK_INTERVAL = 1000; // 1 second
+// M17: two polling cadences. When the tab is visible we still need a
+// 1s tick so the "30 seconds remaining" warning updates smoothly, but
+// a backgrounded tab doesn't need that resolution — bump to 30s to
+// stop waking up laptops from low-power idle and to cut /auth/me
+// pressure when dozens of tabs sit open across a fleet.
+const CHECK_INTERVAL_VISIBLE = 1000; // 1 second
+const CHECK_INTERVAL_HIDDEN = 30_000; // 30 seconds
 
 type TimeoutCallback = (remainingSeconds: number) => void;
 
@@ -16,6 +22,7 @@ class SessionManager {
   private intervalId: NodeJS.Timeout | null = null;
   private eventListenersAttached = false;
   private storageListenerAttached = false;
+  private visibilityListenerAttached = false;
 
   private events = [
     'mousemove',
@@ -41,6 +48,7 @@ class SessionManager {
     this.warningCallback = onWarning;
     this.startStorageListener();
     this.startActivityListeners();
+    this.startVisibilityListener();
     this.startPolling();
     this.updateLastActivity(); // Reset on init
   }
@@ -49,6 +57,7 @@ class SessionManager {
     this.stopPolling();
     this.stopActivityListeners();
     this.stopStorageListener();
+    this.stopVisibilityListener();
     this.warningCallback = null;
   }
 
@@ -120,7 +129,11 @@ class SessionManager {
   };
 
   private startPolling() {
-    this.intervalId = setInterval(this.checkSession, CHECK_INTERVAL);
+    const interval =
+      typeof document !== 'undefined' && document.hidden
+        ? CHECK_INTERVAL_HIDDEN
+        : CHECK_INTERVAL_VISIBLE;
+    this.intervalId = setInterval(this.checkSession, interval);
   }
 
   private stopPolling() {
@@ -129,6 +142,34 @@ class SessionManager {
       this.intervalId = null;
     }
   }
+
+  private startVisibilityListener() {
+    if (this.visibilityListenerAttached || typeof document === 'undefined') {
+      return;
+    }
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
+    this.visibilityListenerAttached = true;
+  }
+
+  private stopVisibilityListener() {
+    if (!this.visibilityListenerAttached || typeof document === 'undefined') {
+      return;
+    }
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+    this.visibilityListenerAttached = false;
+  }
+
+  // M17: restart the poll at the cadence appropriate for the current
+  // visibility state. We clear and recreate the interval so a tab that
+  // was hidden for 30 minutes and becomes visible immediately switches
+  // back to the 1s warning-update cadence.
+  private handleVisibilityChange = () => {
+    if (!this.intervalId) {
+      return;
+    }
+    this.stopPolling();
+    this.startPolling();
+  };
 
   private checkSession = () => {
     // 1. Check if persistent session exists (refresh token)
