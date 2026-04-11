@@ -505,7 +505,9 @@ export class MobileLocationController {
       const userId = req.user?.id;
       const startDate = (req.query.startDate as unknown as string) || '';
       const endDate = (req.query.endDate as unknown as string) || '';
-      const limit = Number(req.query.limit) || 100;
+      // M11: clamp so ?limit=999999999 cannot force a full-table scan
+      // of user_locations and blow out memory.
+      const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 500);
 
       const where: {
         userId?: string;

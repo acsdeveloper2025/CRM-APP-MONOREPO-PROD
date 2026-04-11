@@ -180,9 +180,12 @@ export const getDeduplicationHistory = async (req: AuthenticatedRequest, res: Re
  */
 export const getDuplicateClusters = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 20;
-    const offset = (Number(page) - 1) * Number(limit);
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    // M12: deduplication clustering is expensive (cross-join over
+    // PAN/Aadhaar/phone/bank). Clamp the limit so a single request
+    // cannot coerce the planner into a full-table pass.
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 500);
+    const offset = (page - 1) * limit;
 
     // Find cases with potential duplicates based on exact matches
     const query = `
