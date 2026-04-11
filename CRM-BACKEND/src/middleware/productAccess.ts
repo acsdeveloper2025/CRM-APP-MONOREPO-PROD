@@ -5,6 +5,7 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/types/auth';
 import { hasSystemScopeBypass, isScopedOperationsUser } from '@/security/rbacAccess';
 import { resolveDataScope } from '@/security/dataScope';
+import { resolveCaseByIdentifier } from '@/utils/caseLookup';
 
 /**
  * Product Access Control Middleware
@@ -164,10 +165,11 @@ export const validateCaseProductAccess = async (
       return next();
     }
 
-    // Get the product ID for the case
-    const caseResult = await query('SELECT product_id FROM cases WHERE id = $1', [caseId]);
+    // Resolve the case by either numeric case_id or UUID id.
+    // Shared helper guarantees validateCaseAccess uses the same row.
+    const resolvedCase = await resolveCaseByIdentifier(caseId);
 
-    if (caseResult.rows.length === 0) {
+    if (!resolvedCase) {
       return res.status(404).json({
         success: false,
         message: 'Case not found',
@@ -175,7 +177,18 @@ export const validateCaseProductAccess = async (
       });
     }
 
-    const productId = caseResult.rows[0].product_id;
+    const productId = resolvedCase.productId;
+
+    // Cases without a product can't be scope-matched against product
+    // assignments — treat as explicit denial for scoped users instead of
+    // silently falling through to the 0 === !includes(null) branch.
+    if (productId == null) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: This case has no product association',
+        error: { code: 'CASE_PRODUCT_UNASSIGNED' },
+      });
+    }
 
     // Get assigned product IDs for the BACKEND_USER user
     const assignedProductIds = await getAssignedProductIds(userId);
