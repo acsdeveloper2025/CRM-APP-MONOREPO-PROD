@@ -1,3 +1,8 @@
+// Prettier config for CRM-FRONTEND.
+//
+// `jsxBracketSameLine` was deprecated in Prettier 2.4 and removed in 3.0
+// — every run against this repo emitted that warning. Renamed to the
+// current `bracketSameLine` equivalent.
 export default {
   semi: true,
   trailingComma: 'es5',
@@ -8,7 +13,7 @@ export default {
   endOfLine: 'auto',
   arrowParens: 'always',
   bracketSpacing: true,
-  jsxBracketSameLine: false,
+  bracketSameLine: false,
   jsxSingleQuote: false,
   quoteProps: 'as-needed',
 };

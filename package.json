@@ -19,7 +19,8 @@
   },
   "lint-staged": {
     "CRM-FRONTEND/src/**/*.{ts,tsx}": [
-      "cd CRM-FRONTEND && npm run lint:fix"
+      "cd CRM-FRONTEND && npm run lint:fix",
+      "cd CRM-FRONTEND && npx prettier --write"
     ],
     "CRM-BACKEND/src/**/*.ts": [
       "cd CRM-BACKEND && npm run lint:fix"
