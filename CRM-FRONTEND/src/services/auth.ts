@@ -96,12 +96,12 @@ export class AuthService {
         // non-strict mode a shape mismatch logs a warning and lets the
         // raw data through so a new backend field never breaks login —
         // but drift is loud in the browser console and any log sink.
-        const validated = validateResponse<User>(UserSchema as unknown as typeof UserSchema, response.data, {
+        validateResponse(UserSchema, response.data, {
           service: 'auth',
           endpoint: 'GET /auth/me',
-        }) as User;
-        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(validated));
-        return validated;
+        });
+        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data));
+        return response.data;
       }
       return null;
     } catch (error) {

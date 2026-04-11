@@ -9,6 +9,8 @@ import type {
   CreateCaseWithMultipleTasksResponse
 } from '@/types/dto/case.dto';
 import type { CaseConfigValidationResult } from '@/types/rateManagement';
+import { validateResponse } from './schemas/runtime';
+import { CaseSchema, CaseListResponseSchema } from './schemas/case.schema';
 
 export interface CaseListQuery extends PaginationQuery {
   status?: string;
@@ -73,11 +75,25 @@ export class CasesService extends BaseApiService {
   }
 
   async getCases(query: CaseListQuery = {}): Promise<ApiResponse<CaseListResponse>> {
-    return this.get('', query as unknown as Record<string, unknown>);
+    const response = await this.get<CaseListResponse>('', query as unknown as Record<string, unknown>);
+    if (response.success && response.data) {
+      validateResponse(CaseListResponseSchema, response.data, {
+        service: 'cases',
+        endpoint: 'GET /cases',
+      });
+    }
+    return response;
   }
 
   async getCaseById(id: string): Promise<ApiResponse<Case>> {
-    return this.get(`/${id}`);
+    const response = await this.get<Case>(`/${id}`);
+    if (response.success && response.data) {
+      validateResponse(CaseSchema, response.data, {
+        service: 'cases',
+        endpoint: 'GET /cases/:id',
+      });
+    }
+    return response;
   }
 
   async createCaseWithMultipleTasks(payload: CreateCaseWithMultipleTasksPayload): Promise<ApiResponse<CreateCaseWithMultipleTasksResponse>> {
