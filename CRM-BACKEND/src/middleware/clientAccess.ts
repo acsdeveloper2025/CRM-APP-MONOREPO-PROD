@@ -6,6 +6,7 @@ import type { AuthenticatedRequest } from './auth';
 import { getAssignedProductIds } from './productAccess';
 import { hasSystemScopeBypass, isScopedOperationsUser } from '@/security/rbacAccess';
 import { resolveDataScope } from '@/security/dataScope';
+import { resolveCaseByIdentifier } from '@/utils/caseLookup';
 
 interface RequestWithClientFilter extends AuthenticatedRequest {
   clientFilter?: number[];
@@ -176,17 +177,11 @@ export const validateCaseAccess = async (
       return next();
     }
 
-    // Get the client ID for the case
-    // Handle both numeric case IDs and UUID case IDs
-    const isNumeric = /^\d+$/.test(caseId);
-    const caseQuery = isNumeric
-      ? 'SELECT client_id FROM cases WHERE case_id = $1'
-      : 'SELECT client_id FROM cases WHERE id = $1';
-    const queryParam = isNumeric ? parseInt(caseId) : caseId;
+    // Resolve the case by either numeric case_id or UUID id.
+    // Shared helper guarantees validateCaseProductAccess uses the same row.
+    const resolvedCase = await resolveCaseByIdentifier(caseId);
 
-    const caseResult = await query(caseQuery, [queryParam]);
-
-    if (caseResult.rows.length === 0) {
+    if (!resolvedCase) {
       return res.status(404).json({
         success: false,
         message: 'Case not found',
@@ -194,7 +189,7 @@ export const validateCaseAccess = async (
       });
     }
 
-    const caseClientId = caseResult.rows[0].client_id;
+    const caseClientId = resolvedCase.clientId;
 
     // Get assigned client IDs for the BACKEND_USER user
     const assignedClientIds = await getAssignedClientIds(userId);

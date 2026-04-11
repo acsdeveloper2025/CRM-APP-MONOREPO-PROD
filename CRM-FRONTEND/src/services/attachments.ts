@@ -60,9 +60,16 @@ class AttachmentsService extends BaseApiService {
   }
 
   /**
-   * Upload attachments for a case
+   * Build the multipart form body shared by upload and bulk-upload.
+   *
+   * `includeTaskId` controls whether the verificationTaskId field is appended
+   * — bulk upload historically ignored that field, so the flag keeps the
+   * wire format identical to before the refactor.
    */
-  async uploadAttachments(data: UploadAttachmentData): Promise<ApiResponse<Attachment[]>> {
+  private buildUploadFormData(
+    data: UploadAttachmentData,
+    options: { includeTaskId: boolean }
+  ): FormData {
     const formData = new FormData();
     formData.append('caseId', data.caseId.toString());
 
@@ -78,14 +85,22 @@ class AttachmentsService extends BaseApiService {
       formData.append('isPublic', data.isPublic.toString());
     }
 
-    if (data.verificationTaskId) {
+    if (options.includeTaskId && data.verificationTaskId) {
       formData.append('verificationTaskId', data.verificationTaskId);
     }
 
-    data.files.forEach((file) => {
+    data.files.forEach(file => {
       formData.append('files', file);
     });
 
+    return formData;
+  }
+
+  /**
+   * Upload attachments for a case
+   */
+  async uploadAttachments(data: UploadAttachmentData): Promise<ApiResponse<Attachment[]>> {
+    const formData = this.buildUploadFormData(data, { includeTaskId: true });
     return this.post('/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -96,26 +111,10 @@ class AttachmentsService extends BaseApiService {
   /**
    * Bulk upload attachments
    */
-  async bulkUploadAttachments(data: UploadAttachmentData): Promise<ApiResponse<Attachment[]>> {
-    const formData = new FormData();
-    formData.append('caseId', data.caseId.toString());
-
-    if (data.description) {
-      formData.append('description', data.description);
-    }
-
-    if (data.category) {
-      formData.append('category', data.category);
-    }
-
-    if (data.isPublic !== undefined) {
-      formData.append('isPublic', data.isPublic.toString());
-    }
-
-    data.files.forEach((file) => {
-      formData.append('files', file);
-    });
-
+  async bulkUploadAttachments(
+    data: UploadAttachmentData
+  ): Promise<ApiResponse<Attachment[]>> {
+    const formData = this.buildUploadFormData(data, { includeTaskId: false });
     return this.post('/bulk-upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
