@@ -13,11 +13,32 @@
 //   const verdict = await verifyFileMagicBytes(buffer, file.mimetype);
 //   if (!verdict.ok) { return res.status(400).json(...); }
 //
-// file-type v16 is CommonJS and works with the backend's tsconfig
-// without needing ESM interop gymnastics.
+// file-type v21+ is ESM-only but the backend's tsconfig is CommonJS,
+// so a static `import` would be transpiled to `require('file-type')`
+// and fail at runtime with ERR_REQUIRE_ESM. The two supported ways
+// around this are (a) switching the whole backend to NodeNext module
+// resolution, which is a very large change, or (b) loading the
+// package via a dynamic import wrapped in `new Function` so TS does
+// not downlevel it. We pick (b) — it's confined to this one file and
+// keeps the rest of the codebase on CommonJS.
+//
+// See https://github.com/microsoft/TypeScript/issues/43329
 
-import { fromBuffer, type FileTypeResult } from 'file-type';
+import type { FileTypeResult } from 'file-type';
 import { logger } from '@/config/logger';
+
+// eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+const importFileType = new Function('return import("file-type")') as () => Promise<
+  typeof import('file-type')
+>;
+
+let cachedFileTypeModule: typeof import('file-type') | null = null;
+async function loadFileType(): Promise<typeof import('file-type')> {
+  if (!cachedFileTypeModule) {
+    cachedFileTypeModule = await importFileType();
+  }
+  return cachedFileTypeModule;
+}
 
 export interface FileGuardVerdict {
   ok: boolean;
@@ -84,7 +105,8 @@ export async function verifyFileMagicBytes(
 
   let detected: FileTypeResult | undefined;
   try {
-    detected = await fromBuffer(buffer);
+    const { fileTypeFromBuffer } = await loadFileType();
+    detected = await fileTypeFromBuffer(buffer);
   } catch (error) {
     logger.warn('file-type sniffing failed:', error);
     return {
