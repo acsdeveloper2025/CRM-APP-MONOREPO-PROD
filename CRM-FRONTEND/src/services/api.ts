@@ -255,28 +255,42 @@ class ApiService {
           isRefreshing = true;
 
           try {
-            const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-            
-            if (!refreshToken) {
-              throw new Error('No refresh token available');
-            }
+            // Phase E5 follow-up: refresh tokens live in an HttpOnly
+            // cookie now (see backend/src/controllers/authController
+            // .ts REFRESH_COOKIE_* helpers). The cookie is scoped to
+            // /api/auth/refresh-token and is sent automatically
+            // because withCredentials: true is set on the axios
+            // instance below. Legacy localStorage value is only used
+            // as a migration fallback for users whose previous build
+            // stored it there; we clear it on the first successful
+            // refresh to close the XSS-exfiltration hazard.
+            const legacyBodyToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+            const refreshBody = legacyBodyToken ? { refreshToken: legacyBodyToken } : {};
 
             // Call backend refresh endpoint
             // Using a fresh axios instance to avoid interceptors
             this.incrementActiveRequests();
             let response;
             try {
-              response = await axios.post(`${this.getOptimalApiUrl()}/auth/refresh-token`, {
-                refreshToken,
-              }, {
-                withCredentials: true, // Important for cookies if used
-                headers: {
-                  'Content-Type': 'application/json'
-                  // NO Authorization header
+              response = await axios.post(
+                `${this.getOptimalApiUrl()}/auth/refresh-token`,
+                refreshBody,
+                {
+                  withCredentials: true, // Sends the HttpOnly cookie
+                  headers: {
+                    'Content-Type': 'application/json',
+                    // NO Authorization header
+                  },
                 }
-              });
+              );
             } finally {
               this.decrementActiveRequests();
+            }
+
+            // Migration cleanup: drop the legacy localStorage value
+            // once the cookie-backed refresh has succeeded.
+            if (legacyBodyToken) {
+              localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
             }
 
             // Extract new token
@@ -723,29 +737,34 @@ class ApiService {
         // Trigger refresh manually
         isRefreshing = true;
         try {
-          const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-          if (!refreshToken) {
-            throw new Error('No refresh token');
-          }
-          
-          // Note: we are inside safeFetch which already incremented activeRequests.
-          // The refresh call is another fetch - but we do manually. 
-          // We shouldn't necessarily track THIS internal refresh request as user activity, 
-          // but we SHOULD keep the overall safeFetch marked as active. 
-          // So no changes needed here regarding increment/decrement.
-  
+          // Phase E5 follow-up: cookie-first with legacy-body
+          // fallback for users upgrading from a pre-flip build.
+          // `credentials: 'include'` sends the HttpOnly cookie; if
+          // the user has already migrated, the body payload is
+          // empty and the backend reads the cookie.
+          const legacyBodyToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+          const refreshBody = legacyBodyToken ? { refreshToken: legacyBodyToken } : {};
+
           const refreshResponse = await fetch(`${this.getOptimalApiUrl()}/auth/refresh-token`, {
             method: 'POST',
-            headers: { 
+            headers: {
               'Content-Type': 'application/json',
               // NO Authorization header
             },
-            body: JSON.stringify({ refreshToken }),
-            credentials: 'include', // Important for refresh token cookie if used
+            body: JSON.stringify(refreshBody),
+            credentials: 'include', // Sends the HttpOnly cookie
           });
-  
+
           if (!refreshResponse.ok) {
             throw new Error('Refresh failed');
+          }
+
+          // Migration cleanup: first successful cookie-or-body
+          // refresh means the cookie is in place; drop the legacy
+          // localStorage value so the XSS-exfiltration hazard is
+          // closed on subsequent requests.
+          if (legacyBodyToken) {
+            localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
           }
           
           const refreshData = await refreshResponse.json();

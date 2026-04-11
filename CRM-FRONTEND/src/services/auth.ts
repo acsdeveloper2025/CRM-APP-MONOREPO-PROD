@@ -6,20 +6,42 @@ import { validateResponse } from './schemas/runtime';
 import { UserSchema } from './schemas/user.schema';
 
 export class AuthService {
+  /**
+   * Phase E5 follow-up (item 3): refresh tokens live in an HttpOnly
+   * cookie now. `ensureAccessToken` tries the cookie-only refresh
+   * path first (the browser sends `crm_refresh_token` automatically
+   * because axios is configured with `withCredentials: true` and the
+   * cookie's path matches `/api/auth/refresh-token`).
+   *
+   * Migration fallback: if localStorage still has a legacy refresh
+   * token from a pre-flip build, send it in the body so the user
+   * doesn't get forced to re-login on first page load after the
+   * upgrade. The backend's login response sets the cookie, so on
+   * the NEXT refresh the cookie path takes over and we clear the
+   * legacy localStorage value immediately to prevent drift.
+   */
   private async ensureAccessToken(): Promise<void> {
     if (apiService.getAccessToken()) {
       return;
     }
 
-    const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-    if (!refreshToken) {
+    // Legacy body payload only survives until the first successful
+    // cookie-backed refresh. Reading at call time so a concurrent
+    // login flow can't race a stale value.
+    const legacyBodyToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+
+    // If no cookie-session hint AND no legacy token, no point trying.
+    // The AuthContext has already decided there's no session; bail
+    // so we don't issue an unnecessary 401-producing request.
+    if (!legacyBodyToken && !localStorage.getItem(STORAGE_KEYS.USER_DATA)) {
       return;
     }
 
-    const refreshResponse = await apiService.post<{ accessToken?: string; tokens?: { accessToken?: string } }>(
-      '/auth/refresh-token',
-      { refreshToken }
-    );
+    const body = legacyBodyToken ? { refreshToken: legacyBodyToken } : {};
+    const refreshResponse = await apiService.post<{
+      accessToken?: string;
+      tokens?: { accessToken?: string };
+    }>('/auth/refresh-token', body);
     const accessToken =
       refreshResponse.data?.accessToken || refreshResponse.data?.tokens?.accessToken;
 
@@ -28,16 +50,32 @@ export class AuthService {
     }
 
     apiService.setAccessToken(accessToken);
+
+    // Migration cleanup: once we've successfully refreshed, the
+    // cookie is in place (the backend set it on every refresh
+    // response, see controllers/authController.ts). The legacy
+    // localStorage value is no longer needed and leaving it behind
+    // is the exact XSS-exfiltration hazard this flip is meant to
+    // close.
+    if (legacyBodyToken) {
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    }
   }
 
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     const response = await apiService.post<LoginResponse['data']>('/auth/login', credentials);
 
     if (response.success && response.data) {
-      // Store token in memory and refresh token/user in localStorage
+      // Phase E5 follow-up: access token in memory, user profile in
+      // localStorage for the "is there a session?" UI hint. The
+      // refresh token is deliberately NOT stored in localStorage —
+      // the backend set it as an HttpOnly cookie scoped to the
+      // refresh-token endpoint, which axios sends automatically.
       apiService.setAccessToken(response.data.tokens.accessToken);
-      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, response.data.tokens.refreshToken);
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.user));
+      // Clear any legacy refresh token that might still be hanging
+      // around from a pre-flip build.
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
     }
 
     return {
@@ -56,7 +94,10 @@ export class AuthService {
       // Notify other tabs
       localStorage.setItem(SYNC_KEYS.FORCE_LOGOUT, Date.now().toString());
 
-      // Clear storage and memory
+      // Clear in-memory state + the user profile hint + the legacy
+      // refresh token key (no-op on a fresh install). The HttpOnly
+      // refresh cookie is cleared by the backend as part of the
+      // /auth/logout response.
       apiService.setAccessToken(null);
       localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER_DATA);

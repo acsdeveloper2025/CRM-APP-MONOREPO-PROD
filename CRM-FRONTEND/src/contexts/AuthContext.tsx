@@ -75,12 +75,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Check if user is already authenticated on app start
     const initializeAuth = async () => {
       try {
+        // Phase E5 follow-up: the refresh token is in an HttpOnly
+        // cookie and is not readable from JS. Use the cached user
+        // profile as the "maybe logged in" hint — if it exists,
+        // attempt a refresh; the cookie either succeeds (user stays
+        // logged in) or the backend 401s and we fall through to the
+        // logged-out state. The legacy REFRESH_TOKEN key is still
+        // checked for one migration cycle so pre-flip users don't
+        // get force-logged-out on upgrade.
         const user = authService.getCurrentUser();
-        const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+        const hasLegacyRefreshToken = !!localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
-        if (user && refreshToken) {
-          // We have user data and a refresh token, but access token is in memory (and thus gone on reload)
-          // Proactively refresh user data/token
+        if (user || hasLegacyRefreshToken) {
+          // We have a session hint. Attempt a refresh; the cookie
+          // (or legacy body token) will drive it.
           try {
             const refreshedUser = await authService.refreshUserData();
             if (refreshedUser) {
