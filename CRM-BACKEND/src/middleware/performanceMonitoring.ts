@@ -126,40 +126,90 @@ function processPerformanceMetrics(metrics: PerformanceMetrics): void {
     logger.warn('Error response', logData);
   }
 
-  // Store metrics in database (async, don't block response)
-  setImmediate(() => {
-    void storePerformanceMetrics(metrics);
-  });
+  // Enqueue into the in-memory batch buffer. Synchronous and cheap —
+  // the flush happens on a timer (see startMetricsBatchFlush).
+  storePerformanceMetrics(metrics);
 }
 
 /**
- * Store performance metrics in database
+ * Batched storage of performance metrics.
+ *
+ * Phase C3. The previous implementation ran one INSERT per request on
+ * the hot path, which at 2000+ concurrent users translates to 2000+
+ * INSERTs/sec hitting performance_metrics directly. This buffers
+ * metrics in memory and flushes them in a single multi-row INSERT on a
+ * fixed interval (BATCH_FLUSH_MS) or whenever the buffer hits
+ * BATCH_FLUSH_SIZE — whichever comes first.
+ *
+ * Correctness notes:
+ * - The buffer is bounded at BUFFER_MAX so a sustained DB outage can't
+ *   grow it without limit; dropped metrics are counted via `dropCount`.
+ * - On graceful shutdown `flushMetricsBuffer()` is called synchronously
+ *   to preserve the tail of the buffer. See `stopMonitoringIntervals`.
+ * - Metric writes are a non-critical side channel — if the flush itself
+ *   throws we log and drop the in-flight batch rather than blocking the
+ *   request path or retrying.
  */
+const BATCH_FLUSH_SIZE = 100;
+const BATCH_FLUSH_MS = 2000;
+const BUFFER_MAX = 5000;
+
+const metricsBuffer: PerformanceMetrics[] = [];
+let dropCount = 0;
+let batchFlushInterval: ReturnType<typeof setInterval> | null = null;
 let lastCleanupAt = 0;
 const CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000; // Every 6 hours
 const RETENTION_HOURS = 24;
 
-async function storePerformanceMetrics(metrics: PerformanceMetrics): Promise<void> {
-  try {
-    await query(
-      `
-      INSERT INTO performance_metrics
-      (request_id, method, url, status_code, response_time, memory_usage, user_id, timestamp)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    `,
-      [
-        metrics.requestId,
-        metrics.method,
-        metrics.url,
-        metrics.statusCode,
-        metrics.responseTime,
-        JSON.stringify(metrics.memoryUsage),
-        metrics.userId || null,
-        metrics.timestamp,
-      ]
-    );
+function storePerformanceMetrics(metrics: PerformanceMetrics): void {
+  if (metricsBuffer.length >= BUFFER_MAX) {
+    dropCount += 1;
+    return;
+  }
+  metricsBuffer.push(metrics);
+  if (metricsBuffer.length >= BATCH_FLUSH_SIZE) {
+    void flushMetricsBuffer();
+  }
+}
 
-    // Periodic cleanup — delete rows older than 24 hours (runs every 6 hours)
+async function flushMetricsBuffer(): Promise<void> {
+  if (metricsBuffer.length === 0) {
+    return;
+  }
+  const batch = metricsBuffer.splice(0, metricsBuffer.length);
+  try {
+    // Build a single multi-row INSERT. Each row contributes 8 params in
+    // positional order; the placeholder block for row i starts at
+    // (i * 8) + 1.
+    const columns =
+      '(request_id, method, url, status_code, response_time, memory_usage, user_id, timestamp)';
+    const rowPlaceholders = batch
+      .map((_, i) => {
+        const base = i * 8;
+        return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8})`;
+      })
+      .join(', ');
+    const values: unknown[] = [];
+    for (const m of batch) {
+      values.push(
+        m.requestId,
+        m.method,
+        m.url,
+        m.statusCode,
+        m.responseTime,
+        JSON.stringify(m.memoryUsage),
+        m.userId || null,
+        m.timestamp
+      );
+    }
+    await query(`INSERT INTO performance_metrics ${columns} VALUES ${rowPlaceholders}`, values);
+
+    if (dropCount > 0) {
+      logger.warn('Performance metrics buffer dropped entries', { dropCount });
+      dropCount = 0;
+    }
+
+    // Periodic cleanup — delete rows older than RETENTION_HOURS (runs every 6 hours)
     const now = Date.now();
     if (now - lastCleanupAt > CLEANUP_INTERVAL_MS) {
       lastCleanupAt = now;
@@ -168,9 +218,27 @@ async function storePerformanceMetrics(metrics: PerformanceMetrics): Promise<voi
       ).catch(err => logger.warn('Performance metrics cleanup failed:', err));
     }
   } catch (error) {
-    logger.error('Failed to store performance metrics:', error);
+    // Metrics writes are a non-critical side channel — drop the batch
+    // rather than requeue (avoids unbounded retry loops during DB
+    // outages).
+    logger.error('Failed to flush performance metrics batch', {
+      error: error instanceof Error ? error.message : String(error),
+      batchSize: batch.length,
+    });
   }
 }
+
+export const startMetricsBatchFlush = (): void => {
+  if (batchFlushInterval) {
+    clearInterval(batchFlushInterval);
+  }
+  batchFlushInterval = setInterval(() => {
+    void flushMetricsBuffer();
+  }, BATCH_FLUSH_MS);
+  // Node's default timer behavior would keep the process alive just to
+  // service this interval; unref() lets graceful shutdown proceed.
+  batchFlushInterval.unref?.();
+};
 
 /**
  * Get client IP address from request
@@ -514,6 +582,14 @@ export const stopMonitoringIntervals = () => {
     clearInterval(metricsCleanupInterval);
     metricsCleanupInterval = null;
   }
+  if (batchFlushInterval) {
+    clearInterval(batchFlushInterval);
+    batchFlushInterval = null;
+  }
+  // Best-effort final flush so the tail of the buffer reaches the DB
+  // before we shut the pool down. Fire-and-forget — the shutdown path
+  // does not await this.
+  void flushMetricsBuffer();
 };
 
 export default {

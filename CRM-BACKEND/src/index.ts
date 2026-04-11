@@ -11,7 +11,11 @@ import { initializeQueues, closeQueues } from '@/config/queue';
 import { initializeWebSocket } from '@/websocket/server';
 import { EnterpriseCacheService } from './services/enterpriseCacheService';
 import { CacheWarmingService } from './services/cacheWarmingService';
-import { startMetricsCleanup, stopMonitoringIntervals } from '@/middleware/performanceMonitoring';
+import {
+  startMetricsCleanup,
+  startMetricsBatchFlush,
+  stopMonitoringIntervals,
+} from '@/middleware/performanceMonitoring';
 // Migrations removed for production - use database import instead
 
 const server = createServer(app);
@@ -92,6 +96,11 @@ const startServer = async (): Promise<void> => {
 
       // Start periodic cleanup of performance_metrics and system_health_metrics (every 6h, 7-day retention)
       startMetricsCleanup();
+
+      // Phase C3: drain the performance_metrics in-memory buffer into
+      // the DB on a 2-second cadence. Replaces the prior one-INSERT-
+      // per-request hot path.
+      startMetricsBatchFlush();
 
       // Schedule periodic cache refresh (every 10 minutes)
       cacheRefreshInterval = setInterval(
