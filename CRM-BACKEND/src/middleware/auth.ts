@@ -33,8 +33,12 @@ import {
 //    immediately instead of waiting for the TTL.
 //  - The cached object is frozen so accidental mutation in a
 //    middleware chain never leaks into the next request.
+//  - Phase F4: hit/miss counters are exposed via getAuthContextCacheStats()
+//    so the /health/deep endpoint can surface the hit rate.
 const AUTH_CONTEXT_CACHE_TTL_MS = 30_000;
 const authContextCache = new Map<string, { context: DbUserAuthContext; expiresAt: number }>();
+let authContextCacheHits = 0;
+let authContextCacheMisses = 0;
 
 export function invalidateAuthContextCache(userId?: string): void {
   if (userId) {
@@ -42,6 +46,28 @@ export function invalidateAuthContextCache(userId?: string): void {
   } else {
     authContextCache.clear();
   }
+}
+
+/**
+ * Phase F4: snapshot of auth-context cache stats for /health/deep.
+ * Process-local counters — in a PM2 cluster each worker reports its
+ * own numbers, aggregated by whatever scrapes /health/deep.
+ */
+export interface AuthContextCacheStats {
+  size: number;
+  hits: number;
+  misses: number;
+  hitRate: number;
+}
+
+export function getAuthContextCacheStats(): AuthContextCacheStats {
+  const total = authContextCacheHits + authContextCacheMisses;
+  return {
+    size: authContextCache.size,
+    hits: authContextCacheHits,
+    misses: authContextCacheMisses,
+    hitRate: total === 0 ? 0 : Number((authContextCacheHits / total).toFixed(4)),
+  };
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -78,8 +104,10 @@ export const loadUserAuthContext = async (userId: string): Promise<DbUserAuthCon
   const now = Date.now();
   const cached = authContextCache.get(userId);
   if (cached && cached.expiresAt > now) {
+    authContextCacheHits += 1;
     return cached.context;
   }
+  authContextCacheMisses += 1;
 
   const userResult = await query<{
     id: string;

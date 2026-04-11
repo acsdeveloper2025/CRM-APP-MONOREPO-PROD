@@ -5,7 +5,9 @@ import { logger } from '@/config/logger';
 import { performance } from 'perf_hooks';
 import fs from 'fs/promises';
 import { circuitBreakers } from '@/utils/circuitBreaker';
-import { authenticateToken } from '@/middleware/auth';
+import { authenticateToken, getAuthContextCacheStats } from '@/middleware/auth';
+import { getClientScopeCacheStats } from '@/middleware/clientAccess';
+import { getProductScopeCacheStats } from '@/middleware/productAccess';
 
 const router = Router();
 
@@ -363,6 +365,104 @@ async function getPerformanceMetrics(): Promise<{
     return null;
   }
 }
+
+/**
+ * Phase F4: deep health probe with cache hit rates.
+ *
+ * This endpoint is for Ops scrapers (Prometheus / Datadog) to catch
+ * cold caches, Redis outages, and queue backpressure before they
+ * show up as user-visible latency. Returns:
+ *
+ *   - services.database / redis / memory / disk / externalServices
+ *     (same fields as /health/detailed)
+ *   - caches.authContext  (hits / misses / hitRate / size)
+ *   - caches.clientScope  (same shape)
+ *   - caches.productScope (same shape)
+ *
+ * Process-local cache counters — in a PM2 cluster, each worker
+ * reports its own numbers. Aggregate across workers at the scraper.
+ *
+ * Authenticated — cache stats are internal observability data that
+ * shouldn't be publicly exposed.
+ *
+ * GET /api/health/deep
+ */
+router.get('/health/deep', authenticateToken, async (_req, res) => {
+  const startTime = performance.now();
+  try {
+    const [database, redis, memory, disk] = await Promise.allSettled([
+      checkDatabase(),
+      checkRedis(),
+      Promise.resolve(checkMemory()),
+      checkDisk(),
+    ]);
+
+    const services = {
+      database:
+        database.status === 'fulfilled'
+          ? database.value
+          : { status: 'ERROR' as const, message: String(database.reason) },
+      redis:
+        redis.status === 'fulfilled'
+          ? redis.value
+          : { status: 'ERROR' as const, message: String(redis.reason) },
+      memory:
+        memory.status === 'fulfilled'
+          ? memory.value
+          : { status: 'ERROR' as const, message: String(memory.reason) },
+      disk:
+        disk.status === 'fulfilled'
+          ? disk.value
+          : { status: 'ERROR' as const, message: String(disk.reason) },
+    };
+
+    const caches = {
+      authContext: getAuthContextCacheStats(),
+      clientScope: getClientScopeCacheStats(),
+      productScope: getProductScopeCacheStats(),
+    };
+
+    const externalServices = Object.fromEntries(
+      Object.entries(circuitBreakers).map(([name, breaker]) => [name, breaker.getState()])
+    );
+
+    const hasErrors = Object.values(services).some(s => s.status === 'ERROR');
+    const hasDegraded = Object.values(services).some(s => s.status === 'DEGRADED');
+    const overallStatus: 'OK' | 'DEGRADED' | 'ERROR' = hasErrors
+      ? 'ERROR'
+      : hasDegraded
+        ? 'DEGRADED'
+        : 'OK';
+
+    const statusCode = overallStatus === 'ERROR' ? 503 : 200;
+    const totalTime = performance.now() - startTime;
+
+    res.status(statusCode).json({
+      status: overallStatus,
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor(process.uptime()),
+      version: process.env.npm_package_version || '1.0.0',
+      environment: process.env.NODE_ENV || 'development',
+      responseTime: `${totalTime.toFixed(2)}ms`,
+      services: {
+        ...services,
+        redisHealthFlag: {
+          status: isRedisHealthy() ? 'OK' : 'ERROR',
+          message: isRedisHealthy() ? 'Redis health flag is up' : 'Redis health flag is down',
+        },
+      },
+      caches,
+      externalServices,
+    });
+  } catch (error) {
+    logger.error('Deep health check failed:', error);
+    res.status(503).json({
+      status: 'ERROR',
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
 
 /**
  * Readiness probe - checks if application is ready to serve traffic
