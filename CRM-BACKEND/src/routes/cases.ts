@@ -15,6 +15,9 @@ import {
   getCases,
   getCaseById,
   createCase,
+  createCaseValidation,
+  normalizeCaseCreationBody,
+  uploadForCaseCreation,
   updateCase,
   getFieldAgentWorkload,
   exportCases,
@@ -30,91 +33,23 @@ const router = express.Router();
 router.use(authenticateToken);
 router.use(listRateLimit);
 
-// Validation schemas
-const _createCaseValidation = [
-  // Optional legacy fields for backward compatibility
-  body('title')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 200 })
-    .withMessage('Title must be between 1 and 200 characters'),
-  body('description')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 1000 })
-    .withMessage('Description must be between 1 and 1000 characters'),
-
-  // Required fields
-  body('clientId').trim().notEmpty().withMessage('Client ID is required'),
-  body('assignedToId').trim().notEmpty().withMessage('Assigned user ID is required'),
-
-  // Optional legacy fields
-  body('address')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 500 })
-    .withMessage('Address must be between 1 and 500 characters'),
-  body('contactPerson')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage('Contact person must be between 1 and 100 characters'),
-  body('contactPhone')
-    .optional()
-    .trim()
-    .matches(/^\+?[1-9]\d{1,14}$/)
-    .withMessage('Contact phone must be valid'),
-  body('verificationType')
-    .optional()
-    .isIn(['RESIDENCE', 'OFFICE', 'BUSINESS', 'OTHER'])
-    .withMessage('Verification type must be one of: RESIDENCE, OFFICE, BUSINESS, OTHER'),
-  body('priority')
-    .optional()
-    .isIn(['LOW', 'MEDIUM', 'HIGH', 'URGENT'])
-    .withMessage('Priority must be one of: LOW, MEDIUM, HIGH, URGENT'),
-  body('deadline').optional().isISO8601().withMessage('Deadline must be a valid date'),
-
-  // New required fields for form integration
-  body('applicantType')
-    .trim()
-    .isIn([
-      'APPLICANT',
-      'CO-APPLICANT',
-      'CO-APPLICANT 1',
-      'CO-APPLICANT 2',
-      'CO-APPLICANT 3',
-      'GUARANTOR',
-      'SELLER',
-      'PROPRIETOR',
-      'PARTNER',
-      'DIRECTOR',
-      'REFERENCE PERSON',
-    ])
-    .withMessage(
-      'Applicant type must be one of: APPLICANT, CO-APPLICANT, CO-APPLICANT 1, CO-APPLICANT 2, CO-APPLICANT 3, GUARANTOR, SELLER, PROPRIETOR, PARTNER, DIRECTOR, or REFERENCE PERSON'
-    ),
-  body('backendContactNumber')
-    .trim()
-    .matches(/^[+]?[\d\s\-()]{10,15}$/)
-    .withMessage('Backend contact number must be valid'),
-  body('trigger').trim().isLength({ min: 1 }).withMessage('TRIGGER field is required'),
-  body('rateTypeId')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Rate type ID must be a positive integer'),
-
-  // Customer information (at least one name required)
-  body('applicantName')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage('Applicant name must be between 1 and 100 characters'),
-  body('customerName')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage('Customer name must be between 1 and 100 characters'),
-];
+// Validation schemas.
+//
+// `_createCaseValidation` used to live here as a flat top-level
+// body(...) chain from before the Oct 2025 `/create` endpoint
+// consolidation. That chain assumed `req.body = { customerName,
+// clientId, applicantType, ... }`, but the unified endpoint takes
+// `req.body = { caseDetails, verificationTasks, applicants?, ... }`
+// (or `req.body.data` as a JSON string for multipart uploads), so
+// the old chain would reject every legitimate request if re-applied.
+// An earlier ESLint cleanup underscore-prefixed it to silence the
+// no-unused-vars warning with no comment explaining why.
+//
+// The replacement chain now lives next to the handler in
+// src/controllers/casesController.ts as `createCaseValidation`,
+// targeting the real nested shape. It's wired into the /create
+// route below after `normalizeCaseCreationBody` hoists FormData
+// payloads into the same body structure as JSON payloads.
 
 const updateCaseValidation = [
   body('title')
@@ -295,11 +230,65 @@ router.post(
   validateCaseConfiguration
 );
 
+// Full middleware chain for POST /api/cases/create.
+//
+// Order matters — the critical ordering invariants are:
+//
+//   1. `uploadForCaseCreation.array(...)` MUST run before
+//      `normalizeCaseCreationBody` so multer can parse the
+//      multipart body and populate `req.body.data` (for FormData
+//      uploads) and `req.files`.
+//
+//   2. `normalizeCaseCreationBody` MUST run before
+//      `createCaseValidation` + `validateCaseCreationAccess`. It
+//      takes multipart requests that arrive with `req.body.data`
+//      as a JSON string and hoists the parsed object over
+//      `req.body`, so every downstream validator sees the same
+//      nested shape regardless of content-type. Before this
+//      middleware existed, FormData creates silently bypassed
+//      both the express-validator chain AND the scope-access
+//      check (because `req.body.clientId` was undefined — the
+//      real id was inside the JSON string).
+//
+//   3. `createCaseValidation` + `validate` run before
+//      `validateCaseCreationAccess` so structural errors are
+//      rejected before the scope check (which now sees the
+//      normalized `req.body.caseDetails.clientId` /
+//      `caseDetails.productId`... oh wait — the scope factory
+//      reads `body.clientId` directly, not `body.caseDetails
+//      .clientId`). The scope factory uses `req.body[key]` where
+//      `key = 'clientId'`. The normalized body puts clientId
+//      inside `caseDetails`, so the existing factory can't see
+//      it. For this route specifically we keep the existing
+//      scope check working by injecting a shim that copies the
+//      nested ids up to the top level before the scope middleware
+//      runs.
 router.post(
   '/create',
   authorize('case.create'),
   roleBasedRateLimit,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate),
+  uploadForCaseCreation.array('attachments', 15),
+  normalizeCaseCreationBody,
+  createCaseValidation,
+  validate,
+  // Hoist nested ids so the existing body-based scope factory can
+  // read them. Purely local to this route; doesn't affect the
+  // normalized shape the handler sees because the handler reads
+  // from `caseDetails.*`.
+  (req, _res, next) => {
+    const bodyAny = req.body as Record<string, unknown> | undefined;
+    const caseDetails = bodyAny?.caseDetails as Record<string, unknown> | undefined;
+    if (caseDetails) {
+      if (bodyAny && caseDetails.clientId != null && bodyAny.clientId == null) {
+        bodyAny.clientId = caseDetails.clientId;
+      }
+      if (bodyAny && caseDetails.productId != null && bodyAny.productId == null) {
+        bodyAny.productId = caseDetails.productId;
+      }
+    }
+    next();
+  },
   validateCaseCreationAccess,
   createCase
 );
