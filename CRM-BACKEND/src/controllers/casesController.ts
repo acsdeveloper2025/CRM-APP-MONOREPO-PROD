@@ -1,4 +1,5 @@
-import type { Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
+import { body } from 'express-validator';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import { redact } from '../utils/logRedact';
@@ -88,7 +89,13 @@ const fileFilter = (
   }
 };
 
-const uploadForCaseCreation = multer({
+// Exported so routes/cases.ts can wire it as an explicit middleware in
+// the /create chain (instead of burying it inside the `createCase`
+// middleware array). Explicit ordering lets the normalize +
+// validation chain run AFTER multer has parsed the multipart body,
+// which is required for express-validator to see the real caseDetails
+// / verificationTasks fields on FormData uploads.
+export const uploadForCaseCreation = multer({
   storage,
   fileFilter,
   limits: {
@@ -96,6 +103,156 @@ const uploadForCaseCreation = multer({
     files: 20, // Maximum 20 files per case creation
   },
 });
+
+/**
+ * Phase re-audit follow-up: the `/create` endpoint accepts two
+ * request shapes:
+ *
+ *   1. JSON payload:
+ *      req.body = { caseDetails, verificationTasks, applicants?, kycDocuments? }
+ *
+ *   2. Multipart FormData with file uploads:
+ *      req.body.data = "<JSON string>"
+ *      (plus multer-parsed files on req.files)
+ *
+ * Express-validator chains bind to `req.body.*` paths, so they can
+ * only validate shape #1 natively. This middleware normalizes shape
+ * #2 into shape #1 by JSON-parsing `req.body.data` over the top of
+ * `req.body`, after which every downstream validator + the case-
+ * creation scope check + the handler itself all see the same
+ * unified structure.
+ *
+ * Idempotent: if `req.body.data` is missing or not a string the
+ * middleware is a no-op, so JSON clients pay nothing.
+ *
+ * Returns 400 on parse failure so a malformed FormData payload is
+ * rejected with a clear error instead of exploding inside the
+ * handler's later JSON.parse call.
+ */
+export const normalizeCaseCreationBody = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Response | void => {
+  const data = (req.body as Record<string, unknown> | undefined)?.data;
+  if (typeof data !== 'string' || data.length === 0) {
+    return next();
+  }
+  try {
+    const parsed = JSON.parse(data) as Record<string, unknown>;
+    // Preserve any non-data fields that multer populated on req.body
+    // (none today, but forward-compat). Spread parsed last so it
+    // wins on name collisions.
+    req.body = { ...(req.body as Record<string, unknown>), ...parsed };
+    // Drop the raw JSON string once we've hoisted its contents so
+    // the rest of the stack doesn't see both representations.
+    delete (req.body as Record<string, unknown>).data;
+    return next();
+  } catch (parseError) {
+    logger.warn('createCase body normalization failed', {
+      error: parseError instanceof Error ? parseError.message : String(parseError),
+    });
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid multipart "data" field: expected JSON',
+      error: { code: 'INVALID_JSON' },
+    });
+  }
+};
+
+/**
+ * Express-validator chain for POST /api/cases/create.
+ *
+ * Historical note: a prior `createCaseValidation` chain existed on
+ * this route before the Oct 2025 consolidation that unified three
+ * creation endpoints into `/create`. That chain validated a flat
+ * top-level shape (`body('customerName')`, `body('clientId')`, ...)
+ * which the new unified endpoint no longer accepts — the body is now
+ * nested under `caseDetails` / `verificationTasks` / `applicants`.
+ * The old chain was deleted from the route but left in the file as
+ * `_createCaseValidation` to silence the no-unused-vars lint, with
+ * no comment explaining why.
+ *
+ * This replacement chain targets the ACTUAL shape. It runs after
+ * `normalizeCaseCreationBody` so it sees the same body structure for
+ * JSON and FormData requests.
+ */
+export const createCaseValidation = [
+  body('caseDetails')
+    .exists({ checkNull: true })
+    .withMessage('caseDetails object is required')
+    .bail()
+    .isObject()
+    .withMessage('caseDetails must be an object'),
+  body('caseDetails.customerName')
+    .trim()
+    .isLength({ min: 1, max: 200 })
+    .withMessage('caseDetails.customerName must be between 1 and 200 characters'),
+  body('caseDetails.clientId')
+    .toInt()
+    .isInt({ min: 1 })
+    .withMessage('caseDetails.clientId must be a positive integer'),
+  body('caseDetails.productId')
+    .toInt()
+    .isInt({ min: 1 })
+    .withMessage('caseDetails.productId must be a positive integer'),
+  body('caseDetails.priority')
+    .optional()
+    .isIn(['LOW', 'MEDIUM', 'HIGH', 'URGENT'])
+    .withMessage('caseDetails.priority must be LOW, MEDIUM, HIGH, or URGENT'),
+  body('caseDetails.customerPhone')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ min: 5, max: 20 })
+    .withMessage('caseDetails.customerPhone must be 5–20 characters if provided'),
+  body('caseDetails.pincode')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ min: 3, max: 10 })
+    .withMessage('caseDetails.pincode must be 3–10 characters if provided'),
+
+  body('verificationTasks')
+    .isArray({ min: 1, max: 50 })
+    .withMessage('verificationTasks must contain between 1 and 50 entries'),
+  body('verificationTasks.*.verificationTypeId')
+    .toInt()
+    .isInt({ min: 1 })
+    .withMessage('verificationTasks[].verificationTypeId must be a positive integer'),
+  body('verificationTasks.*.priority')
+    .optional()
+    .isIn(['LOW', 'MEDIUM', 'HIGH', 'URGENT'])
+    .withMessage('verificationTasks[].priority must be LOW, MEDIUM, HIGH, or URGENT'),
+  body('verificationTasks.*.rateTypeId')
+    .optional({ checkFalsy: true })
+    .toInt()
+    .isInt({ min: 1 })
+    .withMessage('verificationTasks[].rateTypeId must be a positive integer if provided'),
+  body('verificationTasks.*.areaId')
+    .optional({ checkFalsy: true })
+    .toInt()
+    .isInt({ min: 1 })
+    .withMessage('verificationTasks[].areaId must be a positive integer if provided'),
+
+  body('applicants')
+    .optional()
+    .isArray({ max: 50 })
+    .withMessage('applicants must be an array with at most 50 entries'),
+  body('applicants.*.name')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 200 })
+    .withMessage('applicants[].name must be 1–200 characters'),
+  body('applicants.*.mobile')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ min: 5, max: 20 })
+    .withMessage('applicants[].mobile must be 5–20 characters if provided'),
+
+  body('kycDocuments')
+    .optional()
+    .isArray({ max: 50 })
+    .withMessage('kycDocuments must be an array with at most 50 entries'),
+];
 
 // GET /api/cases - List cases with filtering, sorting, and pagination (Enterprise Enhanced)
 export const getCases = async (req: AuthenticatedRequest, res: Response) => {
@@ -2228,963 +2385,963 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
  * - Memory-efficient processing
  * - Detailed logging for debugging
  */
-export const createCase = [
-  uploadForCaseCreation.array('attachments', 15),
-  async (req: AuthenticatedRequest, res: Response) => {
-    let client;
-    const uploadedFiles: Express.Multer.File[] = (req.files as Express.Multer.File[]) || [];
-    const startTime = Date.now();
+// NOTE: `createCase` used to be a middleware ARRAY that wrapped multer
+// and the handler together. It was refactored into a plain async
+// function so routes/cases.ts can wire multer + normalize + validate
+// + scope-check in explicit order. See `uploadForCaseCreation`,
+// `normalizeCaseCreationBody`, and `createCaseValidation` exports
+// above for the pieces routes/cases.ts composes.
+export const createCase = async (req: AuthenticatedRequest, res: Response) => {
+  let client;
+  const uploadedFiles: Express.Multer.File[] = (req.files as Express.Multer.File[]) || [];
+  const startTime = Date.now();
 
-    // Helper function to cleanup uploaded files
-    const cleanupFiles = async () => {
-      if (uploadedFiles && uploadedFiles.length > 0) {
-        try {
-          const tempDir = path.dirname(uploadedFiles[0].path);
-          if (fs.existsSync(tempDir) && tempDir.includes('temp')) {
-            await fs.promises.rm(tempDir, { recursive: true, force: true });
-            logger.debug('Cleaned up temp files', { tempDir, fileCount: uploadedFiles.length });
-          }
-        } catch (cleanupError) {
-          logger.warn('Failed to cleanup temp files:', { error: cleanupError });
+  // Helper function to cleanup uploaded files
+  const cleanupFiles = async () => {
+    if (uploadedFiles && uploadedFiles.length > 0) {
+      try {
+        const tempDir = path.dirname(uploadedFiles[0].path);
+        if (fs.existsSync(tempDir) && tempDir.includes('temp')) {
+          await fs.promises.rm(tempDir, { recursive: true, force: true });
+          logger.debug('Cleaned up temp files', { tempDir, fileCount: uploadedFiles.length });
         }
+      } catch (cleanupError) {
+        logger.warn('Failed to cleanup temp files:', { error: cleanupError });
       }
-    };
-
-    // Permission + auth checks BEFORE the outer try/finally block.
-    // Previously the `requireControllerPermission` check lived inside
-    // the main try, which made a reader wonder whether the finally's
-    // `if (client) client.release()` ran on early return. It does —
-    // but `client` is still undefined at that point, so the guard
-    // no-ops correctly. That's not obvious from a cold read, and any
-    // future refactor that initializes `client` earlier would
-    // accidentally introduce a real leak.
-    //
-    // Hoisting the check out of the try block makes it structurally
-    // impossible to reach `pool.connect()` without passing
-    // permission, so the finally's guard is genuinely belt-and-
-    // suspenders instead of load-bearing. The route-level
-    // `authorize('case.create')` middleware is the primary gate;
-    // this in-handler check is defense in depth against a future
-    // route wiring mistake.
-    if (!requireControllerPermission(req, res, 'case.create')) {
-      await cleanupFiles();
-      return;
     }
+  };
 
-    const userId = req.user?.id;
-    if (!userId) {
+  // Permission + auth checks BEFORE the outer try/finally block.
+  // Previously the `requireControllerPermission` check lived inside
+  // the main try, which made a reader wonder whether the finally's
+  // `if (client) client.release()` ran on early return. It does —
+  // but `client` is still undefined at that point, so the guard
+  // no-ops correctly. That's not obvious from a cold read, and any
+  // future refactor that initializes `client` earlier would
+  // accidentally introduce a real leak.
+  //
+  // Hoisting the check out of the try block makes it structurally
+  // impossible to reach `pool.connect()` without passing
+  // permission, so the finally's guard is genuinely belt-and-
+  // suspenders instead of load-bearing. The route-level
+  // `authorize('case.create')` middleware is the primary gate;
+  // this in-handler check is defense in depth against a future
+  // route wiring mistake.
+  if (!requireControllerPermission(req, res, 'case.create')) {
+    await cleanupFiles();
+    return;
+  }
+
+  const userId = req.user?.id;
+  if (!userId) {
+    await cleanupFiles();
+    return res.status(401).json({
+      success: false,
+      message: 'User authentication required',
+      error: { code: 'UNAUTHORIZED' },
+    });
+  }
+
+  try {
+    // ========== ACQUIRE DATABASE CONNECTION WITH TIMEOUT ==========
+    const connectionTimeout = setTimeout(() => {
+      logger.error('Database connection timeout', { userId: req.user?.id });
+    }, 5000); // 5 second warning
+
+    try {
+      client = wrapClient(await pool.connect());
+      clearTimeout(connectionTimeout);
+    } catch (connError: unknown) {
+      clearTimeout(connectionTimeout);
+      const err = connError as DatabaseError;
+      logger.error('Failed to acquire database connection:', {
+        error: err.message,
+        code: err.code,
+        userId: req.user?.id,
+      });
       await cleanupFiles();
-      return res.status(401).json({
+      return res.status(503).json({
         success: false,
-        message: 'User authentication required',
-        error: { code: 'UNAUTHORIZED' },
+        message: 'Database connection unavailable. Please try again.',
+        error: { code: 'DB_CONNECTION_ERROR' },
       });
     }
 
+    // Set statement timeout to prevent long-running queries
+    await client.query('SET statement_timeout = 30000'); // 30 seconds
+
+    await client.query('BEGIN');
+
+    // `userId` was hoisted above the try block so unauthenticated
+    // users never reach pool.connect(). The hoisted const is in
+    // scope here; this block used to re-declare and check it
+    // inside the transaction, which wasted a connection + BEGIN
+    // for every missing-auth request.
+
+    // ========== PARSE AND VALIDATE REQUEST DATA ==========
+    let requestData: CreateCaseRequest;
     try {
-      // ========== ACQUIRE DATABASE CONNECTION WITH TIMEOUT ==========
-      const connectionTimeout = setTimeout(() => {
-        logger.error('Database connection timeout', { userId: req.user?.id });
-      }, 5000); // 5 second warning
-
-      try {
-        client = wrapClient(await pool.connect());
-        clearTimeout(connectionTimeout);
-      } catch (connError: unknown) {
-        clearTimeout(connectionTimeout);
-        const err = connError as DatabaseError;
-        logger.error('Failed to acquire database connection:', {
-          error: err.message,
-          code: err.code,
-          userId: req.user?.id,
-        });
-        await cleanupFiles();
-        return res.status(503).json({
-          success: false,
-          message: 'Database connection unavailable. Please try again.',
-          error: { code: 'DB_CONNECTION_ERROR' },
-        });
+      // Log only the shape of the request, with sensitive fields masked.
+      // Previously this dumped the entire body verbatim which leaked PAN
+      // numbers, KYC document metadata, and occasionally credentials.
+      logger.debug('createCase request received', {
+        bodyKeys: Object.keys(req.body || {}),
+        hasFormData: !!req.body?.data,
+        payload: redact(req.body),
+      });
+      if (req.body.data) {
+        // FormData format (with file uploads)
+        requestData = JSON.parse(req.body.data);
+      } else {
+        // JSON format (no file uploads)
+        requestData = req.body as CreateCaseRequest;
       }
 
-      // Set statement timeout to prevent long-running queries
-      await client.query('SET statement_timeout = 30000'); // 30 seconds
+      // Log the parsed request data for debugging
+      logger.info('Case creation request received:', {
+        userId,
+        hasFormData: !!req.body.data,
+        caseDetailsKeys: requestData.caseDetails ? Object.keys(requestData.caseDetails) : [],
+        applicantsCount: requestData.applicants?.length || 0,
+        firstApplicantKeys: requestData.applicants?.[0]
+          ? Object.keys(requestData.applicants[0])
+          : [],
+      });
+    } catch (parseError: unknown) {
+      await client.query('ROLLBACK');
+      await cleanupFiles();
+      const err = parseError as DatabaseError;
+      logger.error('Failed to parse request data:', {
+        error: err.message,
+        userId,
+        bodyKeys: Object.keys(req.body),
+      });
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid request format',
+        error: { code: 'INVALID_JSON' },
+      });
+    }
 
-      await client.query('BEGIN');
-
-      // `userId` was hoisted above the try block so unauthenticated
-      // users never reach pool.connect(). The hoisted const is in
-      // scope here; this block used to re-declare and check it
-      // inside the transaction, which wasted a connection + BEGIN
-      // for every missing-auth request.
-
-      // ========== PARSE AND VALIDATE REQUEST DATA ==========
-      let requestData: CreateCaseRequest;
-      try {
-        // Log only the shape of the request, with sensitive fields masked.
-        // Previously this dumped the entire body verbatim which leaked PAN
-        // numbers, KYC document metadata, and occasionally credentials.
-        logger.debug('createCase request received', {
-          bodyKeys: Object.keys(req.body || {}),
-          hasFormData: !!req.body?.data,
-          payload: redact(req.body),
-        });
-        if (req.body.data) {
-          // FormData format (with file uploads)
-          requestData = JSON.parse(req.body.data);
-        } else {
-          // JSON format (no file uploads)
-          requestData = req.body as CreateCaseRequest;
+    const caseDetails = requestData.caseDetails;
+    const verificationTasksFromRequest = requestData.verificationTasks;
+    let applicantsData = requestData.applicants;
+    // Normalize legacy snakeCase payloads at the controller boundary while
+    // keeping the internal API contract camelCase.
+    const getNumericField = (
+      record: Record<string, unknown>,
+      ...fieldNames: string[]
+    ): number | null => {
+      for (const fieldName of fieldNames) {
+        const value = record[fieldName];
+        if (value === undefined || value === null) {
+          continue;
         }
-
-        // Log the parsed request data for debugging
-        logger.info('Case creation request received:', {
-          userId,
-          hasFormData: !!req.body.data,
-          caseDetailsKeys: requestData.caseDetails ? Object.keys(requestData.caseDetails) : [],
-          applicantsCount: requestData.applicants?.length || 0,
-          firstApplicantKeys: requestData.applicants?.[0]
-            ? Object.keys(requestData.applicants[0])
-            : [],
-        });
-      } catch (parseError: unknown) {
-        await client.query('ROLLBACK');
-        await cleanupFiles();
-        const err = parseError as DatabaseError;
-        logger.error('Failed to parse request data:', {
-          error: err.message,
-          userId,
-          bodyKeys: Object.keys(req.body),
-        });
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid request format',
-          error: { code: 'INVALID_JSON' },
-        });
+        const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+        if (stringValue.trim() === '') {
+          continue;
+        }
+        const parsedValue = Number(value);
+        if (!Number.isNaN(parsedValue) && parsedValue > 0) {
+          return parsedValue;
+        }
       }
+      return null;
+    };
 
-      const caseDetails = requestData.caseDetails;
-      const verificationTasksFromRequest = requestData.verificationTasks;
-      let applicantsData = requestData.applicants;
-      // Normalize legacy snakeCase payloads at the controller boundary while
-      // keeping the internal API contract camelCase.
-      const getNumericField = (
-        record: Record<string, unknown>,
-        ...fieldNames: string[]
-      ): number | null => {
-        for (const fieldName of fieldNames) {
-          const value = record[fieldName];
-          if (value === undefined || value === null) {
-            continue;
-          }
-          const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
-          if (stringValue.trim() === '') {
-            continue;
-          }
-          const parsedValue = Number(value);
-          if (!Number.isNaN(parsedValue) && parsedValue > 0) {
-            return parsedValue;
-          }
+    if (
+      (!Array.isArray(applicantsData) || applicantsData.length === 0) &&
+      Array.isArray(verificationTasksFromRequest) &&
+      verificationTasksFromRequest.length > 0
+    ) {
+      const applicantsMap = new Map<
+        string,
+        {
+          name: string;
+          mobile: string;
+          role: string;
+          panNumber?: string;
+          verifications: CreateVerificationTask[];
         }
-        return null;
+      >();
+      const pincodeIdCache = new Map<string, number | null>();
+
+      const resolvePincodeId = async (pincodeValue: unknown): Promise<number | null> => {
+        if (!pincodeValue) {
+          return null;
+        }
+        const pincodeCode =
+          typeof pincodeValue === 'string'
+            ? pincodeValue.trim()
+            : typeof pincodeValue === 'number'
+              ? String(pincodeValue).trim()
+              : '';
+        if (!pincodeCode) {
+          return null;
+        }
+        if (pincodeIdCache.has(pincodeCode)) {
+          return pincodeIdCache.get(pincodeCode);
+        }
+
+        const pincodeResult = await client.query('SELECT id FROM pincodes WHERE code = $1', [
+          pincodeCode,
+        ]);
+        const resolvedId = pincodeResult.rows[0]?.id ? Number(pincodeResult.rows[0].id) : null;
+        pincodeIdCache.set(pincodeCode, resolvedId);
+        return resolvedId;
       };
 
-      if (
-        (!Array.isArray(applicantsData) || applicantsData.length === 0) &&
-        Array.isArray(verificationTasksFromRequest) &&
-        verificationTasksFromRequest.length > 0
-      ) {
-        const applicantsMap = new Map<
-          string,
-          {
-            name: string;
-            mobile: string;
-            role: string;
-            panNumber?: string;
-            verifications: CreateVerificationTask[];
-          }
-        >();
-        const pincodeIdCache = new Map<string, number | null>();
-
-        const resolvePincodeId = async (pincodeValue: unknown): Promise<number | null> => {
-          if (!pincodeValue) {
-            return null;
-          }
-          const pincodeCode =
-            typeof pincodeValue === 'string'
-              ? pincodeValue.trim()
-              : typeof pincodeValue === 'number'
-                ? String(pincodeValue).trim()
-                : '';
-          if (!pincodeCode) {
-            return null;
-          }
-          if (pincodeIdCache.has(pincodeCode)) {
-            return pincodeIdCache.get(pincodeCode);
-          }
-
-          const pincodeResult = await client.query('SELECT id FROM pincodes WHERE code = $1', [
-            pincodeCode,
-          ]);
-          const resolvedId = pincodeResult.rows[0]?.id ? Number(pincodeResult.rows[0].id) : null;
-          pincodeIdCache.set(pincodeCode, resolvedId);
-          return resolvedId;
-        };
-
-        for (const taskRaw of verificationTasksFromRequest) {
-          const task = taskRaw as Record<string, unknown>;
-          const role = String(
+      for (const taskRaw of verificationTasksFromRequest) {
+        const task = taskRaw as Record<string, unknown>;
+        const role = String(
+          (task.applicantType as string) ||
             (task.applicantType as string) ||
-              (task.applicantType as string) ||
-              caseDetails?.applicantType ||
-              'APPLICANT'
-          );
-          const name = String(
-            ((task.applicant as Record<string, unknown> | undefined)?.name as string) ||
-              caseDetails?.customerName ||
-              'Applicant'
-          );
-          const mobile = String(
-            ((task.applicant as Record<string, unknown> | undefined)?.mobile as string) ||
-              caseDetails?.customerPhone ||
-              ''
-          );
-          const panNumber = String(
-            ((task.applicant as Record<string, unknown> | undefined)?.panNumber as string) ||
-              caseDetails?.panNumber ||
-              ''
-          );
-          const verificationTypeId =
-            getNumericField(task, 'verificationTypeId', 'verificationTypeId') || 0;
-          if (!verificationTypeId) {
-            continue;
-          }
-
-          const pincodeIdFromTask =
-            task.pincodeId && Number(task.pincodeId)
-              ? Number(task.pincodeId)
-              : await resolvePincodeId(task.pincode);
-
-          const applicantKey = `${role}:${mobile || name}`;
-          if (!applicantsMap.has(applicantKey)) {
-            applicantsMap.set(applicantKey, {
-              name,
-              mobile,
-              role,
-              panNumber: panNumber || undefined,
-              verifications: [],
-            });
-          }
-
-          applicantsMap.get(applicantKey).verifications.push({
-            verificationTypeId,
-            address: task.address || null,
-            pincodeId:
-              getNumericField(task, 'pincodeId', 'pincodeId') || pincodeIdFromTask || undefined,
-            assignedTo: (task.assignedTo || task.assignedTo || null) as string | null,
-            estimatedCompletionDate: (task.estimatedCompletionDate || task.slaDeadline || null) as
-              | string
-              | null,
-          } as unknown as CreateVerificationTask);
-        }
-
-        applicantsData = Array.from(applicantsMap.values()) as CreateApplicantData[];
-      }
-
-      logger.info('Parsed applicants:', applicantsData);
-      logger.info('Parsed verificationTasks:', verificationTasksFromRequest);
-
-      // ========== COMPREHENSIVE VALIDATION ==========
-      if (!caseDetails || typeof caseDetails !== 'object') {
-        const validationError = new Error('caseDetails is required');
-        (validationError as DatabaseError).code = 'VALIDATION_ERROR';
-        throw validationError;
-      }
-      if (!applicantsData || !Array.isArray(applicantsData) || applicantsData.length === 0) {
-        const validationError = new Error('At least one applicant is required');
-        (validationError as DatabaseError).code = 'VALIDATION_ERROR';
-        throw validationError;
-      }
-
-      const {
-        clientId,
-        productId,
-        customerName,
-        customerPhone,
-        customerCallingCode,
-        verificationTypeId,
-        applicantType,
-        trigger,
-        priority = 'MEDIUM',
-        backendContactNumber,
-      } = caseDetails;
-
-      const resolvedCaseCustomerName =
-        (customerName ? String(customerName).trim() : '') ||
-        (Array.isArray(applicantsData) && applicantsData.length > 0 && applicantsData[0].name
-          ? String(applicantsData[0].name).trim()
-          : '');
-      const resolvedCaseVerificationTypeId =
-        (verificationTypeId ? Number(verificationTypeId) : null) ||
-        (Array.isArray(verificationTasksFromRequest) &&
-        verificationTasksFromRequest.length > 0 &&
-        getNumericField(
-          verificationTasksFromRequest[0] as Record<string, unknown>,
-          'verificationTypeId',
-          'verificationTypeId'
-        )
-          ? getNumericField(
-              verificationTasksFromRequest[0] as Record<string, unknown>,
-              'verificationTypeId',
-              'verificationTypeId'
-            )
-          : null) ||
-        (Array.isArray(applicantsData) &&
-        applicantsData.length > 0 &&
-        Array.isArray(applicantsData[0].verifications) &&
-        applicantsData[0].verifications.length > 0 &&
-        getNumericField(
-          applicantsData[0].verifications[0] as Record<string, unknown>,
-          'verificationTypeId',
-          'verificationTypeId'
-        )
-          ? getNumericField(
-              applicantsData[0].verifications[0] as Record<string, unknown>,
-              'verificationTypeId',
-              'verificationTypeId'
-            )
-          : null);
-      const resolvedCaseApplicantType =
-        (applicantType ? String(applicantType) : null) ||
-        (Array.isArray(applicantsData) && applicantsData.length > 0 && applicantsData[0].role
-          ? String(applicantsData[0].role)
-          : null) ||
-        (Array.isArray(verificationTasksFromRequest) &&
-        verificationTasksFromRequest.length > 0 &&
-        ((verificationTasksFromRequest[0] as Record<string, unknown>).applicantType ||
-          (verificationTasksFromRequest[0] as Record<string, unknown>).applicantType)
-          ? String(
-              ((verificationTasksFromRequest[0] as Record<string, unknown>)
-                .applicantType as string) ||
-                ((verificationTasksFromRequest[0] as Record<string, unknown>)
-                  .applicantType as string)
-            )
-          : null);
-      const resolvedCaseTrigger =
-        (trigger ? String(trigger) : null) ||
-        (Array.isArray(verificationTasksFromRequest) &&
-        verificationTasksFromRequest.length > 0 &&
-        (verificationTasksFromRequest[0] as Record<string, unknown>).trigger
-          ? String((verificationTasksFromRequest[0] as Record<string, unknown>).trigger as string)
-          : null);
-      const resolvedClientId =
-        clientId !== undefined && clientId !== null && String(clientId).trim() !== ''
-          ? Number(clientId)
-          : null;
-      const resolvedProductId =
-        productId !== undefined && productId !== null && String(productId).trim() !== ''
-          ? Number(productId)
-          : null;
-      const resolvedBackendContactNumber =
-        backendContactNumber !== undefined && backendContactNumber !== null
-          ? String(backendContactNumber).trim()
-          : '';
-      // For KYC-only cases, verificationTypeId and trigger are optional
-      const kycDocumentsForValidation = (requestData as unknown as Record<string, unknown>)
-        .kycDocuments as unknown[] | undefined;
-      const isKYCOnlyCase =
-        kycDocumentsForValidation &&
-        kycDocumentsForValidation.length > 0 &&
-        (!verificationTasksFromRequest || (verificationTasksFromRequest as unknown[]).length === 0);
-
-      if (
-        !resolvedClientId ||
-        !resolvedProductId ||
-        !resolvedBackendContactNumber ||
-        !resolvedCaseCustomerName ||
-        (!isKYCOnlyCase && !resolvedCaseVerificationTypeId) ||
-        !resolvedCaseApplicantType ||
-        (!isKYCOnlyCase && !resolvedCaseTrigger)
-      ) {
-        const missingFields = [
-          !resolvedClientId ? 'clientId' : null,
-          !resolvedProductId ? 'productId' : null,
-          !resolvedBackendContactNumber ? 'backendContactNumber' : null,
-          !resolvedCaseCustomerName ? 'customerName' : null,
-          !isKYCOnlyCase && !resolvedCaseVerificationTypeId ? 'verificationTypeId' : null,
-          !resolvedCaseApplicantType ? 'applicantType' : null,
-          !isKYCOnlyCase && !resolvedCaseTrigger ? 'trigger' : null,
-        ].filter(Boolean);
-        const validationError = new Error(
-          `Missing required case fields: ${missingFields.join(', ')}`
+            caseDetails?.applicantType ||
+            'APPLICANT'
         );
-        (validationError as DatabaseError).code = 'VALIDATION_ERROR';
-        throw validationError;
-      }
-
-      // ========== BUSINESS RULE: AT LEAST ONE TASK, EVERY TASK ASSIGNED ==========
-      // A case cannot be created without at least one field verification task
-      // OR at least one KYC verification task. Every task must be assigned to
-      // a user at creation time. The "Unassigned" state is not permitted.
-      const fieldTaskCount = Array.isArray(verificationTasksFromRequest)
-        ? verificationTasksFromRequest.length
-        : 0;
-      const kycTaskCount = Array.isArray(kycDocumentsForValidation)
-        ? kycDocumentsForValidation.length
-        : 0;
-
-      if (fieldTaskCount === 0 && kycTaskCount === 0) {
-        const err = new Error(
-          'A case must include at least one field verification task or KYC verification task'
+        const name = String(
+          ((task.applicant as Record<string, unknown> | undefined)?.name as string) ||
+            caseDetails?.customerName ||
+            'Applicant'
         );
-        (err as DatabaseError).code = 'VALIDATION_ERROR';
-        throw err;
+        const mobile = String(
+          ((task.applicant as Record<string, unknown> | undefined)?.mobile as string) ||
+            caseDetails?.customerPhone ||
+            ''
+        );
+        const panNumber = String(
+          ((task.applicant as Record<string, unknown> | undefined)?.panNumber as string) ||
+            caseDetails?.panNumber ||
+            ''
+        );
+        const verificationTypeId =
+          getNumericField(task, 'verificationTypeId', 'verificationTypeId') || 0;
+        if (!verificationTypeId) {
+          continue;
+        }
+
+        const pincodeIdFromTask =
+          task.pincodeId && Number(task.pincodeId)
+            ? Number(task.pincodeId)
+            : await resolvePincodeId(task.pincode);
+
+        const applicantKey = `${role}:${mobile || name}`;
+        if (!applicantsMap.has(applicantKey)) {
+          applicantsMap.set(applicantKey, {
+            name,
+            mobile,
+            role,
+            panNumber: panNumber || undefined,
+            verifications: [],
+          });
+        }
+
+        applicantsMap.get(applicantKey).verifications.push({
+          verificationTypeId,
+          address: task.address || null,
+          pincodeId:
+            getNumericField(task, 'pincodeId', 'pincodeId') || pincodeIdFromTask || undefined,
+          assignedTo: (task.assignedTo || task.assignedTo || null) as string | null,
+          estimatedCompletionDate: (task.estimatedCompletionDate || task.slaDeadline || null) as
+            | string
+            | null,
+        } as unknown as CreateVerificationTask);
       }
 
-      if (fieldTaskCount > 0) {
-        for (let i = 0; i < fieldTaskCount; i++) {
-          const task = (verificationTasksFromRequest as Record<string, unknown>[])[i];
-          const taskAssignee = task?.assignedTo;
-          if (!taskAssignee || (typeof taskAssignee === 'string' && taskAssignee.trim() === '')) {
-            const taskTitleLabel =
-              typeof task?.taskTitle === 'string' ? ` ("${task.taskTitle}")` : '';
-            const err = new Error(
-              `Field task ${i + 1}${taskTitleLabel} must be assigned to a field executive at creation time`
-            );
-            (err as DatabaseError).code = 'VALIDATION_ERROR';
-            throw err;
-          }
+      applicantsData = Array.from(applicantsMap.values()) as CreateApplicantData[];
+    }
+
+    logger.info('Parsed applicants:', applicantsData);
+    logger.info('Parsed verificationTasks:', verificationTasksFromRequest);
+
+    // ========== COMPREHENSIVE VALIDATION ==========
+    if (!caseDetails || typeof caseDetails !== 'object') {
+      const validationError = new Error('caseDetails is required');
+      (validationError as DatabaseError).code = 'VALIDATION_ERROR';
+      throw validationError;
+    }
+    if (!applicantsData || !Array.isArray(applicantsData) || applicantsData.length === 0) {
+      const validationError = new Error('At least one applicant is required');
+      (validationError as DatabaseError).code = 'VALIDATION_ERROR';
+      throw validationError;
+    }
+
+    const {
+      clientId,
+      productId,
+      customerName,
+      customerPhone,
+      customerCallingCode,
+      verificationTypeId,
+      applicantType,
+      trigger,
+      priority = 'MEDIUM',
+      backendContactNumber,
+    } = caseDetails;
+
+    const resolvedCaseCustomerName =
+      (customerName ? String(customerName).trim() : '') ||
+      (Array.isArray(applicantsData) && applicantsData.length > 0 && applicantsData[0].name
+        ? String(applicantsData[0].name).trim()
+        : '');
+    const resolvedCaseVerificationTypeId =
+      (verificationTypeId ? Number(verificationTypeId) : null) ||
+      (Array.isArray(verificationTasksFromRequest) &&
+      verificationTasksFromRequest.length > 0 &&
+      getNumericField(
+        verificationTasksFromRequest[0] as Record<string, unknown>,
+        'verificationTypeId',
+        'verificationTypeId'
+      )
+        ? getNumericField(
+            verificationTasksFromRequest[0] as Record<string, unknown>,
+            'verificationTypeId',
+            'verificationTypeId'
+          )
+        : null) ||
+      (Array.isArray(applicantsData) &&
+      applicantsData.length > 0 &&
+      Array.isArray(applicantsData[0].verifications) &&
+      applicantsData[0].verifications.length > 0 &&
+      getNumericField(
+        applicantsData[0].verifications[0] as Record<string, unknown>,
+        'verificationTypeId',
+        'verificationTypeId'
+      )
+        ? getNumericField(
+            applicantsData[0].verifications[0] as Record<string, unknown>,
+            'verificationTypeId',
+            'verificationTypeId'
+          )
+        : null);
+    const resolvedCaseApplicantType =
+      (applicantType ? String(applicantType) : null) ||
+      (Array.isArray(applicantsData) && applicantsData.length > 0 && applicantsData[0].role
+        ? String(applicantsData[0].role)
+        : null) ||
+      (Array.isArray(verificationTasksFromRequest) &&
+      verificationTasksFromRequest.length > 0 &&
+      ((verificationTasksFromRequest[0] as Record<string, unknown>).applicantType ||
+        (verificationTasksFromRequest[0] as Record<string, unknown>).applicantType)
+        ? String(
+            ((verificationTasksFromRequest[0] as Record<string, unknown>)
+              .applicantType as string) ||
+              ((verificationTasksFromRequest[0] as Record<string, unknown>).applicantType as string)
+          )
+        : null);
+    const resolvedCaseTrigger =
+      (trigger ? String(trigger) : null) ||
+      (Array.isArray(verificationTasksFromRequest) &&
+      verificationTasksFromRequest.length > 0 &&
+      (verificationTasksFromRequest[0] as Record<string, unknown>).trigger
+        ? String((verificationTasksFromRequest[0] as Record<string, unknown>).trigger as string)
+        : null);
+    const resolvedClientId =
+      clientId !== undefined && clientId !== null && String(clientId).trim() !== ''
+        ? Number(clientId)
+        : null;
+    const resolvedProductId =
+      productId !== undefined && productId !== null && String(productId).trim() !== ''
+        ? Number(productId)
+        : null;
+    const resolvedBackendContactNumber =
+      backendContactNumber !== undefined && backendContactNumber !== null
+        ? String(backendContactNumber).trim()
+        : '';
+    // For KYC-only cases, verificationTypeId and trigger are optional
+    const kycDocumentsForValidation = (requestData as unknown as Record<string, unknown>)
+      .kycDocuments as unknown[] | undefined;
+    const isKYCOnlyCase =
+      kycDocumentsForValidation &&
+      kycDocumentsForValidation.length > 0 &&
+      (!verificationTasksFromRequest || (verificationTasksFromRequest as unknown[]).length === 0);
+
+    if (
+      !resolvedClientId ||
+      !resolvedProductId ||
+      !resolvedBackendContactNumber ||
+      !resolvedCaseCustomerName ||
+      (!isKYCOnlyCase && !resolvedCaseVerificationTypeId) ||
+      !resolvedCaseApplicantType ||
+      (!isKYCOnlyCase && !resolvedCaseTrigger)
+    ) {
+      const missingFields = [
+        !resolvedClientId ? 'clientId' : null,
+        !resolvedProductId ? 'productId' : null,
+        !resolvedBackendContactNumber ? 'backendContactNumber' : null,
+        !resolvedCaseCustomerName ? 'customerName' : null,
+        !isKYCOnlyCase && !resolvedCaseVerificationTypeId ? 'verificationTypeId' : null,
+        !resolvedCaseApplicantType ? 'applicantType' : null,
+        !isKYCOnlyCase && !resolvedCaseTrigger ? 'trigger' : null,
+      ].filter(Boolean);
+      const validationError = new Error(
+        `Missing required case fields: ${missingFields.join(', ')}`
+      );
+      (validationError as DatabaseError).code = 'VALIDATION_ERROR';
+      throw validationError;
+    }
+
+    // ========== BUSINESS RULE: AT LEAST ONE TASK, EVERY TASK ASSIGNED ==========
+    // A case cannot be created without at least one field verification task
+    // OR at least one KYC verification task. Every task must be assigned to
+    // a user at creation time. The "Unassigned" state is not permitted.
+    const fieldTaskCount = Array.isArray(verificationTasksFromRequest)
+      ? verificationTasksFromRequest.length
+      : 0;
+    const kycTaskCount = Array.isArray(kycDocumentsForValidation)
+      ? kycDocumentsForValidation.length
+      : 0;
+
+    if (fieldTaskCount === 0 && kycTaskCount === 0) {
+      const err = new Error(
+        'A case must include at least one field verification task or KYC verification task'
+      );
+      (err as DatabaseError).code = 'VALIDATION_ERROR';
+      throw err;
+    }
+
+    if (fieldTaskCount > 0) {
+      for (let i = 0; i < fieldTaskCount; i++) {
+        const task = (verificationTasksFromRequest as Record<string, unknown>[])[i];
+        const taskAssignee = task?.assignedTo;
+        if (!taskAssignee || (typeof taskAssignee === 'string' && taskAssignee.trim() === '')) {
+          const taskTitleLabel =
+            typeof task?.taskTitle === 'string' ? ` ("${task.taskTitle}")` : '';
+          const err = new Error(
+            `Field task ${i + 1}${taskTitleLabel} must be assigned to a field executive at creation time`
+          );
+          (err as DatabaseError).code = 'VALIDATION_ERROR';
+          throw err;
         }
       }
+    }
 
-      if (kycTaskCount > 0) {
-        for (let i = 0; i < kycTaskCount; i++) {
-          const doc = (kycDocumentsForValidation as Record<string, unknown>[])[i];
-          const docAssignee = doc?.assignedTo;
-          if (!docAssignee || (typeof docAssignee === 'string' && docAssignee.trim() === '')) {
-            const docTypeLabel =
-              typeof doc?.documentType === 'string' ? ` ("${doc.documentType}")` : '';
-            const err = new Error(
-              `KYC document ${i + 1}${docTypeLabel} must be assigned to a centralized user at creation time`
-            );
-            (err as DatabaseError).code = 'VALIDATION_ERROR';
-            throw err;
-          }
+    if (kycTaskCount > 0) {
+      for (let i = 0; i < kycTaskCount; i++) {
+        const doc = (kycDocumentsForValidation as Record<string, unknown>[])[i];
+        const docAssignee = doc?.assignedTo;
+        if (!docAssignee || (typeof docAssignee === 'string' && docAssignee.trim() === '')) {
+          const docTypeLabel =
+            typeof doc?.documentType === 'string' ? ` ("${doc.documentType}")` : '';
+          const err = new Error(
+            `KYC document ${i + 1}${docTypeLabel} must be assigned to a centralized user at creation time`
+          );
+          (err as DatabaseError).code = 'VALIDATION_ERROR';
+          throw err;
         }
       }
+    }
 
-      // ========== VALIDATE MASTER DATA EXISTS ==========
-      const [clientCheck, productCheck, productClientCheck] = await Promise.all([
-        client.query('SELECT id, is_active FROM clients WHERE id = $1', [resolvedClientId]),
-        client.query('SELECT id, is_active FROM products WHERE id = $1', [resolvedProductId]),
-        client.query('SELECT 1 FROM client_products WHERE client_id = $1 AND product_id = $2', [
-          resolvedClientId,
-          resolvedProductId,
-        ]),
-      ]);
+    // ========== VALIDATE MASTER DATA EXISTS ==========
+    const [clientCheck, productCheck, productClientCheck] = await Promise.all([
+      client.query('SELECT id, is_active FROM clients WHERE id = $1', [resolvedClientId]),
+      client.query('SELECT id, is_active FROM products WHERE id = $1', [resolvedProductId]),
+      client.query('SELECT 1 FROM client_products WHERE client_id = $1 AND product_id = $2', [
+        resolvedClientId,
+        resolvedProductId,
+      ]),
+    ]);
 
-      if (clientCheck.rows.length === 0) {
-        const err = new Error('Client not found');
-        (err as DatabaseError).code = 'VALIDATION_ERROR';
-        throw err;
-      }
-      if (!clientCheck.rows[0].isActive) {
-        const err = new Error('Client is inactive');
-        (err as DatabaseError).code = 'VALIDATION_ERROR';
-        throw err;
-      }
-      if (productCheck.rows.length === 0) {
-        const err = new Error('Product not found');
-        (err as DatabaseError).code = 'VALIDATION_ERROR';
-        throw err;
-      }
-      if (!productCheck.rows[0].isActive) {
-        const err = new Error('Product is inactive');
-        (err as DatabaseError).code = 'VALIDATION_ERROR';
-        throw err;
-      }
-      if (productClientCheck.rows.length === 0) {
-        const err = new Error('Product does not belong to the specified client');
-        (err as DatabaseError).code = 'VALIDATION_ERROR';
-        throw err;
-      }
+    if (clientCheck.rows.length === 0) {
+      const err = new Error('Client not found');
+      (err as DatabaseError).code = 'VALIDATION_ERROR';
+      throw err;
+    }
+    if (!clientCheck.rows[0].isActive) {
+      const err = new Error('Client is inactive');
+      (err as DatabaseError).code = 'VALIDATION_ERROR';
+      throw err;
+    }
+    if (productCheck.rows.length === 0) {
+      const err = new Error('Product not found');
+      (err as DatabaseError).code = 'VALIDATION_ERROR';
+      throw err;
+    }
+    if (!productCheck.rows[0].isActive) {
+      const err = new Error('Product is inactive');
+      (err as DatabaseError).code = 'VALIDATION_ERROR';
+      throw err;
+    }
+    if (productClientCheck.rows.length === 0) {
+      const err = new Error('Product does not belong to the specified client');
+      (err as DatabaseError).code = 'VALIDATION_ERROR';
+      throw err;
+    }
 
-      // ========== CREATE CASE ==========
-      const caseResult = await client.query(
-        `INSERT INTO cases (
+    // ========== CREATE CASE ==========
+    const caseResult = await client.query(
+      `INSERT INTO cases (
           client_id, product_id, customer_name, customer_phone, customer_calling_code,
           priority, backend_contact_number,
           verification_type_id, applicant_type, trigger, created_by_backend_user, status, created_at, updated_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'PENDING', NOW(), NOW()) RETURNING *`,
+      [
+        resolvedClientId,
+        resolvedProductId,
+        resolvedCaseCustomerName,
+        customerPhone || null,
+        customerCallingCode || null,
+        priority,
+        resolvedBackendContactNumber,
+        resolvedCaseVerificationTypeId || null,
+        resolvedCaseApplicantType,
+        resolvedCaseTrigger || (isKYCOnlyCase ? 'KYC Document Verification' : null),
+        userId,
+      ]
+    );
+    const newCase = caseResult.rows[0];
+
+    const createdHierarchy = [];
+
+    // ========== CREATE APPLICANTS, VERIFICATIONS, VISITS ==========
+    for (const appData of applicantsData) {
+      const applicantResult = await client.query(
+        `INSERT INTO applicants (case_id, name, mobile, role, pan_number, id_details)
+           VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
         [
-          resolvedClientId,
-          resolvedProductId,
-          resolvedCaseCustomerName,
-          customerPhone || null,
-          customerCallingCode || null,
-          priority,
-          resolvedBackendContactNumber,
-          resolvedCaseVerificationTypeId || null,
-          resolvedCaseApplicantType,
-          resolvedCaseTrigger || (isKYCOnlyCase ? 'KYC Document Verification' : null),
-          userId,
+          newCase.id,
+          appData.name,
+          appData.mobile,
+          appData.role || 'APPLICANT',
+          appData.panNumber,
+          appData.idDetails || {},
         ]
       );
-      const newCase = caseResult.rows[0];
+      const applicant = applicantResult.rows[0];
+      const verifications = [];
 
-      const createdHierarchy = [];
+      if (appData.verifications && Array.isArray(appData.verifications)) {
+        for (const verData of appData.verifications) {
+          const verificationData = verData as Record<string, unknown>;
+          const resolvedVerificationTypeId = getNumericField(
+            verificationData,
+            'verificationTypeId',
+            'verificationTypeId'
+          );
+          const pincodeId =
+            getNumericField(verificationData, 'pincodeId', 'pincodeId') ||
+            (verificationData.pincode
+              ? (
+                  await client.query('SELECT id FROM pincodes WHERE code = $1', [
+                    verificationData.pincode,
+                  ])
+                ).rows[0]?.id
+              : null);
 
-      // ========== CREATE APPLICANTS, VERIFICATIONS, VISITS ==========
-      for (const appData of applicantsData) {
-        const applicantResult = await client.query(
-          `INSERT INTO applicants (case_id, name, mobile, role, pan_number, id_details)
-           VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-          [
-            newCase.id,
-            appData.name,
-            appData.mobile,
-            appData.role || 'APPLICANT',
-            appData.panNumber,
-            appData.idDetails || {},
-          ]
-        );
-        const applicant = applicantResult.rows[0];
-        const verifications = [];
-
-        if (appData.verifications && Array.isArray(appData.verifications)) {
-          for (const verData of appData.verifications) {
-            const verificationData = verData as Record<string, unknown>;
-            const resolvedVerificationTypeId = getNumericField(
-              verificationData,
-              'verificationTypeId',
-              'verificationTypeId'
-            );
-            const pincodeId =
-              getNumericField(verificationData, 'pincodeId', 'pincodeId') ||
-              (verificationData.pincode
-                ? (
-                    await client.query('SELECT id FROM pincodes WHERE code = $1', [
-                      verificationData.pincode,
-                    ])
-                  ).rows[0]?.id
-                : null);
-
-            const verificationResult = await client.query(
-              `INSERT INTO verifications (applicant_id, verification_type_id, address, pincode_id)
+          const verificationResult = await client.query(
+            `INSERT INTO verifications (applicant_id, verification_type_id, address, pincode_id)
                VALUES ($1, $2, $3, $4) RETURNING *`,
-              [
-                applicant.id,
-                resolvedVerificationTypeId,
-                verificationData.address as string | null,
-                pincodeId,
-              ]
-            );
-            const verification = verificationResult.rows[0];
-            const visits = [];
+            [
+              applicant.id,
+              resolvedVerificationTypeId,
+              verificationData.address as string | null,
+              pincodeId,
+            ]
+          );
+          const verification = verificationResult.rows[0];
+          const visits = [];
 
-            // Automatically create initial visit for each verification
-            const visitResult = await client.query(
-              `INSERT INTO visits (verification_id, visit_number, status, assigned_to, sla_deadline)
+          // Automatically create initial visit for each verification
+          const visitResult = await client.query(
+            `INSERT INTO visits (verification_id, visit_number, status, assigned_to, sla_deadline)
                VALUES ($1, 1, 'PENDING', $2, $3) RETURNING *`,
-              [
-                verification.id,
-                (verificationData.assignedTo || verificationData.assignedTo || null) as
-                  | string
-                  | null,
-                (verificationData.estimatedCompletionDate ||
-                  verificationData.slaDeadline ||
-                  null) as string | null,
-              ]
-            );
-            visits.push(visitResult.rows[0]);
+            [
+              verification.id,
+              (verificationData.assignedTo || verificationData.assignedTo || null) as string | null,
+              (verificationData.estimatedCompletionDate || verificationData.slaDeadline || null) as
+                | string
+                | null,
+            ]
+          );
+          visits.push(visitResult.rows[0]);
 
-            verifications.push({ ...verification, visits });
-          }
+          verifications.push({ ...verification, visits });
         }
-        createdHierarchy.push({ ...applicant, verifications });
       }
+      createdHierarchy.push({ ...applicant, verifications });
+    }
 
-      // Backward compatibility: Set customerName on case from primary applicant
-      if (createdHierarchy.length > 0) {
-        await client.query('UPDATE cases SET customer_name = $1 WHERE id = $2', [
-          createdHierarchy[0].name,
-          newCase.id,
+    // Backward compatibility: Set customerName on case from primary applicant
+    if (createdHierarchy.length > 0) {
+      await client.query('UPDATE cases SET customer_name = $1 WHERE id = $2', [
+        createdHierarchy[0].name,
+        newCase.id,
+      ]);
+    }
+
+    // Build verification tasks payload:
+    // 1) Prefer explicit verificationTasks from request
+    // 2) Fallback to applicants[].verifications[]
+    let tasksToCreate: Record<string, unknown>[] = [];
+
+    if (Array.isArray(verificationTasksFromRequest) && verificationTasksFromRequest.length > 0) {
+      tasksToCreate = verificationTasksFromRequest as unknown as Record<string, unknown>[];
+    } else {
+      // Cache pincodeId -> pincode code resolution to avoid repeated queries
+      const pincodeCodeCache = new Map<number, string>();
+
+      const resolvePincodeCode = async (pincodeId?: number): Promise<string | null> => {
+        if (!pincodeId) {
+          return null;
+        }
+        if (pincodeCodeCache.has(pincodeId)) {
+          return pincodeCodeCache.get(pincodeId);
+        }
+
+        const pincodeRes = await client.query('SELECT code FROM pincodes WHERE id = $1', [
+          pincodeId,
         ]);
-      }
+        const pincodeCode = pincodeRes.rows[0]?.code ? String(pincodeRes.rows[0].code) : null;
+        if (pincodeCode) {
+          pincodeCodeCache.set(pincodeId, pincodeCode);
+        }
+        return pincodeCode;
+      };
 
-      // Build verification tasks payload:
-      // 1) Prefer explicit verificationTasks from request
-      // 2) Fallback to applicants[].verifications[]
-      let tasksToCreate: Record<string, unknown>[] = [];
+      for (const appData of applicantsData) {
+        if (!appData.verifications || !Array.isArray(appData.verifications)) {
+          continue;
+        }
 
-      if (Array.isArray(verificationTasksFromRequest) && verificationTasksFromRequest.length > 0) {
-        tasksToCreate = verificationTasksFromRequest as unknown as Record<string, unknown>[];
-      } else {
-        // Cache pincodeId -> pincode code resolution to avoid repeated queries
-        const pincodeCodeCache = new Map<number, string>();
+        for (const verData of appData.verifications) {
+          const pincodeCode =
+            typeof (verData as Record<string, unknown>).pincode === 'string'
+              ? String((verData as Record<string, unknown>).pincode as string)
+              : await resolvePincodeCode(
+                  Number(
+                    (verData as Record<string, unknown>).pincodeId ||
+                      (verData as Record<string, unknown>).pincodeId ||
+                      0
+                  ) || undefined
+                );
 
-        const resolvePincodeCode = async (pincodeId?: number): Promise<string | null> => {
-          if (!pincodeId) {
-            return null;
-          }
-          if (pincodeCodeCache.has(pincodeId)) {
-            return pincodeCodeCache.get(pincodeId);
-          }
-
-          const pincodeRes = await client.query('SELECT code FROM pincodes WHERE id = $1', [
-            pincodeId,
-          ]);
-          const pincodeCode = pincodeRes.rows[0]?.code ? String(pincodeRes.rows[0].code) : null;
-          if (pincodeCode) {
-            pincodeCodeCache.set(pincodeId, pincodeCode);
-          }
-          return pincodeCode;
-        };
-
-        for (const appData of applicantsData) {
-          if (!appData.verifications || !Array.isArray(appData.verifications)) {
+          if (!pincodeCode) {
             continue;
           }
 
-          for (const verData of appData.verifications) {
-            const pincodeCode =
-              typeof (verData as Record<string, unknown>).pincode === 'string'
-                ? String((verData as Record<string, unknown>).pincode as string)
-                : await resolvePincodeCode(
-                    Number(
-                      (verData as Record<string, unknown>).pincodeId ||
-                        (verData as Record<string, unknown>).pincodeId ||
-                        0
-                    ) || undefined
-                  );
-
-            if (!pincodeCode) {
-              continue;
-            }
-
-            tasksToCreate.push({
-              verificationTypeId:
-                (verData as Record<string, unknown>).verificationTypeId ||
-                (verData as Record<string, unknown>).verificationTypeId,
-              taskTitle: `Verification for ${appData.name}`,
-              taskDescription: 'Auto-generated task from case creation',
-              priority: caseDetails.priority || 'MEDIUM',
-              assignedTo:
-                (verData as Record<string, unknown>).assignedTo ||
-                (verData as Record<string, unknown>).assignedTo ||
-                null,
-              address: (verData as Record<string, unknown>).address,
-              pincode: pincodeCode,
-              estimatedCompletionDate:
-                (verData as Record<string, unknown>).slaDeadline ||
-                (verData as Record<string, unknown>).estimatedCompletionDate,
-              areaId:
-                (verData as Record<string, unknown>).areaId ||
-                (verData as Record<string, unknown>).areaId ||
-                null,
-              applicantType: appData.role || 'APPLICANT',
-              trigger: caseDetails.trigger || null,
-            });
-          }
+          tasksToCreate.push({
+            verificationTypeId:
+              (verData as Record<string, unknown>).verificationTypeId ||
+              (verData as Record<string, unknown>).verificationTypeId,
+            taskTitle: `Verification for ${appData.name}`,
+            taskDescription: 'Auto-generated task from case creation',
+            priority: caseDetails.priority || 'MEDIUM',
+            assignedTo:
+              (verData as Record<string, unknown>).assignedTo ||
+              (verData as Record<string, unknown>).assignedTo ||
+              null,
+            address: (verData as Record<string, unknown>).address,
+            pincode: pincodeCode,
+            estimatedCompletionDate:
+              (verData as Record<string, unknown>).slaDeadline ||
+              (verData as Record<string, unknown>).estimatedCompletionDate,
+            areaId:
+              (verData as Record<string, unknown>).areaId ||
+              (verData as Record<string, unknown>).areaId ||
+              null,
+            applicantType: appData.role || 'APPLICANT',
+            trigger: caseDetails.trigger || null,
+          });
         }
       }
+    }
 
-      // Allow empty field tasks if KYC documents are provided
-      const kycDocumentsFromRequest = (requestData as unknown as Record<string, unknown>)
-        .kycDocuments as unknown[] | undefined;
-      const hasKYCDocuments = kycDocumentsFromRequest && kycDocumentsFromRequest.length > 0;
+    // Allow empty field tasks if KYC documents are provided
+    const kycDocumentsFromRequest = (requestData as unknown as Record<string, unknown>)
+      .kycDocuments as unknown[] | undefined;
+    const hasKYCDocuments = kycDocumentsFromRequest && kycDocumentsFromRequest.length > 0;
 
-      if ((!tasksToCreate || tasksToCreate.length === 0) && !hasKYCDocuments) {
-        const validationError = new Error(
-          'At least one verification task or KYC document is required'
-        );
-        (validationError as DatabaseError).code = 'VALIDATION_ERROR';
-        throw validationError;
-      }
+    if ((!tasksToCreate || tasksToCreate.length === 0) && !hasKYCDocuments) {
+      const validationError = new Error(
+        'At least one verification task or KYC document is required'
+      );
+      (validationError as DatabaseError).code = 'VALIDATION_ERROR';
+      throw validationError;
+    }
 
-      // Atomic requirement:
-      // case + hierarchy + verification tasks must all succeed in one transaction
-      let taskCreationResult: { createdTasks: unknown[] } = { createdTasks: [] };
-      if (tasksToCreate && tasksToCreate.length > 0) {
-        taskCreationResult = await VerificationTaskCreationService.createForCase(
-          client,
-          newCase.id,
-          tasksToCreate,
-          userId
-        );
-      }
+    // Atomic requirement:
+    // case + hierarchy + verification tasks must all succeed in one transaction
+    let taskCreationResult: { createdTasks: unknown[] } = { createdTasks: [] };
+    if (tasksToCreate && tasksToCreate.length > 0) {
+      taskCreationResult = await VerificationTaskCreationService.createForCase(
+        client,
+        newCase.id,
+        tasksToCreate,
+        userId
+      );
+    }
 
-      // Create KYC document verification tasks if provided
-      const kycDocuments = kycDocumentsFromRequest as KYCDocumentInput[] | undefined;
+    // Create KYC document verification tasks if provided
+    const kycDocuments = kycDocumentsFromRequest as KYCDocumentInput[] | undefined;
 
-      if (kycDocuments && kycDocuments.length > 0) {
-        for (const doc of kycDocuments) {
-          // Business rule: every KYC task MUST be assigned to a centralized
-          // (backend) user at creation time. "Unassigned" KYC tasks are not
-          // allowed.
-          if (!doc.assignedTo || String(doc.assignedTo).trim() === '') {
-            const assigneeError = new Error(
-              `KYC document "${doc.documentType}" must be assigned to a centralized user at creation time`
-            );
-            (assigneeError as DatabaseError).code = 'VALIDATION_ERROR';
-            throw assigneeError;
-          }
-
-          // Look up KYC rate from documentTypeRates (client + product + kycDocumentType)
-          let rateAmount: number | null = null;
-          const kycDocTypeRes = await client.query(
-            `SELECT id FROM kyc_document_types WHERE code = $1 AND is_active = true`,
-            [doc.documentType]
+    if (kycDocuments && kycDocuments.length > 0) {
+      for (const doc of kycDocuments) {
+        // Business rule: every KYC task MUST be assigned to a centralized
+        // (backend) user at creation time. "Unassigned" KYC tasks are not
+        // allowed.
+        if (!doc.assignedTo || String(doc.assignedTo).trim() === '') {
+          const assigneeError = new Error(
+            `KYC document "${doc.documentType}" must be assigned to a centralized user at creation time`
           );
-          if (kycDocTypeRes.rows.length === 0) {
-            logger.warn(`KYC document type not found or inactive: ${doc.documentType}`, {
-              caseId: newCase.id,
-              documentType: doc.documentType,
-            });
-          }
-          if (kycDocTypeRes.rows.length > 0) {
-            const kycDocTypeId = kycDocTypeRes.rows[0].id;
-            const rateRes = await client.query(
-              `SELECT amount FROM document_type_rates
+          (assigneeError as DatabaseError).code = 'VALIDATION_ERROR';
+          throw assigneeError;
+        }
+
+        // Look up KYC rate from documentTypeRates (client + product + kycDocumentType)
+        let rateAmount: number | null = null;
+        const kycDocTypeRes = await client.query(
+          `SELECT id FROM kyc_document_types WHERE code = $1 AND is_active = true`,
+          [doc.documentType]
+        );
+        if (kycDocTypeRes.rows.length === 0) {
+          logger.warn(`KYC document type not found or inactive: ${doc.documentType}`, {
+            caseId: newCase.id,
+            documentType: doc.documentType,
+          });
+        }
+        if (kycDocTypeRes.rows.length > 0) {
+          const kycDocTypeId = kycDocTypeRes.rows[0].id;
+          const rateRes = await client.query(
+            `SELECT amount FROM document_type_rates
                WHERE client_id = $1 AND product_id = $2 AND document_type_id = $3 AND is_active = true
                ORDER BY effective_from DESC NULLS LAST
                LIMIT 1`,
-              [newCase.clientId, newCase.productId, kycDocTypeId]
-            );
-            if (rateRes.rows.length > 0) {
-              rateAmount = parseFloat(rateRes.rows[0].amount);
-            } else {
-              logger.warn(`No active rate found for KYC document type ${doc.documentType}`, {
-                caseId: newCase.id,
-                clientId: newCase.clientId,
-                productId: newCase.productId,
-                documentTypeId: kycDocTypeId,
-              });
-            }
+            [newCase.clientId, newCase.productId, kycDocTypeId]
+          );
+          if (rateRes.rows.length > 0) {
+            rateAmount = parseFloat(rateRes.rows[0].amount);
+          } else {
+            logger.warn(`No active rate found for KYC document type ${doc.documentType}`, {
+              caseId: newCase.id,
+              clientId: newCase.clientId,
+              productId: newCase.productId,
+              documentTypeId: kycDocTypeId,
+            });
           }
+        }
 
-          // Create a verificationTask with taskType = 'KYC'. The assignee is
-          // validated above so this INSERT always uses the ASSIGNED state.
-          const kycTaskResult = await client.query(
-            `INSERT INTO verification_tasks (
+        // Create a verificationTask with taskType = 'KYC'. The assignee is
+        // validated above so this INSERT always uses the ASSIGNED state.
+        const kycTaskResult = await client.query(
+          `INSERT INTO verification_tasks (
               case_id, task_title, task_description, priority, status,
               task_type, created_by, estimated_amount,
               assigned_to, assigned_by, assigned_at
             ) VALUES ($1, $2, $3, 'MEDIUM', 'ASSIGNED', 'KYC', $4, $5, $6, $7, NOW())
             RETURNING id`,
-            [
-              newCase.id,
-              `KYC: ${doc.documentType.replace(/_/g, ' ')}`,
-              `KYC document verification for ${doc.documentType}`,
-              userId,
-              rateAmount,
-              doc.assignedTo,
-              userId,
-            ]
-          );
+          [
+            newCase.id,
+            `KYC: ${doc.documentType.replace(/_/g, ' ')}`,
+            `KYC document verification for ${doc.documentType}`,
+            userId,
+            rateAmount,
+            doc.assignedTo,
+            userId,
+          ]
+        );
 
-          const kycTaskId = kycTaskResult.rows[0].id;
+        const kycTaskId = kycTaskResult.rows[0].id;
 
-          // Create the KYC document verification record. Assignee is
-          // guaranteed by the validation above.
-          await client.query(
-            `INSERT INTO kyc_document_verifications (
+        // Create the KYC document verification record. Assignee is
+        // guaranteed by the validation above.
+        await client.query(
+          `INSERT INTO kyc_document_verifications (
               verification_task_id, case_id, document_type, document_number,
               document_holder_name, verification_status, document_details, description,
               assigned_to, assigned_by, assigned_at, rate_amount
             ) VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, $7, $8, $9, NOW(), $10)`,
-            [
-              kycTaskId,
-              newCase.id,
-              doc.documentType,
-              doc.documentNumber || null,
-              doc.documentHolderName || requestData.caseDetails?.customerName || null,
-              JSON.stringify(doc.documentDetails || {}),
-              doc.description || null,
-              doc.assignedTo,
-              userId,
-              rateAmount,
-            ]
-          );
-        }
-
-        logger.info(
-          `Created ${kycDocuments.length} KYC verification tasks for case ${newCase.caseId}`
+          [
+            kycTaskId,
+            newCase.id,
+            doc.documentType,
+            doc.documentNumber || null,
+            doc.documentHolderName || requestData.caseDetails?.customerName || null,
+            JSON.stringify(doc.documentDetails || {}),
+            doc.description || null,
+            doc.assignedTo,
+            userId,
+            rateAmount,
+          ]
         );
       }
 
-      // Explicit commit before returning success
-      await client.query('COMMIT');
+      logger.info(
+        `Created ${kycDocuments.length} KYC verification tasks for case ${newCase.caseId}`
+      );
+    }
 
-      // Invalidate analytics/case-stats cache after new case creation
-      void invalidateCachePatterns(CacheKeys.invalidateCase(newCase.id));
+    // Explicit commit before returning success
+    await client.query('COMMIT');
 
-      // ========== RESPONSE ==========
-      res.status(201).json({
-        success: true,
-        message: `Case created successfully with ${applicantsData.length} applicant(s)`,
-        data: {
-          case: {
-            id: newCase.id,
-            caseId: newCase.caseId,
-            status: newCase.status,
-            priority: newCase.priority,
-            createdAt: newCase.createdAt,
-          },
-          hierarchy: createdHierarchy,
-          tasks: taskCreationResult.createdTasks,
+    // Invalidate analytics/case-stats cache after new case creation
+    void invalidateCachePatterns(CacheKeys.invalidateCase(newCase.id));
+
+    // ========== RESPONSE ==========
+    res.status(201).json({
+      success: true,
+      message: `Case created successfully with ${applicantsData.length} applicant(s)`,
+      data: {
+        case: {
+          id: newCase.id,
+          caseId: newCase.caseId,
+          status: newCase.status,
+          priority: newCase.priority,
+          createdAt: newCase.createdAt,
         },
-      });
-    } catch (error: unknown) {
-      // Rollback transaction
-      try {
-        if (client) {
-          await client.query('ROLLBACK');
-        }
-      } catch (rollbackError) {
-        logger.error('Rollback failed:', rollbackError);
-      }
-
-      // Cleanup uploaded files
-      await cleanupFiles();
-
-      const executionTime = Date.now() - startTime;
-
-      // Categorize errors for better handling
-      const err = error as DatabaseError;
-      const errorCode = err.code;
-      const errorMessage = err.message || 'Unknown error';
-
-      // Log detailed error information
-      logger.error('Case creation failed:', {
-        error: errorMessage,
-        code: errorCode,
-        constraint: err.constraint,
-        detail: err.detail,
-        userId: req.user?.id,
-        executionTime,
-        stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
-      });
-
-      // Handle verification task creation structured errors
-      if (error instanceof VerificationTaskCreationError) {
-        return res.status(error.status).json(error.responseBody);
-      }
-
-      // Handle specific database errors
-      if (errorCode === '23505') {
-        // Unique constraint violation
-        return res.status(409).json({
-          success: false,
-          message: 'Duplicate entry detected',
-          error: {
-            code: 'DUPLICATE_ENTRY',
-            constraint: err.constraint,
-            detail: err.detail,
-          },
-        });
-      }
-
-      if (errorCode === '23503') {
-        // Foreign key violation
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid reference to related entity',
-          error: {
-            code: 'FOREIGN_KEY_VIOLATION',
-            constraint: err.constraint,
-            detail: err.detail,
-          },
-        });
-      }
-
-      if (errorCode === '23502') {
-        // Not null violation
-        return res.status(400).json({
-          success: false,
-          message: `Required field missing: ${err.column || 'unknown'}`,
-          error: {
-            code: 'NULL_VIOLATION',
-            column: err.column,
-            detail: err.detail,
-          },
-        });
-      }
-
-      if (errorCode === '57014') {
-        // Query timeout
-        return res.status(504).json({
-          success: false,
-          message: 'Request timeout. Please try again with fewer tasks or smaller files.',
-          error: {
-            code: 'QUERY_TIMEOUT',
-            executionTime,
-          },
-        });
-      }
-
-      if (errorCode === '53300' || errorCode === '53400') {
-        // Too many connections or out of memory
-        return res.status(503).json({
-          success: false,
-          message: 'Service temporarily unavailable. Please try again in a moment.',
-          error: {
-            code: 'SERVICE_OVERLOADED',
-          },
-        });
-      }
-
-      if (errorCode === 'ECONNREFUSED' || errorCode === 'ENOTFOUND') {
-        // Database connection error
-        return res.status(503).json({
-          success: false,
-          message: 'Database connection error. Please try again.',
-          error: {
-            code: 'DB_CONNECTION_ERROR',
-          },
-        });
-      }
-
-      if (errorCode === 'VALIDATION_ERROR') {
-        return res.status(400).json({
-          success: false,
-          message: errorMessage,
-          error: {
-            code: 'VALIDATION_ERROR',
-          },
-        });
-      }
-
-      // Generic error response
-      return res.status(500).json({
-        success: false,
-        message:
-          process.env.NODE_ENV === 'production'
-            ? 'Failed to create case. Please try again.'
-            : errorMessage,
-        error: {
-          code: 'INTERNAL_ERROR',
-          ...(process.env.NODE_ENV !== 'production' && {
-            detail: err.detail,
-            hint: err.hint,
-            stack: err.stack,
-          }),
-        },
-      });
-    } finally {
-      // Always release the database connection
+        hierarchy: createdHierarchy,
+        tasks: taskCreationResult.createdTasks,
+      },
+    });
+  } catch (error: unknown) {
+    // Rollback transaction
+    try {
       if (client) {
-        try {
-          client.release();
-          const executionTime = Date.now() - startTime;
-          logger.info('Case creation request completed', {
-            userId: req.user?.id,
-            executionTime,
-            success: res.statusCode < 400,
-          });
-        } catch (releaseError) {
-          logger.error('Failed to release database connection:', releaseError);
-        }
+        await client.query('ROLLBACK');
+      }
+    } catch (rollbackError) {
+      logger.error('Rollback failed:', rollbackError);
+    }
+
+    // Cleanup uploaded files
+    await cleanupFiles();
+
+    const executionTime = Date.now() - startTime;
+
+    // Categorize errors for better handling
+    const err = error as DatabaseError;
+    const errorCode = err.code;
+    const errorMessage = err.message || 'Unknown error';
+
+    // Log detailed error information
+    logger.error('Case creation failed:', {
+      error: errorMessage,
+      code: errorCode,
+      constraint: err.constraint,
+      detail: err.detail,
+      userId: req.user?.id,
+      executionTime,
+      stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
+    });
+
+    // Handle verification task creation structured errors
+    if (error instanceof VerificationTaskCreationError) {
+      return res.status(error.status).json(error.responseBody);
+    }
+
+    // Handle specific database errors
+    if (errorCode === '23505') {
+      // Unique constraint violation
+      return res.status(409).json({
+        success: false,
+        message: 'Duplicate entry detected',
+        error: {
+          code: 'DUPLICATE_ENTRY',
+          constraint: err.constraint,
+          detail: err.detail,
+        },
+      });
+    }
+
+    if (errorCode === '23503') {
+      // Foreign key violation
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid reference to related entity',
+        error: {
+          code: 'FOREIGN_KEY_VIOLATION',
+          constraint: err.constraint,
+          detail: err.detail,
+        },
+      });
+    }
+
+    if (errorCode === '23502') {
+      // Not null violation
+      return res.status(400).json({
+        success: false,
+        message: `Required field missing: ${err.column || 'unknown'}`,
+        error: {
+          code: 'NULL_VIOLATION',
+          column: err.column,
+          detail: err.detail,
+        },
+      });
+    }
+
+    if (errorCode === '57014') {
+      // Query timeout
+      return res.status(504).json({
+        success: false,
+        message: 'Request timeout. Please try again with fewer tasks or smaller files.',
+        error: {
+          code: 'QUERY_TIMEOUT',
+          executionTime,
+        },
+      });
+    }
+
+    if (errorCode === '53300' || errorCode === '53400') {
+      // Too many connections or out of memory
+      return res.status(503).json({
+        success: false,
+        message: 'Service temporarily unavailable. Please try again in a moment.',
+        error: {
+          code: 'SERVICE_OVERLOADED',
+        },
+      });
+    }
+
+    if (errorCode === 'ECONNREFUSED' || errorCode === 'ENOTFOUND') {
+      // Database connection error
+      return res.status(503).json({
+        success: false,
+        message: 'Database connection error. Please try again.',
+        error: {
+          code: 'DB_CONNECTION_ERROR',
+        },
+      });
+    }
+
+    if (errorCode === 'VALIDATION_ERROR') {
+      return res.status(400).json({
+        success: false,
+        message: errorMessage,
+        error: {
+          code: 'VALIDATION_ERROR',
+        },
+      });
+    }
+
+    // Generic error response
+    return res.status(500).json({
+      success: false,
+      message:
+        process.env.NODE_ENV === 'production'
+          ? 'Failed to create case. Please try again.'
+          : errorMessage,
+      error: {
+        code: 'INTERNAL_ERROR',
+        ...(process.env.NODE_ENV !== 'production' && {
+          detail: err.detail,
+          hint: err.hint,
+          stack: err.stack,
+        }),
+      },
+    });
+  } finally {
+    // Always release the database connection
+    if (client) {
+      try {
+        client.release();
+        const executionTime = Date.now() - startTime;
+        logger.info('Case creation request completed', {
+          userId: req.user?.id,
+          executionTime,
+          success: res.statusCode < 400,
+        });
+      } catch (releaseError) {
+        logger.error('Failed to release database connection:', releaseError);
       }
     }
-  },
-];
+  }
+};
