@@ -2,6 +2,8 @@ import { apiService } from './api';
 import { STORAGE_KEYS, SYNC_KEYS } from '@/types/constants';
 import type { LoginRequest, LoginResponse, User } from '@/types/auth';
 import { logger } from '@/utils/logger';
+import { validateResponse } from './schemas/runtime';
+import { UserSchema } from './schemas/user.schema';
 
 export class AuthService {
   private async ensureAccessToken(): Promise<void> {
@@ -90,8 +92,16 @@ export class AuthService {
       const response = await apiService.get<User>('/auth/me');
 
       if (response.success && response.data) {
-        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data));
-        return response.data;
+        // Validate the response shape against our zod schema. In
+        // non-strict mode a shape mismatch logs a warning and lets the
+        // raw data through so a new backend field never breaks login —
+        // but drift is loud in the browser console and any log sink.
+        const validated = validateResponse<User>(UserSchema as unknown as typeof UserSchema, response.data, {
+          service: 'auth',
+          endpoint: 'GET /auth/me',
+        }) as User;
+        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(validated));
+        return validated;
       }
       return null;
     } catch (error) {
