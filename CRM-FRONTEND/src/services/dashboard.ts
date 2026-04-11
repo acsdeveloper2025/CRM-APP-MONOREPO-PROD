@@ -11,6 +11,8 @@ import type {
   TATStats,
   OverdueTasksResponse
 } from '@/types/dto/dashboard.dto';
+import { validateResponse } from './schemas/runtime';
+import { DashboardSummarySchema } from './schemas/client.schema';
 
 export interface DashboardQuery {
   period?: 'week' | 'month' | 'quarter' | 'year';
@@ -24,7 +26,14 @@ export class DashboardService {
   }
 
   async getDashboardStats(query: DashboardQuery = {}): Promise<ApiResponse<DashboardStats>> {
-    return apiService.get('/dashboard/stats', query);
+    const response = await apiService.get<DashboardStats>('/dashboard/stats', query);
+    if (response.success && response.data) {
+      validateResponse(DashboardSummarySchema, response.data, {
+        service: 'dashboard',
+        endpoint: 'GET /dashboard/stats',
+      });
+    }
+    return response;
   }
 
   async getCaseStatusDistribution(query: DashboardQuery = {}): Promise<ApiResponse<CaseStatusDistribution[]>> {

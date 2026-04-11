@@ -1,5 +1,8 @@
 import { BaseApiService } from './base';
 import type { ApiResponse } from '@/types/api';
+import { z } from 'zod';
+import { validateResponse } from './schemas/runtime';
+import { AttachmentSchema } from './schemas/client.schema';
 
 export interface Attachment {
   id: string;
@@ -49,7 +52,14 @@ class AttachmentsService extends BaseApiService {
    * Get all attachments for a specific case
    */
   async getAttachmentsByCase(caseId: string | number): Promise<ApiResponse<Attachment[]>> {
-    return this.get(`/case/${caseId}`);
+    const response = await this.get<Attachment[]>(`/case/${caseId}`);
+    if (response.success && Array.isArray(response.data)) {
+      validateResponse(z.array(AttachmentSchema), response.data, {
+        service: 'attachments',
+        endpoint: 'GET /attachments/case/:id',
+      });
+    }
+    return response;
   }
 
   /**

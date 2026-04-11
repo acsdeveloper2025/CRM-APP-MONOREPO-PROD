@@ -12,8 +12,11 @@ import {
   CreateCaseWithMultipleTasksRequest,
   CreateCaseWithMultipleTasksResponse,
   CaseSummaryResponse,
-  CreateTasksFromTemplateRequest
+  CreateTasksFromTemplateRequest,
 } from '../types/verificationTask';
+import { z } from 'zod';
+import { validateResponse } from './schemas/runtime';
+import { VerificationTaskSchema } from './schemas/verificationTask.schema';
 
 /**
  * Verification Tasks Service
@@ -80,6 +83,13 @@ export class VerificationTasksService {
     if (filters?.taskType) {params.append('taskType', filters.taskType);}
 
     const response = await apiService.get(`/verification-tasks?${params.toString()}`);
+    // Non-strict drift detection on the tasks list shape.
+    if ((response as { data?: { tasks?: unknown[] } } | undefined)?.data?.tasks) {
+      validateResponse(z.array(VerificationTaskSchema), (response as { data: { tasks: unknown[] } }).data.tasks, {
+        service: 'verificationTasks',
+        endpoint: 'GET /verification-tasks',
+      });
+    }
     return response as unknown as {
       success: boolean;
       data: {

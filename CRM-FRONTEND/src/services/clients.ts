@@ -1,7 +1,7 @@
 import { apiService } from './api';
-import type { 
-  Client, 
-  Product, 
+import type {
+  Client,
+  Product,
   VerificationType,
   CreateClientData,
   UpdateClientData,
@@ -11,15 +11,32 @@ import type {
   UpdateVerificationTypeData
 } from '@/types/client';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
+import { z } from 'zod';
+import { validateResponse } from './schemas/runtime';
+import { ClientSchema, ProductSchema } from './schemas/client.schema';
 
 export class ClientsService {
   // Client operations
   async getClients(query: PaginationQuery = {}): Promise<ApiResponse<Client[]>> {
-    return apiService.get('/clients', query);
+    const response = await apiService.get<Client[]>('/clients', query);
+    if (response.success && Array.isArray(response.data)) {
+      validateResponse(z.array(ClientSchema), response.data, {
+        service: 'clients',
+        endpoint: 'GET /clients',
+      });
+    }
+    return response;
   }
 
   async getClientById(id: number): Promise<ApiResponse<Client>> {
-    return apiService.get(`/clients/${id}`);
+    const response = await apiService.get<Client>(`/clients/${id}`);
+    if (response.success && response.data) {
+      validateResponse(ClientSchema, response.data, {
+        service: 'clients',
+        endpoint: 'GET /clients/:id',
+      });
+    }
+    return response;
   }
 
   async createClient(data: CreateClientData): Promise<ApiResponse<Client>> {
@@ -36,11 +53,25 @@ export class ClientsService {
 
   // Product operations
   async getProducts(query: PaginationQuery = {}): Promise<ApiResponse<Product[]>> {
-    return apiService.get('/products', query);
+    const response = await apiService.get<Product[]>('/products', query);
+    if (response.success && Array.isArray(response.data)) {
+      validateResponse(z.array(ProductSchema), response.data, {
+        service: 'clients',
+        endpoint: 'GET /products',
+      });
+    }
+    return response;
   }
 
   async getProductById(id: number): Promise<ApiResponse<Product>> {
-    return apiService.get(`/products/${id}`);
+    const response = await apiService.get<Product>(`/products/${id}`);
+    if (response.success && response.data) {
+      validateResponse(ProductSchema, response.data, {
+        service: 'clients',
+        endpoint: 'GET /products/:id',
+      });
+    }
+    return response;
   }
 
   async getProductsByClient(clientId: number, isActive?: boolean): Promise<ApiResponse<Product[]>> {
