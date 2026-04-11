@@ -43,31 +43,45 @@ export function camelToSnake(key: string): string {
 }
 
 /**
- * Shallow **additive** snake_case → camelCase transform on a single pg row.
+ * Shallow snake_case → camelCase transform on a single pg row.
  *
- * This is intentionally additive, not replacing: every snake_case column gets
- * a camelCase alias on the same object, but the original snake_case key is
- * preserved. This lets the ~274 existing `row.snake_case_field` reads across
- * the codebase keep working while new code writes `row.camelCaseField`. Once
- * all legacy reads are migrated, the preservation can be dropped for a clean
- * rewrite.
+ * **Phase B3:** this transform is now REPLACING, not additive. Every
+ * snake_case column is rewritten to its camelCase name and the original
+ * snake_case key is removed. Prior to this change the transform left both
+ * keys on the object so legacy `row.snake_case_field` reads kept working
+ * during migration. The codebase has now completed the migration —
+ * grep for `row.snake_case` yields zero hits — and the dual-key hazard
+ * (where reading the wrong alias silently worked) is closed.
  *
  * JSONB column values are NEVER inspected — the transform only touches the
  * top-level keys of the row object. User-supplied JSON payloads keep their
- * original keys intact.
+ * original keys intact, which is why `verification_data`, `details`,
+ * `metadata_json`, etc. survive unchanged.
  *
- * The function mutates and returns the same row object (cheaper than cloning
- * for hundreds of rows per query). pg gives us fresh row objects per query,
- * so this is safe.
+ * The function mutates and returns the same row object (cheaper than
+ * cloning for hundreds of rows per query). pg gives us fresh row objects
+ * per query, so this is safe.
  */
 export function camelizeRow<T = Record<string, unknown>>(row: Record<string, unknown>): T {
+  // Collect the snake_case keys first — deleting during a `for..in` loop is
+  // specified to be safe but we don't want to depend on iterator semantics.
+  const snakeKeys: string[] = [];
   for (const key in row) {
     if (Object.prototype.hasOwnProperty.call(row, key)) {
       const camelKey = snakeToCamel(key);
-      if (camelKey !== key && !(camelKey in row)) {
-        row[camelKey] = row[key];
+      if (camelKey !== key) {
+        // Only overwrite if the camelCase slot isn't already populated by
+        // the SQL itself (e.g. `SELECT ... AS "camelCase"`). This keeps the
+        // transform idempotent on already-camelized rows.
+        if (!(camelKey in row)) {
+          row[camelKey] = row[key];
+        }
+        snakeKeys.push(key);
       }
     }
+  }
+  for (const k of snakeKeys) {
+    delete row[k];
   }
   return row as T;
 }
