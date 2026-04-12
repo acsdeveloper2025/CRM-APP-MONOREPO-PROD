@@ -304,7 +304,7 @@ export const TATMonitoringPage: React.FC = () => {
   const activeFilterCount = Object.values(activeFilters).filter(Boolean).length;
 
   return (
-    <div className="container mx-auto p-4 sm:p-6 space-y-6">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
         <div>
