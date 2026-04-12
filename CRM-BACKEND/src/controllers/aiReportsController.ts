@@ -390,8 +390,8 @@ async function getSubmissionPhotos(caseId: string, _submissionId: string) {
     return result.rows.map(row => ({
       type: 'verification',
       metadata: {
-        fileSize: row.file_size,
-        capturedAt: row.created_at,
+        fileSize: row.fileSize,
+        capturedAt: row.createdAt,
       },
     }));
   } catch (error) {

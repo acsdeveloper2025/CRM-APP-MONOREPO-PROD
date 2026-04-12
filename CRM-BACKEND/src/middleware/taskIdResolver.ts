@@ -45,13 +45,13 @@ export async function resolveTaskIdToCaseId(
 
       if (result.rows.length > 0) {
         // Store both the case ID and task ID for controllers to use
-        (req as RequestWithResolvedIds).resolvedCaseId = String(result.rows[0].case_id);
-        (req as RequestWithResolvedIds).verificationTaskId = String(result.rows[0].task_id);
+        (req as RequestWithResolvedIds).resolvedCaseId = String(result.rows[0].caseId);
+        (req as RequestWithResolvedIds).verificationTaskId = String(result.rows[0].taskId);
 
         // IMPORTANT: Override req.params.caseId so existing controllers work without changes
-        req.params.caseId = String(result.rows[0].case_id);
+        req.params.caseId = String(result.rows[0].caseId);
 
-        logger.info(`✅ Resolved taskId ${taskId} to caseId ${result.rows[0].case_id}`);
+        logger.info(`✅ Resolved taskId ${taskId} to caseId ${result.rows[0].caseId}`);
       } else {
         // Not a verification task ID, might be a case ID
         const finalTaskId = String(taskId);

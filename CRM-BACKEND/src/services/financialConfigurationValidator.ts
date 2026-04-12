@@ -151,7 +151,7 @@ export const financialConfigurationValidator = {
        LIMIT 1`,
       [clientId, productId, pincodeId, areaId]
     );
-    return exactRule.rows[0]?.rate_type_id ?? null;
+    return exactRule.rows[0]?.rateTypeId ?? null;
   },
 
   /**
@@ -200,7 +200,7 @@ export const financialConfigurationValidator = {
     }
 
     return {
-      rateTypeId: Number(result.rows[0].rate_type_id),
+      rateTypeId: Number(result.rows[0].rateTypeId),
       amount: Number(result.rows[0].amount),
     };
   },

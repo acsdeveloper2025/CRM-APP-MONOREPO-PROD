@@ -19,7 +19,7 @@ const getAssignedAreaIds = async (userId: string): Promise<number[]> => {
       [userId]
     );
 
-    return result.rows.map(row => row.area_id);
+    return result.rows.map(row => row.areaId);
   } catch (error) {
     logger.error('Error fetching assigned area IDs:', error);
     throw error;
