@@ -184,8 +184,10 @@ export class VerificationTaskCreationService {
       // STRICT VALIDATION: Resolve territory and validate financial configuration
       let actualAmount: number | null = null;
 
-      // STRICT VALIDATION: Validate complete financial configuration chain
-      if (!caseInfo.client_id || !caseInfo.product_id || !verificationTypeId) {
+      // STRICT VALIDATION: Validate complete financial configuration chain.
+      // Post-B3: wrapClient applies camelizeRow in REPLACE mode, so the
+      // query at line 150 returns camelCase keys (clientId, not client_id).
+      if (!caseInfo.clientId || !caseInfo.productId || !verificationTypeId) {
         throw new VerificationTaskCreationError(400, {
           success: false,
           message: 'Client, Product, and Verification Type are required',
@@ -195,8 +197,8 @@ export class VerificationTaskCreationService {
 
       const territoryValidation =
         await VerificationTaskCreationService.validateTerritoryAndFinancialConfig(client, {
-          clientId: Number(caseInfo.client_id),
-          productId: Number(caseInfo.product_id),
+          clientId: Number(caseInfo.clientId),
+          productId: Number(caseInfo.productId),
           verificationTypeId: Number(verificationTypeId),
           pincode,
           areaId,
