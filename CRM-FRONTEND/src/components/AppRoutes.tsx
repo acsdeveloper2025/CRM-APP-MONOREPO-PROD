@@ -431,6 +431,22 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
+            path="/rate-management/rates"
+            element={
+              <ProtectedRoute permission="page.masterdata">
+                <RateManagementPage defaultTab="rate-assignment" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rate-management/report"
+            element={
+              <ProtectedRoute permission="page.masterdata">
+                <RateManagementPage defaultTab="rate-view-report" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/rate-management/document-rates"
             element={
               <ProtectedRoute permission="page.masterdata">

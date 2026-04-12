@@ -295,12 +295,22 @@ export const updateRateType = async (req: AuthenticatedRequest, res: Response) =
       updatePayload.isActive = updateData.isActive;
     }
 
-    // Build dynamic update
+    // Build dynamic update — map camelCase JS keys to snake_case
+    // DB column names. The prior code used `"${key}"` which
+    // double-quoted camelCase keys, but PostgreSQL treats
+    // double-quoted identifiers as case-sensitive so "isActive"
+    // doesn't match the real column is_active.
+    const camelToSnakeMap: Record<string, string> = {
+      name: 'name',
+      description: 'description',
+      isActive: 'is_active',
+    };
     const sets: string[] = [];
     const vals: QueryParams = [];
     let idx = 1;
     for (const key of Object.keys(updatePayload)) {
-      sets.push(`"${key}" = $${idx++}`);
+      const dbCol = camelToSnakeMap[key] || key;
+      sets.push(`${dbCol} = $${idx++}`);
       vals.push(updatePayload[key] as string | number | boolean | Date | number[] | string[]);
     }
     sets.push(`updated_at = CURRENT_TIMESTAMP`);
