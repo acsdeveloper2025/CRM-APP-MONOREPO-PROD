@@ -283,7 +283,11 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
             fs.unlinkSync(tempPath);
           }
 
-          // Insert attachment into database
+          // Insert attachment into database.
+          // case_id is UUID — use the resolved caseUUID, not the
+          // numeric caseId. The prior code listed case_id twice
+          // which PostgreSQL rejects with "column specified more
+          // than once".
           const insertResult = await query(
             `INSERT INTO attachments (
             filename,
@@ -293,19 +297,17 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
             file_path,
             uploaded_by,
             case_id,
-            case_id,
             verification_task_id
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           RETURNING id, filename, original_name, mime_type, file_size as size, file_path, uploaded_by, created_at as uploaded_at, case_id`,
             [
               file.filename,
               file.originalname,
               file.mimetype,
               file.size,
-              `/uploads/attachments/case_${caseId}/${file.filename}`,
+              `/uploads/attachments/case_${safeCaseId}/${file.filename}`,
               req.user?.id,
-              caseId,
-              caseUUID, // Add the case UUID for mobile compatibility
+              caseUUID,
 
               verificationTaskId || null, // Add verificationTaskId if provided
             ]
