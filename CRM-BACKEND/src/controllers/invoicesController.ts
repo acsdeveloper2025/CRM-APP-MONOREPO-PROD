@@ -720,23 +720,23 @@ const loadCompletedUnbilledTasks = async (
   billingPeriodFrom?: string,
   billingPeriodTo?: string
 ): Promise<InvoiceTaskCandidateRow[]> => {
-  const conditions: string[] = [`c.clientId = $1`, `vt.status = 'COMPLETED'`, `iit.id IS NULL`];
+  const conditions: string[] = [`c.client_id = $1`, `vt.status = 'COMPLETED'`, `iit.id IS NULL`];
   const params: Array<string | number | string[] | number[]> = [clientId];
 
   if (scope.restricted) {
     if (scope.assignedClientIds && scope.assignedClientIds.length > 0) {
       params.push(scope.assignedClientIds);
-      conditions.push(`c.clientId = ANY($${params.length}::int[])`);
+      conditions.push(`c.client_id = ANY($${params.length}::int[])`);
     }
     if (scope.assignedProductIds && scope.assignedProductIds.length > 0) {
       params.push(scope.assignedProductIds);
-      conditions.push(`c.productId = ANY($${params.length}::int[])`);
+      conditions.push(`c.product_id = ANY($${params.length}::int[])`);
     }
   }
 
   if (productId) {
     params.push(productId);
-    conditions.push(`c.productId = $${params.length}`);
+    conditions.push(`c.product_id = $${params.length}`);
   }
 
   if (selectedTaskIds.length > 0) {
@@ -746,7 +746,7 @@ const loadCompletedUnbilledTasks = async (
 
   if (selectedCaseIds.length > 0) {
     params.push(selectedCaseIds);
-    conditions.push(`vt.caseId = ANY($${params.length}::uuid[])`);
+    conditions.push(`vt.case_id = ANY($${params.length}::uuid[])`);
   }
 
   if (billingPeriodFrom) {
@@ -762,7 +762,7 @@ const loadCompletedUnbilledTasks = async (
   const result = await client.query<InvoiceTaskCandidateRow>(
     `SELECT
        vt.id,
-       vt.caseId,
+       vt.case_id,
        vt.verificationTypeId,
        vt.rateTypeId,
        vt.actualAmount::text,
@@ -770,14 +770,14 @@ const loadCompletedUnbilledTasks = async (
        vt.areaId,
        vt.taskTitle,
        p.id as pincode_id,
-       c.clientId as client_id,
-       c.productId as product_id
+       c.client_id as client_id,
+       c.product_id as product_id
      FROM verification_tasks vt
-     JOIN cases c ON c.id = vt.caseId
+     JOIN cases c ON c.id = vt.case_id
      LEFT JOIN pincodes p ON p.code = COALESCE(vt.pincode, c."pincode")
      LEFT JOIN invoice_item_tasks iit ON iit.verification_task_id = vt.id
      WHERE ${conditions.join(' AND ')}
-     ORDER BY COALESCE(vt.completed_at, vt.updatedAt, vt.createdAt) ASC`,
+     ORDER BY COALESCE(vt.completed_at, vt.updated_at, vt.created_at) ASC`,
     params
   );
 

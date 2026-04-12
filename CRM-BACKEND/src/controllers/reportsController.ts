@@ -154,32 +154,32 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
     }
 
     if (dateFrom) {
-      conditions.push(`tfs.submittedAt >= $${paramIndex}`);
+      conditions.push(`tfs.submitted_at >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`tfs.submittedAt <= $${paramIndex}`);
+      conditions.push(`tfs.submitted_at <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
     if (agentId) {
-      conditions.push(`tfs.submittedBy = $${paramIndex}`);
+      conditions.push(`tfs.submitted_by = $${paramIndex}`);
       params.push(agentId);
       paramIndex++;
     }
     if (validationStatus) {
-      conditions.push(`tfs.validationStatus = $${paramIndex}`);
+      conditions.push(`tfs.validation_status = $${paramIndex}`);
       params.push(validationStatus);
       paramIndex++;
     }
     if (caseId) {
-      conditions.push(`tfs.caseId = $${paramIndex}`);
+      conditions.push(`tfs.case_id = $${paramIndex}`);
       params.push(caseId);
       paramIndex++;
     }
     if (formType) {
-      conditions.push(`tfs.formType = $${paramIndex}`);
+      conditions.push(`tfs.form_type = $${paramIndex}`);
       params.push(formType);
       paramIndex++;
     }
@@ -307,19 +307,19 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
 
     if (dateFrom) {
       const alias = formType.toUpperCase() === 'RESIDENCE' ? 'r' : 'o';
-      conditions.push(`${alias}.createdAt >= $${paramIndex}`);
+      conditions.push(`${alias}.created_at >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
       const alias = formType.toUpperCase() === 'RESIDENCE' ? 'r' : 'o';
-      conditions.push(`${alias}.createdAt <= $${paramIndex}`);
+      conditions.push(`${alias}.created_at <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
     if (agentId) {
       const alias = formType.toUpperCase() === 'RESIDENCE' ? 'r' : 'o';
-      conditions.push(`${alias}.createdBy = $${paramIndex}`);
+      conditions.push(`${alias}.created_by = $${paramIndex}`);
       params.push(agentId);
       paramIndex++;
     }
@@ -818,7 +818,7 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
       paramIndex++;
     }
     if (departmentId) {
-      conditions.push(`u.departmentId = $${paramIndex}`);
+      conditions.push(`u.department_id = $${paramIndex}`);
       params.push(parseInt(departmentId));
       paramIndex++;
     }
@@ -1347,7 +1347,7 @@ export const getClientReport = async (req: AuthenticatedRequest, res: Response) 
     let paramIndex = 1;
 
     if (isActive !== undefined) {
-      conditions.push(`cl.isActive = $${paramIndex}`);
+      conditions.push(`cl.is_active = $${paramIndex}`);
       params.push(isActive === 'true');
       paramIndex++;
     }
@@ -2171,13 +2171,13 @@ const buildInvoiceReportScope = async (req: AuthenticatedRequest) => {
   }
 
   if (backendScope.clientIds) {
-    conditions.push(`i.clientId = ANY($${paramIndex}::int[])`);
+    conditions.push(`i.client_id = ANY($${paramIndex}::int[])`);
     params.push(backendScope.clientIds);
     paramIndex++;
   }
 
   if (backendScope.productIds) {
-    conditions.push(`(i.productId IS NULL OR i.productId = ANY($${paramIndex}::int[]))`);
+    conditions.push(`(i.product_id IS NULL OR i.product_id = ANY($${paramIndex}::int[]))`);
     params.push(backendScope.productIds);
     paramIndex++;
   }
@@ -2191,13 +2191,13 @@ const buildInvoiceReportQuery = async (req: AuthenticatedRequest, includePaginat
   let paramIndex = initialParamIndex;
 
   if (input.clientId) {
-    conditions.push(`i.clientId = $${paramIndex}`);
+    conditions.push(`i.client_id = $${paramIndex}`);
     params.push(Number(input.clientId));
     paramIndex++;
   }
 
   if (input.productId) {
-    conditions.push(`i.productId = $${paramIndex}`);
+    conditions.push(`i.product_id = $${paramIndex}`);
     params.push(Number(input.productId));
     paramIndex++;
   }
@@ -2209,13 +2209,13 @@ const buildInvoiceReportQuery = async (req: AuthenticatedRequest, includePaginat
   }
 
   if (input.dateFrom) {
-    conditions.push(`i.issueDate >= $${paramIndex}`);
+    conditions.push(`i.issue_date >= $${paramIndex}`);
     params.push(input.dateFrom);
     paramIndex++;
   }
 
   if (input.dateTo) {
-    conditions.push(`i.issueDate <= $${paramIndex}`);
+    conditions.push(`i.issue_date <= $${paramIndex}`);
     params.push(input.dateTo);
     paramIndex++;
   }
