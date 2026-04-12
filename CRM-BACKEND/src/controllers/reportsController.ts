@@ -143,10 +143,10 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
         ) {
           conditions.push('FALSE');
         } else {
-          conditions.push(`c.clientId = ANY($${paramIndex}::int[])`);
+          conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
           params.push(assignedClientIds);
           paramIndex++;
-          conditions.push(`c.productId = ANY($${paramIndex}::int[])`);
+          conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
           params.push(assignedProductIds);
           paramIndex++;
         }
@@ -502,7 +502,7 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
       paramIndex++;
     }
     if (clientId) {
-      conditions.push(`c.clientId = $${paramIndex}`);
+      conditions.push(`c.client_id = $${paramIndex}`);
       params.push(parseInt(clientId));
       paramIndex++;
     }
@@ -798,17 +798,17 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
     let paramIndex = 1;
 
     if (dateFrom) {
-      conditions.push(`vt.createdAt >= $${paramIndex}`);
+      conditions.push(`vt.created_at >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`vt.createdAt <= $${paramIndex}`);
+      conditions.push(`vt.created_at <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
     if (agentId) {
-      conditions.push(`vt.assignedTo = $${paramIndex}`);
+      conditions.push(`vt.assigned_to = $${paramIndex}`);
       params.push(agentId);
       paramIndex++;
     }
@@ -1118,7 +1118,7 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
       paramIndex++;
     }
     if (clientId) {
-      conditions.push(`c.clientId = $${paramIndex}`);
+      conditions.push(`c.client_id = $${paramIndex}`);
       params.push(parseInt(clientId as string));
       paramIndex++;
     }
@@ -1147,12 +1147,12 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
       paramIndex++;
     }
     if (backendScope.clientIds) {
-      conditions.push(`c.clientId = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
       params.push(backendScope.clientIds);
       paramIndex++;
     }
     if (backendScope.productIds) {
-      conditions.push(`c.productId = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
       params.push(backendScope.productIds);
       paramIndex++;
     }
@@ -1459,31 +1459,31 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
 
     // Date filters - use task created date
     if (dateFrom) {
-      conditions.push(`vt.createdAt >= $${paramIndex}`);
+      conditions.push(`vt.created_at >= $${paramIndex}`);
       params.push(dateFrom as string);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`vt.createdAt <= $${paramIndex}`);
+      conditions.push(`vt.created_at <= $${paramIndex}`);
       params.push(dateTo as string);
       paramIndex++;
     }
 
     // Client and Product filters
     if (clientId) {
-      conditions.push(`c.clientId = $${paramIndex}`);
+      conditions.push(`c.client_id = $${paramIndex}`);
       params.push(parseInt(clientId as string));
       paramIndex++;
     }
     if (productId) {
-      conditions.push(`c.productId = $${paramIndex}`);
+      conditions.push(`c.product_id = $${paramIndex}`);
       params.push(parseInt(productId as string));
       paramIndex++;
     }
 
     // Verification Type filter - use task verification type
     if (verificationTypeId) {
-      conditions.push(`vt.verificationTypeId = $${paramIndex}`);
+      conditions.push(`vt.verification_type_id = $${paramIndex}`);
       params.push(parseInt(verificationTypeId as string));
       paramIndex++;
     }
@@ -1497,7 +1497,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
 
     // Backend User filter
     if (backendUserId) {
-      conditions.push(`c.createdByBackendUser = $${paramIndex}`);
+      conditions.push(`c.created_by_backend_user = $${paramIndex}`);
       params.push(backendUserId as string);
       paramIndex++;
     }
@@ -1511,7 +1511,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
 
     // Field Agent filter - direct task assignment
     if (fieldAgentId) {
-      conditions.push(`vt.assignedTo = $${paramIndex}`);
+      conditions.push(`vt.assigned_to = $${paramIndex}`);
       params.push(fieldAgentId as string);
       paramIndex++;
     }
@@ -1525,12 +1525,12 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
       paramIndex++;
     }
     if (backendScope.clientIds) {
-      conditions.push(`c.clientId = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
       params.push(backendScope.clientIds);
       paramIndex++;
     }
     if (backendScope.productIds) {
-      conditions.push(`c.productId = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
       params.push(backendScope.productIds);
       paramIndex++;
     }
@@ -1749,31 +1749,31 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
 
     // Date filters - use task created date
     if (dateFrom) {
-      conditions.push(`vt.createdAt >= $${paramIndex}`);
+      conditions.push(`vt.created_at >= $${paramIndex}`);
       params.push(dateFrom as string);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`vt.createdAt <= $${paramIndex}`);
+      conditions.push(`vt.created_at <= $${paramIndex}`);
       params.push(dateTo as string);
       paramIndex++;
     }
 
     // Client and Product filters
     if (clientId) {
-      conditions.push(`c.clientId = $${paramIndex}`);
+      conditions.push(`c.client_id = $${paramIndex}`);
       params.push(parseInt(clientId as string));
       paramIndex++;
     }
     if (productId) {
-      conditions.push(`c.productId = $${paramIndex}`);
+      conditions.push(`c.product_id = $${paramIndex}`);
       params.push(parseInt(productId as string));
       paramIndex++;
     }
 
     // Verification Type filter - use task verification type
     if (verificationTypeId) {
-      conditions.push(`vt.verificationTypeId = $${paramIndex}`);
+      conditions.push(`vt.verification_type_id = $${paramIndex}`);
       params.push(parseInt(verificationTypeId as string));
       paramIndex++;
     }
@@ -1787,7 +1787,7 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
 
     // Backend User filter
     if (backendUserId) {
-      conditions.push(`c.createdByBackendUser = $${paramIndex}`);
+      conditions.push(`c.created_by_backend_user = $${paramIndex}`);
       params.push(backendUserId as string);
       paramIndex++;
     }
@@ -1801,7 +1801,7 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
 
     // Field Agent filter - direct task assignment
     if (fieldAgentId) {
-      conditions.push(`vt.assignedTo = $${paramIndex}`);
+      conditions.push(`vt.assigned_to = $${paramIndex}`);
       params.push(fieldAgentId as string);
       paramIndex++;
     }
@@ -1815,12 +1815,12 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       paramIndex++;
     }
     if (backendScope.clientIds) {
-      conditions.push(`c.clientId = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
       params.push(backendScope.clientIds);
       paramIndex++;
     }
     if (backendScope.productIds) {
-      conditions.push(`c.productId = ANY($${paramIndex}::int[])`);
+      conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
       params.push(backendScope.productIds);
       paramIndex++;
     }
