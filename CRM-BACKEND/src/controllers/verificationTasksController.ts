@@ -945,6 +945,7 @@ export class VerificationTasksController {
     const status = (req.query.status as unknown as string) || '';
     const assignedTo = (req.query.assignedTo as unknown as string) || '';
     const verificationTypeId = (req.query.verificationTypeId as unknown as string) || '';
+    const excludeTaskType = (req.query.excludeTaskType as unknown as string) || '';
 
     try {
       // First, resolve the case ID - it could be a case number or UUID
@@ -985,6 +986,14 @@ export class VerificationTasksController {
       if (assignedTo) {
         whereConditions.push(`vt.assigned_to = $${paramIndex}`);
         queryParams.push(assignedTo);
+        paramIndex++;
+      }
+
+      // Exclude a task type (e.g. ?excludeTaskType=KYC to hide KYC
+      // tasks from the field tasks tab on the case detail page).
+      if (excludeTaskType) {
+        whereConditions.push(`(vt.task_type IS NULL OR vt.task_type != $${paramIndex})`);
+        queryParams.push(excludeTaskType);
         paramIndex++;
       }
 

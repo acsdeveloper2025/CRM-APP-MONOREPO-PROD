@@ -8,7 +8,7 @@ import { useCase, useAssignCase } from '@/hooks/useCases';
 import { useCaseFormSubmissions } from '@/hooks/useForms';
 import { ReassignCaseModal } from '@/components/cases/ReassignCaseModal';
 import { OptimizedFormSubmissionViewer } from '@/components/forms/OptimizedFormSubmissionViewer';
-import { ArrowLeft, MapPin, Phone, Mail, Calendar, User, Building2, FileText, Edit, UserCheck, FormInput, Camera, CheckSquare } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Mail, Calendar, User, Building2, FileText, Edit, UserCheck, FormInput, Camera, CheckSquare, FileCheck } from 'lucide-react';
 import { CaseAttachmentsSection } from '@/components/attachments/CaseAttachmentsSection';
 import { VerificationTasksManager } from '@/components/verification-tasks';
 import { KYCTaskVerificationSection } from '@/components/kyc/KYCTaskVerificationSection';
@@ -166,7 +166,7 @@ export const CaseDetailPage: React.FC = () => {
         {/* Main Content */}
         <div className="lg:col-span-2">
           <Tabs defaultValue="details" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="details" className="flex items-center space-x-2">
                 <FileText className="h-4 w-4" />
                 <span>Case Details</span>
@@ -180,9 +180,18 @@ export const CaseDetailPage: React.FC = () => {
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="verification-tasks" className="flex items-center space-x-2">
+              <TabsTrigger value="field-tasks" className="flex items-center space-x-2">
                 <CheckSquare className="h-4 w-4" />
-                <span>Verification Tasks</span>
+                <span>Field Tasks</span>
+              </TabsTrigger>
+              <TabsTrigger value="kyc-tasks" className="flex items-center space-x-2">
+                <FileCheck className="h-4 w-4" />
+                <span>KYC Tasks</span>
+                {kycTasks.length > 0 && (
+                  <Badge variant="secondary" className="ml-1">
+                    {kycTasks.length}
+                  </Badge>
+                )}
               </TabsTrigger>
               <TabsTrigger value="attachments" className="flex items-center space-x-2">
                 <Camera className="h-4 w-4" />
@@ -339,7 +348,7 @@ export const CaseDetailPage: React.FC = () => {
                       caseId={safeId}
                     />
                   ))
-                ) : kycTasks.length === 0 ? (
+                ) : (
                   <Card>
                     <CardContent className="p-6 text-center">
                       <FormInput className="h-12 w-12 text-gray-600 mx-auto mb-4" />
@@ -349,22 +358,33 @@ export const CaseDetailPage: React.FC = () => {
                       </p>
                     </CardContent>
                   </Card>
-                ) : null}
-
-                {/* KYC Document Verification Results */}
-                {kycTasks.length > 0 && (
-                  <KYCTaskVerificationSection caseId={safeId} taskId="" readonly />
                 )}
               </div>
             </TabsContent>
 
-            <TabsContent value="verification-tasks">
+            <TabsContent value="field-tasks">
               <VerificationTasksManager
                 caseId={safeId}
                 caseNumber={caseItem?.caseId?.toString()}
                 customerName={caseItem?.customerName}
                 readonly={caseItem?.status === 'COMPLETED'}
               />
+            </TabsContent>
+
+            <TabsContent value="kyc-tasks">
+              {kycTasks.length > 0 ? (
+                <KYCTaskVerificationSection caseId={safeId} taskId="" readonly={false} />
+              ) : (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <FileCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No KYC Tasks</h3>
+                    <p className="text-gray-600">
+                      No KYC document verification tasks exist for this case.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="attachments">
