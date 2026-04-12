@@ -492,12 +492,12 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
     let paramIndex = 1;
 
     if (dateFrom) {
-      conditions.push(`c.createdAt >= $${paramIndex}`);
+      conditions.push(`c.created_at >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`c.createdAt <= $${paramIndex}`);
+      conditions.push(`c.created_at <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
@@ -507,7 +507,12 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
       paramIndex++;
     }
     if (agentId) {
-      conditions.push(`c.assignedTo = $${paramIndex}`);
+      // cases table has no assigned_to column — filter via
+      // verification_tasks assignment instead.
+      conditions.push(`EXISTS (
+        SELECT 1 FROM verification_tasks vt_agent
+        WHERE vt_agent.case_id = c.id AND vt_agent.assigned_to = $${paramIndex}
+      )`);
       params.push(agentId);
       paramIndex++;
     }
@@ -1017,17 +1022,20 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
 
     const agent = agentResult.rows[0];
 
-    const conditions: string[] = ['c.assignedTo = $1'];
+    // cases table has no assigned_to — filter via verification_tasks
+    const conditions: string[] = [
+      'EXISTS (SELECT 1 FROM verification_tasks vt_a WHERE vt_a.case_id = c.id AND vt_a.assigned_to = $1)',
+    ];
     const params: QueryParams = [agentId];
     let paramIndex = 2;
 
     if (dateFrom) {
-      conditions.push(`c.createdAt >= $${paramIndex}`);
+      conditions.push(`c.created_at >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`c.createdAt <= $${paramIndex}`);
+      conditions.push(`c.created_at <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }
@@ -1103,12 +1111,12 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
     const backendScope = await getBackendUserReportScope(req);
 
     if (dateFrom) {
-      conditions.push(`c.createdAt >= $${paramIndex}`);
+      conditions.push(`c.created_at >= $${paramIndex}`);
       params.push(dateFrom as string);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`c.createdAt <= $${paramIndex}`);
+      conditions.push(`c.created_at <= $${paramIndex}`);
       params.push(dateTo as string);
       paramIndex++;
     }
@@ -1123,7 +1131,10 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
       paramIndex++;
     }
     if (assignedToId) {
-      conditions.push(`c.assignedTo = $${paramIndex}`);
+      conditions.push(`EXISTS (
+        SELECT 1 FROM verification_tasks vt_a
+        WHERE vt_a.case_id = c.id AND vt_a.assigned_to = $${paramIndex}
+      )`);
       params.push(assignedToId as string);
       paramIndex++;
     }
