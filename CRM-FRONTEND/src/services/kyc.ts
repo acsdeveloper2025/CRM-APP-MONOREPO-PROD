@@ -66,6 +66,8 @@ export interface KYCTaskListQuery {
   page?: number;
   limit?: number;
   status?: string;
+  /** Exclude a status (e.g. 'PENDING' for the completed KYC page). */
+  statusNot?: string;
   documentType?: string;
   search?: string;
   sortBy?: string;

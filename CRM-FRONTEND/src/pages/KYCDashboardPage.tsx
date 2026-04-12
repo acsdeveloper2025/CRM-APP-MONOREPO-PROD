@@ -54,19 +54,44 @@ const CATEGORY_COLORS: Record<string, string> = {
   OTHER: 'bg-gray-100 text-gray-700',
 };
 
-export const KYCDashboardPage: React.FC = () => {
+interface KYCDashboardPageProps {
+  /** Pre-set status filter. When provided, the status dropdown is
+   *  initialized to this value. Accepts comma-separated values
+   *  (e.g. 'PASS,FAIL,REFER') for the "Completed" page. */
+  defaultStatus?: string;
+  /** Page title override for sub-pages (Pending KYC, Completed KYC). */
+  pageTitle?: string;
+  /** Page subtitle override. */
+  pageSubtitle?: string;
+}
+
+export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
+  defaultStatus,
+  pageTitle = 'KYC Document Verification',
+  pageSubtitle = 'Verify identity, financial, and address documents',
+}) => {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState(defaultStatus || 'ALL');
   const [docTypeFilter, setDocTypeFilter] = useState('ALL');
 
   const { data: docTypes = [] } = useKYCDocumentTypes();
+
+  // Build filter params. For the "Completed KYC" page, defaultStatus
+  // is set to 'COMPLETED' which maps to statusNot=PENDING (show all
+  // non-pending docs: PASS, FAIL, REFER).
+  const isCompletedPage = defaultStatus === 'COMPLETED';
+  const effectiveStatus =
+    statusFilter !== 'ALL' && !isCompletedPage ? statusFilter : undefined;
+  const effectiveStatusNot = isCompletedPage ? 'PENDING' : undefined;
+
   const { data: taskData, isLoading, refetch } = useKYCTasks({
     page,
     limit: 20,
     search: search || undefined,
-    status: statusFilter !== 'ALL' ? statusFilter : undefined,
+    status: effectiveStatus,
+    statusNot: effectiveStatusNot,
     documentType: docTypeFilter !== 'ALL' ? docTypeFilter : undefined,
   });
 
@@ -87,8 +112,8 @@ export const KYCDashboardPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">KYC Document Verification</h1>
-          <p className="text-sm text-gray-500 mt-1">Verify identity, financial, and address documents</p>
+          <h1 className="text-2xl font-bold">{pageTitle}</h1>
+          <p className="text-sm text-gray-500 mt-1">{pageSubtitle}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => refetch()}>
