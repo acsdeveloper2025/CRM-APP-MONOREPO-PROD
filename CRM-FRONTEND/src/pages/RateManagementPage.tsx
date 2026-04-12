@@ -98,7 +98,7 @@ export function RateManagementPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ₹{stats.rates.averageAmount?.toFixed(0) || '0'}
+              ₹{Number(stats.rates.averageAmount || 0).toFixed(0)}
             </div>
             <p className="text-xs text-gray-600 mt-2">
               Verification services
