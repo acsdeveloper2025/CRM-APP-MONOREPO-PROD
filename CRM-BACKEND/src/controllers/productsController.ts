@@ -76,7 +76,10 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
       : 'name';
     const sortDir: 'ASC' | 'DESC' = sortOrderStr.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
     const listRes = await query(
-      `SELECT id, name, code, created_at, updated_at
+      `SELECT id, name, code, description, is_active, created_at, updated_at,
+              EXISTS (
+                SELECT 1 FROM rates r WHERE r.product_id = products.id AND r.is_active = true
+              ) as "hasRates"
        FROM products
        ${whereClause}
        ORDER BY "${sortCol}" ${sortDir}
