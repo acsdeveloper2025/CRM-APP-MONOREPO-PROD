@@ -61,7 +61,8 @@ const resetRateLimit = (req: Request, res: Response) => {
 // limiter counter for that IP is cleared too.
 const resetUserRateLimit = (req: Request, res: Response) => {
   try {
-    const { userId } = req.params;
+    const rawUserId = req.params.userId;
+    const userId = Array.isArray(rawUserId) ? rawUserId[0] : String(rawUserId || '');
     const { ip } = req.body as { ip?: string };
 
     if (!userId) {
