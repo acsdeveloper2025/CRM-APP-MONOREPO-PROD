@@ -11,8 +11,13 @@ import { RateAssignmentTab } from '@/components/rate-management/RateAssignmentTa
 import { RateViewReportTab } from '@/components/rate-management/RateViewReportTab';
 import { DocumentTypeRatesTab } from '@/components/rate-management/DocumentTypeRatesTab';
 
-export function RateManagementPage() {
-  const [activeTab, setActiveTab] = useState('rate-types');
+interface RateManagementPageProps {
+  /** Pre-select a tab when navigating from a sidebar sub-page. */
+  defaultTab?: string;
+}
+
+export function RateManagementPage({ defaultTab }: RateManagementPageProps = {}) {
+  const [activeTab, setActiveTab] = useState(defaultTab || 'rate-types');
 
   // Fetch rate management statistics
   const { data: statsData, isLoading: _statsLoading } = useStandardizedQuery({
