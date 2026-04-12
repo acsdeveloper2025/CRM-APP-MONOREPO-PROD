@@ -157,11 +157,15 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   };
 
   const updateTask = (taskId: string, field: keyof TaskFormData, value: unknown) => {
-    logger.warn('updateTask called:', { taskId, field, value });
+    if (import.meta.env.DEV) {
+      logger.info('updateTask called', { taskId, field });
+    }
     setTasks(tasks.map(task => {
       if (task.id === taskId) {
         const updatedTask = { ...task, [field]: value };
-        logger.warn('Updated task:', updatedTask);
+        if (import.meta.env.DEV) {
+          logger.info('Task updated', { taskId });
+        }
         return updatedTask;
       }
       return task;
@@ -453,8 +457,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                       <Select
                         value={task.pincode || ''}
                         onValueChange={(value) => {
-                          logger.warn('Pincode selection changed:', value, 'for task:', task.id);
-                          logger.warn('Current task pincode before update:', task.pincode);
+                          if (import.meta.env.DEV) {
+                            logger.info('Pincode selection changed', { value, taskId: task.id });
+                          }
                           // Update both pincode and reset area in a single state update
                           setTasks(tasks.map(t =>
                             t.id === task.id

@@ -34,8 +34,14 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   const { data: usersData } = useUsers();
   const fieldUsers = usersData?.filter(user => isFieldAgentUser(user)) || [];
 
+  const [validationError, setValidationError] = useState<string>('');
+
   const handleBulkAssign = async () => {
-    if (!assignedTo) {return;}
+    if (!assignedTo) {
+      setValidationError('Please select a field agent');
+      return;
+    }
+    setValidationError('');
 
     setLoading(true);
     try {
@@ -135,7 +141,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
                 </Label>
                 <Select
                   value={assignedTo}
-                  onValueChange={setAssignedTo}
+                  onValueChange={(v) => { setAssignedTo(v); setValidationError(''); }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a field user">
@@ -169,6 +175,9 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
                     )}
                   </SelectContent>
                 </Select>
+                {validationError && (
+                  <p className="text-sm text-red-600">{validationError}</p>
+                )}
               </div>
 
               {/* Assignment Reason */}
