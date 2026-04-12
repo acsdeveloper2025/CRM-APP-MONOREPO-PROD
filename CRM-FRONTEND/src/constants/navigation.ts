@@ -433,7 +433,7 @@ export const navigationItems: NavigationItem[] = [
         label: 'Field Monitoring',
         href: '/operations/field-monitoring',
         icon: MapPin,
-        permissionCode: 'page.fieldMonitoring',
+        permissionCode: 'page.field_monitoring',
       },
     ],
   },
