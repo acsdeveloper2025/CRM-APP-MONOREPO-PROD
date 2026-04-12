@@ -14,7 +14,7 @@ import {
   MoreHorizontal,
   Copy,
   Edit,
-  RefreshCw
+  RefreshCw,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -50,7 +50,7 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
   onViewTask,
   onViewCase,
   onRevisitTask,
-  onEditCase
+  onEditCase,
 }) => {
   const getStatusIcon = (status: TaskStatus) => {
     const icons = {
@@ -60,7 +60,7 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
       COMPLETED: CheckCircle,
       ON_HOLD: AlertTriangle,
       REVOKED: X,
-      SAVED: Clock
+      SAVED: Clock,
     };
     return icons[status] || Clock;
   };
@@ -84,7 +84,9 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
   }
 
   const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) {return '-';}
+    if (!dateString) {
+      return '-';
+    }
     try {
       return format(new Date(dateString), 'dd MMM yyyy');
     } catch {
@@ -93,7 +95,9 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
   };
 
   const formatTime = (dateString: string | null | undefined) => {
-    if (!dateString) {return '-';}
+    if (!dateString) {
+      return '-';
+    }
     try {
       return format(new Date(dateString), 'hh:mm a');
     } catch {
@@ -119,6 +123,12 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                   Customer
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Client
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Product
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Task Title
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
@@ -126,6 +136,12 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Address
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Pincode
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Rate Type
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Status
@@ -180,19 +196,33 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
 
                     {/* Customer Name */}
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {task.customerName}
-                      </div>
+                      <div className="text-sm font-medium text-gray-900">{task.customerName}</div>
+                    </td>
+
+                    {/* Client */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{task.clientName || '-'}</div>
+                    </td>
+
+                    {/* Product */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{task.productName || '-'}</div>
                     </td>
 
                     {/* Task Title */}
                     <td className="px-4 py-4">
                       <div className="max-w-[200px]">
-                        <div className="text-sm font-medium text-gray-900 truncate" title={task.taskTitle}>
+                        <div
+                          className="text-sm font-medium text-gray-900 truncate"
+                          title={task.taskTitle}
+                        >
                           {task.taskTitle}
                         </div>
                         {task.taskDescription && (
-                          <div className="text-xs text-gray-600 truncate mt-1" title={task.taskDescription}>
+                          <div
+                            className="text-xs text-gray-600 truncate mt-1"
+                            title={task.taskDescription}
+                          >
                             {task.taskDescription}
                           </div>
                         )}
@@ -208,9 +238,22 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
 
                     {/* Address */}
                     <td className="px-4 py-4">
-                      <div className="text-sm text-gray-900 max-w-[200px] truncate" title={task.address}>
+                      <div
+                        className="text-sm text-gray-900 max-w-[200px] truncate"
+                        title={task.address}
+                      >
                         {task.address || '-'}
                       </div>
+                    </td>
+
+                    {/* Pincode */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{task.pincode || '-'}</div>
+                    </td>
+
+                    {/* Rate Type */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{task.rateTypeName || '-'}</div>
                     </td>
 
                     {/* Status */}
@@ -256,9 +299,7 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
 
                     {/* Assigned By */}
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {task.assignedByName || '-'}
-                      </div>
+                      <div className="text-sm text-gray-900">{task.assignedByName || '-'}</div>
                     </td>
 
                     {/* Date */}
@@ -325,4 +366,3 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
     </div>
   );
 };
-
