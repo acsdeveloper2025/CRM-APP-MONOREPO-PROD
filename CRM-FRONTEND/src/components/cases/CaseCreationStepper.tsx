@@ -453,12 +453,20 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           customerCallingCode: customerInfo.customerCallingCode,
           clientId: parsedClientId,
           productId: parsedProductId,
+          // #2 fix: for KYC-only cases firstTask is undefined, so send
+          // explicit undefined/null instead of empty strings. The backend
+          // isKYCOnlyCase branch relaxes these, but empty strings in
+          // logs/audit are misleading and '' !== null for SQL comparisons.
           verificationTypeId: firstTask?.verificationTypeId ?? undefined,
           applicantType: firstTask?.applicantType || 'APPLICANT',
-          trigger: firstTask?.trigger || (caseType === 'kyc' ? 'KYC Document Verification' : ''),
+          trigger:
+            firstTask?.trigger ||
+            (caseType === 'kyc' || caseType === 'both'
+              ? 'KYC Document Verification'
+              : undefined),
           backendContactNumber: caseLevelData.backendContactNumber,
           priority: firstTask?.priority || 'MEDIUM',
-          pincode: firstTask ? getPincodeCode(firstTask.pincodeId) : '',
+          pincode: firstTask ? getPincodeCode(firstTask.pincodeId) : undefined,
           panNumber: customerInfo.panNumber,
           deduplicationDecision: deduplicationRationale.includes('No duplicate cases found')
             ? 'NO_DUPLICATES_FOUND'
@@ -775,9 +783,8 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             decision,
             deduplicationResult.duplicatesFound,
             deduplicationResult.searchCriteria
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
           )
-          .catch((error: any) => {
+          .catch((error: unknown) => {
             logger.error('Error recording deduplication decision (background):', error);
           });
       }
