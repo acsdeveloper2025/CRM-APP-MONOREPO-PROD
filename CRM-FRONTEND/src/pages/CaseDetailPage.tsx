@@ -8,7 +8,22 @@ import { useCase, useAssignCase } from '@/hooks/useCases';
 import { useCaseFormSubmissions } from '@/hooks/useForms';
 import { ReassignCaseModal } from '@/components/cases/ReassignCaseModal';
 import { OptimizedFormSubmissionViewer } from '@/components/forms/OptimizedFormSubmissionViewer';
-import { ArrowLeft, MapPin, Phone, Mail, Calendar, User, Building2, FileText, Edit, UserCheck, FormInput, Camera, CheckSquare, FileCheck } from 'lucide-react';
+import {
+  ArrowLeft,
+  MapPin,
+  Phone,
+  Mail,
+  Calendar,
+  User,
+  Building2,
+  FileText,
+  Edit,
+  UserCheck,
+  FormInput,
+  Camera,
+  CheckSquare,
+  FileCheck,
+} from 'lucide-react';
 import { CaseAttachmentsSection } from '@/components/attachments/CaseAttachmentsSection';
 import { VerificationTasksManager } from '@/components/verification-tasks';
 import { KYCTaskVerificationSection } from '@/components/kyc/KYCTaskVerificationSection';
@@ -19,10 +34,14 @@ import { logger } from '@/utils/logger';
 
 // Helper function to safely format dates
 const safeFormatDistanceToNow = (dateValue: string | null | undefined): string => {
-  if (!dateValue) {return 'Unknown';}
+  if (!dateValue) {
+    return 'Unknown';
+  }
   try {
     const date = new Date(dateValue);
-    if (isNaN(date.getTime())) {return 'Invalid date';}
+    if (isNaN(date.getTime())) {
+      return 'Invalid date';
+    }
     return formatDistanceToNow(date, { addSuffix: true });
   } catch (_error) {
     return 'Invalid date';
@@ -34,12 +53,11 @@ export const CaseDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
 
-
-
   // Ensure id is available or use empty string (hooks will handle empty/undefined)
   const safeId = id || '';
   const { data: caseData, isLoading, refetch } = useCase(safeId);
-  const { data: formSubmissionsData, isLoading: formSubmissionsLoading } = useCaseFormSubmissions(safeId);
+  const { data: formSubmissionsData, isLoading: formSubmissionsLoading } =
+    useCaseFormSubmissions(safeId);
   const { data: kycTasks = [] } = useKYCTasksForCase(safeId);
   const assignCaseMutation = useAssignCase();
 
@@ -56,7 +74,7 @@ export const CaseDetailPage: React.FC = () => {
       await assignCaseMutation.mutateAsync({
         id: safeId,
         assignedToId,
-        reason
+        reason,
       });
       setIsReassignModalOpen(false);
       refetch(); // Refresh case data to show updated assignment
@@ -98,9 +116,18 @@ export const CaseDetailPage: React.FC = () => {
   };
 
   const getPriorityColor = (priority: number | string) => {
-    const priorityNum = typeof priority === 'string' ?
-      (priority === 'LOW' ? 1 : priority === 'MEDIUM' ? 2 : priority === 'HIGH' ? 3 : priority === 'URGENT' ? 4 : parseInt(priority))
-      : priority;
+    const priorityNum =
+      typeof priority === 'string'
+        ? priority === 'LOW'
+          ? 1
+          : priority === 'MEDIUM'
+            ? 2
+            : priority === 'HIGH'
+              ? 3
+              : priority === 'URGENT'
+                ? 4
+                : parseInt(priority)
+        : priority;
 
     switch (priorityNum) {
       case 1:
@@ -117,9 +144,18 @@ export const CaseDetailPage: React.FC = () => {
   };
 
   const getPriorityLabel = (priority: number | string) => {
-    const priorityNum = typeof priority === 'string' ?
-      (priority === 'LOW' ? 1 : priority === 'MEDIUM' ? 2 : priority === 'HIGH' ? 3 : priority === 'URGENT' ? 4 : parseInt(priority))
-      : priority;
+    const priorityNum =
+      typeof priority === 'string'
+        ? priority === 'LOW'
+          ? 1
+          : priority === 'MEDIUM'
+            ? 2
+            : priority === 'HIGH'
+              ? 3
+              : priority === 'URGENT'
+                ? 4
+                : parseInt(priority)
+        : priority;
 
     switch (priorityNum) {
       case 1:
@@ -211,7 +247,9 @@ export const CaseDetailPage: React.FC = () => {
                       <div className="mt-2 space-y-2">
                         <div className="flex items-center space-x-2">
                           <User className="h-4 w-4 text-gray-600" />
-                          <span className="text-sm">{caseItem.customerName || caseItem.applicantName || 'N/A'}</span>
+                          <span className="text-sm">
+                            {caseItem.customerName || caseItem.applicantName || 'N/A'}
+                          </span>
                         </div>
                         {caseItem.applicantPhone && (
                           <div className="flex items-center space-x-2">
@@ -244,9 +282,8 @@ export const CaseDetailPage: React.FC = () => {
                             {(caseItem.taskPincode || caseItem.pincode) && (
                               <div>Pincode: {caseItem.taskPincode || caseItem.pincode}</div>
                             )}
-                            {caseItem.taskAreaName && (
-                              <div>Area: {caseItem.taskAreaName}</div>
-                            )}
+                            {caseItem.taskAreaName && <div>Area: {caseItem.taskAreaName}</div>}
+                            {caseItem.areaType && <div>Area Type: {caseItem.areaType}</div>}
                           </div>
                         </div>
                       </div>
@@ -274,10 +311,20 @@ export const CaseDetailPage: React.FC = () => {
                         <Building2 className="h-4 w-4 text-gray-600" />
                         <span className="text-sm">Client: {caseItem.clientName}</span>
                       </div>
+                      <div className="flex items-center space-x-2">
+                        <FileText className="h-4 w-4 text-gray-600" />
+                        <span className="text-sm">Product: {caseItem.productName || '-'}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <FileText className="h-4 w-4 text-gray-600" />
+                        <span className="text-sm">Rate Type: {caseItem.rateTypeName || '-'}</span>
+                      </div>
                       {caseItem.backendContactNumber && (
                         <div className="flex items-center space-x-2">
                           <Phone className="h-4 w-4 text-gray-600" />
-                          <span className="text-sm">Backend Contact: {caseItem.backendContactNumber}</span>
+                          <span className="text-sm">
+                            Backend Contact: {caseItem.backendContactNumber}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -291,7 +338,7 @@ export const CaseDetailPage: React.FC = () => {
                   )}
 
                   {/* Deduplication Information */}
-                  {(caseItem.deduplicationChecked && caseItem.deduplicationRationale) && (
+                  {caseItem.deduplicationChecked && caseItem.deduplicationRationale && (
                     <div className="border-t pt-4">
                       <h4 className="font-medium text-green-900 mb-2">Deduplication Information</h4>
                       <div className="space-y-2">
@@ -305,20 +352,26 @@ export const CaseDetailPage: React.FC = () => {
                             }`}
                           >
                             {caseItem.deduplicationDecision === 'CREATE_NEW' && 'Created New Case'}
-                            {caseItem.deduplicationDecision === 'USE_EXISTING' && 'Used Existing Case'}
+                            {caseItem.deduplicationDecision === 'USE_EXISTING' &&
+                              'Used Existing Case'}
                             {caseItem.deduplicationDecision === 'MERGE_CASES' && 'Merged Cases'}
-                            {caseItem.deduplicationDecision === 'NO_DUPLICATES_FOUND' && '✓ No Duplicates Found (Fresh Case)'}
+                            {caseItem.deduplicationDecision === 'NO_DUPLICATES_FOUND' &&
+                              '✓ No Duplicates Found (Fresh Case)'}
                           </Badge>
                         </div>
                         <div>
                           <span className="text-sm font-medium text-gray-700">
-                            {caseItem.deduplicationDecision === 'NO_DUPLICATES_FOUND' ? 'Automated Check:' : 'Decision Rationale:'}
+                            {caseItem.deduplicationDecision === 'NO_DUPLICATES_FOUND'
+                              ? 'Automated Check:'
+                              : 'Decision Rationale:'}
                           </span>
-                          <p className={`mt-1 text-gray-600 text-sm p-3 rounded border ${
-                            caseItem.deduplicationDecision === 'NO_DUPLICATES_FOUND'
-                              ? 'bg-green-50 border-green-200'
-                              : 'bg-gray-50 border-gray-200'
-                          }`}>
+                          <p
+                            className={`mt-1 text-gray-600 text-sm p-3 rounded border ${
+                              caseItem.deduplicationDecision === 'NO_DUPLICATES_FOUND'
+                                ? 'bg-green-50 border-green-200'
+                                : 'bg-gray-50 border-gray-200'
+                            }`}
+                          >
                             {caseItem.deduplicationRationale}
                           </p>
                         </div>
@@ -352,7 +405,9 @@ export const CaseDetailPage: React.FC = () => {
                   <Card>
                     <CardContent className="p-6 text-center">
                       <FormInput className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Form Submissions</h3>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        No Form Submissions
+                      </h3>
                       <p className="text-gray-600">
                         No verification forms have been submitted for this case yet.
                       </p>
@@ -418,8 +473,6 @@ export const CaseDetailPage: React.FC = () => {
                 </p>
               </div>
 
-
-
               <div>
                 <div className="flex items-center space-x-2">
                   <Calendar className="h-4 w-4 text-gray-600" />
@@ -442,9 +495,15 @@ export const CaseDetailPage: React.FC = () => {
                 className="w-full"
                 variant="outline"
                 onClick={handleEditCase}
-                disabled={caseItem.status === 'COMPLETED' && (caseItem.pendingTasks || 0) === 0 && (caseItem.inProgressTasks || 0) === 0}
+                disabled={
+                  caseItem.status === 'COMPLETED' &&
+                  (caseItem.pendingTasks || 0) === 0 &&
+                  (caseItem.inProgressTasks || 0) === 0
+                }
                 title={
-                  caseItem.status === 'COMPLETED' && (caseItem.pendingTasks || 0) === 0 && (caseItem.inProgressTasks || 0) === 0
+                  caseItem.status === 'COMPLETED' &&
+                  (caseItem.pendingTasks || 0) === 0 &&
+                  (caseItem.inProgressTasks || 0) === 0
                     ? 'Cannot edit completed cases'
                     : 'Edit case details'
                 }
@@ -460,11 +519,7 @@ export const CaseDetailPage: React.FC = () => {
                 <UserCheck className="mr-2 h-4 w-4" />
                 Reassign
               </Button>
-              {caseItem.status !== 'COMPLETED' && (
-                <Button className="w-full">
-                  Mark Complete
-                </Button>
-              )}
+              {caseItem.status !== 'COMPLETED' && <Button className="w-full">Mark Complete</Button>}
             </CardContent>
           </Card>
         </div>

@@ -7,14 +7,14 @@ export interface VerificationTask {
   id: string;
   taskNumber: string;
   caseId: string;
-  
+
   // Task Details
   verificationTypeId: number;
   verificationTypeName?: string;
   taskTitle: string;
   taskDescription?: string;
   priority: TaskPriority;
-  
+
   // Assignment Details
   // The API returns assignee info as flat denormalized fields: the UUID of
   // the assignee plus sibling `assignedToName` / `assignedToEmployeeId`
@@ -28,19 +28,19 @@ export interface VerificationTask {
   assignedBy?: string | null;
   assignedByName?: string | null;
   assignedAt?: string;
-  
+
   // Status and Progress
   status: TaskStatus;
   taskType?: 'REVISIT' | null; // null or undefined = NEW task
   parentTaskId?: string | null;
   verificationOutcome?: string;
-  
+
   // Billing Information
   rateTypeId?: number;
   rateTypeName?: string;
   estimatedAmount?: number;
   actualAmount?: number;
-  
+
   // Location and Address (for address verification tasks)
   address?: string;
   pincode?: string;
@@ -57,7 +57,7 @@ export interface VerificationTask {
   inProgressAt?: string; // Mobile compatibility: alias for startedAt
   savedAt?: string; // When task was saved (mobile)
   completedAt?: string;
-  
+
   // Saved state (mobile compatibility)
   isSaved?: boolean; // Derived from status or separate field
 
@@ -82,10 +82,12 @@ export interface VerificationTask {
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
-  
+
   // Case Information (populated)
   caseNumber?: string;
   customerName?: string;
+  clientName?: string;
+  productName?: string;
 }
 
 export interface CreateVerificationTaskRequest {
@@ -152,18 +154,9 @@ export type TaskStatus =
   | 'REVOKED'
   | 'SAVED';
 
-export type TaskPriority = 
-  | 'LOW'
-  | 'MEDIUM'
-  | 'HIGH'
-  | 'URGENT';
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
-export type CommissionStatus = 
-  | 'PENDING'
-  | 'CALCULATED'
-  | 'APPROVED'
-  | 'PAID'
-  | 'REJECTED';
+export type CommissionStatus = 'PENDING' | 'CALCULATED' | 'APPROVED' | 'PAID' | 'REJECTED';
 
 export interface VerificationTaskFilters {
   caseId?: string;
@@ -437,14 +430,14 @@ export const TASK_STATUS_COLORS: Record<TaskStatus, string> = {
   COMPLETED: 'green',
   ON_HOLD: 'orange',
   REVOKED: 'red',
-  SAVED: 'gray'
+  SAVED: 'gray',
 };
 
 export const TASK_PRIORITY_COLORS: Record<TaskPriority, string> = {
   LOW: 'gray',
   MEDIUM: 'blue',
   HIGH: 'orange',
-  URGENT: 'red'
+  URGENT: 'red',
 };
 
 export const COMMISSION_STATUS_COLORS: Record<CommissionStatus, string> = {
@@ -452,5 +445,5 @@ export const COMMISSION_STATUS_COLORS: Record<CommissionStatus, string> = {
   CALCULATED: 'blue',
   APPROVED: 'green',
   PAID: 'emerald',
-  REJECTED: 'red'
+  REJECTED: 'red',
 };

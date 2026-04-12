@@ -118,6 +118,10 @@ export interface Case {
   // Performance fields
   pendingDurationSeconds?: number;
 
+  // Task-level denormalized fields (from getCases endpoint)
+  taskPincode?: string;
+  taskAreaName?: string;
+
   // NEW: Multi-task architecture - verification task statistics
   totalTasks?: number;
   completedTasks?: number;

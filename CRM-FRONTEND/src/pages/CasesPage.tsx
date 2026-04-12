@@ -15,8 +15,21 @@ import { CasePagination } from '@/components/cases/CasePagination';
 import { useCases, useRefreshCases } from '@/hooks/useCases';
 import { useClients } from '@/hooks/useClients';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
-import { Download, Plus, RefreshCw, FileText, Clock, CheckCircle, PlayCircle, AlertTriangle } from 'lucide-react';
+import {
+  UnifiedSearchFilterLayout,
+  FilterGrid,
+} from '@/components/ui/unified-search-filter-layout';
+import {
+  Download,
+  Plus,
+  RefreshCw,
+  FileText,
+  Clock,
+  CheckCircle,
+  PlayCircle,
+  AlertTriangle,
+  XCircle,
+} from 'lucide-react';
 import { casesService, type CaseListQuery } from '@/services/cases';
 import { usePermissionContext } from '@/contexts/PermissionContext';
 import { logger } from '@/utils/logger';
@@ -35,15 +48,10 @@ export const CasesPage: React.FC = () => {
     hasPermissionCode('client.view') || hasPermissionCode('page.masterdata');
 
   // Unified search with 800ms debounce
-  const {
-    searchValue,
-    debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
-  } = useUnifiedSearch({
-    syncWithUrl: true,
-  });
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({
+      syncWithUrl: true,
+    });
 
   // Unified filters with URL sync
   const {
@@ -97,14 +105,12 @@ export const CasesPage: React.FC = () => {
   const clients = clientsData?.data || [];
 
   const handlePageChange = (page: number) => {
-    setPagination(prev => ({ ...prev, page }));
+    setPagination((prev) => ({ ...prev, page }));
   };
 
   const handleItemsPerPageChange = (limit: number) => {
-    setPagination(prev => ({ ...prev, limit, page: 1 }));
+    setPagination((prev) => ({ ...prev, limit, page: 1 }));
   };
-
-
 
   const handleExport = async () => {
     try {
@@ -127,7 +133,7 @@ export const CasesPage: React.FC = () => {
     await refreshCases({
       clearCache: true,
       preserveFilters: true,
-      showToast: true
+      showToast: true,
     });
   };
 
@@ -137,16 +143,17 @@ export const CasesPage: React.FC = () => {
 
   // Count active filters
   const activeFilterCount = Object.keys(activeFilters).filter(
-    key => activeFilters[key as keyof CaseFilters] !== undefined
+    (key) => activeFilters[key as keyof CaseFilters] !== undefined
   ).length;
 
   // Statistics from backend
-  const { 
-    totalCases, 
-    pending: pendingCases, 
-    inProgress: inProgressCases, 
-    completed: completedCases, 
-    overdue: overdueCases 
+  const {
+    totalCases,
+    pending: pendingCases,
+    inProgress: inProgressCases,
+    completed: completedCases,
+    overdue: overdueCases,
+    revoked: revokedCases,
   } = statistics;
 
   return (
@@ -162,7 +169,7 @@ export const CasesPage: React.FC = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Cases</CardTitle>
@@ -170,9 +177,7 @@ export const CasesPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalCases}</div>
-            <p className="text-xs text-gray-600">
-              All verification cases
-            </p>
+            <p className="text-xs text-gray-600">All verification cases</p>
           </CardContent>
         </Card>
 
@@ -183,9 +188,7 @@ export const CasesPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pendingCases}</div>
-            <p className="text-xs text-gray-600">
-              Awaiting action
-            </p>
+            <p className="text-xs text-gray-600">Awaiting action</p>
           </CardContent>
         </Card>
 
@@ -196,9 +199,7 @@ export const CasesPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{inProgressCases}</div>
-            <p className="text-xs text-gray-600">
-              Currently active
-            </p>
+            <p className="text-xs text-gray-600">Currently active</p>
           </CardContent>
         </Card>
 
@@ -209,9 +210,7 @@ export const CasesPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{completedCases}</div>
-            <p className="text-xs text-gray-600">
-              Successfully done
-            </p>
+            <p className="text-xs text-gray-600">Successfully done</p>
           </CardContent>
         </Card>
 
@@ -222,9 +221,18 @@ export const CasesPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{overdueCases}</div>
-            <p className="text-xs text-gray-600">
-              More than 2 days old
-            </p>
+            <p className="text-xs text-gray-600">More than 2 days old</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Revoked</CardTitle>
+            <XCircle className="h-4 w-4 text-gray-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{revokedCases}</div>
+            <p className="text-xs text-gray-600">Cancelled cases</p>
           </CardContent>
         </Card>
       </div>
@@ -268,7 +276,9 @@ export const CasesPage: React.FC = () => {
               <Label htmlFor="priority">Priority</Label>
               <Select
                 value={activeFilters.priority || 'all'}
-                onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
+                onValueChange={(value) =>
+                  setFilter('priority', value === 'all' ? undefined : value)
+                }
               >
                 <SelectTrigger id="priority">
                   <SelectValue placeholder="All priorities" />
@@ -321,9 +331,9 @@ export const CasesPage: React.FC = () => {
             </Button>
             <Button onClick={handleNewCase}>
               <Plus className="h-4 w-4 mr-2" />
-            New Case
-          </Button>
-        </>
+              New Case
+            </Button>
+          </>
         }
       />
 
@@ -336,8 +346,7 @@ export const CasesPage: React.FC = () => {
               <CardDescription>
                 {paginationData.total > 0
                   ? `Showing ${paginationData.total} case${paginationData.total === 1 ? '' : 's'}`
-                  : 'No cases found'
-                }
+                  : 'No cases found'}
               </CardDescription>
             </div>
           </div>
@@ -348,10 +357,7 @@ export const CasesPage: React.FC = () => {
               Failed to load cases. Please try again.
             </div>
           ) : (
-            <CaseTable
-              cases={cases}
-              isLoading={isLoading}
-            />
+            <CaseTable cases={cases} isLoading={isLoading} />
           )}
         </CardContent>
       </Card>
