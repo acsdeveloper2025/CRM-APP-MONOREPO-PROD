@@ -15,7 +15,7 @@ export function CommissionSummaryCard({ summary }: CommissionSummaryCardProps) {
           <TrendingUp className="h-4 w-4 text-gray-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">₹{summary.totalAmount.toLocaleString()}</div>
+          <div className="text-2xl font-bold">₹{Number(summary.totalAmount || 0).toLocaleString()}</div>
           <p className="text-xs text-gray-600">
             {summary.totalCases} cases
           </p>
@@ -29,7 +29,7 @@ export function CommissionSummaryCard({ summary }: CommissionSummaryCardProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-yellow-600">
-            ₹{summary.pendingAmount.toLocaleString()}
+            ₹{Number(summary.pendingAmount || 0).toLocaleString()}
           </div>
           <p className="text-xs text-gray-600">
             Awaiting approval
@@ -44,7 +44,7 @@ export function CommissionSummaryCard({ summary }: CommissionSummaryCardProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-green-600">
-            ₹{summary.approvedAmount.toLocaleString()}
+            ₹{Number(summary.approvedAmount || 0).toLocaleString()}
           </div>
           <p className="text-xs text-gray-600">
             Ready for payment
@@ -59,7 +59,7 @@ export function CommissionSummaryCard({ summary }: CommissionSummaryCardProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-green-600">
-            ₹{summary.paidAmount.toLocaleString()}
+            ₹{Number(summary.paidAmount || 0).toLocaleString()}
           </div>
           <p className="text-xs text-gray-600">
             Completed payments

@@ -165,7 +165,7 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
                     </div>
                     <div className="text-right">
                       <div className="font-medium">
-                        {item.quantity} × ₹{item.unitPrice.toLocaleString()} = ₹{item.totalPrice.toLocaleString()}
+                        {item.quantity} × ₹{Number(item.unitPrice || 0).toLocaleString()} = ₹{Number(item.totalPrice || 0).toLocaleString()}
                       </div>
                     </div>
                   </div>
@@ -178,16 +178,16 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
-                  <span>₹{invoice.subtotalAmount.toLocaleString()}</span>
+                  <span>₹{Number(invoice.subtotalAmount || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Tax ({invoice.taxPercentage}%):</span>
-                  <span>₹{invoice.taxAmount.toLocaleString()}</span>
+                  <span>₹{Number(invoice.taxAmount || 0).toLocaleString()}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Total:</span>
-                  <span>₹{invoice.totalAmount.toLocaleString()}</span>
+                  <span>₹{Number(invoice.totalAmount || 0).toLocaleString()}</span>
                 </div>
               </div>
             </CardContent>
