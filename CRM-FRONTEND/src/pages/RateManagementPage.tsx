@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,6 +18,17 @@ interface RateManagementPageProps {
 
 export function RateManagementPage({ defaultTab }: RateManagementPageProps = {}) {
   const [activeTab, setActiveTab] = useState(defaultTab || 'rate-types');
+
+  // Sync activeTab when navigating between sidebar sub-pages.
+  // useState only sets the initial value on mount — when React
+  // reuses the same component instance for a different route,
+  // the prop changes but state doesn't. This effect keeps them
+  // in sync.
+  useEffect(() => {
+    if (defaultTab && defaultTab !== activeTab) {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch rate management statistics
   const { data: statsData, isLoading: _statsLoading } = useStandardizedQuery({
