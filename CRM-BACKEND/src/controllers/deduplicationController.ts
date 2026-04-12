@@ -405,13 +405,16 @@ export const searchGlobalDuplicates = async (req: AuthenticatedRequest, res: Res
 
     const uniqueRows = Array.from(uniqueCases.values());
 
-    // Calculate match scores and types
+    // Calculate match scores and types.
+    // B3 fix: dbQuery applies camelizeRow in REPLACE mode, so rows
+    // have camelCase keys (panNumber, customerPhone, etc.) — NOT the
+    // snake_case names from the SQL aliases.
     const results = uniqueRows.map(row => {
       const matchTypes: string[] = [];
       let matchScore = 0;
 
       // Exact PAN match
-      if (pan && row.pan_number === pan.trim().toUpperCase()) {
+      if (pan && row.panNumber === pan.trim().toUpperCase()) {
         matchTypes.push('PAN');
         matchScore += 100;
       }
@@ -419,7 +422,7 @@ export const searchGlobalDuplicates = async (req: AuthenticatedRequest, res: Res
       // Mobile match
       if (mobile) {
         const cleanMobile = mobile.trim().replace(/\D/g, '');
-        if (row.customer_phone?.includes(cleanMobile)) {
+        if (row.customerPhone?.includes(cleanMobile)) {
           matchTypes.push('Mobile');
           matchScore += 80;
         }
@@ -428,7 +431,7 @@ export const searchGlobalDuplicates = async (req: AuthenticatedRequest, res: Res
       // Name match (fuzzy)
       if (name) {
         const searchName = name.trim().toLowerCase();
-        const caseName = (row.customer_name || '').toLowerCase();
+        const caseName = (row.customerName || '').toLowerCase();
         if (caseName.includes(searchName) || searchName.includes(caseName)) {
           matchTypes.push('Name');
           matchScore += 60;
@@ -447,16 +450,16 @@ export const searchGlobalDuplicates = async (req: AuthenticatedRequest, res: Res
 
       return {
         id: row.id,
-        caseId: row.case_id,
-        caseNumber: row.case_number,
-        name: row.customer_name,
-        mobile: row.customer_phone,
-        pan: row.pan_number,
-        client: row.client_name,
-        product: row.product_name,
+        caseId: row.caseId,
+        caseNumber: row.caseNumber,
+        name: row.customerName,
+        mobile: row.customerPhone,
+        pan: row.panNumber,
+        client: row.clientName,
+        product: row.productName,
         address: row.address || '',
         status: row.status,
-        createdAt: row.created_at,
+        createdAt: row.createdAt,
         matchTypes,
         matchScore,
       };
