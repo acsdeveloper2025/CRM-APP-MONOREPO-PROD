@@ -235,7 +235,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="font-medium">₹{commission.amount.toLocaleString()}</div>
+                  <div className="font-medium">₹{Number(commission.amount || 0).toLocaleString()}</div>
                 </TableCell>
                 <TableCell>
                   <Badge className={baseBadgeStyle}>{commission.percentage}%</Badge>

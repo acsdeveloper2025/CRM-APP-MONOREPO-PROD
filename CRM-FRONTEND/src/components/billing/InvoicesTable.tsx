@@ -129,9 +129,9 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
                 </TableCell>
                 <TableCell>
                   <div>
-                    <div className="font-medium">₹{invoice.totalAmount.toLocaleString()}</div>
+                    <div className="font-medium">₹{Number(invoice.totalAmount || 0).toLocaleString()}</div>
                     <div className="text-sm text-gray-600">
-                      Tax: ₹{invoice.taxAmount.toLocaleString()}
+                      Tax: ₹{Number(invoice.taxAmount || 0).toLocaleString()}
                     </div>
                   </div>
                 </TableCell>

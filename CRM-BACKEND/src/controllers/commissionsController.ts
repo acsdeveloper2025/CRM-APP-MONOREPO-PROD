@@ -500,13 +500,13 @@ export const getCommissionSummary = async (req: AuthenticatedRequest, res: Respo
     const summarySql = `
       SELECT
         COUNT(*) as "totalCommissions",
-        COALESCE(SUM("commissionAmount"), 0) as "totalAmount",
+        COALESCE(SUM(commission_amount), 0) as "totalAmount",
         SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END) as "pendingCommissions",
-        COALESCE(SUM(CASE WHEN status = 'PENDING' THEN "commissionAmount" ELSE 0 END), 0) as "pendingAmount",
+        COALESCE(SUM(CASE WHEN status = 'PENDING' THEN commission_amount ELSE 0 END), 0) as "pendingAmount",
         SUM(CASE WHEN status = 'APPROVED' THEN 1 ELSE 0 END) as "approvedCommissions",
-        COALESCE(SUM(CASE WHEN status = 'APPROVED' THEN "commissionAmount" ELSE 0 END), 0) as "approvedAmount",
+        COALESCE(SUM(CASE WHEN status = 'APPROVED' THEN commission_amount ELSE 0 END), 0) as "approvedAmount",
         SUM(CASE WHEN status = 'PAID' THEN 1 ELSE 0 END) as "paidCommissions",
-        COALESCE(SUM(CASE WHEN status = 'PAID' THEN "commissionAmount" ELSE 0 END), 0) as "paidAmount"
+        COALESCE(SUM(CASE WHEN status = 'PAID' THEN commission_amount ELSE 0 END), 0) as "paidAmount"
       FROM commission_calculations cc
       ${whereClause}
     `;
@@ -519,9 +519,9 @@ export const getCommissionSummary = async (req: AuthenticatedRequest, res: Respo
         cc.user_id,
         u.name as user_name,
         COUNT(*) as "totalCommissions",
-        COALESCE(SUM("commissionAmount"), 0) as "totalAmount",
-        COALESCE(SUM(CASE WHEN status = 'PAID' THEN "commissionAmount" ELSE 0 END), 0) as "paidAmount",
-        COALESCE(SUM(CASE WHEN status = 'PENDING' THEN "commissionAmount" ELSE 0 END), 0) as "pendingAmount"
+        COALESCE(SUM(commission_amount), 0) as "totalAmount",
+        COALESCE(SUM(CASE WHEN status = 'PAID' THEN commission_amount ELSE 0 END), 0) as "paidAmount",
+        COALESCE(SUM(CASE WHEN status = 'PENDING' THEN commission_amount ELSE 0 END), 0) as "pendingAmount"
       FROM commission_calculations cc
       LEFT JOIN users u ON cc.user_id = u.id
       ${whereClause}

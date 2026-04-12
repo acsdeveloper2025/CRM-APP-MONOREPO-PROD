@@ -128,7 +128,7 @@ export function BillingPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.invoices.total}</div>
             <p className="text-xs text-gray-600">
-              ₹{stats.invoices.totalAmount.toLocaleString()}
+              ₹{Number(stats.invoices.totalAmount || 0).toLocaleString()}
             </p>
           </CardContent>
         </Card>
@@ -154,7 +154,7 @@ export function BillingPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.commissions.total}</div>
             <p className="text-xs text-gray-600">
-              ₹{stats.commissions.totalAmount.toLocaleString()}
+              ₹{Number(stats.commissions.totalAmount || 0).toLocaleString()}
             </p>
           </CardContent>
         </Card>
