@@ -184,13 +184,15 @@ export const useAssignVerificationTask = () => {
 };
 
 export const useAllVerificationTasks = (filters: Record<string, unknown> = {}) => {
-  const queryKey = ['all-verification-tasks', filters];
+  // Exclude KYC tasks from all field-verification task pages.
+  // KYC has its own sidebar section and hooks (useKYCTasks).
+  const mergedFilters = { excludeTaskType: 'KYC', ...filters };
+  const queryKey = ['all-verification-tasks', mergedFilters];
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      // Cast response to expected type as structure might vary from standard ApiResponse
-      const response = await api.get<VerificationTaskListResponse>('/verification-tasks', filters);
+      const response = await api.get<VerificationTaskListResponse>('/verification-tasks', mergedFilters);
       return response.data;
     },
   });

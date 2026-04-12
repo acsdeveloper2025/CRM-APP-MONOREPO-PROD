@@ -125,8 +125,13 @@ const RateManagementPage = React.lazy(() =>
 const DedupePage = React.lazy(() =>
   import('@/pages/DedupePage').then((module) => ({ default: module.DedupePage }))
 );
-// KYCDashboardPage + KYCVerificationPage removed — KYC tasks are
-// now shown in the "KYC Tasks" tab on the Case Detail page.
+// KYC pages restored as sidebar section with sub-pages.
+const KYCDashboardPage = React.lazy(() =>
+  import('@/pages/KYCDashboardPage').then((module) => ({ default: module.KYCDashboardPage }))
+);
+const KYCVerificationPage = React.lazy(() =>
+  import('@/pages/KYCVerificationPage').then((module) => ({ default: module.KYCVerificationPage }))
+);
 
 const resolveFirstAccessibleRoute = (permissionSet: Set<string>): string => {
   const candidates: Array<{ permission: string; path: string }> = [
@@ -138,7 +143,7 @@ const resolveFirstAccessibleRoute = (permissionSet: Set<string>): string => {
     { permission: 'page.billing', path: '/billing' },
     { permission: 'page.masterdata', path: '/clients' },
     { permission: 'page.users', path: '/users' },
-    // { permission: 'page.kyc', path: '/kyc' }, — removed, KYC in case detail now
+    { permission: 'page.kyc', path: '/kyc' },
     { permission: 'page.fieldMonitoring', path: '/operations/field-monitoring' },
     { permission: 'page.rbac', path: '/admin/rbac' },
     { permission: 'page.settings', path: '/settings' },
@@ -524,7 +529,47 @@ export const AppRoutes: React.FC = () => {
             }
           />
 
-          {/* KYC routes removed — KYC tasks are now in the Case Detail "KYC Tasks" tab */}
+          {/* KYC Verification routes — sidebar sub-pages */}
+          <Route
+            path="/kyc"
+            element={
+              <ProtectedRoute permission="page.kyc">
+                <KYCDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/kyc/pending"
+            element={
+              <ProtectedRoute permission="page.kyc">
+                <KYCDashboardPage
+                  defaultStatus="PENDING"
+                  pageTitle="Pending KYC Verification"
+                  pageSubtitle="KYC documents awaiting verification"
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/kyc/completed"
+            element={
+              <ProtectedRoute permission="page.kyc">
+                <KYCDashboardPage
+                  defaultStatus="COMPLETED"
+                  pageTitle="Completed KYC Verification"
+                  pageSubtitle="KYC documents that have been verified (Passed, Failed, or Referred)"
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/kyc/verify/:taskId"
+            element={
+              <ProtectedRoute permission="page.kyc">
+                <KYCVerificationPage />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/security-ux"

@@ -33,6 +33,7 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
       page = '1',
       limit = '20',
       status,
+      statusNot,
       documentType,
       search,
       sortBy = 'created_at',
@@ -51,6 +52,13 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
     if (status && status !== 'ALL') {
       conditions.push(`kdv.verification_status = $${paramIndex}`);
       params.push(status as string);
+      paramIndex++;
+    }
+
+    // Exclude a status (e.g. ?statusNot=PENDING for completed KYC page)
+    if (statusNot) {
+      conditions.push(`kdv.verification_status != $${paramIndex}`);
+      params.push(statusNot as string);
       paramIndex++;
     }
 
