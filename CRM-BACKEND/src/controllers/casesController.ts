@@ -2677,6 +2677,13 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
       trigger,
       priority = 'MEDIUM',
       backendContactNumber,
+      // Bug 2+3 fix: extract dedup fields so they can be persisted
+      // on the new case row. Previously these were sent by the
+      // frontend but never read, so the cases.deduplication_checked /
+      // deduplication_decision / deduplication_rationale columns
+      // stayed null forever.
+      deduplicationDecision,
+      deduplicationRationale,
     } = caseDetails;
 
     const resolvedCaseCustomerName =
@@ -2869,12 +2876,27 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // ========== CREATE CASE ==========
+    // Bug 2+3 fix: persist dedup decision + rationale on the case
+    // row itself so the audit trail lives on the entity, not just
+    // in a separate audit table that may or may not have been
+    // populated by a detached frontend call.
+    const resolvedDedupDecision =
+      typeof deduplicationDecision === 'string' && deduplicationDecision.trim()
+        ? deduplicationDecision.trim()
+        : null;
+    const resolvedDedupRationale =
+      typeof deduplicationRationale === 'string' && deduplicationRationale.trim()
+        ? deduplicationRationale.trim()
+        : null;
+
     const caseResult = await client.query(
       `INSERT INTO cases (
           client_id, product_id, customer_name, customer_phone, customer_calling_code,
           priority, backend_contact_number,
-          verification_type_id, applicant_type, trigger, created_by_backend_user, status, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'PENDING', NOW(), NOW()) RETURNING *`,
+          verification_type_id, applicant_type, trigger, created_by_backend_user,
+          deduplication_checked, deduplication_decision, deduplication_rationale,
+          status, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'PENDING', NOW(), NOW()) RETURNING *`,
       [
         resolvedClientId,
         resolvedProductId,
@@ -2887,9 +2909,51 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
         resolvedCaseApplicantType,
         resolvedCaseTrigger || (isKYCOnlyCase ? 'KYC Document Verification' : null),
         userId,
+        // dedup fields — true when the frontend sent any decision,
+        // false when the payload came from a code path that skipped
+        // dedup (API integrations, bulk import, etc.)
+        resolvedDedupDecision !== null,
+        resolvedDedupDecision,
+        resolvedDedupRationale,
       ]
     );
     const newCase = caseResult.rows[0];
+
+    // Bug 2 fix: insert the dedup audit record NOW with the real
+    // case UUID, inside the same transaction. The frontend's
+    // detached call to /api/cases/deduplication/decision was
+    // silently skipped for CREATE_NEW (the backend returned early
+    // for 'NEW_CASE_PLACEHOLDER' caseId), so the audit table was
+    // never populated. Writing it here with the real ID means the
+    // audit trail is always created for dedup-checked cases.
+    if (resolvedDedupDecision && newCase.id) {
+      try {
+        await client.query(
+          `INSERT INTO case_deduplication_audit (
+              case_id, search_criteria, duplicates_found,
+              user_decision, rationale, performed_by
+            ) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            newCase.id,
+            JSON.stringify({
+              customerName: resolvedCaseCustomerName,
+              customerPhone: customerPhone || null,
+              panNumber: (caseDetails as Record<string, unknown>).panNumber || null,
+            }),
+            JSON.stringify([]), // duplicates list is not passed in the create payload
+            resolvedDedupDecision,
+            resolvedDedupRationale,
+            userId,
+          ]
+        );
+      } catch (auditErr) {
+        // Non-fatal — the case row already has the dedup fields,
+        // so the data is not lost even if the audit insert fails
+        // (e.g. the audit table doesn't exist yet on an older
+        // migration level). Log and continue.
+        logger.warn('Failed to insert dedup audit record (non-fatal)', auditErr);
+      }
+    }
 
     const createdHierarchy = [];
 
