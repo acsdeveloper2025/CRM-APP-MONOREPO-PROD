@@ -400,7 +400,26 @@ export const uploadKYCDocument = async (req: AuthenticatedRequest, res: Response
 // Get KYC tasks for a specific case
 export const getKYCTasksForCase = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { caseId } = req.params;
+    const rawCaseId = String(req.params.caseId || '');
+
+    // The frontend navigates to /cases/:caseId where caseId may be
+    // the integer case_id (e.g. "32") or the UUID id. The
+    // kyc_document_verifications.case_id column is UUID, so we must
+    // resolve integer → UUID first. Same pattern as getCaseById.
+    const isNumeric = /^\d+$/.test(rawCaseId);
+    let resolvedCaseUuid = rawCaseId;
+
+    if (isNumeric) {
+      const caseResult = await query<{ id: string }>(
+        'SELECT id FROM cases WHERE case_id = $1 LIMIT 1',
+        [parseInt(rawCaseId, 10)]
+      );
+      if (caseResult.rows.length === 0) {
+        res.json({ success: true, data: [] });
+        return;
+      }
+      resolvedCaseUuid = caseResult.rows[0].id;
+    }
 
     const result = await query(
       `SELECT
@@ -428,7 +447,7 @@ export const getKYCTasksForCase = async (req: AuthenticatedRequest, res: Respons
        LEFT JOIN users u_assigned ON u_assigned.id = kdv.assigned_to
        WHERE kdv.case_id = $1
        ORDER BY kdt.sort_order, kdv.created_at`,
-      [caseId]
+      [resolvedCaseUuid]
     );
 
     res.json({ success: true, data: result.rows });
