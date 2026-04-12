@@ -408,9 +408,13 @@ export const updatePincode = async (req: AuthenticatedRequest, res: Response) =>
     const { id } = req.params;
     const updateData = req.body;
 
-    // Check if pincode exists
+    // Check if pincode exists. Post-migration 010 the pincodes table
+    // only has: id, code, city_id, created_at, updated_at. The prior
+    // query selected 9 columns (pincode, area, city, state,
+    // country_id, is_active) that no longer exist — every updatePincode
+    // call threw "column does not exist".
     const existingResult = await query(
-      'SELECT id, pincode, area, city, state, country_id, is_active, created_at, updated_at FROM pincodes WHERE id = $1',
+      'SELECT id, code, city_id, created_at, updated_at FROM pincodes WHERE id = $1',
       [id]
     );
 
@@ -430,7 +434,9 @@ export const updatePincode = async (req: AuthenticatedRequest, res: Response) =>
       }
     }
 
-    // Build update query
+    // Build update query — only code and city_id are updatable on the
+    // pincodes table. Area management goes through the separate
+    // /pincodes/:id/areas endpoint + pincode_areas junction table.
     const updateFields: string[] = [];
     const updateValues: QueryParams = [];
     let paramCount = 0;
@@ -439,12 +445,6 @@ export const updatePincode = async (req: AuthenticatedRequest, res: Response) =>
       paramCount++;
       updateFields.push(`code = $${paramCount}`);
       updateValues.push(updateData.code);
-    }
-
-    if (updateData.area) {
-      paramCount++;
-      updateFields.push(`area = $${paramCount}`);
-      updateValues.push(updateData.area);
     }
 
     if (updateData.cityId) {
@@ -486,7 +486,6 @@ export const updatePincode = async (req: AuthenticatedRequest, res: Response) =>
       data: {
         id: updatedPincode.id,
         code: updatedPincode.code,
-        area: updatedPincode.area,
         cityId: updatedPincode.cityId,
         createdAt: updatedPincode.createdAt,
         updatedAt: updatedPincode.updatedAt,
@@ -504,9 +503,9 @@ export const deletePincode = async (req: AuthenticatedRequest, res: Response) =>
   try {
     const { id } = req.params;
 
-    // Check if pincode exists
+    // Check if pincode exists (only real columns)
     const existingResult = await query(
-      'SELECT id, pincode, area, city, state, country_id, is_active, created_at, updated_at FROM pincodes WHERE id = $1',
+      'SELECT id, code, city_id, created_at, updated_at FROM pincodes WHERE id = $1',
       [id]
     );
 
