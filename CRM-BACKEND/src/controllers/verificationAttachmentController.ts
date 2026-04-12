@@ -32,7 +32,7 @@ const storage = multer.diskStorage({
             taskId,
           ]);
           if (taskResult.rows.length > 0) {
-            caseId = taskResult.rows[0].case_id;
+            caseId = taskResult.rows[0].caseId;
           }
         } catch (error) {
           logger.error('Error resolving case_id from task_id in storage:', error);

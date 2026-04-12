@@ -22,7 +22,7 @@ export class TaskLookupService {
       throw new Error('Verification task not found');
     }
 
-    return result.rows[0].case_id;
+    return result.rows[0].caseId;
   }
 
   /**

@@ -124,7 +124,7 @@ export class MobileAttachmentController {
           caseId,
         ]);
         if (taskRes.rows.length > 0) {
-          lookupCaseId = taskRes.rows[0].case_id;
+          lookupCaseId = taskRes.rows[0].caseId;
         }
       }
 
@@ -344,7 +344,7 @@ export class MobileAttachmentController {
           caseId,
         ]);
         if (taskRes.rows.length > 0) {
-          lookupCaseId = taskRes.rows[0].case_id;
+          lookupCaseId = taskRes.rows[0].caseId;
         }
       }
 

@@ -123,9 +123,9 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
         [dbClientIds.map(Number)]
       );
       prodMapRes.rows.forEach(r => {
-        const arr = productsByClient.get(r.client_id) || [];
+        const arr = productsByClient.get(r.clientId) || [];
         arr.push({ id: r.id, name: r.name, code: r.code });
-        productsByClient.set(r.client_id, arr);
+        productsByClient.set(r.clientId, arr);
       });
 
       // Load verification types through product relationships
@@ -138,9 +138,9 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
         [dbClientIds.map(Number)]
       );
       vtMapRes.rows.forEach(r => {
-        const arr = vtsByClient.get(r.client_id) || [];
+        const arr = vtsByClient.get(r.clientId) || [];
         arr.push({ id: r.id, name: r.name, code: r.code });
-        vtsByClient.set(r.client_id, arr);
+        vtsByClient.set(r.clientId, arr);
       });
 
       // Load document types through client relationships
@@ -152,9 +152,9 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
         [dbClientIds.map(Number)]
       );
       dtMapRes.rows.forEach(r => {
-        const arr = dtsByClient.get(r.client_id) || [];
+        const arr = dtsByClient.get(r.clientId) || [];
         arr.push({ id: r.id, name: r.name, code: r.code });
-        dtsByClient.set(r.client_id, arr);
+        dtsByClient.set(r.clientId, arr);
       });
 
       const casesRes = await query(
@@ -162,9 +162,9 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
         [dbClientIds.map(Number)]
       );
       casesRes.rows.forEach(r => {
-        const arr = casesByClient.get(r.client_id) || [];
-        arr.push({ id: r.case_id, caseId: r.case_id, status: r.status });
-        casesByClient.set(r.client_id, arr);
+        const arr = casesByClient.get(r.clientId) || [];
+        arr.push({ id: r.caseId, caseId: r.caseId, status: r.status });
+        casesByClient.set(r.clientId, arr);
       });
     }
 
@@ -664,7 +664,7 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
           `SELECT product_id FROM client_products WHERE client_id = $1`,
           [Number(id)]
         );
-        const productIds = clientProductsRes.rows.map(row => row.product_id);
+        const productIds = clientProductsRes.rows.map(row => row.productId);
 
         if (productIds.length > 0) {
           // Remove existing product-verification type relationships for this client's products

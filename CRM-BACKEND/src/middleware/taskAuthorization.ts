@@ -88,8 +88,8 @@ export const requireTaskAccess = async (
       if (
         assignedClientIds.length === 0 ||
         assignedProductIds.length === 0 ||
-        !assignedClientIds.includes(Number(row.client_id)) ||
-        !assignedProductIds.includes(Number(row.product_id))
+        !assignedClientIds.includes(Number(row.clientId)) ||
+        !assignedProductIds.includes(Number(row.productId))
       ) {
         res.status(403).json({
           success: false,
