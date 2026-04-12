@@ -211,13 +211,30 @@ export const createCaseValidation = [
     .isLength({ min: 3, max: 10 })
     .withMessage('caseDetails.pincode must be 3–10 characters if provided'),
 
+  // #3 fix: verificationTasks was required min:1 which blocked
+  // KYC-only cases (they send []). The "at least one task overall"
+  // rule is enforced in the handler (fieldTaskCount +
+  // kycDocumentCount >= 1), so the validator only needs to check
+  // the array shape + per-element fields when elements exist.
   body('verificationTasks')
-    .isArray({ min: 1, max: 50 })
-    .withMessage('verificationTasks must contain between 1 and 50 entries'),
+    .isArray({ max: 50 })
+    .withMessage('verificationTasks must be an array with at most 50 entries'),
   body('verificationTasks.*.verificationTypeId')
     .toInt()
     .isInt({ min: 1 })
     .withMessage('verificationTasks[].verificationTypeId must be a positive integer'),
+  body('verificationTasks.*.trigger')
+    .trim()
+    .isLength({ min: 1, max: 500 })
+    .withMessage('verificationTasks[].trigger is required (1–500 characters)'),
+  body('verificationTasks.*.address')
+    .trim()
+    .isLength({ min: 1, max: 500 })
+    .withMessage('verificationTasks[].address is required (1–500 characters)'),
+  body('verificationTasks.*.assignedTo')
+    .isString()
+    .isLength({ min: 1, max: 128 })
+    .withMessage('verificationTasks[].assignedTo is required'),
   body('verificationTasks.*.priority')
     .optional()
     .isIn(['LOW', 'MEDIUM', 'HIGH', 'URGENT'])
@@ -232,6 +249,11 @@ export const createCaseValidation = [
     .toInt()
     .isInt({ min: 1 })
     .withMessage('verificationTasks[].areaId must be a positive integer if provided'),
+  body('verificationTasks.*.pincode')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ min: 3, max: 10 })
+    .withMessage('verificationTasks[].pincode must be 3–10 characters if provided'),
 
   body('applicants')
     .optional()
@@ -2482,20 +2504,17 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
     let requestData: CreateCaseRequest;
     try {
       // Log only the shape of the request, with sensitive fields masked.
-      // Previously this dumped the entire body verbatim which leaked PAN
-      // numbers, KYC document metadata, and occasionally credentials.
       logger.debug('createCase request received', {
         bodyKeys: Object.keys(req.body || {}),
-        hasFormData: !!req.body?.data,
         payload: redact(req.body),
       });
-      if (req.body.data) {
-        // FormData format (with file uploads)
-        requestData = JSON.parse(req.body.data);
-      } else {
-        // JSON format (no file uploads)
-        requestData = req.body as CreateCaseRequest;
-      }
+
+      // #5 fix: normalizeCaseCreationBody (middleware) already
+      // JSON.parse's req.body.data for FormData uploads and
+      // deletes the raw `data` key (line 149). The handler no
+      // longer needs a conditional branch — req.body is always
+      // the final shape by the time we get here.
+      requestData = req.body as CreateCaseRequest;
 
       // Log the parsed request data for debugging
       logger.info('Case creation request received:', {
@@ -2677,11 +2696,11 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
       trigger,
       priority = 'MEDIUM',
       backendContactNumber,
-      // Bug 2+3 fix: extract dedup fields so they can be persisted
-      // on the new case row. Previously these were sent by the
-      // frontend but never read, so the cases.deduplication_checked /
-      // deduplication_decision / deduplication_rationale columns
-      // stayed null forever.
+      // #1 fix: panNumber was sent by the frontend but never
+      // extracted or INSERTed into cases.pan_number. The column
+      // exists in the DB and dedup search queries it — but it was
+      // always NULL, so PAN-based dedup never found matches.
+      panNumber,
       deduplicationDecision,
       deduplicationRationale,
     } = caseDetails;
@@ -2889,14 +2908,18 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
         ? deduplicationRationale.trim()
         : null;
 
+    // #1 fix: resolve panNumber — uppercase, trim, null if empty.
+    const resolvedPanNumber =
+      typeof panNumber === 'string' && panNumber.trim() ? panNumber.trim().toUpperCase() : null;
+
     const caseResult = await client.query(
       `INSERT INTO cases (
           client_id, product_id, customer_name, customer_phone, customer_calling_code,
-          priority, backend_contact_number,
+          priority, backend_contact_number, pan_number,
           verification_type_id, applicant_type, trigger, created_by_backend_user,
           deduplication_checked, deduplication_decision, deduplication_rationale,
           status, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, 'PENDING', NOW(), NOW()) RETURNING *`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'PENDING', NOW(), NOW()) RETURNING *`,
       [
         resolvedClientId,
         resolvedProductId,
@@ -2905,13 +2928,11 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
         customerCallingCode || null,
         priority,
         resolvedBackendContactNumber,
+        resolvedPanNumber,
         resolvedCaseVerificationTypeId || null,
         resolvedCaseApplicantType,
         resolvedCaseTrigger || (isKYCOnlyCase ? 'KYC Document Verification' : null),
         userId,
-        // dedup fields — true when the frontend sent any decision,
-        // false when the payload came from a code path that skipped
-        // dedup (API integrations, bulk import, etc.)
         resolvedDedupDecision !== null,
         resolvedDedupDecision,
         resolvedDedupRationale,

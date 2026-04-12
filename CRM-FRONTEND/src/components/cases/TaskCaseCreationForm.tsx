@@ -136,7 +136,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   // Populate form with initial data
   useEffect(() => {
     if (initialData) {
-      logger.warn('📝 TaskCaseCreationForm - Populating form with initialData', initialData);
+      logger.info('TaskCaseCreationForm populating with initialData');
       
       if (initialData.caseLevelData) {
         form.reset({
@@ -147,12 +147,12 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
         });
       }
       if (initialData.tasks && initialData.tasks.length > 0) {
-        logger.warn('📝 TaskCaseCreationForm - Setting tasks', initialData.tasks);
+        logger.info('TaskCaseCreationForm setting tasks');
         setTasks(initialData.tasks);
         
         // Verify state was set correctly
         setTimeout(() => {
-          logger.warn('📝 TaskCaseCreationForm - Tasks state after setTasks', {
+          logger.info('TaskCaseCreationForm tasks state after set', {
             tasksLength: initialData.tasks?.length,
             firstTask: initialData.tasks?.[0],
             rateTypeId: initialData.tasks?.[0]?.rateTypeId,
@@ -711,15 +711,19 @@ const TaskCard: React.FC<TaskCardProps> = ({
   // because it was clearing pre-filled values from Revisit tasks.
   // Users can manually change these values if needed.
 
-  // Debug logging to verify task prop values
-  logger.warn(`🎯 TaskCard ${index + 1} - Rendering with task:`, {
-    taskId: task.id,
-    rateTypeId: task.rateTypeId,
-    assignedTo: task.assignedTo,
-    verificationTypeId: task.verificationTypeId,
-    pincodeId: task.pincodeId,
-    areaId: task.areaId,
-  });
+  // #4 fix: was logger.warn — at 2000 concurrent users every
+  // render fires a warn entry, flooding monitoring dashboards.
+  // Downgrade to debug so it only shows in dev console.
+  if (import.meta.env.DEV) {
+    logger.info(`TaskCard ${index + 1} render`, {
+      taskId: task.id,
+      rateTypeId: task.rateTypeId,
+      assignedTo: task.assignedTo,
+      verificationTypeId: task.verificationTypeId,
+      pincodeId: task.pincodeId,
+      areaId: task.areaId,
+    });
+  }
 
   return (
     <Card className="relative">
