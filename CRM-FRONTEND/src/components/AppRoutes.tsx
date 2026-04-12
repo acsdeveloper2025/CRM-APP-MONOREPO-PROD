@@ -397,11 +397,44 @@ export const AppRoutes: React.FC = () => {
               </ProtectedRoute>
             }
           />
+          {/* Rate Management — top-level section with sub-routes per tab */}
           <Route
             path="/rate-management"
             element={
               <ProtectedRoute permission="page.masterdata">
                 <RateManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rate-management/rate-types"
+            element={
+              <ProtectedRoute permission="page.masterdata">
+                <RateManagementPage defaultTab="rate-types" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rate-management/service-zones"
+            element={
+              <ProtectedRoute permission="page.masterdata">
+                <RateManagementPage defaultTab="service-zone-rules" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rate-management/assignments"
+            element={
+              <ProtectedRoute permission="page.masterdata">
+                <RateManagementPage defaultTab="rate-type-assignment" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rate-management/document-rates"
+            element={
+              <ProtectedRoute permission="page.masterdata">
+                <RateManagementPage defaultTab="document-type-rates" />
               </ProtectedRoute>
             }
           />
