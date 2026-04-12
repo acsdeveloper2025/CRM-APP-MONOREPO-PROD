@@ -513,62 +513,61 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       const response = await casesService.createCaseWithMultipleTasks(payload);
 
       if (response.success && response.data) {
-        const caseId = response.data.case?.caseId ? String(response.data.case.caseId) : null;
-        const createdTasks = response.data.tasks || [];
-        let totalAttachments = 0;
-
-        if (caseId && createdTasks.length > 0) {
-          for (let i = 0; i < tasks.length; i++) {
-            const frontendTask = tasks[i];
-            const backendTask = createdTasks[i];
-
-            const newAttachments = (frontendTask.attachments || []).filter((att) =>
-              att.id.startsWith('temp-')
-            );
-            if (newAttachments.length > 0 && backendTask) {
-              try {
-                const files = newAttachments.map((att) => att.file);
-                await casesService.uploadCaseAttachments(caseId, files, backendTask.id);
-                totalAttachments += files.length;
-              } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                logger.error('❌ Error uploading task attachments:', {
-                  taskIndex: i,
-                  taskId: backendTask?.id,
-                  error: errorMessage,
-                });
-                toast.error(`Some attachments failed: ${errorMessage}`);
-              }
-            }
-          }
-        } else if (tasks.some((t) => t.attachments && t.attachments.length > 0)) {
-          toast.error('Case created but caseId/tasks not found for attachment upload');
-        }
+        // Navigate FIRST, then upload attachments in background.
+        // The prior code awaited all attachment uploads before navigating,
+        // which caused the spinner to hang for 30s+ if the upload failed
+        // or the File object was garbage collected.
+        const caseData = response.data?.case || response.data?.data?.case;
+        const numericCaseId = caseData?.caseId != null ? String(caseData.caseId) : null;
+        const navigateId = numericCaseId || (caseData?.id ? String(caseData.id) : null);
 
         const taskSummary = [
           tasks.length > 0 ? `${tasks.length} field task(s)` : null,
           kycDocuments.length > 0 ? `${kycDocuments.length} KYC task(s)` : null,
-          totalAttachments > 0 ? `${totalAttachments} attachment(s)` : null,
         ]
           .filter(Boolean)
           .join(' + ');
 
         toast.success(`Case created successfully with ${taskSummary || 'tasks'}!`);
 
-        // Navigate on success. The backend response shape is:
-        //   response.data = { case: { id, caseId, ... }, tasks: [...] }
-        // Prefer numeric caseId for readable URLs; fall back to UUID.
-        const caseData = response.data?.case || response.data?.data?.case;
-        const navigateId =
-          (caseData?.caseId != null ? String(caseData.caseId) : null) ||
-          (caseData?.id ? String(caseData.id) : null);
+        // Fire-and-forget: upload attachments in background after navigation
+        const createdTasks = response.data.tasks || [];
+        if (numericCaseId && createdTasks.length > 0) {
+          const uploadPromises: Promise<void>[] = [];
+          for (let i = 0; i < tasks.length; i++) {
+            const frontendTask = tasks[i];
+            const backendTask = createdTasks[i];
+            const newAttachments = (frontendTask.attachments || []).filter(
+              (att) => att.id.startsWith('temp-') && att.file
+            );
+            if (newAttachments.length > 0 && backendTask) {
+              uploadPromises.push(
+                casesService
+                  .uploadCaseAttachments(
+                    numericCaseId,
+                    newAttachments.map((att) => att.file),
+                    backendTask.id
+                  )
+                  .then(() => {
+                    toast.success(`Attachments uploaded for task ${i + 1}`);
+                  })
+                  .catch((err) => {
+                    logger.error('Attachment upload failed (background):', err);
+                    toast.error(`Attachment upload failed for task ${i + 1}`);
+                  })
+              );
+            }
+          }
+          // Don't await — let uploads run in background
+          if (uploadPromises.length > 0) {
+            Promise.allSettled(uploadPromises);
+          }
+        }
 
-        logger.info('Case created, navigating', { navigateId, caseData });
-
+        // Navigate immediately
         if (onSuccess) {
           onSuccess(navigateId ?? '');
         } else {
-          // Fallback: navigate directly if no onSuccess callback
           window.location.href = navigateId ? `/cases/${navigateId}` : '/cases';
         }
       } else {
