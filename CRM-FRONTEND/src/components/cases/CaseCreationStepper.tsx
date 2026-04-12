@@ -530,7 +530,10 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
         toast.success(`Case created successfully with ${taskSummary || 'tasks'}!`);
 
-        // Fire-and-forget: upload attachments in background after navigation
+        // Upload attachments BEFORE navigating. Navigation unmounts
+        // this component which cancels in-flight axios requests (React
+        // cleanup + OTel AbortController). Use Promise.allSettled so
+        // one failed upload doesn't block the rest or the redirect.
         const createdTasks = response.data.tasks || [];
         if (numericCaseId && createdTasks.length > 0) {
           const uploadPromises: Promise<void>[] = [];
@@ -552,19 +555,18 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                     toast.success(`Attachments uploaded for task ${i + 1}`);
                   })
                   .catch((err) => {
-                    logger.error('Attachment upload failed (background):', err);
+                    logger.error('Attachment upload failed:', err);
                     toast.error(`Attachment upload failed for task ${i + 1}`);
                   })
               );
             }
           }
-          // Don't await — let uploads run in background
           if (uploadPromises.length > 0) {
-            Promise.allSettled(uploadPromises);
+            await Promise.allSettled(uploadPromises);
           }
         }
 
-        // Navigate immediately
+        // Navigate after uploads complete (or fail)
         if (onSuccess) {
           onSuccess(navigateId ?? '');
         } else {
