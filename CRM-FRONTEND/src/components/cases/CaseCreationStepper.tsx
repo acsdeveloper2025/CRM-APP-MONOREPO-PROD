@@ -555,14 +555,21 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
         toast.success(`Case created successfully with ${taskSummary || 'tasks'}!`);
 
-        // Always navigate on success. Prefer the user-friendly caseId (numeric)
-        // so the detail page URL is readable; fall back to the UUID, and if
-        // neither is present let the parent route to the cases list.
+        // Navigate on success. The backend response shape is:
+        //   response.data = { case: { id, caseId, ... }, tasks: [...] }
+        // Prefer numeric caseId for readable URLs; fall back to UUID.
+        const caseData = response.data?.case || response.data?.data?.case;
         const navigateId =
-          (response.data?.case?.caseId != null ? String(response.data.case.caseId) : null) ||
-          (response.data?.case?.id ? String(response.data.case.id) : null);
+          (caseData?.caseId != null ? String(caseData.caseId) : null) ||
+          (caseData?.id ? String(caseData.id) : null);
+
+        logger.info('Case created, navigating', { navigateId, caseData });
+
         if (onSuccess) {
           onSuccess(navigateId ?? '');
+        } else {
+          // Fallback: navigate directly if no onSuccess callback
+          window.location.href = navigateId ? `/cases/${navigateId}` : '/cases';
         }
       } else {
         toast.error(response.message || 'Failed to create case');
