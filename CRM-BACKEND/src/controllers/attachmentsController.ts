@@ -222,13 +222,23 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
         let caseQuery: string;
         let caseParams: QueryParams;
 
+        // Resolve numeric caseId to UUID. Also handle UUID input.
+        const isNumericCaseId = /^\d+$/.test(String(caseId));
+
         if (isFieldExecutionActor(req.user)) {
-          // Field agents can only upload to cases assigned to them
-          caseQuery = 'SELECT id FROM cases WHERE case_id = $1 AND assigned_to = $2';
+          // Field agents can only upload to cases with tasks assigned to them.
+          // cases table has no assigned_to column — check via verification_tasks.
+          caseQuery = isNumericCaseId
+            ? `SELECT c.id FROM cases c WHERE c.case_id = $1
+               AND EXISTS (SELECT 1 FROM verification_tasks vt WHERE vt.case_id = c.id AND vt.assigned_to = $2)`
+            : `SELECT c.id FROM cases c WHERE c.id = $1
+               AND EXISTS (SELECT 1 FROM verification_tasks vt WHERE vt.case_id = c.id AND vt.assigned_to = $2)`;
           caseParams = [caseId, req.user.id];
         } else {
           // Admin/Manager can upload to any case
-          caseQuery = 'SELECT id FROM cases WHERE case_id = $1';
+          caseQuery = isNumericCaseId
+            ? 'SELECT id FROM cases WHERE case_id = $1'
+            : 'SELECT id FROM cases WHERE id = $1';
           caseParams = [caseId];
         }
 
