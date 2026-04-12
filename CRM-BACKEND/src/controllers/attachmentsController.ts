@@ -336,13 +336,32 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
 // GET /api/attachments/case/:caseId - Get attachments by case
 export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { caseId } = req.params;
+    const rawCaseId = String(req.params.caseId || '');
     const { category, limit = 50 } = req.query;
     const userId = req.user?.id;
     const isExecutionActor = isFieldExecutionActor(req.user);
 
     // Import query function
     const { query } = await import('@/config/database');
+
+    // The frontend navigates to /cases/:caseId where caseId may be
+    // the integer case_id (e.g. "32") or the UUID id. The
+    // attachments.case_id column is UUID, so resolve integer → UUID
+    // first. Same pattern as getCaseById / getKYCTasksForCase.
+    const isNumeric = /^\d+$/.test(rawCaseId);
+    let resolvedCaseUuid = rawCaseId;
+
+    if (isNumeric) {
+      const caseResult = await query<{ id: string }>(
+        'SELECT id FROM cases WHERE case_id = $1 LIMIT 1',
+        [parseInt(rawCaseId, 10)]
+      );
+      if (caseResult.rows.length === 0) {
+        res.json({ success: true, data: [] });
+        return;
+      }
+      resolvedCaseUuid = caseResult.rows[0].id;
+    }
 
     // Build query with proper access control and optional category filter
     let queryText: string;
@@ -366,7 +385,7 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
         JOIN cases c ON a.case_id = c.id
         WHERE a.case_id = $1 AND c.assigned_to = $2
       `;
-      queryParams = [caseId, userId];
+      queryParams = [resolvedCaseUuid, userId];
     } else {
       // Admin/Manager can see all attachments for the case
       queryText = `
@@ -384,7 +403,7 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
         FROM attachments
         WHERE case_id = $1
       `;
-      queryParams = [caseId];
+      queryParams = [resolvedCaseUuid];
     }
 
     queryText += ` ORDER BY created_at DESC LIMIT $${queryParams.length + 1}`;
@@ -393,9 +412,9 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
     const result = await query(queryText, queryParams);
     const caseAttachments = result.rows;
 
-    logger.info(`Retrieved ${caseAttachments.length} attachments for case ${caseId}`, {
+    logger.info(`Retrieved ${caseAttachments.length} attachments for case ${rawCaseId}`, {
       userId: req.user?.id,
-      caseId,
+      caseId: resolvedCaseUuid,
       category,
     });
 
