@@ -43,7 +43,11 @@ export const getVerificationTypes = async (req: AuthenticatedRequest, res: Respo
     // M10: secondary ORDER BY id so OFFSET pagination is deterministic
     // when rows share the same sort column value (many verification
     // types share created_at after a batch import).
-    const dataQuery = `SELECT id, name, code, description, is_active, created_at, updated_at FROM verification_types ${whereClause} ORDER BY ${sortCol} ${sortDir}, id ASC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    const dataQuery = `SELECT id, name, code, description, is_active, created_at, updated_at,
+       EXISTS (
+         SELECT 1 FROM rates r WHERE r.verification_type_id = verification_types.id AND r.is_active = true
+       ) as "hasRates"
+       FROM verification_types ${whereClause} ORDER BY ${sortCol} ${sortDir}, id ASC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     const dataParams = [...queryParams, Number(limit), (Number(page) - 1) * Number(limit)];
     const vtRes = await query(dataQuery, dataParams);
     const verificationTypes = vtRes.rows;
