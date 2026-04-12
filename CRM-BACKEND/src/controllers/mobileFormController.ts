@@ -2476,35 +2476,39 @@ export class MobileFormController {
         // IMPORTANT: Check combined types BEFORE individual types
         const typeUpper = verificationType.toUpperCase();
 
+        // Post-migration 010: all report tables are snake_case.
+        // The prior code used camelCase double-quoted names
+        // ("residenceVerificationReports") which PostgreSQL treats as
+        // case-sensitive identifiers → "relation does not exist" 500
+        // on every case detail page.
         if (typeUpper.includes('RESIDENCE') && typeUpper.includes('OFFICE')) {
-          // Residence cum office - must check FIRST before individual residence/office
-          reportTableName = 'residenceCumOfficeVerificationReports';
+          reportTableName = 'residence_cum_office_verification_reports';
         } else if (typeUpper.includes('RESIDENCE')) {
-          reportTableName = 'residenceVerificationReports';
+          reportTableName = 'residence_verification_reports';
         } else if (typeUpper.includes('OFFICE')) {
-          reportTableName = 'officeVerificationReports';
+          reportTableName = 'office_verification_reports';
         } else if (typeUpper.includes('BUSINESS')) {
-          reportTableName = 'businessVerificationReports';
+          reportTableName = 'business_verification_reports';
         } else if (typeUpper.includes('BUILDER')) {
-          reportTableName = 'builderVerificationReports';
+          reportTableName = 'builder_verification_reports';
         } else if (typeUpper.includes('NOC')) {
-          reportTableName = 'nocVerificationReports';
+          reportTableName = 'noc_verification_reports';
         } else if (typeUpper.includes('DSA') || typeUpper.includes('CONNECTOR')) {
-          reportTableName = 'dsaConnectorVerificationReports';
+          reportTableName = 'dsa_connector_verification_reports';
         } else if (typeUpper.includes('PROPERTY') && typeUpper.includes('APF')) {
-          reportTableName = 'propertyApfVerificationReports';
+          reportTableName = 'property_apf_verification_reports';
         } else if (typeUpper.includes('PROPERTY') && typeUpper.includes('INDIVIDUAL')) {
-          reportTableName = 'propertyIndividualVerificationReports';
+          reportTableName = 'property_individual_verification_reports';
         } else {
-          // Fallback to residence for unknown types
           logger.warn(
-            `Unknown verification type: ${verificationType}, falling back to residenceVerificationReports`
+            `Unknown verification type: ${verificationType}, falling back to residence_verification_reports`
           );
-          reportTableName = 'residenceVerificationReports';
+          reportTableName = 'residence_verification_reports';
         }
 
-        // Query for reports with this verificationTaskId
-        reportSql = `SELECT * FROM "${reportTableName}" WHERE verification_task_id = $1 LIMIT 1`;
+        // Query for reports — no double quotes needed since snake_case
+        // identifiers are case-insensitive in PostgreSQL.
+        reportSql = `SELECT * FROM ${reportTableName} WHERE verification_task_id = $1 LIMIT 1`;
         const reportRes = await query(reportSql, [task.taskId]);
 
         logger.info(
