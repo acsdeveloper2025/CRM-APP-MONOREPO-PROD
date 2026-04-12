@@ -125,12 +125,8 @@ const RateManagementPage = React.lazy(() =>
 const DedupePage = React.lazy(() =>
   import('@/pages/DedupePage').then((module) => ({ default: module.DedupePage }))
 );
-const KYCDashboardPage = React.lazy(() =>
-  import('@/pages/KYCDashboardPage').then((module) => ({ default: module.KYCDashboardPage }))
-);
-const KYCVerificationPage = React.lazy(() =>
-  import('@/pages/KYCVerificationPage').then((module) => ({ default: module.KYCVerificationPage }))
-);
+// KYCDashboardPage + KYCVerificationPage removed — KYC tasks are
+// now shown in the "KYC Tasks" tab on the Case Detail page.
 
 const resolveFirstAccessibleRoute = (permissionSet: Set<string>): string => {
   const candidates: Array<{ permission: string; path: string }> = [
@@ -142,7 +138,7 @@ const resolveFirstAccessibleRoute = (permissionSet: Set<string>): string => {
     { permission: 'page.billing', path: '/billing' },
     { permission: 'page.masterdata', path: '/clients' },
     { permission: 'page.users', path: '/users' },
-    { permission: 'page.kyc', path: '/kyc' },
+    // { permission: 'page.kyc', path: '/kyc' }, — removed, KYC in case detail now
     { permission: 'page.fieldMonitoring', path: '/operations/field-monitoring' },
     { permission: 'page.rbac', path: '/admin/rbac' },
     { permission: 'page.settings', path: '/settings' },
@@ -528,23 +524,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
 
-          {/* KYC Verification routes */}
-          <Route
-            path="/kyc"
-            element={
-              <ProtectedRoute permission="page.kyc">
-                <KYCDashboardPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/kyc/verify/:taskId"
-            element={
-              <ProtectedRoute permission="page.kyc">
-                <KYCVerificationPage />
-              </ProtectedRoute>
-            }
-          />
+          {/* KYC routes removed — KYC tasks are now in the Case Detail "KYC Tasks" tab */}
 
           <Route
             path="/security-ux"

@@ -18,7 +18,6 @@ import {
   List,
   XCircle,
   Copy,
-  FileCheck,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -145,14 +144,9 @@ export const navigationItems: NavigationItem[] = [
       },
     ],
   },
-  {
-    id: 'kyc',
-    label: 'KYC Verification',
-    href: '/kyc',
-    icon: FileCheck,
-    permissionCode: 'page.kyc',
-    permission: { resource: 'kyc', action: 'read' },
-  },
+  // KYC Verification sidebar item removed — KYC tasks are now shown
+  // in the "KYC Tasks" tab on the Case Detail page instead of a
+  // standalone page. The /kyc route no longer exists.
   {
     id: 'clients',
     label: 'Client Management',

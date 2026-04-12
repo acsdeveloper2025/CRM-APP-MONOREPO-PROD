@@ -97,7 +97,12 @@ export const useVerificationTasks = (caseId: string) => {
   return useQuery({
     queryKey: ['verification-tasks', caseId],
     queryFn: async () => {
-      const response = await api.get<TasksForCaseResponse['data']>(`/cases/${caseId}/verification-tasks`);
+      // Exclude KYC tasks — they are shown in a separate "KYC Tasks"
+      // tab on the case detail page via useKYCTasksForCase.
+      const response = await api.get<TasksForCaseResponse['data']>(
+        `/cases/${caseId}/verification-tasks`,
+        { excludeTaskType: 'KYC' }
+      );
       return {
         caseId:
           typeof response.data.caseId === 'string' ? response.data.caseId : caseId,
