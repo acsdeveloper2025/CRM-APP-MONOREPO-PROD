@@ -821,7 +821,9 @@ export class VerificationTasksController {
         customerName: row.customerName,
         caseStatus: row.caseStatus,
         client: row.clientName ? { name: row.clientName } : null,
+        clientName: row.clientName || null,
         product: row.productName ? { name: row.productName } : null,
+        productName: row.productName || null,
         verificationType: {
           id: row.verificationTypeId,
           name: row.verificationTypeName,
