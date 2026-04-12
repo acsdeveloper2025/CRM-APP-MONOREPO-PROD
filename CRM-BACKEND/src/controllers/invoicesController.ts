@@ -245,7 +245,7 @@ const buildScopeSql = (
       conditions.push('1 = 0');
     } else {
       params.push(scope.assignedClientIds);
-      conditions.push(`i.clientId = ANY($${params.length}::int[])`);
+      conditions.push(`i.client_id = ANY($${params.length}::int[])`);
     }
   }
 
@@ -254,7 +254,7 @@ const buildScopeSql = (
       conditions.push('1 = 0');
     } else {
       params.push(scope.assignedProductIds);
-      conditions.push(`(i.productId IS NULL OR i.productId = ANY($${params.length}::int[]))`);
+      conditions.push(`(i.product_id IS NULL OR i.product_id = ANY($${params.length}::int[]))`);
     }
   }
 };
@@ -360,13 +360,13 @@ const getInvoicesFromDb = async (
 
   if (clientId) {
     params.push(Number(clientId));
-    conditions.push(`i.clientId = $${params.length}`);
+    conditions.push(`i.client_id = $${params.length}`);
   }
 
   if (status && typeof status === 'string') {
     const normalizedStatus = status.toUpperCase();
     if (normalizedStatus === STATUS.OVERDUE) {
-      conditions.push(`i.status = '${STATUS.SENT}' AND i.paidDate IS NULL AND i.dueDate < NOW()`);
+      conditions.push(`i.status = '${STATUS.SENT}' AND i.paid_date IS NULL AND i.due_date < NOW()`);
     } else {
       params.push(normalizedStatus);
       conditions.push(`i.status = $${params.length}`);
@@ -376,36 +376,36 @@ const getInvoicesFromDb = async (
   if (search && typeof search === 'string' && search.trim()) {
     params.push(`%${search.trim()}%`);
     conditions.push(`(
-      i.invoiceNumber ILIKE $${params.length} OR
-      i.clientName ILIKE $${params.length} OR
+      i.invoice_number ILIKE $${params.length} OR
+      i.client_name ILIKE $${params.length} OR
       COALESCE(i.notes, '') ILIKE $${params.length}
     )`);
   }
 
   if (typeof dateFrom === 'string' && dateFrom) {
     params.push(dateFrom);
-    conditions.push(`i.issueDate >= $${params.length}`);
+    conditions.push(`i.issue_date >= $${params.length}`);
   }
 
   if (typeof dateTo === 'string' && dateTo) {
     params.push(dateTo);
-    conditions.push(`i.issueDate <= $${params.length}`);
+    conditions.push(`i.issue_date <= $${params.length}`);
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
   const safeSortByMap: Record<string, string> = {
-    invoiceNumber: 'i.invoiceNumber',
-    clientName: 'i.clientName',
+    invoiceNumber: 'i.invoice_number',
+    clientName: 'i.client_name',
     amount: 'i.amount',
-    totalAmount: 'i.totalAmount',
-    issueDate: 'i.issueDate',
-    dueDate: 'i.dueDate',
+    totalAmount: 'i.total_amount',
+    issueDate: 'i.issue_date',
+    dueDate: 'i.due_date',
     status: 'i.status',
-    createdAt: 'i.createdAt',
+    createdAt: 'i.created_at',
   };
   const sortByValue = typeof sortBy === 'string' ? sortBy : 'issueDate';
   const sortOrderValue = typeof sortOrder === 'string' ? sortOrder : 'desc';
-  const safeSortBy = safeSortByMap[sortByValue] || 'i.issueDate';
+  const safeSortBy = safeSortByMap[sortByValue] || 'i.issue_date';
   const safeSortOrder = sortOrderValue.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
   const pageNum = Math.max(1, Number(page) || 1);
   const limitNum = Math.max(1, Math.min(500, Number(limit) || 20));
@@ -421,29 +421,29 @@ const getInvoicesFromDb = async (
   const rows = await query<InvoiceListRow>(
     `SELECT
        i.id,
-       i.invoiceNumber,
-       i.clientId,
-       i.productId,
-       i.clientName,
+       i.invoice_number,
+       i.client_id,
+       i.product_id,
+       i.client_name,
        i.amount::text,
-       i.subtotalAmount::text,
-       i.taxAmount::text,
-       i.totalAmount::text,
+       i.subtotal_amount::text,
+       i.tax_amount::text,
+       i.total_amount::text,
        i.currency,
        i.status,
-       i.issueDate::text,
-       i.dueDate::text,
-       i.paidDate::text,
+       i.issue_date::text,
+       i.due_date::text,
+       i.paid_date::text,
        i.notes,
-       i.createdAt::text,
-       i.updatedAt::text,
-       i.paymentMethod,
-       i.transactionId,
+       i.created_at::text,
+       i.updated_at::text,
+       i.payment_method,
+       i.transaction_id,
        c.code as client_code,
        c.email as client_email,
        c.phone as client_phone
      FROM invoices i
-     LEFT JOIN clients c ON c.id = i.clientId
+     LEFT JOIN clients c ON c.id = i.client_id
      ${whereClause}
      ORDER BY ${safeSortBy} ${safeSortOrder}
      LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
@@ -577,7 +577,7 @@ const getInvoiceStatsFromDb = async (
        COUNT(*) FILTER (WHERE i.status = '${STATUS.CANCELLED}')::text as cancelled_invoices,
        COUNT(*) FILTER (WHERE i.status = '${STATUS.SENT}' AND i.paid_date IS NULL AND i.due_date < NOW())::text as overdue_invoices,
        COALESCE(SUM(i.total_amount), 0)::text as total_amount,
-       COALESCE(SUM(i.total_amount) FILTER (WHERE i.status = '${STATUS.SENT}' AND i.paidDate IS NULL), 0)::text as outstanding_amount
+       COALESCE(SUM(i.total_amount) FILTER (WHERE i.status = '${STATUS.SENT}' AND i.paid_date IS NULL), 0)::text as outstanding_amount
      FROM invoices i
      ${whereClause}`,
     params
@@ -1627,20 +1627,20 @@ export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Resp
       params.push(status as string);
     }
     if (clientId) {
-      conditions.push(`i.clientId = $${idx++}`);
+      conditions.push(`i.client_id = $${idx++}`);
       params.push(Number(clientId));
     }
     if (dateFrom) {
-      conditions.push(`i.issueDate >= $${idx++}`);
+      conditions.push(`i.issue_date >= $${idx++}`);
       params.push(dateFrom as string);
     }
     if (dateTo) {
-      conditions.push(`i.issueDate <= $${idx++}`);
+      conditions.push(`i.issue_date <= $${idx++}`);
       params.push(`${dateTo as string} 23:59:59`);
     }
 
     if (scope.assignedClientIds && scope.assignedClientIds.length > 0) {
-      conditions.push(`i.clientId = ANY($${idx++}::int[])`);
+      conditions.push(`i.client_id = ANY($${idx++}::int[])`);
       params.push(scope.assignedClientIds as unknown as number);
     }
 
@@ -1649,20 +1649,20 @@ export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Resp
     const result = await query(
       `
       SELECT
-        i.invoiceNumber,
+        i.invoice_number,
         c.name as client_name,
         i.status,
-        i.issueDate,
-        i.dueDate,
-        i.subtotalAmount as subtotal,
-        i.taxAmount,
-        i.totalAmount,
+        i.issue_date,
+        i.due_date,
+        i.subtotal_amount as subtotal,
+        i.tax_amount,
+        i.total_amount,
         i.notes,
-        i.createdAt
+        i.created_at
       FROM invoices i
-      LEFT JOIN clients c ON i.clientId = c.id
+      LEFT JOIN clients c ON i.client_id = c.id
       ${whereClause}
-      ORDER BY i.createdAt DESC
+      ORDER BY i.created_at DESC
     `,
       params
     );
