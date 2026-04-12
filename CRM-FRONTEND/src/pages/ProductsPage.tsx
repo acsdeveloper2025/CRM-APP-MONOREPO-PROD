@@ -49,7 +49,7 @@ export function ProductsPage() {
   const stats = statsData?.data || { total: 0, active: 0, inactive: 0, byCategory: {} };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

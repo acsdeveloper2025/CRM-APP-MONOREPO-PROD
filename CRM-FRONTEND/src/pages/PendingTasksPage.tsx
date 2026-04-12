@@ -108,7 +108,7 @@ export const PendingTasksPage: React.FC = () => {
   const activeFilterCount = Object.values(activeFilters).filter(Boolean).length;
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

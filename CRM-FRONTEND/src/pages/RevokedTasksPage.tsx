@@ -99,7 +99,7 @@ export const RevokedTasksPage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6" style={{ backgroundColor: '#FAFAFA' }}>
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

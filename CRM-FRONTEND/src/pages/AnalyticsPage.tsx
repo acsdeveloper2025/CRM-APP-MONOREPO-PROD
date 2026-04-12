@@ -68,7 +68,7 @@ export const AnalyticsPage: React.FC = () => {
   const activeAgents = taskStats?.totalAgents || 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Page Header Card */}
       <Card>
         <CardHeader>
