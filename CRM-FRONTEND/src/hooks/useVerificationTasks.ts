@@ -10,69 +10,47 @@ import type {
   VerificationTaskListResponse,
 } from '@/types/verificationTask';
 
+// Helper: coerce to string or return fallback.
+const str = (v: unknown, fallback?: string): string | undefined =>
+  typeof v === 'string' ? v : fallback;
+const strReq = (v: unknown, fallback: string): string =>
+  typeof v === 'string' ? v : fallback;
+const num = (v: unknown): number | undefined =>
+  typeof v === 'number' ? v : v != null ? Number(v) : undefined;
+
+/**
+ * Normalize a raw task record from the backend into the typed
+ * VerificationTask shape the UI components expect.
+ *
+ * Cleaned up: the prior implementation had ~30 redundant duplicate
+ * ternaries (same typeof check repeated in both branches, so the
+ * second branch was dead code) and a broken `taskType` normalizer
+ * that dropped every value except 'REVISIT'.
+ */
 const normalizeTaskForUi = (task: Record<string, unknown>): VerificationTask => {
-  const assignedToId = typeof task.assignedTo === 'string' ? task.assignedTo : undefined;
-  const assignedToName =
-    typeof task.assignedToName === 'string'
-      ? task.assignedToName
-      : typeof task.assignedToName === 'string'
-        ? task.assignedToName
-        : undefined;
-  const assignedToEmployeeId =
-    typeof task.assignedToEmployeeId === 'string'
-      ? task.assignedToEmployeeId
-      : typeof task.assignedToEmployeeId === 'string'
-        ? task.assignedToEmployeeId
-        : undefined;
+  const assignedToId = str(task.assignedTo);
+  const assignedToName = str(task.assignedToName);
+  const assignedToEmployeeId = str(task.assignedToEmployeeId);
 
   return {
     ...(task as unknown as VerificationTask),
-    taskNumber:
-      typeof task.taskNumber === 'string'
-        ? task.taskNumber
-        : typeof task.taskNumber === 'string'
-          ? task.taskNumber
-          : '',
-    caseId:
-      typeof task.caseId === 'string'
-        ? task.caseId
-        : typeof task.caseId === 'string'
-          ? task.caseId
-          : '',
+    // Identity
+    taskNumber: strReq(task.taskNumber, ''),
+    caseId: strReq(task.caseId, ''),
     caseNumber:
-      typeof task.caseNumber === 'string'
-        ? task.caseNumber
-        : typeof task.caseNumber === 'string' || typeof task.caseNumber === 'number'
-          ? String(task.caseNumber)
-          : undefined,
-    customerName:
-      typeof task.customerName === 'string'
-        ? task.customerName
-        : typeof task.customerName === 'string'
-          ? task.customerName
-          : undefined,
+      typeof task.caseNumber === 'string' || typeof task.caseNumber === 'number'
+        ? String(task.caseNumber)
+        : undefined,
+    customerName: str(task.customerName),
+    // Classification
     verificationTypeId:
       typeof task.verificationTypeId === 'number'
         ? task.verificationTypeId
         : Number(task.verificationTypeId || 0),
-    verificationTypeName:
-      typeof task.verificationTypeName === 'string'
-        ? task.verificationTypeName
-        : typeof task.verificationTypeName === 'string'
-          ? task.verificationTypeName
-          : undefined,
-    taskTitle:
-      typeof task.taskTitle === 'string'
-        ? task.taskTitle
-        : typeof task.taskTitle === 'string'
-          ? task.taskTitle
-          : '',
-    taskDescription:
-      typeof task.taskDescription === 'string'
-        ? task.taskDescription
-        : typeof task.taskDescription === 'string'
-          ? task.taskDescription
-          : undefined,
+    verificationTypeName: str(task.verificationTypeName),
+    taskTitle: strReq(task.taskTitle, ''),
+    taskDescription: str(task.taskDescription),
+    // Assignment — reshape flat fields into nested object for UI
     assignedTo:
       assignedToId || assignedToName
         ? {
@@ -85,124 +63,33 @@ const normalizeTaskForUi = (task: Record<string, unknown>): VerificationTask => 
     assignedToEmployeeId,
     assignedBy:
       typeof task.assignedBy === 'string' && typeof task.assignedByName === 'string'
-        ? {
-            id: task.assignedBy,
-            name: task.assignedByName,
-          }
+        ? { id: task.assignedBy as string, name: task.assignedByName as string }
         : null,
-    assignedByName:
-      typeof task.assignedByName === 'string'
-        ? task.assignedByName
-        : typeof task.assignedByName === 'string'
-          ? task.assignedByName
-          : undefined,
-    assignedAt:
-      typeof task.assignedAt === 'string'
-        ? task.assignedAt
-        : typeof task.assignedAt === 'string'
-          ? task.assignedAt
-          : undefined,
-    taskType:
-      task.taskType === 'REVISIT' || task.taskType === 'REVISIT' ? 'REVISIT' : null,
-    parentTaskId:
-      typeof task.parentTaskId === 'string'
-        ? task.parentTaskId
-        : typeof task.parentTaskId === 'string'
-          ? task.parentTaskId
-          : null,
-    rateTypeId:
-      typeof task.rateTypeId === 'number'
-        ? task.rateTypeId
-        : task.rateTypeId != null
-          ? Number(task.rateTypeId)
-          : undefined,
-    rateTypeName:
-      typeof task.rateTypeName === 'string'
-        ? task.rateTypeName
-        : typeof task.rateTypeName === 'string'
-          ? task.rateTypeName
-          : undefined,
-    estimatedAmount:
-      typeof task.estimatedAmount === 'number'
-        ? task.estimatedAmount
-        : task.estimatedAmount != null
-          ? Number(task.estimatedAmount)
-          : undefined,
-    actualAmount:
-      typeof task.actualAmount === 'number'
-        ? task.actualAmount
-        : task.actualAmount != null
-          ? Number(task.actualAmount)
-          : undefined,
-    applicantType:
-      typeof task.applicantType === 'string'
-        ? task.applicantType
-        : typeof task.applicantType === 'string'
-          ? task.applicantType
-          : undefined,
-    documentType:
-      typeof task.documentType === 'string'
-        ? task.documentType
-        : typeof task.documentType === 'string'
-          ? task.documentType
-          : undefined,
-    documentNumber:
-      typeof task.documentNumber === 'string'
-        ? task.documentNumber
-        : typeof task.documentNumber === 'string'
-          ? task.documentNumber
-          : undefined,
-    documentDetails:
-      (task.documentDetails as Record<string, unknown> | undefined) ||
-      (task.documentDetails as Record<string, unknown> | undefined),
-    estimatedCompletionDate:
-      typeof task.estimatedCompletionDate === 'string'
-        ? task.estimatedCompletionDate
-        : typeof task.estimatedCompletionDate === 'string'
-          ? task.estimatedCompletionDate
-          : undefined,
-    startedAt:
-      typeof task.startedAt === 'string'
-        ? task.startedAt
-        : typeof task.startedAt === 'string'
-          ? task.startedAt
-          : undefined,
-    inProgressAt:
-      typeof task.inProgressAt === 'string'
-        ? task.inProgressAt
-        : typeof task.startedAt === 'string'
-          ? task.startedAt
-          : undefined,
-    completedAt:
-      typeof task.completedAt === 'string'
-        ? task.completedAt
-        : typeof task.completedAt === 'string'
-          ? task.completedAt
-          : undefined,
-    commissionStatus:
-      typeof task.commissionStatus === 'string'
-        ? task.commissionStatus
-        : typeof task.commissionStatus === 'string'
-          ? task.commissionStatus
-          : undefined,
-    calculatedCommission:
-      typeof task.calculatedCommission === 'number'
-        ? task.calculatedCommission
-        : task.calculatedCommission != null
-          ? Number(task.calculatedCommission)
-          : undefined,
-    createdAt:
-      typeof task.createdAt === 'string'
-        ? task.createdAt
-        : typeof task.createdAt === 'string'
-          ? task.createdAt
-          : '',
-    updatedAt:
-      typeof task.updatedAt === 'string'
-        ? task.updatedAt
-        : typeof task.updatedAt === 'string'
-          ? task.updatedAt
-          : '',
+    assignedByName: str(task.assignedByName),
+    assignedAt: str(task.assignedAt),
+    // Task type — preserve all values, not just REVISIT
+    taskType: typeof task.taskType === 'string' ? task.taskType : null,
+    parentTaskId: str(task.parentTaskId) ?? null,
+    // Financial
+    rateTypeId: num(task.rateTypeId),
+    rateTypeName: str(task.rateTypeName),
+    estimatedAmount: num(task.estimatedAmount),
+    actualAmount: num(task.actualAmount),
+    // Applicant / document
+    applicantType: str(task.applicantType),
+    documentType: str(task.documentType),
+    documentNumber: str(task.documentNumber),
+    documentDetails: (task.documentDetails as Record<string, unknown> | undefined) || undefined,
+    // Dates
+    estimatedCompletionDate: str(task.estimatedCompletionDate),
+    startedAt: str(task.startedAt),
+    inProgressAt: str(task.inProgressAt) ?? str(task.startedAt),
+    completedAt: str(task.completedAt),
+    createdAt: strReq(task.createdAt, ''),
+    updatedAt: strReq(task.updatedAt, ''),
+    // Commission
+    commissionStatus: str(task.commissionStatus),
+    calculatedCommission: num(task.calculatedCommission),
   };
 };
 
