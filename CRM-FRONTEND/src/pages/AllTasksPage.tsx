@@ -109,18 +109,76 @@ export const AllTasksPage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">All Verification Tasks</h1>
-          <p className="text-gray-600 mt-1">
-            Comprehensive task management with advanced filtering and bulk actions
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      {/* Page Header — matches CasesPage */}
+      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">All Verification Tasks</h1>
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
+            Manage and track all verification tasks
           </p>
         </div>
       </div>
 
-      {/* Unified Search and Filter Layout */}
+      {/* Statistics Cards — ABOVE search, matches CasesPage layout */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
+            <ListTodo className="h-4 w-4 text-gray-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{pagination.total}</div>
+            <p className="text-xs text-gray-600">All tasks</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <Clock className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statistics.pending + statistics.assigned}</div>
+            <p className="text-xs text-gray-600">Awaiting action</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+            <Users className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statistics.inProgress}</div>
+            <p className="text-xs text-gray-600">Currently active</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completed</CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statistics.completed}</div>
+            <p className="text-xs text-gray-600">Successfully done</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">High Priority</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{(statistics.urgent || 0) + (statistics.highPriority || 0)}</div>
+            <p className="text-xs text-gray-600">Urgent + High</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Unified Search and Filter Layout — BELOW cards, matches CasesPage */}
       <UnifiedSearchFilterLayout
         searchValue={searchValue}
         onSearchChange={setSearchValue}
@@ -214,76 +272,6 @@ export const AllTasksPage: React.FC = () => {
           </>
         }
       />
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-            <ListTodo className="h-4 w-4 text-gray-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pagination.total}</div>
-            <p className="text-xs text-gray-600">
-              All tasks
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.pending + statistics.assigned}</div>
-            <p className="text-xs text-gray-600">
-              Awaiting action
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-            <Users className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.inProgress}</div>
-            <p className="text-xs text-gray-600">
-              Being worked on
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.completed}</div>
-            <p className="text-xs text-gray-600">
-              Successfully done
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">High Priority</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{(statistics.urgent || 0) + (statistics.highPriority || 0)}</div>
-            <p className="text-xs text-gray-600">
-              Urgent + High
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-
 
       {/* Tasks List */}
       {error && (
