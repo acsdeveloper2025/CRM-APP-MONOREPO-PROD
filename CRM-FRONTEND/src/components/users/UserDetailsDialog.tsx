@@ -129,7 +129,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-yellow-600">
-                    {profile.stats.averageRating.toFixed(1)}
+                    {Number(profile.stats.averageRating || 0).toFixed(1)}
                   </div>
                 </CardContent>
               </Card>
@@ -140,7 +140,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
                   <Calendar className="h-4 w-4 text-gray-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">₹{profile.stats.totalCommissions.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">₹{Number(profile.stats.totalCommissions || 0).toLocaleString()}</div>
                 </CardContent>
               </Card>
             </div>
