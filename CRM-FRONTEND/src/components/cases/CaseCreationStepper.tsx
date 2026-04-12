@@ -3,8 +3,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Check, User, Target } from 'lucide-react';
 import { CustomerInfoStep, type CustomerInfoData } from './CustomerInfoStep';
 import { FullCaseFormStep, type FullCaseFormData } from './FullCaseFormStep';
-import { TaskCaseCreationForm, type CaseLevelFormData, type TaskFormData, type CaseType } from './TaskCaseCreationForm';
-import { KYCDocumentSelector, type KYCDocumentSelection } from '@/components/kyc/KYCDocumentSelector';
+import {
+  TaskCaseCreationForm,
+  type CaseLevelFormData,
+  type TaskFormData,
+  type CaseType,
+} from './TaskCaseCreationForm';
+import {
+  KYCDocumentSelector,
+  type KYCDocumentSelection,
+} from '@/components/kyc/KYCDocumentSelector';
 
 import { DeduplicationDialog } from './DeduplicationDialog';
 import { deduplicationService, type DeduplicationResult } from '@/services/deduplication';
@@ -49,10 +57,10 @@ const mapVerificationType = (verificationType: string): string => {
     'Office Verification': 'OFFICE',
     'Business Verification': 'BUSINESS',
     'Other Verification': 'OTHER',
-    'RESIDENCE': 'RESIDENCE',
-    'OFFICE': 'OFFICE',
-    'BUSINESS': 'BUSINESS',
-    'OTHER': 'OTHER'
+    RESIDENCE: 'RESIDENCE',
+    OFFICE: 'OFFICE',
+    BUSINESS: 'BUSINESS',
+    OTHER: 'OTHER',
   };
   return typeMap[verificationType] || 'OTHER';
 };
@@ -62,7 +70,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
   // onCancel - unused, keeping for interface compatibility
   editMode = false,
   editCaseId,
-  initialData
+  initialData,
 }) => {
   const [currentStep, setCurrentStep] = useState<Step>(
     editMode ? 'multi-task-details' : 'customer-info'
@@ -86,7 +94,9 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
   const [deduplicationResult, setDeduplicationResult] = useState<DeduplicationResult | null>(null);
   const [showDeduplicationDialog, setShowDeduplicationDialog] = useState(false);
   const [deduplicationCompleted, setDeduplicationCompleted] = useState(false);
-  const [deduplicationRationale, setDeduplicationRationale] = useState<string>('Case created through two-step workflow');
+  const [deduplicationRationale, setDeduplicationRationale] = useState<string>(
+    'Case created through two-step workflow'
+  );
 
   // Fetch pincodes for code lookup
   const { data: pincodesResponse } = usePincodes();
@@ -108,37 +118,41 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     }
   }, [editMode, initialData]);
 
-  const steps = editMode ? [
-    {
-      id: 'customer-info' as const,
-      title: 'Customer Information',
-      description: 'Update customer details',
-      icon: User,
-      completed: currentStep === 'multi-task-details',
-    },
-    {
-      id: 'multi-task-details' as const,
-      title: 'Case & Task Details',
-      description: 'Update case and verification tasks',
-      icon: Target,
-      completed: false,
-    },
-  ] : [
-    {
-      id: 'customer-info' as const,
-      title: 'Customer Information',
-      description: 'Enter customer details',
-      icon: User,
-      completed: currentStep === 'multi-task-details' || (currentStep === 'customer-info' && customerInfo !== null),
-    },
-    {
-      id: 'multi-task-details' as const,
-      title: 'Case & Task Details',
-      description: 'Configure case and verification task',
-      icon: Target,
-      completed: false,
-    },
-  ];
+  const steps = editMode
+    ? [
+        {
+          id: 'customer-info' as const,
+          title: 'Customer Information',
+          description: 'Update customer details',
+          icon: User,
+          completed: currentStep === 'multi-task-details',
+        },
+        {
+          id: 'multi-task-details' as const,
+          title: 'Case & Task Details',
+          description: 'Update case and verification tasks',
+          icon: Target,
+          completed: false,
+        },
+      ]
+    : [
+        {
+          id: 'customer-info' as const,
+          title: 'Customer Information',
+          description: 'Enter customer details',
+          icon: User,
+          completed:
+            currentStep === 'multi-task-details' ||
+            (currentStep === 'customer-info' && customerInfo !== null),
+        },
+        {
+          id: 'multi-task-details' as const,
+          title: 'Case & Task Details',
+          description: 'Configure case and verification task',
+          icon: Target,
+          completed: false,
+        },
+      ];
 
   const performDeduplicationSearch = async (data: CustomerInfoData) => {
     setIsSearching(true);
@@ -169,7 +183,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         // Let the user review and decide what to do
         logger.warn(`⚠️ Found ${result.data.duplicatesFound.length} potential duplicate(s)`);
 
-/*
+        /*
         // Show detailed match information in console for debugging
         result.data.duplicatesFound.forEach((dup, index) => {
           logger.warn(`  Duplicate ${index + 1}:`, {
@@ -187,15 +201,18 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         setDeduplicationCompleted(true);
 
         // Use toast.error with orange/warning styling for duplicate alerts
-        toast(`⚠️ Found ${result.data.duplicatesFound.length} potential duplicate case(s). Please review.`, {
-          duration: 5000,
-          icon: '⚠️',
-          style: {
-            background: '#FEF3C7',
-            color: '#92400E',
-            border: '1px solid #FCD34D',
-          },
-        });
+        toast(
+          `⚠️ Found ${result.data.duplicatesFound.length} potential duplicate case(s). Please review.`,
+          {
+            duration: 5000,
+            icon: '⚠️',
+            style: {
+              background: '#FEF3C7',
+              color: '#92400E',
+              border: '1px solid #FCD34D',
+            },
+          }
+        );
       } else {
         // No duplicates at all - auto-proceed as "No Duplicates Found"
         logger.warn('✅ No duplicate cases found');
@@ -243,17 +260,18 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     setDeduplicationRationale('Case created through two-step workflow');
   };
 
-
-
-  const handleMultiTaskCaseCreation = async (caseLevelData: CaseLevelFormData, tasks: TaskFormData[]) => {
+  const handleMultiTaskCaseCreation = async (
+    caseLevelData: CaseLevelFormData,
+    tasks: TaskFormData[]
+  ) => {
     if (!customerInfo) {
       toast.error('Customer information is missing');
       return;
     }
 
     // Business rule: a case must have at least one task (field or KYC).
-    const fieldTaskCount = (caseType === 'field' || caseType === 'both') ? tasks.length : 0;
-    const kycTaskCount = (caseType === 'kyc' || caseType === 'both') ? kycDocuments.length : 0;
+    const fieldTaskCount = caseType === 'field' || caseType === 'both' ? tasks.length : 0;
+    const kycTaskCount = caseType === 'kyc' || caseType === 'both' ? kycDocuments.length : 0;
     if (fieldTaskCount === 0 && kycTaskCount === 0) {
       toast.error('A case must include at least one field verification task or KYC task');
       return;
@@ -268,16 +286,19 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     // Business rule: every task must be assigned at creation time.
     // Field tasks → field executive; KYC tasks → centralized (backend) user.
     if (fieldTaskCount > 0) {
-      const unassignedField = tasks.findIndex(t => !t.assignedTo);
+      const unassignedField = tasks.findIndex((t) => !t.assignedTo);
       if (unassignedField !== -1) {
-        toast.error(`Field task ${unassignedField + 1} must be assigned to a field executive before submitting`);
+        toast.error(
+          `Field task ${unassignedField + 1} must be assigned to a field executive before submitting`
+        );
         return;
       }
     }
     if (kycTaskCount > 0) {
-      const unassignedKyc = kycDocuments.findIndex(d => !d.assignedTo);
+      const unassignedKyc = kycDocuments.findIndex((d) => !d.assignedTo);
       if (unassignedKyc !== -1) {
-        const docLabel = kycDocuments[unassignedKyc]?.documentTypeCode || `KYC document ${unassignedKyc + 1}`;
+        const docLabel =
+          kycDocuments[unassignedKyc]?.documentTypeCode || `KYC document ${unassignedKyc + 1}`;
         toast.error(`"${docLabel}" must be assigned to a centralized user before submitting`);
         return;
       }
@@ -288,13 +309,13 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     try {
       // Get verification type names for task titles
       const getVerificationTypeName = (id: number) => {
-        const vt = verificationTypes.find(v => v.id === id);
+        const vt = verificationTypes.find((v) => v.id === id);
         return vt?.name || 'Verification';
       };
 
       // Get pincode code from pincode ID
       const getPincodeCode = (pincodeId: string) => {
-        const pincode = pincodes.find(p => p.id.toString() === pincodeId);
+        const pincode = pincodes.find((p) => p.id.toString() === pincodeId);
         return pincode?.code || pincodeId;
       };
 
@@ -310,7 +331,9 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         // For edit mode, we currently only support updating the case details and the first task
         // This is a limitation of the current backend API for updates
         const task = tasks[0];
-        const selectedVerificationType = verificationTypes.find(vt => vt.id === task.verificationTypeId);
+        const selectedVerificationType = verificationTypes.find(
+          (vt) => vt.id === task.verificationTypeId
+        );
         const verificationTypeName = selectedVerificationType?.name || '';
 
         const caseData: UpdateCasePayload = {
@@ -343,19 +366,21 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
         if (response.success) {
           // Upload attachments if any
-          const newAttachments = (task.attachments || []).filter(att => att.id.startsWith('temp-'));
+          const newAttachments = (task.attachments || []).filter((att) =>
+            att.id.startsWith('temp-')
+          );
           if (newAttachments.length > 0) {
             try {
-              const files = newAttachments.map(att => att.file);
+              const files = newAttachments.map((att) => att.file);
               // For updates, we upload to the case generally or need task ID if available
               // Current update response might not return task IDs easily, so we upload to case
               // Ideally we should get the task ID for the updated task
-              
-            const uploadResponse = await attachmentsService.uploadAttachments({
+
+              const uploadResponse = await attachmentsService.uploadAttachments({
                 caseId: editCaseId,
                 files,
-                category: 'DOCUMENT'
-            });
+                category: 'DOCUMENT',
+              });
 
               if (uploadResponse.success) {
                 toast.success(`${files.length} attachment(s) uploaded successfully`);
@@ -398,7 +423,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             mobile: customerInfo.mobileNumber || '',
             role,
             panNumber: customerInfo.panNumber || undefined,
-            verifications: applicantTasks.map(applicantTask => ({
+            verifications: applicantTasks.map((applicantTask) => ({
               verificationTypeId: applicantTask.verificationTypeId ?? null,
               address: applicantTask.address,
               pincodeId: Number.isNaN(parseInt(applicantTask.pincodeId, 10))
@@ -410,13 +435,15 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
               assignedTo: applicantTask.assignedTo || undefined,
             })),
           }))
-        : [{
-            name: customerInfo.customerName,
-            mobile: customerInfo.mobileNumber || '',
-            role: 'APPLICANT',
-            panNumber: customerInfo.panNumber || undefined,
-            verifications: [],
-          }];
+        : [
+            {
+              name: customerInfo.customerName,
+              mobile: customerInfo.mobileNumber || '',
+              role: 'APPLICANT',
+              panNumber: customerInfo.panNumber || undefined,
+              verifications: [],
+            },
+          ];
 
       const firstTask = tasks[0];
       const payload = {
@@ -433,7 +460,9 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           priority: firstTask?.priority || 'MEDIUM',
           pincode: firstTask ? getPincodeCode(firstTask.pincodeId) : '',
           panNumber: customerInfo.panNumber,
-          deduplicationDecision: deduplicationRationale.includes('No duplicate cases found') ? 'NO_DUPLICATES_FOUND' : 'CREATE_NEW',
+          deduplicationDecision: deduplicationRationale.includes('No duplicate cases found')
+            ? 'NO_DUPLICATES_FOUND'
+            : 'CREATE_NEW',
           deduplicationRationale,
         },
         applicants,
@@ -460,16 +489,18 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             })
           : [],
         // KYC document verification tasks (processed separately by backend)
-        kycDocuments: kycDocuments.length > 0 ? kycDocuments.map(doc => ({
-          documentType: doc.documentTypeCode,
-          documentNumber: doc.documentNumber || undefined,
-          documentHolderName: doc.documentHolderName || undefined,
-          documentDetails: doc.documentDetails || {},
-          description: doc.description || undefined,
-          assignedTo: doc.assignedTo || undefined,
-        })) : undefined
+        kycDocuments:
+          kycDocuments.length > 0
+            ? kycDocuments.map((doc) => ({
+                documentType: doc.documentTypeCode,
+                documentNumber: doc.documentNumber || undefined,
+                documentHolderName: doc.documentHolderName || undefined,
+                documentDetails: doc.documentDetails || {},
+                description: doc.description || undefined,
+                assignedTo: doc.assignedTo || undefined,
+              }))
+            : undefined,
       };
-
 
       const response = await casesService.createCaseWithMultipleTasks(payload);
 
@@ -483,10 +514,12 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             const frontendTask = tasks[i];
             const backendTask = createdTasks[i];
 
-            const newAttachments = (frontendTask.attachments || []).filter(att => att.id.startsWith('temp-'));
+            const newAttachments = (frontendTask.attachments || []).filter((att) =>
+              att.id.startsWith('temp-')
+            );
             if (newAttachments.length > 0 && backendTask) {
               try {
-                const files = newAttachments.map(att => att.file);
+                const files = newAttachments.map((att) => att.file);
                 await casesService.uploadCaseAttachments(caseId, files, backendTask.id);
                 totalAttachments += files.length;
               } catch (error) {
@@ -500,7 +533,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
               }
             }
           }
-        } else if (tasks.some(t => t.attachments && t.attachments.length > 0)) {
+        } else if (tasks.some((t) => t.attachments && t.attachments.length > 0)) {
           toast.error('Case created but caseId/tasks not found for attachment upload');
         }
 
@@ -508,7 +541,9 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           tasks.length > 0 ? `${tasks.length} field task(s)` : null,
           kycDocuments.length > 0 ? `${kycDocuments.length} KYC task(s)` : null,
           totalAttachments > 0 ? `${totalAttachments} attachment(s)` : null,
-        ].filter(Boolean).join(' + ');
+        ]
+          .filter(Boolean)
+          .join(' + ');
 
         toast.success(`Case created successfully with ${taskSummary || 'tasks'}!`);
 
@@ -532,24 +567,29 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     }
   };
 
-  const handleCaseFormSubmit = async (data: FullCaseFormData, attachments: CaseFormAttachment[] = []) => {
+  const handleCaseFormSubmit = async (
+    data: FullCaseFormData,
+    attachments: CaseFormAttachment[] = []
+  ) => {
     if (!customerInfo) {
       toast.error('Customer information is missing');
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
       // Get pincode code from pincode ID for backend compatibility
-      const selectedPincode = pincodes.find(p => p.id.toString() === data.pincodeId);
+      const selectedPincode = pincodes.find((p) => p.id.toString() === data.pincodeId);
       const pincodeCode = selectedPincode?.code || data.pincodeId;
 
       // Use verification type ID directly from form data
       const verificationTypeId = data.verificationTypeId;
 
       // Get verification type name for legacy verificationType field
-      const selectedVerificationType = verificationTypes.find(vt => vt.id.toString() === data.verificationTypeId);
+      const selectedVerificationType = verificationTypes.find(
+        (vt) => vt.id.toString() === data.verificationTypeId
+      );
       const verificationTypeName = selectedVerificationType?.name || '';
 
       const caseData: CreateCaseData = {
@@ -573,13 +613,18 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
         // Deduplication fields
         panNumber: customerInfo.panNumber,
-        deduplicationDecision: deduplicationRationale.includes('No duplicate cases found') ? 'NO_DUPLICATES_FOUND' : 'CREATE_NEW',
+        deduplicationDecision: deduplicationRationale.includes('No duplicate cases found')
+          ? 'NO_DUPLICATES_FOUND'
+          : 'CREATE_NEW',
         deduplicationRationale,
       };
 
       const parsedClientId = parseInt(caseData.clientId, 10);
       const parsedProductId = caseData.productId ? parseInt(caseData.productId, 10) : undefined;
-      if (!Number.isFinite(parsedClientId) || (caseData.productId && !Number.isFinite(parsedProductId))) {
+      if (
+        !Number.isFinite(parsedClientId) ||
+        (caseData.productId && !Number.isFinite(parsedProductId))
+      ) {
         toast.error('Client and Product are required');
         return;
       }
@@ -591,11 +636,11 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         // Handle attachments separately for edit mode (if needed)
         if (attachments.length > 0) {
           try {
-            const files = attachments.map(att => att.file);
+            const files = attachments.map((att) => att.file);
             const uploadResponse = await attachmentsService.uploadAttachments({
-                caseId: editCaseId,
-                files,
-                category: 'DOCUMENT'
+              caseId: editCaseId,
+              files,
+              category: 'DOCUMENT',
             });
 
             if (uploadResponse.success) {
@@ -616,7 +661,9 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             customerCallingCode: caseData.customerCallingCode,
             clientId: parsedClientId,
             productId: parsedProductId,
-            verificationTypeId: caseData.verificationTypeId ? parseInt(caseData.verificationTypeId, 10) : undefined,
+            verificationTypeId: caseData.verificationTypeId
+              ? parseInt(caseData.verificationTypeId, 10)
+              : undefined,
             applicantType: caseData.applicantType,
             trigger: caseData.trigger,
             backendContactNumber: caseData.backendContactNumber,
@@ -626,45 +673,54 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             deduplicationRationale: caseData.deduplicationRationale,
             panNumber: caseData.panNumber,
           },
-          applicants: [{
-            name: caseData.customerName,
-            mobile: caseData.customerPhone || '',
-            role: caseData.applicantType || 'APPLICANT',
-            panNumber: caseData.panNumber || undefined,
-            verifications: [{
-              verificationTypeId: caseData.verificationTypeId ? parseInt(caseData.verificationTypeId, 10) : null,
+          applicants: [
+            {
+              name: caseData.customerName,
+              mobile: caseData.customerPhone || '',
+              role: caseData.applicantType || 'APPLICANT',
+              panNumber: caseData.panNumber || undefined,
+              verifications: [
+                {
+                  verificationTypeId: caseData.verificationTypeId
+                    ? parseInt(caseData.verificationTypeId, 10)
+                    : null,
+                  address: caseData.address,
+                  pincodeId: Number.isNaN(parseInt(data.pincodeId, 10))
+                    ? undefined
+                    : parseInt(data.pincodeId, 10),
+                  areaId: Number.isNaN(parseInt(data.areaId, 10))
+                    ? undefined
+                    : parseInt(data.areaId, 10),
+                  assignedTo: caseData.assignedToId || undefined,
+                },
+              ],
+            },
+          ],
+          verificationTasks: [
+            {
+              verificationTypeId: caseData.verificationTypeId
+                ? parseInt(caseData.verificationTypeId, 10)
+                : 0,
+              taskTitle: `${caseData.verificationType || 'Verification'} Task`,
+              taskDescription: caseData.trigger,
+              priority: caseData.priority || 'MEDIUM',
+              assignedTo: caseData.assignedToId || undefined,
+              rateTypeId: caseData.rateTypeId ? parseInt(caseData.rateTypeId, 10) : undefined,
               address: caseData.address,
-              pincodeId: Number.isNaN(parseInt(data.pincodeId, 10))
-                ? undefined
-                : parseInt(data.pincodeId, 10),
+              pincode: caseData.pincode,
               areaId: Number.isNaN(parseInt(data.areaId, 10))
                 ? undefined
                 : parseInt(data.areaId, 10),
-              assignedTo: caseData.assignedToId || undefined,
-            }],
-          }],
-          verificationTasks: [{
-            verificationTypeId: caseData.verificationTypeId ? parseInt(caseData.verificationTypeId, 10) : 0,
-            taskTitle: `${caseData.verificationType || 'Verification'} Task`,
-            taskDescription: caseData.trigger,
-            priority: caseData.priority || 'MEDIUM',
-            assignedTo: caseData.assignedToId || undefined,
-            rateTypeId: caseData.rateTypeId ? parseInt(caseData.rateTypeId, 10) : undefined,
-            address: caseData.address,
-            pincode: caseData.pincode,
-            areaId: Number.isNaN(parseInt(data.areaId, 10))
-              ? undefined
-              : parseInt(data.areaId, 10),
-            applicantType: caseData.applicantType,
-            trigger: caseData.trigger,
-          }]
+              applicantType: caseData.applicantType,
+              trigger: caseData.trigger,
+            },
+          ],
         };
-
 
         result = await casesService.createCaseWithMultipleTasks(payload);
 
         if (result.success && attachments.length > 0) {
-          const attachmentFiles = attachments.map(att => att.file);
+          const attachmentFiles = attachments.map((att) => att.file);
           const createdCaseId = result.data?.case?.caseId ? String(result.data.case.caseId) : null;
           const createdTaskId = result.data?.tasks?.[0]?.id || null;
           if (createdCaseId && createdTaskId) {
@@ -678,7 +734,8 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
       if (result.success && result.data) {
         // Handle different response structures: Case (from update) vs CreateCaseWithMultipleTasksResponse (from create)
-        const caseId = 'case' in result.data ? result.data.case.caseId : (result.data.caseId || result.data.id);
+        const caseId =
+          'case' in result.data ? result.data.case.caseId : result.data.caseId || result.data.id;
 
         const action = editMode ? 'updated' : 'created';
         toast.success(`Case ${action} successfully! Case ID: ${caseId}`);
@@ -696,8 +753,6 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
   };
 
   const handleCreateNewFromDialog = async (rationale: string) => {
-
-
     if (!customerInfo) {
       logger.error('❌ No customer info available');
       toast.error('Customer information is missing');
@@ -707,23 +762,24 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     try {
       // Record the deduplication decision for creating new case (but don't block UI on this)
       if (deduplicationResult) {
-
         const decision = {
           caseId: 'NEW_CASE_PLACEHOLDER', // This will be updated by the backend
           decision: 'CREATE_NEW' as const,
           rationale,
-          selectedExistingCaseId: undefined // No existing case selected
+          selectedExistingCaseId: undefined, // No existing case selected
         };
 
         // Don't await this - let it happen in background
-        deduplicationService.recordDeduplicationDecision(
-          decision,
-          deduplicationResult.duplicatesFound,
-          deduplicationResult.searchCriteria
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ).catch((error: any) => {
-          logger.error('Error recording deduplication decision (background):', error);
-        });
+        deduplicationService
+          .recordDeduplicationDecision(
+            decision,
+            deduplicationResult.duplicatesFound,
+            deduplicationResult.searchCriteria
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          )
+          .catch((error: any) => {
+            logger.error('Error recording deduplication decision (background):', error);
+          });
       }
 
       // Immediately proceed to next step
@@ -733,7 +789,6 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       setDeduplicationResult(null);
       proceedToCaseDetails(customerInfo);
       toast.success('Proceeding to create new case despite duplicates');
-
     } catch (error) {
       logger.error('Error in handleCreateNewFromDialog:', error);
       toast.error('An error occurred, but proceeding to create case anyway');
@@ -754,7 +809,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           caseId: 'NEW_CASE_PLACEHOLDER', // This will be updated by the backend
           decision: 'USE_EXISTING' as const,
           rationale,
-          selectedExistingCaseId: caseId
+          selectedExistingCaseId: caseId,
         };
 
         await deduplicationService.recordDeduplicationDecision(
@@ -798,24 +853,25 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                     <div
                       className={`
                         flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors
-                        ${isCompleted 
-                          ? 'bg-green-500 border-green-500 text-white' 
-                          : isActive 
-                            ? 'bg-green-500 border-green-500 text-white' 
-                            : 'bg-slate-100 dark:bg-slate-800/60 border-border text-gray-600'
+                        ${
+                          isCompleted
+                            ? 'bg-green-500 border-green-500 text-white'
+                            : isActive
+                              ? 'bg-green-500 border-green-500 text-white'
+                              : 'bg-slate-100 dark:bg-slate-800/60 border-border text-gray-600'
                         }
                       `}
                     >
-                      {isCompleted ? (
-                        <Check className="h-5 w-5" />
-                      ) : (
-                        <Icon className="h-5 w-5" />
-                      )}
+                      {isCompleted ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
                     </div>
                     <div className="flex flex-col">
                       <span
                         className={`text-sm font-medium ${
-                          isActive ? 'text-green-600' : isCompleted ? 'text-green-600' : 'text-gray-600'
+                          isActive
+                            ? 'text-green-600'
+                            : isCompleted
+                              ? 'text-green-600'
+                              : 'text-gray-600'
                         }`}
                       >
                         {step.title}
@@ -823,7 +879,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                       <span className="text-xs text-gray-600">{step.description}</span>
                     </div>
                   </div>
-                  
+
                   {index < steps.length - 1 && (
                     <div
                       className={`flex-1 h-0.5 mx-4 ${
@@ -870,20 +926,26 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             onSubmit={handleMultiTaskCaseCreation}
             onBack={editMode ? undefined : handleBackToCustomerInfo}
             isSubmitting={isSubmitting}
-            initialData={editMode && initialData ? {
-              caseLevelData: initialData.caseLevelData || initialData.caseFormData,
-              tasks: initialData.tasks
-            } : undefined}
+            initialData={
+              editMode && initialData
+                ? {
+                    caseLevelData: initialData.caseLevelData || initialData.caseFormData,
+                    tasks: initialData.tasks,
+                  }
+                : undefined
+            }
             editMode={editMode}
             caseType={caseType}
             onCaseTypeChange={!editMode ? setCaseType : undefined}
-            renderAfterTasks={!editMode && (caseType === 'kyc' || caseType === 'both') ? (
-              <KYCDocumentSelector
-                selectedDocuments={kycDocuments}
-                onChange={setKYCDocuments}
-                customerName={customerInfo?.customerName}
-              />
-            ) : undefined}
+            renderAfterTasks={
+              !editMode && (caseType === 'kyc' || caseType === 'both') ? (
+                <KYCDocumentSelector
+                  selectedDocuments={kycDocuments}
+                  onChange={setKYCDocuments}
+                  customerName={customerInfo?.customerName}
+                />
+              ) : undefined
+            }
           />
         )}
       </div>
@@ -892,8 +954,18 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       <DeduplicationDialog
         isOpen={showDeduplicationDialog}
         onClose={() => {
+          // Bug 1 fix: when the user dismisses the dialog without
+          // clicking "Create New Case Anyway" or "Use Existing", we
+          // must reset deduplicationCompleted so they cannot proceed
+          // to the case-details step. Without this, the flag stays
+          // true from the moment duplicates were found (line 187)
+          // and the default rationale ("Case created through
+          // two-step workflow") lets them bypass the mandatory
+          // decision entirely.
           setShowDeduplicationDialog(false);
           setDeduplicationResult(null);
+          setDeduplicationCompleted(false);
+          setDeduplicationRationale('');
         }}
         deduplicationResult={deduplicationResult}
         onCreateNew={handleCreateNewFromDialog}
