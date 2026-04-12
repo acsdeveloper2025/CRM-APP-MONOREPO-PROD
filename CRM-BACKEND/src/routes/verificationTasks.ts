@@ -447,7 +447,13 @@ router.post(
             `,
               [
                 taskId,
-                task.case_id,
+                // B3 fix: wrapClient at line 408 applies camelizeRow
+                // in REPLACE mode, so case_id → caseId and the
+                // snake_case key is deleted. Reading task.case_id
+                // returned undefined → NOT NULL violation on
+                // task_assignment_history.case_id → entire bulk-assign
+                // transaction rolled back.
+                task.caseId,
                 assignedTo,
                 userId,
                 assignmentReason || 'Bulk assignment',
