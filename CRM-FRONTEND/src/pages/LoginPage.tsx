@@ -50,8 +50,11 @@ export const LoginPage: React.FC = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  const [loginError, setLoginError] = useState<string>('');
+
   const onSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true);
+    setLoginError('');
     try {
       const success = await login(data as LoginRequest);
       if (success) {
@@ -59,6 +62,17 @@ export const LoginPage: React.FC = () => {
       }
     } catch (error: unknown) {
       logger.error('Login error:', error);
+      // Extract error message from API response
+      const axiosErr = error as { response?: { data?: { message?: string; error?: { code?: string; retryAfterSeconds?: number } } } };
+      const code = axiosErr.response?.data?.error?.code;
+      if (code === 'ACCOUNT_LOCKED') {
+        const retryMin = Math.ceil((axiosErr.response?.data?.error?.retryAfterSeconds || 900) / 60);
+        setLoginError(`Account temporarily locked. Try again in ${retryMin} minutes.`);
+      } else if (code === 'RATE_LIMIT_EXCEEDED') {
+        setLoginError('Too many login attempts. Please wait and try again.');
+      } else {
+        setLoginError(axiosErr.response?.data?.message || 'Invalid credentials. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -119,6 +133,12 @@ export const LoginPage: React.FC = () => {
                 )}
               </div>
 
+
+              {loginError && (
+                <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md">
+                  {loginError}
+                </div>
+              )}
 
               <Button
                 type="submit"

@@ -72,10 +72,91 @@ const clearRefreshTokenCookie = (res: Response): void => {
   });
 };
 
+// Account lockout — 5 failed attempts per username in 15 minutes.
+// Uses Redis for fast lookup + auto-expiry. Separate from IP-based
+// rate limiting so an attacker can't bypass by switching IPs.
+const LOGIN_LOCKOUT_MAX_ATTEMPTS = 5;
+const LOGIN_LOCKOUT_WINDOW_SECONDS = 15 * 60; // 15 minutes
+
+const checkAccountLockout = async (
+  username: string
+): Promise<{ locked: boolean; attempts: number; retryAfterSeconds: number }> => {
+  try {
+    const { redisClient: redis } = await import('@/config/redis');
+    if (!redis) {
+      return { locked: false, attempts: 0, retryAfterSeconds: 0 };
+    }
+    const key = `login_lockout:${username.toLowerCase()}`;
+    const raw = await redis.get(key);
+    const attempts = parseInt(String(raw || '0'), 10);
+    if (attempts >= LOGIN_LOCKOUT_MAX_ATTEMPTS) {
+      const ttlRaw = await redis.ttl(key);
+      const ttl = Number(ttlRaw);
+      return {
+        locked: true,
+        attempts,
+        retryAfterSeconds: ttl > 0 ? ttl : LOGIN_LOCKOUT_WINDOW_SECONDS,
+      };
+    }
+    return { locked: false, attempts, retryAfterSeconds: 0 };
+  } catch {
+    // Redis down — fail open (don't block login)
+    return { locked: false, attempts: 0, retryAfterSeconds: 0 };
+  }
+};
+
+const recordFailedLogin = async (username: string): Promise<void> => {
+  try {
+    const { redisClient: redis } = await import('@/config/redis');
+    if (!redis) {
+      return;
+    }
+    const key = `login_lockout:${username.toLowerCase()}`;
+    const newCount = await redis.incr(key);
+    if (newCount === 1) {
+      await redis.expire(key, LOGIN_LOCKOUT_WINDOW_SECONDS);
+    }
+  } catch {
+    // Redis down — silently skip
+  }
+};
+
+const clearLoginLockout = async (username: string): Promise<void> => {
+  try {
+    const { redisClient: redis } = await import('@/config/redis');
+    if (!redis) {
+      return;
+    }
+    await redis.del(`login_lockout:${username.toLowerCase()}`);
+  } catch {
+    // Redis down — silently skip
+  }
+};
+
 export const login = async (req: Request, res: Response): Promise<void> => {
   // eslint-disable-next-line no-useless-catch
   try {
     const { username, password }: LoginRequest = req.body;
+
+    // Account lockout check — per-username, not per-IP
+    const lockout = await checkAccountLockout(username || '');
+    if (lockout.locked) {
+      logger.warn('Login blocked — account locked', {
+        username,
+        attempts: lockout.attempts,
+        retryAfterSeconds: lockout.retryAfterSeconds,
+        ip: req.ip,
+      });
+      res.status(429).json({
+        success: false,
+        message: `Account temporarily locked after ${LOGIN_LOCKOUT_MAX_ATTEMPTS} failed attempts. Try again in ${Math.ceil(lockout.retryAfterSeconds / 60)} minutes.`,
+        error: {
+          code: 'ACCOUNT_LOCKED',
+          retryAfterSeconds: lockout.retryAfterSeconds,
+        },
+      });
+      return;
+    }
 
     // Find user by username
     const userRes = await query(
@@ -87,6 +168,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const user = userRes.rows[0];
 
     if (!user) {
+      await recordFailedLogin(username || '');
       await createAuditLog({
         action: 'WEB_LOGIN_FAILED',
         entityType: 'USER',
@@ -100,6 +182,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
+      await recordFailedLogin(username);
       await createAuditLog({
         action: 'WEB_LOGIN_FAILED',
         entityType: 'USER',
@@ -111,6 +194,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       });
       throw createError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
     }
+
+    // Login succeeded — clear lockout counter
+    await clearLoginLockout(username);
 
     // Simplified authentication - only username and password required
     const rbacRes = await query<{ roles: string[] | null; permissions: string[] | null }>(
