@@ -3,17 +3,25 @@ module.exports = {
     {
       name: 'crm-backend',
       cwd: './CRM-BACKEND',
-      script: 'npm',
-      args: 'start',
-      instances: 'max',
-      exec_mode: 'cluster',
+      // Run node directly instead of `npm start` — module-alias
+      // requires `-r module-alias/register` which doesn't work
+      // in PM2 cluster mode (each worker re-requires from scratch
+      // and module-alias paths fail). Fork mode with node_args
+      // is the reliable path.
+      script: 'dist/index.js',
+      node_args: '-r module-alias/register',
+      instances: 1,
+      exec_mode: 'fork',
       autorestart: true,
       watch: false,
       max_memory_restart: '1500M',
       // Graceful shutdown — wait 5s for in-flight requests before force-kill
       kill_timeout: 5000,
       wait_ready: true,
-      listen_timeout: 10000,
+      listen_timeout: 15000,
+      // Restart delay to avoid tight crash loops
+      restart_delay: 5000,
+      max_restarts: 10,
       env: {
         NODE_ENV: 'production',
         PORT: 3000
