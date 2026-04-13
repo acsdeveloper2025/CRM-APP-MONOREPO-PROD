@@ -2,12 +2,9 @@ module.exports = {
   apps: [
     {
       name: 'crm-backend',
-      cwd: './CRM-BACKEND',
-      // Run node directly instead of `npm start` — module-alias
-      // requires `-r module-alias/register` which doesn't work
-      // in PM2 cluster mode (each worker re-requires from scratch
-      // and module-alias paths fail). Fork mode with node_args
-      // is the reliable path.
+      // Absolute path so PM2 works regardless of where `pm2 start`
+      // is called from (project root or CRM-BACKEND dir).
+      cwd: '/opt/crm-app/current/CRM-BACKEND',
       script: 'dist/index.js',
       node_args: '-r module-alias/register',
       instances: 1,
