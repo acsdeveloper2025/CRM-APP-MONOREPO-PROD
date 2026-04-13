@@ -17,8 +17,6 @@ module.exports = {
       max_memory_restart: '1500M',
       // Graceful shutdown — wait 5s for in-flight requests before force-kill
       kill_timeout: 5000,
-      wait_ready: true,
-      listen_timeout: 15000,
       // Restart delay to avoid tight crash loops
       restart_delay: 5000,
       max_restarts: 10,
