@@ -1,35 +1,54 @@
 #!/bin/bash
 
 # Production Service Startup Script
-# Starts backend services using PM2; frontend is served statically by nginx
+# Starts backend in PM2 fork mode; frontend served by nginx
 
 set -e
 
-# Colors for output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+RED='\033[0;31m'
+NC='\033[0m'
 
 echo -e "${BLUE}🚀 Starting CRM Production Services${NC}"
 
-# Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+BACKEND_DIR="$SCRIPT_DIR/CRM-BACKEND"
 
-# Check if ecosystem.config.js exists
-if [ ! -f "ecosystem.config.js" ]; then
-    echo -e "${RED}❌ ecosystem.config.js not found!${NC}"
+if [ ! -f "$BACKEND_DIR/dist/index.js" ]; then
+    echo -e "${RED}❌ Backend not built! Run: cd CRM-BACKEND && npm run build${NC}"
     exit 1
 fi
 
-# Start services using PM2 ecosystem config
-echo -e "${GREEN}Starting services from ecosystem.config.js...${NC}"
-pm2 start ecosystem.config.js
+# Clean slate — delete any existing PM2 processes
+pm2 delete crm-backend 2>/dev/null || true
 
-# Save PM2 process list
+# Kill any process on port 3000
+kill -9 $(lsof -t -i:3000) 2>/dev/null || true
+sleep 1
+
+# Start backend in fork mode from the CRM-BACKEND directory.
+# module-alias requires -r flag; cluster mode breaks it.
+cd "$BACKEND_DIR"
+pm2 start dist/index.js \
+    --name crm-backend \
+    --node-args='-r module-alias/register' \
+    --restart-delay 5000 \
+    --max-restarts 10
+
+# Wait for startup
+sleep 8
+
+# Verify health
+if curl -sf http://localhost:3000/health > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ Backend is healthy${NC}"
+else
+    echo -e "${RED}❌ Backend health check failed${NC}"
+    pm2 logs crm-backend --lines 20 --nostream 2>&1
+    exit 1
+fi
+
 pm2 save
-
-echo -e "${GREEN}✅ Backend services started successfully${NC}"
 echo ""
-echo "Service Status:"
 pm2 list
+echo -e "${GREEN}✅ All services started successfully${NC}"
