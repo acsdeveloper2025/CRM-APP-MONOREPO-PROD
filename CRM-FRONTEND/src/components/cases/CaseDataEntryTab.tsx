@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useBlocker } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,14 +14,34 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Save, CheckCircle, AlertCircle, FileText, Loader2 } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
-  useCaseDataEntry,
-  useCaseDataTemplate,
-  useSaveCaseDataEntry,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Save,
+  CheckCircle,
+  AlertCircle,
+  FileText,
+  Loader2,
+  Plus,
+  Trash2,
+} from 'lucide-react';
+import {
+  useCaseDataBundle,
+  useCreateInstance,
+  useSaveInstance,
+  useDeleteInstance,
   useCompleteCaseDataEntry,
 } from '@/hooks/useCaseData';
-import type { CaseDataTemplateField } from '@/services/caseDataService';
+import type { CaseDataEntry, CaseDataTemplateField } from '@/services/caseDataService';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
@@ -31,75 +52,213 @@ interface CaseDataEntryTabProps {
   readonly?: boolean;
 }
 
-export function CaseDataEntryTab({
-  caseId,
-  clientId,
-  productId,
-  readonly = false,
-}: CaseDataEntryTabProps) {
-  const { data: entry, isLoading: entryLoading } = useCaseDataEntry(caseId);
-  const { data: template, isLoading: templateLoading } = useCaseDataTemplate(clientId, productId);
-  const saveMutation = useSaveCaseDataEntry(caseId);
+// ---- Shared error extraction ------------------------------------------------
+
+interface ApiErrorShape {
+  response?: {
+    status?: number;
+    data?: {
+      message?: string;
+      error?: { code?: string; details?: string[]; activeVersion?: number; yourVersion?: number };
+    };
+  };
+}
+
+const extractApiError = (err: unknown): ApiErrorShape['response']['data'] & { status?: number } => {
+  const e = err as ApiErrorShape;
+  return {
+    status: e.response?.status,
+    ...(e.response?.data || {}),
+  };
+};
+
+// ---- Main component ---------------------------------------------------------
+
+export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabProps) {
+  const { data: bundle, isLoading, refetch } = useCaseDataBundle(caseId);
+  const createInstance = useCreateInstance(caseId);
+  const saveInstance = useSaveInstance(caseId);
+  const deleteInstance = useDeleteInstance(caseId);
   const completeMutation = useCompleteCaseDataEntry(caseId);
 
-  const [formData, setFormData] = useState<Record<string, unknown>>({});
-  const [isDirty, setIsDirty] = useState(false);
+  // Per-instance local form state, keyed by instance_index.
+  const [formByIndex, setFormByIndex] = useState<Record<number, Record<string, unknown>>>({});
+  const [dirtyIndexes, setDirtyIndexes] = useState<Set<number>>(new Set());
+  const [activeTab, setActiveTab] = useState<string>('');
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false);
+  const [confirmDeleteIdx, setConfirmDeleteIdx] = useState<number | null>(null);
 
-  // Populate form data from existing entry or defaults
+  const template = bundle?.template;
+  const entries = bundle?.entries || [];
+  const caseCompleted = bundle?.caseStatus === 'COMPLETED';
+  const effectiveReadonly = readonly || caseCompleted;
+  const isDirty = dirtyIndexes.size > 0;
+
+  // Initialise local form state from server entries. Runs only for entries
+  // the user hasn't started editing yet — we never clobber dirty state.
   useEffect(() => {
-    if (entry?.data) {
-      setFormData(entry.data as Record<string, unknown>);
-    } else if (template?.fields) {
-      const defaults: Record<string, unknown> = {};
-      for (const field of template.fields) {
-        if (field.defaultValue != null) {
-          defaults[field.fieldKey] =
-            field.fieldType === 'NUMBER'
-              ? Number(field.defaultValue)
-              : field.fieldType === 'BOOLEAN'
-                ? field.defaultValue === 'true'
-                : field.defaultValue;
-        }
+    if (!entries.length) { return; }
+    setFormByIndex(prev => {
+      const next = { ...prev };
+      for (const entry of entries) {
+        if (dirtyIndexes.has(entry.instanceIndex)) { continue; }
+        next[entry.instanceIndex] = (entry.data || {}) as Record<string, unknown>;
       }
-      setFormData(defaults);
-    }
-  }, [entry, template]);
+      return next;
+    });
+    // Ensure activeTab points to a real instance.
+    setActiveTab(prev => {
+      const ids = entries.map(e => String(e.instanceIndex));
+      if (ids.includes(prev)) { return prev; }
+      return ids[0] || '';
+    });
+  }, [entries, dirtyIndexes]);
 
-  const handleFieldChange = (fieldKey: string, value: unknown) => {
-    setFormData((prev) => ({ ...prev, [fieldKey]: value }));
-    setIsDirty(true);
+  // Block in-app navigation when there are unsaved changes.
+  useBlocker(({ currentLocation, nextLocation }) => {
+    if (!isDirty) { return false; }
+    if (currentLocation.pathname === nextLocation.pathname) { return false; }
+    return !window.confirm('You have unsaved changes. Leave without saving?');
+  });
+
+  // Also guard hard navigation / tab close.
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
+
+  const handleFieldChange = (index: number, fieldKey: string, value: unknown) => {
+    setFormByIndex(prev => ({
+      ...prev,
+      [index]: { ...(prev[index] || {}), [fieldKey]: value },
+    }));
+    setDirtyIndexes(prev => new Set(prev).add(index));
   };
 
-  const handleSave = async (markComplete = false) => {
+  const handleCreateInstance = async () => {
+    const label = window.prompt(
+      'Label for this instance (e.g. "Co-Applicant 1", "Asset 2")',
+      entries.length === 0 ? 'Primary' : `Instance ${entries.length + 1}`
+    );
+    if (label === null) { return; }
     try {
-      // Always persist current form state first so backend has latest data.
-      await saveMutation.mutateAsync({ data: formData });
-      setIsDirty(false);
-
-      if (markComplete) {
-        // Completion runs strict validation server-side; errors surface via catch.
-        await completeMutation.mutateAsync();
-        toast.success('Data entry completed');
-      } else {
-        toast.success('Data saved');
-      }
-    } catch (error) {
-      logger.error('Failed to save case data:', error);
-      const message =
-        (error as { response?: { data?: { error?: { details?: string[] }; message?: string } } })
-          ?.response?.data?.error?.details?.join('\n') ||
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        (markComplete ? 'Failed to complete data entry' : 'Failed to save data');
-      toast.error(message);
+      const created = await createInstance.mutateAsync(label.trim() || undefined);
+      setActiveTab(String(created.instanceIndex));
+    } catch (err) {
+      const apiErr = extractApiError(err);
+      toast.error(apiErr.message || 'Failed to create instance');
     }
   };
 
-  if (entryLoading || templateLoading) {
+  const handleDeleteInstance = async (idx: number) => {
+    try {
+      await deleteInstance.mutateAsync(idx);
+      setDirtyIndexes(prev => {
+        const next = new Set(prev);
+        next.delete(idx);
+        return next;
+      });
+      setFormByIndex(prev => {
+        const next = { ...prev };
+        delete next[idx];
+        return next;
+      });
+      toast.success('Instance removed');
+    } catch (err) {
+      const apiErr = extractApiError(err);
+      toast.error(apiErr.message || 'Failed to delete instance');
+    } finally {
+      setConfirmDeleteIdx(null);
+    }
+  };
+
+  const handleSaveDraft = async (index: number) => {
+    if (!template) { return; }
+    const data = formByIndex[index] || {};
+    try {
+      await saveInstance.mutateAsync({
+        instanceIndex: index,
+        data,
+        templateVersion: template.version,
+      });
+      setDirtyIndexes(prev => {
+        const next = new Set(prev);
+        next.delete(index);
+        return next;
+      });
+      setValidationErrors([]);
+      toast.success('Draft saved');
+    } catch (err) {
+      const apiErr = extractApiError(err);
+      if (apiErr.error?.code === 'TEMPLATE_VERSION_CHANGED') {
+        toast.error(
+          `Template was updated (v${apiErr.error.activeVersion}). Reloading the form…`
+        );
+        await refetch();
+        setDirtyIndexes(new Set());
+        return;
+      }
+      if (apiErr.error?.details?.length) {
+        setValidationErrors(apiErr.error.details);
+        toast.error('Please fix the validation errors');
+      } else {
+        toast.error(apiErr.message || 'Failed to save');
+      }
+      logger.error('Save draft failed', err);
+    }
+  };
+
+  const handleCompleteConfirmed = async () => {
+    setConfirmCompleteOpen(false);
+    if (!template) { return; }
+    try {
+      // Save any dirty drafts first so the server validates the latest state.
+      for (const idx of Array.from(dirtyIndexes)) {
+        await saveInstance.mutateAsync({
+          instanceIndex: idx,
+          data: formByIndex[idx] || {},
+          templateVersion: template.version,
+        });
+      }
+      setDirtyIndexes(new Set());
+
+      await completeMutation.mutateAsync();
+      setValidationErrors([]);
+      toast.success('Case completed');
+    } catch (err) {
+      const apiErr = extractApiError(err);
+      if (apiErr.error?.code === 'TEMPLATE_VERSION_CHANGED') {
+        toast.error(
+          `Template was updated (v${apiErr.error.activeVersion}). Reloading the form…`
+        );
+        await refetch();
+        return;
+      }
+      if (apiErr.error?.details?.length) {
+        setValidationErrors(apiErr.error.details);
+        toast.error('Fix the validation errors before completing');
+      } else {
+        toast.error(apiErr.message || 'Failed to complete');
+      }
+      logger.error('Complete failed', err);
+    }
+  };
+
+  // ------------------ render ------------------
+
+  if (isLoading) {
     return (
       <Card>
         <CardContent className="p-6 flex items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-green-600 mr-2" />
-          <span>Loading data entry form...</span>
+          <span>Loading data entry…</span>
         </CardContent>
       </Card>
     );
@@ -119,56 +278,43 @@ export function CaseDataEntryTab({
     );
   }
 
-  // Group fields by section
-  const sections = new Map<string, CaseDataTemplateField[]>();
-  for (const field of template.fields || []) {
-    if (!field.isActive) { continue; }
-    const section = field.section || 'General';
-    if (!sections.has(section)) { sections.set(section, []); }
-    sections.get(section)?.push(field);
-  }
-
-  // Sort fields within each section by displayOrder
-  for (const fields of sections.values()) {
-    fields.sort((a, b) => a.displayOrder - b.displayOrder);
-  }
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h3 className="text-lg font-semibold">{template.name}</h3>
-          {entry?.isCompleted ? (
+          <Badge variant="outline" className="text-xs">
+            v{template.version}
+          </Badge>
+          {caseCompleted ? (
             <Badge className="bg-green-100 text-green-800">
               <CheckCircle className="h-3 w-3 mr-1" />
               Completed
             </Badge>
-          ) : entry ? (
+          ) : entries.length > 0 ? (
             <Badge className="bg-yellow-100 text-yellow-800">In Progress</Badge>
           ) : (
             <Badge className="bg-gray-100 text-gray-600">Not Started</Badge>
           )}
         </div>
-        {!readonly && (
+        {!effectiveReadonly && (
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleSave(false)}
-              disabled={!isDirty || saveMutation.isPending || completeMutation.isPending}
+              onClick={handleCreateInstance}
+              disabled={createInstance.isPending}
             >
-              {saveMutation.isPending ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4 mr-1" />
-              )}
-              Save Draft
+              <Plus className="h-4 w-4 mr-1" />
+              Add Instance
             </Button>
             <Button
               size="sm"
-              onClick={() => handleSave(true)}
-              disabled={saveMutation.isPending || completeMutation.isPending}
+              onClick={() => setConfirmCompleteOpen(true)}
+              disabled={
+                entries.length === 0 || saveInstance.isPending || completeMutation.isPending
+              }
             >
               {completeMutation.isPending ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -181,21 +327,211 @@ export function CaseDataEntryTab({
         )}
       </div>
 
-      {/* Form sections */}
-      {Array.from(sections.entries()).map(([sectionName, fields]) => (
+      {/* Aggregate validation errors */}
+      {validationErrors.length > 0 && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium text-red-800 mb-1">Please fix:</p>
+                <ul className="list-disc pl-4 text-red-700 space-y-0.5">
+                  {validationErrors.map((e, i) => (
+                    <li key={i}>{e}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Empty state */}
+      {entries.length === 0 && (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <FileText className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-600 mb-3">No data entered yet.</p>
+            {!effectiveReadonly && (
+              <Button onClick={handleCreateInstance} disabled={createInstance.isPending}>
+                <Plus className="h-4 w-4 mr-1" />
+                Start Data Entry
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Instance tabs */}
+      {entries.length > 0 && (
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="flex-wrap h-auto">
+            {entries.map(entry => (
+              <TabsTrigger key={entry.instanceIndex} value={String(entry.instanceIndex)}>
+                {entry.instanceLabel}
+                {dirtyIndexes.has(entry.instanceIndex) && (
+                  <span className="ml-1 text-orange-500">●</span>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {entries.map(entry => (
+            <TabsContent key={entry.instanceIndex} value={String(entry.instanceIndex)}>
+              <InstanceForm
+                entry={entry}
+                fields={template.fields}
+                formData={formByIndex[entry.instanceIndex] || {}}
+                onFieldChange={(k, v) => handleFieldChange(entry.instanceIndex, k, v)}
+                onSave={() => handleSaveDraft(entry.instanceIndex)}
+                onRequestDelete={() => setConfirmDeleteIdx(entry.instanceIndex)}
+                isSaving={saveInstance.isPending}
+                isDirty={dirtyIndexes.has(entry.instanceIndex)}
+                readonly={effectiveReadonly}
+              />
+            </TabsContent>
+          ))}
+        </Tabs>
+      )}
+
+      {/* Confirm complete */}
+      <AlertDialog open={confirmCompleteOpen} onOpenChange={setConfirmCompleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark case as complete?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will validate every instance ({entries.length}) and, if all required fields
+              pass, lock the case as <strong>COMPLETED</strong>. This cannot be undone from this
+              screen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCompleteConfirmed}>Complete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm delete instance */}
+      <AlertDialog
+        open={confirmDeleteIdx !== null}
+        onOpenChange={open => !open && setConfirmDeleteIdx(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this instance?</AlertDialogTitle>
+            <AlertDialogDescription>
+              All data entered for this instance will be removed. Audit history is preserved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmDeleteIdx !== null && handleDeleteInstance(confirmDeleteIdx)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+// ---- Per-instance form ------------------------------------------------------
+
+function InstanceForm({
+  entry,
+  fields,
+  formData,
+  onFieldChange,
+  onSave,
+  onRequestDelete,
+  isSaving,
+  isDirty,
+  readonly,
+}: {
+  entry: CaseDataEntry;
+  fields: CaseDataTemplateField[];
+  formData: Record<string, unknown>;
+  onFieldChange: (fieldKey: string, value: unknown) => void;
+  onSave: () => void;
+  onRequestDelete: () => void;
+  isSaving: boolean;
+  isDirty: boolean;
+  readonly: boolean;
+}) {
+  const sections = useMemo(() => {
+    const map = new Map<string, CaseDataTemplateField[]>();
+    for (const field of fields) {
+      if (!field.isActive) { continue; }
+      const section = field.section || 'General';
+      if (!map.has(section)) { map.set(section, []); }
+      map.get(section)?.push(field);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => a.displayOrder - b.displayOrder);
+    }
+    return map;
+  }, [fields]);
+
+  return (
+    <div className="space-y-4 mt-3">
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-gray-600">
+          {entry.isCompleted ? (
+            <Badge className="bg-green-100 text-green-800">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              This instance is completed
+            </Badge>
+          ) : (
+            <span>Editing: {entry.instanceLabel}</span>
+          )}
+        </div>
+        {!readonly && (
+          <div className="flex gap-2">
+            {!entry.isCompleted && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onRequestDelete}
+                className="text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Remove
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onSave}
+              disabled={!isDirty || isSaving}
+            >
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-1" />
+              )}
+              Save Draft
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {Array.from(sections.entries()).map(([sectionName, list]) => (
         <Card key={sectionName}>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">{sectionName}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {fields.map((field) => (
+              {list.map(field => (
                 <DynamicField
                   key={field.fieldKey}
                   field={field}
                   value={formData[field.fieldKey]}
-                  onChange={(value) => handleFieldChange(field.fieldKey, value)}
-                  readonly={readonly || !!entry?.isCompleted}
+                  onChange={v => onFieldChange(field.fieldKey, v)}
+                  readonly={readonly || entry.isCompleted}
                 />
               ))}
             </div>
@@ -206,7 +542,8 @@ export function CaseDataEntryTab({
   );
 }
 
-// Dynamic field renderer
+// ---- Field renderer (unchanged from Sprint 0) ------------------------------
+
 function DynamicField({
   field,
   value,
@@ -220,6 +557,14 @@ function DynamicField({
 }) {
   const fieldId = `field-${field.fieldKey}`;
 
+  const handleToggle = useCallback(
+    (opt: string, selected: boolean) => {
+      const current = Array.isArray(value) ? [...(value as string[])] : [];
+      onChange(selected ? current.filter(v => v !== opt) : [...current, opt]);
+    },
+    [value, onChange]
+  );
+
   return (
     <div className={field.fieldType === 'TEXTAREA' ? 'md:col-span-2' : ''}>
       <Label htmlFor={fieldId} className="mb-1.5 block">
@@ -231,44 +576,40 @@ function DynamicField({
         <Input
           id={fieldId}
           value={typeof value === 'string' ? value : ''}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={e => onChange(e.target.value)}
           placeholder={field.placeholder || ''}
           disabled={readonly}
         />
       )}
-
       {field.fieldType === 'NUMBER' && (
         <Input
           id={fieldId}
           type="number"
           value={value != null ? String(value) : ''}
-          onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
+          onChange={e => onChange(e.target.value ? Number(e.target.value) : null)}
           placeholder={field.placeholder || ''}
           disabled={readonly}
         />
       )}
-
       {field.fieldType === 'DATE' && (
         <Input
           id={fieldId}
           type="date"
           value={typeof value === 'string' ? value : ''}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={e => onChange(e.target.value)}
           disabled={readonly}
         />
       )}
-
       {field.fieldType === 'TEXTAREA' && (
         <Textarea
           id={fieldId}
           value={typeof value === 'string' ? value : ''}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={e => onChange(e.target.value)}
           placeholder={field.placeholder || ''}
           disabled={readonly}
           rows={3}
         />
       )}
-
       {field.fieldType === 'SELECT' && (
         <Select
           value={typeof value === 'string' ? value : ''}
@@ -279,7 +620,7 @@ function DynamicField({
             <SelectValue placeholder={field.placeholder || 'Select...'} />
           </SelectTrigger>
           <SelectContent>
-            {(field.options || []).map((opt) => (
+            {(field.options || []).map(opt => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>
@@ -287,7 +628,6 @@ function DynamicField({
           </SelectContent>
         </Select>
       )}
-
       {field.fieldType === 'BOOLEAN' && (
         <div className="flex items-center gap-2 pt-1">
           <Switch
@@ -301,40 +641,22 @@ function DynamicField({
           </Label>
         </div>
       )}
-
       {field.fieldType === 'MULTISELECT' && (
         <div className="flex flex-wrap gap-2 pt-1">
-          {(field.options || []).map((opt) => {
-            const selected = Array.isArray(value) && value.includes(opt.value);
+          {(field.options || []).map(opt => {
+            const selected = Array.isArray(value) && (value as string[]).includes(opt.value);
             return (
               <Badge
                 key={opt.value}
                 variant={selected ? 'default' : 'outline'}
                 className={`cursor-pointer ${readonly ? 'pointer-events-none' : ''}`}
-                onClick={() => {
-                  if (readonly) { return; }
-                  const current = Array.isArray(value) ? [...value] : [];
-                  if (selected) {
-                    onChange(current.filter((v: string) => v !== opt.value));
-                  } else {
-                    onChange([...current, opt.value]);
-                  }
-                }}
+                onClick={() => !readonly && handleToggle(opt.value, selected)}
               >
                 {opt.label}
               </Badge>
             );
           })}
         </div>
-      )}
-
-      {!field.isRequired && !value && !readonly && (
-        <p className="text-xs text-gray-400 mt-1">Optional</p>
-      )}
-      {field.isRequired && !value && !readonly && (
-        <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
-          <AlertCircle className="h-3 w-3" /> Required
-        </p>
       )}
     </div>
   );
