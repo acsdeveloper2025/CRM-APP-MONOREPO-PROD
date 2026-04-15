@@ -31,7 +31,15 @@ const requireCaseAccess = chainMiddleware(validateCaseAccess, validateCaseProduc
 // Validation schemas
 // ---------------------------------------------------------------------------
 
-const caseIdValidation = [param('caseId').isUUID().withMessage('Case ID must be a valid UUID')];
+// Accepts either the UUID primary key or the numeric auto-increment
+// `case_id` — matches what resolveCaseByIdentifier understands and what
+// the client/product scope middleware already accepts, so a case that
+// passes one check will always pass the others.
+const caseIdValidation = [
+  param('caseId')
+    .custom(v => typeof v === 'string' && (/^\d+$/.test(v) || /^[0-9a-fA-F-]{36}$/.test(v)))
+    .withMessage('Case ID must be a UUID or a positive integer'),
+];
 
 const instanceIndexValidation = [
   param('instanceIndex')
