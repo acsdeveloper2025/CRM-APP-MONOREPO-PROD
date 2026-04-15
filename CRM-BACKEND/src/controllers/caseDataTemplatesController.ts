@@ -215,7 +215,7 @@ export const getTemplateById = async (req: AuthenticatedRequest, res: Response) 
 export const createTemplate = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { clientId, productId, name, fields } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     // Check client exists
     const clientRes = await query(`SELECT id FROM clients WHERE id = $1`, [Number(clientId)]);
@@ -322,7 +322,7 @@ export const updateTemplate = async (req: AuthenticatedRequest, res: Response) =
   try {
     const { id } = req.params;
     const { name, fields } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     // Check template exists
     const existingRes = await query(`SELECT * FROM case_data_templates WHERE id = $1`, [
@@ -485,7 +485,7 @@ export const updateTemplate = async (req: AuthenticatedRequest, res: Response) =
 export const deleteTemplate = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     const existingRes = await query(`SELECT id FROM case_data_templates WHERE id = $1`, [
       Number(id),

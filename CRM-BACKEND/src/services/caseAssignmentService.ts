@@ -77,7 +77,7 @@ export class CaseAssignmentService {
         assignedById: request.assignedById,
       });
 
-      return { jobId: job.id };
+      return { jobId: job.id! };
     } catch (error) {
       logger.error('Failed to queue single case assignment', {
         request,
@@ -132,7 +132,7 @@ export class CaseAssignmentService {
         assignedById: request.assignedById,
       });
 
-      return { batchId, jobId: job.id };
+      return { batchId, jobId: job.id! };
     } catch (error) {
       logger.error('Failed to queue bulk case assignment', {
         request,
@@ -172,7 +172,7 @@ export class CaseAssignmentService {
         assignedById: request.assignedById,
       });
 
-      return { jobId: job.id };
+      return { jobId: job.id! };
     } catch (error) {
       logger.error('Failed to queue case reassignment', {
         request,

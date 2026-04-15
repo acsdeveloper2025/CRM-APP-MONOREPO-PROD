@@ -1525,7 +1525,7 @@ export const downloadInvoice = async (req: AuthenticatedRequest, res: Response) 
       invoice.items.forEach(item => {
         worksheet.addRow({
           invoiceNumber: invoice.invoiceNumber,
-          clientName: invoice.client.name,
+          clientName: invoice.client?.name ?? 'Unknown',
           status: invoice.status,
           issueDate: invoice.issueDate,
           dueDate: invoice.dueDate,
@@ -1539,7 +1539,7 @@ export const downloadInvoice = async (req: AuthenticatedRequest, res: Response) 
       if (invoice.items.length === 0) {
         worksheet.addRow({
           invoiceNumber: invoice.invoiceNumber,
-          clientName: invoice.client.name,
+          clientName: invoice.client?.name ?? 'Unknown',
           status: invoice.status,
           issueDate: invoice.issueDate,
           dueDate: invoice.dueDate,
@@ -1566,7 +1566,7 @@ export const downloadInvoice = async (req: AuthenticatedRequest, res: Response) 
     doc.setFontSize(16);
     doc.text(`Invoice ${invoice.invoiceNumber}`, 14, 18);
     doc.setFontSize(11);
-    doc.text(`Client: ${invoice.client.name}`, 14, 28);
+    doc.text(`Client: ${invoice.client?.name ?? 'Unknown'}`, 14, 28);
     doc.text(`Status: ${invoice.status}`, 14, 36);
     doc.text(`Issue Date: ${new Date(invoice.issueDate).toLocaleDateString()}`, 14, 44);
     doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, 14, 52);

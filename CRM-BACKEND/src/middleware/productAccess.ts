@@ -45,7 +45,7 @@ export const addProductFiltering = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user!.id;
     const user = req.user;
 
     if (!userId || !user) {

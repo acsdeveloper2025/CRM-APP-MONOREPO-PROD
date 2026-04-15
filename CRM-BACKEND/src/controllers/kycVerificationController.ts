@@ -226,7 +226,7 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
   try {
     const { taskId } = req.params;
     const { status: verificationStatus, remarks, rejectionReason } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     if (!verificationStatus || !['PASS', 'FAIL', 'REFER'].includes(verificationStatus)) {
       return res.status(400).json({
@@ -340,7 +340,7 @@ export const assignKYCTask = async (req: AuthenticatedRequest, res: Response) =>
   try {
     const { taskId } = req.params;
     const { assignedTo } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     if (!assignedTo) {
       return res.status(400).json({ success: false, message: 'assignedTo is required' });

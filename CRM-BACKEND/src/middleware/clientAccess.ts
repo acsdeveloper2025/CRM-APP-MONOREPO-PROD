@@ -50,7 +50,7 @@ export const addClientFiltering = async (
   next: NextFunction
 ): Promise<Response | void> => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user!.id;
     const user = req.user;
 
     logger.info('Client filtering middleware called', {

@@ -177,6 +177,10 @@ export class EnterpriseCache {
       // Store original end method
       const originalEnd = res.end.bind(res);
 
+      // res.end has multiple overloads; we just forward whatever the caller
+      // passed via Function.prototype.apply. The arg-tuple cast bridges
+      // the unknown[] rest parameter to the overload set.
+      type EndArgs = Parameters<typeof originalEnd>;
       res.end = function (...args: unknown[]): Response {
         // Only invalidate on successful responses
         if (res.statusCode >= 200 && res.statusCode < 300) {
@@ -196,7 +200,7 @@ export class EnterpriseCache {
             // Synchronous invalidation: wait for cache to clear before sending response
             // This prevents race conditions but adds ~10-50ms latency
             void invalidateCache().then(() => {
-              originalEnd.apply(res, args);
+              originalEnd.apply(res, args as EndArgs);
             });
             return res;
           } else {
@@ -209,7 +213,7 @@ export class EnterpriseCache {
         }
 
         // Call original end method for async invalidation or non-success responses
-        return originalEnd.apply(res, args);
+        return originalEnd.apply(res, args as EndArgs);
       };
 
       next();
@@ -316,7 +320,8 @@ export const EnterpriseCacheConfigs = {
   // User data caching - INCREASED TTL
   userData: {
     ttl: 1800, // 30 minutes (users don't change frequently)
-    keyGenerator: (req: Request) => CacheKeys.user((req as AuthenticatedRequest).user?.id),
+    keyGenerator: (req: Request) =>
+      CacheKeys.user((req as AuthenticatedRequest).user?.id ?? 'anon'),
     condition: (req: Request) => req.method === 'GET',
   },
 
@@ -324,7 +329,7 @@ export const EnterpriseCacheConfigs = {
   caseList: {
     ttl: 300, // 5 minutes (was 1 minute - too aggressive)
     keyGenerator: (req: Request) => {
-      const userId = (req as AuthenticatedRequest).user?.id;
+      const userId = (req as AuthenticatedRequest).user?.id ?? 'anon';
       const page = Number(req.query.page) || 1;
       const filters = JSON.stringify(req.query);
       return `${CacheKeys.userCases(userId, Number(page))}:${crypto.createHash('md5').update(filters).digest('hex')}`;

@@ -264,17 +264,19 @@ export class MobileFormController {
     taskId: string,
     userId: string,
     user?: AuthenticatedRequest['user']
-  ): Promise<{
-    success: boolean;
-    data?: {
-      taskId: string;
-      caseId: string;
-      caseNumber: number | null;
-      taskNumber: string;
-      verificationTypeName: string | null;
-    };
-    error?: { status: number; message: string; code: string };
-  }> {
+  ): Promise<
+    | {
+        success: true;
+        data: {
+          taskId: string;
+          caseId: string;
+          caseNumber: number | null;
+          taskNumber: string;
+          verificationTypeName: string | null;
+        };
+      }
+    | { success: false; error: { status: number; message: string; code: string } }
+  > {
     try {
       if (!userHasPermission(user as never, 'visit.submit')) {
         return {
@@ -401,12 +403,10 @@ export class MobileFormController {
     taskId: string,
     userId: string,
     user?: AuthenticatedRequest['user']
-  ): Promise<{
-    success: boolean;
-    caseId?: string;
-    task?: VerificationTaskRow;
-    error?: { status: number; message: string; code: string };
-  }> {
+  ): Promise<
+    | { success: true; caseId: string; task: VerificationTaskRow }
+    | { success: false; error: { status: number; message: string; code: string } }
+  > {
     // Legacy resolver kept for backward compatibility if needed,
     // but validateTaskSubmission is preferred for strict flow.
     try {
@@ -2163,7 +2163,7 @@ export class MobileFormController {
         photos,
         metadata,
       }: MobileFormSubmissionRequest = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user as never);
 
       // Verify case access
@@ -2373,7 +2373,7 @@ export class MobileFormController {
   static async getCaseFormSubmissions(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const caseId = String(req.params.caseId || '');
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user as never);
 
       logger.info(
@@ -2763,7 +2763,7 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user as never);
 
       logger.info(`📱 Residence verification submission for task: ${taskId}`);
@@ -2796,7 +2796,7 @@ export class MobileFormController {
         userId,
         req.user
       );
-      if (!taskValidation.success || !taskValidation.data) {
+      if (!taskValidation.success) {
         return res.status(taskValidation.error.status).json({
           success: false,
           message: taskValidation.error.message,
@@ -3158,7 +3158,7 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user as never);
 
       logger.info(`📱 Office verification submission for task: ${taskId}`);
@@ -3191,7 +3191,7 @@ export class MobileFormController {
         userId,
         req.user
       );
-      if (!taskValidation.success || !taskValidation.data) {
+      if (!taskValidation.success) {
         return res.status(taskValidation.error.status).json({
           success: false,
           message: taskValidation.error.message,
@@ -3553,7 +3553,7 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user as never);
 
       logger.info(`📱 Business verification submission for task: ${taskId}`);
@@ -3586,7 +3586,7 @@ export class MobileFormController {
         userId,
         req.user
       );
-      if (!taskValidation.success || !taskValidation.data) {
+      if (!taskValidation.success) {
         return res.status(taskValidation.error.status).json({
           success: false,
           message: taskValidation.error.message,
@@ -3977,7 +3977,7 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user as never);
 
       logger.info(`📱 Builder verification submission for task: ${taskId}`);
@@ -4341,7 +4341,7 @@ export class MobileFormController {
       // Preprocess composite Value+Unit fields from mobile into single fields
       req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
       const submissionData: MobileFormSubmissionRequest = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
 
       // UPDATED: Auto-resolve caseId from verificationTaskId
       const resolution = await MobileFormController.resolveCaseIdFromTaskId(
@@ -4580,7 +4580,7 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user as never);
 
       logger.info(`📱 DSA/DST Connector verification submission for task: ${taskId}`);
@@ -4972,7 +4972,7 @@ export class MobileFormController {
       // Preprocess composite Value+Unit fields from mobile into single fields
       req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
       const submissionData: MobileFormSubmissionRequest = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
 
       // UPDATED: Auto-resolve caseId from verificationTaskId
       const resolution = await MobileFormController.resolveCaseIdFromTaskId(
@@ -5207,7 +5207,7 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user as never);
 
       logger.info(`📱 Property APF verification submission for task: ${taskId}`);
@@ -5600,7 +5600,7 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user as never);
 
       logger.info(`📱 NOC verification submission for task: ${taskId}`);

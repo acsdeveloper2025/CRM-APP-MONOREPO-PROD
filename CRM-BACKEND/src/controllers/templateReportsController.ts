@@ -58,7 +58,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
   try {
     const caseId = String(req.params.caseId || '');
     const submissionId = String(req.params.submissionId || '');
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     logger.info('Generating template report for form submission', {
       caseId,
@@ -1248,7 +1248,7 @@ export async function getCaseTemplateReports(req: Request, res: Response) {
 export async function deleteTemplateReport(req: AuthenticatedRequest, res: Response) {
   try {
     const reportId = String(req.params.reportId || '');
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     logger.info('Deleting template report', { reportId, userId });
 

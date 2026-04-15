@@ -37,7 +37,7 @@ export class MobileLocationController {
         taskId, // Stage-2: Dual Write
         activityType,
       }: MobileLocationCaptureRequest = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
 
       if (!latitude || !longitude || !accuracy || !timestamp || !source) {
         return res.status(400).json({
@@ -402,7 +402,7 @@ export class MobileLocationController {
       const paramCaseId = String(req.params.caseId || '');
       const paramTaskId = String(req.params.taskId || '');
       const caseId = paramCaseId || paramTaskId;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
       // Verify case access
@@ -502,7 +502,7 @@ export class MobileLocationController {
   // Get user's current location trail
   static async getUserLocationTrail(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const startDate = (req.query.startDate as unknown as string) || '';
       const endDate = (req.query.endDate as unknown as string) || '';
       // M11: clamp so ?limit=999999999 cannot force a full-table scan

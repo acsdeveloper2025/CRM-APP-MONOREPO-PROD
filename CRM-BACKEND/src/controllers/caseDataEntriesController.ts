@@ -273,7 +273,7 @@ export const saveEntry = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { caseId } = req.params;
     const { data } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     // Get case
     const caseRes = await query(
@@ -393,7 +393,7 @@ export const updateEntry = async (req: AuthenticatedRequest, res: Response) => {
 export const completeCase = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { caseId } = req.params;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     // Get case
     const caseRes = await query(

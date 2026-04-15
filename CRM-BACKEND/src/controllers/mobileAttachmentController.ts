@@ -88,7 +88,7 @@ export class MobileAttachmentController {
       const paramCaseId = String(req.params.caseId || '');
       const paramTaskId = String(req.params.taskId || '');
       const caseId = paramCaseId || paramTaskId;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
       const files = req.files as Express.Multer.File[];
       let geoLocation = null;
@@ -273,7 +273,7 @@ export class MobileAttachmentController {
             mimeType: attachment.mimeType,
             size: attachment.fileSize,
             url: attachment.filePath,
-            thumbnailUrl: null, // No thumbnail generation for mobile uploads
+            thumbnailUrl: undefined, // No thumbnail generation for mobile uploads
             uploadedAt: new Date(attachment.createdAt).toISOString(),
             geoLocation,
           });
@@ -332,7 +332,7 @@ export class MobileAttachmentController {
       const paramCaseId = String(req.params.caseId || '');
       const paramTaskId = String(req.params.taskId || '');
       const caseId = paramCaseId || paramTaskId;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
       // Check if caseId is a UUID (mobile sends UUID) or case number (web sends case number)
@@ -449,7 +449,7 @@ export class MobileAttachmentController {
           mimeType: att.mimeType,
           size: att.fileSize,
           url: `${getApiBaseUrl(req)}/mobile/attachments/${att.id}/content`, // Use mobile endpoint
-          thumbnailUrl: null, // Not available in current schema
+          thumbnailUrl: undefined, // Not available in current schema
           uploadedAt: new Date(att.createdAt).toISOString(),
           geoLocation: undefined, // Not available in current schema
         };
@@ -507,7 +507,7 @@ export class MobileAttachmentController {
   static async getAttachmentContent(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const attachmentId = String(req.params.attachmentId || '');
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
       // Get attachment with case assignment check
@@ -658,7 +658,7 @@ export class MobileAttachmentController {
     };
     try {
       const attachmentId = String(req.params.attachmentId || '');
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
       // Get attachment with case assignment check
@@ -780,7 +780,7 @@ export class MobileAttachmentController {
   ): Promise<void> {
     try {
       const { caseIds } = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
       if (!Array.isArray(caseIds) || caseIds.length === 0) {

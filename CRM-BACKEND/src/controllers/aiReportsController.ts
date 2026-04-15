@@ -15,7 +15,7 @@ export const generateFormSubmissionReport = async (req: AuthenticatedRequest, re
   try {
     const caseId = String(req.params.caseId || '');
     const submissionId = String(req.params.submissionId || '');
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     if (!caseId || !submissionId) {
       return res.status(400).json({

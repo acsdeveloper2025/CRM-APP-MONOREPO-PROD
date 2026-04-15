@@ -106,7 +106,7 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
     const conditions: string[] = [];
     const params: QueryParams = [];
     let paramIndex = 1;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
     const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
 
     if (isFieldExecutionActor(req.user) && userId) {
@@ -641,7 +641,7 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
          JOIN cases c ON vt.case_id = c.id
          WHERE c.case_id = $1 AND vt.assigned_to = $2
          LIMIT 1`,
-        [caseId, req.user.id]
+        [caseId, req.user!.id]
       );
       if (taskAccess.rows.length === 0) {
         return res.status(403).json({
@@ -901,7 +901,8 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
         });
       }
 
-      const agent = agentMap.get(taskAgentId);
+      // agentMap was just populated above if missing, so .get is non-null here
+      const agent = agentMap.get(taskAgentId)!;
       agent.totalTasks++;
       agent.tasks.push(task);
 

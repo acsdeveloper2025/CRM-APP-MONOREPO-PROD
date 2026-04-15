@@ -149,7 +149,7 @@ export const getDesignationById = async (req: Request, res: Response) => {
 export const createDesignation = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { name, description, departmentId, isActive = true } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     // Check if designation name already exists
     const existingDesignation = await query('SELECT id FROM designations WHERE name = $1', [name]);
@@ -201,7 +201,7 @@ export const updateDesignation = async (req: AuthenticatedRequest, res: Response
   try {
     const { id } = req.params;
     const { name, description, departmentId, isActive } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     // Check if designation exists
     const existingDesignation = await query('SELECT id, name FROM designations WHERE id = $1', [
@@ -277,7 +277,7 @@ export const updateDesignation = async (req: AuthenticatedRequest, res: Response
 export const deleteDesignation = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     // Check if designation exists
     const existingDesignation = await query('SELECT id, name FROM designations WHERE id = $1', [

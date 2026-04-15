@@ -310,7 +310,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           name: user.name,
           username: user.username,
           email: user.email,
-          role: (derivedRole || 'BACKEND_USER') as LoginResponse['data']['user']['role'],
+          role: (derivedRole || 'BACKEND_USER') as NonNullable<
+            LoginResponse['data']
+          >['user']['role'],
           employeeId: user.employeeId,
           designation: user.designation,
           department: user.department,

@@ -5,7 +5,7 @@
     "lib": ["ES2020"],
     "outDir": "./dist",
     "rootDir": "./src",
-    "strict": false,
+    "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -14,10 +14,9 @@
     "declarationMap": true,
     "sourceMap": true,
     "removeComments": true,
-    "noImplicitAny": true,
-    "strictNullChecks": false,
-    "strictFunctionTypes": true,
-    "noImplicitThis": true,
+    // The flags below are NOT part of `strict` and are kept off
+    // intentionally — flipping them produces hundreds of stylistic
+    // errors that aren't in the audit scope. Re-evaluate later.
     "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": false,
@@ -25,7 +24,6 @@
     "allowUnusedLabels": true,
     "allowUnreachableCode": true,
     "exactOptionalPropertyTypes": false,
-    "useUnknownInCatchVariables": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "baseUrl": "./src",

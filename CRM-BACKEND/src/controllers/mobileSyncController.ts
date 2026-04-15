@@ -111,7 +111,7 @@ export class MobileSyncController {
   static async enterpriseSync(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const { lastSyncTimestamp, deviceId, appVersion, platform } = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
       if (!isExecutionActor) {
@@ -158,7 +158,7 @@ export class MobileSyncController {
         deviceInfo,
         lastSyncTimestamp,
       }: MobileSyncUploadRequest & { actions?: MobileQueuedAction[] } = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
       void MobileTelemetryService.increment('syncRequestRate', 1, { direction: 'upload' });
 
@@ -421,7 +421,7 @@ export class MobileSyncController {
   static async downloadSync(this: void, req: AuthenticatedRequest, res: Response) {
     const startedAt = Date.now();
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
       const lastSyncTimestamp = (req.query.lastSyncTimestamp as unknown as string) || '';
       const requestedLimit = Number(req.query.limit) || config.mobile.syncBatchSize;
@@ -775,7 +775,7 @@ export class MobileSyncController {
   // Get sync status for device
   static async getSyncStatus(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const deviceId = String(req.headers['x-device-id'] || 'default');
 
       const devRes = await query(

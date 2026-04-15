@@ -223,7 +223,7 @@ export const getExportHistory = (req: AuthenticatedRequest, res: Response) => {
     // by a real table the unvalidated limit becomes a cheap DoS.
     const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 500);
     const offset = Math.max(Number(req.query.offset) || 0, 0);
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     // Mock export history - ready to connect to export_history table when persistence layer is available
     // For now, return strictly typed mock data
@@ -466,6 +466,12 @@ async function deliverReportByEmail(
   reportType: string,
   _customSubject?: string
 ): Promise<ExportResult> {
+  if (!reportResult.filePath) {
+    return {
+      success: false,
+      error: 'Cannot deliver report by email: no file path on result',
+    } as ExportResult;
+  }
   const emailService = EmailDeliveryService.getInstance();
 
   // Added await to satisfy require-await rule and ensure correct error propagation

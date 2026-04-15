@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import type { QueryParams } from '@/types/database';
+import { errorMessage } from '@/utils/errorMessage';
 import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
 import {
@@ -233,7 +234,7 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
                AND EXISTS (SELECT 1 FROM verification_tasks vt WHERE vt.case_id = c.id AND vt.assigned_to = $2)`
             : `SELECT c.id FROM cases c WHERE c.id = $1
                AND EXISTS (SELECT 1 FROM verification_tasks vt WHERE vt.case_id = c.id AND vt.assigned_to = $2)`;
-          caseParams = [caseId, req.user.id];
+          caseParams = [caseId, req.user!.id];
         } else {
           // Admin/Manager can upload to any case
           caseQuery = isNumericCaseId
@@ -350,7 +351,7 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
   try {
     const rawCaseId = String(req.params.caseId || '');
     const { category, limit = 50 } = req.query;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
     const isExecutionActor = isFieldExecutionActor(req.user);
 
     // Import query function
@@ -448,7 +449,7 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
 export const getAttachmentById = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
     const isExecutionActor = isFieldExecutionActor(req.user);
 
     // Import query function
@@ -536,7 +537,7 @@ export const getAttachmentById = async (req: AuthenticatedRequest, res: Response
 export const deleteAttachment = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
     const isExecutionActor = isFieldExecutionActor(req.user);
 
     // Import query function
@@ -695,7 +696,7 @@ export const updateAttachment = (req: AuthenticatedRequest, res: Response) => {
 export const downloadAttachment = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
     const isExecutionActor = isFieldExecutionActor(req.user);
 
     // Import query function
@@ -794,7 +795,7 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
 export const serveAttachment = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
     const isExecutionActor = isFieldExecutionActor(req.user);
 
     // Import query function
@@ -1025,7 +1026,7 @@ export const bulkUploadAttachments = (req: AuthenticatedRequest, res: Response) 
           attachments.push(newAttachment);
           uploadedAttachments.push(newAttachment);
         } catch (error) {
-          errors.push(`File ${files[i].originalname}: ${error}`);
+          errors.push(`File ${files[i].originalname}: ${errorMessage(error)}`);
         }
       }
 
@@ -1107,7 +1108,7 @@ export const bulkDeleteAttachments = (req: AuthenticatedRequest, res: Response) 
         attachments.splice(attachmentIndex, 1);
         deletedAttachments.push(id);
       } catch (error) {
-        errors.push(`Attachment ${id}: ${error}`);
+        errors.push(`Attachment ${id}: ${errorMessage(error)}`);
       }
     }
 

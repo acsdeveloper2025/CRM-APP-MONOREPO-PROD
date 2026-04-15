@@ -80,7 +80,7 @@ export const bulkSaveTerritoryAssignments = async (req: AuthenticatedRequest, re
   try {
     const userId = String(req.params.userId || '');
     const { assignments } = req.body;
-    const assignedBy = req.user.id;
+    const assignedBy = req.user!.id;
 
     // Validation
     if (!Array.isArray(assignments) || assignments.length === 0) {

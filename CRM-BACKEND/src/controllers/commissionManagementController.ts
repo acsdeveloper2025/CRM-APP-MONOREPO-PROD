@@ -1371,7 +1371,7 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       return;
     }
     const scope = await resolveDataScope(req as never);
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     if (!userId) {
       return res.status(401).json({

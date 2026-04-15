@@ -341,7 +341,7 @@ export class PushNotificationService {
             });
             results.errors.push({
               userId: token.userId,
-              error: resp.error?.message,
+              error: resp.error?.message ?? 'Unknown FCM error',
             });
 
             // Deactivate invalid tokens
@@ -414,7 +414,7 @@ export class PushNotificationService {
       for (const { notification, token, userId, tokenId } of notifications) {
         try {
           const result = await circuitBreakers.apns.execute(() =>
-            this.apnProvider.send(notification, token)
+            this.apnProvider!.send(notification, token)
           );
 
           if (result.sent.length > 0) {

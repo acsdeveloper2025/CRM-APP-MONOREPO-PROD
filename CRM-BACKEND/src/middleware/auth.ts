@@ -70,24 +70,52 @@ export function getAuthContextCacheStats(): AuthContextCacheStats {
   };
 }
 
-export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    permissionCodes?: string[];
-    capabilities?: {
-      systemScopeBypass: boolean;
-      operationalScope: boolean;
-      executionActor: boolean;
-    };
-    assignedClientIds?: number[];
-    assignedProductIds?: number[];
-    roles?: string[];
-    primaryRole?: string;
-    teamLeaderId?: string | null;
-    managerId?: string | null;
-    deviceId?: string;
+export interface AuthenticatedRequestUser {
+  id: string;
+  permissionCodes?: string[];
+  capabilities?: {
+    systemScopeBypass: boolean;
+    operationalScope: boolean;
+    executionActor: boolean;
   };
+  assignedClientIds?: number[];
+  assignedProductIds?: number[];
+  roles?: string[];
+  primaryRole?: string;
+  teamLeaderId?: string | null;
+  managerId?: string | null;
+  deviceId?: string;
 }
+
+export interface AuthenticatedRequest extends Request {
+  user?: AuthenticatedRequestUser;
+}
+
+/**
+ * Narrow an AuthenticatedRequest's optional `user` to a required
+ * `AuthenticatedRequestUser`. Use this at the top of any handler that
+ * is mounted behind `authenticateToken` — middleware guarantees the
+ * field is set, but TypeScript's view of the interface keeps it
+ * optional so non-authenticated routes can still share the type.
+ *
+ * Returns undefined and sends a 401 response when called from a
+ * misconfigured route (defence in depth — should not be reachable in
+ * production).
+ */
+export const requireAuthUser = (
+  req: AuthenticatedRequest,
+  res: Response
+): AuthenticatedRequestUser | undefined => {
+  if (req.user?.id) {
+    return req.user;
+  }
+  res.status(401).json({
+    success: false,
+    message: 'Authentication required',
+    error: { code: 'UNAUTHENTICATED' },
+  });
+  return undefined;
+};
 
 type DbUserAuthContext = {
   id: string;
