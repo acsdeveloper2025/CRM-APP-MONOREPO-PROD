@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useBlocker } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -157,22 +156,15 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
     });
   }, [entries, dirtyIndexes, template]);
 
-  // Block in-app navigation when there are unsaved changes.
-  useBlocker(({ currentLocation, nextLocation }) => {
-    if (!isDirty) {
-      return false;
-    }
-    if (currentLocation.pathname === nextLocation.pathname) {
-      return false;
-    }
-    // useBlocker's shouldBlock callback must return a boolean synchronously,
-    // so a promise-based modal isn't an option here. window.confirm is the
-    // only built-in that satisfies the API contract.
-    // eslint-disable-next-line no-alert
-    return !window.confirm('You have unsaved changes. Leave without saving?');
-  });
+  // NOTE: In-app route-change guard via react-router's useBlocker requires
+  // a data router (createBrowserRouter). This app uses BrowserRouter, so
+  // useBlocker throws at runtime. We rely on the beforeunload listener
+  // below for hard navigation / tab close, and on the orange-dot dirty
+  // indicator on each instance tab for intra-page awareness. The user can
+  // still lose unsaved work by clicking a different route in the sidebar;
+  // restoring that guard requires migrating the app to createBrowserRouter.
 
-  // Also guard hard navigation / tab close.
+  // Guard hard navigation / tab close.
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       if (isDirty) {
