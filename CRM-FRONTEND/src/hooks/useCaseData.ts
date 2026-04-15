@@ -1,5 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { caseDataService, type CaseDataBundle, type CaseDataEntry } from '@/services/caseDataService';
+import {
+  caseDataService,
+  type CaseDataBundle,
+  type CaseDataEntry,
+} from '@/services/caseDataService';
 
 const bundleKey = (caseId: string) => ['case-data-bundle', caseId];
 

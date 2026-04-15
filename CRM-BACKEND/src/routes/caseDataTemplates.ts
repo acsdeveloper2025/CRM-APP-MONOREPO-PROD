@@ -41,13 +41,7 @@ const RESERVED_FIELD_KEYS = new Set([
 // Allowed keys inside each field's `validationRules` object. Anything
 // else is rejected so a typo in the admin UI doesn't silently "work"
 // on save and then never trigger during validation.
-const ALLOWED_VALIDATION_RULE_KEYS = new Set([
-  'min',
-  'max',
-  'minLength',
-  'maxLength',
-  'pattern',
-]);
+const ALLOWED_VALIDATION_RULE_KEYS = new Set(['min', 'max', 'minLength', 'maxLength', 'pattern']);
 
 const isPlainObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -74,7 +68,6 @@ const assertValidValidationRules = (value: unknown): true => {
         throw new Error('Validation rule "pattern" must be a string');
       }
       try {
-        // eslint-disable-next-line no-new
         new RegExp(v);
       } catch {
         throw new Error('Validation rule "pattern" must be a valid regular expression');

@@ -121,9 +121,8 @@ const validateDataAgainstTemplate = (
       case 'DATE': {
         // Strict ISO-8601 date (YYYY-MM-DD) or date-time. Accept nothing else.
         const dateStr = typeof value === 'string' ? value : '';
-        const isIso = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/.test(
-          dateStr
-        );
+        const isIso =
+          /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?)?$/.test(dateStr);
         if (!isIso || isNaN(new Date(dateStr).getTime())) {
           errors.push(`Field "${field.fieldLabel}" must be a valid ISO date (YYYY-MM-DD)`);
         }
@@ -433,11 +432,7 @@ export const saveInstance = async (req: AuthenticatedRequest, res: Response) => 
     const outcome = await withTransaction(async client => {
       // Lock the active template so concurrent updateTemplate cannot
       // re-version between version check and write.
-      const activeTpl = await getActiveTemplateLocked(
-        client,
-        caseRow.clientId,
-        caseRow.productId
-      );
+      const activeTpl = await getActiveTemplateLocked(client, caseRow.clientId, caseRow.productId);
       if (!activeTpl) {
         return { error: 'NO_TEMPLATE' as const };
       }
@@ -602,9 +597,7 @@ export const deleteInstance = async (req: AuthenticatedRequest, res: Response) =
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } });
     }
     if (caseRow.status === 'COMPLETED') {
-      return res
-        .status(400)
-        .json({ success: false, error: { code: 'CASE_COMPLETED' } });
+      return res.status(400).json({ success: false, error: { code: 'CASE_COMPLETED' } });
     }
 
     // History rows cascade via FK ON DELETE CASCADE.
@@ -626,9 +619,7 @@ export const deleteInstance = async (req: AuthenticatedRequest, res: Response) =
     return res.json({ success: true, message: 'Instance deleted' });
   } catch (error) {
     logger.error('Error deleting case data entry instance:', error);
-    return res
-      .status(500)
-      .json({ success: false, error: { code: 'INTERNAL_ERROR' } });
+    return res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR' } });
   }
 };
 

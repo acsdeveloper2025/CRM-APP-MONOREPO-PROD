@@ -126,10 +126,7 @@ class CaseDataService {
     instanceIndex: number,
     payload: { data: Record<string, unknown>; templateVersion: number }
   ): Promise<ApiResponse<CaseDataEntry>> {
-    return apiService.put(
-      `/case-data-entries/${caseId}/instances/${instanceIndex}`,
-      payload
-    );
+    return apiService.put(`/case-data-entries/${caseId}/instances/${instanceIndex}`, payload);
   }
 
   async deleteInstance(caseId: string, instanceIndex: number): Promise<ApiResponse<unknown>> {
