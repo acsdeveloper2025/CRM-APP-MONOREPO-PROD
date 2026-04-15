@@ -14,18 +14,22 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Production server details
-PROD_HOST="SERVER_IP"
-PROD_PORT="2232"
-PROD_USER="root"
-PROD_PASSWORD="Tr54V5&u89m#2n7"
-PROD_DB_USER="example_db_user"
-PROD_DB_PASSWORD="example_db_password"
-PROD_DB_NAME="acs_crm"
+# Production server details — ALL CREDENTIALS MUST COME FROM ENV VARS
+# Export these before running:
+#   PROD_HOST, PROD_PORT, PROD_USER, PROD_PASSWORD
+#   PROD_DB_USER, PROD_DB_PASSWORD, PROD_DB_NAME
+#   LOCAL_DB_USER, LOCAL_DB_NAME
+PROD_HOST="${PROD_HOST:?PROD_HOST is required (export or use a dotenv loader)}"
+PROD_PORT="${PROD_PORT:?PROD_PORT is required}"
+PROD_USER="${PROD_USER:?PROD_USER is required}"
+PROD_PASSWORD="${PROD_PASSWORD:?PROD_PASSWORD is required}"
+PROD_DB_USER="${PROD_DB_USER:?PROD_DB_USER is required}"
+PROD_DB_PASSWORD="${PROD_DB_PASSWORD:?PROD_DB_PASSWORD is required}"
+PROD_DB_NAME="${PROD_DB_NAME:?PROD_DB_NAME is required}"
 
 # Local database details
-LOCAL_DB_USER="example_db_user"
-LOCAL_DB_NAME="acs_db"
+LOCAL_DB_USER="${LOCAL_DB_USER:?LOCAL_DB_USER is required}"
+LOCAL_DB_NAME="${LOCAL_DB_NAME:?LOCAL_DB_NAME is required}"
 
 # File paths
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)

@@ -40,15 +40,16 @@ print_info "Server: SERVER_IP"
 print_info "=========================================="
 echo ""
 
-# Production configuration
-DB_HOST="localhost"
-DB_PORT="5432"
-DB_NAME="acs_db"
-DB_USER="example_db_user"
-DB_PASSWORD="example_db_password"
-REDIS_HOST="localhost"
-REDIS_PORT="6379"
-UPLOAD_DIR="/opt/crm-app/current/CRM-BACKEND/uploads"
+# Production configuration — DB credentials must come from env vars
+# Required env vars: DB_USER, DB_PASSWORD
+DB_HOST="${DB_HOST:-localhost}"
+DB_PORT="${DB_PORT:-5432}"
+DB_NAME="${DB_NAME:-acs_db}"
+DB_USER="${DB_USER:?DB_USER is required (export or source a dotenv file)}"
+DB_PASSWORD="${DB_PASSWORD:?DB_PASSWORD is required (export or source a dotenv file)}"
+REDIS_HOST="${REDIS_HOST:-localhost}"
+REDIS_PORT="${REDIS_PORT:-6379}"
+UPLOAD_DIR="${UPLOAD_DIR:-/opt/crm-app/current/CRM-BACKEND/uploads}"
 
 print_warning "⚠️  WARNING: This will permanently delete ALL CASES from PRODUCTION!"
 echo ""

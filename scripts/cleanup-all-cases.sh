@@ -60,27 +60,22 @@ print_info "COMPLETE CASE CLEANUP - $ENVIRONMENT"
 print_info "=========================================="
 echo ""
 
-# Configuration based on environment
+# Configuration based on environment — DB credentials must come from env vars
+# Required env vars: DB_USER, DB_PASSWORD (DB_HOST/PORT/NAME have safe defaults)
+DB_HOST="${DB_HOST:-localhost}"
+DB_PORT="${DB_PORT:-5432}"
+DB_NAME="${DB_NAME:-acs_db}"
+DB_USER="${DB_USER:?DB_USER is required (export or source a dotenv file)}"
+DB_PASSWORD="${DB_PASSWORD:?DB_PASSWORD is required (export or source a dotenv file)}"
+REDIS_HOST="${REDIS_HOST:-localhost}"
+REDIS_PORT="${REDIS_PORT:-6379}"
+
 if [ "$ENVIRONMENT" == "development" ]; then
-    DB_HOST="localhost"
-    DB_PORT="5432"
-    DB_NAME="acs_db"
-    DB_USER="example_db_user"
-    DB_PASSWORD="example_db_password"
-    REDIS_HOST="localhost"
-    REDIS_PORT="6379"
-    UPLOAD_DIR="./CRM-BACKEND/uploads"
+    UPLOAD_DIR="${UPLOAD_DIR:-./CRM-BACKEND/uploads}"
     print_info "Environment: DEVELOPMENT (Local)"
 else
-    DB_HOST="localhost"
-    DB_PORT="5432"
-    DB_NAME="acs_db"
-    DB_USER="example_db_user"
-    DB_PASSWORD="example_db_password"
-    REDIS_HOST="localhost"
-    REDIS_PORT="6379"
-    UPLOAD_DIR="/opt/crm-app/current/CRM-BACKEND/uploads"
-    print_info "Environment: PRODUCTION (Server: SERVER_IP)"
+    UPLOAD_DIR="${UPLOAD_DIR:-/opt/crm-app/current/CRM-BACKEND/uploads}"
+    print_info "Environment: PRODUCTION"
 fi
 
 echo ""
