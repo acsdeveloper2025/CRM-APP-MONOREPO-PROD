@@ -60,7 +60,7 @@ class CaseDataService {
   }
 
   async getTemplateForCase(clientId: number, productId: number): Promise<ApiResponse<CaseDataTemplate>> {
-    return apiService.get('/case-data-templates/for-case', { clientId, productId });
+    return apiService.get('/case-data-templates/by-config', { clientId, productId });
   }
 
   async createTemplate(data: {
@@ -84,21 +84,25 @@ class CaseDataService {
 
   // Entries
   async getEntryForCase(caseId: string): Promise<ApiResponse<CaseDataEntry | null>> {
-    return apiService.get(`/case-data-entries/case/${caseId}`);
+    return apiService.get(`/case-data-entries/${caseId}`);
   }
 
   async createOrUpdateEntry(
     caseId: string,
-    data: { data: Record<string, unknown>; isCompleted?: boolean }
+    data: { data: Record<string, unknown> }
   ): Promise<ApiResponse<CaseDataEntry>> {
-    return apiService.post(`/case-data-entries/case/${caseId}`, data);
+    return apiService.post(`/case-data-entries/${caseId}`, data);
   }
 
   async updateEntry(
     caseId: string,
-    data: { data: Record<string, unknown>; isCompleted?: boolean }
+    data: { data: Record<string, unknown> }
   ): Promise<ApiResponse<CaseDataEntry>> {
-    return apiService.put(`/case-data-entries/case/${caseId}`, data);
+    return apiService.put(`/case-data-entries/${caseId}`, data);
+  }
+
+  async completeEntry(caseId: string): Promise<ApiResponse<unknown>> {
+    return apiService.post(`/case-data-entries/${caseId}/complete`, {});
   }
 }
 
