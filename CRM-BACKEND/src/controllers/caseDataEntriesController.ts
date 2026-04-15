@@ -176,6 +176,35 @@ const validateDataAgainstTemplate = (
  */
 
 /**
+ * Load a case by either its UUID primary key OR its numeric `case_id`
+ * (the human-readable auto-increment). Every handler in this file
+ * accepts either identifier via the route, so this dispatch must live
+ * in one place. Returns the canonical UUID `id` (used for all
+ * downstream queries against case_data_entries.case_id which is a
+ * UUID FK) plus the scope + status fields the handlers need.
+ */
+const loadCaseByIdentifier = async (
+  identifier: string
+): Promise<{ id: string; clientId: number; productId: number; status: string } | null> => {
+  const trimmed = identifier.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const isNumeric = /^\d+$/.test(trimmed);
+  const whereClause = isNumeric ? 'case_id = $1' : 'id = $1';
+  const sqlParam: string | number = isNumeric ? parseInt(trimmed, 10) : trimmed;
+  const result = await query<{
+    id: string;
+    clientId: number;
+    productId: number;
+    status: string;
+  }>(`SELECT id, client_id, product_id, status FROM cases WHERE ${whereClause} LIMIT 1`, [
+    sqlParam,
+  ]);
+  return result.rows[0] || null;
+};
+
+/**
  * Resolve the active template (id + version) for a client-product pair
  * inside a transaction, taking a FOR SHARE lock so concurrent
  * updateTemplate writers cannot re-version it mid-save.
@@ -216,13 +245,8 @@ const getTemplateFields = async (
 // ---------------------------------------------------------------------------
 export const getEntry = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { caseId } = req.params;
-
-    const caseRes = await query(
-      `SELECT id, client_id, product_id, status FROM cases WHERE id = $1`,
-      [caseId]
-    );
-    const caseRow = caseRes.rows[0];
+    const { caseId: rawCaseId } = req.params;
+    const caseRow = await loadCaseByIdentifier(rawCaseId);
     if (!caseRow) {
       return res.status(404).json({
         success: false,
@@ -230,6 +254,10 @@ export const getEntry = async (req: AuthenticatedRequest, res: Response) => {
         error: { code: 'NOT_FOUND' },
       });
     }
+    // Canonical UUID — every downstream query (case_data_entries.case_id,
+    // invalidateCase, history writes, etc.) must use this, never the
+    // route param which may be the numeric public case_id.
+    const caseId = caseRow.id;
 
     const entriesRes = await query(
       `SELECT id, case_id, template_id, template_version, instance_index, instance_label,
@@ -302,15 +330,11 @@ export const getEntry = async (req: AuthenticatedRequest, res: Response) => {
 // ---------------------------------------------------------------------------
 export const createInstance = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { caseId } = req.params;
+    const { caseId: rawCaseId } = req.params;
     const { instanceLabel } = req.body as { instanceLabel?: string };
     const userId = req.user!.id;
 
-    const caseRes = await query(
-      `SELECT id, client_id, product_id, status FROM cases WHERE id = $1`,
-      [caseId]
-    );
-    const caseRow = caseRes.rows[0];
+    const caseRow = await loadCaseByIdentifier(rawCaseId);
     if (!caseRow) {
       return res.status(404).json({
         success: false,
@@ -318,6 +342,7 @@ export const createInstance = async (req: AuthenticatedRequest, res: Response) =
         error: { code: 'NOT_FOUND' },
       });
     }
+    const caseId = caseRow.id;
     if (caseRow.status === 'COMPLETED') {
       return res.status(400).json({
         success: false,
@@ -401,7 +426,7 @@ export const createInstance = async (req: AuthenticatedRequest, res: Response) =
 // ---------------------------------------------------------------------------
 export const saveInstance = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { caseId, instanceIndex } = req.params;
+    const { caseId: rawCaseId, instanceIndex } = req.params;
     const instanceIdx = Number(instanceIndex);
     const { data, templateVersion } = req.body as {
       data: Record<string, unknown>;
@@ -409,11 +434,7 @@ export const saveInstance = async (req: AuthenticatedRequest, res: Response) => 
     };
     const userId = req.user!.id;
 
-    const caseRes = await query(
-      `SELECT id, client_id, product_id, status FROM cases WHERE id = $1`,
-      [caseId]
-    );
-    const caseRow = caseRes.rows[0];
+    const caseRow = await loadCaseByIdentifier(rawCaseId);
     if (!caseRow) {
       return res.status(404).json({
         success: false,
@@ -421,6 +442,7 @@ export const saveInstance = async (req: AuthenticatedRequest, res: Response) => 
         error: { code: 'NOT_FOUND' },
       });
     }
+    const caseId = caseRow.id;
     if (caseRow.status === 'COMPLETED') {
       return res.status(400).json({
         success: false,
@@ -585,17 +607,14 @@ export const saveInstance = async (req: AuthenticatedRequest, res: Response) => 
 // ---------------------------------------------------------------------------
 export const deleteInstance = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { caseId, instanceIndex } = req.params;
+    const { caseId: rawCaseId, instanceIndex } = req.params;
     const instanceIdx = Number(instanceIndex);
 
-    const caseRes = await query(
-      `SELECT id, client_id, product_id, status FROM cases WHERE id = $1`,
-      [caseId]
-    );
-    const caseRow = caseRes.rows[0];
+    const caseRow = await loadCaseByIdentifier(rawCaseId);
     if (!caseRow) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } });
     }
+    const caseId = caseRow.id;
     if (caseRow.status === 'COMPLETED') {
       return res.status(400).json({ success: false, error: { code: 'CASE_COMPLETED' } });
     }
@@ -630,14 +649,10 @@ export const deleteInstance = async (req: AuthenticatedRequest, res: Response) =
 // ---------------------------------------------------------------------------
 export const completeCase = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { caseId } = req.params;
+    const { caseId: rawCaseId } = req.params;
     const userId = req.user!.id;
 
-    const caseRes = await query(
-      `SELECT id, client_id, product_id, status FROM cases WHERE id = $1`,
-      [caseId]
-    );
-    const caseRow = caseRes.rows[0];
+    const caseRow = await loadCaseByIdentifier(rawCaseId);
     if (!caseRow) {
       return res.status(404).json({
         success: false,
@@ -645,6 +660,7 @@ export const completeCase = async (req: AuthenticatedRequest, res: Response) => 
         error: { code: 'NOT_FOUND' },
       });
     }
+    const caseId = caseRow.id;
     if (caseRow.status === 'COMPLETED') {
       return res.status(400).json({
         success: false,
