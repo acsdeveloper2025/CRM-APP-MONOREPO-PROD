@@ -26,15 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Save,
-  CheckCircle,
-  AlertCircle,
-  FileText,
-  Loader2,
-  Plus,
-  Trash2,
-} from 'lucide-react';
+import { Save, CheckCircle, AlertCircle, FileText, Loader2, Plus, Trash2 } from 'lucide-react';
 import {
   useCaseDataBundle,
   useCreateInstance,
@@ -79,12 +71,12 @@ const extractApiError = (err: unknown): ApiErrorShape['response']['data'] & { st
  * dropped rather than written as NaN, BOOLEAN defaults honour string
  * "true"/"false", MULTISELECT defaults are split on commas.
  */
-const buildDefaultsForFields = (
-  fields: CaseDataTemplateField[]
-): Record<string, unknown> => {
+const buildDefaultsForFields = (fields: CaseDataTemplateField[]): Record<string, unknown> => {
   const defaults: Record<string, unknown> = {};
   for (const field of fields) {
-    if (field.defaultValue == null || field.defaultValue === '') { continue; }
+    if (field.defaultValue == null || field.defaultValue === '') {
+      continue;
+    }
     switch (field.fieldType) {
       case 'NUMBER': {
         const n = Number(field.defaultValue);
@@ -99,7 +91,7 @@ const buildDefaultsForFields = (
       case 'MULTISELECT':
         defaults[field.fieldKey] = field.defaultValue
           .split(',')
-          .map(s => s.trim())
+          .map((s) => s.trim())
           .filter(Boolean);
         break;
       default:
@@ -127,7 +119,9 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
   const [confirmDeleteIdx, setConfirmDeleteIdx] = useState<number | null>(null);
 
   const template = bundle?.template;
-  const entries = bundle?.entries || [];
+  // Memoised so the empty-array fallback doesn't create a new reference
+  // on every render and retrigger dependent useEffect / useBlocker hooks.
+  const entries = useMemo(() => bundle?.entries ?? [], [bundle?.entries]);
   const caseCompleted = bundle?.caseStatus === 'COMPLETED';
   const effectiveReadonly = readonly || caseCompleted;
   const isDirty = dirtyIndexes.size > 0;
@@ -137,12 +131,16 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
   // For freshly-created instances whose server data is still empty, seed
   // the form with template defaults (type-safe — no NaN leaks).
   useEffect(() => {
-    if (!entries.length) { return; }
+    if (!entries.length) {
+      return;
+    }
     const defaults = template?.fields ? buildDefaultsForFields(template.fields) : {};
-    setFormByIndex(prev => {
+    setFormByIndex((prev) => {
       const next = { ...prev };
       for (const entry of entries) {
-        if (dirtyIndexes.has(entry.instanceIndex)) { continue; }
+        if (dirtyIndexes.has(entry.instanceIndex)) {
+          continue;
+        }
         const serverData = (entry.data || {}) as Record<string, unknown>;
         next[entry.instanceIndex] =
           Object.keys(serverData).length === 0 ? { ...defaults } : serverData;
@@ -150,17 +148,27 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
       return next;
     });
     // Ensure activeTab points to a real instance.
-    setActiveTab(prev => {
-      const ids = entries.map(e => String(e.instanceIndex));
-      if (ids.includes(prev)) { return prev; }
+    setActiveTab((prev) => {
+      const ids = entries.map((e) => String(e.instanceIndex));
+      if (ids.includes(prev)) {
+        return prev;
+      }
       return ids[0] || '';
     });
   }, [entries, dirtyIndexes, template]);
 
   // Block in-app navigation when there are unsaved changes.
   useBlocker(({ currentLocation, nextLocation }) => {
-    if (!isDirty) { return false; }
-    if (currentLocation.pathname === nextLocation.pathname) { return false; }
+    if (!isDirty) {
+      return false;
+    }
+    if (currentLocation.pathname === nextLocation.pathname) {
+      return false;
+    }
+    // useBlocker's shouldBlock callback must return a boolean synchronously,
+    // so a promise-based modal isn't an option here. window.confirm is the
+    // only built-in that satisfies the API contract.
+    // eslint-disable-next-line no-alert
     return !window.confirm('You have unsaved changes. Leave without saving?');
   });
 
@@ -177,19 +185,25 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
   }, [isDirty]);
 
   const handleFieldChange = (index: number, fieldKey: string, value: unknown) => {
-    setFormByIndex(prev => ({
+    setFormByIndex((prev) => ({
       ...prev,
       [index]: { ...(prev[index] || {}), [fieldKey]: value },
     }));
-    setDirtyIndexes(prev => new Set(prev).add(index));
+    setDirtyIndexes((prev) => new Set(prev).add(index));
   };
 
   const handleCreateInstance = async () => {
+    // Intentional minimal UX for the instance-label step — a full modal
+    // would be ceremony for a one-line input that the backend also
+    // auto-labels ("Primary" / "Instance N") if left blank.
+    // eslint-disable-next-line no-alert
     const label = window.prompt(
       'Label for this instance (e.g. "Co-Applicant 1", "Asset 2")',
       entries.length === 0 ? 'Primary' : `Instance ${entries.length + 1}`
     );
-    if (label === null) { return; }
+    if (label === null) {
+      return;
+    }
     try {
       const created = await createInstance.mutateAsync(label.trim() || undefined);
       setActiveTab(String(created.instanceIndex));
@@ -202,12 +216,12 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
   const handleDeleteInstance = async (idx: number) => {
     try {
       await deleteInstance.mutateAsync(idx);
-      setDirtyIndexes(prev => {
+      setDirtyIndexes((prev) => {
         const next = new Set(prev);
         next.delete(idx);
         return next;
       });
-      setFormByIndex(prev => {
+      setFormByIndex((prev) => {
         const next = { ...prev };
         delete next[idx];
         return next;
@@ -222,7 +236,9 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
   };
 
   const handleSaveDraft = async (index: number) => {
-    if (!template) { return; }
+    if (!template) {
+      return;
+    }
     const data = formByIndex[index] || {};
     try {
       await saveInstance.mutateAsync({
@@ -230,7 +246,7 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
         data,
         templateVersion: template.version,
       });
-      setDirtyIndexes(prev => {
+      setDirtyIndexes((prev) => {
         const next = new Set(prev);
         next.delete(index);
         return next;
@@ -240,9 +256,7 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
     } catch (err) {
       const apiErr = extractApiError(err);
       if (apiErr.error?.code === 'TEMPLATE_VERSION_CHANGED') {
-        toast.error(
-          `Template was updated (v${apiErr.error.activeVersion}). Reloading the form…`
-        );
+        toast.error(`Template was updated (v${apiErr.error.activeVersion}). Reloading the form…`);
         await refetch();
         setDirtyIndexes(new Set());
         return;
@@ -259,7 +273,9 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
 
   const handleCompleteConfirmed = async () => {
     setConfirmCompleteOpen(false);
-    if (!template) { return; }
+    if (!template) {
+      return;
+    }
     try {
       // Save any dirty drafts first so the server validates the latest state.
       for (const idx of Array.from(dirtyIndexes)) {
@@ -277,9 +293,7 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
     } catch (err) {
       const apiErr = extractApiError(err);
       if (apiErr.error?.code === 'TEMPLATE_VERSION_CHANGED') {
-        toast.error(
-          `Template was updated (v${apiErr.error.activeVersion}). Reloading the form…`
-        );
+        toast.error(`Template was updated (v${apiErr.error.activeVersion}). Reloading the form…`);
         await refetch();
         return;
       }
@@ -408,7 +422,7 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
       {entries.length > 0 && (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="flex-wrap h-auto">
-            {entries.map(entry => (
+            {entries.map((entry) => (
               <TabsTrigger key={entry.instanceIndex} value={String(entry.instanceIndex)}>
                 {entry.instanceLabel}
                 {dirtyIndexes.has(entry.instanceIndex) && (
@@ -418,7 +432,7 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
             ))}
           </TabsList>
 
-          {entries.map(entry => (
+          {entries.map((entry) => (
             <TabsContent key={entry.instanceIndex} value={String(entry.instanceIndex)}>
               <InstanceForm
                 entry={entry}
@@ -442,9 +456,8 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
           <AlertDialogHeader>
             <AlertDialogTitle>Mark case as complete?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will validate every instance ({entries.length}) and, if all required fields
-              pass, lock the case as <strong>COMPLETED</strong>. This cannot be undone from this
-              screen.
+              This will validate every instance ({entries.length}) and, if all required fields pass,
+              lock the case as <strong>COMPLETED</strong>. This cannot be undone from this screen.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -457,7 +470,7 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
       {/* Confirm delete instance */}
       <AlertDialog
         open={confirmDeleteIdx !== null}
-        onOpenChange={open => !open && setConfirmDeleteIdx(null)}
+        onOpenChange={(open) => !open && setConfirmDeleteIdx(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -506,9 +519,13 @@ function InstanceForm({
   const sections = useMemo(() => {
     const map = new Map<string, CaseDataTemplateField[]>();
     for (const field of fields) {
-      if (!field.isActive) { continue; }
+      if (!field.isActive) {
+        continue;
+      }
       const section = field.section || 'General';
-      if (!map.has(section)) { map.set(section, []); }
+      if (!map.has(section)) {
+        map.set(section, []);
+      }
       map.get(section)?.push(field);
     }
     for (const list of map.values()) {
@@ -543,12 +560,7 @@ function InstanceForm({
                 Remove
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onSave}
-              disabled={!isDirty || isSaving}
-            >
+            <Button variant="outline" size="sm" onClick={onSave} disabled={!isDirty || isSaving}>
               {isSaving ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               ) : (
@@ -567,12 +579,12 @@ function InstanceForm({
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {list.map(field => (
+              {list.map((field) => (
                 <DynamicField
                   key={field.fieldKey}
                   field={field}
                   value={formData[field.fieldKey]}
-                  onChange={v => onFieldChange(field.fieldKey, v)}
+                  onChange={(v) => onFieldChange(field.fieldKey, v)}
                   readonly={readonly || entry.isCompleted}
                 />
               ))}
@@ -602,7 +614,7 @@ function DynamicField({
   const handleToggle = useCallback(
     (opt: string, selected: boolean) => {
       const current = Array.isArray(value) ? [...(value as string[])] : [];
-      onChange(selected ? current.filter(v => v !== opt) : [...current, opt]);
+      onChange(selected ? current.filter((v) => v !== opt) : [...current, opt]);
     },
     [value, onChange]
   );
@@ -618,7 +630,7 @@ function DynamicField({
         <Input
           id={fieldId}
           value={typeof value === 'string' ? value : ''}
-          onChange={e => onChange(e.target.value)}
+          onChange={(e) => onChange(e.target.value)}
           placeholder={field.placeholder || ''}
           disabled={readonly}
         />
@@ -628,7 +640,7 @@ function DynamicField({
           id={fieldId}
           type="number"
           value={value != null ? String(value) : ''}
-          onChange={e => onChange(e.target.value ? Number(e.target.value) : null)}
+          onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
           placeholder={field.placeholder || ''}
           disabled={readonly}
         />
@@ -638,7 +650,7 @@ function DynamicField({
           id={fieldId}
           type="date"
           value={typeof value === 'string' ? value : ''}
-          onChange={e => onChange(e.target.value)}
+          onChange={(e) => onChange(e.target.value)}
           disabled={readonly}
         />
       )}
@@ -646,7 +658,7 @@ function DynamicField({
         <Textarea
           id={fieldId}
           value={typeof value === 'string' ? value : ''}
-          onChange={e => onChange(e.target.value)}
+          onChange={(e) => onChange(e.target.value)}
           placeholder={field.placeholder || ''}
           disabled={readonly}
           rows={3}
@@ -662,7 +674,7 @@ function DynamicField({
             <SelectValue placeholder={field.placeholder || 'Select...'} />
           </SelectTrigger>
           <SelectContent>
-            {(field.options || []).map(opt => (
+            {(field.options || []).map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>
@@ -685,7 +697,7 @@ function DynamicField({
       )}
       {field.fieldType === 'MULTISELECT' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-          {(field.options || []).map(opt => {
+          {(field.options || []).map((opt) => {
             const selected = Array.isArray(value) && (value as string[]).includes(opt.value);
             const optionId = `${fieldId}-${opt.value}`;
             return (
