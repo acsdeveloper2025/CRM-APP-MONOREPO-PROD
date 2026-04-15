@@ -30,6 +30,7 @@ import { config } from '@/config';
 import { logger } from '@/config/logger';
 import { query } from '@/config/database';
 import type { AuditLogData } from '@/utils/auditLogger';
+import { errorMessage } from '@/utils/errorMessage';
 
 const QUEUE_NAME = 'audit-log-processing';
 
@@ -66,7 +67,7 @@ export const enqueueAuditLog = async (data: AuditLogData): Promise<void> => {
     await auditLogQueue.add(data, { jobId: undefined });
   } catch (error) {
     logger.error('Failed to enqueue audit log, falling back to direct insert', {
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage(error),
     });
     // Fallback: try the direct insert path so the record isn't lost
     // on a Redis outage. If this fails too we log and drop — same

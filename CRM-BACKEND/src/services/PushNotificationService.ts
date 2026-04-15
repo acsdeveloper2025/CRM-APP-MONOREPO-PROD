@@ -11,6 +11,7 @@ import { logger } from '../utils/logger';
 import { config } from '../config';
 import { query } from '../config/database';
 import { circuitBreakers } from '../utils/circuitBreaker';
+import { errorMessage } from '@/utils/errorMessage';
 
 interface PushNotificationPayload {
   title: string;
@@ -444,7 +445,10 @@ export class PushNotificationService {
           }
         } catch (error) {
           results.failed++;
-          results.errors.push({ userId, error: error.message });
+          results.errors.push({
+            userId,
+            error: errorMessage(error),
+          });
           logger.error('APNS notification error:', { userId, error });
         }
       }

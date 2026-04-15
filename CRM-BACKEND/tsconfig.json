@@ -25,6 +25,7 @@
     "allowUnusedLabels": true,
     "allowUnreachableCode": true,
     "exactOptionalPropertyTypes": false,
+    "useUnknownInCatchVariables": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "baseUrl": "./src",

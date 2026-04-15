@@ -5,6 +5,7 @@ import {
   type FieldUserLiveStatus,
 } from '@/services/fieldMonitoringService';
 import { getScopedOperationalUserIds } from '@/security/userScope';
+import { errorMessage } from '@/utils/errorMessage';
 
 const ALLOWED_STATUSES: FieldUserLiveStatus[] = [
   'Offline',
@@ -81,7 +82,7 @@ export const getFieldMonitoringStats = async (
       message: 'Failed to retrieve field monitoring stats',
       error: {
         code: 'FIELD_MONITORING_STATS_ERROR',
-        details: error instanceof Error ? error.message : String(error),
+        details: errorMessage(error),
       },
     });
   }
@@ -116,7 +117,7 @@ export const getFieldMonitoringUsers = async (
       message: 'Failed to retrieve field monitoring roster',
       error: {
         code: 'FIELD_MONITORING_ROSTER_ERROR',
-        details: error instanceof Error ? error.message : String(error),
+        details: errorMessage(error),
       },
     });
   }
@@ -153,7 +154,7 @@ export const getFieldMonitoringUserDetail = async (
       message: 'Failed to retrieve field monitoring user detail',
       error: {
         code: 'FIELD_MONITORING_USER_DETAIL_ERROR',
-        details: error instanceof Error ? error.message : String(error),
+        details: errorMessage(error),
       },
     });
   }

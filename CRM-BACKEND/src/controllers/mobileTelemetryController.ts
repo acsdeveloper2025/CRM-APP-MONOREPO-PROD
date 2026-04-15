@@ -1,6 +1,7 @@
 import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { MobileTelemetryService } from '@/services/mobileTelemetryService';
+import { errorMessage } from '@/utils/errorMessage';
 
 type TelemetryEvent = {
   id?: string;
@@ -98,7 +99,7 @@ export class MobileTelemetryController {
           code: 'TELEMETRY_INGEST_FAILED',
           timestamp: new Date().toISOString(),
           details: {
-            reason: error instanceof Error ? error.message : String(error),
+            reason: errorMessage(error),
           },
         },
       });

@@ -8,6 +8,7 @@ import { circuitBreakers } from '@/utils/circuitBreaker';
 import { authenticateToken, getAuthContextCacheStats } from '@/middleware/auth';
 import { getClientScopeCacheStats } from '@/middleware/clientAccess';
 import { getProductScopeCacheStats } from '@/middleware/productAccess';
+import { errorMessage } from '@/utils/errorMessage';
 
 const router = Router();
 
@@ -169,7 +170,7 @@ router.get('/health/detailed', authenticateToken, async (req, res) => {
       uptime: Math.floor(process.uptime()),
       version: process.env.npm_package_version || '1.0.0',
       environment: process.env.NODE_ENV || 'development',
-      error: error.message,
+      error: errorMessage(error),
     });
   }
 });
@@ -222,7 +223,7 @@ async function checkDatabase(): Promise<ServiceHealth> {
     logger.error('Database health check failed:', error);
     return {
       status: 'ERROR',
-      message: `Database connection failed: ${error.message}`,
+      message: `Database connection failed: ${errorMessage(error)}`,
     };
   }
 }
@@ -265,7 +266,7 @@ async function checkRedis(): Promise<ServiceHealth> {
     logger.error('Redis health check failed:', error);
     return {
       status: 'ERROR',
-      message: `Redis connection failed: ${error.message}`,
+      message: `Redis connection failed: ${errorMessage(error)}`,
     };
   }
 }
@@ -328,7 +329,7 @@ async function checkDisk(): Promise<ServiceHealth> {
   } catch (error) {
     return {
       status: 'ERROR',
-      message: `Disk operation failed: ${error.message}`,
+      message: `Disk operation failed: ${errorMessage(error)}`,
     };
   }
 }
@@ -459,7 +460,7 @@ router.get('/health/deep', authenticateToken, async (_req, res) => {
     res.status(503).json({
       status: 'ERROR',
       timestamp: new Date().toISOString(),
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage(error),
     });
   }
 });
@@ -485,7 +486,7 @@ router.get('/health/ready', async (req, res) => {
       status: 'NOT_READY',
       timestamp: new Date().toISOString(),
       message: 'Application is not ready to serve traffic',
-      error: error.message,
+      error: errorMessage(error),
     });
   }
 });
@@ -565,7 +566,7 @@ router.get('/health/metrics', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve performance metrics',
-      error: error.message,
+      error: errorMessage(error),
     });
   }
 });

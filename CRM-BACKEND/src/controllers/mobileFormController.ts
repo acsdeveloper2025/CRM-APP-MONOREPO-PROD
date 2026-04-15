@@ -135,6 +135,7 @@ import { queueCaseCompletionNotification } from '../queues/notificationQueue';
 import { logger } from '../utils/logger';
 import { CaseStatusSyncService } from '../services/caseStatusSyncService';
 import { MobileOperationService } from '@/services/mobileOperationService';
+import { errorMessage } from '@/utils/errorMessage';
 // Enhanced services temporarily disabled for debugging
 
 export class MobileFormController {
@@ -2647,10 +2648,12 @@ export class MobileFormController {
         },
       });
     } catch (error) {
+      const errMessage = errorMessage(error);
+      const errStack = error instanceof Error ? error.stack : undefined;
       logger.error('Get case form submissions error:', error);
       logger.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
+        message: errMessage,
+        stack: errStack,
         taskId: String(req.params.taskId || ''),
         userId: req.user?.id,
       });
@@ -2660,7 +2663,7 @@ export class MobileFormController {
         error: {
           code: 'FORM_RETRIEVAL_FAILED',
           timestamp: new Date().toISOString(),
-          details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+          details: process.env.NODE_ENV === 'development' ? errMessage : undefined,
         },
       });
     }

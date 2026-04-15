@@ -6,6 +6,7 @@ import { logger } from '@/config/logger';
 import { query } from '@/config/database';
 import { performance } from 'perf_hooks';
 import { v4 as uuidv4 } from 'uuid';
+import { errorMessage } from '@/utils/errorMessage';
 
 export interface PerformanceMetrics {
   requestId: string;
@@ -226,7 +227,7 @@ async function flushMetricsBuffer(): Promise<void> {
     // rather than requeue (avoids unbounded retry loops during DB
     // outages).
     logger.error('Failed to flush performance metrics batch', {
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage(error),
       batchSize: batch.length,
     });
   }
@@ -366,7 +367,7 @@ export const databaseMonitoring = async (req: Request, res: Response, next: Next
     next();
   } catch (error) {
     logger.error('Database connection check failed', {
-      error: error.message,
+      error: errorMessage(error),
       url: req.originalUrl,
     });
 

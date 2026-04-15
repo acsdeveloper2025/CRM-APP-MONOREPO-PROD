@@ -1,6 +1,7 @@
 import type { Pool, QueryResult } from 'pg';
 import { logger } from '@/config/logger';
 import { performance } from 'perf_hooks';
+import { errorMessage } from '@/utils/errorMessage';
 
 export interface QueryOptions {
   name?: string;
@@ -67,7 +68,7 @@ export class QueryOptimizationService {
       logger.error('Query execution failed', {
         queryName,
         duration: `${duration.toFixed(2)}ms`,
-        error: error.message,
+        error: errorMessage(error),
         query: text.substring(0, 200),
       });
       throw error;

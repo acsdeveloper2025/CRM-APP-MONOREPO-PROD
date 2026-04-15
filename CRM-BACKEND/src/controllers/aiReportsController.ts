@@ -6,6 +6,7 @@ import type { AuthenticatedRequest } from '../middleware/auth';
 import { geminiAIService, type VerificationReportData } from '../services/GeminiAIService';
 import { getReportTemplate, getRiskAssessment } from '../utils/reportTemplates';
 import type { QueryParams } from '../types/database';
+import { errorMessage } from '@/utils/errorMessage';
 
 /**
  * Generate AI-powered verification report for a form submission
@@ -186,7 +187,7 @@ export const generateFormSubmissionReport = async (req: AuthenticatedRequest, re
     res.status(500).json({
       success: false,
       message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      error: process.env.NODE_ENV === 'development' ? errorMessage(error) : undefined,
     });
   }
 };
@@ -268,7 +269,7 @@ export const testAIConnection = async (req: AuthenticatedRequest, res: Response)
     res.status(500).json({
       success: false,
       message: 'Failed to test AI connection',
-      error: error.message,
+      error: errorMessage(error),
     });
   }
 };
