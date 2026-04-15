@@ -8,6 +8,7 @@ import { useCase, useAssignCase } from '@/hooks/useCases';
 import { useCaseFormSubmissions } from '@/hooks/useForms';
 import { ReassignCaseModal } from '@/components/cases/ReassignCaseModal';
 import { OptimizedFormSubmissionViewer } from '@/components/forms/OptimizedFormSubmissionViewer';
+import { CaseDataEntryTab } from '@/components/cases/CaseDataEntryTab';
 import {
   ArrowLeft,
   MapPin,
@@ -23,6 +24,7 @@ import {
   Camera,
   CheckSquare,
   FileCheck,
+  ClipboardList,
 } from 'lucide-react';
 import { CaseAttachmentsSection } from '@/components/attachments/CaseAttachmentsSection';
 import { VerificationTasksManager } from '@/components/verification-tasks';
@@ -202,7 +204,7 @@ export const CaseDetailPage: React.FC = () => {
         {/* Main Content */}
         <div className="lg:col-span-2">
           <Tabs defaultValue="details" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="details" className="flex items-center space-x-2">
                 <FileText className="h-4 w-4" />
                 <span>Case Details</span>
@@ -228,6 +230,10 @@ export const CaseDetailPage: React.FC = () => {
                     {kycTasks.length}
                   </Badge>
                 )}
+              </TabsTrigger>
+              <TabsTrigger value="case-data" className="flex items-center space-x-2">
+                <ClipboardList className="h-4 w-4" />
+                <span>Case Data</span>
               </TabsTrigger>
               <TabsTrigger value="attachments" className="flex items-center space-x-2">
                 <Camera className="h-4 w-4" />
@@ -440,6 +446,15 @@ export const CaseDetailPage: React.FC = () => {
                   </CardContent>
                 </Card>
               )}
+            </TabsContent>
+
+            <TabsContent value="case-data">
+              <CaseDataEntryTab
+                caseId={safeId}
+                clientId={caseItem?.clientId ? Number(caseItem.clientId) : undefined}
+                productId={caseItem?.productId ? Number(caseItem.productId) : undefined}
+                readonly={caseItem?.status === 'COMPLETED'}
+              />
             </TabsContent>
 
             <TabsContent value="attachments">
