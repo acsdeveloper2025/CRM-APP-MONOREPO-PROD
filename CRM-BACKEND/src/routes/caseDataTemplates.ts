@@ -13,6 +13,7 @@ import {
   deleteTemplate,
   parseUpload,
 } from '@/controllers/caseDataTemplatesController';
+import { PREFILL_SOURCE_KEYS } from '@/config/templateFieldPrefillCatalog';
 
 const router = express.Router();
 
@@ -32,8 +33,7 @@ const templateUpload = multer({
     const ok =
       name.endsWith('.xlsx') ||
       name.endsWith('.csv') ||
-      file.mimetype ===
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+      file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
       file.mimetype === 'text/csv' ||
       file.mimetype === 'application/csv';
     if (ok) {
@@ -174,6 +174,23 @@ const fieldValidation = [
   body('fields.*.defaultValue').optional().isString().withMessage('Default value must be a string'),
   body('fields.*.validationRules').optional().custom(assertValidValidationRules),
   body('fields.*.options').optional().custom(assertValidOptions),
+  // Sprint 5: map this field to a live system source (read-only mirror).
+  // null / omitted = normal dynamic field. Non-null must be a known
+  // catalog key; PREFILL_SOURCE_KEYS is the single source of truth.
+  body('fields.*.prefillSource')
+    .optional({ nullable: true })
+    .custom(v => {
+      if (v === null || v === undefined || v === '') {
+        return true;
+      }
+      if (typeof v !== 'string') {
+        throw new Error('prefillSource must be a string or null');
+      }
+      if (!PREFILL_SOURCE_KEYS.has(v)) {
+        throw new Error(`Unknown prefillSource "${v}"`);
+      }
+      return true;
+    }),
 ];
 
 const createTemplateValidation = [
@@ -214,6 +231,20 @@ const updateTemplateValidation = [
     .isIn(['TEXT', 'NUMBER', 'DATE', 'SELECT', 'MULTISELECT', 'BOOLEAN', 'TEXTAREA']),
   body('fields.*.validationRules').optional().custom(assertValidValidationRules),
   body('fields.*.options').optional().custom(assertValidOptions),
+  body('fields.*.prefillSource')
+    .optional({ nullable: true })
+    .custom(v => {
+      if (v === null || v === undefined || v === '') {
+        return true;
+      }
+      if (typeof v !== 'string') {
+        throw new Error('prefillSource must be a string or null');
+      }
+      if (!PREFILL_SOURCE_KEYS.has(v)) {
+        throw new Error(`Unknown prefillSource "${v}"`);
+      }
+      return true;
+    }),
 ];
 
 const listTemplatesValidation = [

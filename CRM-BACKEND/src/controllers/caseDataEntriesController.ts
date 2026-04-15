@@ -5,6 +5,12 @@ import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
 import { CacheKeys, invalidateCachePatterns } from '@/services/enterpriseCacheService';
 import { recordEntryHistory, markCaseCompleted } from '@/services/caseLifecycleService';
+import {
+  loadPrefillContext,
+  getPrefillValue,
+  type PrefillContext,
+} from '@/services/templateFieldPrefillResolver';
+import { getPrefillEntry } from '@/config/templateFieldPrefillCatalog';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -23,6 +29,10 @@ interface TemplateField {
   validationRules: Record<string, unknown>;
   options: Array<{ label: string; value: string }>;
   isActive: boolean;
+  // Sprint 5: null = normal dynamic field (lives in JSONB). Non-null =
+  // read-only mirror of a system field; value comes from the prefill
+  // resolver, never from case_data_entries.data.
+  prefillSource: string | null;
 }
 
 type ValidationMode = 'draft' | 'complete';
@@ -45,11 +55,17 @@ const validateDataAgainstTemplate = (
   mode: ValidationMode
 ): string[] => {
   const errors: string[] = [];
-  const fieldMap = new Map(fields.map(f => [f.fieldKey, f]));
+  // Mapped (prefill_source !== null) fields live on the case/task/applicant
+  // tables, never in data. Drop them from the field map so required/type
+  // checks below only apply to dynamic fields, and "Unknown field"
+  // rejection below doesn't fire if someone accidentally POSTs one.
+  const dynamicFields = fields.filter(f => !f.prefillSource);
+  const mappedKeys = new Set(fields.filter(f => f.prefillSource).map(f => f.fieldKey));
+  const fieldMap = new Map(dynamicFields.map(f => [f.fieldKey, f]));
 
   // Required-field check is only enforced on complete.
   if (mode === 'complete') {
-    for (const field of fields) {
+    for (const field of dynamicFields) {
       if (field.isRequired) {
         const value = data[field.fieldKey];
         if (value === undefined || value === null || value === '') {
@@ -60,6 +76,11 @@ const validateDataAgainstTemplate = (
   }
 
   for (const [key, value] of Object.entries(data)) {
+    // Ignore any mapped-field keys that slipped into data — the
+    // controller strips them on save too, this is defence-in-depth.
+    if (mappedKeys.has(key)) {
+      continue;
+    }
     const field = fieldMap.get(key);
     if (!field) {
       errors.push(`Unknown field "${key}" is not part of the template`);
@@ -168,6 +189,49 @@ const validateDataAgainstTemplate = (
 };
 
 /**
+ * Complete-time check for mapped (prefill-source) fields: a required
+ * mapped field is "filled" if its live source value is non-empty.
+ * If the source is empty, surface a clear error telling the admin to
+ * fix it in Edit Case / the related entity before completing.
+ */
+const validateMappedRequired = (fields: TemplateField[], prefillCtx: PrefillContext): string[] => {
+  const errors: string[] = [];
+  for (const field of fields) {
+    if (!field.prefillSource || !field.isRequired) {
+      continue;
+    }
+    const v = getPrefillValue(prefillCtx, field.prefillSource);
+    if (v === null || v === undefined || v === '') {
+      const entry = getPrefillEntry(field.prefillSource);
+      const sourceLabel = entry?.label ?? field.prefillSource;
+      errors.push(
+        `Field "${field.fieldLabel}" (mapped to ${sourceLabel}) is empty on this case — please set it before completing.`
+      );
+    }
+  }
+  return errors;
+};
+
+/**
+ * Attach a live `prefillValue` to every mapped field in-place. Returns
+ * the same array for call-site chaining convenience.
+ */
+const decorateFieldsWithPrefill = (
+  fields: TemplateField[],
+  ctx: PrefillContext
+): TemplateField[] => {
+  for (const field of fields) {
+    if (field.prefillSource) {
+      (field as TemplateField & { prefillValue?: unknown }).prefillValue = getPrefillValue(
+        ctx,
+        field.prefillSource
+      );
+    }
+  }
+  return fields;
+};
+
+/**
  * NOTE: Scope access (CLIENT + PRODUCT) is enforced by the
  * `requireCaseAccess` middleware chain mounted on every route in
  * caseDataEntries.ts (validateCaseAccess + validateCaseProductAccess).
@@ -231,7 +295,8 @@ const getTemplateFields = async (
   templateId: number
 ): Promise<TemplateField[]> => {
   const sql = `SELECT id, field_key, field_label, field_type, is_required, display_order,
-                      section, placeholder, default_value, validation_rules, options, is_active
+                      section, placeholder, default_value, validation_rules, options, is_active,
+                      prefill_source
                  FROM case_data_template_fields
                 WHERE template_id = $1 AND is_active = true
                 ORDER BY display_order ASC, id ASC`;
@@ -303,6 +368,12 @@ export const getEntry = async (req: AuthenticatedRequest, res: Response) => {
     let fields: TemplateField[] = [];
     if (template) {
       fields = await getTemplateFields(null, template.id);
+      // Attach live prefill values for any mapped field so the form can
+      // render read-only mirrors without a second round-trip.
+      if (fields.some(f => f.prefillSource)) {
+        const prefillCtx = await loadPrefillContext(caseId);
+        decorateFieldsWithPrefill(fields, prefillCtx);
+      }
     }
 
     return res.json({
@@ -488,7 +559,17 @@ export const saveInstance = async (req: AuthenticatedRequest, res: Response) => 
 
       // Draft validation — type sanity only.
       const fields = await getTemplateFields(client, activeTpl.id);
-      const validationErrors = validateDataAgainstTemplate(data || {}, fields, 'draft');
+      // Strip any mapped-field keys from the incoming payload. They
+      // belong to the case/task/applicant tables, never to JSONB, so
+      // persisting them would both waste bytes and risk drift.
+      const mappedKeys = new Set(fields.filter(f => f.prefillSource).map(f => f.fieldKey));
+      const cleanData: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(data || {})) {
+        if (!mappedKeys.has(k)) {
+          cleanData[k] = v;
+        }
+      }
+      const validationErrors = validateDataAgainstTemplate(cleanData, fields, 'draft');
       if (validationErrors.length > 0) {
         return { error: 'VALIDATION' as const, details: validationErrors };
       }
@@ -501,7 +582,7 @@ export const saveInstance = async (req: AuthenticatedRequest, res: Response) => 
               SET data = $1, updated_by = $2, updated_at = NOW()
             WHERE id = $3
             RETURNING *`,
-          [JSON.stringify(data || {}), userId, existing.id]
+          [JSON.stringify(cleanData), userId, existing.id]
         );
         entry = updateRes.rows[0];
         changeType = 'UPDATE';
@@ -522,7 +603,7 @@ export const saveInstance = async (req: AuthenticatedRequest, res: Response) => 
             activeTpl.version,
             instanceIdx,
             label,
-            JSON.stringify(data || {}),
+            JSON.stringify(cleanData),
             userId,
           ]
         );
@@ -535,7 +616,7 @@ export const saveInstance = async (req: AuthenticatedRequest, res: Response) => 
         caseId,
         templateId: entry.templateId,
         templateVersion: entry.templateVersion,
-        data: data || {},
+        data: cleanData,
         changeType,
         changedBy: userId,
       });
@@ -688,24 +769,46 @@ export const completeCase = async (req: AuthenticatedRequest, res: Response) => 
       // Every instance must pass full validation against its pinned
       // template version. Aggregate errors across instances so the user
       // sees all problems in one round-trip.
+      //
+      // Mapped (prefill-source) fields are checked against their live
+      // system values via validateMappedRequired — we load the prefill
+      // context once for the whole case.
       const allErrors: string[] = [];
+      // Loaded lazily: only when the first entry has at least one
+      // mapped field. Shared across iterations — the context is
+      // case-scoped, not entry-scoped.
+      let prefillCtx: PrefillContext | null = null;
       for (const entry of entries) {
         const fieldsRes = await client.query(
           `SELECT id, field_key, field_label, field_type, is_required, display_order,
-                  section, placeholder, default_value, validation_rules, options, is_active
+                  section, placeholder, default_value, validation_rules, options, is_active,
+                  prefill_source
              FROM case_data_template_fields
             WHERE template_id = $1 AND is_active = true`,
           [entry.templateId]
         );
         const fields = fieldsRes.rows as TemplateField[];
         const data = (entry.data || {}) as Record<string, unknown>;
-        if (Object.keys(data).length === 0) {
-          allErrors.push(`Instance "${entry.instanceLabel}" has no data`);
+        const hasDynamic = fields.some(f => !f.prefillSource);
+        const hasAnyData = Object.keys(data).length > 0;
+        if (hasDynamic && !hasAnyData) {
+          allErrors.push(
+            `Instance "${entry.instanceLabel}" has no data entered for its dynamic fields`
+          );
           continue;
         }
         const errors = validateDataAgainstTemplate(data, fields, 'complete');
         for (const e of errors) {
           allErrors.push(`[${entry.instanceLabel}] ${e}`);
+        }
+        if (fields.some(f => f.prefillSource)) {
+          if (!prefillCtx) {
+            prefillCtx = await loadPrefillContext(caseId, client);
+          }
+          const mappedErrors = validateMappedRequired(fields, prefillCtx);
+          for (const e of mappedErrors) {
+            allErrors.push(`[${entry.instanceLabel}] ${e}`);
+          }
         }
       }
 

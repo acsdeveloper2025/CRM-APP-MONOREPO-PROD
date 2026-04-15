@@ -34,6 +34,7 @@ import {
   useCompleteCaseDataEntry,
 } from '@/hooks/useCaseData';
 import type { CaseDataEntry, CaseDataTemplateField } from '@/services/caseDataService';
+import { getPrefillEntry } from '@/constants/templateFieldPrefillCatalog';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
@@ -225,10 +226,20 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
       return;
     }
     const data = formByIndex[index] || {};
+    // Strip mapped fields before sending. The backend will do the same
+    // on receipt (defence in depth), but clearing them client-side
+    // keeps the request smaller and avoids round-tripping data the
+    // server won't store anyway.
+    const mappedKeys = new Set(
+      (template.fields ?? []).filter(f => f.prefillSource).map(f => f.fieldKey)
+    );
+    const cleanData = Object.fromEntries(
+      Object.entries(data).filter(([k]) => !mappedKeys.has(k))
+    );
     try {
       await saveInstance.mutateAsync({
         instanceIndex: index,
-        data,
+        data: cleanData,
         templateVersion: template.version,
       });
       setDirtyIndexes((prev) => {
@@ -261,12 +272,19 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
     if (!template) {
       return;
     }
+    const mappedKeys = new Set(
+      (template.fields ?? []).filter(f => f.prefillSource).map(f => f.fieldKey)
+    );
     try {
       // Save any dirty drafts first so the server validates the latest state.
       for (const idx of Array.from(dirtyIndexes)) {
+        const raw = formByIndex[idx] || {};
+        const cleanData = Object.fromEntries(
+          Object.entries(raw).filter(([k]) => !mappedKeys.has(k))
+        );
         await saveInstance.mutateAsync({
           instanceIndex: idx,
-          data: formByIndex[idx] || {},
+          data: cleanData,
           templateVersion: template.version,
         });
       }
@@ -603,6 +621,42 @@ function DynamicField({
     },
     [value, onChange]
   );
+
+  // Sprint 5: read-only mirror of a system field. The value comes from
+  // `field.prefillValue` which the backend resolves live on every bundle
+  // render. Rendering is always a disabled <Input> regardless of the
+  // configured fieldType — mapped fields can't be edited, so fancy
+  // SELECT/MULTISELECT/BOOLEAN controls would only confuse the user.
+  if (field.prefillSource) {
+    const entry = getPrefillEntry(field.prefillSource);
+    const displayValue =
+      field.prefillValue === null || field.prefillValue === undefined
+        ? ''
+        : typeof field.prefillValue === 'object'
+          ? JSON.stringify(field.prefillValue)
+          : String(field.prefillValue);
+    return (
+      <div className="md:col-span-2">
+        <Label htmlFor={fieldId} className="mb-1.5 block">
+          {field.fieldLabel}
+          {field.isRequired && <span className="text-red-500 ml-1">*</span>}
+          <span className="ml-2 text-xs font-normal text-gray-500">
+            (from {entry?.label ?? field.prefillSource})
+          </span>
+        </Label>
+        <Input
+          id={fieldId}
+          value={displayValue}
+          disabled
+          placeholder={
+            displayValue
+              ? ''
+              : `Not set on this case — fix via Edit Case to populate ${entry?.label ?? 'source'}`
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={field.fieldType === 'TEXTAREA' ? 'md:col-span-2' : ''}>
