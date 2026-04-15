@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Eye, Trash2, GripVertical, ChevronDown } from 'lucide-react';
+import { Plus, Pencil, Eye, Trash2, GripVertical, ChevronDown, Upload } from 'lucide-react';
+import { TemplateImportDialog } from '@/components/cases/TemplateImportDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,11 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 import { useClients, useProductsByClient } from '@/hooks/useClients';
 import {
@@ -205,7 +202,11 @@ const FieldRow: React.FC<{
                 value={opt.label}
                 onChange={(e) => {
                   const newOpts = [...field.options];
-                  newOpts[oi] = { ...newOpts[oi], label: e.target.value, value: labelToKey(e.target.value) };
+                  newOpts[oi] = {
+                    ...newOpts[oi],
+                    label: e.target.value,
+                    value: labelToKey(e.target.value),
+                  };
                   onChange(index, { ...field, options: newOpts });
                 }}
                 placeholder="Label"
@@ -351,6 +352,7 @@ export const CaseDataTemplatesPage: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view'>('create');
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   // Form state
   const [form, setForm] = useState<TemplateFormData>({
@@ -503,7 +505,9 @@ export const CaseDataTemplatesPage: React.FC = () => {
     }));
   };
 
-  const cleanValidationRules = (rules: FieldFormData['validationRules']): Record<string, unknown> => {
+  const cleanValidationRules = (
+    rules: FieldFormData['validationRules']
+  ): Record<string, unknown> => {
     const cleaned: Record<string, unknown> = {};
     if (rules.min) {
       cleaned.min = Number(rules.min);
@@ -591,10 +595,16 @@ export const CaseDataTemplatesPage: React.FC = () => {
             Define data entry templates for client-product combinations
           </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Template
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Upload Excel / CSV
+          </Button>
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Template
+          </Button>
+        </div>
       </div>
 
       {/* Template List */}
@@ -715,7 +725,9 @@ export const CaseDataTemplatesPage: React.FC = () => {
                   disabled={isViewMode || dialogMode === 'edit' || !form.clientId}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={form.clientId ? 'Select product' : 'Select client first'} />
+                    <SelectValue
+                      placeholder={form.clientId ? 'Select product' : 'Select client first'}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {products.map((p) => (
@@ -774,12 +786,18 @@ export const CaseDataTemplatesPage: React.FC = () => {
             </Button>
             {!isViewMode && (
               <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving ? 'Saving...' : dialogMode === 'edit' ? 'Update Template' : 'Create Template'}
+                {isSaving
+                  ? 'Saving...'
+                  : dialogMode === 'edit'
+                    ? 'Update Template'
+                    : 'Create Template'}
               </Button>
             )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <TemplateImportDialog open={importOpen} onOpenChange={setImportOpen} />
     </div>
   );
 };
