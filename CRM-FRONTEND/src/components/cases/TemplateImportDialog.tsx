@@ -292,7 +292,11 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
               <Input
                 id="import-file"
                 type="file"
-                accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+                // Extensions only — including the MIME types causes macOS
+                // to hide .xlsx files when the OS can't resolve the UTI
+                // mapping. Real format validation happens on the backend
+                // (multer fileFilter rejects anything non-xlsx/csv).
+                accept=".xlsx,.csv"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
               {file && (
