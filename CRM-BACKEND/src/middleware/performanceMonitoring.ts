@@ -29,19 +29,23 @@ export interface RequestWithMetrics extends Request {
 /**
  * Performance monitoring middleware
  * Tracks request timing, memory usage, and stores metrics
+ *
+ * Signature note: the first param is typed as the base `Request` so
+ * this middleware is assignable to `app.use()` under
+ * `strictFunctionTypes`. We narrow to `RequestWithMetrics` inside the
+ * body where we actually write the request-scoped fields.
  */
-export const performanceMonitoring = (
-  req: RequestWithMetrics,
-  res: Response,
-  next: NextFunction
-) => {
+export const performanceMonitoring = (req: Request, res: Response, next: NextFunction) => {
   const startTime = performance.now();
   const rawRequestId = req.headers['x-request-id'];
   const requestId = Array.isArray(rawRequestId) ? rawRequestId[0] : rawRequestId || uuidv4();
 
+  // Narrow to the augmented shape for the rest of this handler.
+  const metricsReq = req as RequestWithMetrics;
+
   // Add request ID and start time to request object
-  req.requestId = requestId;
-  req.startTime = startTime;
+  metricsReq.requestId = requestId;
+  metricsReq.startTime = startTime;
 
   // Add request ID to response headers
   res.setHeader('X-Request-ID', requestId);

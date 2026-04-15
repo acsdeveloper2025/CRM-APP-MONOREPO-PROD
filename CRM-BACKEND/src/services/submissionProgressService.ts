@@ -354,22 +354,21 @@ class SubmissionProgressService {
       GROUP BY status
     `);
 
-    const statusCounts = result.rows.reduce(
-      (acc: Record<string, number>, row: { status: string; count: string }) => {
-        acc[row.status.toLowerCase()] = parseInt(row.count);
-        return acc;
-      },
-      {} as Record<string, number>
-    );
+    const statusCounts: Record<string, number> = {};
+    for (const row of result.rows as Array<{ status: string; count: string }>) {
+      statusCounts[row.status.toLowerCase()] = parseInt(row.count, 10);
+    }
+
+    let totalRequests = 0;
+    for (const count of Object.values(statusCounts)) {
+      totalRequests += count;
+    }
 
     return {
       pending: statusCounts.pending || 0,
       retrying: statusCounts.retrying || 0,
       failed: statusCounts.failed || 0,
-      totalRequests: Object.values(statusCounts).reduce(
-        (sum: number, count: number) => sum + count,
-        0
-      ) as number,
+      totalRequests,
     };
   }
 
