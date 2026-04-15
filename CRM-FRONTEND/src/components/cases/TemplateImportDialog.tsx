@@ -52,12 +52,13 @@ type Step = 'pick' | 'preview';
 export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialogProps) {
   const queryClient = useQueryClient();
   const { data: clientsRes } = useClients({ limit: 200 });
-  const clients = useMemo(
-    () =>
-      (clientsRes as unknown as { data?: { data?: Array<{ id: number; name: string }> } })?.data
-        ?.data ?? [],
-    [clientsRes]
-  );
+  // The service returns `{ data: Client[] }` (see CaseDataTemplatesPage
+  // which reads clientsRes.data as an array). Keep the same shape here
+  // so both entry points go through the same unwrap.
+  const clients = useMemo<Array<{ id: number; name: string }>>(() => {
+    const d = (clientsRes as { data?: Array<{ id: number; name: string }> } | undefined)?.data;
+    return Array.isArray(d) ? d : [];
+  }, [clientsRes]);
 
   const [step, setStep] = useState<Step>('pick');
   const [clientId, setClientId] = useState<string>('');
@@ -71,12 +72,10 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
   const [existingTemplateVersion, setExistingTemplateVersion] = useState<number | null>(null);
 
   const { data: productsRes } = useProductsByClient(clientId || undefined);
-  const products = useMemo(
-    () =>
-      (productsRes as unknown as { data?: { data?: Array<{ id: number; name: string }> } })?.data
-        ?.data ?? [],
-    [productsRes]
-  );
+  const products = useMemo<Array<{ id: number; name: string }>>(() => {
+    const d = (productsRes as { data?: Array<{ id: number; name: string }> } | undefined)?.data;
+    return Array.isArray(d) ? d : [];
+  }, [productsRes]);
 
   const resetAll = () => {
     setStep('pick');
