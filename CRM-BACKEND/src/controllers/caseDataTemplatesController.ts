@@ -579,22 +579,20 @@ export const parseUpload = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // Refuse if the (client, product) pair already has an active template.
-    // Admin should use the manual editor for updates (versioning path).
-    const existingRes = await query<{ id: number }>(
-      `SELECT id FROM case_data_templates
+    // If an active template already exists for the (client, product)
+    // pair, parsing still proceeds — we just surface its id + version to
+    // the caller. The frontend uses that hint to either call the normal
+    // create endpoint (new template) or the update endpoint (which
+    // triggers the existing versioning path — new version if entries
+    // exist, in-place field replacement otherwise). See Sprint 4 Q6
+    // replacement: user reversed the create-only decision.
+    const existingRes = await query<{ id: number; version: number }>(
+      `SELECT id, version FROM case_data_templates
         WHERE client_id = $1 AND product_id = $2 AND is_active = true
         LIMIT 1`,
       [clientId, productId]
     );
-    if (existingRes.rows[0]) {
-      return res.status(409).json({
-        success: false,
-        message:
-          'A template already exists for this client + product. Use the manual editor to update it.',
-        error: { code: 'TEMPLATE_EXISTS', existingTemplateId: existingRes.rows[0].id },
-      });
-    }
+    const existing = existingRes.rows[0] ?? null;
 
     const parsed = await parseTemplateUpload({
       originalname: file.originalname,
@@ -627,6 +625,11 @@ export const parseUpload = async (req: AuthenticatedRequest, res: Response) => {
         sheetName: parsed.result.sheetName ?? null,
         rowCount: parsed.result.rowCount,
         fields: parsed.result.fields,
+        // null → no existing template; non-null → the caller should
+        // POST to the update endpoint for this id instead of creating
+        // a fresh row (preserves the versioning path from Sprint 1).
+        existingTemplateId: existing?.id ?? null,
+        existingTemplateVersion: existing?.version ?? null,
       },
     });
   } catch (error) {
