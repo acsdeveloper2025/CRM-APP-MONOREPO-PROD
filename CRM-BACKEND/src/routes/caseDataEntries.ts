@@ -5,14 +5,14 @@ import { authorize } from '@/middleware/authorize';
 import { handleValidationErrors } from '@/middleware/validation';
 import {
   getEntry,
-  saveEntry,
-  updateEntry,
+  createInstance,
+  saveInstance,
+  deleteInstance,
   completeCase,
 } from '@/controllers/caseDataEntriesController';
 
 const router = express.Router();
 
-// All routes require authentication
 router.use(authenticateToken);
 
 // ---------------------------------------------------------------------------
@@ -21,37 +21,68 @@ router.use(authenticateToken);
 
 const caseIdValidation = [param('caseId').isUUID().withMessage('Case ID must be a valid UUID')];
 
-const saveEntryValidation = [
-  ...caseIdValidation,
+const instanceIndexValidation = [
+  param('instanceIndex')
+    .isInt({ min: 0 })
+    .withMessage('Instance index must be a non-negative integer'),
+];
+
+const saveValidation = [
   body('data').isObject().withMessage('Data must be an object'),
+  body('templateVersion')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('templateVersion must be a positive integer'),
+];
+
+const createInstanceValidation = [
+  body('instanceLabel')
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('instanceLabel must be 1-100 characters'),
 ];
 
 // ---------------------------------------------------------------------------
 // Routes
 // ---------------------------------------------------------------------------
 
-// Get data entry for a case (entry + template + fields)
+// List all instances + template for a case
 router.get('/:caseId', authorize('case.view'), caseIdValidation, handleValidationErrors, getEntry);
 
-// Create/save data entry for a case
+// Create a new instance (auto-assigns next instance_index)
 router.post(
-  '/:caseId',
+  '/:caseId/instances',
   authorize('case.create'),
-  saveEntryValidation,
+  caseIdValidation,
+  createInstanceValidation,
   handleValidationErrors,
-  saveEntry
+  createInstance
 );
 
-// Update data entry
+// Save (draft) data for a specific instance
 router.put(
-  '/:caseId',
+  '/:caseId/instances/:instanceIndex',
   authorize('case.update'),
-  saveEntryValidation,
+  caseIdValidation,
+  instanceIndexValidation,
+  saveValidation,
   handleValidationErrors,
-  updateEntry
+  saveInstance
 );
 
-// Complete case
+// Delete a not-yet-completed instance
+router.delete(
+  '/:caseId/instances/:instanceIndex',
+  authorize('case.update'),
+  caseIdValidation,
+  instanceIndexValidation,
+  handleValidationErrors,
+  deleteInstance
+);
+
+// Complete the case — validates every instance fully
 router.post(
   '/:caseId/complete',
   authorize('case.update'),

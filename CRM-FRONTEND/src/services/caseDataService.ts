@@ -30,11 +30,14 @@ export interface CaseDataTemplate {
   updatedAt: string;
 }
 
-// Entry types
+// Entry types (one row = one instance)
 export interface CaseDataEntry {
   id: number;
   caseId: string;
   templateId: number;
+  templateVersion: number;
+  instanceIndex: number;
+  instanceLabel: string;
   data: Record<string, unknown>;
   isCompleted: boolean;
   completedAt: string | null;
@@ -43,11 +46,16 @@ export interface CaseDataEntry {
   updatedBy: string | null;
   createdAt: string;
   updatedAt: string;
-  template?: CaseDataTemplate;
+}
+
+export interface CaseDataBundle {
+  entries: CaseDataEntry[];
+  template: CaseDataTemplate | null;
+  caseStatus: string;
 }
 
 class CaseDataService {
-  // Templates
+  // ---------------- Templates ----------------
   async getTemplates(params?: {
     clientId?: number;
     productId?: number;
@@ -59,7 +67,10 @@ class CaseDataService {
     return apiService.get(`/case-data-templates/${id}`);
   }
 
-  async getTemplateForCase(clientId: number, productId: number): Promise<ApiResponse<CaseDataTemplate>> {
+  async getTemplateForCase(
+    clientId: number,
+    productId: number
+  ): Promise<ApiResponse<CaseDataTemplate>> {
     return apiService.get('/case-data-templates/by-config', { clientId, productId });
   }
 
@@ -67,7 +78,9 @@ class CaseDataService {
     clientId: number;
     productId: number;
     name: string;
-    fields: Array<Omit<CaseDataTemplateField, 'id' | 'templateId' | 'isActive' | 'createdAt' | 'updatedAt'>>;
+    fields: Array<
+      Omit<CaseDataTemplateField, 'id' | 'templateId' | 'isActive' | 'createdAt' | 'updatedAt'>
+    >;
   }): Promise<ApiResponse<CaseDataTemplate>> {
     return apiService.post('/case-data-templates', data);
   }
@@ -76,29 +89,51 @@ class CaseDataService {
     id: number,
     data: {
       name?: string;
-      fields?: Array<Omit<CaseDataTemplateField, 'id' | 'templateId' | 'isActive' | 'createdAt' | 'updatedAt'>>;
+      fields?: Array<
+        Omit<CaseDataTemplateField, 'id' | 'templateId' | 'isActive' | 'createdAt' | 'updatedAt'>
+      >;
     }
   ): Promise<ApiResponse<CaseDataTemplate>> {
     return apiService.put(`/case-data-templates/${id}`, data);
   }
 
-  // Entries
-  async getEntryForCase(caseId: string): Promise<ApiResponse<CaseDataEntry | null>> {
+  // ---------------- Entries (multi-instance) ----------------
+
+  /**
+   * Returns the bundle for a case: all instances + the template used to
+   * render them + the current case status.
+   */
+  async getEntriesForCase(caseId: string): Promise<ApiResponse<CaseDataBundle>> {
     return apiService.get(`/case-data-entries/${caseId}`);
   }
 
-  async createOrUpdateEntry(
+  async createInstance(
     caseId: string,
-    data: { data: Record<string, unknown> }
+    instanceLabel?: string
   ): Promise<ApiResponse<CaseDataEntry>> {
-    return apiService.post(`/case-data-entries/${caseId}`, data);
+    return apiService.post(`/case-data-entries/${caseId}/instances`, {
+      ...(instanceLabel ? { instanceLabel } : {}),
+    });
   }
 
-  async updateEntry(
+  /**
+   * Save (draft) data for a specific instance. Pass the templateVersion
+   * the form was rendered against so the server can hard-reject stale
+   * saves after an admin publishes a new version.
+   */
+  async saveInstance(
     caseId: string,
-    data: { data: Record<string, unknown> }
+    instanceIndex: number,
+    payload: { data: Record<string, unknown>; templateVersion: number }
   ): Promise<ApiResponse<CaseDataEntry>> {
-    return apiService.put(`/case-data-entries/${caseId}`, data);
+    return apiService.put(
+      `/case-data-entries/${caseId}/instances/${instanceIndex}`,
+      payload
+    );
+  }
+
+  async deleteInstance(caseId: string, instanceIndex: number): Promise<ApiResponse<unknown>> {
+    return apiService.delete(`/case-data-entries/${caseId}/instances/${instanceIndex}`);
   }
 
   async completeEntry(caseId: string): Promise<ApiResponse<unknown>> {

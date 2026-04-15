@@ -1,38 +1,61 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { caseDataService, type CaseDataEntry } from '@/services/caseDataService';
+import { caseDataService, type CaseDataBundle, type CaseDataEntry } from '@/services/caseDataService';
 
-export const useCaseDataEntry = (caseId: string) => {
+const bundleKey = (caseId: string) => ['case-data-bundle', caseId];
+
+export const useCaseDataBundle = (caseId: string) => {
   return useQuery({
-    queryKey: ['case-data-entry', caseId],
-    queryFn: async () => {
-      const response = await caseDataService.getEntryForCase(caseId);
+    queryKey: bundleKey(caseId),
+    queryFn: async (): Promise<CaseDataBundle | null> => {
+      const response = await caseDataService.getEntriesForCase(caseId);
       return response.data || null;
     },
     enabled: !!caseId,
   });
 };
 
-export const useCaseDataTemplate = (clientId: number | undefined, productId: number | undefined) => {
-  return useQuery({
-    queryKey: ['case-data-template', clientId, productId],
-    queryFn: async () => {
-      if (!clientId || !productId) { return null; }
-      const response = await caseDataService.getTemplateForCase(clientId, productId);
-      return response.data || null;
-    },
-    enabled: !!clientId && !!productId,
-  });
-};
-
-export const useSaveCaseDataEntry = (caseId: string) => {
+export const useCreateInstance = (caseId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { data: Record<string, unknown> }) => {
-      const response = await caseDataService.createOrUpdateEntry(caseId, data);
+    mutationFn: async (instanceLabel?: string) => {
+      const response = await caseDataService.createInstance(caseId, instanceLabel);
       return response.data as CaseDataEntry;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['case-data-entry', caseId] });
+      queryClient.invalidateQueries({ queryKey: bundleKey(caseId) });
+    },
+  });
+};
+
+export const useSaveInstance = (caseId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (vars: {
+      instanceIndex: number;
+      data: Record<string, unknown>;
+      templateVersion: number;
+    }) => {
+      const response = await caseDataService.saveInstance(caseId, vars.instanceIndex, {
+        data: vars.data,
+        templateVersion: vars.templateVersion,
+      });
+      return response.data as CaseDataEntry;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: bundleKey(caseId) });
+    },
+  });
+};
+
+export const useDeleteInstance = (caseId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (instanceIndex: number) => {
+      const response = await caseDataService.deleteInstance(caseId, instanceIndex);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: bundleKey(caseId) });
     },
   });
 };
@@ -45,7 +68,7 @@ export const useCompleteCaseDataEntry = (caseId: string) => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['case-data-entry', caseId] });
+      queryClient.invalidateQueries({ queryKey: bundleKey(caseId) });
       queryClient.invalidateQueries({ queryKey: ['case', caseId] });
       queryClient.invalidateQueries({ queryKey: ['cases'] });
     },

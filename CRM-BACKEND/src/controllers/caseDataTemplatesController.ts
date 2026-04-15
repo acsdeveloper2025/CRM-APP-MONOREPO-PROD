@@ -324,27 +324,30 @@ export const updateTemplate = async (req: AuthenticatedRequest, res: Response) =
     const { name, fields } = req.body;
     const userId = req.user!.id;
 
-    // Check template exists
-    const existingRes = await query(`SELECT * FROM case_data_templates WHERE id = $1`, [
-      Number(id),
-    ]);
-    const existing = existingRes.rows[0];
-    if (!existing) {
-      return res.status(404).json({
-        success: false,
-        message: 'Template not found',
-        error: { code: 'NOT_FOUND' },
-      });
-    }
-
-    // Check if any entries reference this template
-    const entryCountRes = await query<{ count: string }>(
-      `SELECT COUNT(*)::text AS count FROM case_data_entries WHERE template_id = $1`,
-      [Number(id)]
-    );
-    const hasEntries = Number(entryCountRes.rows[0]?.count || 0) > 0;
-
+    // The existence check + entry-count check must be inside the same
+    // transaction as the update, and must hold an exclusive lock on the
+    // template row. Otherwise a concurrent saveEntry can create the
+    // first entry between "count = 0" and the in-place DELETE/INSERT of
+    // fields, silently rewriting the schema under that just-saved row.
+    // saveInstance takes a FOR SHARE lock on the active template, so a
+    // FOR UPDATE here will block / be blocked by concurrent saves as
+    // required.
     const result = await withTransaction(async client => {
+      const existingRes = await client.query(
+        `SELECT * FROM case_data_templates WHERE id = $1 FOR UPDATE`,
+        [Number(id)]
+      );
+      const existing = existingRes.rows[0];
+      if (!existing) {
+        return { error: 'NOT_FOUND' as const };
+      }
+
+      const entryCountRes = await client.query<{ count: string }>(
+        `SELECT COUNT(*)::text AS count FROM case_data_entries WHERE template_id = $1`,
+        [Number(id)]
+      );
+      const hasEntries = Number(entryCountRes.rows[0]?.count || 0) > 0;
+
       if (hasEntries) {
         // Create new version — deactivate old, create new
         await client.query(
@@ -457,16 +460,25 @@ export const updateTemplate = async (req: AuthenticatedRequest, res: Response) =
       }
     });
 
+    if ('error' in result && result.error === 'NOT_FOUND') {
+      return res.status(404).json({
+        success: false,
+        message: 'Template not found',
+        error: { code: 'NOT_FOUND' },
+      });
+    }
+
+    const successResult = result as { newVersion: boolean; version: number };
     logger.info(`Updated case data template: ${id}`, {
       userId,
-      newVersion: result.newVersion,
+      newVersion: successResult.newVersion,
     });
 
     res.json({
       success: true,
       data: result,
-      message: result.newVersion
-        ? `Template updated as new version ${result.version}`
+      message: successResult.newVersion
+        ? `Template updated as new version ${successResult.version}`
         : 'Template updated successfully',
     });
   } catch (error) {
