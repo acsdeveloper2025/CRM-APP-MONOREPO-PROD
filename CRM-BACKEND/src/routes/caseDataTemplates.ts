@@ -1,4 +1,5 @@
 import express from 'express';
+import multer from 'multer';
 import { body, query as queryValidator, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
@@ -10,12 +11,38 @@ import {
   createTemplate,
   updateTemplate,
   deleteTemplate,
+  parseUpload,
 } from '@/controllers/caseDataTemplatesController';
 
 const router = express.Router();
 
 // All routes require authentication
 router.use(authenticateToken);
+
+// Dedicated uploader for the template-import endpoint. Memory storage is
+// fine — the file is parsed once and discarded; 2 MB is generous for a
+// column-header spreadsheet and deflects accidental uploads of huge
+// data dumps. Rejects anything other than .xlsx / .csv at the multer
+// layer before the controller ever sees it.
+const templateUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const name = file.originalname.toLowerCase();
+    const ok =
+      name.endsWith('.xlsx') ||
+      name.endsWith('.csv') ||
+      file.mimetype ===
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+      file.mimetype === 'text/csv' ||
+      file.mimetype === 'application/csv';
+    if (ok) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only .xlsx and .csv files are supported'));
+    }
+  },
+});
 
 // ---------------------------------------------------------------------------
 // Validation schemas
@@ -262,6 +289,16 @@ router.post(
   createTemplateValidation,
   handleValidationErrors,
   createTemplate
+);
+
+// Parse an uploaded .xlsx / .csv into a draft field list for the
+// import-preview UI. Does NOT persist; the admin reviews and then POSTs
+// to the normal create endpoint above with the edited fields.
+router.post(
+  '/parse-upload',
+  authorize('case_data_template.manage'),
+  templateUpload.single('file'),
+  parseUpload
 );
 
 // Update template

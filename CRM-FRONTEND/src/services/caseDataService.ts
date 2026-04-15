@@ -97,6 +97,34 @@ class CaseDataService {
     return apiService.put(`/case-data-templates/${id}`, data);
   }
 
+  /**
+   * Parse an uploaded .xlsx / .csv into a draft field list for the
+   * import-preview UI. Server does NOT persist; admin reviews the
+   * returned fields, adjusts types / options / required flags, then
+   * calls createTemplate() to save.
+   */
+  async parseUpload(
+    clientId: number,
+    productId: number,
+    file: File
+  ): Promise<
+    ApiResponse<{
+      clientId: number;
+      productId: number;
+      sheetName: string | null;
+      rowCount: number;
+      fields: Array<
+        Omit<CaseDataTemplateField, 'id' | 'templateId' | 'isActive' | 'createdAt' | 'updatedAt'>
+      >;
+    }>
+  > {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('clientId', String(clientId));
+    form.append('productId', String(productId));
+    return apiService.post('/case-data-templates/parse-upload', form);
+  }
+
   // ---------------- Entries (multi-instance) ----------------
 
   /**
