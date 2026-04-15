@@ -27,12 +27,27 @@ export const useCaseDataTemplate = (clientId: number | undefined, productId: num
 export const useSaveCaseDataEntry = (caseId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { data: Record<string, unknown>; isCompleted?: boolean }) => {
+    mutationFn: async (data: { data: Record<string, unknown> }) => {
       const response = await caseDataService.createOrUpdateEntry(caseId, data);
       return response.data as CaseDataEntry;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['case-data-entry', caseId] });
+    },
+  });
+};
+
+export const useCompleteCaseDataEntry = (caseId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const response = await caseDataService.completeEntry(caseId);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['case-data-entry', caseId] });
+      queryClient.invalidateQueries({ queryKey: ['case', caseId] });
+      queryClient.invalidateQueries({ queryKey: ['cases'] });
     },
   });
 };

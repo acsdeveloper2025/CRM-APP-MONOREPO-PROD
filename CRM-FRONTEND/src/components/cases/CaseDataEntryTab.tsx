@@ -14,7 +14,12 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Save, CheckCircle, AlertCircle, FileText, Loader2 } from 'lucide-react';
-import { useCaseDataEntry, useCaseDataTemplate, useSaveCaseDataEntry } from '@/hooks/useCaseData';
+import {
+  useCaseDataEntry,
+  useCaseDataTemplate,
+  useSaveCaseDataEntry,
+  useCompleteCaseDataEntry,
+} from '@/hooks/useCaseData';
 import type { CaseDataTemplateField } from '@/services/caseDataService';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -35,6 +40,7 @@ export function CaseDataEntryTab({
   const { data: entry, isLoading: entryLoading } = useCaseDataEntry(caseId);
   const { data: template, isLoading: templateLoading } = useCaseDataTemplate(clientId, productId);
   const saveMutation = useSaveCaseDataEntry(caseId);
+  const completeMutation = useCompleteCaseDataEntry(caseId);
 
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [isDirty, setIsDirty] = useState(false);
@@ -66,15 +72,25 @@ export function CaseDataEntryTab({
 
   const handleSave = async (markComplete = false) => {
     try {
-      await saveMutation.mutateAsync({
-        data: formData,
-        isCompleted: markComplete || undefined,
-      });
+      // Always persist current form state first so backend has latest data.
+      await saveMutation.mutateAsync({ data: formData });
       setIsDirty(false);
-      toast.success(markComplete ? 'Data entry completed' : 'Data saved');
+
+      if (markComplete) {
+        // Completion runs strict validation server-side; errors surface via catch.
+        await completeMutation.mutateAsync();
+        toast.success('Data entry completed');
+      } else {
+        toast.success('Data saved');
+      }
     } catch (error) {
       logger.error('Failed to save case data:', error);
-      toast.error('Failed to save data');
+      const message =
+        (error as { response?: { data?: { error?: { details?: string[] }; message?: string } } })
+          ?.response?.data?.error?.details?.join('\n') ||
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        (markComplete ? 'Failed to complete data entry' : 'Failed to save data');
+      toast.error(message);
     }
   };
 
@@ -140,7 +156,7 @@ export function CaseDataEntryTab({
               variant="outline"
               size="sm"
               onClick={() => handleSave(false)}
-              disabled={!isDirty || saveMutation.isPending}
+              disabled={!isDirty || saveMutation.isPending || completeMutation.isPending}
             >
               {saveMutation.isPending ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -152,9 +168,13 @@ export function CaseDataEntryTab({
             <Button
               size="sm"
               onClick={() => handleSave(true)}
-              disabled={saveMutation.isPending}
+              disabled={saveMutation.isPending || completeMutation.isPending}
             >
-              <CheckCircle className="h-4 w-4 mr-1" />
+              {completeMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <CheckCircle className="h-4 w-4 mr-1" />
+              )}
               Mark Complete
             </Button>
           </div>
