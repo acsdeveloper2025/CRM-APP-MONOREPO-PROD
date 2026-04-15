@@ -16,7 +16,7 @@
     "removeComments": true,
     "noImplicitAny": false,
     "strictNullChecks": false,
-    "strictFunctionTypes": false,
+    "strictFunctionTypes": true,
     "noImplicitThis": true,
     "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": true,
