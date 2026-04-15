@@ -169,11 +169,17 @@ app.use(cookieParser());
 import { sanitizeInput } from '@/middleware/sanitize';
 app.use(sanitizeInput);
 
-// NOTE: CSRF protection is NOT needed for this API.
-// All authentication uses JWT Bearer tokens in Authorization headers.
-// CSRF attacks only affect cookie-based auth (where browser auto-attaches credentials).
-// Bearer tokens must be explicitly attached by client JS — an attacker's cross-origin
-// form/script cannot read or attach them. This is inherently CSRF-safe by design.
+// CSRF protection strategy:
+// - Bearer-authenticated routes (everything except /api/auth/refresh-token)
+//   are inherently CSRF-safe: an attacker's cross-origin form or script
+//   cannot read or attach the Authorization header.
+// - The refresh-token endpoint is cookie-authenticated (HttpOnly
+//   crm_refresh_token). Browsers attach that cookie on any cross-site
+//   POST, so SameSite=Strict alone isn't a complete defence. The route
+//   is protected by middleware/refreshCsrfGuard.ts, which enforces an
+//   Origin allowlist + a required X-Requested-With header whenever the
+//   cookie is present. The guard is a no-op for the mobile/legacy
+//   body-token path, which is non-browser traffic.
 // See: https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html
 
 // Convention: snake_case is used for PostgreSQL columns only. Every other

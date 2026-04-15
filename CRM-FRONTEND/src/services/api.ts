@@ -192,9 +192,14 @@ class ApiService {
         (config as AugmentedAxiosRequestConfig).metadata = { startTime: Date.now() };
 
         // Special handling for refresh endpoint: NO Authorization header needed
-        // The refresh token is sent in the body
+        // (the HttpOnly cookie carries the refresh token). We also stamp a
+        // custom X-Requested-With header so the backend's refreshCsrfGuard
+        // can distinguish a legitimate same-origin fetch from a cross-site
+        // attacker riding the cookie — cross-origin simple requests cannot
+        // add custom headers without a preflight.
         if (config.url?.includes('/auth/refresh-token')) {
           delete config.headers.Authorization;
+          config.headers['X-Requested-With'] = 'fetch';
         } else if (token) {
           // Normal requests: Use Access Token
           config.headers.Authorization = `Bearer ${token}`;
@@ -292,6 +297,10 @@ class ApiService {
                   headers: {
                     'Content-Type': 'application/json',
                     // NO Authorization header
+                    // X-Requested-With: required by refreshCsrfGuard —
+                    // this axios call bypasses our interceptor, so the
+                    // header must be set here explicitly.
+                    'X-Requested-With': 'fetch',
                   },
                 }
               );
@@ -771,6 +780,10 @@ class ApiService {
             headers: {
               'Content-Type': 'application/json',
               // NO Authorization header
+              // X-Requested-With: required by refreshCsrfGuard. Raw
+              // fetch bypasses the axios interceptor so the header
+              // must be set here explicitly.
+              'X-Requested-With': 'fetch',
             },
             body: JSON.stringify(refreshBody),
             credentials: 'include', // Sends the HttpOnly cookie
