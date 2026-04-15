@@ -219,6 +219,14 @@ export const navigationItems: NavigationItem[] = [
         permissionCode: 'page.masterdata',
         permission: { resource: 'documentTypes', action: 'read' },
       },
+      {
+        id: 'data-entry-templates',
+        label: 'Data Entry Templates',
+        href: '/settings/case-data-templates',
+        icon: FileText,
+        permissionCode: 'page.settings',
+        permission: { resource: 'settings', action: 'read' },
+      },
     ],
   },
   {
