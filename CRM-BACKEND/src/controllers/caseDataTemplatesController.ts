@@ -269,8 +269,9 @@ export const createTemplate = async (req: AuthenticatedRequest, res: Response) =
           const fieldRes = await client.query(
             `INSERT INTO case_data_template_fields
                (template_id, field_key, field_label, field_type, is_required, display_order,
-                section, placeholder, default_value, validation_rules, options, is_active, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true, NOW(), NOW())
+                section, placeholder, default_value, validation_rules, options, prefill_source,
+                is_active, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, NOW(), NOW())
              RETURNING *`,
             [
               template.id,
@@ -284,6 +285,7 @@ export const createTemplate = async (req: AuthenticatedRequest, res: Response) =
               f.defaultValue || null,
               JSON.stringify(f.validationRules || {}),
               JSON.stringify(f.options || []),
+              f.prefillSource || null,
             ]
           );
           insertedFields.push(fieldRes.rows[0]);
@@ -378,8 +380,9 @@ export const updateTemplate = async (req: AuthenticatedRequest, res: Response) =
             const fieldRes = await client.query(
               `INSERT INTO case_data_template_fields
                  (template_id, field_key, field_label, field_type, is_required, display_order,
-                  section, placeholder, default_value, validation_rules, options, is_active, created_at, updated_at)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true, NOW(), NOW())
+                  section, placeholder, default_value, validation_rules, options, prefill_source,
+                  is_active, created_at, updated_at)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, NOW(), NOW())
                RETURNING *`,
               [
                 newTemplate.id,
@@ -393,6 +396,7 @@ export const updateTemplate = async (req: AuthenticatedRequest, res: Response) =
                 f.defaultValue || null,
                 JSON.stringify(f.validationRules || {}),
                 JSON.stringify(f.options || []),
+                f.prefillSource || null,
               ]
             );
             insertedFields.push(fieldRes.rows[0]);
@@ -421,8 +425,9 @@ export const updateTemplate = async (req: AuthenticatedRequest, res: Response) =
             const fieldRes = await client.query(
               `INSERT INTO case_data_template_fields
                  (template_id, field_key, field_label, field_type, is_required, display_order,
-                  section, placeholder, default_value, validation_rules, options, is_active, created_at, updated_at)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true, NOW(), NOW())
+                  section, placeholder, default_value, validation_rules, options, prefill_source,
+                  is_active, created_at, updated_at)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true, NOW(), NOW())
                RETURNING *`,
               [
                 Number(id),
@@ -436,6 +441,7 @@ export const updateTemplate = async (req: AuthenticatedRequest, res: Response) =
                 f.defaultValue || null,
                 JSON.stringify(f.validationRules || {}),
                 JSON.stringify(f.options || []),
+                f.prefillSource || null,
               ]
             );
             insertedFields.push(fieldRes.rows[0]);

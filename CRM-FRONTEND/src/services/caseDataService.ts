@@ -16,6 +16,18 @@ export interface CaseDataTemplateField {
   validationRules: Record<string, unknown>;
   options: Array<{ label: string; value: string }>;
   isActive: boolean;
+  /**
+   * Sprint 5: null = normal dynamic field (stored in JSONB).
+   * Non-null = read-only mirror of a system source (customer_name,
+   * verifier_name, etc.) — value comes from `prefillValue` on render,
+   * never edited, never stored in JSONB.
+   */
+  prefillSource?: string | null;
+  /**
+   * Populated by the backend on bundle render when prefillSource is
+   * set. Undefined on template-editor endpoints (they don't resolve).
+   */
+  prefillValue?: unknown;
 }
 
 export interface CaseDataTemplate {

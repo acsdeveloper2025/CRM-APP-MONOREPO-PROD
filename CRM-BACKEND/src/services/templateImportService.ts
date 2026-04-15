@@ -43,6 +43,9 @@ export interface ParsedField {
   defaultValue: null;
   validationRules: Record<string, unknown>;
   options: Array<{ label: string; value: string }>;
+  // Sprint 5: always null on parse. The preview UI lets the admin
+  // choose a mapping per field before save.
+  prefillSource: null;
 }
 
 export interface ParseError {
@@ -143,9 +146,14 @@ const buildFieldsFromRows = (
     // pre-filled options if the admin switches this field to SELECT.
     const samples = new Set<string>();
     for (const row of dataRows) {
-      if (samples.size >= MAX_OPTION_SAMPLES) { break; }
-      const cell = (row[colIdx] ?? '').toString().trim();
-      if (cell) { samples.add(cell); }
+      if (samples.size >= MAX_OPTION_SAMPLES) {
+        break;
+      }
+      const raw = row[colIdx] ?? '';
+      const cell = (typeof raw === 'string' ? raw : String(raw as string | number)).trim();
+      if (cell) {
+        samples.add(cell);
+      }
     }
     const options = Array.from(samples).map(v => ({ label: v, value: v }));
 
@@ -160,6 +168,7 @@ const buildFieldsFromRows = (
       defaultValue: null,
       validationRules: {},
       options,
+      prefillSource: null,
     });
   }
 
@@ -180,7 +189,12 @@ const parseXlsxBuffer = async (
     // strict-null safe without importing a legacy @types shim.
     await wb.xlsx.load(buffer as unknown as Parameters<typeof wb.xlsx.load>[0]);
   } catch {
-    return { error: { code: 'PARSE_FAILURE', message: 'Could not read Excel file — it may be corrupt or password-protected' } };
+    return {
+      error: {
+        code: 'PARSE_FAILURE',
+        message: 'Could not read Excel file — it may be corrupt or password-protected',
+      },
+    };
   }
 
   const ws = wb.worksheets[0];
@@ -193,12 +207,46 @@ const parseXlsxBuffer = async (
     return { error: { code: 'EMPTY_FILE', message: 'Sheet is empty' } };
   }
 
+  // Narrow exceljs's `CellValue` (string | number | boolean | Date |
+  // Formula | Hyperlink | RichText | Error | null) down to a display
+  // string without tripping `no-base-to-string` on the richer variants.
+  const stringifyCell = (v: unknown): string => {
+    if (v === null || v === undefined) {
+      return '';
+    }
+    if (typeof v === 'string') {
+      return v;
+    }
+    if (typeof v === 'number' || typeof v === 'boolean') {
+      return String(v);
+    }
+    if (v instanceof Date) {
+      return v.toISOString().slice(0, 10);
+    }
+    if (typeof v === 'object') {
+      const asObj = v as Record<string, unknown>;
+      // Hyperlink / RichText / Formula: all expose a `.text` string.
+      const text = typeof asObj.text === 'string' ? asObj.text : null;
+      if (text !== null) {
+        return text;
+      }
+      // Formula: { result: ... }
+      const result = asObj.result;
+      if (typeof result === 'string') {
+        return result;
+      }
+      if (typeof result === 'number' || typeof result === 'boolean') {
+        return String(result);
+      }
+    }
+    return '';
+  };
+
   const colCount = ws.columnCount;
   const headerRow = ws.getRow(1);
   const headers: string[] = [];
   for (let c = 1; c <= colCount; c++) {
-    const v = headerRow.getCell(c).value;
-    headers.push(v === null || v === undefined ? '' : String(v));
+    headers.push(stringifyCell(headerRow.getCell(c).value));
   }
   // Trim trailing blank columns (common in Excel files where formatting
   // extends past actual data).
@@ -211,22 +259,17 @@ const parseXlsxBuffer = async (
     const row = ws.getRow(r);
     const cells: string[] = [];
     for (let c = 1; c <= headers.length; c++) {
-      const v = row.getCell(c).value;
-      cells.push(
-        v === null || v === undefined
-          ? ''
-          : v instanceof Date
-            ? v.toISOString().slice(0, 10)
-            : typeof v === 'object' && 'text' in v
-              ? String((v as { text: unknown }).text ?? '')
-              : String(v)
-      );
+      cells.push(stringifyCell(row.getCell(c).value));
     }
-    if (cells.some(c => c.trim())) { dataRows.push(cells); }
+    if (cells.some(c => c.trim())) {
+      dataRows.push(cells);
+    }
   }
 
   const built = buildFieldsFromRows(headers, dataRows);
-  if ('error' in built) { return built; }
+  if ('error' in built) {
+    return built;
+  }
   return {
     result: { fields: built.fields, sheetName: ws.name, rowCount: dataRows.length },
   };
@@ -235,9 +278,7 @@ const parseXlsxBuffer = async (
 // ---------------------------------------------------------------------------
 // CSV parser
 // ---------------------------------------------------------------------------
-const parseCsvBuffer = (
-  buffer: Buffer
-): { result: ParseResult } | { error: ParseError } => {
+const parseCsvBuffer = (buffer: Buffer): { result: ParseResult } | { error: ParseError } => {
   const text = buffer.toString('utf8');
   // Strip UTF-8 BOM if present — Excel-exported CSVs frequently include it
   // and papaparse treats the BOM as part of the first header otherwise.
@@ -255,7 +296,7 @@ const parseCsvBuffer = (
     };
   }
 
-  const rows = parsed.data as string[][];
+  const rows = parsed.data;
   if (rows.length === 0) {
     return { error: { code: 'EMPTY_FILE', message: 'CSV is empty' } };
   }
@@ -266,27 +307,33 @@ const parseCsvBuffer = (
   const dataRows = rows.slice(1).map(r => r.slice(0, headers.length));
 
   const built = buildFieldsFromRows(headers, dataRows);
-  if ('error' in built) { return built; }
+  if ('error' in built) {
+    return built;
+  }
   return { result: { fields: built.fields, rowCount: dataRows.length } };
 };
 
 // ---------------------------------------------------------------------------
 // Public entry point — dispatches on mime/extension.
 // ---------------------------------------------------------------------------
-export const parseTemplateUpload = async (
-  file: { originalname: string; mimetype: string; buffer: Buffer }
-): Promise<{ result: ParseResult } | { error: ParseError }> => {
+export const parseTemplateUpload = async (file: {
+  originalname: string;
+  mimetype: string;
+  buffer: Buffer;
+}): Promise<{ result: ParseResult } | { error: ParseError }> => {
   const name = file.originalname.toLowerCase();
   const isXlsx =
     name.endsWith('.xlsx') ||
     file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   const isCsv =
-    name.endsWith('.csv') ||
-    file.mimetype === 'text/csv' ||
-    file.mimetype === 'application/csv';
+    name.endsWith('.csv') || file.mimetype === 'text/csv' || file.mimetype === 'application/csv';
 
-  if (isXlsx) { return parseXlsxBuffer(file.buffer); }
-  if (isCsv) { return parseCsvBuffer(file.buffer); }
+  if (isXlsx) {
+    return parseXlsxBuffer(file.buffer);
+  }
+  if (isCsv) {
+    return parseCsvBuffer(file.buffer);
+  }
   return {
     error: {
       code: 'UNSUPPORTED_FORMAT',

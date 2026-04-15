@@ -2,6 +2,11 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pencil, Eye, Trash2, GripVertical, ChevronDown, Upload } from 'lucide-react';
 import { TemplateImportDialog } from '@/components/cases/TemplateImportDialog';
+import {
+  PREFILL_CATALOG,
+  PREFILL_GROUP_ORDER,
+  PREFILL_GROUP_LABELS,
+} from '@/constants/templateFieldPrefillCatalog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -71,6 +76,9 @@ interface FieldFormData {
     maxLength?: string;
     pattern?: string;
   };
+  // Sprint 5: null = normal dynamic field; non-null = read-only mirror
+  // of a system source. Dropdown in the editor lets the admin pick.
+  prefillSource: string | null;
 }
 
 interface TemplateFormData {
@@ -91,6 +99,7 @@ const createEmptyField = (order: number): FieldFormData => ({
   defaultValue: '',
   options: [],
   validationRules: {},
+  prefillSource: null,
 });
 
 const labelToKey = (label: string): string =>
@@ -189,6 +198,46 @@ const FieldRow: React.FC<{
             <Label className="text-xs">Required</Label>
           </div>
         </div>
+      </div>
+
+      {/* Sprint 5: map this field to a system source (read-only mirror) */}
+      <div>
+        <Label className="text-xs">
+          Map to system field (optional — makes this field read-only, value comes live from
+          the case)
+        </Label>
+        <Select
+          value={field.prefillSource ?? '__none__'}
+          onValueChange={(v) =>
+            onChange(index, { ...field, prefillSource: v === '__none__' ? null : v })
+          }
+          disabled={isViewMode}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">— None (dynamic field) —</SelectItem>
+            {PREFILL_GROUP_ORDER.map((g) => {
+              const items = PREFILL_CATALOG.filter((e) => e.group === g);
+              if (items.length === 0) {
+                return null;
+              }
+              return (
+                <div key={g}>
+                  <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                    {PREFILL_GROUP_LABELS[g]}
+                  </div>
+                  {items.map((e) => (
+                    <SelectItem key={e.key} value={e.key}>
+                      {e.label}
+                    </SelectItem>
+                  ))}
+                </div>
+              );
+            })}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Options for SELECT/MULTISELECT */}
@@ -473,6 +522,7 @@ export const CaseDataTemplatesPage: React.FC = () => {
             maxLength: (f.validationRules?.maxLength as string) ?? '',
             pattern: (f.validationRules?.pattern as string) ?? '',
           },
+          prefillSource: f.prefillSource ?? null,
         })),
       });
       setDialogOpen(true);
@@ -558,6 +608,7 @@ export const CaseDataTemplatesPage: React.FC = () => {
         defaultValue: f.defaultValue || null,
         options: f.options.filter((o) => o.label && o.value),
         validationRules: cleanValidationRules(f.validationRules),
+        prefillSource: f.prefillSource ?? null,
       }));
 
     if (dialogMode === 'edit' && editingId) {

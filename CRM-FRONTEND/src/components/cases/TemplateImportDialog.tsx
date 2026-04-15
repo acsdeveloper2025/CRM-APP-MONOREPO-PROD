@@ -22,6 +22,12 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useClients, useProductsByClient } from '@/hooks/useClients';
 import { caseDataService, type CaseDataTemplateField } from '@/services/caseDataService';
+import {
+  PREFILL_CATALOG,
+  PREFILL_GROUP_ORDER,
+  PREFILL_GROUP_LABELS,
+  suggestPrefillSourceForHeader,
+} from '@/constants/templateFieldPrefillCatalog';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
@@ -115,7 +121,13 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
         toast.error('No fields found in file');
         return;
       }
-      setFields(payload.fields);
+      // Heuristic auto-suggest a mapping for each parsed field. The
+      // admin can clear or change any suggestion on the preview screen.
+      const withSuggestions: DraftField[] = payload.fields.map(f => ({
+        ...f,
+        prefillSource: suggestPrefillSourceForHeader(f.fieldLabel),
+      }));
+      setFields(withSuggestions);
       setExistingTemplateId(payload.existingTemplateId ?? null);
       setExistingTemplateVersion(payload.existingTemplateVersion ?? null);
       // Default the template name to "<ClientName> — <ProductName>" as a
@@ -391,6 +403,46 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
                     <p className="text-xs text-muted-foreground">
                       Field key: <code className="bg-muted px-1 rounded">{f.fieldKey}</code>
                     </p>
+
+                    <div>
+                      <Label className="text-xs">
+                        Map to system field (optional — makes the field read-only, value
+                        comes live from the case)
+                      </Label>
+                      <Select
+                        value={f.prefillSource ?? '__none__'}
+                        onValueChange={(v) =>
+                          updateField(idx, {
+                            prefillSource: v === '__none__' ? null : v,
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">— None (dynamic field) —</SelectItem>
+                          {PREFILL_GROUP_ORDER.map((g) => {
+                            const items = PREFILL_CATALOG.filter((e) => e.group === g);
+                            if (items.length === 0) {
+                              return null;
+                            }
+                            return (
+                              <div key={g}>
+                                <div className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                                  {PREFILL_GROUP_LABELS[g]}
+                                </div>
+                                {items.map((e) => (
+                                  <SelectItem key={e.key} value={e.key}>
+                                    {e.label}
+                                  </SelectItem>
+                                ))}
+                              </div>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
                     {needsOptions && (
                       <div className="pl-2 border-l-2 border-muted space-y-1">
