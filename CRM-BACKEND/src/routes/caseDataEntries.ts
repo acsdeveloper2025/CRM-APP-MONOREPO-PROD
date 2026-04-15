@@ -3,6 +3,9 @@ import { body, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { handleValidationErrors } from '@/middleware/validation';
+import { validateCaseAccess } from '@/middleware/clientAccess';
+import { validateCaseProductAccess } from '@/middleware/productAccess';
+import { chainMiddleware } from '@/middleware/scopeAccess';
 import {
   getEntry,
   createInstance,
@@ -14,6 +17,15 @@ import {
 const router = express.Router();
 
 router.use(authenticateToken);
+
+// ---------------------------------------------------------------------------
+// Composed case access: validates that the authenticated user has both
+// CLIENT and PRODUCT access to the case referenced by :caseId. This
+// replaces the inline checkCaseAccess helper previously duplicated in
+// every controller and reuses the same scope machinery as the rest of
+// the cases module (see validateCaseCreationAccess in clientAccess.ts).
+// ---------------------------------------------------------------------------
+const requireCaseAccess = chainMiddleware(validateCaseAccess, validateCaseProductAccess);
 
 // ---------------------------------------------------------------------------
 // Validation schemas
@@ -48,20 +60,25 @@ const createInstanceValidation = [
 // Routes
 // ---------------------------------------------------------------------------
 
-// List all instances + template for a case
-router.get('/:caseId', authorize('case.view'), caseIdValidation, handleValidationErrors, getEntry);
+router.get(
+  '/:caseId',
+  authorize('case.view'),
+  caseIdValidation,
+  handleValidationErrors,
+  requireCaseAccess,
+  getEntry
+);
 
-// Create a new instance (auto-assigns next instance_index)
 router.post(
   '/:caseId/instances',
   authorize('case.create'),
   caseIdValidation,
   createInstanceValidation,
   handleValidationErrors,
+  requireCaseAccess,
   createInstance
 );
 
-// Save (draft) data for a specific instance
 router.put(
   '/:caseId/instances/:instanceIndex',
   authorize('case.update'),
@@ -69,25 +86,26 @@ router.put(
   instanceIndexValidation,
   saveValidation,
   handleValidationErrors,
+  requireCaseAccess,
   saveInstance
 );
 
-// Delete a not-yet-completed instance
 router.delete(
   '/:caseId/instances/:instanceIndex',
   authorize('case.update'),
   caseIdValidation,
   instanceIndexValidation,
   handleValidationErrors,
+  requireCaseAccess,
   deleteInstance
 );
 
-// Complete the case — validates every instance fully
 router.post(
   '/:caseId/complete',
   authorize('case.update'),
   caseIdValidation,
   handleValidationErrors,
+  requireCaseAccess,
   completeCase
 );
 

@@ -21,8 +21,100 @@ router.use(authenticateToken);
 // Validation schemas
 // ---------------------------------------------------------------------------
 
+// Maximum number of fields allowed per template. Hard cap to prevent
+// pathological templates from bloating JSONB payloads and slowing the
+// form render on the client. 200 is plenty for realistic use cases
+// (the Excel-based workflow being replaced topped out around 40).
+const MAX_FIELDS_PER_TEMPLATE = 200;
+
+// Field keys that must never appear in a template, either because they
+// are JavaScript prototype-pollution vectors or because they collide
+// with common JSON tooling expectations.
+const RESERVED_FIELD_KEYS = new Set([
+  '__proto__',
+  'constructor',
+  'prototype',
+  'toString',
+  'hasOwnProperty',
+]);
+
+// Allowed keys inside each field's `validationRules` object. Anything
+// else is rejected so a typo in the admin UI doesn't silently "work"
+// on save and then never trigger during validation.
+const ALLOWED_VALIDATION_RULE_KEYS = new Set([
+  'min',
+  'max',
+  'minLength',
+  'maxLength',
+  'pattern',
+]);
+
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+
+// validator.js-compatible custom validator: throws on bad input.
+const assertValidValidationRules = (value: unknown): true => {
+  if (value === undefined) {
+    return true;
+  }
+  if (!isPlainObject(value)) {
+    throw new Error('validationRules must be an object');
+  }
+  for (const [k, v] of Object.entries(value)) {
+    if (!ALLOWED_VALIDATION_RULE_KEYS.has(k)) {
+      throw new Error(`Unknown validation rule "${k}"`);
+    }
+    if (k === 'min' || k === 'max' || k === 'minLength' || k === 'maxLength') {
+      if (typeof v !== 'number' || !Number.isFinite(v)) {
+        throw new Error(`Validation rule "${k}" must be a finite number`);
+      }
+    }
+    if (k === 'pattern') {
+      if (typeof v !== 'string') {
+        throw new Error('Validation rule "pattern" must be a string');
+      }
+      try {
+        // eslint-disable-next-line no-new
+        new RegExp(v);
+      } catch {
+        throw new Error('Validation rule "pattern" must be a valid regular expression');
+      }
+    }
+  }
+  return true;
+};
+
+const assertValidOptions = (value: unknown): true => {
+  if (value === undefined) {
+    return true;
+  }
+  if (!Array.isArray(value)) {
+    throw new Error('options must be an array');
+  }
+  const seenValues = new Set<string>();
+  for (const [i, opt] of value.entries()) {
+    if (!isPlainObject(opt)) {
+      throw new Error(`options[${i}] must be an object`);
+    }
+    const { label, value: optValue } = opt as { label?: unknown; value?: unknown };
+    if (typeof label !== 'string' || label.trim().length === 0) {
+      throw new Error(`options[${i}].label must be a non-empty string`);
+    }
+    if (typeof optValue !== 'string' || optValue.trim().length === 0) {
+      throw new Error(`options[${i}].value must be a non-empty string`);
+    }
+    if (seenValues.has(optValue)) {
+      throw new Error(`options contain duplicate value "${optValue}"`);
+    }
+    seenValues.add(optValue);
+  }
+  return true;
+};
+
 const fieldValidation = [
-  body('fields').isArray({ min: 1 }).withMessage('At least one field is required'),
+  body('fields')
+    .isArray({ min: 1, max: MAX_FIELDS_PER_TEMPLATE })
+    .withMessage(`fields must contain 1-${MAX_FIELDS_PER_TEMPLATE} items`),
   body('fields.*.fieldKey')
     .trim()
     .isLength({ min: 1, max: 100 })
@@ -30,7 +122,13 @@ const fieldValidation = [
     .matches(/^[a-zA-Z][a-zA-Z0-9_]*$/)
     .withMessage(
       'Field key must start with a letter and contain only letters, digits, and underscores'
-    ),
+    )
+    .custom(value => {
+      if (RESERVED_FIELD_KEYS.has(value)) {
+        throw new Error(`"${value}" is a reserved field key`);
+      }
+      return true;
+    }),
   body('fields.*.fieldLabel')
     .trim()
     .isLength({ min: 1, max: 255 })
@@ -54,11 +152,8 @@ const fieldValidation = [
     .isLength({ max: 255 })
     .withMessage('Placeholder must be ≤ 255 characters'),
   body('fields.*.defaultValue').optional().isString().withMessage('Default value must be a string'),
-  body('fields.*.validationRules')
-    .optional()
-    .isObject()
-    .withMessage('Validation rules must be an object'),
-  body('fields.*.options').optional().isArray().withMessage('Options must be an array'),
+  body('fields.*.validationRules').optional().custom(assertValidValidationRules),
+  body('fields.*.options').optional().custom(assertValidOptions),
 ];
 
 const createTemplateValidation = [
@@ -75,8 +170,10 @@ const updateTemplateValidation = [
     .trim()
     .isLength({ min: 1, max: 255 })
     .withMessage('Name must be 1-255 characters'),
-  body('fields').optional().isArray({ min: 1 }).withMessage('Fields must be a non-empty array'),
-  // Conditionally validate field items only when fields array is present
+  body('fields')
+    .optional()
+    .isArray({ min: 1, max: MAX_FIELDS_PER_TEMPLATE })
+    .withMessage(`fields must contain 1-${MAX_FIELDS_PER_TEMPLATE} items`),
   body('fields.*.fieldKey')
     .optional()
     .trim()
@@ -84,11 +181,19 @@ const updateTemplateValidation = [
     .matches(/^[a-zA-Z][a-zA-Z0-9_]*$/)
     .withMessage(
       'Field key must start with a letter and contain only letters, digits, and underscores'
-    ),
+    )
+    .custom(value => {
+      if (RESERVED_FIELD_KEYS.has(value)) {
+        throw new Error(`"${value}" is a reserved field key`);
+      }
+      return true;
+    }),
   body('fields.*.fieldLabel').optional().trim().isLength({ min: 1, max: 255 }),
   body('fields.*.fieldType')
     .optional()
     .isIn(['TEXT', 'NUMBER', 'DATE', 'SELECT', 'MULTISELECT', 'BOOLEAN', 'TEXTAREA']),
+  body('fields.*.validationRules').optional().custom(assertValidValidationRules),
+  body('fields.*.options').optional().custom(assertValidOptions),
 ];
 
 const listTemplatesValidation = [

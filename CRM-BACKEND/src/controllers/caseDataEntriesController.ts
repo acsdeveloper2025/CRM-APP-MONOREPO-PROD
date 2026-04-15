@@ -169,22 +169,12 @@ const validateDataAgainstTemplate = (
 };
 
 /**
- * Scope check: user must have access to the case's client + product. System
- * scope bypass (admins/super admins) short-circuits the check.
+ * NOTE: Scope access (CLIENT + PRODUCT) is enforced by the
+ * `requireCaseAccess` middleware chain mounted on every route in
+ * caseDataEntries.ts (validateCaseAccess + validateCaseProductAccess).
+ * By the time any of these handlers run, the caller is guaranteed to
+ * have access to the case — no further access checks are needed here.
  */
-const checkCaseAccess = (
-  req: AuthenticatedRequest,
-  caseRow: { clientId: number; productId: number }
-): boolean => {
-  if (req.user?.capabilities?.systemScopeBypass) {
-    return true;
-  }
-  const assignedClientIds = req.user?.assignedClientIds || [];
-  const assignedProductIds = req.user?.assignedProductIds || [];
-  return (
-    assignedClientIds.includes(caseRow.clientId) && assignedProductIds.includes(caseRow.productId)
-  );
-};
 
 /**
  * Resolve the active template (id + version) for a client-product pair
@@ -239,13 +229,6 @@ export const getEntry = async (req: AuthenticatedRequest, res: Response) => {
         success: false,
         message: 'Case not found',
         error: { code: 'NOT_FOUND' },
-      });
-    }
-    if (!checkCaseAccess(req, caseRow)) {
-      return res.status(403).json({
-        success: false,
-        message: 'You do not have access to this case',
-        error: { code: 'FORBIDDEN' },
       });
     }
 
@@ -334,13 +317,6 @@ export const createInstance = async (req: AuthenticatedRequest, res: Response) =
         success: false,
         message: 'Case not found',
         error: { code: 'NOT_FOUND' },
-      });
-    }
-    if (!checkCaseAccess(req, caseRow)) {
-      return res.status(403).json({
-        success: false,
-        message: 'You do not have access to this case',
-        error: { code: 'FORBIDDEN' },
       });
     }
     if (caseRow.status === 'COMPLETED') {
@@ -444,13 +420,6 @@ export const saveInstance = async (req: AuthenticatedRequest, res: Response) => 
         success: false,
         message: 'Case not found',
         error: { code: 'NOT_FOUND' },
-      });
-    }
-    if (!checkCaseAccess(req, caseRow)) {
-      return res.status(403).json({
-        success: false,
-        message: 'You do not have access to this case',
-        error: { code: 'FORBIDDEN' },
       });
     }
     if (caseRow.status === 'COMPLETED') {
@@ -632,9 +601,6 @@ export const deleteInstance = async (req: AuthenticatedRequest, res: Response) =
     if (!caseRow) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND' } });
     }
-    if (!checkCaseAccess(req, caseRow)) {
-      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN' } });
-    }
     if (caseRow.status === 'COMPLETED') {
       return res
         .status(400)
@@ -686,13 +652,6 @@ export const completeCase = async (req: AuthenticatedRequest, res: Response) => 
         success: false,
         message: 'Case not found',
         error: { code: 'NOT_FOUND' },
-      });
-    }
-    if (!checkCaseAccess(req, caseRow)) {
-      return res.status(403).json({
-        success: false,
-        message: 'You do not have access to this case',
-        error: { code: 'FORBIDDEN' },
       });
     }
     if (caseRow.status === 'COMPLETED') {
