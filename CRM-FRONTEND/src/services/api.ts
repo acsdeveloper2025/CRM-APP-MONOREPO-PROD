@@ -1,4 +1,9 @@
-import axios, { type AxiosInstance, type AxiosResponse, type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios';
+import axios, {
+  type AxiosInstance,
+  type AxiosResponse,
+  type AxiosRequestConfig,
+  type InternalAxiosRequestConfig,
+} from 'axios';
 import type { ApiResponse } from '@/types/api';
 import { triggerLogout } from '@/utils/events';
 import { STORAGE_KEYS, SYNC_KEYS } from '@/types/constants';
@@ -23,7 +28,8 @@ const processQueue = (error: Error | null, token: string | null = null) => {
 };
 
 const getErrorCode = (error: unknown): string | undefined => {
-  const data = (error as { response?: { data?: { error?: { code?: string }; code?: string } } })?.response?.data;
+  const data = (error as { response?: { data?: { error?: { code?: string }; code?: string } } })
+    ?.response?.data;
   return data?.error?.code || data?.code;
 };
 
@@ -80,7 +86,7 @@ class ApiService {
   private api: AxiosInstance;
   private activeRequestCount = 0;
   private accessToken: string | null = null;
-  
+
   // Enhanced features state
   private cache: Map<string, CacheEntry> = new Map();
   private requestMetrics: RequestMetrics[] = [];
@@ -95,18 +101,22 @@ class ApiService {
 
     this.api = axios.create({
       baseURL,
-      timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 30000, 
+      timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 30000,
       withCredentials: true, // Enable cookies for cross-site requests
       headers: {
         'Content-Type': 'application/json',
       },
     });
 
-    // Rehydrate access token on app reload so first authenticated call
-    // does not start with an avoidable 401.
-    const persistedAccessToken = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-    if (persistedAccessToken) {
-      this.setAccessToken(persistedAccessToken);
+    // Phase E5 hardening: the access token is in-memory ONLY. Any
+    // value left in localStorage from an older build is an XSS
+    // exfiltration hazard, so wipe it eagerly on construction. The
+    // resulting first request will 401 and the response interceptor
+    // will exchange the HttpOnly refresh cookie for a fresh in-memory
+    // access token — that one avoidable 401 is the cost of closing the
+    // hazard.
+    if (localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) !== null) {
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
     }
 
     this.setupInterceptors();
@@ -139,7 +149,7 @@ class ApiService {
           const sameOriginFallback = `${window.location.origin}/api`;
           logger.warn(
             '⚠️ Ignoring localhost API base URL in production build. Falling back to same-origin API:',
-            sameOriginFallback,
+            sameOriginFallback
           );
           return sameOriginFallback;
         }
@@ -150,7 +160,7 @@ class ApiService {
           const sameOriginFallback = `${window.location.origin}/api`;
           logger.warn(
             '⚠️ Invalid VITE_API_BASE_URL in production build. Falling back to same-origin API:',
-            sameOriginFallback,
+            sameOriginFallback
           );
           return sameOriginFallback;
         }
@@ -161,12 +171,14 @@ class ApiService {
       const sameOriginFallback = `${window.location.origin}/api`;
       logger.warn(
         '⚠️ VITE_API_BASE_URL is missing in production build. Falling back to same-origin API:',
-        sameOriginFallback,
+        sameOriginFallback
       );
       return sameOriginFallback;
     }
 
-    throw new Error('❌ CRITICAL ERROR: VITE_API_BASE_URL is not defined in environment variables!');
+    throw new Error(
+      '❌ CRITICAL ERROR: VITE_API_BASE_URL is not defined in environment variables!'
+    );
   }
 
   private setupInterceptors() {
@@ -188,8 +200,8 @@ class ApiService {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
-         // Add cache headers for GET requests
-         if (config.method === 'get') {
+        // Add cache headers for GET requests
+        if (config.method === 'get') {
           const cacheKey = this.getCacheKey(config);
           const cached = this.cache.get(cacheKey);
           if (cached?.etag) {
@@ -225,8 +237,8 @@ class ApiService {
           // Prevent infinite loops: sensitive endpoints shouldn't trigger refresh logic
           const url = originalRequest.url || '';
           if (
-            url.includes('/auth/login') || 
-            url.includes('/auth/refresh-token') || 
+            url.includes('/auth/login') ||
+            url.includes('/auth/refresh-token') ||
             url.includes('/auth/logout')
           ) {
             return Promise.reject(error);
@@ -239,10 +251,10 @@ class ApiService {
             })
               .then((token) => {
                 originalRequest.headers.Authorization = `Bearer ${token}`;
-                // We need to re-increment because this is a "new" attempt in a way, 
-                // but strictly speaking, the interceptor chain might handle it. 
+                // We need to re-increment because this is a "new" attempt in a way,
+                // but strictly speaking, the interceptor chain might handle it.
                 // However, directly calling this.api(originalRequest) triggers interceptors again?
-                // Yes, axios(config) triggers interceptors. 
+                // Yes, axios(config) triggers interceptors.
                 // So we don't need to manually increment here if we call this.api()
                 return this.api(originalRequest);
               })
@@ -295,8 +307,9 @@ class ApiService {
 
             // Extract new token
             const data = response.data;
-            const accessToken = data.data?.accessToken || data.data?.tokens?.accessToken || data.accessToken;
-            
+            const accessToken =
+              data.data?.accessToken || data.data?.tokens?.accessToken || data.accessToken;
+
             // Note: Mobile refresh endpoint does NOT return a new refresh token (rotation is 7 days)
             // So we do NOT update the refresh token
 
@@ -349,7 +362,8 @@ class ApiService {
       return;
     }
 
-    const duration = Date.now() - ((response.config as AugmentedAxiosRequestConfig).metadata?.startTime || 0);
+    const duration =
+      Date.now() - ((response.config as AugmentedAxiosRequestConfig).metadata?.startTime || 0);
     const metric: RequestMetrics = {
       url: response.config.url || '',
       method: response.config.method?.toUpperCase() || '',
@@ -374,24 +388,24 @@ class ApiService {
 
   private isResponseCacheable(response: AxiosResponse): boolean {
     const { method, url } = response.config;
-    
+
     // Only cache GET requests
     if (method !== 'get') {
       return false;
     }
-    
+
     // Don't cache error responses
     if (response.status >= 400) {
       return false;
     }
-    
+
     // Don't cache real-time endpoints
     const realtimeEndpoints = ['/notifications', '/live'];
-    if (realtimeEndpoints.some(endpoint => url?.includes(endpoint))) {
-        return false;
+    if (realtimeEndpoints.some((endpoint) => url?.includes(endpoint))) {
+      return false;
     }
-    
-    return true; 
+
+    return true;
   }
 
   private cacheCleanupInterval: ReturnType<typeof setInterval> | null = null;
@@ -436,7 +450,7 @@ class ApiService {
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private async executeWithRetry<T>(
@@ -449,60 +463,71 @@ class ApiService {
       retryCondition: (error: unknown) => {
         // Retry on network errors and 5xx server errors
         const err = error as { response?: { status: number } };
-        return !err.response || (err.response.status !== undefined && err.response.status >= 500 && err.response.status < 600);
+        return (
+          !err.response ||
+          (err.response.status !== undefined &&
+            err.response.status >= 500 &&
+            err.response.status < 600)
+        );
       },
       ...retryConfig,
     };
 
     let lastError: unknown;
-    
+
     for (let attempt = 0; attempt <= config.retries; attempt++) {
       try {
         return await operation();
       } catch (error) {
         lastError = error;
-        
+
         if (attempt === config.retries || !config.retryCondition(error)) {
           throw error;
         }
-        
+
         // Exponential backoff
         const delay = config.retryDelay * Math.pow(2, attempt);
         await this.delay(delay);
       }
     }
-    
+
     throw lastError;
   }
 
   // Raw methods that return full AxiosResponse (for compatibility with enterpriseApiClient)
   async getRaw<T>(
-    url: string, 
+    url: string,
     params?: unknown,
-    config?: AxiosRequestConfig & { 
-      cacheTTL?: number; 
+    config?: AxiosRequestConfig & {
+      cacheTTL?: number;
       useCache?: boolean;
       retryConfig?: RetryConfig;
     }
   ): Promise<AxiosResponse<T>> {
-    const { cacheTTL = this.defaultTTL, useCache = false, retryConfig, ...axiosConfig } = config || {};
-    
+    const {
+      cacheTTL = this.defaultTTL,
+      useCache = false,
+      retryConfig,
+      ...axiosConfig
+    } = config || {};
+
     // Check if this is a binary request
-    const isBinary = axiosConfig.responseType === 'blob' || axiosConfig.responseType === 'arraybuffer';
-    
+    const isBinary =
+      axiosConfig.responseType === 'blob' || axiosConfig.responseType === 'arraybuffer';
+
     // Prepare final config
     const finalConfig: AxiosRequestConfig = { params, ...axiosConfig };
-    
+
     if (isBinary) {
       // Bypass automatic JSON transformation for binary data
       finalConfig.transformResponse = [(data) => data];
-      
+
       // Ensure we don't force application/json Content-Type for GET
       finalConfig.headers = {
         ...finalConfig.headers,
-        'Accept': '*/*',
+        Accept: '*/*',
       };
-      
+
       // Axios instance has a default Content-Type: application/json
       // We must explicitly remove or change it for binary GET requests to avoid server-side confusion
       if (finalConfig.headers['Content-Type'] === 'application/json') {
@@ -513,14 +538,14 @@ class ApiService {
     if (useCache && !isBinary) {
       const cacheKey = this.getCacheKey({ method: 'get', url, params, ...axiosConfig });
       const cached = this.cache.get(cacheKey);
-      
+
       if (cached && Date.now() - cached.timestamp < cached.ttl) {
         return {
-            data: cached.data as T,
-            status: 200,
-            statusText: 'OK',
-            headers: { 'x-cache': 'HIT', 'etag': cached.etag },
-            config: { ...axiosConfig, url, method: 'get' } as InternalAxiosRequestConfig
+          data: cached.data as T,
+          status: 200,
+          statusText: 'OK',
+          headers: { 'x-cache': 'HIT', etag: cached.etag },
+          config: { ...axiosConfig, url, method: 'get' } as InternalAxiosRequestConfig,
         };
       }
     }
@@ -545,69 +570,58 @@ class ApiService {
   }
 
   async postRaw<T>(
-    url: string, 
-    data?: unknown, 
-    config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
-  ): Promise<AxiosResponse<T>> {
-    const { retryConfig, ...axiosConfig } = config || {};
-    
-    // Binary handling
-    const isBinary = axiosConfig.responseType === 'blob' || axiosConfig.responseType === 'arraybuffer';
-    if (isBinary) {
-      axiosConfig.transformResponse = [(data) => data];
-      axiosConfig.headers = {
-        'Accept': '*/*',
-        ...axiosConfig.headers,
-      };
-    }
-
-    return this.executeWithRetry(
-      () => this.api.post<T>(url, data, axiosConfig),
-      retryConfig
-    );
-  }
-
-  async putRaw<T>(
-    url: string, 
+    url: string,
     data?: unknown,
     config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
   ): Promise<AxiosResponse<T>> {
     const { retryConfig, ...axiosConfig } = config || {};
-    return this.executeWithRetry(
-      () => this.api.put<T>(url, data, axiosConfig),
-      retryConfig
-    );
+
+    // Binary handling
+    const isBinary =
+      axiosConfig.responseType === 'blob' || axiosConfig.responseType === 'arraybuffer';
+    if (isBinary) {
+      axiosConfig.transformResponse = [(data) => data];
+      axiosConfig.headers = {
+        Accept: '*/*',
+        ...axiosConfig.headers,
+      };
+    }
+
+    return this.executeWithRetry(() => this.api.post<T>(url, data, axiosConfig), retryConfig);
+  }
+
+  async putRaw<T>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
+  ): Promise<AxiosResponse<T>> {
+    const { retryConfig, ...axiosConfig } = config || {};
+    return this.executeWithRetry(() => this.api.put<T>(url, data, axiosConfig), retryConfig);
   }
 
   async deleteRaw<T>(
-    url: string, 
+    url: string,
     config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
   ): Promise<AxiosResponse<T>> {
     const { retryConfig, ...axiosConfig } = config || {};
-    return this.executeWithRetry(
-      () => this.api.delete<T>(url, axiosConfig),
-      retryConfig
-    );
+    return this.executeWithRetry(() => this.api.delete<T>(url, axiosConfig), retryConfig);
   }
 
   async patchRaw<T>(
-    url: string, 
-    data?: unknown, 
+    url: string,
+    data?: unknown,
     config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
   ): Promise<AxiosResponse<T>> {
     const { retryConfig, ...axiosConfig } = config || {};
-    return this.executeWithRetry(
-      () => this.api.patch<T>(url, data, axiosConfig),
-      retryConfig
-    );
+    return this.executeWithRetry(() => this.api.patch<T>(url, data, axiosConfig), retryConfig);
   }
 
   // Standard convenience methods returning just data
   async get<T>(
-    url: string, 
+    url: string,
     params?: unknown,
-    config?: AxiosRequestConfig & { 
-      cacheTTL?: number; 
+    config?: AxiosRequestConfig & {
+      cacheTTL?: number;
       useCache?: boolean;
       retryConfig?: RetryConfig;
     }
@@ -617,8 +631,8 @@ class ApiService {
   }
 
   async post<T>(
-    url: string, 
-    data?: unknown, 
+    url: string,
+    data?: unknown,
     config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
   ): Promise<ApiResponse<T>> {
     const response = await this.postRaw<ApiResponse<T>>(url, data, config);
@@ -626,16 +640,16 @@ class ApiService {
   }
 
   async put<T>(
-    url: string, 
+    url: string,
     data?: unknown,
     config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
   ): Promise<ApiResponse<T>> {
     const response = await this.putRaw<ApiResponse<T>>(url, data, config);
     return response.data;
   }
-  
+
   async delete<T>(
-    url: string, 
+    url: string,
     config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
   ): Promise<ApiResponse<T>> {
     const response = await this.deleteRaw<ApiResponse<T>>(url, config);
@@ -643,8 +657,8 @@ class ApiService {
   }
 
   async patch<T>(
-    url: string, 
-    data?: unknown, 
+    url: string,
+    data?: unknown,
     config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
   ): Promise<ApiResponse<T>> {
     const response = await this.patchRaw<ApiResponse<T>>(url, data, config);
@@ -664,13 +678,18 @@ class ApiService {
   }
 
   setAccessToken(token: string | null): void {
+    // Phase E5 hardening: access token lives in memory only. Never
+    // persist it to localStorage — see constructor comment for why.
+    // We still clear any stray legacy value defensively in case an
+    // older tab wrote to storage before this build loaded.
     this.accessToken = token;
+    if (localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) !== null) {
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+    }
     if (token) {
-        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
-        this.api.defaults.headers.common.Authorization = `Bearer ${token}`;
+      this.api.defaults.headers.common.Authorization = `Bearer ${token}`;
     } else {
-        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-        delete this.api.defaults.headers.common.Authorization;
+      delete this.api.defaults.headers.common.Authorization;
     }
   }
 
@@ -695,45 +714,47 @@ class ApiService {
     try {
       const token = this.getAccessToken();
       const headers = new Headers(options.headers || {});
-      
+
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
       }
-  
+
       // Determine type of content
       const isMultipart = options.body instanceof FormData;
       if (!isMultipart && !headers.has('Content-Type')) {
         headers.set('Content-Type', 'application/json');
       }
-  
+
       const url = `${this.getOptimalApiUrl()}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-  
+
       const response = await fetch(url, {
         ...options,
         headers,
         credentials: 'include', // Enable cookies
       });
-  
-      const responseErrorCode =
-        response.headers.get('x-error-code') ||
-        undefined;
+
+      const responseErrorCode = response.headers.get('x-error-code') || undefined;
 
       if (shouldAttemptTokenRefresh(response.status, responseErrorCode)) {
         // Prevent infinite loops: Don't refresh if the failed request was an auth endpoint
-        if (url.includes('/auth/login') || url.includes('/auth/refresh-token') || url.includes('/auth/logout')) {
-          return response; 
+        if (
+          url.includes('/auth/login') ||
+          url.includes('/auth/refresh-token') ||
+          url.includes('/auth/logout')
+        ) {
+          return response;
         }
-        
+
         // We can reuse the axios logic by checking if we are already refreshing
         if (isRefreshing) {
-            return new Promise((resolve, reject) => {
-              failedQueue.push({ resolve, reject });
-            }).then((newToken) => {
-              headers.set('Authorization', `Bearer ${newToken}`);
-              return fetch(url, { ...options, headers, credentials: 'include' });
-            }) as Promise<Response>;
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          }).then((newToken) => {
+            headers.set('Authorization', `Bearer ${newToken}`);
+            return fetch(url, { ...options, headers, credentials: 'include' });
+          }) as Promise<Response>;
         }
-  
+
         // Trigger refresh manually
         isRefreshing = true;
         try {
@@ -766,54 +787,57 @@ class ApiService {
           if (legacyBodyToken) {
             localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
           }
-          
+
           const refreshData = await refreshResponse.json();
           // Look for accessToken in various possible response structures
-          const accessToken = refreshData.data?.accessToken || refreshData.data?.tokens?.accessToken || refreshData.accessToken;
+          const accessToken =
+            refreshData.data?.accessToken ||
+            refreshData.data?.tokens?.accessToken ||
+            refreshData.accessToken;
           // Do NOT update refresh token
-          
+
           if (!accessToken) {
             throw new Error('Invalid refresh response');
           }
-  
+
           logger.warn('✅ Token refresh successful (safeFetch)');
-  
+
           this.setAccessToken(accessToken);
           // Do NOT update refresh token
-  
+
           processQueue(null, accessToken);
           isRefreshing = false;
-  
+
           headers.set('Authorization', `Bearer ${accessToken}`);
           return fetch(url, { ...options, headers });
         } catch (error) {
-            processQueue(error as Error, null);
-            isRefreshing = false;
+          processQueue(error as Error, null);
+          isRefreshing = false;
 
-            if (shouldForceLogoutOnRefreshFailure(error)) {
-              localStorage.setItem(SYNC_KEYS.FORCE_LOGOUT, Date.now().toString());
-              this.setAccessToken(null);
-              localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-              localStorage.removeItem(STORAGE_KEYS.USER_DATA);
-              triggerLogout('Your session has expired. Please login again.');
-            }
-            throw error;
+          if (shouldForceLogoutOnRefreshFailure(error)) {
+            localStorage.setItem(SYNC_KEYS.FORCE_LOGOUT, Date.now().toString());
+            this.setAccessToken(null);
+            localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+            localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+            triggerLogout('Your session has expired. Please login again.');
+          }
+          throw error;
         }
       }
-  
+
       return response;
     } finally {
       this.decrementActiveRequests();
     }
   }
-
 }
 
 export const apiService = new ApiService();
 
-
-
 // Export authenticatedFetch for use in other services
-export const authenticatedFetch = (endpoint: string, options: RequestInit = {}): Promise<Response> => {
+export const authenticatedFetch = (
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<Response> => {
   return apiService.safeFetch(endpoint, options);
 };
