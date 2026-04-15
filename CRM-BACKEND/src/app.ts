@@ -63,6 +63,8 @@ import verificationTasksRoutes from '@/routes/verificationTasks';
 import templateReportsRoutes from '@/routes/templateReports';
 import fieldMonitoringRoutes from '@/routes/fieldMonitoring';
 import kycRoutes from '@/routes/kyc';
+import caseDataTemplatesRoutes from '@/routes/caseDataTemplates';
+import caseDataEntriesRoutes from '@/routes/caseDataEntries';
 
 const app = express();
 
@@ -258,6 +260,8 @@ apiRouter.use('/ai-reports', extendedTimeout, aiReportsRoutes);
 apiRouter.use('/template-reports', extendedTimeout, templateReportsRoutes);
 apiRouter.use('/field-monitoring', fieldMonitoringRoutes);
 apiRouter.use('/kyc', kycRoutes);
+apiRouter.use('/case-data-templates', caseDataTemplatesRoutes);
+apiRouter.use('/case-data-entries', caseDataEntriesRoutes);
 
 // Multi-verification task routes
 apiRouter.use('/', verificationTasksRoutes);
