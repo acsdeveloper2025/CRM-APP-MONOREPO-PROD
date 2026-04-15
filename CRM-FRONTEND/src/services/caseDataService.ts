@@ -124,7 +124,14 @@ class CaseDataService {
     form.append('file', file);
     form.append('clientId', String(clientId));
     form.append('productId', String(productId));
-    return apiService.post('/case-data-templates/parse-upload', form);
+    // The shared axios instance defaults Content-Type to application/json.
+    // For multipart uploads we must drop that default so axios re-derives
+    // the header from the FormData body (which adds the required boundary
+    // parameter). Setting Content-Type to a literal "multipart/form-data"
+    // would skip the boundary and break multer parsing on the backend.
+    return apiService.post('/case-data-templates/parse-upload', form, {
+      headers: { 'Content-Type': undefined as unknown as string },
+    });
   }
 
   // ---------------- Entries (multi-instance) ----------------
