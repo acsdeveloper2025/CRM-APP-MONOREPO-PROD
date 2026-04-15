@@ -44,11 +44,12 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_verification_tasks_address_trgm
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_form_submissions_task_status
   ON public.form_submissions USING btree (verification_task_id, validation_status);
 
--- 5) mobile_device_sync (userId, deviceId)
--- Hot path: every mobile sync request looks up the row for the
--- caller's (userId, deviceId) pair. Existing single-column index on
--- userId still scans an average ~5 device rows per user.
--- NOTE: the table uses quoted camelCase identifiers (legacy schema);
--- the index column list mirrors that.
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_mobile_device_sync_user_device
-  ON public.mobile_device_sync USING btree ("userId", "deviceId");
+-- 5) mobile_device_sync (user_id, device_id) — REMOVED
+-- Originally this migration added a composite index on (user_id,
+-- device_id) for mobile sync lookups. Removed because the existing
+-- UNIQUE constraint `mobile_device_sync_userId_deviceId_key` already
+-- creates a b-tree on exactly that column pair — the extra index was
+-- redundant and PostgreSQL's planner already picks the unique index
+-- for this access path. The earlier version of this file also had a
+-- column-name bug (used quoted camelCase "userId"/"deviceId" against
+-- a snake_case table), which is how the redundancy came to light.
