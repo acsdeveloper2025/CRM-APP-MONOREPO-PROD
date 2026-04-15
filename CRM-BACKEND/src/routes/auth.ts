@@ -9,6 +9,7 @@ import {
   resetAuthRateLimitForIp,
   resetRoleRateLimitForUser,
 } from '@/middleware/rateLimiter';
+import { refreshCsrfGuard } from '@/middleware/refreshCsrfGuard';
 import { logger } from '@/config/logger';
 
 const router = Router();
@@ -97,7 +98,9 @@ const resetUserRateLimit = (req: Request, res: Response) => {
 // Routes
 // ... (skip lines) ...
 router.post('/login', authRateLimit, validate(loginValidation), login);
-router.post('/refresh-token', authRateLimit, refreshToken);
+// refreshCsrfGuard: only gates cookie-bearing (browser) callers — see
+// middleware/refreshCsrfGuard.ts. Mobile/body-token callers pass through.
+router.post('/refresh-token', authRateLimit, refreshCsrfGuard, refreshToken);
 router.post('/logout', authenticateToken, logout);
 router.get('/me', authenticateToken, getCurrentUser);
 router.post('/reset-rate-limit', authenticateToken, authorize('settings.manage'), resetRateLimit);
