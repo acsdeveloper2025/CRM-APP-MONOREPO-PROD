@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { type Request, type Response, type NextFunction } from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
@@ -276,7 +276,7 @@ router.post(
   // read them. Purely local to this route; doesn't affect the
   // normalized shape the handler sees because the handler reads
   // from `caseDetails.*`.
-  (req, _res, next) => {
+  (req: Request, _res: Response, next: NextFunction) => {
     const bodyAny = req.body as Record<string, unknown> | undefined;
     const caseDetails = bodyAny?.caseDetails as Record<string, unknown> | undefined;
     if (caseDetails) {

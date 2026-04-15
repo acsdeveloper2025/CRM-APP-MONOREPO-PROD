@@ -4,6 +4,7 @@ import type {
   MobileSyncDownloadResponse,
   MobileCaseResponse,
   MobileAttachmentDeltaChange,
+  MobileAttachmentResponse,
 } from '../types/mobile';
 import type { QueryParams } from '../types/database';
 
@@ -646,7 +647,7 @@ export class MobileSyncController {
               code: caseItem.verificationTypeCode || '',
             }
           : undefined,
-        attachments: [],
+        attachments: [] as MobileAttachmentResponse[],
         attachmentCount: Number(caseItem.attachmentCount) || 0,
         formData: caseItem.verificationData,
         syncStatus: 'SYNCED',
@@ -795,7 +796,7 @@ export class MobileSyncController {
 
       const syncStatus = {
         lastSyncAt: device.lastUsed?.toISOString(),
-        lastSyncData: null, // Field doesn't exist in schema
+        lastSyncData: null as unknown, // Field doesn't exist in schema
         isOnline: true,
         pendingChanges: 0, // Would calculate based on local changes
       };
