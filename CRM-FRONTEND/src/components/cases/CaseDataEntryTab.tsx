@@ -185,19 +185,12 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
   };
 
   const handleCreateInstance = async () => {
-    // Intentional minimal UX for the instance-label step — a full modal
-    // would be ceremony for a one-line input that the backend also
-    // auto-labels ("Primary" / "Instance N") if left blank.
-    // eslint-disable-next-line no-alert
-    const label = window.prompt(
-      'Label for this instance (e.g. "Co-Applicant 1", "Asset 2")',
-      entries.length === 0 ? 'Primary' : `Instance ${entries.length + 1}`
-    );
-    if (label === null) {
-      return;
-    }
+    // No label prompt — the backend auto-assigns "Primary" for the first
+    // instance and "Instance N" for subsequent ones. If a client ever
+    // needs custom labels, we can surface them via an inline rename on
+    // each tab rather than a modal at creation time.
     try {
-      const created = await createInstance.mutateAsync(label.trim() || undefined);
+      const created = await createInstance.mutateAsync(undefined);
       setActiveTab(String(created.instanceIndex));
     } catch (err) {
       const apiErr = extractApiError(err);
