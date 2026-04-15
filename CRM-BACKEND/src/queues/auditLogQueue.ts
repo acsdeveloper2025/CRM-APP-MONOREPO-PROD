@@ -31,6 +31,7 @@ import { logger } from '@/config/logger';
 import { query } from '@/config/database';
 import type { AuditLogData } from '@/utils/auditLogger';
 import { errorMessage } from '@/utils/errorMessage';
+import { writeAuditDeadLetter, recoverAuditDeadLetter } from './auditLogDeadLetter';
 
 const QUEUE_NAME = 'audit-log-processing';
 
@@ -69,9 +70,11 @@ export const enqueueAuditLog = async (data: AuditLogData): Promise<void> => {
     logger.error('Failed to enqueue audit log, falling back to direct insert', {
       error: errorMessage(error),
     });
-    // Fallback: try the direct insert path so the record isn't lost
-    // on a Redis outage. If this fails too we log and drop — same
-    // behavior as the pre-D3 auditLogger.
+    // Fallback chain when the queue itself is unavailable:
+    //   1. Try a direct INSERT against the audit_logs table.
+    //   2. If that also fails, persist the event to the on-disk DLQ
+    //      (auditLogDeadLetter.ts) so the cluster's startup recovery
+    //      sweep can replay it once Redis/DB are back.
     try {
       await query(
         `INSERT INTO audit_logs (action, entity_type, entity_id, user_id, details, ip_address, user_agent, created_at)
@@ -87,7 +90,10 @@ export const enqueueAuditLog = async (data: AuditLogData): Promise<void> => {
         ]
       );
     } catch (directError) {
-      logger.error('Direct audit log fallback insert failed:', directError);
+      logger.error('Direct audit log fallback insert failed; writing to DLQ file', {
+        error: errorMessage(directError),
+      });
+      await writeAuditDeadLetter(data);
     }
   }
 };
@@ -122,13 +128,30 @@ export const startAuditLogProcessor = (): void => {
     });
 
   auditLogQueue.on('failed', (job, err) => {
+    const opts = job.opts ?? {};
+    const maxAttempts = typeof opts.attempts === 'number' ? opts.attempts : 1;
     logger.warn('Audit log job failed', {
       jobId: job.id,
       attemptsMade: job.attemptsMade,
+      maxAttempts,
       action: job.data.action,
       entityType: job.data.entityType,
       error: err.message,
     });
+    // After Bull has exhausted all retries the job is removed by
+    // removeOnFail policy and the event would otherwise be lost.
+    // Persist the payload to the file-based DLQ so the next process
+    // start can replay it.
+    if (job.attemptsMade >= maxAttempts) {
+      void writeAuditDeadLetter(job.data);
+    }
+  });
+
+  // Best-effort replay of any events parked in the DLQ during a
+  // previous outage. Runs once per process start, after the worker is
+  // attached so the re-enqueued jobs are picked up immediately.
+  void recoverAuditDeadLetter(enqueueAuditLog).catch(err => {
+    logger.error('Audit DLQ recovery sweep failed', { error: errorMessage(err) });
   });
 
   logger.info('Audit log queue processor started');
