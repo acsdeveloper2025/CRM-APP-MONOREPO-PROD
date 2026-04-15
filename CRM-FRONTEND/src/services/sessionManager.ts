@@ -31,7 +31,7 @@ class SessionManager {
     'scroll',
     'touchstart',
     'visibilitychange',
-    'click'
+    'click',
   ];
 
   constructor() {
@@ -43,7 +43,9 @@ class SessionManager {
   }
 
   public init(onWarning: TimeoutCallback) {
-    if (this.intervalId) {return;} // Already running
+    if (this.intervalId) {
+      return;
+    } // Already running
 
     this.warningCallback = onWarning;
     this.startStorageListener();
@@ -70,7 +72,7 @@ class SessionManager {
     this.updateLastActivity();
     try {
       // Ping backend to keep server session alive if needed
-      await apiService.get('/auth/me'); 
+      await apiService.get('/auth/me');
     } catch (error) {
       logger.error('Failed to extend backend session', error);
       // Even if backend fails, we reset local timer to avoid immediate loop
@@ -88,32 +90,40 @@ class SessionManager {
   }
 
   private startActivityListeners() {
-    if (this.eventListenersAttached) {return;}
-    
-    this.events.forEach(event => {
+    if (this.eventListenersAttached) {
+      return;
+    }
+
+    this.events.forEach((event) => {
       window.addEventListener(event, this.handleUserActivity);
     });
     this.eventListenersAttached = true;
   }
 
   private stopActivityListeners() {
-    if (!this.eventListenersAttached) {return;}
-    
-    this.events.forEach(event => {
+    if (!this.eventListenersAttached) {
+      return;
+    }
+
+    this.events.forEach((event) => {
       window.removeEventListener(event, this.handleUserActivity);
     });
     this.eventListenersAttached = false;
   }
 
   private startStorageListener() {
-    if (this.storageListenerAttached) {return;}
+    if (this.storageListenerAttached) {
+      return;
+    }
 
     window.addEventListener('storage', this.handleStorageEvent);
     this.storageListenerAttached = true;
   }
 
   private stopStorageListener() {
-    if (!this.storageListenerAttached) {return;}
+    if (!this.storageListenerAttached) {
+      return;
+    }
 
     window.removeEventListener('storage', this.handleStorageEvent);
     this.storageListenerAttached = false;
@@ -172,10 +182,16 @@ class SessionManager {
   };
 
   private checkSession = () => {
-    // 1. Check if persistent session exists (refresh token)
-    const hasRefreshToken = !!localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-    if (!hasRefreshToken) {
-      // No refresh token means we are likely logged out already
+    // 1. Session sentinel: the refresh token is now an HttpOnly cookie
+    // (not readable here), so use the cached user profile as the "is
+    // there a session?" hint — it's set on login and cleared on logout.
+    // The legacy REFRESH_TOKEN key also counts as a hint for users
+    // mid-migration from a pre-flip build.
+    const hasSessionHint =
+      !!localStorage.getItem(STORAGE_KEYS.USER_DATA) ||
+      !!localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+    if (!hasSessionHint) {
+      // No session hint means we are likely logged out already
       return;
     }
 
@@ -209,23 +225,29 @@ class SessionManager {
   };
 
   private triggerLogoutAction(reason: string = 'Your session has expired. Please login again.') {
-    // Avoid double logout
-    if (!localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN)) {return;}
+    // Avoid double logout — mirror the session-hint check above so the
+    // post-flip (cookie-only) path still gates correctly.
+    const hasSessionHint =
+      !!localStorage.getItem(STORAGE_KEYS.USER_DATA) ||
+      !!localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+    if (!hasSessionHint) {
+      return;
+    }
 
     // Notify other tabs
     localStorage.setItem(SYNC_KEYS.FORCE_LOGOUT, Date.now().toString());
-    
+
     // Clear local data and memory
     apiService.setAccessToken(null);
     localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER_DATA);
-    
+
     // Clean up our listeners
     this.destroy();
 
     // Trigger app logout with message
     triggerLogout(reason);
-    
+
     // Redirect with reason param for deep link or reload handling
     const encodedReason = encodeURIComponent(reason);
     window.location.href = `/login?reason=${encodedReason}`;
