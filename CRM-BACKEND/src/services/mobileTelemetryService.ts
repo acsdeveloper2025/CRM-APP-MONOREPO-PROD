@@ -1,5 +1,6 @@
 import { logger } from '@/config/logger';
 import { redisClient } from '@/config/redis';
+import { errorMessage } from '@/utils/errorMessage';
 
 type MetricTags = Record<string, string | number | boolean | null | undefined>;
 
@@ -52,7 +53,7 @@ export class MobileTelemetryService {
         logger.warn('Failed to persist mobile telemetry metric to redis', {
           metricName,
           metricField,
-          error: error instanceof Error ? error.message : String(error),
+          error: errorMessage(error),
         });
       }
     }

@@ -2,6 +2,7 @@ import type { NextFunction, Response } from 'express';
 import { query } from '@/config/database';
 import type { ApiResponse } from '@/types/api';
 import type { AuthenticatedRequest } from '@/middleware/auth';
+import { errorMessage } from '@/utils/errorMessage';
 
 type OwnershipType = 'task' | 'case';
 
@@ -151,7 +152,7 @@ export const authorize = (permissionCode: string, options?: AuthorizeOptions) =>
         message: 'Authorization failed',
         error: {
           code: 'AUTHORIZATION_ERROR',
-          details: error instanceof Error ? error.message : String(error),
+          details: errorMessage(error),
         },
       });
     });

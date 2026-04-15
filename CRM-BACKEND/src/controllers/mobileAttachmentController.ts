@@ -15,6 +15,7 @@ import { config } from '../config';
 import { query } from '@/config/database';
 import { isFieldExecutionActor } from '@/security/rbacAccess';
 import { getApiBaseUrl } from '@/utils/publicUrl';
+import { errorMessage } from '@/utils/errorMessage';
 
 /**
  * Generate base64-encoded attachment data with checksum for offline sync
@@ -38,7 +39,7 @@ async function generateBase64WithChecksum(
     return { base64Data, checksum };
   } catch (error) {
     logger.error(`❌ Failed to generate base64 for file: ${filePath}`, error);
-    throw new Error(`Failed to encode attachment: ${error.message}`);
+    throw new Error(`Failed to encode attachment: ${errorMessage(error)}`);
   }
 }
 

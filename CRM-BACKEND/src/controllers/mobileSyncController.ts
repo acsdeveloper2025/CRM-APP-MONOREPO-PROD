@@ -53,6 +53,7 @@ import { isFieldExecutionActor } from '@/security/rbacAccess';
 import { CaseStatusSyncService } from '../services/caseStatusSyncService';
 import { TaskRevocationService } from '../services/taskRevocationService';
 import { MobileTelemetryService } from '@/services/mobileTelemetryService';
+import { errorMessage } from '@/utils/errorMessage';
 
 export class MobileSyncController {
   private static readonly MAX_SYNC_PAGE_SIZE = 500;
@@ -709,7 +710,7 @@ export class MobileSyncController {
       logger.error('❌ Sync download error:', error);
       logger.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       logger.error('Error details:', {
-        message: error instanceof Error ? error.message : String(error),
+        message: errorMessage(error),
         userId: req.user?.id,
         executionActor: isFieldExecutionActor(req.user),
       });

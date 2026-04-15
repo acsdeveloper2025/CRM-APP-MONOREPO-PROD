@@ -26,6 +26,7 @@ import {
   type MobileOperationType,
 } from '@/services/mobileOperationService';
 import { getApiBaseUrl } from '@/utils/publicUrl';
+import { errorMessage } from '@/utils/errorMessage';
 
 // Type guards and interfaces for WhereClause usage
 interface DateRangeFilter {
@@ -1966,7 +1967,7 @@ export class MobileCaseController {
         error: {
           code: 'TASK_REVOCATION_FAILED',
           timestamp: new Date().toISOString(),
-          details: error instanceof Error ? error.message : String(error),
+          details: errorMessage(error),
         },
       });
     }
