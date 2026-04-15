@@ -116,6 +116,8 @@ class CaseDataService {
       fields: Array<
         Omit<CaseDataTemplateField, 'id' | 'templateId' | 'isActive' | 'createdAt' | 'updatedAt'>
       >;
+      existingTemplateId: number | null;
+      existingTemplateVersion: number | null;
     }>
   > {
     const form = new FormData();

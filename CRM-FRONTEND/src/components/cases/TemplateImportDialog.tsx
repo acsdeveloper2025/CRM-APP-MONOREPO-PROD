@@ -65,6 +65,10 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
   const [file, setFile] = useState<File | null>(null);
   const [templateName, setTemplateName] = useState<string>('');
   const [fields, setFields] = useState<DraftField[]>([]);
+  // null → saving will CREATE a new template; non-null → saving will
+  // UPDATE this id (triggers the versioning logic on the backend).
+  const [existingTemplateId, setExistingTemplateId] = useState<number | null>(null);
+  const [existingTemplateVersion, setExistingTemplateVersion] = useState<number | null>(null);
 
   const { data: productsRes } = useProductsByClient(clientId || undefined);
   const products = useMemo(
@@ -81,6 +85,8 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
     setFile(null);
     setTemplateName('');
     setFields([]);
+    setExistingTemplateId(null);
+    setExistingTemplateVersion(null);
   };
 
   const closeDialog = () => {
@@ -96,12 +102,23 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
       return caseDataService.parseUpload(Number(clientId), Number(productId), file);
     },
     onSuccess: (res) => {
-      const payload = (res as { data?: { fields?: DraftField[]; sheetName?: string | null } }).data;
+      const payload = (
+        res as {
+          data?: {
+            fields?: DraftField[];
+            sheetName?: string | null;
+            existingTemplateId?: number | null;
+            existingTemplateVersion?: number | null;
+          };
+        }
+      ).data;
       if (!payload?.fields?.length) {
         toast.error('No fields found in file');
         return;
       }
       setFields(payload.fields);
+      setExistingTemplateId(payload.existingTemplateId ?? null);
+      setExistingTemplateVersion(payload.existingTemplateVersion ?? null);
       // Default the template name to "<ClientName> — <ProductName>" as a
       // convenience; admin can override in the preview.
       const cName = clients.find((c) => String(c.id) === clientId)?.name ?? 'Template';
@@ -121,6 +138,15 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      if (existingTemplateId !== null) {
+        // Update existing — backend triggers the versioning logic:
+        // new version if cases have entries on it, otherwise in-place
+        // field replacement.
+        return caseDataService.updateTemplate(existingTemplateId, {
+          name: templateName.trim(),
+          fields,
+        });
+      }
       return caseDataService.createTemplate({
         clientId: Number(clientId),
         productId: Number(productId),
@@ -129,7 +155,7 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
       });
     },
     onSuccess: () => {
-      toast.success('Template created');
+      toast.success(existingTemplateId !== null ? 'Template replaced' : 'Template created');
       queryClient.invalidateQueries({ queryKey: ['case-data-templates'] });
       closeDialog();
     },
@@ -282,6 +308,19 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
 
         {step === 'preview' && (
           <div className="space-y-4">
+            {existingTemplateId !== null && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                <p className="font-medium">Replacing existing template</p>
+                <p className="text-xs">
+                  An active template (v{existingTemplateVersion}) already exists for this
+                  client + product. Saving will{' '}
+                  <strong>
+                    create a new version if any case already has data on the current template
+                  </strong>
+                  ; otherwise fields are replaced in place.
+                </p>
+              </div>
+            )}
             <div>
               <Label htmlFor="import-name">Template Name</Label>
               <Input
@@ -429,7 +468,8 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
                 disabled={!canSave || saveMutation.isPending}
               >
                 {saveMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                Save Template ({fields.length} fields)
+                {existingTemplateId !== null ? 'Replace Template' : 'Save Template'} (
+                {fields.length} fields)
               </Button>
             </>
           )}
