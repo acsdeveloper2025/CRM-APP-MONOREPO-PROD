@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   AlertDialog,
@@ -72,6 +73,42 @@ const extractApiError = (err: unknown): ApiErrorShape['response']['data'] & { st
   };
 };
 
+/**
+ * Apply template-defined default values to a freshly created (empty)
+ * instance. Type-safe coercion: NUMBER defaults that don't parse are
+ * dropped rather than written as NaN, BOOLEAN defaults honour string
+ * "true"/"false", MULTISELECT defaults are split on commas.
+ */
+const buildDefaultsForFields = (
+  fields: CaseDataTemplateField[]
+): Record<string, unknown> => {
+  const defaults: Record<string, unknown> = {};
+  for (const field of fields) {
+    if (field.defaultValue == null || field.defaultValue === '') { continue; }
+    switch (field.fieldType) {
+      case 'NUMBER': {
+        const n = Number(field.defaultValue);
+        if (Number.isFinite(n)) {
+          defaults[field.fieldKey] = n;
+        }
+        break;
+      }
+      case 'BOOLEAN':
+        defaults[field.fieldKey] = field.defaultValue === 'true';
+        break;
+      case 'MULTISELECT':
+        defaults[field.fieldKey] = field.defaultValue
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean);
+        break;
+      default:
+        defaults[field.fieldKey] = field.defaultValue;
+    }
+  }
+  return defaults;
+};
+
 // ---- Main component ---------------------------------------------------------
 
 export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabProps) {
@@ -97,13 +134,18 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
 
   // Initialise local form state from server entries. Runs only for entries
   // the user hasn't started editing yet — we never clobber dirty state.
+  // For freshly-created instances whose server data is still empty, seed
+  // the form with template defaults (type-safe — no NaN leaks).
   useEffect(() => {
     if (!entries.length) { return; }
+    const defaults = template?.fields ? buildDefaultsForFields(template.fields) : {};
     setFormByIndex(prev => {
       const next = { ...prev };
       for (const entry of entries) {
         if (dirtyIndexes.has(entry.instanceIndex)) { continue; }
-        next[entry.instanceIndex] = (entry.data || {}) as Record<string, unknown>;
+        const serverData = (entry.data || {}) as Record<string, unknown>;
+        next[entry.instanceIndex] =
+          Object.keys(serverData).length === 0 ? { ...defaults } : serverData;
       }
       return next;
     });
@@ -113,7 +155,7 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
       if (ids.includes(prev)) { return prev; }
       return ids[0] || '';
     });
-  }, [entries, dirtyIndexes]);
+  }, [entries, dirtyIndexes, template]);
 
   // Block in-app navigation when there are unsaved changes.
   useBlocker(({ currentLocation, nextLocation }) => {
@@ -642,18 +684,26 @@ function DynamicField({
         </div>
       )}
       {field.fieldType === 'MULTISELECT' && (
-        <div className="flex flex-wrap gap-2 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
           {(field.options || []).map(opt => {
             const selected = Array.isArray(value) && (value as string[]).includes(opt.value);
+            const optionId = `${fieldId}-${opt.value}`;
             return (
-              <Badge
+              <label
                 key={opt.value}
-                variant={selected ? 'default' : 'outline'}
-                className={`cursor-pointer ${readonly ? 'pointer-events-none' : ''}`}
-                onClick={() => !readonly && handleToggle(opt.value, selected)}
+                htmlFor={optionId}
+                className={`flex items-center gap-2 text-sm ${
+                  readonly ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'
+                }`}
               >
-                {opt.label}
-              </Badge>
+                <Checkbox
+                  id={optionId}
+                  checked={selected}
+                  onCheckedChange={() => handleToggle(opt.value, selected)}
+                  disabled={readonly}
+                />
+                <span>{opt.label}</span>
+              </label>
             );
           })}
         </div>
