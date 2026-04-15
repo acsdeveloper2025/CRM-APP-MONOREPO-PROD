@@ -641,7 +641,7 @@ export const getSLARiskMonitoring = async (req: AuthenticatedRequest, res: Respo
         breached: 0, // Not explicitly separate in minimal KPI yet (or maybe is included in risk?)
         total: kpi.workload.openTasks.value,
       },
-      criticalTasks: [], // Empty list
+      criticalTasks: [] as unknown[], // Empty list
     };
 
     logger.info('SLA risk monitoring data retrieved (via KPI Engine - Partial)', {

@@ -1462,41 +1462,47 @@ Hence the profile is marked as {Final_Status}.`,
     formData?: Record<string, unknown>
   ): string | null {
     const templateKey = this.getTemplateKey(verificationType, outcome, formData);
+    // Each *_TEMPLATES record has a fixed key set; the runtime key
+    // comes from getTemplateKey() and is not statically known, so we
+    // narrow with a per-table keyof cast at the access site. Missing
+    // keys fall through to the `|| null` fallback.
+    const lookup = <T extends Record<string, string>>(table: T): string | null =>
+      table[templateKey as keyof T] || null;
 
     if (verificationType.toUpperCase() === 'RESIDENCE') {
-      return this.RESIDENCE_TEMPLATES[templateKey] || null;
+      return lookup(this.RESIDENCE_TEMPLATES);
     }
 
     if (verificationType.toUpperCase() === 'OFFICE') {
-      return this.OFFICE_TEMPLATES[templateKey] || null;
+      return lookup(this.OFFICE_TEMPLATES);
     }
 
     if (verificationType.toUpperCase() === 'BUSINESS') {
-      return this.BUSINESS_TEMPLATES[templateKey] || null;
+      return lookup(this.BUSINESS_TEMPLATES);
     }
 
     if (verificationType.toUpperCase() === 'RESIDENCE_CUM_OFFICE') {
-      return this.RESIDENCE_CUM_OFFICE_TEMPLATES[templateKey] || null;
+      return lookup(this.RESIDENCE_CUM_OFFICE_TEMPLATES);
     }
 
     if (verificationType.toUpperCase() === 'BUILDER') {
-      return this.BUILDER_TEMPLATES[templateKey] || null;
+      return lookup(this.BUILDER_TEMPLATES);
     }
 
     if (verificationType.toUpperCase() === 'NOC') {
-      return this.NOC_TEMPLATES[templateKey] || null;
+      return lookup(this.NOC_TEMPLATES);
     }
 
     if (verificationType.toUpperCase() === 'DSA_CONNECTOR') {
-      return this.DSA_CONNECTOR_TEMPLATES[templateKey] || null;
+      return lookup(this.DSA_CONNECTOR_TEMPLATES);
     }
 
     if (verificationType.toUpperCase() === 'PROPERTY_APF') {
-      return this.PROPERTY_APF_TEMPLATES[templateKey] || null;
+      return lookup(this.PROPERTY_APF_TEMPLATES);
     }
 
     if (verificationType.toUpperCase() === 'PROPERTY_INDIVIDUAL') {
-      return this.PROPERTY_INDIVIDUAL_TEMPLATES[templateKey] || null;
+      return lookup(this.PROPERTY_INDIVIDUAL_TEMPLATES);
     }
 
     // Add other verification types here as needed

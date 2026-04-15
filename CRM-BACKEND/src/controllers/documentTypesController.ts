@@ -443,7 +443,7 @@ export const getDocumentTypeStats = async (req: AuthenticatedRequest, res: Respo
         inactiveDocumentTypes: 0,
         governmentIssuedCount: 0,
         requiresVerificationCount: 0,
-        documentTypesByCategory: [],
+        documentTypesByCategory: [] as unknown[],
       },
     };
 

@@ -147,7 +147,7 @@ export class EnterpriseCacheService {
    */
   static async mget<T>(keys: string[]): Promise<(T | null)[]> {
     if (!this.available || !this.redis) {
-      return keys.map(() => null);
+      return keys.map((): T | null => null);
     }
 
     try {
@@ -168,7 +168,7 @@ export class EnterpriseCacheService {
       });
     } catch (error) {
       logger.error('Cache mget error:', { keys, error });
-      return keys.map(() => null); // Graceful degradation
+      return keys.map((): T | null => null); // Graceful degradation
     }
   }
 

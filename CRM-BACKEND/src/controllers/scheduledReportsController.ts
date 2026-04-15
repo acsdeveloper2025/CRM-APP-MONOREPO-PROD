@@ -340,7 +340,17 @@ export const getScheduledReportHistory = (req: AuthenticatedRequest, res: Respon
 
     // This would typically come from a database table tracking executions
     // For now, return mock data
-    const mockHistory = [
+    interface ScheduledReportRun {
+      id: string;
+      scheduledReportId: string;
+      executedAt: string;
+      status: string;
+      fileSize: number | null;
+      recipients: string[];
+      executionTime: number;
+      error: string | null;
+    }
+    const mockHistory: ScheduledReportRun[] = [
       {
         id: '1',
         scheduledReportId: id,

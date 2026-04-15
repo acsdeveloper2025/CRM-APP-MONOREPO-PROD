@@ -2416,7 +2416,7 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
 // `normalizeCaseCreationBody`, and `createCaseValidation` exports
 // above for the pieces routes/cases.ts composes.
 export const createCase = async (req: AuthenticatedRequest, res: Response) => {
-  let client;
+  let client: import('pg').PoolClient | undefined;
   const uploadedFiles: Express.Multer.File[] = (req.files as Express.Multer.File[]) || [];
   const startTime = Date.now();
 

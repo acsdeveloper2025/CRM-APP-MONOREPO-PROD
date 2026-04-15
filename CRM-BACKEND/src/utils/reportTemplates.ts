@@ -426,7 +426,7 @@ export function getReportTemplate(
     .replace(/\s+/g, '_') // Replace spaces with underscores
     .replace(/_+/g, '_'); // Replace multiple underscores with single underscore
 
-  const statusConfig = STATUS_CATEGORIES[normalizedStatusKey];
+  const statusConfig = STATUS_CATEGORIES[normalizedStatusKey as keyof typeof STATUS_CATEGORIES];
 
   if (!verificationConfig) {
     throw new Error(`Unknown verification type: ${verificationType}`);
@@ -509,7 +509,7 @@ export function getRiskAssessment(
     .replace(/\s+/g, '_') // Replace spaces with underscores
     .replace(/_+/g, '_'); // Replace multiple underscores with single underscore
 
-  const statusConfig = STATUS_CATEGORIES[statusKey];
+  const statusConfig = STATUS_CATEGORIES[statusKey as keyof typeof STATUS_CATEGORIES];
 
   const riskLevel = (statusConfig?.riskLevel as 'LOW' | 'MEDIUM' | 'HIGH') || 'MEDIUM';
 

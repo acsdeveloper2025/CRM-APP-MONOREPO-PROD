@@ -2297,7 +2297,7 @@ export class MobileFormController {
 
         // Validation status
         validationStatus: 'VALID',
-        validationErrors: [],
+        validationErrors: [] as unknown[],
 
         // Legacy verification object for backward compatibility
         verification: {

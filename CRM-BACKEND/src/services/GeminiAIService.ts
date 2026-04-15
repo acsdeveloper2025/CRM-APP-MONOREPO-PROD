@@ -145,7 +145,7 @@ Hence the profile is marked as {Final_Status}.`,
       }
     }
 
-    const template = this.RESIDENCE_TEMPLATES[templateKey];
+    const template = this.RESIDENCE_TEMPLATES[templateKey as keyof typeof this.RESIDENCE_TEMPLATES];
 
     // Map form data to template variables
     const templateVariables = this.mapFormDataToTemplateVariables(formData, caseDetails);

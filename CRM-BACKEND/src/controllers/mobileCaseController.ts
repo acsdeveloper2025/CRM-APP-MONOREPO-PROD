@@ -4,6 +4,7 @@ import type {
   MobileCaseResponse,
   MobileAutoSaveRequest,
   MobileAutoSaveResponse,
+  MobileAttachmentResponse,
 } from '../types/mobile';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { QueryParams, VerificationAttachmentRow, WhereClause, CaseRow } from '../types/database';
@@ -475,7 +476,7 @@ export class MobileCaseController {
               code: caseItem.verificationTypeCode || '',
             }
           : undefined,
-        attachments: [],
+        attachments: [] as MobileAttachmentResponse[],
         attachmentCount: Number(caseItem.attachmentCount) || 0,
         formData: caseItem.verificationData || null,
         syncStatus: 'SYNCED',

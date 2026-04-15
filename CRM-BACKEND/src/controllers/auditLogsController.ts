@@ -666,13 +666,13 @@ export const exportAuditLogs = (req: AuthenticatedRequest, res: Response) => {
     });
 
     // Create audit log for export action
-    const exportAuditLog = {
+    const exportAuditLog: AuditLog = {
       id: `audit_${Date.now()}`,
-      userId: req.user?.id,
+      userId: req.user?.id ?? 'Unknown',
       userName: req.user?.id ? `User ${req.user.id}` : 'Unknown User',
       action: 'DATA_EXPORT',
       resource: 'audit-logs',
-      resourceId: null,
+      resourceId: undefined,
       details: {
         format,
         recordCount: filteredLogs.length,
@@ -733,13 +733,13 @@ export const cleanupAuditLogs = (req: AuthenticatedRequest, res: Response) => {
     const deletedCount = initialCount - auditLogs.length;
 
     // Create audit log for cleanup action
-    const cleanupAuditLog = {
+    const cleanupAuditLog: AuditLog = {
       id: `audit_${Date.now()}`,
-      userId: req.user?.id,
+      userId: req.user?.id ?? 'Unknown',
       userName: req.user?.id ? `User ${req.user.id}` : 'Unknown User',
       action: 'SYSTEM_MAINTENANCE',
       resource: 'audit-logs',
-      resourceId: null,
+      resourceId: undefined,
       details: {
         operation: 'cleanup',
         olderThanDays: Number(olderThanDays),
