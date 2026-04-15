@@ -125,6 +125,11 @@ const RateManagementPage = React.lazy(() =>
 const DedupePage = React.lazy(() =>
   import('@/pages/DedupePage').then((module) => ({ default: module.DedupePage }))
 );
+const CaseDataTemplatesPage = React.lazy(() =>
+  import('@/pages/CaseDataTemplatesPage').then((module) => ({
+    default: module.CaseDataTemplatesPage,
+  }))
+);
 // KYC pages restored as sidebar section with sub-pages.
 const KYCDashboardPage = React.lazy(() =>
   import('@/pages/KYCDashboardPage').then((module) => ({ default: module.KYCDashboardPage }))
@@ -633,6 +638,14 @@ export const AppRoutes: React.FC = () => {
             element={
               <ProtectedRoute permission="page.settings">
                 <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings/case-data-templates"
+            element={
+              <ProtectedRoute permission="page.settings">
+                <CaseDataTemplatesPage />
               </ProtectedRoute>
             }
           />
