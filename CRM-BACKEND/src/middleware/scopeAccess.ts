@@ -225,7 +225,7 @@ export function createScopeAccess(config: ScopeAccessConfig): ScopeAccessHelpers
       next: NextFunction
     ): Promise<Response | void> => {
       try {
-        const userId = req.user?.id;
+        const userId = req.user!.id;
         const user = req.user;
 
         if (!userId || !user) {
@@ -296,7 +296,7 @@ export function createScopeAccess(config: ScopeAccessConfig): ScopeAccessHelpers
     next: NextFunction
   ): Promise<Response | void> => {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const user = req.user;
       const rawCaseId = req.params.id || req.params.caseId || '';
       const caseId = Array.isArray(rawCaseId)

@@ -514,7 +514,7 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
           // Update notification status in audit log
           if (mobileEvents) {
             try {
-              await mobileEvents.updateNotificationStatus(d.notificationId, 'ACKNOWLEDGED');
+              await mobileEvents.updateNotificationStatus(d.notificationId!, 'ACKNOWLEDGED');
             } catch (error) {
               logger.error('Failed to update notification acknowledgment:', error);
             }

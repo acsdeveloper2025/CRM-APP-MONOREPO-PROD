@@ -1,4 +1,4 @@
-import type { Pool, QueryResult } from 'pg';
+import type { Pool, QueryResult, QueryResultRow } from 'pg';
 import { logger } from '@/config/logger';
 import { performance } from 'perf_hooks';
 import { errorMessage } from '@/utils/errorMessage';
@@ -37,7 +37,7 @@ export class QueryOptimizationService {
   /**
    * Execute optimized query with performance monitoring
    */
-  async executeQuery<T = unknown>(
+  async executeQuery<T extends QueryResultRow = QueryResultRow>(
     text: string,
     params: unknown[] = [],
     options: QueryOptions = {}

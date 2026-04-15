@@ -303,7 +303,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     let baseParamIndex = 1;
 
     // Role-based filtering - FIELD_AGENT users can only see cases with their assigned tasks
-    const userId = req.user?.id;
+    const userId = req.user!.id;
     const isExecutionActor = isFieldExecutionActor(req.user);
     const isScopedOps = isScopedOperationsUser(req.user);
     const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
@@ -750,7 +750,7 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
     const isNumeric = /^\d+$/.test(id);
 
     // Role-based access control
-    const userId = req.user?.id;
+    const userId = req.user!.id;
     const isExecutionActor = isFieldExecutionActor(req.user);
     const isScopedOps = isScopedOperationsUser(req.user);
     const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
@@ -1407,7 +1407,7 @@ export const assignCase = async (req: AuthenticatedRequest, res: Response) => {
     const result = await CaseAssignmentService.assignCase({
       caseId: id,
       assignedToId,
-      assignedById: req.user?.id,
+      assignedById: req.user!.id,
       reason,
       priority: 'MEDIUM',
     });
@@ -1465,7 +1465,7 @@ export const bulkAssignCases = async (req: AuthenticatedRequest, res: Response) 
     const result = await CaseAssignmentService.bulkAssignCases({
       caseIds,
       assignedToId,
-      assignedById: req.user?.id,
+      assignedById: req.user!.id,
       reason,
       priority: priority || 'MEDIUM',
     });
@@ -1557,7 +1557,7 @@ export const reassignCase = async (req: AuthenticatedRequest, res: Response) => 
       caseId: id,
       fromUserId,
       toUserId,
-      assignedById: req.user?.id,
+      assignedById: req.user!.id,
       reason,
     });
 
@@ -1659,7 +1659,7 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     const whereConditions: string[] = [];
     const queryParams: QueryParams = [];
     let paramIndex = 1;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
     const isScopedOps = isScopedOperationsUser(req.user);
     const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
 
@@ -2350,6 +2350,18 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
       ? Number(rateTypeRuleResult.rows[0].rateTypeId)
       : null;
 
+    // resolvedPincodeId is guaranteed non-null by the validation block above:
+    // either pincodeId/pincode supplied (else early 400), or one of the
+    // dbQuery branches assigned a number, or we returned early. The control
+    // flow analysis can't see all branches, so narrow with a runtime check
+    // (defensive — should not be reachable).
+    if (resolvedPincodeId == null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pincode could not be resolved',
+        error: { code: 'PINCODE_REQUIRED' },
+      });
+    }
     const validationResult = await financialConfigurationValidator.validateTaskConfiguration(
       clientId,
       productId,
@@ -2456,7 +2468,7 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
     return;
   }
 
-  const userId = req.user?.id;
+  const userId = req.user!.id;
   if (!userId) {
     await cleanupFiles();
     return res.status(401).json({
@@ -2601,10 +2613,10 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
           return null;
         }
         if (pincodeIdCache.has(pincodeCode)) {
-          return pincodeIdCache.get(pincodeCode);
+          return pincodeIdCache.get(pincodeCode) ?? null;
         }
 
-        const pincodeResult = await client.query('SELECT id FROM pincodes WHERE code = $1', [
+        const pincodeResult = await client!.query('SELECT id FROM pincodes WHERE code = $1', [
           pincodeCode,
         ]);
         const resolvedId = pincodeResult.rows[0]?.id ? Number(pincodeResult.rows[0].id) : null;
@@ -2657,7 +2669,7 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
           });
         }
 
-        applicantsMap.get(applicantKey).verifications.push({
+        applicantsMap.get(applicantKey)!.verifications.push({
           verificationTypeId,
           address: task.address || null,
           pincodeId:
@@ -3072,10 +3084,10 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
           return null;
         }
         if (pincodeCodeCache.has(pincodeId)) {
-          return pincodeCodeCache.get(pincodeId);
+          return pincodeCodeCache.get(pincodeId) ?? null;
         }
 
-        const pincodeRes = await client.query('SELECT code FROM pincodes WHERE id = $1', [
+        const pincodeRes = await client!.query('SELECT code FROM pincodes WHERE id = $1', [
           pincodeId,
         ]);
         const pincodeCode = pincodeRes.rows[0]?.code ? String(pincodeRes.rows[0].code) : null;

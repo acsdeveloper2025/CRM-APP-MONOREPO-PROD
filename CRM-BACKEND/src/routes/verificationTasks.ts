@@ -308,7 +308,7 @@ router.post(
     try {
       const { taskId: _taskId } = req.params;
       const { cancellationReason } = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
 
       await VerificationTasksController.updateTask(
         {
@@ -343,7 +343,7 @@ router.post(
   async (req: AuthenticatedRequest, res) => {
     try {
       const { taskIds, assignedTo, assignmentReason } = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
 
       if (!taskIds || !Array.isArray(taskIds) || taskIds.length === 0) {
         res.status(400).json({

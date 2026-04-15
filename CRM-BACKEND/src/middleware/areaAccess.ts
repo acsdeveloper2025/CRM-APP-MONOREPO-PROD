@@ -38,7 +38,7 @@ const getAssignedAreaIds = async (userId: string): Promise<number[]> => {
 export const validateAreaAccess = (source: 'params' | 'body' | 'query' = 'params') => {
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       // Skip validation for non-authenticated requests (should not happen due to auth middleware)
       if (!userId) {
         return res.status(401).json({
@@ -138,7 +138,7 @@ export const addAreaFiltering = async (
   next: NextFunction
 ) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user!.id;
     // Skip for non-authenticated requests
     if (!userId) {
       return next();

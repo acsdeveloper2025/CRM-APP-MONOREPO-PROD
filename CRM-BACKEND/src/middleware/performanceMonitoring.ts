@@ -82,7 +82,9 @@ export const performanceMonitoring = (req: Request, res: Response, next: NextFun
     if (typeof encodingOrCallback === 'function') {
       return originalEnd(chunk, encodingOrCallback);
     }
-    return originalEnd(chunk, encodingOrCallback, callback);
+    // res.end's third overload requires `encoding` (BufferEncoding) when a
+    // callback is supplied; fall back to utf8 when the caller omitted it.
+    return originalEnd(chunk, encodingOrCallback ?? 'utf8', callback);
   };
 
   next();

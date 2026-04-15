@@ -205,11 +205,11 @@ export class MobileAuthController {
             name: user.name,
             username: user.username,
             email: user.email,
-            role: derivedRole,
+            role: derivedRole ?? 'FIELD_AGENT',
             employeeId: user.employeeId,
             designation: user.designation,
             department: user.department,
-            profilePhotoUrl: user.profilePhotoUrl,
+            profilePhotoUrl: user.profilePhotoUrl ?? undefined,
             // Include field agent assignments for mobile app
             ...(isFieldExecutionActor(authProfile) && {
               assignedPincodes,

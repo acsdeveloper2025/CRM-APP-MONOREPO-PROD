@@ -12,7 +12,13 @@ type ServiceZoneRulePayload = {
   rateTypeId: number;
 };
 
-const validateReferences = async (payload: ServiceZoneRulePayload) => {
+type ValidateReferencesResult =
+  | { ok: true; status?: undefined; message?: undefined }
+  | { ok: false; status: number; message: string };
+
+const validateReferences = async (
+  payload: ServiceZoneRulePayload
+): Promise<ValidateReferencesResult> => {
   const { clientId, productId, pincodeId, areaId, rateTypeId } = payload;
 
   const [clientRes, productRes, pincodeRes, areaRes, mappingRes, rateTypeRes] = await Promise.all([

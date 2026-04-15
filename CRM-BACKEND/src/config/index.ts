@@ -22,6 +22,19 @@ const resolvePort = (): number => {
 
 const resolvedPort = resolvePort();
 
+/**
+ * Read a required environment variable. Throws at module load if it
+ * is not set so downstream code can rely on `string` rather than
+ * `string | undefined`.
+ */
+const requireEnv = (name: string): string => {
+  const value = process.env[name];
+  if (!value || value.trim() === '') {
+    throw new Error(`Required environment variable ${name} is not set`);
+  }
+  return value;
+};
+
 export const config = {
   // Server — port resolved from PORT env var (defaults to 3000 in dev)
   port: resolvedPort,
@@ -30,10 +43,11 @@ export const config = {
   // Database
   databaseUrl: process.env.DATABASE_URL || '',
 
-  // JWT
-  jwtSecret: process.env.JWT_SECRET,
+  // JWT — fail fast if missing so types stay narrow downstream and we
+  // never silently fall through to an empty/undefined signing secret.
+  jwtSecret: requireEnv('JWT_SECRET'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1d',
-  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET,
+  jwtRefreshSecret: requireEnv('JWT_REFRESH_SECRET'),
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
 
   // Redis

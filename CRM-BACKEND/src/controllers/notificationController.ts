@@ -113,7 +113,7 @@ export class NotificationController {
    */
   static async getNotifications(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const { limit = 50, offset = 0, unreadOnly = false } = req.query;
 
       if (!userId) {
@@ -124,7 +124,7 @@ export class NotificationController {
         });
       }
 
-      const rows = await this.getScopedNotificationRows(req.user);
+      const rows = await this.getScopedNotificationRows(req.user!);
       const visibleRows = unreadOnly === 'true' ? rows.filter(row => !row.isRead) : rows;
       const total = visibleRows.length;
       const unreadCount = rows.filter(row => !row.isRead).length;
@@ -159,7 +159,7 @@ export class NotificationController {
    */
   static async markNotificationAsRead(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const notificationId = this.getSingleParam(req.params.notificationId);
 
       if (!userId) {
@@ -178,7 +178,7 @@ export class NotificationController {
         });
       }
 
-      const scopedNotification = await this.getScopedNotificationRow(req.user, notificationId);
+      const scopedNotification = await this.getScopedNotificationRow(req.user!, notificationId);
       if (!scopedNotification) {
         return res.status(404).json({
           success: false,
@@ -215,7 +215,7 @@ export class NotificationController {
    */
   static async markNotificationAsUnread(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const notificationId = this.getSingleParam(req.params.notificationId);
 
       if (!userId) {
@@ -234,7 +234,7 @@ export class NotificationController {
         });
       }
 
-      const scopedNotification = await this.getScopedNotificationRow(req.user, notificationId);
+      const scopedNotification = await this.getScopedNotificationRow(req.user!, notificationId);
       if (!scopedNotification) {
         return res.status(404).json({
           success: false,
@@ -271,7 +271,7 @@ export class NotificationController {
    */
   static async markAllNotificationsAsRead(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
 
       if (!userId) {
         return res.status(401).json({
@@ -281,7 +281,7 @@ export class NotificationController {
         });
       }
 
-      const scopedRows = await this.getScopedNotificationRows(req.user);
+      const scopedRows = await this.getScopedNotificationRows(req.user!);
       const idsToUpdate = scopedRows.filter(row => !row.isRead).map(row => row.id);
 
       if (idsToUpdate.length > 0) {
@@ -315,7 +315,7 @@ export class NotificationController {
    */
   static async deleteNotification(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const notificationId = this.getSingleParam(req.params.notificationId);
 
       if (!userId) {
@@ -334,7 +334,7 @@ export class NotificationController {
         });
       }
 
-      const scopedNotification = await this.getScopedNotificationRow(req.user, notificationId);
+      const scopedNotification = await this.getScopedNotificationRow(req.user!, notificationId);
       if (!scopedNotification) {
         return res.status(404).json({
           success: false,
@@ -370,7 +370,7 @@ export class NotificationController {
    */
   static async clearAllNotifications(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
 
       if (!userId) {
         return res.status(401).json({
@@ -380,7 +380,7 @@ export class NotificationController {
         });
       }
 
-      const scopedRows = await this.getScopedNotificationRows(req.user);
+      const scopedRows = await this.getScopedNotificationRows(req.user!);
       const idsToDelete = scopedRows.map(row => row.id);
 
       if (idsToDelete.length > 0) {
@@ -413,7 +413,7 @@ export class NotificationController {
    */
   static async getNotificationPreferences(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
 
       if (!userId) {
         return res.status(401).json({
@@ -510,7 +510,7 @@ export class NotificationController {
    */
   static async updateNotificationPreferences(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const {
         caseAssignmentEnabled,
         caseAssignmentPush,
@@ -655,7 +655,7 @@ export class NotificationController {
    */
   static async getNotificationTokens(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
 
       if (!userId) {
         return res.status(401).json({
@@ -699,7 +699,7 @@ export class NotificationController {
    */
   static async registerNotificationToken(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const { deviceId, platform, pushToken } = req.body;
 
       if (!userId) {
@@ -775,7 +775,7 @@ export class NotificationController {
    */
   static async deactivateNotificationToken(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const { tokenId } = req.params;
 
       if (!userId) {
@@ -829,7 +829,7 @@ export class NotificationController {
    */
   static async sendTestNotification(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const { title, message, type = 'TEST', priority = 'MEDIUM', targetUserId } = req.body;
 
       if (!userId) {
@@ -898,7 +898,7 @@ export class NotificationController {
    */
   static async getNotificationAnalytics(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const { startDate, endDate, type } = req.query;
 
       if (!userId) {
@@ -1008,7 +1008,7 @@ export class NotificationController {
    */
   static async getDeliveryStatus(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const { notificationId } = req.params;
 
       if (!userId) {
@@ -1056,7 +1056,7 @@ export class NotificationController {
    */
   static async testPushConnectivity(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
 
       if (!userId) {
         return res.status(401).json({

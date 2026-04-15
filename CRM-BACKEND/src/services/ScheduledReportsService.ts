@@ -169,7 +169,7 @@ export class ScheduledReportsService {
         createdReport.recipients,
         createdReport.reportType,
         createdReport.frequency,
-        createdReport.nextRun
+        createdReport.nextRun ?? new Date()
       );
 
       logger.info(`Created scheduled report: ${createdReport.name} (${createdReport.id})`);
@@ -387,7 +387,7 @@ export class ScheduledReportsService {
           throw new Error(`Unsupported format: ${report.format}`);
       }
 
-      if (result.success) {
+      if (result.success && result.filePath) {
         // Send email with the report
         const emailService = EmailDeliveryService.getInstance();
         const emailResult = await emailService.sendReportEmail(

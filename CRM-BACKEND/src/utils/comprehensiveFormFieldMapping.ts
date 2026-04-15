@@ -6374,7 +6374,7 @@ export function createComprehensiveFormSections(
       sectionMap.set(section, []);
     }
 
-    sectionMap.get(section).push({
+    sectionMap.get(section)!.push({
       id: key,
       name: key,
       label: toLabel(key),
@@ -6502,7 +6502,7 @@ function _groupFieldsIntoSections(
 
     const value = formData[fieldDef.name] || formData[fieldDef.id];
 
-    sectionMap.get(sectionName).push({
+    sectionMap.get(sectionName)!.push({
       id: fieldDef.id,
       name: fieldDef.name,
       label: fieldDef.label,

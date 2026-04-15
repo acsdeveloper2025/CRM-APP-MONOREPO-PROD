@@ -176,7 +176,7 @@ export class VerificationTasksController {
     const rawCaseId = String(req.params.caseId || '');
     const caseId = Array.isArray(rawCaseId) ? String(rawCaseId[0]) : String(rawCaseId || '');
     const { tasks } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
     if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
       res.status(400).json({
         success: false,
@@ -321,7 +321,7 @@ export class VerificationTasksController {
     const rawTaskId = String(req.params.taskId || '');
     const taskId = Array.isArray(rawTaskId) ? String(rawTaskId[0]) : String(rawTaskId || '');
     const { assignedTo } = req.body;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     const client = wrapClient(await pool.connect());
 
@@ -573,7 +573,7 @@ export class VerificationTasksController {
       let paramIndex = 1;
 
       // Role-based filtering - FIELD_AGENT users can see tasks assigned to them OR in their territory
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
       const isScopedOps = isScopedOperationsUser(req.user);
       const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
@@ -1180,7 +1180,7 @@ export class VerificationTasksController {
     const rawTaskId = String(req.params.taskId || '');
     const taskId = Array.isArray(rawTaskId) ? String(rawTaskId[0]) : String(rawTaskId || '');
     const updateData: UpdateVerificationTaskData = req.body;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     try {
       // First, fetch the current task to check if it's a REVISIT task and validate territory updates
@@ -1485,7 +1485,7 @@ export class VerificationTasksController {
     const assignedTo = body.assignedTo;
     const assignmentReason = body.assignmentReason;
     const priority = body.priority;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     if (!assignedTo) {
       res.status(400).json({
@@ -1736,7 +1736,7 @@ export class VerificationTasksController {
 
     const taskId = String(req.params.taskId || '');
     const reason = String(req.body.revokeReason || req.body.reason || '').trim();
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     if (!taskId) {
       res.status(400).json({
@@ -1908,7 +1908,7 @@ export class VerificationTasksController {
     const taskId = Array.isArray(rawTaskId) ? String(rawTaskId[0]) : String(rawTaskId || '');
     const { verificationOutcome, actualAmount, completionNotes }: CompleteVerificationTaskData =
       req.body;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
 
     // 1. Task ID Validation
     if (!taskId) {
@@ -2121,7 +2121,7 @@ export class VerificationTasksController {
    * GET /api/mobile/my-verification-tasks
    */
   static async getMyTasks(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const userId = req.user?.id;
+    const userId = req.user!.id;
     const status = (req.query.status as unknown as string) || '';
     const priority = (req.query.priority as unknown as string) || '';
 
@@ -2358,7 +2358,7 @@ export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Respons
     const conditions: string[] = [];
     const params: (string | number | boolean | null | string[] | number[])[] = [];
     let paramIndex = 1;
-    const userId = req.user?.id;
+    const userId = req.user!.id;
     const isScopedOps = isScopedOperationsUser(req.user);
     const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
 

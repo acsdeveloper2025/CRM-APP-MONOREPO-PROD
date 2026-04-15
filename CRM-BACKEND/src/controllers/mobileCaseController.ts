@@ -155,7 +155,7 @@ export class MobileCaseController {
   // Get cases for mobile app with optimized response
   static async getMobileCases(this: void, req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
       if (!isExecutionActor) {
@@ -523,7 +523,7 @@ export class MobileCaseController {
   static async getMobileCase(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const taskId = String(req.params.taskId || '');
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
       // Resolve taskId to caseId
@@ -744,7 +744,7 @@ export class MobileCaseController {
     try {
       const taskId = String(req.params.taskId || '');
       const { status, notes = null } = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
       // Resolve taskId to caseId
@@ -834,7 +834,7 @@ export class MobileCaseController {
         emitCaseStatusChanged(actualCaseId, existingCase.status, status, username);
 
         // Emit general case update notification
-        emitCaseUpdate(getSocketIO(), actualCaseId, {
+        emitCaseUpdate(getSocketIO()!, actualCaseId, {
           type: 'STATUS_UPDATE',
           status,
           updatedBy: username,
@@ -886,7 +886,7 @@ export class MobileCaseController {
       // Resolve taskId to caseId
       const caseId = await TaskLookupService.resolveCaseId(taskId);
 
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
       if (isExecutionActor) {
@@ -966,7 +966,7 @@ export class MobileCaseController {
     try {
       const taskId = String(req.params.taskId || '');
       const { formType, formData, timestamp }: MobileAutoSaveRequest = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
       // Resolve taskId to caseId
@@ -1029,7 +1029,7 @@ export class MobileCaseController {
         success: true,
         message: 'Form auto-saved successfully',
         data: {
-          savedAt: autoSaveData.timestamp.toISOString(),
+          savedAt: autoSaveData!.timestamp!.toISOString(),
           version: 1, // Default version since we removed the field
         },
       };
@@ -1053,7 +1053,7 @@ export class MobileCaseController {
     try {
       const taskId = String(req.params.taskId || '');
       const formType = String(req.params.formType || '');
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
       // Resolve taskId to caseId
@@ -1110,7 +1110,7 @@ export class MobileCaseController {
         message: 'Auto-saved form data retrieved successfully',
         data: {
           formData: JSON.parse(autoSaveData.formData),
-          savedAt: autoSaveData.timestamp.toISOString(),
+          savedAt: autoSaveData!.timestamp!.toISOString(),
           version: 1, // Default version since we removed the field
         },
       });
@@ -1132,7 +1132,7 @@ export class MobileCaseController {
     try {
       const caseId = String(req.params.caseId || '');
       const { note } = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
       logger.info(`📱 Mobile case note request:`, {
@@ -1241,7 +1241,7 @@ export class MobileCaseController {
     try {
       const caseId = String(req.params.caseId || '');
       const { reason } = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
       logger.info(`📱 Mobile case revocation request:`, {
@@ -1403,7 +1403,7 @@ export class MobileCaseController {
   static async getTaskStatus(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const taskId = String(req.params.taskId || '');
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
       logger.info(`📊 Getting task status for task: ${taskId}, user: ${userId}`);
@@ -1486,7 +1486,7 @@ export class MobileCaseController {
         return;
       }
       const taskId = String(req.params.taskId || '');
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
       const taskQuery = await query(
@@ -1608,7 +1608,7 @@ export class MobileCaseController {
       }
       const taskId = String(req.params.taskId || '');
       const { verificationOutcome, actualAmount } = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
 
       if (!verificationOutcome) {
         return res.status(400).json({
@@ -1762,7 +1762,7 @@ export class MobileCaseController {
       }
       const taskId = String(req.params.taskId || '');
       const { reason } = req.body;
-      const userId = req.user?.id;
+      const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
       logger.info(`📱 Mobile task revocation request:`, {

@@ -285,7 +285,7 @@ export const updateDocumentType = async (req: AuthenticatedRequest, res: Respons
 
     // Add updated_by and updated_at
     updateFields.push(`updated_by = $${paramIndex}`);
-    updateValues.push(req.user?.id);
+    updateValues.push(req.user!.id);
     paramIndex++;
 
     updateFields.push(`updated_at = CURRENT_TIMESTAMP`);

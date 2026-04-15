@@ -72,12 +72,12 @@ export const createScheduledReport = async (req: AuthenticatedRequest, res: Resp
       filters: filters || {},
       options: options || {},
       isActive: true,
-      createdBy: req.user.id,
+      createdBy: req.user!.id,
     };
 
     const createdReport = await scheduledReportsService.createScheduledReport(reportData);
 
-    logger.info(`Scheduled report created by user ${req.user.id}: ${createdReport.name}`);
+    logger.info(`Scheduled report created by user ${req.user!.id}: ${createdReport.name}`);
 
     res.status(201).json({
       success: true,
@@ -100,7 +100,7 @@ export const getScheduledReports = async (req: AuthenticatedRequest, res: Respon
     const scheduledReportsService = ScheduledReportsService.getInstance();
 
     // For non-admin users, only show their own reports
-    const userId = canManageScheduledReportsGlobally(req.user) ? undefined : req.user.id;
+    const userId = canManageScheduledReportsGlobally(req.user) ? undefined : req.user!.id;
 
     const reports = await scheduledReportsService.getScheduledReports(userId);
 
@@ -138,7 +138,7 @@ export const getScheduledReport = async (req: AuthenticatedRequest, res: Respons
     }
 
     // Check if user has permission to view this report
-    if (!canManageScheduledReportsGlobally(req.user) && report.createdBy !== req.user.id) {
+    if (!canManageScheduledReportsGlobally(req.user) && report.createdBy !== req.user!.id) {
       return res.status(403).json({
         success: false,
         message: 'Access denied',
@@ -178,7 +178,7 @@ export const updateScheduledReport = async (req: AuthenticatedRequest, res: Resp
       });
     }
 
-    if (!canManageScheduledReportsGlobally(req.user) && existingReport.createdBy !== req.user.id) {
+    if (!canManageScheduledReportsGlobally(req.user) && existingReport.createdBy !== req.user!.id) {
       return res.status(403).json({
         success: false,
         message: 'Access denied',
@@ -214,7 +214,7 @@ export const updateScheduledReport = async (req: AuthenticatedRequest, res: Resp
 
     const updatedReport = await scheduledReportsService.updateScheduledReport(id, updates);
 
-    logger.info(`Scheduled report updated by user ${req.user.id}: ${updatedReport.name}`);
+    logger.info(`Scheduled report updated by user ${req.user!.id}: ${updatedReport.name}`);
 
     res.json({
       success: true,
@@ -248,7 +248,7 @@ export const deleteScheduledReport = async (req: AuthenticatedRequest, res: Resp
       });
     }
 
-    if (!canManageScheduledReportsGlobally(req.user) && existingReport.createdBy !== req.user.id) {
+    if (!canManageScheduledReportsGlobally(req.user) && existingReport.createdBy !== req.user!.id) {
       return res.status(403).json({
         success: false,
         message: 'Access denied',
@@ -257,7 +257,7 @@ export const deleteScheduledReport = async (req: AuthenticatedRequest, res: Resp
 
     await scheduledReportsService.deleteScheduledReport(id);
 
-    logger.info(`Scheduled report deleted by user ${req.user.id}: ${existingReport.name}`);
+    logger.info(`Scheduled report deleted by user ${req.user!.id}: ${existingReport.name}`);
 
     res.json({
       success: true,
@@ -299,7 +299,7 @@ export const toggleScheduledReport = async (req: AuthenticatedRequest, res: Resp
       });
     }
 
-    if (!canManageScheduledReportsGlobally(req.user) && existingReport.createdBy !== req.user.id) {
+    if (!canManageScheduledReportsGlobally(req.user) && existingReport.createdBy !== req.user!.id) {
       return res.status(403).json({
         success: false,
         message: 'Access denied',
@@ -309,7 +309,7 @@ export const toggleScheduledReport = async (req: AuthenticatedRequest, res: Resp
     const updatedReport = await scheduledReportsService.updateScheduledReport(id, { isActive });
 
     logger.info(
-      `Scheduled report ${isActive ? 'activated' : 'deactivated'} by user ${req.user.id}: ${updatedReport.name}`
+      `Scheduled report ${isActive ? 'activated' : 'deactivated'} by user ${req.user!.id}: ${updatedReport.name}`
     );
 
     res.json({
@@ -421,7 +421,7 @@ export const testScheduledReport = async (req: AuthenticatedRequest, res: Respon
       });
     }
 
-    if (!canManageScheduledReportsGlobally(req.user) && report.createdBy !== req.user.id) {
+    if (!canManageScheduledReportsGlobally(req.user) && report.createdBy !== req.user!.id) {
       return res.status(403).json({
         success: false,
         message: 'Access denied',
@@ -430,7 +430,7 @@ export const testScheduledReport = async (req: AuthenticatedRequest, res: Respon
 
     // Execute the report immediately (this would be implemented in the service)
     // For now, just return success
-    logger.info(`Test execution requested for scheduled report ${id} by user ${req.user.id}`);
+    logger.info(`Test execution requested for scheduled report ${id} by user ${req.user!.id}`);
 
     res.json({
       success: true,

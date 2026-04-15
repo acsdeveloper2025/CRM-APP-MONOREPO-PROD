@@ -382,9 +382,9 @@ export const createAuditLog = (req: AuthenticatedRequest, res: Response) => {
   try {
     const { action, resource, resourceId, details, severity = 'INFO', category } = req.body;
 
-    const newAuditLog = {
+    const newAuditLog: AuditLog = {
       id: `audit_${Date.now()}`,
-      userId: req.user?.id,
+      userId: req.user?.id ?? 'Unknown',
       userName: req.user?.id ? `User ${req.user.id}` : 'Unknown User',
       action,
       resource,

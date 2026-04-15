@@ -1,4 +1,4 @@
-import { Pool, type PoolClient, type QueryResult } from 'pg';
+import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from 'pg';
 import type { QueryParams } from '@/types/database';
 import { camelizeRow } from '@/utils/rowTransform';
 import { logger } from './logger';
@@ -65,7 +65,7 @@ logger.info('Database pool configured for enterprise scale', {
 // `id_details: { user_id: 5 }` keep their original keys intact.
 // ============================================================================
 
-const transformResult = <T>(result: QueryResult<T>): QueryResult<T> => {
+const transformResult = <T extends QueryResultRow>(result: QueryResult<T>): QueryResult<T> => {
   if (result && Array.isArray(result.rows)) {
     for (let i = 0; i < result.rows.length; i++) {
       const row = result.rows[i];
@@ -102,7 +102,7 @@ export const wrapClient = (client: PoolClient): PoolClient => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const query = async <T = any>(
+export const query = async <T extends QueryResultRow = any>(
   text: string,
   params: QueryParams = []
 ): Promise<QueryResult<T>> => {
