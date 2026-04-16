@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
+import { resolveDataScope } from '@/security/dataScope';
 
 // ---------------------------------------------------------------------------
 // GET /api/case-data-entries/dashboard
@@ -22,10 +23,33 @@ export const getDataEntryDashboard = async (req: AuthenticatedRequest, res: Resp
     const dataEntryStatus =
       typeof req.query.dataEntryStatus === 'string' ? req.query.dataEntryStatus : null;
 
+    // Enforce client+product scope for non-admin users. A BACKEND_USER
+    // assigned to (HDFC, HOME LOAN) must only see cases for that combo.
+    const scope = await resolveDataScope(req);
+    if (scope.restricted) {
+      if (!scope.assignedClientIds?.length && !scope.assignedProductIds?.length) {
+        // User has no client/product assignments → empty result
+        return res.json({
+          success: true,
+          data: { data: [], pagination: { total: 0, page, limit, totalPages: 0 } },
+        });
+      }
+    }
+
     // Build WHERE clauses dynamically.
     const conditions: string[] = [];
     const params: unknown[] = [];
     let paramIdx = 1;
+
+    // Scope filtering — must come before user-supplied filters
+    if (scope.restricted && scope.assignedClientIds?.length) {
+      conditions.push(`c.client_id = ANY($${paramIdx++}::int[])`);
+      params.push(scope.assignedClientIds);
+    }
+    if (scope.restricted && scope.assignedProductIds?.length) {
+      conditions.push(`c.product_id = ANY($${paramIdx++}::int[])`);
+      params.push(scope.assignedProductIds);
+    }
 
     if (search) {
       conditions.push(
