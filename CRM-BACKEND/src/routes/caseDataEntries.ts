@@ -14,15 +14,16 @@ import {
   completeCase,
 } from '@/controllers/caseDataEntriesController';
 import { getDataEntryDashboard } from '@/controllers/dataEntryDashboardController';
+import { getMISData, exportMISData } from '@/controllers/dataEntryMISController';
 
 const router = express.Router();
 
 router.use(authenticateToken);
 
-// Dashboard: paginated list of cases with data-entry status.
-// Mounted BEFORE the :caseId routes so "dashboard" isn't treated as a
-// caseId param.
+// Static routes MUST be before :caseId param routes.
 router.get('/dashboard', authorize('case.view'), getDataEntryDashboard);
+router.get('/mis', authorize('case.view'), getMISData);
+router.get('/mis/export', authorize('case.view'), exportMISData);
 
 // ---------------------------------------------------------------------------
 // Composed case access: validates that the authenticated user has both
