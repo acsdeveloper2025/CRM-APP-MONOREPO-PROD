@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "dev": "ts-node src/index.ts",
+    "dev": "node --max-old-space-size=512 -r ts-node/register/transpile-only src/index.ts",
     "start": "node -r module-alias/register dist/index.js",
     "start:prod": "npm run build && npm start",
     "db:backup": "ts-node scripts/db-backup.ts",
