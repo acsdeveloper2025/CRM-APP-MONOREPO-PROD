@@ -10,29 +10,30 @@ export const clearBrowserStorage = () => {
     // Clear localStorage
     localStorage.clear();
     logger.warn('✅ localStorage cleared');
-    
+
     // Clear sessionStorage
     sessionStorage.clear();
     logger.warn('✅ sessionStorage cleared');
-    
+
     // Clear IndexedDB (if used)
     if ('indexedDB' in window) {
       // Note: This is a simplified approach. In production, you might want to
       // specifically target your app's databases
-      indexedDB.databases?.()
-        .then(databases => {
-          databases.forEach(db => {
+      indexedDB
+        .databases?.()
+        .then((databases) => {
+          databases.forEach((db) => {
             if (db.name?.includes('crm') || db.name?.includes('app')) {
               indexedDB.deleteDatabase(db.name);
               logger.warn(`✅ IndexedDB ${db.name} cleared`);
             }
           });
         })
-        .catch(error => {
+        .catch((error) => {
           logger.warn('Failed to enumerate IndexedDB databases:', error);
         });
     }
-    
+
     return true;
   } catch (error) {
     logger.error('❌ Error clearing browser storage:', error);
@@ -45,11 +46,11 @@ export const clearReactQueryCache = (queryClient: QueryClient) => {
     // Clear all queries
     queryClient.clear();
     logger.warn('✅ React Query cache cleared');
-    
+
     // Invalidate all queries to force refetch
     queryClient.invalidateQueries();
     logger.warn('✅ All queries invalidated');
-    
+
     return true;
   } catch (error) {
     logger.error('❌ Error clearing React Query cache:', error);
@@ -61,14 +62,14 @@ export const clearServiceWorkerCache = async () => {
   try {
     if ('serviceWorker' in navigator && 'caches' in window) {
       const cacheNames = await caches.keys();
-      
+
       await Promise.all(
-        cacheNames.map(cacheName => {
+        cacheNames.map((cacheName) => {
           logger.warn(`🗑️ Deleting cache: ${cacheName}`);
           return caches.delete(cacheName);
         })
       );
-      
+
       logger.warn('✅ Service Worker caches cleared');
       return true;
     } else {
@@ -83,31 +84,31 @@ export const clearServiceWorkerCache = async () => {
 
 export const clearAllFrontendCache = async (queryClient: QueryClient) => {
   logger.warn('🧹 Starting frontend cache clearing...');
-  
+
   const results = {
     browserStorage: false,
     reactQuery: false,
     serviceWorker: false,
   };
-  
+
   // Clear browser storage
   results.browserStorage = clearBrowserStorage();
-  
+
   // Clear React Query cache
   results.reactQuery = clearReactQueryCache(queryClient);
-  
+
   // Clear Service Worker cache
   results.serviceWorker = await clearServiceWorkerCache();
-  
-  const allSuccessful = Object.values(results).every(result => result);
-  
+
+  const allSuccessful = Object.values(results).every((result) => result);
+
   if (allSuccessful) {
     logger.warn('🎉 All frontend caches cleared successfully!');
     logger.warn('🔄 Please refresh the page to see changes');
   } else {
     logger.warn('⚠️ Some caches could not be cleared:', results);
   }
-  
+
   return results;
 };
 
@@ -147,19 +148,19 @@ export const clearUserCache = (queryClient: QueryClient) => {
 // Development helper function
 export const clearAllAppData = async (queryClient: QueryClient) => {
   logger.warn('🚨 CLEARING ALL APPLICATION DATA - USE WITH CAUTION!');
-  
+
   // Clear all specific caches
   clearCaseCache(queryClient);
   clearFormCache(queryClient);
   clearAttachmentCache(queryClient);
   clearUserCache(queryClient);
-  
+
   // Clear all frontend cache
   await clearAllFrontendCache(queryClient);
-  
+
   logger.warn('💥 All application data cleared!');
   logger.warn('🔄 Page will reload in 3 seconds...');
-  
+
   // Auto-reload after clearing
   setTimeout(() => {
     window.location.reload();
@@ -168,7 +169,10 @@ export const clearAllAppData = async (queryClient: QueryClient) => {
 
 // Export a hook for easy use in components
 export const useCacheClearer = () => {
-  const clearCache = async (queryClient: QueryClient, type: 'all' | 'cases' | 'forms' | 'attachments' | 'users' = 'all') => {
+  const clearCache = async (
+    queryClient: QueryClient,
+    type: 'all' | 'cases' | 'forms' | 'attachments' | 'users' = 'all'
+  ) => {
     switch (type) {
       case 'cases':
         clearCaseCache(queryClient);
@@ -188,6 +192,6 @@ export const useCacheClearer = () => {
         break;
     }
   };
-  
+
   return { clearCache };
 };

@@ -26,7 +26,6 @@ export const LoginPage: React.FC = () => {
   const { login, isAuthenticated, isLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-
   const {
     register,
     handleSubmit,
@@ -63,7 +62,11 @@ export const LoginPage: React.FC = () => {
     } catch (error: unknown) {
       logger.error('Login error:', error);
       // Extract error message from API response
-      const axiosErr = error as { response?: { data?: { message?: string; error?: { code?: string; retryAfterSeconds?: number } } } };
+      const axiosErr = error as {
+        response?: {
+          data?: { message?: string; error?: { code?: string; retryAfterSeconds?: number } };
+        };
+      };
       const code = axiosErr.response?.data?.error?.code;
       if (code === 'ACCOUNT_LOCKED') {
         const retryMin = Math.ceil((axiosErr.response?.data?.error?.retryAfterSeconds || 900) / 60);
@@ -82,26 +85,18 @@ export const LoginPage: React.FC = () => {
     return <LoadingPage title="Authenticating" description="Verifying your credentials..." />;
   }
 
-
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            CRM Admin Dashboard
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Sign in to your account
-          </p>
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">CRM Admin Dashboard</h2>
+          <p className="mt-2 text-sm text-gray-600">Sign in to your account</p>
         </div>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Sign In</CardTitle>
-            <CardDescription>
-              Enter your credentials to access the admin dashboard
-            </CardDescription>
+            <CardDescription>Enter your credentials to access the admin dashboard</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -133,25 +128,18 @@ export const LoginPage: React.FC = () => {
                 )}
               </div>
 
-
               {loginError && (
                 <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md">
                   {loginError}
                 </div>
               )}
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={isSubmitting}
-              >
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? 'Signing in...' : 'Sign In'}
               </Button>
             </form>
           </CardContent>
         </Card>
-
-
       </div>
     </div>
   );

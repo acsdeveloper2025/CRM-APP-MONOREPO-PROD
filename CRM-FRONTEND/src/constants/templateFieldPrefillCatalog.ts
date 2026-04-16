@@ -84,7 +84,7 @@ export const getPrefillEntry = (key: string | null | undefined): PrefillCatalogE
   if (!key) {
     return null;
   }
-  return PREFILL_CATALOG.find(e => e.key === key) ?? null;
+  return PREFILL_CATALOG.find((e) => e.key === key) ?? null;
 };
 
 /**

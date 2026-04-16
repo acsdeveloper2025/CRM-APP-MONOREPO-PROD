@@ -4,9 +4,21 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { LoadingSpinner } from '@/components/ui/loading';
-import { useVerificationImages, useVerificationImagesBySubmission } from '@/hooks/useVerificationImages';
+import {
+  useVerificationImages,
+  useVerificationImagesBySubmission,
+} from '@/hooks/useVerificationImages';
 import { verificationImagesService, type VerificationImage } from '@/services/verificationImages';
-import { Camera, MapPin, Download, Eye, Image as ImageIcon, ExternalLink, Clock, Home } from 'lucide-react';
+import {
+  Camera,
+  MapPin,
+  Download,
+  Eye,
+  Image as ImageIcon,
+  ExternalLink,
+  Clock,
+  Home,
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { logger } from '@/utils/logger';
 
@@ -44,7 +56,10 @@ const useThumbnailUrl = (thumbnailUrl: string, imageId?: number) => {
     const loadThumbnailUrl = async () => {
       try {
         setLoading(true);
-        const displayUrl = await verificationImagesService.getThumbnailDisplayUrl(thumbnailUrl, imageId);
+        const displayUrl = await verificationImagesService.getThumbnailDisplayUrl(
+          thumbnailUrl,
+          imageId
+        );
         setUrl(displayUrl);
       } catch (error) {
         logger.error('Error loading thumbnail URL:', error);
@@ -76,7 +91,7 @@ const AsyncImage: React.FC<AsyncImageProps> = ({
   thumbnailUrl,
   alt,
   className,
-  onClick
+  onClick,
 }) => {
   const { url: displayUrl, loading: imageLoading } = useImageUrl(imageUrl, imageId);
   const { url: thumbUrl, loading: thumbLoading } = useThumbnailUrl(thumbnailUrl || '', imageId);
@@ -86,7 +101,7 @@ const AsyncImage: React.FC<AsyncImageProps> = ({
 
   if (isLoading) {
     return (
-      <div className={`flex items-center justify-center ${className || "w-full h-full"}`}>
+      <div className={`flex items-center justify-center ${className || 'w-full h-full'}`}>
         <LoadingSpinner size="sm" />
       </div>
     );
@@ -121,7 +136,13 @@ interface ImageViewerProps {
   onClose: () => void;
 }
 
-const ImageViewer: React.FC<ImageViewerProps> = ({ imageUrl, imageId, imageName, isOpen, onClose }) => {
+const ImageViewer: React.FC<ImageViewerProps> = ({
+  imageUrl,
+  imageId,
+  imageName,
+  isOpen,
+  onClose,
+}) => {
   const { url: displayUrl, loading } = useImageUrl(imageUrl, imageId);
 
   return (
@@ -156,12 +177,16 @@ const ImageViewer: React.FC<ImageViewerProps> = ({ imageUrl, imageId, imageName,
 const VerificationImages: React.FC<VerificationImagesProps> = ({
   caseId,
   submissionId,
-  title = "Verification Images",
+  title = 'Verification Images',
   showStats = true,
   submissionAddress,
   // customerName - unused parameter
 }) => {
-  const [selectedImage, setSelectedImage] = useState<{ url: string; name: string; imageId?: number } | null>(null);
+  const [selectedImage, setSelectedImage] = useState<{
+    url: string;
+    name: string;
+    imageId?: number;
+  } | null>(null);
 
   const openInGoogleMaps = (lat: number, lng: number) => {
     window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
@@ -205,7 +230,9 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
       // Create a canvas to composite the image with metadata
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      if (!ctx) {throw new Error('Canvas context not available');}
+      if (!ctx) {
+        throw new Error('Canvas context not available');
+      }
 
       // Create an image element to load the blob
       const img = new Image();
@@ -246,7 +273,11 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
           ctx.fillStyle = '#94a3b8'; // slate-400
           ctx.fillText('🕒 Capture Time:', 20, currentY);
           ctx.fillStyle = '#f8fafc';
-          ctx.fillText(format(new Date(image.geoLocation.timestamp), 'MMM dd, yyyy HH:mm:ss'), 150, currentY);
+          ctx.fillText(
+            format(new Date(image.geoLocation.timestamp), 'MMM dd, yyyy HH:mm:ss'),
+            150,
+            currentY
+          );
           currentY += 25;
         }
 
@@ -255,7 +286,11 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
           ctx.fillStyle = '#94a3b8';
           ctx.fillText('📍 Location:', 20, currentY);
           ctx.fillStyle = '#f8fafc';
-          ctx.fillText(`${image.geoLocation.latitude.toFixed(6)}, ${image.geoLocation.longitude.toFixed(6)}`, 150, currentY);
+          ctx.fillText(
+            `${image.geoLocation.latitude.toFixed(6)}, ${image.geoLocation.longitude.toFixed(6)}`,
+            150,
+            currentY
+          );
           currentY += 25;
 
           // Draw accuracy
@@ -272,7 +307,10 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
         ctx.fillStyle = '#94a3b8';
         ctx.fillText('🏠 Address:', 20, currentY);
         ctx.fillStyle = '#f8fafc';
-        const address = image.geoLocation?.address || submissionAddress || '21, Veer Savarkar Rd, Datar Colony, Bhandup East, Mumbai, Maharashtra 400042, India';
+        const address =
+          image.geoLocation?.address ||
+          submissionAddress ||
+          '21, Veer Savarkar Rd, Datar Colony, Bhandup East, Mumbai, Maharashtra 400042, India';
         // Wrap long address text
         const maxWidth = canvas.width - 170;
         const words = address.split(' ');
@@ -280,13 +318,13 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
         let lineY = currentY;
 
         for (let n = 0; n < words.length; n++) {
-          const testLine = `${line + words[n]  } `;
+          const testLine = `${line + words[n]} `;
           const metrics = ctx.measureText(testLine);
           const testWidth = metrics.width;
 
           if (testWidth > maxWidth && n > 0) {
             ctx.fillText(line, 150, lineY);
-            line = `${words[n]  } `;
+            line = `${words[n]} `;
             lineY += 20;
           } else {
             line = testLine;
@@ -322,8 +360,6 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
       handleDownload(image.id, filename);
     }
   };
-
-
 
   const getPhotoTypeColor = (photoType: string) => {
     switch (photoType) {
@@ -393,8 +429,8 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
   }
 
   // Group images by type for better organization
-  const verificationPhotos = images.filter(img => img.photoType === 'verification');
-  const selfiePhotos = images.filter(img => img.photoType === 'selfie');
+  const verificationPhotos = images.filter((img) => img.photoType === 'verification');
+  const selfiePhotos = images.filter((img) => img.photoType === 'selfie');
 
   return (
     <>
@@ -436,7 +472,10 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {verificationPhotos.map((image, index) => {
                     const rawGeo = image.geoLocation;
-                    const location = rawGeo && typeof rawGeo === 'object' && typeof rawGeo.latitude === 'number' ? rawGeo : null;
+                    const location =
+                      rawGeo && typeof rawGeo === 'object' && typeof rawGeo.latitude === 'number'
+                        ? rawGeo
+                        : null;
                     return (
                       <div key={image.id} className="group relative">
                         {/* Attachment Card Format */}
@@ -450,7 +489,9 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                                 thumbnailUrl={image.thumbnailUrl}
                                 alt={image.originalName}
                                 className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                onClick={() => handleImageClick(image.url, image.originalName, image.id)}
+                                onClick={() =>
+                                  handleImageClick(image.url, image.originalName, image.id)
+                                }
                               />
 
                               {/* Photo type badge overlay */}
@@ -471,8 +512,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                                   <p className="text-sm font-medium">
                                     {location?.timestamp
                                       ? format(new Date(location.timestamp), 'dd/MM/yyyy, HH:mm:ss')
-                                      : format(new Date(image.uploadedAt), 'dd/MM/yyyy, HH:mm:ss')
-                                    }
+                                      : format(new Date(image.uploadedAt), 'dd/MM/yyyy, HH:mm:ss')}
                                   </p>
                                 </div>
                               </div>
@@ -484,10 +524,13 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                                   <div>
                                     <p className="text-xs text-slate-400">Location</p>
                                     <p className="text-sm font-medium font-mono">
-                                      {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                                      {location.latitude.toFixed(6)},{' '}
+                                      {location.longitude.toFixed(6)}
                                     </p>
                                     {location.accuracy && (
-                                      <p className="text-xs text-slate-400">Accuracy: ±{location.accuracy}m</p>
+                                      <p className="text-xs text-slate-400">
+                                        Accuracy: ±{location.accuracy}m
+                                      </p>
                                     )}
                                   </div>
                                 </div>
@@ -499,7 +542,9 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                                 <div>
                                   <p className="text-xs text-slate-400">Address</p>
                                   <p className="text-sm font-medium">
-                                    {location?.address || submissionAddress || '21, Veer Savarkar Rd, Datar Colony, Bhandup East, Mumbai, Maharashtra 400042, India'}
+                                    {location?.address ||
+                                      submissionAddress ||
+                                      '21, Veer Savarkar Rd, Datar Colony, Bhandup East, Mumbai, Maharashtra 400042, India'}
                                   </p>
                                 </div>
                               </div>
@@ -520,7 +565,9 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                                     size="sm"
                                     variant="secondary"
                                     className="flex-1 h-8 text-xs bg-slate-700 hover:bg-slate-600 text-white border-slate-600"
-                                    onClick={() => openInGoogleMaps(location.latitude, location.longitude)}
+                                    onClick={() =>
+                                      openInGoogleMaps(location.latitude, location.longitude)
+                                    }
                                   >
                                     <ExternalLink className="h-3 w-3 mr-1" />
                                     Maps
@@ -547,7 +594,10 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {selfiePhotos.map((image, index) => {
                     const rawGeo = image.geoLocation;
-                    const location = rawGeo && typeof rawGeo === 'object' && typeof rawGeo.latitude === 'number' ? rawGeo : null;
+                    const location =
+                      rawGeo && typeof rawGeo === 'object' && typeof rawGeo.latitude === 'number'
+                        ? rawGeo
+                        : null;
                     return (
                       <div key={image.id} className="group relative">
                         {/* Attachment Card Format */}
@@ -561,7 +611,9 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                                 thumbnailUrl={image.thumbnailUrl}
                                 alt={image.originalName}
                                 className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                onClick={() => handleImageClick(image.url, image.originalName, image.id)}
+                                onClick={() =>
+                                  handleImageClick(image.url, image.originalName, image.id)
+                                }
                               />
 
                               {/* Photo type badge overlay */}
@@ -582,8 +634,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                                   <p className="text-sm font-medium">
                                     {location?.timestamp
                                       ? format(new Date(location.timestamp), 'dd/MM/yyyy, HH:mm:ss')
-                                      : format(new Date(image.uploadedAt), 'dd/MM/yyyy, HH:mm:ss')
-                                    }
+                                      : format(new Date(image.uploadedAt), 'dd/MM/yyyy, HH:mm:ss')}
                                   </p>
                                 </div>
                               </div>
@@ -595,10 +646,13 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                                   <div>
                                     <p className="text-xs text-slate-400">Location</p>
                                     <p className="text-sm font-medium font-mono">
-                                      {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                                      {location.latitude.toFixed(6)},{' '}
+                                      {location.longitude.toFixed(6)}
                                     </p>
                                     {location.accuracy && (
-                                      <p className="text-xs text-slate-400">Accuracy: ±{location.accuracy}m</p>
+                                      <p className="text-xs text-slate-400">
+                                        Accuracy: ±{location.accuracy}m
+                                      </p>
                                     )}
                                   </div>
                                 </div>
@@ -610,7 +664,9 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                                 <div>
                                   <p className="text-xs text-slate-400">Address</p>
                                   <p className="text-sm font-medium">
-                                    {location?.address || submissionAddress || '21, Veer Savarkar Rd, Datar Colony, Bhandup East, Mumbai, Maharashtra 400042, India'}
+                                    {location?.address ||
+                                      submissionAddress ||
+                                      '21, Veer Savarkar Rd, Datar Colony, Bhandup East, Mumbai, Maharashtra 400042, India'}
                                   </p>
                                 </div>
                               </div>
@@ -621,7 +677,12 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                                   size="sm"
                                   variant="secondary"
                                   className="flex-1 h-8 text-xs bg-slate-700 hover:bg-slate-600 text-white border-slate-600"
-                                  onClick={() => handleDownloadWithMetadata(image, verificationPhotos.length + index + 1)}
+                                  onClick={() =>
+                                    handleDownloadWithMetadata(
+                                      image,
+                                      verificationPhotos.length + index + 1
+                                    )
+                                  }
                                 >
                                   <Download className="h-3 w-3 mr-1" />
                                   Download
@@ -631,7 +692,9 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                                     size="sm"
                                     variant="secondary"
                                     className="flex-1 h-8 text-xs bg-slate-700 hover:bg-slate-600 text-white border-slate-600"
-                                    onClick={() => openInGoogleMaps(location.latitude, location.longitude)}
+                                    onClick={() =>
+                                      openInGoogleMaps(location.latitude, location.longitude)
+                                    }
                                   >
                                     <ExternalLink className="h-3 w-3 mr-1" />
                                     Maps

@@ -26,7 +26,10 @@ import { Button } from '@/components/ui/button';
 import { rateTypesService, type CreateRateTypeData } from '@/services/rateTypes';
 
 const createRateTypeSchema = z.object({
-  name: z.string().min(1, 'Rate type name is required').max(100, 'Name must be less than 100 characters'),
+  name: z
+    .string()
+    .min(1, 'Rate type name is required')
+    .max(100, 'Name must be less than 100 characters'),
   description: z.string().max(500, 'Description must be less than 500 characters').optional(),
   isActive: z.boolean(),
 });
@@ -93,7 +96,8 @@ export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialo
         <DialogHeader>
           <DialogTitle>Create Rate Type</DialogTitle>
           <DialogDescription>
-            Create a new rate type for verification services. You can use predefined types or create custom ones.
+            Create a new rate type for verification services. You can use predefined types or create
+            custom ones.
           </DialogDescription>
         </DialogHeader>
 
@@ -173,10 +177,7 @@ export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialo
                     </FormDescription>
                   </div>
                   <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
                 </FormItem>
               )}
@@ -192,7 +193,11 @@ export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialo
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={createMutation.isPending} className="w-full sm:w-auto">
+              <Button
+                type="submit"
+                disabled={createMutation.isPending}
+                className="w-full sm:w-auto"
+              >
                 {createMutation.isPending ? 'Creating...' : 'Create Rate Type'}
               </Button>
             </DialogFooter>

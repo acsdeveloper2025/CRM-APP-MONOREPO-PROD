@@ -1,10 +1,15 @@
-import { useMutation, useQueryClient, UseMutationOptions, MutationFunction } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQueryClient,
+  UseMutationOptions,
+  MutationFunction,
+} from '@tanstack/react-query';
 import { useErrorHandling, ErrorHandlingOptions } from './useErrorHandling';
 import { toast } from 'sonner';
 
 /**
  * Standardized mutation hook that wraps useMutation with automatic error handling
- * 
+ *
  * @example
  * ```typescript
  * const deleteUserMutation = useStandardizedMutation({
@@ -18,28 +23,30 @@ import { toast } from 'sonner';
  * ```
  */
 
-interface StandardizedMutationOptions<TData, TError, TVariables, TContext> 
-  extends Omit<UseMutationOptions<TData, TError, TVariables, TContext>, 'onError'> {
+interface StandardizedMutationOptions<TData, TError, TVariables, TContext> extends Omit<
+  UseMutationOptions<TData, TError, TVariables, TContext>,
+  'onError'
+> {
   /**
    * Success message to show in toast notification
    */
   successMessage?: string;
-  
+
   /**
    * Context for error logging (e.g., 'User Deletion', 'Case Creation')
    */
   errorContext?: string;
-  
+
   /**
    * Fallback error message if backend doesn't provide one
    */
   errorFallbackMessage?: string;
-  
+
   /**
    * Additional error handling options
    */
   errorOptions?: Omit<ErrorHandlingOptions, 'context' | 'fallbackMessage'>;
-  
+
   /**
    * Custom error handler (will be called after standardized error handling)
    */
@@ -50,10 +57,8 @@ export function useStandardizedMutation<
   TData = unknown,
   TError = unknown,
   TVariables = void,
-  TContext = unknown
->(
-  options: StandardizedMutationOptions<TData, TError, TVariables, TContext>
-) {
+  TContext = unknown,
+>(options: StandardizedMutationOptions<TData, TError, TVariables, TContext>) {
   const { handleError } = useErrorHandling();
 
   const {
@@ -65,7 +70,7 @@ export function useStandardizedMutation<
     onSuccess,
     ...mutationOptions
   } = options;
-  
+
   return useMutation({
     ...mutationOptions,
     onSuccess: (data, variables, context, mutationContext) => {
@@ -86,7 +91,7 @@ export function useStandardizedMutation<
         fallbackMessage: errorFallbackMessage,
         ...errorOptions,
       });
-      
+
       // Call custom error callback if provided
       if (onErrorCallback) {
         onErrorCallback(error);
@@ -97,7 +102,7 @@ export function useStandardizedMutation<
 
 /**
  * Hook for mutations that invalidate specific query keys on success
- * 
+ *
  * @example
  * ```typescript
  * const createUserMutation = useMutationWithInvalidation({
@@ -109,8 +114,12 @@ export function useStandardizedMutation<
  * ```
  */
 
-interface MutationWithInvalidationOptions<TData, TError, TVariables, TContext>
-  extends StandardizedMutationOptions<TData, TError, TVariables, TContext> {
+interface MutationWithInvalidationOptions<
+  TData,
+  TError,
+  TVariables,
+  TContext,
+> extends StandardizedMutationOptions<TData, TError, TVariables, TContext> {
   /**
    * Query keys to invalidate on success
    */
@@ -121,21 +130,19 @@ export function useMutationWithInvalidation<
   TData = unknown,
   TError = unknown,
   TVariables = void,
-  TContext = unknown
->(
-  options: MutationWithInvalidationOptions<TData, TError, TVariables, TContext>
-) {
+  TContext = unknown,
+>(options: MutationWithInvalidationOptions<TData, TError, TVariables, TContext>) {
   const queryClient = useQueryClient();
   const { invalidateKeys, onSuccess, ...restOptions } = options;
-  
+
   return useStandardizedMutation({
     ...restOptions,
     onSuccess: (data, variables, context, mutationContext) => {
       // Invalidate specified query keys
-      invalidateKeys.forEach(queryKey => {
+      invalidateKeys.forEach((queryKey) => {
         queryClient.invalidateQueries({ queryKey });
       });
-      
+
       // Call custom onSuccess handler
       if (onSuccess) {
         onSuccess(data, variables, context, mutationContext);
@@ -168,7 +175,7 @@ export function useCRUDMutation<TData = unknown, TVariables = void>(
     additionalInvalidateKeys = [],
     onSuccess,
   } = options;
-  
+
   const operationMessages = {
     create: {
       success: `${resourceName} created successfully`,
@@ -186,9 +193,9 @@ export function useCRUDMutation<TData = unknown, TVariables = void>(
       context: `${resourceName} Deletion`,
     },
   };
-  
+
   const messages = operationMessages[operation];
-  
+
   return useMutationWithInvalidation({
     mutationFn,
     invalidateKeys: [queryKey, ...additionalInvalidateKeys],
@@ -201,14 +208,14 @@ export function useCRUDMutation<TData = unknown, TVariables = void>(
 
 /**
  * Example usage patterns:
- * 
+ *
  * // Basic mutation with standardized error handling
  * const mutation = useStandardizedMutation({
  *   mutationFn: (data) => api.createUser(data),
  *   successMessage: 'User created',
  *   errorContext: 'User Creation',
  * });
- * 
+ *
  * // Mutation with query invalidation
  * const mutation = useMutationWithInvalidation({
  *   mutationFn: (data) => api.createUser(data),
@@ -216,7 +223,7 @@ export function useCRUDMutation<TData = unknown, TVariables = void>(
  *   successMessage: 'User created',
  *   errorContext: 'User Creation',
  * });
- * 
+ *
  * // CRUD mutation (most convenient)
  * const createUserMutation = useCRUDMutation({
  *   mutationFn: (data) => usersService.createUser(data),
@@ -225,14 +232,14 @@ export function useCRUDMutation<TData = unknown, TVariables = void>(
  *   operation: 'create',
  *   additionalInvalidateKeys: [['dashboard']],
  * });
- * 
+ *
  * const updateUserMutation = useCRUDMutation({
  *   mutationFn: ({ id, data }) => usersService.updateUser(id, data),
  *   queryKey: ['users'],
  *   resourceName: 'User',
  *   operation: 'update',
  * });
- * 
+ *
  * const deleteUserMutation = useCRUDMutation({
  *   mutationFn: (id) => usersService.deleteUser(id),
  *   queryKey: ['users'],
@@ -240,4 +247,3 @@ export function useCRUDMutation<TData = unknown, TVariables = void>(
  *   operation: 'delete',
  * });
  */
-

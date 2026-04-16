@@ -4,7 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +26,7 @@ import {
   FiMonitor,
   FiSave,
   FiRefreshCw,
-  FiSettings
+  FiSettings,
 } from 'react-icons/fi';
 
 interface UserSettings {
@@ -51,7 +57,7 @@ interface UserSettings {
 export const SettingsPage: React.FC = () => {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
-  
+
   const [settings, setSettings] = useState<UserSettings>({
     profile: {
       firstName: user?.firstName || '',
@@ -59,22 +65,22 @@ export const SettingsPage: React.FC = () => {
       email: user?.email || '',
       phone: user?.phone || '',
       timezone: 'America/New_York',
-      language: 'en'
+      language: 'en',
     },
     notifications: {
       emailNotifications: true,
       pushNotifications: true,
       caseUpdates: true,
       systemAlerts: true,
-      weeklyReports: false
+      weeklyReports: false,
     },
     preferences: {
       theme: theme as 'light' | 'dark' | 'system',
       dateFormat: 'MM/DD/YYYY',
       timeFormat: '12h',
       defaultPageSize: 20,
-      autoRefresh: true
-    }
+      autoRefresh: true,
+    },
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -84,13 +90,13 @@ export const SettingsPage: React.FC = () => {
     setIsLoading(true);
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // Update theme if changed
       if (settings.preferences.theme !== theme) {
         setTheme(settings.preferences.theme);
       }
-      
+
       toast.success('Settings saved successfully');
     } catch (_error) {
       toast.error('Failed to save settings');
@@ -100,23 +106,23 @@ export const SettingsPage: React.FC = () => {
   };
 
   const updateProfile = (field: string, value: string) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
-      profile: { ...prev.profile, [field]: value }
+      profile: { ...prev.profile, [field]: value },
     }));
   };
 
   const updateNotifications = (field: string, value: boolean) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
-      notifications: { ...prev.notifications, [field]: value }
+      notifications: { ...prev.notifications, [field]: value },
     }));
   };
 
   const updatePreferences = (field: string, value: unknown) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
-      preferences: { ...prev.preferences, [field]: value }
+      preferences: { ...prev.preferences, [field]: value },
     }));
   };
 
@@ -125,9 +131,7 @@ export const SettingsPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Manage your account settings and preferences
-          </p>
+          <p className="text-sm text-gray-600 mt-1">Manage your account settings and preferences</p>
         </div>
         <Button onClick={handleSaveSettings} disabled={isLoading}>
           {isLoading ? (
@@ -190,7 +194,7 @@ export const SettingsPage: React.FC = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <Input
@@ -200,7 +204,7 @@ export const SettingsPage: React.FC = () => {
                   onChange={(e) => updateProfile('email', e.target.value)}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
                 <Input
@@ -213,7 +217,10 @@ export const SettingsPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="timezone">Timezone</Label>
-                  <Select value={settings.profile.timezone} onValueChange={(value) => updateProfile('timezone', value)}>
+                  <Select
+                    value={settings.profile.timezone}
+                    onValueChange={(value) => updateProfile('timezone', value)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -227,7 +234,10 @@ export const SettingsPage: React.FC = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="language">Language</Label>
-                  <Select value={settings.profile.language} onValueChange={(value) => updateProfile('language', value)}>
+                  <Select
+                    value={settings.profile.language}
+                    onValueChange={(value) => updateProfile('language', value)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -247,9 +257,7 @@ export const SettingsPage: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle>Security Settings</CardTitle>
-              <CardDescription>
-                Manage your password and security preferences
-              </CardDescription>
+              <CardDescription>Manage your password and security preferences</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-4">
@@ -260,7 +268,7 @@ export const SettingsPage: React.FC = () => {
                   </div>
                   <Button variant="outline">Change Password</Button>
                 </div>
-                
+
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
                     <h4 className="font-medium">Two-Factor Authentication</h4>
@@ -268,7 +276,7 @@ export const SettingsPage: React.FC = () => {
                   </div>
                   <Badge variant="secondary">Not Enabled</Badge>
                 </div>
-                
+
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
                     <h4 className="font-medium">Active Sessions</h4>
@@ -285,9 +293,7 @@ export const SettingsPage: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>
-                Choose how you want to be notified about updates
-              </CardDescription>
+              <CardDescription>Choose how you want to be notified about updates</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {Object.entries(settings.notifications).map(([key, value]) => (
@@ -319,9 +325,7 @@ export const SettingsPage: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle>Application Preferences</CardTitle>
-              <CardDescription>
-                Customize your application experience
-              </CardDescription>
+              <CardDescription>Customize your application experience</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
@@ -331,7 +335,7 @@ export const SettingsPage: React.FC = () => {
                     {[
                       { value: 'light', icon: FiSun, label: 'Light' },
                       { value: 'dark', icon: FiMoon, label: 'Dark' },
-                      { value: 'system', icon: FiMonitor, label: 'System' }
+                      { value: 'system', icon: FiMonitor, label: 'System' },
                     ].map(({ value, icon: Icon, label }) => (
                       <Button
                         key={value}
@@ -351,8 +355,8 @@ export const SettingsPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Date Format</Label>
-                    <Select 
-                      value={settings.preferences.dateFormat} 
+                    <Select
+                      value={settings.preferences.dateFormat}
                       onValueChange={(value) => updatePreferences('dateFormat', value)}
                     >
                       <SelectTrigger>
@@ -365,11 +369,11 @@ export const SettingsPage: React.FC = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label>Time Format</Label>
-                    <Select 
-                      value={settings.preferences.timeFormat} 
+                    <Select
+                      value={settings.preferences.timeFormat}
                       onValueChange={(value) => updatePreferences('timeFormat', value)}
                     >
                       <SelectTrigger>
@@ -385,8 +389,8 @@ export const SettingsPage: React.FC = () => {
 
                 <div className="space-y-2">
                   <Label>Default Page Size</Label>
-                  <Select 
-                    value={settings.preferences.defaultPageSize.toString()} 
+                  <Select
+                    value={settings.preferences.defaultPageSize.toString()}
                     onValueChange={(value) => updatePreferences('defaultPageSize', parseInt(value))}
                   >
                     <SelectTrigger>
@@ -404,7 +408,9 @@ export const SettingsPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <Label>Auto Refresh</Label>
-                    <p className="text-sm text-gray-600">Automatically refresh data every 30 seconds</p>
+                    <p className="text-sm text-gray-600">
+                      Automatically refresh data every 30 seconds
+                    </p>
                   </div>
                   <Switch
                     checked={settings.preferences.autoRefresh}

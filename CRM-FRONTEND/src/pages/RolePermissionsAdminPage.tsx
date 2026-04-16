@@ -16,7 +16,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Plus, Save, Trash2, Pencil, Smartphone } from 'lucide-react';
@@ -36,10 +42,16 @@ function RoleFormDialog({
   initialRole?: RbacRole | null;
   onSubmit: (data: { name: string; description?: string; parentRoleId?: string | null }) => void;
 }) {
-  const [form, setForm] = React.useState<RoleFormState>({ name: '', description: '', parentRoleId: 'none' });
+  const [form, setForm] = React.useState<RoleFormState>({
+    name: '',
+    description: '',
+    parentRoleId: 'none',
+  });
 
   React.useEffect(() => {
-    if (!open) {return;}
+    if (!open) {
+      return;
+    }
     setForm({
       name: initialRole?.name || '',
       description: initialRole?.description || '',
@@ -53,41 +65,61 @@ function RoleFormDialog({
         <DialogHeader>
           <DialogTitle>{initialRole ? 'Edit Role' : 'Create Role'}</DialogTitle>
           <DialogDescription>
-            {initialRole ? 'Update role metadata, hierarchy, permissions and routes.' : 'Create a new role and optionally inherit from a parent role.'}
+            {initialRole
+              ? 'Update role metadata, hierarchy, permissions and routes.'
+              : 'Create a new role and optionally inherit from a parent role.'}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Role Name</Label>
-            <Input value={form.name} onChange={e => setForm(s => ({ ...s, name: e.target.value }))} />
+            <Input
+              value={form.name}
+              onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+            />
           </div>
           <div className="space-y-2">
             <Label>Description</Label>
-            <Textarea value={form.description} onChange={e => setForm(s => ({ ...s, description: e.target.value }))} rows={3} />
+            <Textarea
+              value={form.description}
+              onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
+              rows={3}
+            />
           </div>
           <div className="space-y-2">
             <Label>Parent Role</Label>
-            <Select value={form.parentRoleId} onValueChange={value => setForm(s => ({ ...s, parentRoleId: value }))}>
-              <SelectTrigger><SelectValue placeholder="No parent" /></SelectTrigger>
+            <Select
+              value={form.parentRoleId}
+              onValueChange={(value) => setForm((s) => ({ ...s, parentRoleId: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="No parent" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">No parent</SelectItem>
                 {roles
-                  .filter(r => !initialRole || r.id !== initialRole.id)
-                  .map(role => (
-                    <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                  .filter((r) => !initialRole || r.id !== initialRole.id)
+                  .map((role) => (
+                    <SelectItem key={role.id} value={role.id}>
+                      {role.name}
+                    </SelectItem>
                   ))}
               </SelectContent>
             </Select>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
           <Button
-            onClick={() => onSubmit({
-              name: form.name,
-              description: form.description || undefined,
-              parentRoleId: form.parentRoleId === 'none' ? null : form.parentRoleId,
-            })}
+            onClick={() =>
+              onSubmit({
+                name: form.name,
+                description: form.description || undefined,
+                parentRoleId: form.parentRoleId === 'none' ? null : form.parentRoleId,
+              })
+            }
           >
             {initialRole ? 'Update Role' : 'Create Role'}
           </Button>
@@ -143,8 +175,12 @@ export default function RolePermissionsAdminPage() {
   React.useEffect(() => {
     const entries = roleRoutesQuery.data?.data?.routes || [];
     const next: Record<string, boolean> = {};
-    for (const item of ROUTE_ACCESS_OPTIONS) {next[item.key] = false;}
-    for (const row of entries) {next[row.routeKey] = row.allowed;}
+    for (const item of ROUTE_ACCESS_OPTIONS) {
+      next[item.key] = false;
+    }
+    for (const row of entries) {
+      next[row.routeKey] = row.allowed;
+    }
     setSelectedRoutes(next);
   }, [roleRoutesQuery.data]);
 
@@ -170,8 +206,10 @@ export default function RolePermissionsAdminPage() {
   });
 
   const updateRoleMutation = useMutation({
-    mutationFn: (payload: { id: string; data: { name?: string; description?: string; parentRoleId?: string | null } }) =>
-      rbacAdminService.updateRole(payload.id, payload.data),
+    mutationFn: (payload: {
+      id: string;
+      data: { name?: string; description?: string; parentRoleId?: string | null };
+    }) => rbacAdminService.updateRole(payload.id, payload.data),
     onSuccess: async () => {
       toast.success('Role updated');
       setEditingRole(null);
@@ -190,7 +228,8 @@ export default function RolePermissionsAdminPage() {
   });
 
   const savePermissionsMutation = useMutation({
-    mutationFn: () => rbacAdminService.updateRolePermissions(selectedRoleId as string, selectedPermissionCodes),
+    mutationFn: () =>
+      rbacAdminService.updateRolePermissions(selectedRoleId as string, selectedPermissionCodes),
     onSuccess: async () => {
       toast.success('Permissions updated');
       await invalidateRoleData(selectedRoleId);
@@ -201,7 +240,10 @@ export default function RolePermissionsAdminPage() {
     mutationFn: () =>
       rbacAdminService.updateRoleRoutes(
         selectedRoleId as string,
-        ROUTE_ACCESS_OPTIONS.map(item => ({ routeKey: item.key, allowed: !!selectedRoutes[item.key] }))
+        ROUTE_ACCESS_OPTIONS.map((item) => ({
+          routeKey: item.key,
+          allowed: !!selectedRoutes[item.key],
+        }))
       ),
     onSuccess: async () => {
       toast.success('Route access updated');
@@ -210,8 +252,8 @@ export default function RolePermissionsAdminPage() {
   });
 
   const togglePermission = (code: string, checked: boolean) => {
-    setSelectedPermissionCodes(prev =>
-      checked ? Array.from(new Set([...prev, code])) : prev.filter(c => c !== code)
+    setSelectedPermissionCodes((prev) =>
+      checked ? Array.from(new Set([...prev, code])) : prev.filter((c) => c !== code)
     );
   };
 
@@ -219,25 +261,31 @@ export default function RolePermissionsAdminPage() {
 
   const MOBILE_PERMISSIONS = RBAC_PERMISSION_MODULES['MOBILE (FIELD AGENT)'];
   const isMobileOnlyRole = React.useMemo(() => {
-    if (selectedPermissionCodes.length === 0) {return false;}
+    if (selectedPermissionCodes.length === 0) {
+      return false;
+    }
     const mobileSet = new Set(MOBILE_PERMISSIONS);
-    return selectedPermissionCodes.every(code => mobileSet.has(code));
+    return selectedPermissionCodes.every((code) => mobileSet.has(code));
   }, [selectedPermissionCodes, MOBILE_PERMISSIONS]);
 
   const selectAllMobilePermissions = () => {
-    setSelectedPermissionCodes(prev => {
+    setSelectedPermissionCodes((prev) => {
       const next = new Set(prev);
-      for (const code of MOBILE_PERMISSIONS) {next.add(code);}
+      for (const code of MOBILE_PERMISSIONS) {
+        next.add(code);
+      }
       return Array.from(next);
     });
-    setSelectedRoutes(prev => ({ ...prev, 'mobile-app': true }));
+    setSelectedRoutes((prev) => ({ ...prev, 'mobile-app': true }));
   };
 
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Role & Permissions</h1>
-        <p className="text-gray-600">Configure RBAC permissions, route access, and role hierarchy.</p>
+        <p className="text-gray-600">
+          Configure RBAC permissions, route access, and role hierarchy.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
@@ -249,7 +297,7 @@ export default function RolePermissionsAdminPage() {
             </Button>
           </CardHeader>
           <CardContent className="space-y-3">
-            {roles.map(role => (
+            {roles.map((role) => (
               <div
                 key={role.id}
                 className={`rounded border p-3 cursor-pointer ${selectedRoleId === role.id ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}
@@ -258,14 +306,25 @@ export default function RolePermissionsAdminPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="font-medium">{role.name}</div>
-                    <div className="text-xs text-gray-500">{role.description || 'No description'}</div>
+                    <div className="text-xs text-gray-500">
+                      {role.description || 'No description'}
+                    </div>
                     <div className="mt-1 flex flex-wrap gap-1">
-                      {role.parentRoleName && <Badge variant="outline">Parent: {role.parentRoleName}</Badge>}
+                      {role.parentRoleName && (
+                        <Badge variant="outline">Parent: {role.parentRoleName}</Badge>
+                      )}
                       <Badge variant="secondary">Users: {role.userCount || 0}</Badge>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); setEditingRole(role); }}>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingRole(role);
+                      }}
+                    >
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
@@ -275,7 +334,9 @@ export default function RolePermissionsAdminPage() {
                       onClick={(e) => {
                         e.stopPropagation();
                         // eslint-disable-next-line no-alert
-                        if (confirm(`Delete role ${role.name}?`)) {deleteRoleMutation.mutate(role.id);}
+                        if (confirm(`Delete role ${role.name}?`)) {
+                          deleteRoleMutation.mutate(role.id);
+                        }
                       }}
                     >
                       <Trash2 className="h-4 w-4 text-red-600" />
@@ -292,7 +353,10 @@ export default function RolePermissionsAdminPage() {
             <div className="flex items-center gap-2">
               <CardTitle>Permission Matrix</CardTitle>
               {isMobileOnlyRole && (
-                <Badge className="bg-blue-100 text-blue-800 text-xs"><Smartphone className="h-3 w-3 mr-1" />Mobile Only</Badge>
+                <Badge className="bg-blue-100 text-blue-800 text-xs">
+                  <Smartphone className="h-3 w-3 mr-1" />
+                  Mobile Only
+                </Badge>
               )}
             </div>
             <div className="flex gap-2">
@@ -318,18 +382,23 @@ export default function RolePermissionsAdminPage() {
               <div key={moduleName} className="space-y-2">
                 <h3 className="font-semibold text-sm text-gray-700">{moduleName}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {codes.map(code => {
-                    const meta = groupedPermissions.find(p => p.code === code);
+                  {codes.map((code) => {
+                    const meta = groupedPermissions.find((p) => p.code === code);
                     const checked = selectedPermissionCodes.includes(code);
                     return (
-                      <label key={code} className="flex items-start gap-2 rounded border p-2 hover:bg-gray-50">
+                      <label
+                        key={code}
+                        className="flex items-start gap-2 rounded border p-2 hover:bg-gray-50"
+                      >
                         <Checkbox
                           checked={checked}
-                          onCheckedChange={value => togglePermission(code, value === true)}
+                          onCheckedChange={(value) => togglePermission(code, value === true)}
                         />
                         <div>
                           <div className="text-sm font-medium">{code}</div>
-                          <div className="text-xs text-gray-500">{meta?.description || meta?.module || 'Permission'}</div>
+                          <div className="text-xs text-gray-500">
+                            {meta?.description || meta?.module || 'Permission'}
+                          </div>
                         </div>
                       </label>
                     );
@@ -352,16 +421,19 @@ export default function RolePermissionsAdminPage() {
             </Button>
           </CardHeader>
           <CardContent className="space-y-2">
-            {ROUTE_ACCESS_OPTIONS.map(route => (
-              <label key={route.key} className="flex items-center justify-between rounded border p-3 hover:bg-gray-50">
+            {ROUTE_ACCESS_OPTIONS.map((route) => (
+              <label
+                key={route.key}
+                className="flex items-center justify-between rounded border p-3 hover:bg-gray-50"
+              >
                 <div>
                   <div className="text-sm font-medium">{route.label}</div>
                   <div className="text-xs text-gray-500">{route.key}</div>
                 </div>
                 <Checkbox
                   checked={!!selectedRoutes[route.key]}
-                  onCheckedChange={value =>
-                    setSelectedRoutes(prev => ({ ...prev, [route.key]: value === true }))
+                  onCheckedChange={(value) =>
+                    setSelectedRoutes((prev) => ({ ...prev, [route.key]: value === true }))
                   }
                 />
               </label>
@@ -374,15 +446,15 @@ export default function RolePermissionsAdminPage() {
         open={showCreate}
         onOpenChange={setShowCreate}
         roles={roles}
-        onSubmit={data => createRoleMutation.mutate(data)}
+        onSubmit={(data) => createRoleMutation.mutate(data)}
       />
 
       <RoleFormDialog
         open={!!editingRole}
-        onOpenChange={open => !open && setEditingRole(null)}
+        onOpenChange={(open) => !open && setEditingRole(null)}
         roles={roles}
         initialRole={editingRole}
-        onSubmit={data => editingRole && updateRoleMutation.mutate({ id: editingRole.id, data })}
+        onSubmit={(data) => editingRole && updateRoleMutation.mutate({ id: editingRole.id, data })}
       />
     </div>
   );

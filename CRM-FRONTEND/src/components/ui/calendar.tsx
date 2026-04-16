@@ -16,12 +16,7 @@ export type CalendarProps = React.ComponentProps<typeof DayPicker>;
  * the frontend touches the library's raw snake_case member names is
  * `calendar-adapter.ts`, which is the single boundary adapter.
  */
-function Calendar({
-  className,
-  classNames,
-  showOutsideDays = true,
-  ...props
-}: CalendarProps) {
+function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps) {
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}

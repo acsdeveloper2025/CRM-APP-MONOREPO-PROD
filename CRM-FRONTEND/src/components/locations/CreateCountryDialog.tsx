@@ -32,7 +32,8 @@ import type { CreateCountryData } from '@/types/location';
 
 const createCountrySchema = z.object({
   name: z.string().min(1, 'Country name is required').max(100, 'Country name is too long'),
-  code: z.string()
+  code: z
+    .string()
     .min(2, 'Country code must be at least 2 characters')
     .max(3, 'Country code must be at most 3 characters')
     .regex(/^[A-Z]{2,3}$/, 'Country code must be uppercase letters only (ISO format)'),
@@ -48,12 +49,12 @@ interface CreateCountryDialogProps {
 
 const continents = [
   'Africa',
-  'Antarctica', 
+  'Antarctica',
   'Asia',
   'Europe',
   'North America',
   'Oceania',
-  'South America'
+  'South America',
 ];
 
 export function CreateCountryDialog({ open, onOpenChange }: CreateCountryDialogProps) {
@@ -67,10 +68,11 @@ export function CreateCountryDialog({ open, onOpenChange }: CreateCountryDialogP
   });
 
   const createCountryMutation = useCRUDMutation({
-    mutationFn: (data: CreateCountryData) => locationsService.createCountry({
-      ...data,
-      code: data.code.toUpperCase(),
-    }),
+    mutationFn: (data: CreateCountryData) =>
+      locationsService.createCountry({
+        ...data,
+        code: data.code.toUpperCase(),
+      }),
     queryKey: ['countries'],
     resourceName: 'Country',
     operation: 'create',
@@ -108,10 +110,7 @@ export function CreateCountryDialog({ open, onOpenChange }: CreateCountryDialogP
                 <FormItem>
                   <FormLabel>Country Name</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="e.g., United States" 
-                      {...field} 
-                    />
+                    <Input placeholder="e.g., United States" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -125,8 +124,8 @@ export function CreateCountryDialog({ open, onOpenChange }: CreateCountryDialogP
                 <FormItem>
                   <FormLabel>Country Code (ISO)</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="e.g., US, IN, GB" 
+                    <Input
+                      placeholder="e.g., US, IN, GB"
                       maxLength={3}
                       {...field}
                       onChange={(e) => {
@@ -175,10 +174,11 @@ export function CreateCountryDialog({ open, onOpenChange }: CreateCountryDialogP
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={createCountryMutation.isPending}
-               className="w-full sm:w-auto">
+                className="w-full sm:w-auto"
+              >
                 {createCountryMutation.isPending ? 'Creating...' : 'Create Country'}
               </Button>
             </DialogFooter>

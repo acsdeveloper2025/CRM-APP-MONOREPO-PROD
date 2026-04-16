@@ -1,6 +1,6 @@
 /**
  * Centralized Type Definitions for CRM Frontend
- * 
+ *
  * This file consolidates and re-exports all type definitions to provide
  * a single source of truth for the frontend type system.
  */
@@ -12,18 +12,11 @@ export type {
   PaginatedResponse,
   ErrorResponse,
   ValidationError,
-  CaseListQuery
+  CaseListQuery,
 } from './api';
 
 // Authentication & User Types
-export type {
-  Role,
-  User,
-  LoginRequest,
-  UuidLoginRequest,
-  LoginResponse,
-  AuthState
-} from './auth';
+export type { Role, User, LoginRequest, UuidLoginRequest, LoginResponse, AuthState } from './auth';
 
 // User Management Types
 export type {
@@ -35,28 +28,16 @@ export type {
   UserExportData,
   BulkUserOperation,
   UserImportData,
-  ActivityQuery
+  ActivityQuery,
 } from './user';
 
 // Case Management Types
-export type {
-  CaseStatus,
-  Case,
-  CaseFilters
-} from './case';
+export type { CaseStatus, Case, CaseFilters } from './case';
 
 // Client & Product Types
-export type {
-  Client,
-  VerificationType
-} from './client';
+export type { Client, VerificationType } from './client';
 
-export type {
-  Product,
-  CreateProductData,
-  UpdateProductData,
-  ProductListQuery
-} from './product';
+export type { Product, CreateProductData, UpdateProductData, ProductListQuery } from './product';
 
 // Document Type Management Types
 export type {
@@ -77,7 +58,7 @@ export type {
   DocumentValidationResult,
   ValidateDocumentRequest,
   DocumentTypeExportData,
-  CommonDocumentType
+  CommonDocumentType,
 } from './documentType';
 
 // Document Type Constants
@@ -85,7 +66,7 @@ export {
   DOCUMENT_CATEGORIES,
   COMMON_DOCUMENT_TYPES,
   DOCUMENT_TYPE_DISPLAY_NAMES,
-  DOCUMENT_TYPE_COLORS
+  DOCUMENT_TYPE_COLORS,
 } from './documentType';
 
 // Form Types
@@ -106,18 +87,11 @@ export type {
   FormSectionTemplate,
   FormFieldTemplate,
   FormValidation,
-  FormCondition
+  FormCondition,
 } from './form';
 
 // Location Types
-export type {
-  Country,
-  State,
-  City,
-  Pincode,
-  PincodeArea,
-  LocationFilters
-} from './location';
+export type { Country, State, City, Pincode, PincodeArea, LocationFilters } from './location';
 
 // Dashboard Types
 export type {
@@ -127,7 +101,7 @@ export type {
   ClientCaseStats,
   MonthlyTrend,
   RecentActivity,
-  QuickAction
+  QuickAction,
 } from './dashboard';
 
 // Commission Types
@@ -140,35 +114,20 @@ export type {
   UpdateCommissionCalculationData,
   BulkCommissionOperation,
   CommissionExportData,
-  CommissionCalculationInput
+  CommissionCalculationInput,
 } from './commission';
 
 // Rate Management Types
-export type {
-  Rate,
-  CreateRateData,
-  UpdateRateData
-} from './rateManagement';
+export type { Rate, CreateRateData, UpdateRateData } from './rateManagement';
 
 // Territory Assignment Types
-export type {
-  TerritoryAssignment
-} from './territoryAssignment';
+export type { TerritoryAssignment } from './territoryAssignment';
 
 // Billing Types
-export type {
-  InvoiceItem,
-  CreateInvoiceData,
-  UpdateInvoiceData
-} from './billing';
+export type { InvoiceItem, CreateInvoiceData, UpdateInvoiceData } from './billing';
 
 // Reports Types
-export type {
-  ReportFilters,
-  FinancialReport,
-  ReportSummary,
-} from './reports';
-
+export type { ReportFilters, FinancialReport, ReportSummary } from './reports';
 
 // Common Base Types
 export interface BaseEntity {

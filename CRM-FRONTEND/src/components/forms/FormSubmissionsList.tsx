@@ -3,7 +3,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { FormSubmission } from '@/types/form';
 import { Search, FileText, Clock, User, MapPin, Camera, Eye } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -36,12 +42,12 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
 
   // Get unique form types and statuses for filters
   const formTypes = useMemo(() => {
-    const types = [...new Set(submissions.map(s => s.formType))];
+    const types = [...new Set(submissions.map((s) => s.formType))];
     return types.sort();
   }, [submissions]);
 
   const statuses = useMemo(() => {
-    const statusList = [...new Set(submissions.map(s => s.status))];
+    const statusList = [...new Set(submissions.map((s) => s.status))];
     return statusList.sort();
   }, [submissions]);
 
@@ -52,22 +58,23 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
     // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(submission =>
-        submission.formType.toLowerCase().includes(query) ||
-        submission.submittedByName.toLowerCase().includes(query) ||
-        submission.outcome.toLowerCase().includes(query) ||
-        submission.caseId.toLowerCase().includes(query)
+      filtered = filtered.filter(
+        (submission) =>
+          submission.formType.toLowerCase().includes(query) ||
+          submission.submittedByName.toLowerCase().includes(query) ||
+          submission.outcome.toLowerCase().includes(query) ||
+          submission.caseId.toLowerCase().includes(query)
       );
     }
 
     // Apply status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(submission => submission.status === statusFilter);
+      filtered = filtered.filter((submission) => submission.status === statusFilter);
     }
 
     // Apply form type filter
     if (formTypeFilter !== 'all') {
-      filtered = filtered.filter(submission => submission.formType === formTypeFilter);
+      filtered = filtered.filter((submission) => submission.formType === formTypeFilter);
     }
 
     // Apply sorting
@@ -124,10 +131,9 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
   const getFormTypeLabel = (formType: string) => {
     return formType
       .split(/[-_]/)
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
-
 
   if (isLoading) {
     return (
@@ -173,7 +179,7 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Statuses</SelectItem>
-                      {statuses.map(status => (
+                      {statuses.map((status) => (
                         <SelectItem key={status} value={status}>
                           {status.replace('_', ' ')}
                         </SelectItem>
@@ -187,7 +193,7 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Types</SelectItem>
-                      {formTypes.map(type => (
+                      {formTypes.map((type) => (
                         <SelectItem key={type} value={type}>
                           {getFormTypeLabel(type)}
                         </SelectItem>
@@ -199,11 +205,14 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
 
               {/* Sort */}
               {showSorting && (
-                <Select value={`${sortField}-${sortDirection}`} onValueChange={(value) => {
-                  const [field, direction] = value.split('-') as [SortField, SortDirection];
-                  setSortField(field);
-                  setSortDirection(direction);
-                }}>
+                <Select
+                  value={`${sortField}-${sortDirection}`}
+                  onValueChange={(value) => {
+                    const [field, direction] = value.split('-') as [SortField, SortDirection];
+                    setSortField(field);
+                    setSortDirection(direction);
+                  }}
+                >
                   <SelectTrigger className="w-full md:w-48">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
@@ -259,7 +268,11 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
                       </div>
                       <div className="flex items-center space-x-2">
                         <Clock className="h-4 w-4" />
-                        <span>{formatDistanceToNow(new Date(submission.submittedAt), { addSuffix: true })}</span>
+                        <span>
+                          {formatDistanceToNow(new Date(submission.submittedAt), {
+                            addSuffix: true,
+                          })}
+                        </span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <MapPin className="h-4 w-4" />

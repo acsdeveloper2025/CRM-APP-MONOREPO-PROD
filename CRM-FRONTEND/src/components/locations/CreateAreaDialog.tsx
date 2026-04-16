@@ -24,7 +24,8 @@ import { Loader2 } from 'lucide-react';
 import { locationsService } from '@/services/locations';
 
 const createAreaSchema = z.object({
-  name: z.string()
+  name: z
+    .string()
     .min(2, 'Area name must be at least 2 characters')
     .max(100, 'Area name must be less than 100 characters'),
 });
@@ -81,7 +82,8 @@ export function CreateAreaDialog({ open, onOpenChange }: CreateAreaDialogProps) 
         <DialogHeader>
           <DialogTitle>Create New Area</DialogTitle>
           <DialogDescription>
-            Create a new area that can be used across different pincodes. Areas help organize localities and neighborhoods.
+            Create a new area that can be used across different pincodes. Areas help organize
+            localities and neighborhoods.
           </DialogDescription>
         </DialogHeader>
 
@@ -100,7 +102,8 @@ export function CreateAreaDialog({ open, onOpenChange }: CreateAreaDialogProps) 
                     />
                   </FormControl>
                   <FormDescription>
-                    The name of the area or locality. This area can be used across multiple pincodes.
+                    The name of the area or locality. This area can be used across multiple
+                    pincodes.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -116,13 +119,8 @@ export function CreateAreaDialog({ open, onOpenChange }: CreateAreaDialogProps) 
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={createMutation.isPending}
-              >
-                {createMutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create Area
               </Button>
             </div>

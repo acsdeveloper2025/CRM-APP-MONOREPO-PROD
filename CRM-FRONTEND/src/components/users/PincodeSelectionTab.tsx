@@ -113,7 +113,8 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
           <>
             {filteredPincodes.map((pincode) => {
               // Convert pincode.id to number for comparison (API returns string IDs)
-              const pincodeIdNum = typeof pincode.id === 'string' ? parseInt(pincode.id, 10) : pincode.id;
+              const pincodeIdNum =
+                typeof pincode.id === 'string' ? parseInt(pincode.id, 10) : pincode.id;
               const isSelected = selectedPincodeIds.has(pincodeIdNum);
               const areaCount = areaCountByPincode[pincodeIdNum] || 0;
 
@@ -125,7 +126,10 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
                   }`}
                   onClick={() => onPincodeToggle(pincodeIdNum)}
                 >
-                  <Checkbox checked={isSelected} onCheckedChange={() => onPincodeToggle(pincodeIdNum)} />
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => onPincodeToggle(pincodeIdNum)}
+                  />
 
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -158,4 +162,3 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
     </div>
   );
 };
-

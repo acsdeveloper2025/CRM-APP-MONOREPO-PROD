@@ -5,7 +5,10 @@ import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
+import {
+  UnifiedSearchFilterLayout,
+  FilterGrid,
+} from '@/components/ui/unified-search-filter-layout';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -21,7 +24,7 @@ import {
   Package,
   UserCheck,
   TrendingUp,
-  Download
+  Download,
 } from 'lucide-react';
 import { VerificationTasksService } from '@/services/verificationTasks';
 import { toast } from 'sonner';
@@ -39,15 +42,10 @@ export const PendingTasksPage: React.FC = () => {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   // Unified search with 800ms debounce
-  const {
-    searchValue,
-    debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
-  } = useUnifiedSearch({
-    syncWithUrl: true,
-  });
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({
+      syncWithUrl: true,
+    });
 
   // Unified filters with URL sync
   const {
@@ -69,7 +67,7 @@ export const PendingTasksPage: React.FC = () => {
 
   // Reset pagination when search or filters change
   useEffect(() => {
-    setPaginationState(prev => ({ ...prev, page: 1 }));
+    setPaginationState((prev) => ({ ...prev, page: 1 }));
   }, [debouncedSearchValue, activeFilters]);
 
   const queryFilters = {
@@ -80,7 +78,8 @@ export const PendingTasksPage: React.FC = () => {
     excludeUnassignedRevisit: 'true',
   };
 
-  const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);
+  const { tasks, loading, error, pagination, statistics, refreshTasks } =
+    useAllVerificationTasks(queryFilters);
 
   const handleAssignTask = (taskId: string) => {
     setSelectedTaskId(taskId);
@@ -99,7 +98,9 @@ export const PendingTasksPage: React.FC = () => {
   const handleEditCase = (caseId: string, taskId?: string) => {
     if (caseId) {
       // Pass both case ID and task ID so we know which specific task to update
-      const url = taskId ? `/cases/new?edit=${caseId}&taskId=${taskId}` : `/cases/new?edit=${caseId}`;
+      const url = taskId
+        ? `/cases/new?edit=${caseId}&taskId=${taskId}`
+        : `/cases/new?edit=${caseId}`;
       navigate(url);
     }
   };
@@ -142,9 +143,7 @@ export const PendingTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{statistics.pending}</div>
-            <p className="text-xs text-gray-600">
-              Need assignment
-            </p>
+            <p className="text-xs text-gray-600">Need assignment</p>
           </CardContent>
         </Card>
 
@@ -155,9 +154,7 @@ export const PendingTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{statistics.assigned}</div>
-            <p className="text-xs text-gray-600">
-              Waiting to start
-            </p>
+            <p className="text-xs text-gray-600">Waiting to start</p>
           </CardContent>
         </Card>
 
@@ -167,10 +164,10 @@ export const PendingTasksPage: React.FC = () => {
             <AlertTriangle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(statistics.urgent || 0) + (statistics.highPriority || 0)}</div>
-            <p className="text-xs text-gray-600">
-              Urgent + High
-            </p>
+            <div className="text-2xl font-bold">
+              {(statistics.urgent || 0) + (statistics.highPriority || 0)}
+            </div>
+            <p className="text-xs text-gray-600">Urgent + High</p>
           </CardContent>
         </Card>
 
@@ -182,17 +179,20 @@ export const PendingTasksPage: React.FC = () => {
           <CardContent>
             <div className="text-2xl font-bold">
               {tasks.length > 0
-                ? Math.round(tasks.reduce((acc, t) => {
-                    const created = new Date(t.createdAt);
-                    const now = new Date();
-                    const ageInDays = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
-                    return acc + ageInDays;
-                  }, 0) / tasks.length)
-                : 0} days
+                ? Math.round(
+                    tasks.reduce((acc, t) => {
+                      const created = new Date(t.createdAt);
+                      const now = new Date();
+                      const ageInDays = Math.floor(
+                        (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)
+                      );
+                      return acc + ageInDays;
+                    }, 0) / tasks.length
+                  )
+                : 0}{' '}
+              days
             </div>
-            <p className="text-xs text-gray-600">
-              Average task age
-            </p>
+            <p className="text-xs text-gray-600">Average task age</p>
           </CardContent>
         </Card>
       </div>
@@ -214,7 +214,9 @@ export const PendingTasksPage: React.FC = () => {
               <Label htmlFor="priority">Priority</Label>
               <Select
                 value={activeFilters.priority || 'all'}
-                onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
+                onValueChange={(value) =>
+                  setFilter('priority', value === 'all' ? undefined : value)
+                }
               >
                 <SelectTrigger id="priority">
                   <SelectValue placeholder="All priorities" />
@@ -237,7 +239,9 @@ export const PendingTasksPage: React.FC = () => {
               onClick={async () => {
                 try {
                   toast.info('Generating Excel export...');
-                  const blob = await VerificationTasksService.exportToExcel({ status: 'PENDING,ASSIGNED' });
+                  const blob = await VerificationTasksService.exportToExcel({
+                    status: 'PENDING,ASSIGNED',
+                  });
                   const url = window.URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
@@ -245,17 +249,16 @@ export const PendingTasksPage: React.FC = () => {
                   a.click();
                   window.URL.revokeObjectURL(url);
                   toast.success('Export downloaded');
-                } catch (err) { logger.error('Export failed:', err); toast.error('Export failed'); }
+                } catch (err) {
+                  logger.error('Export failed:', err);
+                  toast.error('Export failed');
+                }
               }}
             >
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => refreshTasks()}
-              disabled={loading}
-            >
+            <Button variant="outline" onClick={() => refreshTasks()} disabled={loading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
@@ -287,14 +290,16 @@ export const PendingTasksPage: React.FC = () => {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600">
-                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} tasks
+                Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+                {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+                {pagination.total} tasks
               </p>
               {pagination.totalPages > 1 && (
                 <div className="flex items-center space-x-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPaginationState(prev => ({ ...prev, page: prev.page - 1 }))}
+                    onClick={() => setPaginationState((prev) => ({ ...prev, page: prev.page - 1 }))}
                     disabled={pagination.page === 1}
                   >
                     Previous
@@ -305,7 +310,7 @@ export const PendingTasksPage: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPaginationState(prev => ({ ...prev, page: prev.page + 1 }))}
+                    onClick={() => setPaginationState((prev) => ({ ...prev, page: prev.page + 1 }))}
                     disabled={pagination.page === pagination.totalPages}
                   >
                     Next
@@ -332,4 +337,3 @@ export const PendingTasksPage: React.FC = () => {
     </div>
   );
 };
-

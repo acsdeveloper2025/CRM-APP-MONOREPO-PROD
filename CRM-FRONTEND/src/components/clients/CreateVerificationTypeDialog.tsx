@@ -36,7 +36,10 @@ interface CreateVerificationTypeDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function CreateVerificationTypeDialog({ open, onOpenChange }: CreateVerificationTypeDialogProps) {
+export function CreateVerificationTypeDialog({
+  open,
+  onOpenChange,
+}: CreateVerificationTypeDialogProps) {
   const form = useForm<CreateVerificationTypeFormData>({
     resolver: zodResolver(createVerificationTypeSchema),
     defaultValues: {
@@ -47,11 +50,12 @@ export function CreateVerificationTypeDialog({ open, onOpenChange }: CreateVerif
   });
 
   const createMutation = useCRUDMutation({
-    mutationFn: (data: CreateVerificationTypeFormData) => verificationTypesService.createVerificationType({
-      name: data.name,
-      code: data.code,
-      category: data.category,
-    }),
+    mutationFn: (data: CreateVerificationTypeFormData) =>
+      verificationTypesService.createVerificationType({
+        name: data.name,
+        code: data.code,
+        category: data.category,
+      }),
     queryKey: ['verification-types'],
     resourceName: 'Verification Type',
     operation: 'create',
@@ -87,9 +91,7 @@ export function CreateVerificationTypeDialog({ open, onOpenChange }: CreateVerif
                   <FormControl>
                     <Input placeholder="e.g., RESIDENCE_VERIFICATION" {...field} />
                   </FormControl>
-                  <FormDescription>
-                    Unique identifier for this verification type
-                  </FormDescription>
+                  <FormDescription>Unique identifier for this verification type</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -102,13 +104,11 @@ export function CreateVerificationTypeDialog({ open, onOpenChange }: CreateVerif
                 <FormItem>
                   <FormLabel>Verification Type Name</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="Enter verification type name"
-                      {...field}
-                    />
+                    <Input placeholder="Enter verification type name" {...field} />
                   </FormControl>
                   <FormDescription>
-                    The name of the verification type (e.g., &quot;Residence Verification&quot;, &quot;Office Verification&quot;)
+                    The name of the verification type (e.g., &quot;Residence Verification&quot;,
+                    &quot;Office Verification&quot;)
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -128,7 +128,8 @@ export function CreateVerificationTypeDialog({ open, onOpenChange }: CreateVerif
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
-               className="w-full sm:w-auto">
+                className="w-full sm:w-auto"
+              >
                 {createMutation.isPending ? 'Creating...' : 'Create Type'}
               </Button>
             </DialogFooter>

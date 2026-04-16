@@ -10,45 +10,45 @@ export interface UnifiedFilterPanelProps {
    * Filter content (form fields, selects, etc.)
    */
   children: ReactNode;
-  
+
   /**
    * Whether filters are currently active
    */
   hasActiveFilters?: boolean;
-  
+
   /**
    * Number of active filters (shown in badge)
    */
   activeFilterCount?: number;
-  
+
   /**
    * Callback when clear filters is clicked
    */
   onClearFilters?: () => void;
-  
+
   /**
    * Whether the panel is collapsible
    * @default true
    */
   collapsible?: boolean;
-  
+
   /**
    * Initial collapsed state
    * @default false
    */
   defaultCollapsed?: boolean;
-  
+
   /**
    * Panel title
    * @default "Filters"
    */
   title?: string;
-  
+
   /**
    * Additional CSS classes
    */
   className?: string;
-  
+
   /**
    * Whether to show the filter icon in the title
    * @default true
@@ -58,17 +58,17 @@ export interface UnifiedFilterPanelProps {
 
 /**
  * Unified filter panel component with standardized styling and behavior
- * 
+ *
  * Features:
  * - Collapsible panel
  * - Active filter count badge
  * - Clear filters button
  * - Consistent styling across the application
- * 
+ *
  * @example
  * ```tsx
  * const { filters, setFilter, clearFilters, hasActiveFilters } = useUnifiedFilters();
- * 
+ *
  * <UnifiedFilterPanel
  *   hasActiveFilters={hasActiveFilters}
  *   activeFilterCount={Object.keys(filters).length}
@@ -114,11 +114,9 @@ export const UnifiedFilterPanel: React.FC<UnifiedFilterPanelProps> = ({
             onClick={toggleCollapse}
           >
             {showIcon && <Filter className="h-5 w-5 text-gray-600" />}
-            
-            <CardTitle className="text-lg font-semibold">
-              {title}
-            </CardTitle>
-            
+
+            <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+
             {activeFilterCount > 0 && (
               <Badge
                 variant="secondary"
@@ -127,7 +125,7 @@ export const UnifiedFilterPanel: React.FC<UnifiedFilterPanelProps> = ({
                 {activeFilterCount}
               </Badge>
             )}
-            
+
             {collapsible && (
               <div className="ml-2">
                 {isCollapsed ? (
@@ -153,11 +151,7 @@ export const UnifiedFilterPanel: React.FC<UnifiedFilterPanelProps> = ({
         </div>
       </CardHeader>
 
-      {!isCollapsed && (
-        <CardContent className="space-y-4">
-          {children}
-        </CardContent>
-      )}
+      {!isCollapsed && <CardContent className="space-y-4">{children}</CardContent>}
     </Card>
   );
 };
@@ -170,33 +164,23 @@ export interface FilterSectionProps {
    * Section title
    */
   title?: string;
-  
+
   /**
    * Section content
    */
   children: ReactNode;
-  
+
   /**
    * Additional CSS classes
    */
   className?: string;
 }
 
-export const FilterSection: React.FC<FilterSectionProps> = ({
-  title,
-  children,
-  className,
-}) => {
+export const FilterSection: React.FC<FilterSectionProps> = ({ title, children, className }) => {
   return (
     <div className={cn('space-y-3', className)}>
-      {title && (
-        <h4 className="text-sm font-medium text-gray-600">
-          {title}
-        </h4>
-      )}
-      <div className="space-y-3">
-        {children}
-      </div>
+      {title && <h4 className="text-sm font-medium text-gray-600">{title}</h4>}
+      <div className="space-y-3">{children}</div>
     </div>
   );
 };
@@ -209,7 +193,7 @@ export interface FilterGridProps {
    * Grid content
    */
   children: ReactNode;
-  
+
   /**
    * Number of columns
    * @default { sm: 1, md: 2, lg: 4 }
@@ -220,7 +204,7 @@ export interface FilterGridProps {
     lg?: number;
     xl?: number;
   };
-  
+
   /**
    * Additional CSS classes
    */
@@ -244,11 +228,7 @@ export const FilterGrid: React.FC<FilterGridProps> = ({
     className
   );
 
-  return (
-    <div className={gridClasses}>
-      {children}
-    </div>
-  );
+  return <div className={gridClasses}>{children}</div>;
 };
 
 /**
@@ -259,22 +239,22 @@ export interface ActiveFiltersDisplayProps {
    * Active filters as key-value pairs
    */
   filters: Record<string, unknown>;
-  
+
   /**
    * Callback to remove a specific filter
    */
   onRemoveFilter: (key: string) => void;
-  
+
   /**
    * Optional label formatter for filter keys
    */
   formatLabel?: (key: string) => string;
-  
+
   /**
    * Optional value formatter for filter values
    */
   formatValue?: (key: string, value: unknown) => string;
-  
+
   /**
    * Additional CSS classes
    */
@@ -324,4 +304,3 @@ export const ActiveFiltersDisplay: React.FC<ActiveFiltersDisplayProps> = ({
     </div>
   );
 };
-

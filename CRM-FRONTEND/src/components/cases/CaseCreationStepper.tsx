@@ -461,9 +461,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           applicantType: firstTask?.applicantType || 'APPLICANT',
           trigger:
             firstTask?.trigger ||
-            (caseType === 'kyc' || caseType === 'both'
-              ? 'KYC Document Verification'
-              : undefined),
+            (caseType === 'kyc' || caseType === 'both' ? 'KYC Document Verification' : undefined),
           backendContactNumber: caseLevelData.backendContactNumber,
           priority: firstTask?.priority || 'MEDIUM',
           pincode: firstTask ? getPincodeCode(firstTask.pincodeId) : undefined,

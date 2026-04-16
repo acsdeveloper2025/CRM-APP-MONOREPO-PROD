@@ -13,8 +13,6 @@ export interface LoginRequest {
   macAddress?: string;
 }
 
-
-
 export interface LoginResponse {
   success: boolean;
   message: string;

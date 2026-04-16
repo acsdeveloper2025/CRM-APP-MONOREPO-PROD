@@ -35,12 +35,16 @@ import { clientsService } from '@/services/clients';
 const createInvoiceSchema = z.object({
   clientId: z.string().min(1, 'Client selection is required'),
   dueDate: z.string().min(1, 'Due date is required'),
-  items: z.array(z.object({
-    description: z.string().min(1, 'Description is required'),
-    quantity: z.number().min(1, 'Quantity must be at least 1'),
-    unitPrice: z.number().min(0, 'Unit price must be positive'),
-    caseId: z.string().optional(),
-  })).min(1, 'At least one item is required'),
+  items: z
+    .array(
+      z.object({
+        description: z.string().min(1, 'Description is required'),
+        quantity: z.number().min(1, 'Quantity must be at least 1'),
+        unitPrice: z.number().min(0, 'Unit price must be positive'),
+        caseId: z.string().optional(),
+      })
+    )
+    .min(1, 'At least one item is required'),
 });
 
 type CreateInvoiceFormData = z.infer<typeof createInvoiceSchema>;
@@ -104,7 +108,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
 
   const calculateTotal = () => {
     const items = form.watch('items');
-    return items.reduce((total, item) => total + (item.quantity * item.unitPrice), 0);
+    return items.reduce((total, item) => total + item.quantity * item.unitPrice, 0);
   };
 
   const clients = clientsData?.data || [];
@@ -138,9 +142,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
                         <SelectItem key={client.id} value={client.id.toString()}>
                           <div className="flex flex-col">
                             <span>{client.name}</span>
-                            <span className="text-xs text-gray-600">
-                              {client.code}
-                            </span>
+                            <span className="text-xs text-gray-600">{client.code}</span>
                           </div>
                         </SelectItem>
                       ))}
@@ -199,8 +201,8 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
                         <FormItem>
                           <FormLabel className="text-xs">Qty</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="number" 
+                            <Input
+                              type="number"
                               min="1"
                               {...field}
                               onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
@@ -219,8 +221,8 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
                         <FormItem>
                           <FormLabel className="text-xs">Unit Price</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="number" 
+                            <Input
+                              type="number"
                               min="0"
                               step="0.01"
                               {...field}
@@ -266,7 +268,8 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
-               className="w-full sm:w-auto">
+                className="w-full sm:w-auto"
+              >
                 {createMutation.isPending ? 'Creating...' : 'Create Invoice'}
               </Button>
             </DialogFooter>

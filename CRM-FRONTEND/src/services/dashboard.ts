@@ -9,7 +9,7 @@ import type {
   UpcomingDeadline,
   Alert,
   TATStats,
-  OverdueTasksResponse
+  OverdueTasksResponse,
 } from '@/types/dto/dashboard.dto';
 import { validateResponse } from './schemas/runtime';
 import { DashboardSummarySchema } from './schemas/client.schema';
@@ -36,7 +36,9 @@ export class DashboardService {
     return response;
   }
 
-  async getCaseStatusDistribution(query: DashboardQuery = {}): Promise<ApiResponse<CaseStatusDistribution[]>> {
+  async getCaseStatusDistribution(
+    query: DashboardQuery = {}
+  ): Promise<ApiResponse<CaseStatusDistribution[]>> {
     return apiService.get('/dashboard/case-status-distribution', query);
   }
 
@@ -73,16 +75,18 @@ export class DashboardService {
   }
 
   // TAT Monitoring
-  async getOverdueTasks(params: {
-    threshold?: number;
-    page?: number;
-    limit?: number;
-    sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
-    search?: string;
-    priority?: string;
-    status?: string;
-  } = {}): Promise<ApiResponse<OverdueTasksResponse>> {
+  async getOverdueTasks(
+    params: {
+      threshold?: number;
+      page?: number;
+      limit?: number;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+      search?: string;
+      priority?: string;
+      status?: string;
+    } = {}
+  ): Promise<ApiResponse<OverdueTasksResponse>> {
     return apiService.get('/dashboard/overdue-tasks', params);
   }
 

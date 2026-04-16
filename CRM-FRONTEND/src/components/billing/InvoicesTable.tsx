@@ -74,7 +74,7 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
       OVERDUE: { variant: 'destructive' as const, label: 'Overdue' },
       CANCELLED: { variant: 'secondary' as const, label: 'Cancelled' },
     };
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.DRAFT;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
@@ -88,9 +88,7 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
       <div className="text-center py-12">
         <Receipt className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No invoices found</h3>
-        <p className="text-gray-600">
-          Get started by creating your first invoice.
-        </p>
+        <p className="text-gray-600">Get started by creating your first invoice.</p>
       </div>
     );
   }
@@ -129,22 +127,20 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
                 </TableCell>
                 <TableCell>
                   <div>
-                    <div className="font-medium">₹{Number(invoice.totalAmount || 0).toLocaleString()}</div>
+                    <div className="font-medium">
+                      ₹{Number(invoice.totalAmount || 0).toLocaleString()}
+                    </div>
                     <div className="text-sm text-gray-600">
                       Tax: ₹{Number(invoice.taxAmount || 0).toLocaleString()}
                     </div>
                   </div>
                 </TableCell>
+                <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+                <TableCell>{new Date(invoice.issueDate).toLocaleDateString()}</TableCell>
                 <TableCell>
-                  {getStatusBadge(invoice.status)}
-                </TableCell>
-                <TableCell>
-                  {new Date(invoice.issueDate).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  <div className={`${
-                    invoice.status === 'OVERDUE' ? 'text-red-600 font-medium' : ''
-                  }`}>
+                  <div
+                    className={`${invoice.status === 'OVERDUE' ? 'text-red-600 font-medium' : ''}`}
+                  >
                     {new Date(invoice.dueDate).toLocaleDateString()}
                   </div>
                 </TableCell>

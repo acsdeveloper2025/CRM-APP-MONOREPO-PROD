@@ -85,9 +85,7 @@ export function VerificationTypesTable({ data, isLoading }: VerificationTypesTab
       <div className="text-center py-12">
         <CheckCircle className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No verification types found</h3>
-        <p className="text-gray-600">
-          Get started by creating your first verification type.
-        </p>
+        <p className="text-gray-600">Get started by creating your first verification type.</p>
       </div>
     );
   }
@@ -116,9 +114,7 @@ export function VerificationTypesTable({ data, isLoading }: VerificationTypesTab
                   </div>
                 </TableCell>
 
-                <TableCell>
-                  {new Date(type.createdAt).toLocaleDateString()}
-                </TableCell>
+                <TableCell>{new Date(type.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell>
                   <Badge variant="default">Active</Badge>
                 </TableCell>

@@ -31,10 +31,7 @@ interface DocumentTypesTableProps {
   isLoading: boolean;
 }
 
-export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({
-  data,
-  isLoading,
-}) => {
+export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({ data, isLoading }) => {
   const [editingDocumentType, setEditingDocumentType] = useState<DocumentType | null>(null);
   const [viewingDocumentType, setViewingDocumentType] = useState<DocumentType | null>(null);
   const queryClient = useQueryClient();
@@ -57,8 +54,6 @@ export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({
       }
     }
   };
-
-
 
   if (isLoading) {
     return (
@@ -149,7 +144,7 @@ export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({
         open={!!editingDocumentType}
         onOpenChange={(open) => !open && setEditingDocumentType(null)}
       />
-      
+
       <ViewDocumentTypeDialog
         documentType={viewingDocumentType}
         open={!!viewingDocumentType}

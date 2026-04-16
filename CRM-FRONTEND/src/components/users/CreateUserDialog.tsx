@@ -42,7 +42,10 @@ import { logger } from '@/utils/logger';
 
 const createUserSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
-  username: z.string().min(3, 'Username must be at least 3 characters').max(50, 'Username too long'),
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(50, 'Username too long'),
   email: z.string().email('Invalid email address'),
   password: z
     .string()
@@ -158,7 +161,9 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
   const managers = managersData?.data || [];
   const teamLeaders = teamLeadersData?.data || [];
   const selectedRoleId = form.watch('roleId');
-  const selectedRoleName = roles.find(role => String(role.id) === selectedRoleId)?.name?.toUpperCase();
+  const selectedRoleName = roles
+    .find((role) => String(role.id) === selectedRoleId)
+    ?.name?.toUpperCase();
   const requiresTeamLeader =
     selectedRoleName === USER_ROLES.FIELD_AGENT || selectedRoleName === USER_ROLES.BACKEND_USER;
   const requiresManager = requiresTeamLeader || selectedRoleName === USER_ROLES.TEAM_LEADER;
@@ -291,7 +296,6 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                         field.onChange(value);
                       }}
                       value={field.value}
-
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -300,9 +304,13 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                       </FormControl>
                       <SelectContent>
                         {rolesLoading ? (
-                          <SelectItem value="loading" disabled>Loading roles...</SelectItem>
+                          <SelectItem value="loading" disabled>
+                            Loading roles...
+                          </SelectItem>
                         ) : roles.length === 0 ? (
-                          <SelectItem value="empty" disabled>No roles available</SelectItem>
+                          <SelectItem value="empty" disabled>
+                            No roles available
+                          </SelectItem>
                         ) : (
                           roles.map((role) => (
                             <SelectItem key={role.id} value={String(role.id)}>
@@ -346,7 +354,6 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                         field.onChange(value);
                       }}
                       value={field.value}
-
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -355,9 +362,13 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                       </FormControl>
                       <SelectContent>
                         {designationsLoading ? (
-                          <SelectItem value="loading" disabled>Loading designations...</SelectItem>
+                          <SelectItem value="loading" disabled>
+                            Loading designations...
+                          </SelectItem>
                         ) : designations.length === 0 ? (
-                          <SelectItem value="empty" disabled>No designations available</SelectItem>
+                          <SelectItem value="empty" disabled>
+                            No designations available
+                          </SelectItem>
                         ) : (
                           designations.map((designation) => (
                             <SelectItem key={designation.id} value={String(designation.id)}>
@@ -384,7 +395,6 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                         field.onChange(value);
                       }}
                       value={field.value}
-
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -393,9 +403,13 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                       </FormControl>
                       <SelectContent>
                         {departmentsLoading ? (
-                          <SelectItem value="loading" disabled>Loading departments...</SelectItem>
+                          <SelectItem value="loading" disabled>
+                            Loading departments...
+                          </SelectItem>
                         ) : departments.length === 0 ? (
-                          <SelectItem value="empty" disabled>No departments available</SelectItem>
+                          <SelectItem value="empty" disabled>
+                            No departments available
+                          </SelectItem>
                         ) : (
                           departments.map((dept) => (
                             <SelectItem key={dept.id} value={String(dept.id)}>
@@ -418,7 +432,8 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Team Leader {requiresTeamLeader ? <span className="text-red-500">*</span> : null}
+                      Team Leader{' '}
+                      {requiresTeamLeader ? <span className="text-red-500">*</span> : null}
                     </FormLabel>
                     <Select
                       onValueChange={field.onChange}
@@ -429,16 +444,22 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                         <SelectTrigger>
                           <SelectValue
                             placeholder={
-                              disableTeamLeader ? 'Not applicable for selected role' : 'Select team leader'
+                              disableTeamLeader
+                                ? 'Not applicable for selected role'
+                                : 'Select team leader'
                             }
                           />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {teamLeadersLoading ? (
-                          <SelectItem value="loading" disabled>Loading team leaders...</SelectItem>
+                          <SelectItem value="loading" disabled>
+                            Loading team leaders...
+                          </SelectItem>
                         ) : teamLeaders.length === 0 ? (
-                          <SelectItem value="empty" disabled>No team leaders available</SelectItem>
+                          <SelectItem value="empty" disabled>
+                            No team leaders available
+                          </SelectItem>
                         ) : (
                           teamLeaders.map((leader) => (
                             <SelectItem key={leader.id} value={leader.id}>
@@ -461,19 +482,29 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                     <FormLabel>
                       Manager {requiresManager ? <span className="text-red-500">*</span> : null}
                     </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={disableManager}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={disableManager}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue
-                            placeholder={disableManager ? 'Not applicable for selected role' : 'Select manager'}
+                            placeholder={
+                              disableManager ? 'Not applicable for selected role' : 'Select manager'
+                            }
                           />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {managersLoading ? (
-                          <SelectItem value="loading" disabled>Loading managers...</SelectItem>
+                          <SelectItem value="loading" disabled>
+                            Loading managers...
+                          </SelectItem>
                         ) : managers.length === 0 ? (
-                          <SelectItem value="empty" disabled>No managers available</SelectItem>
+                          <SelectItem value="empty" disabled>
+                            No managers available
+                          </SelectItem>
                         ) : (
                           managers.map((manager) => (
                             <SelectItem key={manager.id} value={manager.id}>
@@ -488,8 +519,6 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                 )}
               />
             </div>
-
-
 
             <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button

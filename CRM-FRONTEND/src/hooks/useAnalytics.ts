@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { 
-  analyticsService, 
-  type FormSubmissionQuery, 
-  type CaseAnalyticsQuery, 
+import {
+  analyticsService,
+  type FormSubmissionQuery,
+  type CaseAnalyticsQuery,
   type AgentPerformanceQuery,
-  type AgentProductivityQuery 
+  type AgentProductivityQuery,
 } from '@/services/analytics';
 
 // ===== PHASE 1: NEW DATA VISUALIZATION & REPORTING HOOKS =====
@@ -13,19 +13,22 @@ import {
 export const analyticsKeys = {
   all: ['analytics'] as const,
   formSubmissions: () => [...analyticsKeys.all, 'form-submissions'] as const,
-  formSubmissionsList: (query: FormSubmissionQuery) => [...analyticsKeys.formSubmissions(), query] as const,
-  formSubmissionsByType: (formType: string, query: Omit<FormSubmissionQuery, 'formType'>) => 
+  formSubmissionsList: (query: FormSubmissionQuery) =>
+    [...analyticsKeys.formSubmissions(), query] as const,
+  formSubmissionsByType: (formType: string, query: Omit<FormSubmissionQuery, 'formType'>) =>
     [...analyticsKeys.formSubmissions(), 'by-type', formType, query] as const,
-  formValidationStatus: (query: { dateFrom?: string; dateTo?: string }) => 
+  formValidationStatus: (query: { dateFrom?: string; dateTo?: string }) =>
     [...analyticsKeys.all, 'form-validation-status', query] as const,
-  
+
   caseAnalytics: () => [...analyticsKeys.all, 'case-analytics'] as const,
-  caseAnalyticsList: (query: CaseAnalyticsQuery) => [...analyticsKeys.caseAnalytics(), query] as const,
+  caseAnalyticsList: (query: CaseAnalyticsQuery) =>
+    [...analyticsKeys.caseAnalytics(), query] as const,
   caseTimeline: (caseId: string) => [...analyticsKeys.all, 'case-timeline', caseId] as const,
-  
+
   agentPerformance: () => [...analyticsKeys.all, 'agent-performance'] as const,
-  agentPerformanceList: (query: AgentPerformanceQuery) => [...analyticsKeys.agentPerformance(), query] as const,
-  agentProductivity: (agentId: string, query: AgentProductivityQuery) => 
+  agentPerformanceList: (query: AgentPerformanceQuery) =>
+    [...analyticsKeys.agentPerformance(), query] as const,
+  agentProductivity: (agentId: string, query: AgentProductivityQuery) =>
     [...analyticsKeys.all, 'agent-productivity', agentId, query] as const,
 };
 
@@ -38,7 +41,10 @@ export const useFormSubmissions = (query: FormSubmissionQuery = {}) => {
   });
 };
 
-export const useFormSubmissionsByType = (formType: string, query: Omit<FormSubmissionQuery, 'formType'> = {}) => {
+export const useFormSubmissionsByType = (
+  formType: string,
+  query: Omit<FormSubmissionQuery, 'formType'> = {}
+) => {
   return useQuery({
     queryKey: analyticsKeys.formSubmissionsByType(formType, query),
     queryFn: () => analyticsService.getFormSubmissionsByType(formType, query),
@@ -97,7 +103,7 @@ export const useFormSubmissionsOverview = (dateRange?: { from: string; to: strin
     limit: 100,
     ...(dateRange && { dateFrom: dateRange.from, dateTo: dateRange.to }),
   };
-  
+
   return useFormSubmissions(query);
 };
 
@@ -105,7 +111,7 @@ export const useCaseAnalyticsOverview = (dateRange?: { from: string; to: string 
   const query: CaseAnalyticsQuery = {
     ...(dateRange && { dateFrom: dateRange.from, dateTo: dateRange.to }),
   };
-  
+
   return useCaseAnalytics(query);
 };
 
@@ -113,18 +119,21 @@ export const useAgentPerformanceOverview = (dateRange?: { from: string; to: stri
   const query: AgentPerformanceQuery = {
     ...(dateRange && { dateFrom: dateRange.from, dateTo: dateRange.to }),
   };
-  
+
   return useAgentPerformance(query);
 };
 
 // Hook for getting top performing agents
-export const useTopPerformingAgents = (limit: number = 5, dateRange?: { from: string; to: string }) => {
+export const useTopPerformingAgents = (
+  limit: number = 5,
+  dateRange?: { from: string; to: string }
+) => {
   const { data, ...rest } = useAgentPerformance({
     ...(dateRange && { dateFrom: dateRange.from, dateTo: dateRange.to }),
   });
-  
+
   const topPerformers = data?.data?.topPerformers?.slice(0, limit) || [];
-  
+
   return {
     data: { data: topPerformers },
     ...rest,
@@ -137,9 +146,9 @@ export const useFormSubmissionStats = (dateRange?: { from: string; to: string })
     limit: 1, // We only need the summary
     ...(dateRange && { dateFrom: dateRange.from, dateTo: dateRange.to }),
   });
-  
+
   const stats = data?.data?.summary;
-  
+
   return {
     data: { data: stats },
     ...rest,
@@ -151,9 +160,9 @@ export const useCaseCompletionMetrics = (dateRange?: { from: string; to: string 
   const { data, ...rest } = useCaseAnalytics({
     ...(dateRange && { dateFrom: dateRange.from, dateTo: dateRange.to }),
   });
-  
+
   const metrics = data?.data?.summary;
-  
+
   return {
     data: { data: metrics },
     ...rest,

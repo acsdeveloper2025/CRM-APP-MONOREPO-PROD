@@ -1,21 +1,21 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
   ResponsiveContainer,
   LineChart,
   Line,
@@ -25,22 +25,17 @@ import {
   PolarRadiusAxis,
   Radar,
   ScatterChart,
-  Scatter
+  Scatter,
 } from 'recharts';
 import { useAgentPerformance } from '@/hooks/useAnalytics';
 import type { AgentPerformance } from '@/services/analytics';
-import {
-  Users,
-  TrendingUp,
-  Target,
-  Star,
-  Activity,
-  XCircle
-} from 'lucide-react';
+import { Users, TrendingUp, Target, Star, Activity, XCircle } from 'lucide-react';
 
 export const AgentPerformanceCharts: React.FC = () => {
   const [timeRange, setTimeRange] = useState('30d');
-  const [viewType, setViewType] = useState<'overview' | 'individual' | 'comparison' | 'trends'>('overview');
+  const [viewType, setViewType] = useState<'overview' | 'individual' | 'comparison' | 'trends'>(
+    'overview'
+  );
   const [selectedAgent, setSelectedAgent] = useState<string>('all');
 
   const { data: performanceData, error } = useAgentPerformance({
@@ -54,16 +49,20 @@ export const AgentPerformanceCharts: React.FC = () => {
   const topPerformers = performanceData?.data?.topPerformers || [];
 
   // Prepare chart data
-  const agentComparisonData = agents.map(agent => ({
+  const agentComparisonData = agents.map((agent) => ({
     name: agent.name.split(' ')[0], // First name only for chart
     fullName: agent.name,
     casesAssigned: agent.totalCasesAssigned,
     casesCompleted: agent.casesCompleted,
-    completionRate: agent.totalCasesAssigned > 0 ? (agent.casesCompleted / agent.totalCasesAssigned) * 100 : 0,
+    completionRate:
+      agent.totalCasesAssigned > 0 ? (agent.casesCompleted / agent.totalCasesAssigned) * 100 : 0,
     qualityScore: agent.formQualityScore,
     avgDays: agent.avgCompletionDays || 0,
     formsSubmitted: agent.residenceFormsSubmitted + agent.officeFormsSubmitted,
-    performance: getPerformanceLevel(agent.formQualityScore, agent.totalCasesAssigned > 0 ? (agent.casesCompleted / agent.totalCasesAssigned) * 100 : 0)
+    performance: getPerformanceLevel(
+      agent.formQualityScore,
+      agent.totalCasesAssigned > 0 ? (agent.casesCompleted / agent.totalCasesAssigned) * 100 : 0
+    ),
   }));
 
   // Generate productivity trends (simulated time-series data)
@@ -71,9 +70,10 @@ export const AgentPerformanceCharts: React.FC = () => {
   const productivityTrends = generateProductivityTrends(timeRange);
 
   // Generate radar chart data for selected agent
-  const radarData = selectedAgent !== 'all' && agents.length > 0
-    ? generateRadarData(agents.find(a => a.id === selectedAgent) || agents[0])
-    : generateRadarData(agents[0]);
+  const radarData =
+    selectedAgent !== 'all' && agents.length > 0
+      ? generateRadarData(agents.find((a) => a.id === selectedAgent) || agents[0])
+      : generateRadarData(agents[0]);
 
   function getDateFromRange(range: string): string {
     const now = new Date();
@@ -95,69 +95,78 @@ export const AgentPerformanceCharts: React.FC = () => {
 
   function getPerformanceLevel(qualityScore: number, completionRate: number): string {
     const avgScore = (qualityScore + completionRate) / 2;
-    if (avgScore >= 90) {return 'excellent';}
-    if (avgScore >= 75) {return 'good';}
-    if (avgScore >= 60) {return 'average';}
+    if (avgScore >= 90) {
+      return 'excellent';
+    }
+    if (avgScore >= 75) {
+      return 'good';
+    }
+    if (avgScore >= 60) {
+      return 'average';
+    }
     return 'poor';
   }
 
   function generateProductivityTrends(range: string) {
     const days = range === '7d' ? 7 : range === '30d' ? 30 : 90;
     const data = [];
-    
+
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      
+
       data.push({
         date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         fullDate: date.toISOString().split('T')[0],
         casesCompleted: Math.floor(Math.random() * 15) + 5,
         formsSubmitted: Math.floor(Math.random() * 25) + 10,
         qualityScore: Math.floor(Math.random() * 20) + 75,
-        avgCompletionTime: Math.floor(Math.random() * 5) + 3
+        avgCompletionTime: Math.floor(Math.random() * 5) + 3,
       });
     }
-    
+
     return data;
   }
 
   function generateRadarData(agent: AgentPerformance | undefined) {
-    if (!agent) {return [];}
-    
-    const completionRate = agent.totalCasesAssigned > 0 ? (agent.casesCompleted / agent.totalCasesAssigned) * 100 : 0;
-    
+    if (!agent) {
+      return [];
+    }
+
+    const completionRate =
+      agent.totalCasesAssigned > 0 ? (agent.casesCompleted / agent.totalCasesAssigned) * 100 : 0;
+
     return [
       {
         subject: 'Quality Score',
         A: agent.formQualityScore,
-        fullMark: 100
+        fullMark: 100,
       },
       {
         subject: 'Completion Rate',
         A: completionRate,
-        fullMark: 100
+        fullMark: 100,
       },
       {
         subject: 'Productivity',
         A: Math.min((agent.residenceFormsSubmitted + agent.officeFormsSubmitted) * 2, 100),
-        fullMark: 100
+        fullMark: 100,
       },
       {
         subject: 'Speed',
-        A: agent.avgCompletionDays ? Math.max(100 - (agent.avgCompletionDays * 10), 0) : 50,
-        fullMark: 100
+        A: agent.avgCompletionDays ? Math.max(100 - agent.avgCompletionDays * 10, 0) : 50,
+        fullMark: 100,
       },
       {
         subject: 'Consistency',
         A: Math.floor(Math.random() * 30) + 70, // Mock data
-        fullMark: 100
+        fullMark: 100,
       },
       {
         subject: 'Reliability',
         A: Math.floor(Math.random() * 25) + 75, // Mock data
-        fullMark: 100
-      }
+        fullMark: 100,
+      },
     ];
   }
 
@@ -166,9 +175,12 @@ export const AgentPerformanceCharts: React.FC = () => {
       excellent: 'bg-green-100 text-green-800',
       good: 'bg-green-100 text-green-800',
       average: 'bg-yellow-100 text-yellow-800',
-      poor: 'bg-red-100 text-red-800'
+      poor: 'bg-red-100 text-red-800',
     };
-    return colors[performance as keyof typeof colors] || 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100';
+    return (
+      colors[performance as keyof typeof colors] ||
+      'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100'
+    );
   };
 
   // Error state
@@ -193,13 +205,20 @@ export const AgentPerformanceCharts: React.FC = () => {
       {/* Header with Controls */}
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Agent Performance Analytics</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+            Agent Performance Analytics
+          </h2>
           <p className="mt-1 text-sm sm:text-base text-gray-600">
             Comprehensive performance metrics and productivity analysis
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
-          <Select value={viewType} onValueChange={(value) => setViewType(value as 'overview' | 'individual' | 'comparison' | 'trends')}>
+          <Select
+            value={viewType}
+            onValueChange={(value) =>
+              setViewType(value as 'overview' | 'individual' | 'comparison' | 'trends')
+            }
+          >
             <SelectTrigger className="w-full sm:w-40">
               <SelectValue />
             </SelectTrigger>
@@ -315,11 +334,14 @@ export const AgentPerformanceCharts: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip 
+                  <Tooltip
                     formatter={(value, name) => [
                       name === 'completionRate' ? `${value}%` : value,
-                      name === 'completionRate' ? 'Completion Rate' : 
-                      name === 'qualityScore' ? 'Quality Score' : name
+                      name === 'completionRate'
+                        ? 'Completion Rate'
+                        : name === 'qualityScore'
+                          ? 'Quality Score'
+                          : name,
                     ]}
                   />
                   <Legend />
@@ -344,7 +366,10 @@ export const AgentPerformanceCharts: React.FC = () => {
                   <YAxis dataKey="qualityScore" name="Quality Score" />
                   <Tooltip
                     cursor={{ strokeDasharray: '3 3' }}
-                    formatter={(value, name) => [value, name === 'qualityScore' ? 'Quality Score' : 'Cases Completed']}
+                    formatter={(value, name) => [
+                      value,
+                      name === 'qualityScore' ? 'Quality Score' : 'Cases Completed',
+                    ]}
                     labelFormatter={(_label, payload) => payload?.[0]?.payload?.fullName || ''}
                   />
                   <Scatter dataKey="qualityScore" fill="#8b5cf6" />
@@ -362,10 +387,9 @@ export const AgentPerformanceCharts: React.FC = () => {
             <CardHeader>
               <CardTitle>Performance Radar</CardTitle>
               <CardDescription>
-                {selectedAgent !== 'all' 
-                  ? `Performance metrics for ${agents.find(a => a.id === selectedAgent)?.name || 'Selected Agent'}`
-                  : 'Overall performance metrics'
-                }
+                {selectedAgent !== 'all'
+                  ? `Performance metrics for ${agents.find((a) => a.id === selectedAgent)?.name || 'Selected Agent'}`
+                  : 'Overall performance metrics'}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -397,11 +421,16 @@ export const AgentPerformanceCharts: React.FC = () => {
             <CardContent>
               {selectedAgent !== 'all' ? (
                 (() => {
-                  const agent = agents.find(a => a.id === selectedAgent);
-                  if (!agent) {return <div>Agent not found</div>;}
-                  
-                  const completionRate = agent.totalCasesAssigned > 0 ? (agent.casesCompleted / agent.totalCasesAssigned) * 100 : 0;
-                  
+                  const agent = agents.find((a) => a.id === selectedAgent);
+                  if (!agent) {
+                    return <div>Agent not found</div>;
+                  }
+
+                  const completionRate =
+                    agent.totalCasesAssigned > 0
+                      ? (agent.casesCompleted / agent.totalCasesAssigned) * 100
+                      : 0;
+
                   return (
                     <div className="space-y-4">
                       <div className="grid gap-4 md:grid-cols-2">
@@ -416,12 +445,16 @@ export const AgentPerformanceCharts: React.FC = () => {
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Completion Rate</span>
-                            <Badge className={getPerformanceBadge(getPerformanceLevel(agent.formQualityScore, completionRate))}>
+                            <Badge
+                              className={getPerformanceBadge(
+                                getPerformanceLevel(agent.formQualityScore, completionRate)
+                              )}
+                            >
                               {completionRate.toFixed(1)}%
                             </Badge>
                           </div>
                         </div>
-                        
+
                         <div className="p-4 border rounded-lg">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm text-gray-600">Quality Score</span>
@@ -429,15 +462,21 @@ export const AgentPerformanceCharts: React.FC = () => {
                           </div>
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm text-gray-600">Avg Completion</span>
-                            <span className="font-bold">{agent.avgCompletionDays ? `${agent.avgCompletionDays.toFixed(1)}d` : 'N/A'}</span>
+                            <span className="font-bold">
+                              {agent.avgCompletionDays
+                                ? `${agent.avgCompletionDays.toFixed(1)}d`
+                                : 'N/A'}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-sm text-gray-600">Forms Submitted</span>
-                            <span className="font-bold">{agent.residenceFormsSubmitted + agent.officeFormsSubmitted}</span>
+                            <span className="font-bold">
+                              {agent.residenceFormsSubmitted + agent.officeFormsSubmitted}
+                            </span>
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="p-4 border rounded-lg">
                         <h4 className="font-semibold mb-3">Form Breakdown</h4>
                         <div className="space-y-2">
@@ -507,23 +546,23 @@ export const AgentPerformanceCharts: React.FC = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="casesCompleted" 
+                <Line
+                  type="monotone"
+                  dataKey="casesCompleted"
                   stroke="#10b981"
                   strokeWidth={2}
                   name="Cases Completed"
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="formsSubmitted" 
+                <Line
+                  type="monotone"
+                  dataKey="formsSubmitted"
                   stroke="#3b82f6"
                   strokeWidth={2}
                   name="Forms Submitted"
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="qualityScore" 
+                <Line
+                  type="monotone"
+                  dataKey="qualityScore"
                   stroke="#f59e0b"
                   strokeWidth={2}
                   name="Quality Score"

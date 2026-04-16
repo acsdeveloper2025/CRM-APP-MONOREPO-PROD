@@ -13,15 +13,19 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { hasPermissionCode } = usePermissionContext();
-  const { expandedMenus: expandedItems, toggleMenu: toggleExpanded, setExpandedMenus } = useLayout();
+  const {
+    expandedMenus: expandedItems,
+    toggleMenu: toggleExpanded,
+    setExpandedMenus,
+  } = useLayout();
   const location = useLocation();
-  
+
   // Handle initial expansion on mount based on active route
   React.useEffect(() => {
     const initialExpanded: string[] = [];
-    navigationItems.forEach(item => {
+    navigationItems.forEach((item) => {
       // If parent has active children and isn't already expanded, add to list
-      if (item.children && item.children.some(child => isItemActive(child))) {
+      if (item.children && item.children.some((child) => isItemActive(child))) {
         if (!expandedItems.includes(item.id)) {
           initialExpanded.push(item.id);
         }
@@ -34,14 +38,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     // Only run on mount to respect subsequent manual user toggles
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  
-
 
   const isItemVisible = (item: NavigationItem): boolean => {
     // For parent items with children, show parent when any child is visible
     // (even if parent-level legacy permission differs from child-specific RBAC config).
     if (item.children && item.children.length > 0) {
-      const anyChildVisible = item.children.some(child => isItemVisible(child));
+      const anyChildVisible = item.children.some((child) => isItemVisible(child));
       if (anyChildVisible) {
         return true;
       }
@@ -56,14 +58,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
   const isItemActive = (item: NavigationItem): boolean => {
     // Direct match
-    if (location.pathname === item.href || location.pathname.startsWith(`${item.href  }/`)) {
+    if (location.pathname === item.href || location.pathname.startsWith(`${item.href}/`)) {
       return true;
     }
 
     // Check if any child is active (for parent items)
     if (item.children && item.children.length > 0) {
-      return item.children.some(child =>
-        location.pathname === child.href || location.pathname.startsWith(`${child.href  }/`)
+      return item.children.some(
+        (child) =>
+          location.pathname === child.href || location.pathname.startsWith(`${child.href}/`)
       );
     }
 
@@ -71,7 +74,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   };
 
   const renderNavigationItem = (item: NavigationItem, level = 0) => {
-    if (!isItemVisible(item)) {return null;}
+    if (!isItemVisible(item)) {
+      return null;
+    }
 
     const hasChildren = item.children && item.children.length > 0;
     const isActive = isItemActive(item);
@@ -103,11 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               )}
             </button>
           ) : (
-            <Link
-              to={item.href}
-              className="flex items-center w-full"
-              onClick={onClose}
-            >
+            <Link to={item.href} className="flex items-center w-full" onClick={onClose}>
               <item.icon className="mr-2 sm:mr-3 h-5 w-5 shrink-0" />
               <span className="truncate">{item.label}</span>
             </Link>
@@ -116,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
         {hasChildren && isExpanded && (
           <div className="mt-1 space-y-1">
-            {item.children?.map(child => renderNavigationItem(child, level + 1))}
+            {item.children?.map((child) => renderNavigationItem(child, level + 1))}
           </div>
         )}
       </div>
@@ -154,7 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto bg-[#FAFAFA]">
-            {navigationItems.map(item => renderNavigationItem(item))}
+            {navigationItems.map((item) => renderNavigationItem(item))}
           </nav>
         </div>
       </div>

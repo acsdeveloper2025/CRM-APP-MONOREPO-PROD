@@ -16,7 +16,7 @@ import {
   Paperclip,
   ArrowRight,
   CheckCircle,
-  Clock
+  Clock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -48,7 +48,7 @@ const ALLOWED_TYPES = [
   'image/png',
   'image/gif',
   'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ];
 
 export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProps> = ({
@@ -56,7 +56,7 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
   onAttachmentsChange,
   maxFiles = MAX_FILES,
   maxFileSize = MAX_FILE_SIZE,
-  onValidationChange
+  onValidationChange,
 }) => {
   const [dragOver, setDragOver] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -81,7 +81,9 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
   };
 
   const handleFileSelect = (files: FileList | null) => {
-    if (!files) {return;}
+    if (!files) {
+      return;
+    }
 
     const fileArray = Array.from(files);
     const errors: string[] = [];
@@ -94,7 +96,7 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
     }
 
     // Validate each file
-    fileArray.forEach(file => {
+    fileArray.forEach((file) => {
       const error = validateFile(file);
       if (error) {
         errors.push(error);
@@ -108,7 +110,7 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
     }
 
     if (validFiles.length > 0) {
-      setSelectedFiles(prev => [...prev, ...validFiles]);
+      setSelectedFiles((prev) => [...prev, ...validFiles]);
     }
   };
 
@@ -129,13 +131,17 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
   };
 
   const addFiles = async () => {
-    if (selectedFiles.length === 0) {return;}
+    if (selectedFiles.length === 0) {
+      return;
+    }
 
     const newAttachments: CaseFormAttachment[] = [];
 
     for (const file of selectedFiles) {
       const getFileType = (mimeType: string): 'pdf' | 'image' => {
-        if (mimeType.startsWith('image/')) {return 'image';}
+        if (mimeType.startsWith('image/')) {
+          return 'image';
+        }
         return 'pdf'; // Treat PDF and Word documents as 'pdf' type for UI purposes
       };
 
@@ -172,13 +178,13 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
   };
 
   const removeAttachment = (id: string) => {
-    const updatedAttachments = attachments.filter(att => att.id !== id);
+    const updatedAttachments = attachments.filter((att) => att.id !== id);
     onAttachmentsChange(updatedAttachments);
     toast.success('File removed');
   };
 
   const removeSelectedFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const previewAttachmentHandler = (attachment: CaseFormAttachment) => {
@@ -191,11 +197,13 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
   };
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) {return '0 Bytes';}
+    if (bytes === 0) {
+      return '0 Bytes';
+    }
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))  } ${  sizes[i]}`;
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
 
   const getFileIcon = (type: string) => {
@@ -233,18 +241,18 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
                 <span className="font-medium">Step 2:</span>
                 <span>Click &quot;Add Files&quot; to attach them</span>
               </div>
-              <div className="mt-2 text-sm">
-                ⚠️ Files must be added before submitting the form
-              </div>
+              <div className="mt-2 text-sm">⚠️ Files must be added before submitting the form</div>
             </AlertDescription>
           </Alert>
         )}
         {/* File Upload Area */}
         <div
           className={cn(
-            "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
-            dragOver ? "border-green-500 bg-green-50" : "border-border",
-            attachments.length >= maxFiles ? "opacity-50 pointer-events-none" : "hover:border-border"
+            'border-2 border-dashed rounded-lg p-6 text-center transition-colors',
+            dragOver ? 'border-green-500 bg-green-50' : 'border-border',
+            attachments.length >= maxFiles
+              ? 'opacity-50 pointer-events-none'
+              : 'hover:border-border'
           )}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -263,7 +271,8 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
             </button>
           </p>
           <p className="text-xs text-gray-600">
-            PDF, image files (JPG, PNG, GIF), and Word documents (DOC, DOCX) only. Max {Math.round(maxFileSize / 1024 / 1024)}MB per file, {maxFiles} files total.
+            PDF, image files (JPG, PNG, GIF), and Word documents (DOC, DOCX) only. Max{' '}
+            {Math.round(maxFileSize / 1024 / 1024)}MB per file, {maxFiles} files total.
           </p>
           <input
             ref={fileInputRef}
@@ -282,7 +291,10 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <h4 className="font-medium text-sm text-yellow-700">📋 Selected Files (Step 1)</h4>
-                <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-300">
+                <Badge
+                  variant="outline"
+                  className="bg-yellow-100 text-yellow-700 border-yellow-300"
+                >
                   {selectedFiles.length} pending
                 </Badge>
               </div>
@@ -309,12 +321,17 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
             </div>
             <div className="space-y-2">
               {selectedFiles.map((file, index) => (
-                <div key={index} className="flex items-center space-x-3 p-3 border-2 border-dashed border-yellow-300 rounded-lg bg-yellow-50">
+                <div
+                  key={index}
+                  className="flex items-center space-x-3 p-3 border-2 border-dashed border-yellow-300 rounded-lg bg-yellow-50"
+                >
                   <Clock className="h-4 w-4 text-yellow-600" />
                   {getFileIcon(file.type.startsWith('image/') ? 'image' : 'pdf')}
                   <div className="flex-1">
                     <div className="font-medium text-sm text-yellow-800">{file.name}</div>
-                    <div className="text-xs text-yellow-600">{formatFileSize(file.size)} • Waiting to be added</div>
+                    <div className="text-xs text-yellow-600">
+                      {formatFileSize(file.size)} • Waiting to be added
+                    </div>
                   </div>
                   <Button
                     type="button"
@@ -335,7 +352,9 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
         {attachments.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
-              <h4 className="font-medium text-sm text-green-700">✅ Attached Files (Ready for Submission)</h4>
+              <h4 className="font-medium text-sm text-green-700">
+                ✅ Attached Files (Ready for Submission)
+              </h4>
               <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
                 <CheckCircle className="h-3 w-3 mr-1" />
                 {attachments.length} attached
@@ -343,12 +362,17 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
             </div>
             <div className="space-y-2">
               {attachments.map((attachment) => (
-                <div key={attachment.id} className="flex items-center space-x-3 p-3 border-2 border-green-200 rounded-lg bg-green-50">
+                <div
+                  key={attachment.id}
+                  className="flex items-center space-x-3 p-3 border-2 border-green-200 rounded-lg bg-green-50"
+                >
                   <CheckCircle className="h-4 w-4 text-green-600" />
                   {getFileIcon(attachment.type)}
                   <div className="flex-1">
                     <div className="font-medium text-sm text-green-800">{attachment.name}</div>
-                    <div className="text-xs text-green-600">{formatFileSize(attachment.size)} • Ready for submission</div>
+                    <div className="text-xs text-green-600">
+                      {formatFileSize(attachment.size)} • Ready for submission
+                    </div>
                   </div>
                   <div className="flex space-x-1">
                     {attachment.type === 'image' && attachment.preview && (

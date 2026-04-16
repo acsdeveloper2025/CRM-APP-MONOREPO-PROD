@@ -123,7 +123,7 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
       }
       // Heuristic auto-suggest a mapping for each parsed field. The
       // admin can clear or change any suggestion on the preview screen.
-      const withSuggestions: DraftField[] = payload.fields.map(f => ({
+      const withSuggestions: DraftField[] = payload.fields.map((f) => ({
         ...f,
         prefillSource: suggestPrefillSourceForHeader(f.fieldLabel),
       }));
@@ -327,8 +327,8 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
               <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
                 <p className="font-medium">Replacing existing template</p>
                 <p className="text-xs">
-                  An active template (v{existingTemplateVersion}) already exists for this
-                  client + product. Saving will{' '}
+                  An active template (v{existingTemplateVersion}) already exists for this client +
+                  product. Saving will{' '}
                   <strong>
                     create a new version if any case already has data on the current template
                   </strong>
@@ -406,8 +406,8 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
 
                     <div>
                       <Label className="text-xs">
-                        Map to system field (optional — makes the field read-only, value
-                        comes live from the case)
+                        Map to system field (optional — makes the field read-only, value comes live
+                        from the case)
                       </Label>
                       <Select
                         value={f.prefillSource ?? '__none__'}

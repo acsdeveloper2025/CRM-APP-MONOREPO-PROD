@@ -6,8 +6,7 @@ export const PASSWORD_POLICY = {
   hasSpecialChar: /[^A-Za-z0-9]/,
 };
 
-export const PASSWORD_POLICY_REGEX =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+export const PASSWORD_POLICY_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
 export interface PasswordPolicyChecks {
   minLength: boolean;
@@ -28,4 +27,3 @@ export const getPasswordPolicyChecks = (password: string): PasswordPolicyChecks 
 export const isPasswordPolicyValid = (password: string): boolean => {
   return PASSWORD_POLICY_REGEX.test(password);
 };
-

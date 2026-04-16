@@ -18,7 +18,7 @@ export interface Product extends Omit<BaseEntity, 'id'> {
     currency: string;
     pricingModel: string;
   };
-  verificationType?: string[]; // Service has string[], client.ts has VerificationType[]. Let's align with service but maybe make it optional/union if needed? 
+  verificationType?: string[]; // Service has string[], client.ts has VerificationType[]. Let's align with service but maybe make it optional/union if needed?
   // Actually, looking at ProductAssignmentSection.tsx, it uses Product from @/types/product.
   // client.ts uses VerificationType[].
   // services/products.ts uses verificationType?: string[];

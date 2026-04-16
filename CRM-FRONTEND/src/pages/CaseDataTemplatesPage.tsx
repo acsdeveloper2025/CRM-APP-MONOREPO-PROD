@@ -1,6 +1,19 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Eye, Trash2, GripVertical, ChevronDown, Upload, ChevronLeft, ChevronRight, FileText, CheckCircle, XCircle } from 'lucide-react';
+import {
+  Plus,
+  Pencil,
+  Eye,
+  Trash2,
+  GripVertical,
+  ChevronDown,
+  Upload,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  CheckCircle,
+  XCircle,
+} from 'lucide-react';
 import { TemplateImportDialog } from '@/components/cases/TemplateImportDialog';
 import { UnifiedSearchFilterLayout } from '@/components/ui/unified-search-filter-layout';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
@@ -205,8 +218,8 @@ const FieldRow: React.FC<{
       {/* Sprint 5: map this field to a system source (read-only mirror) */}
       <div>
         <Label className="text-xs">
-          Map to system field (optional — makes this field read-only, value comes live from
-          the case)
+          Map to system field (optional — makes this field read-only, value comes live from the
+          case)
         </Label>
         <Select
           value={field.prefillSource ?? '__none__'}
@@ -417,16 +430,13 @@ export const CaseDataTemplatesPage: React.FC = () => {
   // Search + pagination (matching ClientsPage / ProductsPage pattern)
   const pageSize = 20;
   const [currentPage, setCurrentPage] = useState(1);
-  const {
-    searchValue,
-    debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
-  } = useUnifiedSearch({ syncWithUrl: true });
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({ syncWithUrl: true });
 
   // Reset to page 1 when search changes.
-  useEffect(() => { setCurrentPage(1); }, [debouncedSearchValue]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchValue]);
 
   const { data: templatesRes, isLoading: templatesLoading } = useQuery({
     queryKey: ['case-data-templates', debouncedSearchValue, currentPage, pageSize],
@@ -469,12 +479,14 @@ export const CaseDataTemplatesPage: React.FC = () => {
   const pagination = useMemo(() => {
     const raw = templatesRes?.data;
     if (raw && typeof raw === 'object' && 'pagination' in (raw as Record<string, unknown>)) {
-      return (raw as { pagination: { total: number; page: number; limit: number; totalPages: number } }).pagination;
+      return (
+        raw as { pagination: { total: number; page: number; limit: number; totalPages: number } }
+      ).pagination;
     }
     return { total: templates.length, page: 1, limit: pageSize, totalPages: 1 };
   }, [templatesRes, templates.length, pageSize]);
 
-  const activeCount = templates.filter(t => t.isActive).length;
+  const activeCount = templates.filter((t) => t.isActive).length;
   const inactiveCount = templates.length - activeCount;
 
   // Mutations

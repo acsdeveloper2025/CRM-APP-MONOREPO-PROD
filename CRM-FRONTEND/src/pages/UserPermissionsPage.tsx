@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, User, Shield, Building2, Package } from 'lucide-react';
@@ -23,7 +22,11 @@ export function UserPermissionsPage() {
   const navigate = useNavigate();
 
   // Fetch user details
-  const { data: userData, isLoading: userLoading, error: userError } = useQuery({
+  const {
+    data: userData,
+    isLoading: userLoading,
+    error: userError,
+  } = useQuery({
     queryKey: ['user', userId],
     queryFn: () => usersService.getUserById(userId || ''),
     enabled: !!userId,
@@ -79,7 +82,8 @@ export function UserPermissionsPage() {
         </div>
         <Alert variant="destructive">
           <AlertDescription>
-            Failed to load user details. The user may not exist or you may not have permission to view it.
+            Failed to load user details. The user may not exist or you may not have permission to
+            view it.
           </AlertDescription>
         </Alert>
       </div>
@@ -103,9 +107,7 @@ export function UserPermissionsPage() {
           </Button>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">User Permissions</h1>
-            <p className="text-gray-600">
-              Manage access control and permissions for {user.name}
-            </p>
+            <p className="text-gray-600">Manage access control and permissions for {user.name}</p>
           </div>
         </div>
       </div>
@@ -130,9 +132,7 @@ export function UserPermissionsPage() {
             </div>
             <div>
               <p className="text-sm font-medium text-gray-600">Role</p>
-              <Badge variant={adminLike ? 'default' : 'secondary'}>
-                {roleLabel}
-              </Badge>
+              <Badge variant={adminLike ? 'default' : 'secondary'}>{roleLabel}</Badge>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-600">Status</p>
@@ -149,7 +149,8 @@ export function UserPermissionsPage() {
         <Alert>
           <Shield className="h-4 w-4" />
           <AlertDescription>
-            <strong>Administrative Access:</strong> This user has elevated access and is not restricted by client/product assignment scoping.
+            <strong>Administrative Access:</strong> This user has elevated access and is not
+            restricted by client/product assignment scoping.
           </AlertDescription>
         </Alert>
       )}
@@ -157,7 +158,8 @@ export function UserPermissionsPage() {
       {!backendScoped && !adminLike && (
         <Alert>
           <AlertDescription>
-            <strong>Permission-based Access:</strong> Client and product assignment scoping applies only to users with case assignment permissions.
+            <strong>Permission-based Access:</strong> Client and product assignment scoping applies
+            only to users with case assignment permissions.
           </AlertDescription>
         </Alert>
       )}
@@ -185,43 +187,43 @@ export function UserPermissionsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className={`grid grid-cols-1 gap-6 ${backendScoped ? 'md:grid-cols-2' : 'md:grid-cols-1'}`}>
-              <div>
-                <h4 className="font-medium mb-2 flex items-center space-x-2">
-                  <Building2 className="h-4 w-4" />
-                  <span>Client Access</span>
-                </h4>
-                {adminLike ? (
-                  <p className="text-sm text-gray-600">Full/elevated access to clients</p>
-                ) : backendScoped ? (
-                  <div className="space-y-2">
-                    {clientAssignmentsLoading ? (
-                      <p className="text-sm text-gray-600">Loading assignments...</p>
-                    ) : clientAssignments?.data && clientAssignments.data.length > 0 ? (
-                      <div className="space-y-1">
-                        <p className="text-sm text-gray-600">
-                          Assigned to {clientAssignments.data.length} client(s):
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                          {(clientAssignments.data as UserClientAssignment[]).map((assignment) => (
-                            <Badge key={assignment.id} variant="outline" className="text-xs">
-                              {assignment.clientName}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-amber-600">
-                        No clients assigned - user has no access
+          <div
+            className={`grid grid-cols-1 gap-6 ${backendScoped ? 'md:grid-cols-2' : 'md:grid-cols-1'}`}
+          >
+            <div>
+              <h4 className="font-medium mb-2 flex items-center space-x-2">
+                <Building2 className="h-4 w-4" />
+                <span>Client Access</span>
+              </h4>
+              {adminLike ? (
+                <p className="text-sm text-gray-600">Full/elevated access to clients</p>
+              ) : backendScoped ? (
+                <div className="space-y-2">
+                  {clientAssignmentsLoading ? (
+                    <p className="text-sm text-gray-600">Loading assignments...</p>
+                  ) : clientAssignments?.data && clientAssignments.data.length > 0 ? (
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-600">
+                        Assigned to {clientAssignments.data.length} client(s):
                       </p>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-600">
-                    Role-based access (not client-specific)
-                  </p>
-                )}
-              </div>
+                      <div className="flex flex-wrap gap-1">
+                        {(clientAssignments.data as UserClientAssignment[]).map((assignment) => (
+                          <Badge key={assignment.id} variant="outline" className="text-xs">
+                            {assignment.clientName}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-amber-600">
+                      No clients assigned - user has no access
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600">Role-based access (not client-specific)</p>
+              )}
+            </div>
             <div>
               <h4 className="font-medium mb-2 flex items-center space-x-2">
                 <Package className="h-4 w-4" />
@@ -253,9 +255,7 @@ export function UserPermissionsPage() {
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-gray-600">
-                  Role-based access (not product-specific)
-                </p>
+                <p className="text-sm text-gray-600">Role-based access (not product-specific)</p>
               )}
             </div>
           </div>

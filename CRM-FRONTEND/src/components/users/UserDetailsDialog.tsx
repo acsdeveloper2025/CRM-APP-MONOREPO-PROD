@@ -33,9 +33,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
 
   const getStatusBadge = (isActive: boolean) => {
     return (
-      <Badge variant={isActive ? 'default' : 'secondary'}>
-        {isActive ? 'Active' : 'Inactive'}
-      </Badge>
+      <Badge variant={isActive ? 'default' : 'secondary'}>{isActive ? 'Active' : 'Inactive'}</Badge>
     );
   };
 
@@ -47,9 +45,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
             <User className="h-5 w-5" />
             <span>User Details</span>
           </DialogTitle>
-          <DialogDescription>
-            Comprehensive user information and activity summary
-          </DialogDescription>
+          <DialogDescription>Comprehensive user information and activity summary</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -63,7 +59,11 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
                 <Avatar className="h-16 w-16">
                   <AvatarImage src={user.profilePhotoUrl} alt={user.name} />
                   <AvatarFallback className="text-lg">
-                    {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                    {user.name
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')
+                      .toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 space-y-2">
@@ -118,7 +118,9 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
                   <Shield className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">{profile.stats.completedCases}</div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {profile.stats.completedCases}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -140,7 +142,9 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
                   <Calendar className="h-4 w-4 text-gray-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">₹{Number(profile.stats.totalCommissions || 0).toLocaleString()}</div>
+                  <div className="text-2xl font-bold">
+                    ₹{Number(profile.stats.totalCommissions || 0).toLocaleString()}
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -155,12 +159,16 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-medium text-sm text-gray-600">Account Created</h4>
-                  <p className="text-sm mt-1">{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</p>
+                  <p className="text-sm mt-1">
+                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                  </p>
                 </div>
                 <div>
                   <h4 className="font-medium text-sm text-gray-600">Last Login</h4>
                   <p className="text-sm mt-1">
-                    {user.lastLogin || user.lastLoginAt ? new Date(user.lastLogin || user.lastLoginAt || '').toLocaleString() : 'Never'}
+                    {user.lastLogin || user.lastLoginAt
+                      ? new Date(user.lastLogin || user.lastLoginAt || '').toLocaleString()
+                      : 'Never'}
                   </p>
                 </div>
               </div>
@@ -172,14 +180,15 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Recent Activity</CardTitle>
-                <CardDescription>
-                  Latest user actions and system interactions
-                </CardDescription>
+                <CardDescription>Latest user actions and system interactions</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {profile.recentActivity.slice(0, 5).map((activity) => (
-                    <div key={activity.id} className="flex items-center space-x-3 p-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/50">
+                    <div
+                      key={activity.id}
+                      className="flex items-center space-x-3 p-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/50"
+                    >
                       <div className="h-2 w-2 rounded-full bg-primary" />
                       <div className="flex-1">
                         <p className="text-sm font-medium">{activity.action}</p>

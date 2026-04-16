@@ -8,7 +8,6 @@ import type {
   AvailableFieldAgent,
 } from '@/types/territoryAssignment';
 
-
 /**
  * Hook to fetch user's territory assignments
  * @param userId User ID
@@ -18,7 +17,9 @@ export const useUserTerritoryAssignments = (userId?: string) => {
   return useQuery<UserTerritoryAssignments>({
     queryKey: ['userTerritoryAssignments', userId],
     queryFn: () => {
-      if (!userId) {throw new Error('User ID is required');}
+      if (!userId) {
+        throw new Error('User ID is required');
+      }
       return territoryAssignmentsService.getUserTerritoryAssignments(userId);
     },
     enabled: !!userId,
@@ -84,11 +85,12 @@ export const useAvailableFieldAgents = (pincodeId?: number, areaId?: number) => 
   return useQuery<AvailableFieldAgent[]>({
     queryKey: ['availableFieldAgents', pincodeId, areaId],
     queryFn: () => {
-      if (!pincodeId) {throw new Error('Pincode ID is required');}
+      if (!pincodeId) {
+        throw new Error('Pincode ID is required');
+      }
       return territoryAssignmentsService.getAvailableFieldAgents(pincodeId, areaId);
     },
     enabled: !!pincodeId,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
-

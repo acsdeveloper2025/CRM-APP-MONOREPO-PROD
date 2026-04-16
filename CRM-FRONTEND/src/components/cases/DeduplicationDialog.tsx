@@ -13,7 +13,19 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, Calendar, User, Phone, Mail, Building2, ExternalLink, Package, FileCheck, MapPin, CheckCircle } from 'lucide-react';
+import {
+  AlertTriangle,
+  Calendar,
+  User,
+  Phone,
+  Mail,
+  Building2,
+  ExternalLink,
+  Package,
+  FileCheck,
+  MapPin,
+  CheckCircle,
+} from 'lucide-react';
 import type { DeduplicationResult } from '@/services/deduplication';
 import { format } from 'date-fns';
 
@@ -32,7 +44,7 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
   deduplicationResult,
   onCreateNew,
   onUseExisting,
-  isProcessing = false
+  isProcessing = false,
 }) => {
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [rationale, setRationale] = useState('');
@@ -40,7 +52,7 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
   // CRITICAL FIX: Show ALL duplicates, not just 100% matches
   // Let the user review and decide based on all potential matches
   const duplicates = deduplicationResult?.duplicatesFound || [];
-  const hasHighScoreMatches = duplicates.some(dup => dup.matchScore >= 80);
+  const hasHighScoreMatches = duplicates.some((dup) => dup.matchScore >= 80);
 
   const handleCreateNew = () => {
     if (!rationale.trim()) {
@@ -103,7 +115,8 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
             Potential Duplicate Cases Found
           </DialogTitle>
           <DialogDescription>
-            We found {duplicates.length} potential duplicate case{duplicates.length !== 1 ? 's' : ''} 
+            We found {duplicates.length} potential duplicate case
+            {duplicates.length !== 1 ? 's' : ''}
             based on the information provided. Please review and decide how to proceed.
             {hasHighScoreMatches && (
               <span className="block mt-2 text-yellow-600 font-medium">
@@ -122,22 +135,34 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 {deduplicationResult?.searchCriteria.customerName && (
-                  <Badge variant="outline">Name: {deduplicationResult.searchCriteria.customerName}</Badge>
+                  <Badge variant="outline">
+                    Name: {deduplicationResult.searchCriteria.customerName}
+                  </Badge>
                 )}
                 {deduplicationResult?.searchCriteria.panNumber && (
-                  <Badge variant="outline">PAN: {deduplicationResult.searchCriteria.panNumber}</Badge>
+                  <Badge variant="outline">
+                    PAN: {deduplicationResult.searchCriteria.panNumber}
+                  </Badge>
                 )}
                 {deduplicationResult?.searchCriteria.aadhaarNumber && (
-                  <Badge variant="outline">Aadhaar: {deduplicationResult.searchCriteria.aadhaarNumber}</Badge>
+                  <Badge variant="outline">
+                    Aadhaar: {deduplicationResult.searchCriteria.aadhaarNumber}
+                  </Badge>
                 )}
                 {deduplicationResult?.searchCriteria.customerPhone && (
-                  <Badge variant="outline">Phone: {deduplicationResult.searchCriteria.customerPhone}</Badge>
+                  <Badge variant="outline">
+                    Phone: {deduplicationResult.searchCriteria.customerPhone}
+                  </Badge>
                 )}
                 {deduplicationResult?.searchCriteria.applicantEmail && (
-                  <Badge variant="outline">Email: {deduplicationResult.searchCriteria.applicantEmail}</Badge>
+                  <Badge variant="outline">
+                    Email: {deduplicationResult.searchCriteria.applicantEmail}
+                  </Badge>
                 )}
                 {deduplicationResult?.searchCriteria.bankAccountNumber && (
-                  <Badge variant="outline">Bank Account: {deduplicationResult.searchCriteria.bankAccountNumber}</Badge>
+                  <Badge variant="outline">
+                    Bank Account: {deduplicationResult.searchCriteria.bankAccountNumber}
+                  </Badge>
                 )}
               </div>
             </CardContent>
@@ -168,7 +193,7 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
                           Score: {duplicate.matchScore}%
                         </span>
                       </div>
-                      
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-gray-600" />
@@ -220,7 +245,9 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
                         )}
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-gray-600" />
-                          <span>{format(new Date(duplicate.createdAt), 'MMM d, yyyy \'at\' h:mm a')}</span>
+                          <span>
+                            {format(new Date(duplicate.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                          </span>
                         </div>
                       </div>
 
@@ -232,7 +259,7 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
                         ))}
                       </div>
                     </div>
-                    
+
                     <Button
                       variant="ghost"
                       size="sm"
@@ -265,20 +292,27 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
         </div>
 
         <DialogFooter className="flex gap-2">
-          <Button variant="outline" onClick={onClose} disabled={isProcessing} className="w-full sm:w-auto">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isProcessing}
+            className="w-full sm:w-auto"
+          >
             Cancel
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handleUseExisting}
             disabled={!selectedCaseId || !rationale.trim() || isProcessing}
-           className="w-full sm:w-auto">
+            className="w-full sm:w-auto"
+          >
             Use Selected Case
           </Button>
-          <Button 
+          <Button
             onClick={handleCreateNew}
             disabled={!rationale.trim() || isProcessing}
-           className="w-full sm:w-auto">
+            className="w-full sm:w-auto"
+          >
             Create New Case Anyway
           </Button>
         </DialogFooter>

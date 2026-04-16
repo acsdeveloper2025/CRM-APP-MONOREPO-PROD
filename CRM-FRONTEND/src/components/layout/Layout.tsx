@@ -23,9 +23,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <div className="lg:pl-64 transition-all duration-300 min-h-screen flex flex-col">
         <Header onMenuClick={handleMenuClick} />
         <main className="flex-1 py-3 sm:py-4 lg:py-6 animate-fade-in">
-          <div className="px-4 sm:px-6 lg:px-8 h-full">
-            {children}
-          </div>
+          <div className="px-4 sm:px-6 lg:px-8 h-full">{children}</div>
         </main>
       </div>
     </div>

@@ -34,8 +34,8 @@ export function MultiSelectDropdown({
   options,
   selectedValues,
   onSelectionChange,
-  placeholder = "Select items...",
-  searchPlaceholder = "Search...",
+  placeholder = 'Select items...',
+  searchPlaceholder = 'Search...',
   maxDisplayItems = 100,
   isLoading = false,
   disabled = false,
@@ -43,12 +43,10 @@ export function MultiSelectDropdown({
   dropdownClassName,
   error,
   onSearch,
-  searchQuery = "",
-  emptyMessage = "No items found",
-  autoClose = false
+  searchQuery = '',
+  emptyMessage = 'No items found',
+  autoClose = false,
 }: MultiSelectDropdownProps) {
-
-
   const [isOpen, setIsOpen] = useState(false);
   const [internalSearchQuery, setInternalSearchQuery] = useState(searchQuery);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -83,31 +81,34 @@ export function MultiSelectDropdown({
 
   // Filter options based on search query
   const filteredOptions = useMemo(() => {
-    if (!internalSearchQuery && !onSearch) {return options.slice(0, maxDisplayItems);}
-    
+    if (!internalSearchQuery && !onSearch) {
+      return options.slice(0, maxDisplayItems);
+    }
+
     if (onSearch) {
       // External search handling
       return options.slice(0, maxDisplayItems);
     }
-    
+
     // Internal search filtering
     const query = internalSearchQuery.toLowerCase();
     return options
-      .filter(option => 
-        option.label.toLowerCase().includes(query) ||
-        option.description?.toLowerCase().includes(query)
+      .filter(
+        (option) =>
+          option.label.toLowerCase().includes(query) ||
+          option.description?.toLowerCase().includes(query)
       )
       .slice(0, maxDisplayItems);
   }, [options, internalSearchQuery, onSearch, maxDisplayItems]);
 
   // Get selected options for display
   const selectedOptions = useMemo(() => {
-    return options.filter(option => selectedValues.includes(option.id));
+    return options.filter((option) => selectedValues.includes(option.id));
   }, [options, selectedValues]);
 
   const handleToggleOption = (optionId: string | number) => {
     if (selectedValues.includes(optionId)) {
-      onSelectionChange(selectedValues.filter(id => id !== optionId));
+      onSelectionChange(selectedValues.filter((id) => id !== optionId));
     } else {
       onSelectionChange([...selectedValues, optionId]);
     }
@@ -119,7 +120,7 @@ export function MultiSelectDropdown({
   };
 
   const handleRemoveSelected = (optionId: string | number) => {
-    onSelectionChange(selectedValues.filter(id => id !== optionId));
+    onSelectionChange(selectedValues.filter((id) => id !== optionId));
   };
 
   const handleClearAll = () => {
@@ -127,31 +128,30 @@ export function MultiSelectDropdown({
   };
 
   return (
-    <div className={cn("relative", className)} ref={dropdownRef}>
+    <div className={cn('relative', className)} ref={dropdownRef}>
       {/* Trigger Button */}
       <Button
         variant="outline"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className={cn(
-          "w-full justify-between text-left font-normal bg-white border-gray-300 text-gray-900 hover:bg-gray-50 focus:ring-2 focus:ring-green-500 focus:border-green-500",
-          error && "border-red-500",
-          selectedValues.length === 0 && "text-gray-600"
+          'w-full justify-between text-left font-normal bg-white border-gray-300 text-gray-900 hover:bg-gray-50 focus:ring-2 focus:ring-green-500 focus:border-green-500',
+          error && 'border-red-500',
+          selectedValues.length === 0 && 'text-gray-600'
         )}
       >
         <span className="truncate">
           {selectedValues.length === 0
             ? placeholder
-            : `${selectedValues.length} item${selectedValues.length === 1 ? '' : 's'} selected`
-          }
+            : `${selectedValues.length} item${selectedValues.length === 1 ? '' : 's'} selected`}
         </span>
-        <ChevronDown className={cn("h-4 w-4 transition-transform text-gray-600", isOpen && "rotate-180")} />
+        <ChevronDown
+          className={cn('h-4 w-4 transition-transform text-gray-600', isOpen && 'rotate-180')}
+        />
       </Button>
 
       {/* Error Message */}
-      {error && (
-        <p className="text-sm text-red-500 mt-1">{error}</p>
-      )}
+      {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
 
       {/* Selected Items Display */}
       {selectedOptions.length > 0 && (
@@ -184,10 +184,12 @@ export function MultiSelectDropdown({
 
       {/* Dropdown Content */}
       {isOpen && (
-        <div className={cn(
-          "absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-80 overflow-hidden",
-          dropdownClassName
-        )}>
+        <div
+          className={cn(
+            'absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-80 overflow-hidden',
+            dropdownClassName
+          )}
+        >
           {/* Search Input */}
           <div className="p-2 border-b border-gray-200 bg-white">
             <div className="relative">
@@ -210,9 +212,7 @@ export function MultiSelectDropdown({
                 <span className="text-sm text-gray-600">Loading...</span>
               </div>
             ) : filteredOptions.length === 0 ? (
-              <div className="p-4 text-center text-sm text-gray-600">
-                {emptyMessage}
-              </div>
+              <div className="p-4 text-center text-sm text-gray-600">{emptyMessage}</div>
             ) : (
               filteredOptions.map((option) => {
                 const isSelected = selectedValues.includes(option.id);
@@ -221,23 +221,25 @@ export function MultiSelectDropdown({
                     key={option.id}
                     onClick={() => !option.disabled && handleToggleOption(option.id)}
                     className={cn(
-                      "flex items-center gap-2 p-2 cursor-pointer hover:bg-green-50 hover:text-green-900 transition-colors",
-                      option.disabled && "opacity-50 cursor-not-allowed",
-                      isSelected && "bg-green-50"
+                      'flex items-center gap-2 p-2 cursor-pointer hover:bg-green-50 hover:text-green-900 transition-colors',
+                      option.disabled && 'opacity-50 cursor-not-allowed',
+                      isSelected && 'bg-green-50'
                     )}
                   >
-                    <div className={cn(
-                      "w-4 h-4 border rounded flex items-center justify-center shrink-0",
-                      isSelected ? "bg-green-600 border-green-600" : "border-gray-300 bg-white"
-                    )}>
+                    <div
+                      className={cn(
+                        'w-4 h-4 border rounded flex items-center justify-center shrink-0',
+                        isSelected ? 'bg-green-600 border-green-600' : 'border-gray-300 bg-white'
+                      )}
+                    >
                       {isSelected && <Check className="h-3 w-3 text-white" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900 truncate">{option.label}</div>
+                      <div className="text-sm font-medium text-gray-900 truncate">
+                        {option.label}
+                      </div>
                       {option.description && (
-                        <div className="text-xs text-gray-600 truncate">
-                          {option.description}
-                        </div>
+                        <div className="text-xs text-gray-600 truncate">{option.description}</div>
                       )}
                     </div>
                   </div>

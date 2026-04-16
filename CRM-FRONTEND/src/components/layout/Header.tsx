@@ -51,7 +51,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const getUserInitials = (name: string) => {
     return name
       .split(' ')
-      .map(n => n[0])
+      .map((n) => n[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
@@ -59,18 +59,42 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path === '/dashboard') {return 'Dashboard';}
-    if (path === '/cases') {return 'Cases';}
-    if (path === '/tasks/pending') {return 'Pending Tasks';}
-    if (path === '/clients') {return 'Clients';}
-    if (path === '/users') {return 'Users';}
-    if (path === '/reports') {return 'Reports';}
-    if (path === '/billing') {return 'Billing';}
-    if (path === '/locations') {return 'Locations';}
-    if (path === '/forms') {return 'Forms';}
-    if (path === '/security-ux') {return 'Security & UX';}
-    if (path === '/settings') {return 'Settings';}
-    if (path === '/notifications') {return 'Notifications';}
+    if (path === '/dashboard') {
+      return 'Dashboard';
+    }
+    if (path === '/cases') {
+      return 'Cases';
+    }
+    if (path === '/tasks/pending') {
+      return 'Pending Tasks';
+    }
+    if (path === '/clients') {
+      return 'Clients';
+    }
+    if (path === '/users') {
+      return 'Users';
+    }
+    if (path === '/reports') {
+      return 'Reports';
+    }
+    if (path === '/billing') {
+      return 'Billing';
+    }
+    if (path === '/locations') {
+      return 'Locations';
+    }
+    if (path === '/forms') {
+      return 'Forms';
+    }
+    if (path === '/security-ux') {
+      return 'Security & UX';
+    }
+    if (path === '/settings') {
+      return 'Settings';
+    }
+    if (path === '/notifications') {
+      return 'Notifications';
+    }
     return 'Dashboard';
   };
 
@@ -83,7 +107,20 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
   const formatClock = (date: Date) => {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     const day = days[date.getDay()];
     const dd = date.getDate();
     const month = months[date.getMonth()];
@@ -146,7 +183,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   };
 
   const handleNotificationOpen = async (notificationId: string, actionUrl?: string) => {
-    const notification = recentNotifications.find(item => item.id === notificationId);
+    const notification = recentNotifications.find((item) => item.id === notificationId);
 
     try {
       if (notification && !notification.isRead) {
@@ -232,9 +269,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             <DropdownMenuContent align="end" className="w-80">
               <DropdownMenuLabel className="flex items-center justify-between">
                 <span>Notifications</span>
-                <span className="text-xs font-normal text-gray-600">
-                  {unreadCount} unread
-                </span>
+                <span className="text-xs font-normal text-gray-600">{unreadCount} unread</span>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               {recentNotifications.length === 0 ? (
@@ -296,11 +331,13 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             )}
           </Button>
 
-
           {/* User menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10 rounded-full text-white hover:bg-green-700 dark:hover:bg-green-800 hover:text-white transition-colors duration-200">
+              <Button
+                variant="ghost"
+                className="relative h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10 rounded-full text-white hover:bg-green-700 dark:hover:bg-green-800 hover:text-white transition-colors duration-200"
+              >
                 <Avatar className="h-7 w-7 sm:h-8 sm:w-8 lg:h-9 lg:w-9">
                   <AvatarImage src={user?.profilePhotoUrl} alt={user?.name} />
                   <AvatarFallback className="text-xs sm:text-sm bg-green-500 text-white">
@@ -313,9 +350,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">{user?.name}</p>
-                  <p className="text-xs leading-none text-gray-600">
-                    {user?.email}
-                  </p>
+                  <p className="text-xs leading-none text-gray-600">{user?.email}</p>
                   <p className="text-xs leading-none text-gray-600">
                     {user?.role} • {user?.designation}
                   </p>

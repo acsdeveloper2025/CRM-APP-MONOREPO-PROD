@@ -127,8 +127,7 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
   // be COMPLETED (all tasks done) while data entry is still pending
   // — that's intentional so the backend user can fill and submit
   // after field agents have finished.
-  const allInstancesCompleted =
-    entries.length > 0 && entries.every((e) => e.isCompleted);
+  const allInstancesCompleted = entries.length > 0 && entries.every((e) => e.isCompleted);
   const effectiveReadonly = readonly || allInstancesCompleted;
   const isDirty = dirtyIndexes.size > 0;
 
@@ -237,11 +236,9 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
     // keeps the request smaller and avoids round-tripping data the
     // server won't store anyway.
     const mappedKeys = new Set(
-      (template.fields ?? []).filter(f => f.prefillSource).map(f => f.fieldKey)
+      (template.fields ?? []).filter((f) => f.prefillSource).map((f) => f.fieldKey)
     );
-    const cleanData = Object.fromEntries(
-      Object.entries(data).filter(([k]) => !mappedKeys.has(k))
-    );
+    const cleanData = Object.fromEntries(Object.entries(data).filter(([k]) => !mappedKeys.has(k)));
     try {
       await saveInstance.mutateAsync({
         instanceIndex: index,
@@ -279,7 +276,7 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
       return;
     }
     const mappedKeys = new Set(
-      (template.fields ?? []).filter(f => f.prefillSource).map(f => f.fieldKey)
+      (template.fields ?? []).filter((f) => f.prefillSource).map((f) => f.fieldKey)
     );
     try {
       // Save any dirty drafts first so the server validates the latest state.
@@ -435,9 +432,7 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
               <TabsTrigger key={entry.instanceIndex} value={String(entry.instanceIndex)}>
                 {entry.instanceLabel}
                 {entry.taskNumber && (
-                  <span className="ml-1 text-xs text-muted-foreground">
-                    ({entry.taskNumber})
-                  </span>
+                  <span className="ml-1 text-xs text-muted-foreground">({entry.taskNumber})</span>
                 )}
                 {dirtyIndexes.has(entry.instanceIndex) && (
                   <span className="ml-1 text-orange-500">●</span>

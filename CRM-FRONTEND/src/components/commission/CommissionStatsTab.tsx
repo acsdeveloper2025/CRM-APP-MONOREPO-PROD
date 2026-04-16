@@ -27,7 +27,9 @@ export const CommissionStatsTab: React.FC = () => {
   };
 
   const exportStats = () => {
-    if (!stats) {return;}
+    if (!stats) {
+      return;
+    }
 
     const csvContent = [
       ['Metric', 'Value'],
@@ -37,8 +39,10 @@ export const CommissionStatsTab: React.FC = () => {
       ['Total Assignments', `${stats.totalAssignments || 0}`],
       ['Average Commission Per Case', `${stats.averageCommissionPerCase || 0}`],
       ['Top Performing User', `${stats.topPerformingUser || 'N/A'}`],
-      ['Most Used Rate Type', `${stats.mostUsedRateType || 'N/A'}`]
-    ].map(row => row.join(',')).join('\n');
+      ['Most Used Rate Type', `${stats.mostUsedRateType || 'N/A'}`],
+    ]
+      .map((row) => row.join(','))
+      .join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -94,7 +98,9 @@ export const CommissionStatsTab: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-green-100 text-sm">Total Paid</p>
-                  <p className="text-2xl font-bold">₹{stats?.totalCommissionPaid?.toLocaleString() || '0'}</p>
+                  <p className="text-2xl font-bold">
+                    ₹{stats?.totalCommissionPaid?.toLocaleString() || '0'}
+                  </p>
                 </div>
                 <DollarSign className="h-8 w-8 text-green-200" />
               </div>
@@ -105,7 +111,9 @@ export const CommissionStatsTab: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-yellow-100 text-sm">Total Pending</p>
-                  <p className="text-2xl font-bold">₹{stats?.totalCommissionPending?.toLocaleString() || '0'}</p>
+                  <p className="text-2xl font-bold">
+                    ₹{stats?.totalCommissionPending?.toLocaleString() || '0'}
+                  </p>
                 </div>
                 <Calendar className="h-8 w-8 text-yellow-200" />
               </div>
@@ -127,7 +135,9 @@ export const CommissionStatsTab: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-purple-100 text-sm">Avg Per Case</p>
-                  <p className="text-2xl font-bold">₹{stats?.averageCommissionPerCase?.toLocaleString() || '0'}</p>
+                  <p className="text-2xl font-bold">
+                    ₹{stats?.averageCommissionPerCase?.toLocaleString() || '0'}
+                  </p>
                 </div>
                 <TrendingUp className="h-8 w-8 text-purple-200" />
               </div>
@@ -174,7 +184,9 @@ export const CommissionStatsTab: React.FC = () => {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Commission Calculated Today:</span>
-                    <span className="font-semibold">₹{stats?.commissionCalculatedToday?.toLocaleString() || '0'}</span>
+                    <span className="font-semibold">
+                      ₹{stats?.commissionCalculatedToday?.toLocaleString() || '0'}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">New Assignments This Week:</span>

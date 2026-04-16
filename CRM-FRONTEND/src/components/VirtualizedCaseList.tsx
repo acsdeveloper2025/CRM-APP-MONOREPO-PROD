@@ -38,55 +38,52 @@ interface CaseItemProps {
   hasMore: boolean;
   loading: boolean;
   ariaAttributes?: {
-    "aria-posinset"?: number;
-    "aria-setsize"?: number;
+    'aria-posinset'?: number;
+    'aria-setsize'?: number;
     role?: string;
   };
 }
 
 // Memoized case item component for performance
-const CaseItem: React.FC<CaseItemProps> = React.memo(({ 
-  index, 
-  style, 
-  cases, 
-  onCaseSelect, 
-  onLoadMore, 
-  hasMore, 
-  loading, 
-  ariaAttributes 
-}) => {
-  // Load more when approaching end
-  useEffect(() => {
-    if (index !== undefined && index >= cases.length - 5 && hasMore && !loading) {
-      onLoadMore();
+const CaseItem: React.FC<CaseItemProps> = React.memo(
+  ({ index, style, cases, onCaseSelect, onLoadMore, hasMore, loading, ariaAttributes }) => {
+    // Load more when approaching end
+    useEffect(() => {
+      if (index !== undefined && index >= cases.length - 5 && hasMore && !loading) {
+        onLoadMore();
+      }
+    }, [index, cases.length, hasMore, loading, onLoadMore]);
+
+    if (!cases) {
+      return <React.Fragment />;
     }
-  }, [index, cases.length, hasMore, loading, onLoadMore]);
 
-  if (!cases) {return <React.Fragment />;}
+    // Show loading placeholder at the end
+    if (index !== undefined && index >= cases.length) {
+      return (
+        <div style={style} className="flex items-center justify-center p-4">
+          <LoadingSpinner size="sm" />
+          <span className="ml-2 text-gray-600">Loading more cases...</span>
+        </div>
+      );
+    }
 
-  // Show loading placeholder at the end
-  if (index !== undefined && index >= cases.length) {
+    const caseItem = index !== undefined ? cases[index] : null;
+    if (!caseItem) {
+      return null;
+    }
+
     return (
-      <div style={style} className="flex items-center justify-center p-4">
-        <LoadingSpinner size="sm" />
-        <span className="ml-2 text-gray-600">Loading more cases...</span>
+      <div style={style} className="px-4 py-2" {...ariaAttributes}>
+        <CaseCard
+          case={caseItem}
+          onClick={() => onCaseSelect(caseItem)}
+          className="hover:shadow-md transition-shadow duration-200"
+        />
       </div>
     );
   }
-
-  const caseItem = index !== undefined ? cases[index] : null;
-  if (!caseItem) {return null;}
-
-  return (
-    <div style={style} className="px-4 py-2" {...ariaAttributes}>
-      <CaseCard
-        case={caseItem}
-        onClick={() => onCaseSelect(caseItem)}
-        className="hover:shadow-md transition-shadow duration-200"
-      />
-    </div>
-  );
-});
+);
 
 CaseItem.displayName = 'CaseItem';
 
@@ -114,13 +111,16 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
   }, [debouncedSearchQuery, onSearch]);
 
   // Memoize list data to prevent unnecessary re-renders
-  const listData = useMemo(() => ({
-    cases,
-    onCaseSelect,
-    onLoadMore,
-    hasMore,
-    loading,
-  }), [cases, onCaseSelect, onLoadMore, hasMore, loading]);
+  const listData = useMemo(
+    () => ({
+      cases,
+      onCaseSelect,
+      onLoadMore,
+      hasMore,
+      loading,
+    }),
+    [cases, onCaseSelect, onLoadMore, hasMore, loading]
+  );
 
   // Calculate item count (cases + loading indicator if needed)
   const itemCount = hasMore ? cases.length + 1 : cases.length;
@@ -186,15 +186,15 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Status filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">
-                  Status
-                </label>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Status</label>
                 <select
                   value={localFilters.status || ''}
-                  onChange={(e) => setLocalFilters(prev => ({ 
-                    ...prev, 
-                    status: e.target.value || undefined 
-                  }))}
+                  onChange={(e) =>
+                    setLocalFilters((prev) => ({
+                      ...prev,
+                      status: e.target.value || undefined,
+                    }))
+                  }
                   className="w-full p-2 border border-border rounded-md focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">All Statuses</option>
@@ -207,15 +207,15 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
 
               {/* Priority filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">
-                  Priority
-                </label>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Priority</label>
                 <select
                   value={localFilters.priority || ''}
-                  onChange={(e) => setLocalFilters(prev => ({ 
-                    ...prev, 
-                    priority: e.target.value || undefined 
-                  }))}
+                  onChange={(e) =>
+                    setLocalFilters((prev) => ({
+                      ...prev,
+                      priority: e.target.value || undefined,
+                    }))
+                  }
                   className="w-full p-2 border border-border rounded-md focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">All Priorities</option>
@@ -228,49 +228,51 @@ export const VirtualizedCaseList: React.FC<VirtualizedCaseListProps> = ({
 
               {/* Assigned to filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">
-                  Assigned To
-                </label>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Assigned To</label>
                 <input
                   type="text"
                   placeholder="Field agent name"
                   value={localFilters.assignedTo || ''}
-                  onChange={(e) => setLocalFilters(prev => ({ 
-                    ...prev, 
-                    assignedTo: e.target.value || undefined 
-                  }))}
+                  onChange={(e) =>
+                    setLocalFilters((prev) => ({
+                      ...prev,
+                      assignedTo: e.target.value || undefined,
+                    }))
+                  }
                   className="w-full p-2 border border-border rounded-md focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               {/* Date range filter */}
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">
-                  Date Range
-                </label>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Date Range</label>
                 <div className="flex space-x-2">
                   <input
                     type="date"
                     value={localFilters.dateRange?.from?.toISOString().split('T')[0] || ''}
-                    onChange={(e) => setLocalFilters(prev => ({
-                      ...prev,
-                      dateRange: {
-                        from: e.target.value ? new Date(e.target.value) : new Date(),
-                        to: prev.dateRange?.to || new Date(),
-                      }
-                    }))}
+                    onChange={(e) =>
+                      setLocalFilters((prev) => ({
+                        ...prev,
+                        dateRange: {
+                          from: e.target.value ? new Date(e.target.value) : new Date(),
+                          to: prev.dateRange?.to || new Date(),
+                        },
+                      }))
+                    }
                     className="flex-1 p-2 border border-border rounded-md focus:ring-2 focus:ring-blue-500"
                   />
                   <input
                     type="date"
                     value={localFilters.dateRange?.to?.toISOString().split('T')[0] || ''}
-                    onChange={(e) => setLocalFilters(prev => ({
-                      ...prev,
-                      dateRange: {
-                        from: prev.dateRange?.from || new Date(),
-                        to: e.target.value ? new Date(e.target.value) : new Date(),
-                      }
-                    }))}
+                    onChange={(e) =>
+                      setLocalFilters((prev) => ({
+                        ...prev,
+                        dateRange: {
+                          from: prev.dateRange?.from || new Date(),
+                          to: e.target.value ? new Date(e.target.value) : new Date(),
+                        },
+                      }))
+                    }
                     className="flex-1 p-2 border border-border rounded-md focus:ring-2 focus:ring-blue-500"
                   />
                 </div>

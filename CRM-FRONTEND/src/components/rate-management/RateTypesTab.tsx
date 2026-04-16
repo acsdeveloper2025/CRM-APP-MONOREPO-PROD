@@ -36,11 +36,12 @@ export function RateTypesTab() {
   // Fetch rate types
   const { data: rateTypesData, isLoading } = useQuery({
     queryKey: ['rate-types', searchQuery, currentPage, pageSize],
-    queryFn: () => rateTypesService.getRateTypes({
-      search: searchQuery,
-      page: currentPage,
-      limit: pageSize,
-    }),
+    queryFn: () =>
+      rateTypesService.getRateTypes({
+        search: searchQuery,
+        page: currentPage,
+        limit: pageSize,
+      }),
   });
 
   const rateTypes = rateTypesData?.data || [];
@@ -116,15 +117,18 @@ export function RateTypesTab() {
               <div key={type} className="text-center p-3 border rounded-lg">
                 <div className="font-medium text-sm">{type}</div>
                 <div className="text-xs text-gray-600 mt-1">
-                  {type.startsWith('Local') ? 'Local Area' :
-                   type.startsWith('OGL') ? 'Out of Geolocation' :
-                   'Outstation'}
+                  {type.startsWith('Local')
+                    ? 'Local Area'
+                    : type.startsWith('OGL')
+                      ? 'Out of Geolocation'
+                      : 'Outstation'}
                 </div>
               </div>
             ))}
           </div>
           <p className="text-sm text-gray-600 mt-4">
-            These are the standard rate types used in the verification system. You can create additional custom rate types as needed.
+            These are the standard rate types used in the verification system. You can create
+            additional custom rate types as needed.
           </p>
         </CardContent>
       </Card>
@@ -142,11 +146,7 @@ export function RateTypesTab() {
           ) : rateTypes.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-600">No rate types found</p>
-              <Button 
-                variant="outline" 
-                onClick={() => setShowCreateDialog(true)}
-                className="mt-4"
-              >
+              <Button variant="outline" onClick={() => setShowCreateDialog(true)} className="mt-4">
                 Create your first rate type
               </Button>
             </div>
@@ -218,7 +218,7 @@ export function RateTypesTab() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
                 >
                   Previous
@@ -229,7 +229,7 @@ export function RateTypesTab() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  onClick={() => setCurrentPage((prev) => prev + 1)}
                   disabled={currentPage >= (rateTypesData.pagination.totalPages || 1)}
                 >
                   Next
@@ -241,10 +241,7 @@ export function RateTypesTab() {
       </Card>
 
       {/* Dialogs */}
-      <CreateRateTypeDialog
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-      />
+      <CreateRateTypeDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} />
 
       {editingRateType && (
         <EditRateTypeDialog

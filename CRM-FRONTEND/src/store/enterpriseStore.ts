@@ -110,7 +110,7 @@ export const fetchCases = createAsyncThunk(
     useCache?: boolean;
   }) => {
     const { page = 1, limit = 50, filters = {}, search = '', useCache = true } = params;
-    
+
     const queryParams = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
@@ -198,20 +198,20 @@ const casesSlice = createSlice({
       }
     },
     selectAllCases: (state) => {
-      state.selectedCases = state.items.map(case_ => case_.id);
+      state.selectedCases = state.items.map((case_) => case_.id);
     },
     clearCaseSelection: (state) => {
       state.selectedCases = [];
     },
     updateCaseInList: (state, action: PayloadAction<Case>) => {
-      const index = state.items.findIndex(case_ => case_.id === action.payload.id);
+      const index = state.items.findIndex((case_) => case_.id === action.payload.id);
       if (index > -1) {
         state.items[index] = action.payload;
       }
     },
     invalidateCache: (state, action: PayloadAction<string[]>) => {
-      action.payload.forEach(pattern => {
-        Object.keys(state.cache).forEach(key => {
+      action.payload.forEach((pattern) => {
+        Object.keys(state.cache).forEach((key) => {
           if (key.includes(pattern)) {
             delete state.cache[key];
           }
@@ -228,18 +228,18 @@ const casesSlice = createSlice({
       .addCase(fetchCases.fulfilled, (state, action) => {
         state.loading = false;
         const { cases, totalCount, page, hasMore, metadata: _metadata } = action.payload;
-        
+
         if (page === 1) {
           state.items = cases;
         } else {
           // Append for pagination
           state.items = [...state.items, ...cases];
         }
-        
+
         state.totalCount = totalCount;
         state.currentPage = page;
         state.hasMore = hasMore;
-        
+
         // Cache the results
         const cacheKey = `${page}-${JSON.stringify(state.filters)}-${state.searchQuery}`;
         state.cache[cacheKey] = {
@@ -305,10 +305,9 @@ const usersSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder
-      .addCase(fetchFieldAgentWorkload.fulfilled, (state, action) => {
-        state.workloadData = action.payload;
-      });
+    builder.addCase(fetchFieldAgentWorkload.fulfilled, (state, action) => {
+      state.workloadData = action.payload;
+    });
   },
 });
 
@@ -341,20 +340,20 @@ const uiSlice = createSlice({
         read: false,
       };
       state.notifications.unshift(notification);
-      
+
       // Keep only last 50 notifications
       if (state.notifications.length > 50) {
         state.notifications = state.notifications.slice(0, 50);
       }
     },
     markNotificationAsRead: (state, action: PayloadAction<string>) => {
-      const notification = state.notifications.find(n => n.id === action.payload);
+      const notification = state.notifications.find((n) => n.id === action.payload);
       if (notification) {
         notification.read = true;
       }
     },
     removeNotification: (state, action: PayloadAction<string>) => {
-      state.notifications = state.notifications.filter(n => n.id !== action.payload);
+      state.notifications = state.notifications.filter((n) => n.id !== action.payload);
     },
     openModal: (state, action: PayloadAction<string>) => {
       state.activeModal = action.payload;
@@ -390,11 +389,14 @@ const cacheSlice = createSlice({
     invalidationPatterns: [],
   } as CacheState,
   reducers: {
-    setCacheData: (state, action: PayloadAction<{
-      endpoint: string;
-      data: unknown;
-      ttl: number;
-    }>) => {
+    setCacheData: (
+      state,
+      action: PayloadAction<{
+        endpoint: string;
+        data: unknown;
+        ttl: number;
+      }>
+    ) => {
       const { endpoint, data, ttl } = action.payload;
       state.apiCache[endpoint] = {
         data,
@@ -403,8 +405,8 @@ const cacheSlice = createSlice({
       };
     },
     invalidateCache: (state, action: PayloadAction<string[]>) => {
-      action.payload.forEach(pattern => {
-        Object.keys(state.apiCache).forEach(endpoint => {
+      action.payload.forEach((pattern) => {
+        Object.keys(state.apiCache).forEach((endpoint) => {
           if (endpoint.includes(pattern)) {
             delete state.apiCache[endpoint];
           }
@@ -413,7 +415,7 @@ const cacheSlice = createSlice({
     },
     clearExpiredCache: (state) => {
       const now = Date.now();
-      Object.keys(state.apiCache).forEach(endpoint => {
+      Object.keys(state.apiCache).forEach((endpoint) => {
         const cached = state.apiCache[endpoint];
         if (now - cached.timestamp > cached.ttl) {
           delete state.apiCache[endpoint];
@@ -455,10 +457,7 @@ export const {
   invalidateCache: invalidateCasesCache,
 } = casesSlice.actions;
 
-export const {
-  setCurrentUser,
-  clearCurrentUser,
-} = usersSlice.actions;
+export const { setCurrentUser, clearCurrentUser } = usersSlice.actions;
 
 export const {
   toggleSidebar,
@@ -473,8 +472,4 @@ export const {
   setBulkAssignmentUser,
 } = uiSlice.actions;
 
-export const {
-  setCacheData,
-  invalidateCache,
-  clearExpiredCache,
-} = cacheSlice.actions;
+export const { setCacheData, invalidateCache, clearExpiredCache } = cacheSlice.actions;

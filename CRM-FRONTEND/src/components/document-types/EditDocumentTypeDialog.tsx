@@ -78,7 +78,9 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
   });
 
   const onSubmit = async (data: EditDocumentTypeData) => {
-    if (!documentType) {return;}
+    if (!documentType) {
+      return;
+    }
     try {
       await updateDocumentTypeMutation.mutateAsync(data);
     } catch (error) {
@@ -91,7 +93,9 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
     onOpenChange(false);
   };
 
-  if (!documentType) {return null;}
+  if (!documentType) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -113,7 +117,7 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
                     <Input
                       placeholder="e.g., AADHAAR"
                       {...field}
-                      onChange={e => field.onChange(e.target.value.toUpperCase())}
+                      onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                     />
                   </FormControl>
                   <FormMessage />
@@ -136,7 +140,12 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
             />
 
             <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button type="button" variant="outline" onClick={handleClose} className="w-full sm:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                className="w-full sm:w-auto"
+              >
                 Cancel
               </Button>
               <Button

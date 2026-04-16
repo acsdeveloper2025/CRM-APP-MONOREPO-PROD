@@ -23,10 +23,14 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
   open,
   onOpenChange,
 }) => {
-  if (!documentType) {return null;}
+  if (!documentType) {
+    return null;
+  }
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) {return 'N/A';}
+    if (!dateString) {
+      return 'N/A';
+    }
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -55,7 +59,9 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
           <div>
             <label className="text-sm font-medium text-gray-600">Code</label>
             <p className="text-sm">
-              <code className="bg-slate-100 dark:bg-slate-800/60 px-2 py-1 rounded text-sm">{documentType.code}</code>
+              <code className="bg-slate-100 dark:bg-slate-800/60 px-2 py-1 rounded text-sm">
+                {documentType.code}
+              </code>
             </p>
           </div>
           <div>
@@ -76,7 +82,11 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="w-full sm:w-auto"
+          >
             Close
           </Button>
         </DialogFooter>

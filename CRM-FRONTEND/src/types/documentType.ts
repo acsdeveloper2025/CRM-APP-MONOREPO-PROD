@@ -3,14 +3,14 @@ import { BaseEntity } from './index';
 // Document Type Categories
 export const DOCUMENT_CATEGORIES = {
   IDENTITY: 'IDENTITY',
-  ADDRESS: 'ADDRESS', 
+  ADDRESS: 'ADDRESS',
   FINANCIAL: 'FINANCIAL',
   EDUCATION: 'EDUCATION',
   BUSINESS: 'BUSINESS',
-  OTHER: 'OTHER'
+  OTHER: 'OTHER',
 } as const;
 
-export type DocumentCategory = typeof DOCUMENT_CATEGORIES[keyof typeof DOCUMENT_CATEGORIES];
+export type DocumentCategory = (typeof DOCUMENT_CATEGORIES)[keyof typeof DOCUMENT_CATEGORIES];
 
 // Document Type Interface
 export interface DocumentType extends Omit<BaseEntity, 'id'> {
@@ -19,17 +19,17 @@ export interface DocumentType extends Omit<BaseEntity, 'id'> {
   code: string; // e.g., "AADHAAR", "PAN"
   description?: string;
   category: DocumentCategory;
-  
+
   // Document properties
   isGovernmentIssued?: boolean;
   requiresVerification?: boolean;
   validityPeriodMonths?: number; // NULL for permanent documents
-  
+
   // Validation rules
   formatPattern?: string; // Regex pattern for validation
   minLength?: number;
   maxLength?: number;
-  
+
   // Status and metadata
   isActive?: boolean;
   sortOrder?: number;
@@ -42,18 +42,18 @@ export interface ClientDocumentType {
   id: number;
   clientId: number;
   documentTypeId: number;
-  
+
   // Mapping properties
   isRequired?: boolean;
   isActive?: boolean;
   priority?: number;
-  
+
   // Client-specific rules
   clientSpecificRules?: Record<string, unknown>;
-  
+
   // Populated relations
   documentType?: DocumentType;
-  
+
   // Audit fields
   createdAt: string;
   updatedAt: string;
@@ -66,18 +66,18 @@ export interface ProductDocumentType {
   id: number;
   productId: number;
   documentTypeId: number;
-  
+
   // Mapping properties
   isRequired?: boolean;
   isActive?: boolean;
   priority?: number;
-  
+
   // Product-specific rules
   productSpecificRules?: Record<string, unknown>;
-  
+
   // Populated relations
   documentType?: DocumentType;
-  
+
   // Audit fields
   createdAt: string;
   updatedAt: string;
@@ -224,7 +224,7 @@ export interface DocumentTypeExportData {
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
-  
+
   // Related data
   clientCount: number;
   productCount: number;
@@ -239,28 +239,28 @@ export const COMMON_DOCUMENT_TYPES = {
   VOTER_ID: 'VOTER_ID',
   DRIVING_LICENSE: 'DRIVING_LICENSE',
   PASSPORT: 'PASSPORT',
-  
+
   // Address
   ELECTRICITY_BILL: 'ELECTRICITY_BILL',
   GAS_BILL: 'GAS_BILL',
   WATER_BILL: 'WATER_BILL',
   BANK_STATEMENT: 'BANK_STATEMENT',
   RENT_AGREEMENT: 'RENT_AGREEMENT',
-  
+
   // Financial
   BANK_ACCOUNT: 'BANK_ACCOUNT',
   SALARY_CERTIFICATE: 'SALARY_CERTIFICATE',
   ITR: 'ITR',
   FORM_16: 'FORM_16',
-  
+
   // Business
   GST_CERTIFICATE: 'GST_CERTIFICATE',
   TRADE_LICENSE: 'TRADE_LICENSE',
   SHOP_ACT_LICENSE: 'SHOP_ACT_LICENSE',
-  MSME_CERTIFICATE: 'MSME_CERTIFICATE'
+  MSME_CERTIFICATE: 'MSME_CERTIFICATE',
 } as const;
 
-export type CommonDocumentType = typeof COMMON_DOCUMENT_TYPES[keyof typeof COMMON_DOCUMENT_TYPES];
+export type CommonDocumentType = (typeof COMMON_DOCUMENT_TYPES)[keyof typeof COMMON_DOCUMENT_TYPES];
 
 // Document Type Display Names
 export const DOCUMENT_TYPE_DISPLAY_NAMES: Record<DocumentCategory, string> = {
@@ -269,7 +269,7 @@ export const DOCUMENT_TYPE_DISPLAY_NAMES: Record<DocumentCategory, string> = {
   [DOCUMENT_CATEGORIES.FINANCIAL]: 'Financial Documents',
   [DOCUMENT_CATEGORIES.EDUCATION]: 'Educational Documents',
   [DOCUMENT_CATEGORIES.BUSINESS]: 'Business Documents',
-  [DOCUMENT_CATEGORIES.OTHER]: 'Other Documents'
+  [DOCUMENT_CATEGORIES.OTHER]: 'Other Documents',
 };
 
 // Document Type Colors (for UI)
@@ -279,5 +279,5 @@ export const DOCUMENT_TYPE_COLORS: Record<DocumentCategory, string> = {
   [DOCUMENT_CATEGORIES.FINANCIAL]: 'purple',
   [DOCUMENT_CATEGORIES.EDUCATION]: 'orange',
   [DOCUMENT_CATEGORIES.BUSINESS]: 'red',
-  [DOCUMENT_CATEGORIES.OTHER]: 'gray'
+  [DOCUMENT_CATEGORIES.OTHER]: 'gray',
 };

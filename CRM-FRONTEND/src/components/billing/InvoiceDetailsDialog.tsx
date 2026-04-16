@@ -58,7 +58,7 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
       OVERDUE: { variant: 'destructive' as const, label: 'Overdue' },
       CANCELLED: { variant: 'secondary' as const, label: 'Cancelled' },
     };
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.DRAFT;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
@@ -84,9 +84,7 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
               </Button>
             </div>
           </DialogTitle>
-          <DialogDescription>
-            Detailed invoice information and line items
-          </DialogDescription>
+          <DialogDescription>Detailed invoice information and line items</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -104,12 +102,8 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
                   <div className="font-semibold">{invoice.client.name}</div>
                   <div className="text-sm text-gray-600">{invoice.client.code}</div>
                 </div>
-                {invoice.client.email && (
-                  <div className="text-sm">{invoice.client.email}</div>
-                )}
-                {invoice.client.phone && (
-                  <div className="text-sm">{invoice.client.phone}</div>
-                )}
+                {invoice.client.email && <div className="text-sm">{invoice.client.email}</div>}
+                {invoice.client.phone && <div className="text-sm">{invoice.client.phone}</div>}
               </CardContent>
             </Card>
 
@@ -123,13 +117,17 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
               <CardContent className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Issue Date:</span>
-                  <span className="text-sm">{new Date(invoice.issueDate).toLocaleDateString()}</span>
+                  <span className="text-sm">
+                    {new Date(invoice.issueDate).toLocaleDateString()}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600">Due Date:</span>
-                  <span className={`text-sm ${
-                    invoice.status === 'OVERDUE' ? 'text-red-600 font-medium' : ''
-                  }`}>
+                  <span
+                    className={`text-sm ${
+                      invoice.status === 'OVERDUE' ? 'text-red-600 font-medium' : ''
+                    }`}
+                  >
                     {new Date(invoice.dueDate).toLocaleDateString()}
                   </span>
                 </div>
@@ -147,14 +145,15 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
           <Card>
             <CardHeader>
               <CardTitle>Invoice Items</CardTitle>
-              <CardDescription>
-                Detailed breakdown of services and charges
-              </CardDescription>
+              <CardDescription>Detailed breakdown of services and charges</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {invoice.items.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
                     <div className="flex-1">
                       <div className="font-medium">{item.description}</div>
                       {item.case && (
@@ -165,7 +164,8 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
                     </div>
                     <div className="text-right">
                       <div className="font-medium">
-                        {item.quantity} × ₹{Number(item.unitPrice || 0).toLocaleString()} = ₹{Number(item.totalPrice || 0).toLocaleString()}
+                        {item.quantity} × ₹{Number(item.unitPrice || 0).toLocaleString()} = ₹
+                        {Number(item.totalPrice || 0).toLocaleString()}
                       </div>
                     </div>
                   </div>

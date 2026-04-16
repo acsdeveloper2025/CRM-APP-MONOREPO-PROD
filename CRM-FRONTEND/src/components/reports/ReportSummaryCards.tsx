@@ -1,4 +1,12 @@
-import { TrendingUp, TrendingDown, Minus, Clock, CheckCircle, BarChart3, DollarSign } from 'lucide-react';
+import {
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Clock,
+  CheckCircle,
+  BarChart3,
+  DollarSign,
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ReportSummary } from '@/types/reports';
 import { LoadingSpinner } from '@/components/ui/loading';
@@ -65,9 +73,7 @@ export function ReportSummaryCards({ summaries }: ReportSummaryCardsProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">--</div>
-              <p className="text-xs text-gray-600">
-                No data available
-              </p>
+              <p className="text-xs text-gray-600">No data available</p>
             </CardContent>
           </Card>
         ))}
@@ -80,7 +86,7 @@ export function ReportSummaryCards({ summaries }: ReportSummaryCardsProps) {
       {summaries.map((summary) => {
         const Icon = getIcon(summary.reportType);
         const primaryMetric = summary.keyMetrics[0];
-        
+
         return (
           <Card key={summary.reportType}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -88,19 +94,14 @@ export function ReportSummaryCards({ summaries }: ReportSummaryCardsProps) {
               <Icon className="h-4 w-4 text-gray-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {primaryMetric?.value || '--'}
-              </div>
+              <div className="text-2xl font-bold">{primaryMetric?.value || '--'}</div>
               <div className="flex items-center space-x-1 text-xs">
                 {primaryMetric?.trend && getTrendIcon(primaryMetric.trend)}
                 <span className={getTrendColor(primaryMetric?.trend)}>
-                  {primaryMetric?.trendPercentage && (
-                    `${primaryMetric.trendPercentage > 0 ? '+' : ''}${primaryMetric.trendPercentage}%`
-                  )}
+                  {primaryMetric?.trendPercentage &&
+                    `${primaryMetric.trendPercentage > 0 ? '+' : ''}${primaryMetric.trendPercentage}%`}
                 </span>
-                <span className="text-gray-600">
-                  vs last period
-                </span>
+                <span className="text-gray-600">vs last period</span>
               </div>
               <p className="text-xs text-gray-600 mt-1">
                 Last updated: {new Date(summary.lastGenerated).toLocaleDateString()}

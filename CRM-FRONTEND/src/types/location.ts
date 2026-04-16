@@ -29,8 +29,6 @@ export interface City extends Omit<BaseEntity, 'id'> {
   pincodeCount?: number;
 }
 
-
-
 export interface PincodeArea extends Omit<BaseEntity, 'id'> {
   id: number; // Numeric ID for areas
   name: string;

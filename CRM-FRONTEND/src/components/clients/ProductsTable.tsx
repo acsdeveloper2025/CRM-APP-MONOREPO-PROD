@@ -92,9 +92,7 @@ export function ProductsTable({ data, isLoading }: ProductsTableProps) {
       <div className="text-center py-12">
         <Package className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No products found</h3>
-        <p className="text-gray-600">
-          Get started by creating your first product.
-        </p>
+        <p className="text-gray-600">Get started by creating your first product.</p>
       </div>
     );
   }
@@ -122,9 +120,7 @@ export function ProductsTable({ data, isLoading }: ProductsTableProps) {
                     <span>{product.name}</span>
                   </div>
                 </TableCell>
-                <TableCell>
-                  {new Date(product.createdAt).toLocaleDateString()}
-                </TableCell>
+                <TableCell>{new Date(product.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell>
                   <Badge variant="default">Active</Badge>
                 </TableCell>
@@ -187,8 +183,8 @@ export function ProductsTable({ data, isLoading }: ProductsTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the product
-              &quot;{productToDelete?.name}&quot; and all associated verification types.
+              This action cannot be undone. This will permanently delete the product &quot;
+              {productToDelete?.name}&quot; and all associated verification types.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

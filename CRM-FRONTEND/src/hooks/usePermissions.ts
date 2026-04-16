@@ -79,11 +79,19 @@ const LEGACY_TO_RBAC: Record<string, string> = {
   'roleManagement.read': 'role.manage',
 };
 
-const hasPermissionCode = (user: { permissions?: unknown; permissionCodes?: string[] } | null, code: string) => {
-  if (!user) {return false;}
+const hasPermissionCode = (
+  user: { permissions?: unknown; permissionCodes?: string[] } | null,
+  code: string
+) => {
+  if (!user) {
+    return false;
+  }
 
-  const raw = user.permissionCodes || (Array.isArray(user.permissions) ? (user.permissions as string[]) : []);
-  if (raw.includes('*') || raw.includes(code)) {return true;}
+  const raw =
+    user.permissionCodes || (Array.isArray(user.permissions) ? (user.permissions as string[]) : []);
+  if (raw.includes('*') || raw.includes(code)) {
+    return true;
+  }
   return false;
 };
 
@@ -93,10 +101,15 @@ export function usePermissions() {
   // Check if user has a specific permission
   const hasPermission = useCallback(
     (resource: string, action: string): boolean => {
-      if (!user) {return false;}
+      if (!user) {
+        return false;
+      }
       const requestedLegacyCode = `${resource}.${action}`;
       const mappedRbacCode = LEGACY_TO_RBAC[requestedLegacyCode];
-      return hasPermissionCode(user, requestedLegacyCode) || (!!mappedRbacCode && hasPermissionCode(user, mappedRbacCode));
+      return (
+        hasPermissionCode(user, requestedLegacyCode) ||
+        (!!mappedRbacCode && hasPermissionCode(user, mappedRbacCode))
+      );
     },
     [user]
   );
@@ -116,10 +129,22 @@ export function usePermissions() {
   );
 
   // Convenience methods for common permission checks
-  const canCreate = useCallback((resource: string) => hasPermission(resource, ACTIONS.CREATE), [hasPermission]);
-  const canRead = useCallback((resource: string) => hasPermission(resource, ACTIONS.READ), [hasPermission]);
-  const canUpdate = useCallback((resource: string) => hasPermission(resource, ACTIONS.UPDATE), [hasPermission]);
-  const canDelete = useCallback((resource: string) => hasPermission(resource, ACTIONS.DELETE), [hasPermission]);
+  const canCreate = useCallback(
+    (resource: string) => hasPermission(resource, ACTIONS.CREATE),
+    [hasPermission]
+  );
+  const canRead = useCallback(
+    (resource: string) => hasPermission(resource, ACTIONS.READ),
+    [hasPermission]
+  );
+  const canUpdate = useCallback(
+    (resource: string) => hasPermission(resource, ACTIONS.UPDATE),
+    [hasPermission]
+  );
+  const canDelete = useCallback(
+    (resource: string) => hasPermission(resource, ACTIONS.DELETE),
+    [hasPermission]
+  );
 
   // Resource-specific permission checks (memoized to prevent re-renders)
   const permissions = useMemo(
@@ -194,14 +219,28 @@ export function usePermissions() {
       getAllPermissions,
       user,
     }),
-    [hasPermission, hasAllPermissions, hasAnyPermission, canCreate, canRead, canUpdate, canDelete, permissions, getAllPermissions, user]
+    [
+      hasPermission,
+      hasAllPermissions,
+      hasAnyPermission,
+      canCreate,
+      canRead,
+      canUpdate,
+      canDelete,
+      permissions,
+      getAllPermissions,
+      user,
+    ]
   );
 }
 
 // Convenience hook: usePermission('page.kyc') → boolean
 export function usePermission(code: string): boolean {
   const { user } = useAuth();
-  if (!user) {return false;}
-  const raw = user.permissionCodes || (Array.isArray(user.permissions) ? (user.permissions as string[]) : []);
+  if (!user) {
+    return false;
+  }
+  const raw =
+    user.permissionCodes || (Array.isArray(user.permissions) ? (user.permissions as string[]) : []);
   return raw.includes('*') || raw.includes(code);
 }

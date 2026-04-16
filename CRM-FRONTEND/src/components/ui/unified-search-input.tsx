@@ -9,43 +9,43 @@ export interface UnifiedSearchInputProps {
    * Current search value
    */
   value: string;
-  
+
   /**
    * Callback when search value changes
    */
   onChange: (value: string) => void;
-  
+
   /**
    * Callback when search is cleared
    */
   onClear?: () => void;
-  
+
   /**
    * Placeholder text
    * @default "Search..."
    */
   placeholder?: string;
-  
+
   /**
    * Whether the search is currently loading/debouncing
    */
   isLoading?: boolean;
-  
+
   /**
    * Whether the input is disabled
    */
   disabled?: boolean;
-  
+
   /**
    * Additional CSS classes
    */
   className?: string;
-  
+
   /**
    * Whether to auto-focus the input on mount
    */
   autoFocus?: boolean;
-  
+
   /**
    * Size variant
    * @default "default"
@@ -55,18 +55,18 @@ export interface UnifiedSearchInputProps {
 
 /**
  * Unified search input component with standardized styling and behavior
- * 
+ *
  * Features:
  * - Search icon on the left
  * - Clear button (X) when value is present
  * - Loading indicator when debouncing
  * - Consistent styling across the application
  * - Keyboard shortcuts (Escape to clear)
- * 
+ *
  * @example
  * ```tsx
  * const { searchValue, setSearchValue, clearSearch, isDebouncing } = useUnifiedSearch();
- * 
+ *
  * <UnifiedSearchInput
  *   value={searchValue}
  *   onChange={setSearchValue}
@@ -169,15 +169,8 @@ export const UnifiedSearchInput = React.forwardRef<HTMLInputElement, UnifiedSear
 
         {/* Right Side Icons (Loading or Clear) */}
         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-          {isLoading && (
-            <Loader2
-              className={cn(
-                'animate-spin text-gray-600',
-                iconSizes[size]
-              )}
-            />
-          )}
-          
+          {isLoading && <Loader2 className={cn('animate-spin text-gray-600', iconSizes[size])} />}
+
           {value && !disabled && (
             <Button
               type="button"
@@ -201,4 +194,3 @@ export const UnifiedSearchInput = React.forwardRef<HTMLInputElement, UnifiedSear
 );
 
 UnifiedSearchInput.displayName = 'UnifiedSearchInput';
-

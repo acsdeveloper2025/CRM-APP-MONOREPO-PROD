@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { Building, MapPin, Calendar, Globe } from 'lucide-react';
 import {
@@ -58,7 +57,7 @@ export function CityDetailsDialog({ city, open, onOpenChange }: CityDetailsDialo
                   </div>
                   <p className="text-lg font-semibold">{city.name}</p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <MapPin className="h-4 w-4 text-gray-600" />
@@ -66,7 +65,7 @@ export function CityDetailsDialog({ city, open, onOpenChange }: CityDetailsDialo
                   </div>
                   <Badge variant="outline">{city.state}</Badge>
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <Globe className="h-4 w-4 text-gray-600" />
@@ -74,7 +73,7 @@ export function CityDetailsDialog({ city, open, onOpenChange }: CityDetailsDialo
                   </div>
                   <p>{city.country}</p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4 text-gray-600" />
@@ -95,9 +94,7 @@ export function CityDetailsDialog({ city, open, onOpenChange }: CityDetailsDialo
                 <span>Associated Pincodes</span>
                 <Badge variant="secondary">{pincodes.length} pincodes</Badge>
               </CardTitle>
-              <CardDescription>
-                All postal codes associated with this city
-              </CardDescription>
+              <CardDescription>All postal codes associated with this city</CardDescription>
             </CardHeader>
             <CardContent>
               {isLoading ? (

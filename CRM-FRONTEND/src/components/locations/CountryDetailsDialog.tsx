@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { Globe, MapPin, Building, Calendar, Hash } from 'lucide-react';
 import {
@@ -32,15 +31,17 @@ export function CountryDetailsDialog({ country, open, onOpenChange }: CountryDet
 
   const getContinentColor = (continent: string) => {
     const colors: Record<string, string> = {
-      'Asia': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
-      'Europe': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+      Asia: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+      Europe: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
       'North America': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
       'South America': 'bg-yellow-100 text-orange-800 dark:bg-yellow-900/20 dark:text-yellow-300',
-      'Africa': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300',
-      'Oceania': 'bg-green-100 text-cyan-800 dark:bg-green-900/20 dark:text-green-300',
-      'Antarctica': 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200',
+      Africa: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300',
+      Oceania: 'bg-green-100 text-cyan-800 dark:bg-green-900/20 dark:text-green-300',
+      Antarctica: 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200',
     };
-    return colors[continent] || 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
+    return (
+      colors[continent] || 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200'
+    );
   };
 
   return (
@@ -51,9 +52,7 @@ export function CountryDetailsDialog({ country, open, onOpenChange }: CountryDet
             <Globe className="h-5 w-5" />
             <span>{country.name}</span>
           </DialogTitle>
-          <DialogDescription>
-            Country details and associated states
-          </DialogDescription>
+          <DialogDescription>Country details and associated states</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -117,9 +116,7 @@ export function CountryDetailsDialog({ country, open, onOpenChange }: CountryDet
                 <span>Associated States</span>
                 <Badge variant="secondary">{states.length}</Badge>
               </CardTitle>
-              <CardDescription>
-                States and territories within this country
-              </CardDescription>
+              <CardDescription>States and territories within this country</CardDescription>
             </CardHeader>
             <CardContent>
               {statesLoading ? (
@@ -174,9 +171,7 @@ export function CountryDetailsDialog({ country, open, onOpenChange }: CountryDet
                   <p className="text-sm text-gray-600">Cities</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-2xl font-bold text-green-600">
-                    {country.continent}
-                  </p>
+                  <p className="text-2xl font-bold text-green-600">{country.continent}</p>
                   <p className="text-sm text-gray-600">Continent</p>
                 </div>
               </div>

@@ -25,7 +25,13 @@ export const useKYCTasks = (query: KYCTaskListQuery = {}) => {
     select: (response) => ({
       data: response.data || [],
       pagination: response.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 },
-      statistics: response.statistics || { total: 0, pending: 0, passed: 0, failed: 0, referred: 0 },
+      statistics: response.statistics || {
+        total: 0,
+        pending: 0,
+        passed: 0,
+        failed: 0,
+        referred: 0,
+      },
     }),
   });
 };
@@ -51,8 +57,13 @@ export const useKYCTasksForCase = (caseId: string) => {
 export const useVerifyKYCDocument = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ taskId, data }: { taskId: string; data: { status: string; remarks?: string; rejectionReason?: string } }) =>
-      kycService.verifyDocument(taskId, data),
+    mutationFn: ({
+      taskId,
+      data,
+    }: {
+      taskId: string;
+      data: { status: string; remarks?: string; rejectionReason?: string };
+    }) => kycService.verifyDocument(taskId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: kycKeys.all });
     },

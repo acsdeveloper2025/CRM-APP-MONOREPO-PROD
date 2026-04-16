@@ -29,7 +29,10 @@ import { usePincodeSearch } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
 import { useAuth } from '@/hooks/useAuth';
 import { isBackendScopedUser } from '@/utils/userPermissionProfiles';
-import { CaseFormAttachmentsSection, type CaseFormAttachment } from '@/components/attachments/CaseFormAttachmentsSection';
+import {
+  CaseFormAttachmentsSection,
+  type CaseFormAttachment,
+} from '@/components/attachments/CaseFormAttachmentsSection';
 import type { CustomerInfoData } from './CustomerInfoStep';
 import { rateTypesService } from '@/services/rateTypes';
 import { casesService } from '@/services/cases';
@@ -39,7 +42,10 @@ import { toast } from 'sonner';
 const fullCaseFormSchema = z.object({
   // Customer Information (new fields)
   applicantType: z.string().min(1, 'Applicant type is required'),
-  address: z.string().min(1, 'Address is required').max(500, 'Address must be less than 500 characters'),
+  address: z
+    .string()
+    .min(1, 'Address is required')
+    .max(500, 'Address must be less than 500 characters'),
   trigger: z.string().min(1, 'TRIGGER is required'), // Required TRIGGER field
 
   // Client Information
@@ -49,7 +55,10 @@ const fullCaseFormSchema = z.object({
 
   // Assignment Information
   createdByBackendUser: z.string().min(1, 'Created by backend user is required'),
-  backendContactNumber: z.string().min(1, 'Backend contact number is required').regex(/^[+]?[\d\s\-()]{10,15}$/, 'Please enter a valid phone number'),
+  backendContactNumber: z
+    .string()
+    .min(1, 'Backend contact number is required')
+    .regex(/^[+]?[\d\s\-()]{10,15}$/, 'Please enter a valid phone number'),
   pincodeId: z.string().min(1, 'Pincode selection is required'),
   areaId: z.string().min(1, 'Area selection is required'),
   assignedToId: z.string().min(1, 'Field user assignment is required'),
@@ -74,7 +83,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   onBack,
   isSubmitting = false,
   initialData = {},
-  editMode = false
+  editMode = false,
 }) => {
   const { user } = useAuth();
   const { data: clientsResponse, isLoading: loadingClients } = useClients();
@@ -82,8 +91,10 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
 
   // Helper function to get user display name
   const getUserDisplayName = (user: unknown) => {
-    if (!user) { return ''; }
-    
+    if (!user) {
+      return '';
+    }
+
     const u = user as { name?: string; firstName?: string; lastName?: string; username?: string };
 
     // Try different possible name formats
@@ -112,12 +123,15 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
 
   // Extract the actual arrays from the API responses (fieldUsers is already extracted by the hook)
   const allClients = useMemo(() => clientsResponse?.data || [], [clientsResponse?.data]);
-  const verificationTypes = useMemo(() => verificationTypesResponse?.data || [], [verificationTypesResponse?.data]);
+  const verificationTypes = useMemo(
+    () => verificationTypesResponse?.data || [],
+    [verificationTypesResponse?.data]
+  );
 
   // Filter clients based on user role and assignments
   const clients = useMemo(() => {
     if (isBackendScopedUser(user) && Array.isArray(user?.assignedClients)) {
-      return allClients.filter(client => user.assignedClients?.includes(client.id));
+      return allClients.filter((client) => user.assignedClients?.includes(client.id));
     }
     return allClients;
   }, [allClients, user]);
@@ -153,7 +167,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   // Filter products based on user role and assignments
   const products = useMemo(() => {
     if (isBackendScopedUser(user) && Array.isArray(user?.assignedProducts)) {
-      return allProducts.filter(product => user.assignedProducts?.includes(product.id));
+      return allProducts.filter((product) => user.assignedProducts?.includes(product.id));
     }
     return allProducts;
   }, [allProducts, user]);
@@ -173,31 +187,39 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   );
   // Server-side pincode search (replaces bulk client-side load)
   const { pincodes } = usePincodeSearch(selectedPincodeId);
-  const { data: areasResponse } = useAreasByPincode(selectedPincodeId ? parseInt(selectedPincodeId) : undefined);
+  const { data: areasResponse } = useAreasByPincode(
+    selectedPincodeId ? parseInt(selectedPincodeId) : undefined
+  );
   const areas = useMemo(() => areasResponse?.data || [], [areasResponse?.data]);
   const areaIds = useMemo(() => areas.map((area) => area.id.toString()), [areas]);
 
   // Fetch available rate types when client, product, and verification type are selected
   const { data: availableRateTypesResponse, isLoading: loadingRateTypes } = useQuery({
-    queryKey: ['available-rate-types-for-case', selectedClientId, selectedProductId, selectedVerificationTypeId],
-    queryFn: () => rateTypesService.getAvailableRateTypesForCase(
-      parseInt(selectedClientId || '0'),
-      parseInt(selectedProductId || '0'),
-      parseInt(selectedVerificationTypeId || '0')
-    ),
+    queryKey: [
+      'available-rate-types-for-case',
+      selectedClientId,
+      selectedProductId,
+      selectedVerificationTypeId,
+    ],
+    queryFn: () =>
+      rateTypesService.getAvailableRateTypesForCase(
+        parseInt(selectedClientId || '0'),
+        parseInt(selectedProductId || '0'),
+        parseInt(selectedVerificationTypeId || '0')
+      ),
     enabled: !!(selectedClientId && selectedProductId && selectedVerificationTypeId),
   });
   const availableRateTypes = availableRateTypesResponse?.data || [];
 
   // Watch for rate type selection to show rate calculation
   const selectedRateTypeId = form.watch('rateTypeId');
-  const selectedRateType = availableRateTypes.find(rt => rt.id.toString() === selectedRateTypeId);
+  const selectedRateType = availableRateTypes.find((rt) => rt.id.toString() === selectedRateTypeId);
   const shouldValidateConfiguration = Boolean(
     selectedClientId &&
-      selectedProductId &&
-      selectedVerificationTypeId &&
-      selectedPincodeId &&
-      selectedAreaId
+    selectedProductId &&
+    selectedVerificationTypeId &&
+    selectedPincodeId &&
+    selectedAreaId
   );
 
   const { data: configurationValidationResponse, isLoading: validatingConfiguration } = useQuery({
@@ -222,7 +244,8 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
     enabled: shouldValidateConfiguration,
   });
   const configurationValidation = configurationValidationResponse?.data;
-  const hasConfigurationError = shouldValidateConfiguration && configurationValidation?.isValid === false;
+  const hasConfigurationError =
+    shouldValidateConfiguration && configurationValidation?.isValid === false;
 
   // Clear rate type when client, product, or verification type changes
   useEffect(() => {
@@ -255,12 +278,20 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   useEffect(() => {
     if (editMode && initialData && Object.keys(initialData).length > 0) {
       // Re-set productId when products are loaded
-      if (products.length > 0 && initialData.productId && form.getValues('productId') !== initialData.productId) {
+      if (
+        products.length > 0 &&
+        initialData.productId &&
+        form.getValues('productId') !== initialData.productId
+      ) {
         form.setValue('productId', initialData.productId);
       }
 
       // Re-set areaId when areas are loaded
-      if (areas.length > 0 && initialData.areaId && form.getValues('areaId') !== initialData.areaId) {
+      if (
+        areas.length > 0 &&
+        initialData.areaId &&
+        form.getValues('areaId') !== initialData.areaId
+      ) {
         form.setValue('areaId', initialData.areaId);
       }
     }
@@ -298,7 +329,9 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
       return;
     }
     if (hasConfigurationError) {
-      toast.error(configurationValidation?.errorMessage || 'Complete pricing configuration before submitting');
+      toast.error(
+        configurationValidation?.errorMessage || 'Complete pricing configuration before submitting'
+      );
       return;
     }
     onSubmit(data, attachments);
@@ -308,14 +341,11 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Case Details</h2>
-        <p className="text-gray-600">
-          Complete the case information and assignment details
-        </p>
+        <p className="text-gray-600">Complete the case information and assignment details</p>
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-
           {/* Customer Information Card */}
           <Card>
             <CardHeader>
@@ -323,9 +353,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                 <User className="h-5 w-5" />
                 Customer Information
               </CardTitle>
-              <CardDescription>
-                Customer details and additional information
-              </CardDescription>
+              <CardDescription>Customer details and additional information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Read-only customer details from previous step */}
@@ -388,11 +416,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                   <FormItem>
                     <FormLabel>Address *</FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="Enter complete address"
-                        {...field}
-                        rows={3}
-                      />
+                      <Textarea placeholder="Enter complete address" {...field} rows={3} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -427,9 +451,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                 <Building className="h-5 w-5" />
                 Client Information
               </CardTitle>
-              <CardDescription>
-                Select client, product, and verification type
-              </CardDescription>
+              <CardDescription>Select client, product, and verification type</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -440,11 +462,14 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Client Name *</FormLabel>
-                      <Select onValueChange={(value) => {
-                        field.onChange(value);
-                        // Reset product selection when client changes
-                        form.setValue('productId', '');
-                      }} value={field.value}>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          // Reset product selection when client changes
+                          form.setValue('productId', '');
+                        }}
+                        value={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select client" />
@@ -452,9 +477,13 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                         </FormControl>
                         <SelectContent>
                           {loadingClients ? (
-                            <SelectItem value="loading" disabled>Loading clients...</SelectItem>
+                            <SelectItem value="loading" disabled>
+                              Loading clients...
+                            </SelectItem>
                           ) : clients.length === 0 ? (
-                            <SelectItem value="no-clients" disabled>No clients available</SelectItem>
+                            <SelectItem value="no-clients" disabled>
+                              No clients available
+                            </SelectItem>
                           ) : (
                             clients.map((client) => (
                               <SelectItem key={client.id} value={String(client.id)}>
@@ -476,10 +505,18 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Product *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={!selectedClientId}>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={!selectedClientId}
+                      >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={selectedClientId ? "Select product" : "Select client first"} />
+                            <SelectValue
+                              placeholder={
+                                selectedClientId ? 'Select product' : 'Select client first'
+                              }
+                            />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -537,9 +574,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                 <Settings className="h-5 w-5" />
                 Assignment
               </CardTitle>
-              <CardDescription>
-                Assignment details and location information
-              </CardDescription>
+              <CardDescription>Assignment details and location information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -589,11 +624,14 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Pincode *</FormLabel>
-                      <Select onValueChange={(value) => {
-                        field.onChange(value);
-                        // Reset area selection when pincode changes
-                        form.setValue('areaId', '');
-                      }} value={field.value}>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          // Reset area selection when pincode changes
+                          form.setValue('areaId', '');
+                        }}
+                        value={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select pincode" />
@@ -619,10 +657,18 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Area *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} disabled={!selectedPincodeId}>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={!selectedPincodeId}
+                      >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={selectedPincodeId ? "Select area" : "Select pincode first"} />
+                            <SelectValue
+                              placeholder={
+                                selectedPincodeId ? 'Select area' : 'Select pincode first'
+                              }
+                            />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -648,32 +694,45 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                       <Select
                         onValueChange={field.onChange}
                         value={field.value}
-                        disabled={!selectedClientId || !selectedProductId || !selectedVerificationTypeId || loadingRateTypes}
+                        disabled={
+                          !selectedClientId ||
+                          !selectedProductId ||
+                          !selectedVerificationTypeId ||
+                          loadingRateTypes
+                        }
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={
-                              !selectedClientId || !selectedProductId || !selectedVerificationTypeId
-                                ? "Select client, product & verification type first"
-                                : loadingRateTypes
-                                ? "Loading rate types..."
-                                : availableRateTypes.length === 0
-                                ? "No rate types available"
-                                : "Select rate type"
-                            }>
-                              {field.value && availableRateTypes && (() => {
-                                const selectedRateType = availableRateTypes.find(rt => rt.id.toString() === field.value);
-                                return selectedRateType ? (
-                                  <div className="flex items-center justify-between w-full">
-                                    <span className="font-medium">{selectedRateType.name}</span>
-                                    {selectedRateType.hasRate && selectedRateType.amount && (
-                                      <span className="text-sm font-semibold text-green-600 ml-2">
-                                        ₹{selectedRateType.amount}
-                                      </span>
-                                    )}
-                                  </div>
-                                ) : null;
-                              })()}
+                            <SelectValue
+                              placeholder={
+                                !selectedClientId ||
+                                !selectedProductId ||
+                                !selectedVerificationTypeId
+                                  ? 'Select client, product & verification type first'
+                                  : loadingRateTypes
+                                    ? 'Loading rate types...'
+                                    : availableRateTypes.length === 0
+                                      ? 'No rate types available'
+                                      : 'Select rate type'
+                              }
+                            >
+                              {field.value &&
+                                availableRateTypes &&
+                                (() => {
+                                  const selectedRateType = availableRateTypes.find(
+                                    (rt) => rt.id.toString() === field.value
+                                  );
+                                  return selectedRateType ? (
+                                    <div className="flex items-center justify-between w-full">
+                                      <span className="font-medium">{selectedRateType.name}</span>
+                                      {selectedRateType.hasRate && selectedRateType.amount && (
+                                        <span className="text-sm font-semibold text-green-600 ml-2">
+                                          ₹{selectedRateType.amount}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : null;
+                                })()}
                             </SelectValue>
                           </SelectTrigger>
                         </FormControl>
@@ -684,7 +743,9 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                                 <div className="flex flex-col">
                                   <span className="font-medium text-gray-900">{rateType.name}</span>
                                   {rateType.description && (
-                                    <span className="text-xs text-gray-600 mt-1">{rateType.description}</span>
+                                    <span className="text-xs text-gray-600 mt-1">
+                                      {rateType.description}
+                                    </span>
                                   )}
                                 </div>
                                 {rateType.hasRate && rateType.amount && (
@@ -698,11 +759,16 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                         </SelectContent>
                       </Select>
                       <FormMessage />
-                      {selectedClientId && selectedProductId && selectedVerificationTypeId && availableRateTypes.length === 0 && !loadingRateTypes && (
-                        <p className="text-sm text-amber-600">
-                          No rate types are configured for this client/product/verification type combination.
-                        </p>
-                      )}
+                      {selectedClientId &&
+                        selectedProductId &&
+                        selectedVerificationTypeId &&
+                        availableRateTypes.length === 0 &&
+                        !loadingRateTypes && (
+                          <p className="text-sm text-amber-600">
+                            No rate types are configured for this client/product/verification type
+                            combination.
+                          </p>
+                        )}
                     </FormItem>
                   )}
                 />
@@ -711,7 +777,11 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                   <div className="col-span-full">
                     <Alert
                       variant={hasConfigurationError ? 'destructive' : 'default'}
-                      className={!hasConfigurationError ? 'border-green-200 bg-green-50 text-green-900' : undefined}
+                      className={
+                        !hasConfigurationError
+                          ? 'border-green-200 bg-green-50 text-green-900'
+                          : undefined
+                      }
                     >
                       <AlertDescription>
                         {validatingConfiguration
@@ -735,7 +805,8 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                         <div>
                           <h4 className="text-sm font-medium text-green-900">Rate Information</h4>
                           <p className="text-sm text-green-700">
-                            Selected Rate Type: <span className="font-medium">{selectedRateType.name}</span>
+                            Selected Rate Type:{' '}
+                            <span className="font-medium">{selectedRateType.name}</span>
                           </p>
                         </div>
                         <div className="text-right">
@@ -763,13 +834,21 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                       <div className="flex items-center">
                         <div className="text-amber-600">
                           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            <path
+                              fillRule="evenodd"
+                              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                              clipRule="evenodd"
+                            />
                           </svg>
                         </div>
                         <div className="ml-3">
-                          <h4 className="text-sm font-medium text-amber-900">Rate Not Configured</h4>
+                          <h4 className="text-sm font-medium text-amber-900">
+                            Rate Not Configured
+                          </h4>
                           <p className="text-sm text-amber-700">
-                            The selected rate type &quot;{selectedRateType.name}&quot; does not have a rate amount configured. Please contact your administrator to set up the rate.
+                            The selected rate type &quot;{selectedRateType.name}&quot; does not have
+                            a rate amount configured. Please contact your administrator to set up
+                            the rate.
                           </p>
                         </div>
                       </div>
@@ -787,23 +866,27 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={
-                              !selectedPincodeId || !selectedAreaId
-                                ? "Select pincode and area first"
-                                : availableFieldUsers.length === 0
-                                  ? "No field users available"
-                                  : "Select field user"
-                            } />
+                            <SelectValue
+                              placeholder={
+                                !selectedPincodeId || !selectedAreaId
+                                  ? 'Select pincode and area first'
+                                  : availableFieldUsers.length === 0
+                                    ? 'No field users available'
+                                    : 'Select field user'
+                              }
+                            />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           {loadingUsers ? (
-                            <SelectItem value="loading" disabled>Loading users...</SelectItem>
+                            <SelectItem value="loading" disabled>
+                              Loading users...
+                            </SelectItem>
                           ) : availableFieldUsers.length === 0 ? (
                             <SelectItem value="no-users" disabled>
                               {!selectedPincodeId || !selectedAreaId
-                                ? "Please select pincode and area first"
-                                : "No field users have access to this pincode and area"}
+                                ? 'Please select pincode and area first'
+                                : 'No field users have access to this pincode and area'}
                             </SelectItem>
                           ) : (
                             availableFieldUsers.map((user) => (
@@ -819,9 +902,9 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                         selectedAreaId &&
                         availableFieldUsers.length === 0 &&
                         !loadingUsers && (
-                        <p className="text-sm text-amber-600 mt-1">
-                          No field users have access to the selected pincode and area
-                        </p>
+                          <p className="text-sm text-amber-600 mt-1">
+                            No field users have access to the selected pincode and area
+                          </p>
                         )}
                     </FormItem>
                   )}
@@ -863,7 +946,9 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
           />
 
           {/* Form Actions */}
-          <div className={`flex items-center ${onBack ? 'justify-between' : 'justify-end'} pt-6 border-t`}>
+          <div
+            className={`flex items-center ${onBack ? 'justify-between' : 'justify-end'} pt-6 border-t`}
+          >
             {onBack && (
               <Button type="button" variant="outline" onClick={onBack} disabled={isSubmitting}>
                 <ArrowLeft className="h-4 w-4 mr-2" />

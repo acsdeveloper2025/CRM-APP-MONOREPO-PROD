@@ -28,10 +28,8 @@ export const LayoutProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }, []);
 
   const toggleMenu = useCallback((menuId: string) => {
-    setExpandedMenusState(prev =>
-      prev.includes(menuId)
-        ? prev.filter(id => id !== menuId)
-        : [...prev, menuId]
+    setExpandedMenusState((prev) =>
+      prev.includes(menuId) ? prev.filter((id) => id !== menuId) : [...prev, menuId]
     );
   }, []);
 
@@ -40,10 +38,5 @@ export const LayoutProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     [expandedMenus, setExpandedMenus, toggleMenu]
   );
 
-  return (
-    <LayoutContext.Provider value={value}>
-      {children}
-    </LayoutContext.Provider>
-  );
+  return <LayoutContext.Provider value={value}>{children}</LayoutContext.Provider>;
 };
-

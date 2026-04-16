@@ -36,10 +36,14 @@ import type { DocumentType } from '@/types/documentType';
 
 const editClientSchema = z.object({
   name: z.string().min(1, 'Client name is required').max(100, 'Name too long'),
-  code: z.string()
+  code: z
+    .string()
     .min(2, 'Client code must be at least 2 characters')
     .max(10, 'Client code must be at most 10 characters')
-    .regex(/^[A-Z0-9_]+$/, 'Client code must contain only uppercase letters, numbers, and underscores'),
+    .regex(
+      /^[A-Z0-9_]+$/,
+      'Client code must contain only uppercase letters, numbers, and underscores'
+    ),
   productIds: z.array(z.string()).optional(),
   verificationTypeIds: z.array(z.number()).optional(),
   documentTypeIds: z.array(z.number()).optional(),
@@ -97,7 +101,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
     queryKey: ['client', client?.id],
     queryFn: () => {
       if (!client) {
-        throw new Error("Client ID missing");
+        throw new Error('Client ID missing');
       }
       return clientsService.getClientById(client.id);
     },
@@ -114,7 +118,8 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
         name: clientDetails.name,
         code: clientDetails.code,
         productIds: clientDetails.products?.map((p: Product) => String(p.id)) || [],
-        verificationTypeIds: clientDetails.verificationTypes?.map((v: VerificationType) => v.id) || [],
+        verificationTypeIds:
+          clientDetails.verificationTypes?.map((v: VerificationType) => v.id) || [],
         documentTypeIds: clientDetails.documentTypes?.map((d: DocumentType) => d.id) || [],
       });
     }
@@ -126,12 +131,12 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
       const cleanData = {
         name: data.name,
         code: data.code,
-        productIds: data.productIds?.map(id => parseInt(id, 10)),
+        productIds: data.productIds?.map((id) => parseInt(id, 10)),
         verificationTypeIds: data.verificationTypeIds,
         documentTypeIds: data.documentTypeIds,
       };
       if (!client) {
-        throw new Error("Client ID missing");
+        throw new Error('Client ID missing');
       }
       return clientsService.updateClient(client.id, cleanData);
     },
@@ -171,10 +176,18 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <Tabs defaultValue="basic" className="w-full">
               <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
-                <TabsTrigger value="basic" className="text-xs sm:text-sm">Basic Info</TabsTrigger>
-                <TabsTrigger value="products" className="text-xs sm:text-sm">Products</TabsTrigger>
-                <TabsTrigger value="verification-types" className="text-xs sm:text-sm">Verification</TabsTrigger>
-                <TabsTrigger value="document-types" className="text-xs sm:text-sm">Documents</TabsTrigger>
+                <TabsTrigger value="basic" className="text-xs sm:text-sm">
+                  Basic Info
+                </TabsTrigger>
+                <TabsTrigger value="products" className="text-xs sm:text-sm">
+                  Products
+                </TabsTrigger>
+                <TabsTrigger value="verification-types" className="text-xs sm:text-sm">
+                  Verification
+                </TabsTrigger>
+                <TabsTrigger value="document-types" className="text-xs sm:text-sm">
+                  Documents
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="basic" className="space-y-4">
@@ -202,7 +215,8 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                         <Input placeholder="e.g., ACME_CORP" {...field} />
                       </FormControl>
                       <FormDescription>
-                        Unique identifier for this client (uppercase letters, numbers, and underscores only)
+                        Unique identifier for this client (uppercase letters, numbers, and
+                        underscores only)
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -231,9 +245,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Available Products</FormLabel>
-                      <FormDescription>
-                        Select products to assign to this client
-                      </FormDescription>
+                      <FormDescription>Select products to assign to this client</FormDescription>
                       <ScrollArea className="h-48 w-full border rounded-md p-3">
                         {products.length ? (
                           <div className="space-y-2">
@@ -252,7 +264,9 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                                           : [...currentIds, productIdStr]
                                       );
                                     } else {
-                                      field.onChange(currentIds.filter(id => id !== productIdStr));
+                                      field.onChange(
+                                        currentIds.filter((id) => id !== productIdStr)
+                                      );
                                     }
                                   }}
                                 />
@@ -294,7 +308,10 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                         {verificationTypes.length ? (
                           <div className="space-y-2">
                             {verificationTypes.map((verificationType) => (
-                              <div key={verificationType.id} className="flex items-center space-x-2">
+                              <div
+                                key={verificationType.id}
+                                className="flex items-center space-x-2"
+                              >
                                 <Checkbox
                                   id={`vtype-${verificationType.id}`}
                                   checked={field.value?.includes(verificationType.id) || false}
@@ -307,7 +324,9 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                                           : [...currentIds, verificationType.id]
                                       );
                                     } else {
-                                      field.onChange(currentIds.filter(id => id !== verificationType.id));
+                                      field.onChange(
+                                        currentIds.filter((id) => id !== verificationType.id)
+                                      );
                                     }
                                   }}
                                 />
@@ -375,7 +394,9 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                                           : [...currentIds, documentType.id]
                                       );
                                     } else {
-                                      field.onChange(currentIds.filter(id => id !== documentType.id));
+                                      field.onChange(
+                                        currentIds.filter((id) => id !== documentType.id)
+                                      );
                                     }
                                   }}
                                 />
@@ -386,7 +407,9 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                                   <div className="flex items-center justify-between">
                                     <div>
                                       <div className="text-gray-900">{documentType.name}</div>
-                                      <div className="text-xs text-gray-600">{documentType.code}</div>
+                                      <div className="text-xs text-gray-600">
+                                        {documentType.code}
+                                      </div>
                                     </div>
                                   </div>
                                 </label>
@@ -407,11 +430,19 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
             </Tabs>
 
             <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}
-                 className="w-full sm:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto"
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateMutation.isPending} className="w-full sm:w-auto">
+              <Button
+                type="submit"
+                disabled={updateMutation.isPending}
+                className="w-full sm:w-auto"
+              >
                 {updateMutation.isPending ? 'Updating...' : 'Update Client'}
               </Button>
             </DialogFooter>

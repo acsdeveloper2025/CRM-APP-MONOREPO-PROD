@@ -38,7 +38,9 @@ export const KYCVerificationPage: React.FC = () => {
   const { mutateAsync: verify, isPending: isVerifying } = useVerifyKYCDocument();
 
   const handleVerify = async (status: 'PASS' | 'FAIL' | 'REFER') => {
-    if (!taskId) {return;}
+    if (!taskId) {
+      return;
+    }
 
     if (status === 'FAIL' && !rejectionReason.trim()) {
       toast.error('Please provide a rejection reason');
@@ -61,8 +63,12 @@ export const KYCVerificationPage: React.FC = () => {
     }
   };
 
-  if (isLoading) {return <LoadingState />;}
-  if (!task) {return <div className="text-center py-8">KYC task not found</div>;}
+  if (isLoading) {
+    return <LoadingState />;
+  }
+  if (!task) {
+    return <div className="text-center py-8">KYC task not found</div>;
+  }
 
   const isPending = task.verificationStatus === 'PENDING';
 
@@ -75,7 +81,9 @@ export const KYCVerificationPage: React.FC = () => {
         </Button>
         <div>
           <h1 className="text-xl font-bold">KYC Document Verification</h1>
-          <p className="text-sm text-gray-500">Case #{task.caseNumber} — {task.taskNumber}</p>
+          <p className="text-sm text-gray-500">
+            Case #{task.caseNumber} — {task.taskNumber}
+          </p>
         </div>
         <Badge className={STATUS_COLORS[task.verificationStatus] || ''}>
           {task.verificationStatus}
@@ -152,7 +160,9 @@ export const KYCVerificationPage: React.FC = () => {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {Object.entries(task.documentDetails).map(([key, value]) => (
                   <div key={key}>
-                    <p className="text-xs text-gray-500">{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                    <p className="text-xs text-gray-500">
+                      {key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                    </p>
                     <p className="font-medium text-sm">{value || '-'}</p>
                   </div>
                 ))}
@@ -194,16 +204,28 @@ export const KYCVerificationPage: React.FC = () => {
 
           {/* Previous verification result */}
           {!isPending && (
-            <div className={`border rounded-lg p-4 ${
-              task.verificationStatus === 'PASS' ? 'bg-green-50 border-green-200' :
-              task.verificationStatus === 'FAIL' ? 'bg-red-50 border-red-200' :
-              'bg-purple-50 border-purple-200'
-            }`}>
+            <div
+              className={`border rounded-lg p-4 ${
+                task.verificationStatus === 'PASS'
+                  ? 'bg-green-50 border-green-200'
+                  : task.verificationStatus === 'FAIL'
+                    ? 'bg-red-50 border-red-200'
+                    : 'bg-purple-50 border-purple-200'
+              }`}
+            >
               <p className="font-medium">Verification Result: {task.verificationStatus}</p>
-              {task.verifiedByName && <p className="text-sm mt-1">Verified by: {task.verifiedByName}</p>}
-              {task.verifiedAt && <p className="text-sm">Date: {format(new Date(task.verifiedAt), 'dd MMM yyyy HH:mm')}</p>}
+              {task.verifiedByName && (
+                <p className="text-sm mt-1">Verified by: {task.verifiedByName}</p>
+              )}
+              {task.verifiedAt && (
+                <p className="text-sm">
+                  Date: {format(new Date(task.verifiedAt), 'dd MMM yyyy HH:mm')}
+                </p>
+              )}
               {task.remarks && <p className="text-sm mt-2">Remarks: {task.remarks}</p>}
-              {task.rejectionReason && <p className="text-sm text-red-600 mt-1">Reason: {task.rejectionReason}</p>}
+              {task.rejectionReason && (
+                <p className="text-sm text-red-600 mt-1">Reason: {task.rejectionReason}</p>
+              )}
             </div>
           )}
         </CardContent>

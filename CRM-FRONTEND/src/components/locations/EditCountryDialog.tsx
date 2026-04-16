@@ -33,7 +33,8 @@ import { Country } from '@/types/location';
 
 const editCountrySchema = z.object({
   name: z.string().min(1, 'Country name is required').max(100, 'Country name is too long'),
-  code: z.string()
+  code: z
+    .string()
     .min(2, 'Country code must be at least 2 characters')
     .max(3, 'Country code must be at most 3 characters')
     .regex(/^[A-Z]{2,3}$/, 'Country code must be uppercase letters only (ISO format)'),
@@ -50,12 +51,12 @@ interface EditCountryDialogProps {
 
 const continents = [
   'Africa',
-  'Antarctica', 
+  'Antarctica',
   'Asia',
   'Europe',
   'North America',
   'Oceania',
-  'South America'
+  'South America',
 ];
 
 export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDialogProps) {
@@ -107,9 +108,7 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
       <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Country</DialogTitle>
-          <DialogDescription>
-            Update the country information.
-          </DialogDescription>
+          <DialogDescription>Update the country information.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -121,10 +120,7 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
                 <FormItem>
                   <FormLabel>Country Name</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="e.g., United States" 
-                      {...field} 
-                    />
+                    <Input placeholder="e.g., United States" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -138,8 +134,8 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
                 <FormItem>
                   <FormLabel>Country Code (ISO)</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="e.g., US, IN, GB" 
+                    <Input
+                      placeholder="e.g., US, IN, GB"
                       maxLength={3}
                       {...field}
                       onChange={(e) => {
@@ -188,10 +184,11 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={updateCountryMutation.isPending}
-               className="w-full sm:w-auto">
+                className="w-full sm:w-auto"
+              >
                 {updateCountryMutation.isPending ? 'Updating...' : 'Update Country'}
               </Button>
             </DialogFooter>

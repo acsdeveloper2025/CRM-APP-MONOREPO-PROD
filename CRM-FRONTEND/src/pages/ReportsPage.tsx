@@ -27,10 +27,11 @@ export function ReportsPage() {
 
   const { data: misReportsData, isLoading: misReportsLoading } = useQuery({
     queryKey: ['mis-reports', misReportsPage, pageSize],
-    queryFn: () => reportsService.getMISReports({
-      page: misReportsPage,
-      limit: pageSize,
-    }),
+    queryFn: () =>
+      reportsService.getMISReports({
+        page: misReportsPage,
+        limit: pageSize,
+      }),
     enabled: activeTab === 'mis-reports',
   });
 
@@ -82,7 +83,7 @@ export function ReportsPage() {
     return {
       misReports: {
         total: misReports.length,
-        recent: misReports.filter(report => new Date(report.generatedAt) >= weekAgo).length,
+        recent: misReports.filter((report) => new Date(report.generatedAt) >= weekAgo).length,
       },
     };
   }, [misReportsData]);
@@ -115,9 +116,7 @@ export function ReportsPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <div className="flex items-center justify-between">
               <TabsList>
-                <TabsTrigger value="overview">
-                  Overview
-                </TabsTrigger>
+                <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="mis-reports">
                   MIS Reports
                   {stats.misReports.total > 0 && (
@@ -126,30 +125,19 @@ export function ReportsPage() {
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="mis-dashboard">
-                  MIS Dashboard
-                </TabsTrigger>
-                <TabsTrigger value="analytics">
-                  Analytics
-                </TabsTrigger>
+                <TabsTrigger value="mis-dashboard">MIS Dashboard</TabsTrigger>
+                <TabsTrigger value="analytics">Analytics</TabsTrigger>
               </TabsList>
 
               {/* Actions */}
               <div className="flex items-center space-x-2">
                 {activeTab === 'mis-reports' && (
                   <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleExportData('EXCEL')}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => handleExportData('EXCEL')}>
                       <Download className="h-4 w-4 mr-2" />
                       Export
                     </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => setShowGenerateReport(true)}
-                    >
+                    <Button size="sm" onClick={() => setShowGenerateReport(true)}>
                       <Plus className="h-4 w-4 mr-2" />
                       Generate Report
                     </Button>
@@ -158,11 +146,9 @@ export function ReportsPage() {
               </div>
             </div>
 
-
-
             <TabsContent value="overview" className="space-y-4">
               <ReportSummaryCards summaries={reportSummariesData?.data || []} />
-              
+
               {/* Quick Stats */}
               <div className="grid gap-4 md:grid-cols-4">
                 <Card>
@@ -171,22 +157,22 @@ export function ReportsPage() {
                     <BarChart3 className="h-4 w-4 text-gray-600" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{dashboardData?.data?.totalReports || 0}</div>
+                    <div className="text-2xl font-bold">
+                      {dashboardData?.data?.totalReports || 0}
+                    </div>
                     <p className="text-xs text-gray-600">
                       {dashboardData?.data?.recentReports || 0} this week
                     </p>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">MIS Reports</CardTitle>
                     <TrendingUp className="h-4 w-4 text-blue-600" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-blue-600">
-                      {stats.misReports.total}
-                    </div>
+                    <div className="text-2xl font-bold text-blue-600">{stats.misReports.total}</div>
                     <p className="text-xs text-gray-600">
                       {stats.misReports.recent} generated in the last 7 days
                     </p>
@@ -202,9 +188,7 @@ export function ReportsPage() {
                     <div className="text-2xl font-bold">
                       {dashboardData?.data?.averageTurnaround || 0}h
                     </div>
-                    <p className="text-xs text-gray-600">
-                      Target: 24h
-                    </p>
+                    <p className="text-xs text-gray-600">Target: 24h</p>
                   </CardContent>
                 </Card>
 
@@ -226,20 +210,18 @@ export function ReportsPage() {
             </TabsContent>
 
             <TabsContent value="mis-reports" className="space-y-4">
-              <MISReportsTable
-                data={misReportsData?.data || []}
-                isLoading={misReportsLoading}
-              />
+              <MISReportsTable data={misReportsData?.data || []} isLoading={misReportsLoading} />
               {misReportsData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
                   <div className="text-sm text-gray-600">
-                    Showing {misReportsData.data?.length || 0} of {misReportsData.pagination.total} MIS reports
+                    Showing {misReportsData.data?.length || 0} of {misReportsData.pagination.total}{' '}
+                    MIS reports
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setMisReportsPage(prev => Math.max(1, prev - 1))}
+                      onClick={() => setMisReportsPage((prev) => Math.max(1, prev - 1))}
                       disabled={misReportsPage === 1}
                     >
                       Previous
@@ -250,7 +232,7 @@ export function ReportsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setMisReportsPage(prev => prev + 1)}
+                      onClick={() => setMisReportsPage((prev) => prev + 1)}
                       disabled={misReportsPage >= (misReportsData.pagination.totalPages || 1)}
                     >
                       Next
@@ -275,10 +257,7 @@ export function ReportsPage() {
       </Card>
 
       {/* Dialogs */}
-      <GenerateReportDialog
-        open={showGenerateReport}
-        onOpenChange={setShowGenerateReport}
-      />
+      <GenerateReportDialog open={showGenerateReport} onOpenChange={setShowGenerateReport} />
     </div>
   );
 }

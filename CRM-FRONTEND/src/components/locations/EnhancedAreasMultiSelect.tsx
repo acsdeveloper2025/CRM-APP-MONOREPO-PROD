@@ -23,13 +23,17 @@ export function EnhancedAreasMultiSelect({
   onAreasChange,
   disabled = false,
   error,
-  placeholder = "Select areas...",
+  placeholder = 'Select areas...',
   maxAreas = 15,
 }: EnhancedAreasMultiSelectProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch all available areas
-  const { data: areasData, isLoading, error: queryError } = useQuery({
+  const {
+    data: areasData,
+    isLoading,
+    error: queryError,
+  } = useQuery({
     queryKey: ['standalone-areas'],
     queryFn: () => locationsService.getStandaloneAreas(),
   });
@@ -38,31 +42,35 @@ export function EnhancedAreasMultiSelect({
 
   // Convert areas to dropdown options with search filtering
   const areaOptions: MultiSelectOption[] = useMemo(() => {
-    if (!allAreas) {return [];}
-    
+    if (!allAreas) {
+      return [];
+    }
+
     return allAreas
-      .filter(area => {
+      .filter((area) => {
         // Apply search filter
-        if (!searchQuery) {return true;}
+        if (!searchQuery) {
+          return true;
+        }
         const query = searchQuery.toLowerCase();
         return area.name.toLowerCase().includes(query);
       })
-      .map(area => ({
+      .map((area) => ({
         id: area.id,
         label: area.name,
-        className: "text-gray-900" // Ensure text is visible
+        className: 'text-gray-900', // Ensure text is visible
       }));
   }, [allAreas, searchQuery]);
 
   // Handle selection changes with max limit validation
   const handleSelectionChange = (values: (string | number)[]) => {
-    const stringValues = values.map(id => String(id));
-    
+    const stringValues = values.map((id) => String(id));
+
     // Enforce max areas limit
     if (stringValues.length > maxAreas) {
       return; // Don't allow more than max areas
     }
-    
+
     onAreasChange(stringValues);
   };
 
@@ -91,27 +99,23 @@ export function EnhancedAreasMultiSelect({
         disabled={disabled}
         maxDisplayItems={50}
         emptyMessage="No areas found matching your search"
-        className={error ? "border-red-500" : ""}
+        className={error ? 'border-red-500' : ''}
       />
-      
+
       {/* Error message */}
-      {error && (
-        <p className="text-sm text-red-500">{error}</p>
-      )}
-      
+      {error && <p className="text-sm text-red-500">{error}</p>}
+
       {/* Selection info */}
       {selectedAreaIds.length > 0 && (
         <p className="text-xs text-gray-600">
           {selectedAreaIds.length} of {maxAreas} areas selected
-          {selectedAreaIds.length >= maxAreas && " (maximum reached)"}
+          {selectedAreaIds.length >= maxAreas && ' (maximum reached)'}
         </p>
       )}
-      
+
       {/* Query error display */}
       {queryError && (
-        <p className="text-sm text-red-500">
-          Failed to load areas. Please try again.
-        </p>
+        <p className="text-sm text-red-500">Failed to load areas. Please try again.</p>
       )}
     </div>
   );

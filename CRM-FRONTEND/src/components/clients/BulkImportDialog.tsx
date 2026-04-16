@@ -44,9 +44,10 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
       onOpenChange(false);
     },
     onError: (error: unknown) => {
-      const message = error && typeof error === 'object' && 'response' in error
-        ? (error.response as { data?: { message?: string } })?.data?.message
-        : undefined;
+      const message =
+        error && typeof error === 'object' && 'response' in error
+          ? (error.response as { data?: { message?: string } })?.data?.message
+          : undefined;
       toast.error(message || `Failed to import ${type}`);
       setUploadProgress(0);
     },
@@ -68,17 +69,18 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
       toast.error('Please select a file to import');
       return;
     }
-    
+
     setUploadProgress(10);
     importMutation.mutate(file);
   };
 
   const downloadTemplate = () => {
     // In a real implementation, this would download a CSV template
-    const templateData = type === 'clients' 
-      ? 'name,code\nExample Client,EXAMPLE_CLIENT'
-      : 'name,clientId\nExample Product,client-id-here';
-    
+    const templateData =
+      type === 'clients'
+        ? 'name,code\nExample Client,EXAMPLE_CLIENT'
+        : 'name,clientId\nExample Product,client-id-here';
+
     const blob = new Blob([templateData], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -99,7 +101,8 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
             <span>Bulk Import {type === 'clients' ? 'Clients' : 'Products'}</span>
           </DialogTitle>
           <DialogDescription>
-            Import multiple {type} from a CSV file. Download the template to see the required format.
+            Import multiple {type} from a CSV file. Download the template to see the required
+            format.
           </DialogDescription>
         </DialogHeader>
 
@@ -137,9 +140,7 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
           {importMutation.isPending && (
             <div className="space-y-2">
               <Progress value={uploadProgress} className="w-full" />
-              <p className="text-sm text-gray-600 text-center">
-                Importing {type}...
-              </p>
+              <p className="text-sm text-gray-600 text-center">Importing {type}...</p>
             </div>
           )}
 
@@ -147,10 +148,9 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              {type === 'clients' 
+              {type === 'clients'
                 ? 'CSV should contain columns: name, code. Client codes must be unique.'
-                : 'CSV should contain columns: name, clientId. Make sure client IDs exist in the system.'
-              }
+                : 'CSV should contain columns: name, clientId. Make sure client IDs exist in the system.'}
             </AlertDescription>
           </Alert>
         </div>
@@ -159,7 +159,7 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-                className="w-full sm:w-auto"
+            className="w-full sm:w-auto"
             disabled={importMutation.isPending}
           >
             Cancel
@@ -167,7 +167,8 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
           <Button
             onClick={handleImport}
             disabled={!file || importMutation.isPending}
-           className="w-full sm:w-auto">
+            className="w-full sm:w-auto"
+          >
             {importMutation.isPending ? 'Importing...' : 'Import'}
           </Button>
         </DialogFooter>

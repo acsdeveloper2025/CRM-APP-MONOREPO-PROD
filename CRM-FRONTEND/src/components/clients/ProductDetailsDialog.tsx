@@ -40,9 +40,7 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
             <Package className="h-5 w-5" />
             <span>Product Details</span>
           </DialogTitle>
-          <DialogDescription>
-            Comprehensive information about {productData.name}
-          </DialogDescription>
+          <DialogDescription>Comprehensive information about {productData.name}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -65,17 +63,15 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
                     </div>
                     <p className="font-medium">{productData.name}</p>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <Building2 className="h-4 w-4" />
                       <span>Verification Types</span>
                     </div>
-                    <p className="text-sm text-gray-600">
-                      Types vary per client-product mapping
-                    </p>
+                    <p className="text-sm text-gray-600">Types vary per client-product mapping</p>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <Calendar className="h-4 w-4" />
@@ -89,7 +85,7 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
                       })}
                     </p>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <CheckCircle className="h-4 w-4" />
@@ -110,9 +106,7 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
                 <span>Verification Types</span>
                 <Badge variant="secondary">{types.length}</Badge>
               </CardTitle>
-              <CardDescription>
-                Verification types available for this product
-              </CardDescription>
+              <CardDescription>Verification types available for this product</CardDescription>
             </CardHeader>
             <CardContent>
               {types.length === 0 ? (
@@ -123,7 +117,10 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
               ) : (
                 <div className="grid gap-2">
                   {types.map((type) => (
-                    <div key={type.id} className="flex items-center justify-between p-3 rounded-lg border">
+                    <div
+                      key={type.id}
+                      className="flex items-center justify-between p-3 rounded-lg border"
+                    >
                       <div className="space-y-1">
                         <p className="font-medium">{type.name}</p>
                         <p className="text-sm text-gray-600">

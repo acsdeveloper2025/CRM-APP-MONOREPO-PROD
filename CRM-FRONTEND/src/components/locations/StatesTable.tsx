@@ -90,9 +90,7 @@ export function StatesTable({ data, isLoading }: StatesTableProps) {
       <div className="text-center py-8">
         <MapPin className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-2 text-sm font-medium text-gray-900">No states found</h3>
-        <p className="mt-1 text-sm text-gray-600">
-          Get started by creating a new state.
-        </p>
+        <p className="mt-1 text-sm text-gray-600">Get started by creating a new state.</p>
       </div>
     );
   }
@@ -120,13 +118,9 @@ export function StatesTable({ data, isLoading }: StatesTableProps) {
                 </TableCell>
                 <TableCell>{state.country}</TableCell>
                 <TableCell>
-                  <Badge className={baseBadgeStyle}>
-                    {state.cityCount || 0} CITIES
-                  </Badge>
+                  <Badge className={baseBadgeStyle}>{state.cityCount || 0} CITIES</Badge>
                 </TableCell>
-                <TableCell>
-                  {new Date(state.createdAt).toLocaleDateString()}
-                </TableCell>
+                <TableCell>{new Date(state.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -184,8 +178,8 @@ export function StatesTable({ data, isLoading }: StatesTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the state
-              &quot;{stateToDelete?.name}&quot; and all associated cities.
+              This action cannot be undone. This will permanently delete the state &quot;
+              {stateToDelete?.name}&quot; and all associated cities.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

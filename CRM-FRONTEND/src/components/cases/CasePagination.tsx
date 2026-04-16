@@ -41,7 +41,7 @@ export const CasePagination: React.FC<CasePaginationProps> = ({
   const generatePageNumbers = () => {
     const pages = [];
     const maxVisiblePages = 5;
-    
+
     if (totalPages <= maxVisiblePages) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
@@ -49,18 +49,18 @@ export const CasePagination: React.FC<CasePaginationProps> = ({
     } else {
       const startPage = Math.max(1, currentPage - 2);
       const endPage = Math.min(totalPages, currentPage + 2);
-      
+
       if (startPage > 1) {
         pages.push(1);
         if (startPage > 2) {
           pages.push('ellipsis-start');
         }
       }
-      
+
       for (let i = startPage; i <= endPage; i++) {
         pages.push(i);
       }
-      
+
       if (endPage < totalPages) {
         if (endPage < totalPages - 1) {
           pages.push('ellipsis-end');
@@ -68,7 +68,7 @@ export const CasePagination: React.FC<CasePaginationProps> = ({
         pages.push(totalPages);
       }
     }
-    
+
     return pages;
   };
 
@@ -100,20 +100,18 @@ export const CasePagination: React.FC<CasePaginationProps> = ({
           {totalItems > 0 ? `${startItem}-${endItem} of ${totalItems}` : '0 of 0'}
         </div>
       </div>
-      
+
       <Pagination>
         <PaginationContent>
           <PaginationItem>
             <PaginationPrevious
               onClick={() => onPageChange(currentPage - 1)}
               className={
-                currentPage <= 1 || isLoading
-                  ? 'pointer-events-none opacity-50'
-                  : 'cursor-pointer'
+                currentPage <= 1 || isLoading ? 'pointer-events-none opacity-50' : 'cursor-pointer'
               }
             />
           </PaginationItem>
-          
+
           {pageNumbers.map((page, index) => (
             <PaginationItem key={index}>
               {page === 'ellipsis-start' || page === 'ellipsis-end' ? (
@@ -129,7 +127,7 @@ export const CasePagination: React.FC<CasePaginationProps> = ({
               )}
             </PaginationItem>
           ))}
-          
+
           <PaginationItem>
             <PaginationNext
               onClick={() => onPageChange(currentPage + 1)}

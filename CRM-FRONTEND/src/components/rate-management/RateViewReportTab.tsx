@@ -43,14 +43,22 @@ export function RateViewReportTab() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedClientId, selectedProductId, selectedVerificationTypeId, selectedRateTypeId, isActiveFilter]);
+  }, [
+    searchQuery,
+    selectedClientId,
+    selectedProductId,
+    selectedVerificationTypeId,
+    selectedRateTypeId,
+    isActiveFilter,
+  ]);
 
   // Build filters for rates query
   const rateFilters = {
     search: searchQuery,
     clientId: selectedClientId === 'all' ? undefined : Number(selectedClientId),
     productId: selectedProductId === 'all' ? undefined : Number(selectedProductId),
-    verificationTypeId: selectedVerificationTypeId === 'all' ? undefined : Number(selectedVerificationTypeId),
+    verificationTypeId:
+      selectedVerificationTypeId === 'all' ? undefined : Number(selectedVerificationTypeId),
     rateTypeId: selectedRateTypeId === 'all' ? undefined : Number(selectedRateTypeId),
     isActive: isActiveFilter === 'all' ? undefined : isActiveFilter === 'active',
     page: currentPage,
@@ -135,24 +143,26 @@ export function RateViewReportTab() {
       'Currency',
       'Status',
       'Created Date',
-      'Updated Date'
+      'Updated Date',
     ];
 
     const csvContent = [
       headers.join(','),
-      ...rates.map(rate => [
-        `"${rate.clientName}"`,
-        `"${rate.clientCode}"`,
-        `"${rate.productName}"`,
-        `"${rate.productCode}"`,
-        `"${rate.verificationTypeName}"`,
-        `"${rate.rateTypeName}"`,
-        rate.amount,
-        rate.currency,
-        rate.isActive ? 'Active' : 'Inactive',
-        new Date(rate.createdAt).toLocaleDateString(),
-        new Date(rate.updatedAt).toLocaleDateString()
-      ].join(','))
+      ...rates.map((rate) =>
+        [
+          `"${rate.clientName}"`,
+          `"${rate.clientCode}"`,
+          `"${rate.productName}"`,
+          `"${rate.productCode}"`,
+          `"${rate.verificationTypeName}"`,
+          `"${rate.rateTypeName}"`,
+          rate.amount,
+          rate.currency,
+          rate.isActive ? 'Active' : 'Inactive',
+          new Date(rate.createdAt).toLocaleDateString(),
+          new Date(rate.updatedAt).toLocaleDateString(),
+        ].join(',')
+      ),
     ].join('\n');
 
     // Download CSV
@@ -241,7 +251,10 @@ export function RateViewReportTab() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Verification Type</label>
-              <Select value={selectedVerificationTypeId} onValueChange={setSelectedVerificationTypeId}>
+              <Select
+                value={selectedVerificationTypeId}
+                onValueChange={setSelectedVerificationTypeId}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="All types" />
                 </SelectTrigger>
@@ -333,7 +346,12 @@ export function RateViewReportTab() {
                 </TableHeader>
                 <TableBody>
                   {rates.map((rate, index) => (
-                    <TableRow key={rate.id || `${rate.clientId}-${rate.productId}-${rate.verificationTypeId}-${rate.rateTypeId}-${index}`}>
+                    <TableRow
+                      key={
+                        rate.id ||
+                        `${rate.clientId}-${rate.productId}-${rate.verificationTypeId}-${rate.rateTypeId}-${index}`
+                      }
+                    >
                       <TableCell>
                         <div>
                           <div className="font-medium">{rate.clientName}</div>
@@ -400,7 +418,7 @@ export function RateViewReportTab() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
                 >
                   Previous
@@ -411,7 +429,7 @@ export function RateViewReportTab() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  onClick={() => setCurrentPage((prev) => prev + 1)}
                   disabled={currentPage >= (ratesData.pagination.totalPages || 1)}
                 >
                   Next
@@ -432,25 +450,26 @@ export function RateViewReportTab() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold">
-              {rates.filter(r => r.isActive).length}
-            </div>
+            <div className="text-2xl font-bold">{rates.filter((r) => r.isActive).length}</div>
             <p className="text-xs text-gray-600">Active Rates</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold">
-              ₹{rates.length > 0 ? (rates.reduce((sum, r) => sum + Number(r.amount || 0), 0) / rates.length).toFixed(0) : '0'}
+              ₹
+              {rates.length > 0
+                ? (rates.reduce((sum, r) => sum + Number(r.amount || 0), 0) / rates.length).toFixed(
+                    0
+                  )
+                : '0'}
             </div>
             <p className="text-xs text-gray-600">Average Rate</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold">
-              {new Set(rates.map(r => r.clientId)).size}
-            </div>
+            <div className="text-2xl font-bold">{new Set(rates.map((r) => r.clientId)).size}</div>
             <p className="text-xs text-gray-600">Unique Clients</p>
           </CardContent>
         </Card>

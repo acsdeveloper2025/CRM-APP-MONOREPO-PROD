@@ -13,7 +13,7 @@ import {
   AlertCircle,
   History,
   XCircle,
-  Edit
+  Edit,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -65,7 +65,6 @@ interface AssignmentHistory {
   taskStatusAfter: string;
 }
 
-
 interface TaskHistoryItem {
   id: string;
   details: {
@@ -80,7 +79,6 @@ interface TaskHistoryItem {
   timestamp: string;
 }
 
-
 export const TaskDetailPage: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
@@ -89,7 +87,6 @@ export const TaskDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-
 
   useEffect(() => {
     if (taskId) {
@@ -106,7 +103,7 @@ export const TaskDetailPage: React.FC = () => {
 
       if (response.success) {
         // Transform snakeCase to camelCase
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const taskData = response.data as any;
         setTask({
           id: taskData.id,
@@ -142,7 +139,9 @@ export const TaskDetailPage: React.FC = () => {
       }
       setLoading(false);
     } catch (err) {
-      const errorMessage = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to fetch task details';
+      const errorMessage =
+        (err as { response?: { data?: { message?: string } } }).response?.data?.message ||
+        'Failed to fetch task details';
       setError(errorMessage);
       setLoading(false);
       toast.error(errorMessage);
@@ -170,7 +169,10 @@ export const TaskDetailPage: React.FC = () => {
     }
   };
 
-  const handleUpdateTask = async (taskId: string, updateData: import('@/types/verificationTask').UpdateVerificationTaskRequest) => {
+  const handleUpdateTask = async (
+    taskId: string,
+    updateData: import('@/types/verificationTask').UpdateVerificationTaskRequest
+  ) => {
     try {
       const response = await apiService.put(`/verification-tasks/${taskId}`, updateData);
       if (response.success) {
@@ -180,16 +182,24 @@ export const TaskDetailPage: React.FC = () => {
         toast.error(response.message || 'Failed to update task');
       }
     } catch (error) {
-       logger.error('Failed to update task:', error);
-       toast.error('An error occurred while updating the task');
+      logger.error('Failed to update task:', error);
+      toast.error('An error occurred while updating the task');
     }
   };
 
   const getStatusBadge = (status: string) => {
     type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline';
-    type IconComponent = typeof Clock | typeof User | typeof CheckCircle2 | typeof XCircle | typeof AlertCircle;
+    type IconComponent =
+      | typeof Clock
+      | typeof User
+      | typeof CheckCircle2
+      | typeof XCircle
+      | typeof AlertCircle;
 
-    const statusConfig: Record<string, { variant: BadgeVariant; label: string; icon: IconComponent }> = {
+    const statusConfig: Record<
+      string,
+      { variant: BadgeVariant; label: string; icon: IconComponent }
+    > = {
       PENDING: { variant: 'secondary', label: 'Pending', icon: Clock },
       ASSIGNED: { variant: 'default', label: 'Assigned', icon: User },
       IN_PROGRESS: { variant: 'default', label: 'In Progress', icon: Clock },
@@ -219,11 +229,7 @@ export const TaskDetailPage: React.FC = () => {
 
     const config = priorityConfig[priority] || priorityConfig.MEDIUM;
 
-    return (
-      <Badge className={config.className}>
-        {config.label}
-      </Badge>
-    );
+    return <Badge className={config.className}>{config.label}</Badge>;
   };
 
   if (loading) {
@@ -270,11 +276,15 @@ export const TaskDetailPage: React.FC = () => {
             Edit Task
           </Button>
           {task.taskType && (
-            <Badge className={
-              task.taskType === 'KYC' ? 'bg-amber-100 text-amber-800 border-amber-200' :
-              task.taskType === 'REVISIT' ? 'bg-purple-100 text-purple-800 border-purple-200' :
-              'bg-blue-100 text-blue-800 border-blue-200'
-            }>
+            <Badge
+              className={
+                task.taskType === 'KYC'
+                  ? 'bg-amber-100 text-amber-800 border-amber-200'
+                  : task.taskType === 'REVISIT'
+                    ? 'bg-purple-100 text-purple-800 border-purple-200'
+                    : 'bg-blue-100 text-blue-800 border-blue-200'
+              }
+            >
               {task.taskType}
             </Badge>
           )}
@@ -287,12 +297,12 @@ export const TaskDetailPage: React.FC = () => {
         open={isEditModalOpen}
         onOpenChange={setIsEditModalOpen}
         task={{
-            id: task.id,
-            taskTitle: task.taskTitle,
-            taskDescription: task.taskDescription,
-            priority: task.priority,
-            address: task.address,
-            pincode: task.pincode,
+          id: task.id,
+          taskTitle: task.taskTitle,
+          taskDescription: task.taskDescription,
+          priority: task.priority,
+          address: task.address,
+          pincode: task.pincode,
         }}
         onSubmit={handleUpdateTask}
       />
@@ -362,7 +372,9 @@ export const TaskDetailPage: React.FC = () => {
                       Address
                     </p>
                     <p className="text-sm">{task.address}</p>
-                    {task.pincode && <p className="text-sm text-gray-600">Pincode: {task.pincode}</p>}
+                    {task.pincode && (
+                      <p className="text-sm text-gray-600">Pincode: {task.pincode}</p>
+                    )}
                   </div>
                 </>
               )}
@@ -394,11 +406,10 @@ export const TaskDetailPage: React.FC = () => {
                           {item.assignedFromName && ` (from ${item.assignedFromName})`}
                         </p>
                         <p className="text-xs text-gray-600">
-                          By {item.assignedByName} • {format(new Date(item.assignedAt), 'dd MMM yyyy, hh:mm a')}
+                          By {item.assignedByName} •{' '}
+                          {format(new Date(item.assignedAt), 'dd MMM yyyy, hh:mm a')}
                         </p>
-                        <p className="text-xs text-gray-600">
-                          Status: {item.taskStatusAfter}
-                        </p>
+                        <p className="text-xs text-gray-600">Status: {item.taskStatusAfter}</p>
                         {item.assignmentReason && (
                           <p className="text-xs text-gray-600 mt-1">
                             Reason: {item.assignmentReason}
@@ -423,15 +434,11 @@ export const TaskDetailPage: React.FC = () => {
             <CardContent className="space-y-3">
               <div>
                 <p className="text-sm font-medium text-gray-600">Current Status</p>
-                <div className="mt-1">
-                  {getStatusBadge(task.status)}
-                </div>
+                <div className="mt-1">{getStatusBadge(task.status)}</div>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-600">Priority</p>
-                <div className="mt-1">
-                  {getPriorityBadge(task.priority)}
-                </div>
+                <div className="mt-1">{getPriorityBadge(task.priority)}</div>
               </div>
             </CardContent>
           </Card>
@@ -460,7 +467,9 @@ export const TaskDetailPage: React.FC = () => {
                   {task.assignedAt && (
                     <div>
                       <p className="text-sm font-medium text-gray-600">Assignment Date & Time</p>
-                      <p className="text-sm">{format(new Date(task.assignedAt), 'dd MMM yyyy, hh:mm a')}</p>
+                      <p className="text-sm">
+                        {format(new Date(task.assignedAt), 'dd MMM yyyy, hh:mm a')}
+                      </p>
                     </div>
                   )}
                 </>
@@ -478,65 +487,87 @@ export const TaskDetailPage: React.FC = () => {
             <CardContent className="space-y-3">
               <div>
                 <p className="text-sm font-medium text-gray-600">Created</p>
-                <p className="text-sm">{format(new Date(task.createdAt), 'dd MMM yyyy, hh:mm a')}</p>
+                <p className="text-sm">
+                  {format(new Date(task.createdAt), 'dd MMM yyyy, hh:mm a')}
+                </p>
               </div>
               {task.assignedAt && (
                 <div>
                   <p className="text-sm font-medium text-gray-600">Assigned</p>
-                  <p className="text-sm">{format(new Date(task.assignedAt), 'dd MMM yyyy, hh:mm a')}</p>
+                  <p className="text-sm">
+                    {format(new Date(task.assignedAt), 'dd MMM yyyy, hh:mm a')}
+                  </p>
                 </div>
               )}
               {task.startedAt && (
                 <div>
                   <p className="text-sm font-medium text-gray-600">Started</p>
-                  <p className="text-sm">{format(new Date(task.startedAt), 'dd MMM yyyy, hh:mm a')}</p>
+                  <p className="text-sm">
+                    {format(new Date(task.startedAt), 'dd MMM yyyy, hh:mm a')}
+                  </p>
                 </div>
               )}
               {task.completedAt && (
                 <div>
                   <p className="text-sm font-medium text-gray-600">Completed</p>
-                  <p className="text-sm">{format(new Date(task.completedAt), 'dd MMM yyyy, hh:mm a')}</p>
+                  <p className="text-sm">
+                    {format(new Date(task.completedAt), 'dd MMM yyyy, hh:mm a')}
+                  </p>
                 </div>
               )}
               <div>
                 <p className="text-sm font-medium text-gray-600">Last Updated</p>
-                <p className="text-sm">{format(new Date(task.updatedAt), 'dd MMM yyyy, hh:mm a')}</p>
+                <p className="text-sm">
+                  {format(new Date(task.updatedAt), 'dd MMM yyyy, hh:mm a')}
+                </p>
               </div>
             </CardContent>
           </Card>
 
           {/* Financial - Only show if there's actual financial data */}
-          {((task.estimatedAmount !== undefined && task.estimatedAmount !== null && task.estimatedAmount > 0) ||
-            (task.actualAmount !== undefined && task.actualAmount !== null && task.actualAmount > 0) ||
-            (task.calculatedCommission !== undefined && task.calculatedCommission !== null && task.calculatedCommission > 0)) && (
+          {((task.estimatedAmount !== undefined &&
+            task.estimatedAmount !== null &&
+            task.estimatedAmount > 0) ||
+            (task.actualAmount !== undefined &&
+              task.actualAmount !== null &&
+              task.actualAmount > 0) ||
+            (task.calculatedCommission !== undefined &&
+              task.calculatedCommission !== null &&
+              task.calculatedCommission > 0)) && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Financial</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {task.estimatedAmount !== undefined && task.estimatedAmount !== null && task.estimatedAmount > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Estimated Amount</p>
-                    <p className="text-sm">₹{task.estimatedAmount.toFixed(2)}</p>
-                  </div>
-                )}
-                {task.actualAmount !== undefined && task.actualAmount !== null && task.actualAmount > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Actual Amount</p>
-                    <p className="text-sm">₹{task.actualAmount.toFixed(2)}</p>
-                  </div>
-                )}
-                {task.calculatedCommission !== undefined && task.calculatedCommission !== null && task.calculatedCommission > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Commission</p>
-                    <p className="text-sm">₹{task.calculatedCommission.toFixed(2)}</p>
-                    {task.commissionStatus && (
-                      <Badge variant="secondary" className="mt-1">
-                        {task.commissionStatus}
-                      </Badge>
-                    )}
-                  </div>
-                )}
+                {task.estimatedAmount !== undefined &&
+                  task.estimatedAmount !== null &&
+                  task.estimatedAmount > 0 && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Estimated Amount</p>
+                      <p className="text-sm">₹{task.estimatedAmount.toFixed(2)}</p>
+                    </div>
+                  )}
+                {task.actualAmount !== undefined &&
+                  task.actualAmount !== null &&
+                  task.actualAmount > 0 && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Actual Amount</p>
+                      <p className="text-sm">₹{task.actualAmount.toFixed(2)}</p>
+                    </div>
+                  )}
+                {task.calculatedCommission !== undefined &&
+                  task.calculatedCommission !== null &&
+                  task.calculatedCommission > 0 && (
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Commission</p>
+                      <p className="text-sm">₹{task.calculatedCommission.toFixed(2)}</p>
+                      {task.commissionStatus && (
+                        <Badge variant="secondary" className="mt-1">
+                          {task.commissionStatus}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
               </CardContent>
             </Card>
           )}
@@ -545,4 +576,3 @@ export const TaskDetailPage: React.FC = () => {
     </div>
   );
 };
-

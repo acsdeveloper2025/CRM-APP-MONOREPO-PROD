@@ -24,11 +24,15 @@ const cascadingEditPincodeSchema = z.object({
   countryId: z.string().min(1, 'Country selection is required'),
   stateId: z.string().min(1, 'State selection is required'),
   cityId: z.string().min(1, 'City selection is required'),
-  pincodeCode: z.string()
+  pincodeCode: z
+    .string()
     .min(6, 'Pincode must be 6 digits')
     .max(6, 'Pincode must be 6 digits')
     .regex(/^\d{6}$/, 'Pincode must contain only numbers'),
-  areas: z.array(z.string()).min(1, 'At least one area must be selected').max(15, 'Maximum 15 areas allowed'),
+  areas: z
+    .array(z.string())
+    .min(1, 'At least one area must be selected')
+    .max(15, 'Maximum 15 areas allowed'),
 });
 
 type CascadingEditPincodeFormData = z.infer<typeof cascadingEditPincodeSchema>;
@@ -39,7 +43,11 @@ interface CascadingEditPincodeDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: CascadingEditPincodeDialogProps) {
+export function CascadingEditPincodeDialog({
+  pincode,
+  open,
+  onOpenChange,
+}: CascadingEditPincodeDialogProps) {
   const queryClient = useQueryClient();
 
   const form = useForm<CascadingEditPincodeFormData>({
@@ -64,7 +72,9 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
   const { data: statesData } = useQuery<ApiResponse<State[]>>({
     queryKey: ['states-for-edit', cityData?.data?.country],
     queryFn: () => {
-      if (!cityData?.data?.country) {return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<State[]>);}
+      if (!cityData?.data?.country) {
+        return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<State[]>);
+      }
       return locationsService.getStates({ country: cityData.data.country, limit: 100 });
     },
     enabled: !!cityData?.data?.country,
@@ -90,7 +100,7 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
           stateId: String(state.id),
           cityId: String(pincode.cityId),
           pincodeCode: String(pincode.code),
-          areas: pincode.areas?.map(area => String(area.id)) || [],
+          areas: pincode.areas?.map((area) => String(area.id)) || [],
         });
       }
     }
@@ -104,20 +114,20 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
         cityId: data.cityId,
         // Note: Areas are managed separately through the areas API
       };
-      
+
       // First update the pincode
       const response = await locationsService.updatePincode(pincode.id, updateData);
-      
+
       // Then update areas if they changed
-      const currentAreaIds = pincode.areas?.map(area => String(area.id)) || [];
+      const currentAreaIds = pincode.areas?.map((area) => String(area.id)) || [];
       const newAreaIds = data.areas;
-      
+
       if (JSON.stringify(currentAreaIds.sort()) !== JSON.stringify(newAreaIds.sort())) {
         // Areas have changed, update them
         // Note: This would require additional API endpoints for managing pincode-area relationships
         // For now, we'll just update the basic pincode info
       }
-      
+
       return response;
     },
     onSuccess: () => {
@@ -152,7 +162,7 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
             stateId: String(state.id),
             cityId: String(pincode.cityId),
             pincodeCode: String(pincode.code),
-            areas: pincode.areas?.map(area => String(area.id)) || [],
+            areas: pincode.areas?.map((area) => String(area.id)) || [],
           });
         }
       }
@@ -166,7 +176,8 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
         <DialogHeader>
           <DialogTitle>Edit Pincode</DialogTitle>
           <DialogDescription>
-            Update the pincode information. You can change the location hierarchy and associated areas.
+            Update the pincode information. You can change the location hierarchy and associated
+            areas.
           </DialogDescription>
         </DialogHeader>
 
@@ -198,7 +209,8 @@ export function CascadingEditPincodeDialog({ pincode, open, onOpenChange }: Casc
               <Button
                 type="submit"
                 disabled={updateMutation.isPending}
-               className="w-full sm:w-auto">
+                className="w-full sm:w-auto"
+              >
                 {updateMutation.isPending ? 'Updating...' : 'Update Pincode'}
               </Button>
             </DialogFooter>

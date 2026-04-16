@@ -8,18 +8,30 @@ import { Badge } from '@/components/ui/badge';
 import { useTheme } from '@/hooks/useTheme';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useErrorHandling } from '@/hooks/useErrorHandling';
-import { LoadingSpinner, LoadingOverlay, LoadingCard, LoadingSkeleton, LoadingButton } from '@/components/ui/loading';
+import {
+  LoadingSpinner,
+  LoadingOverlay,
+  LoadingCard,
+  LoadingSkeleton,
+  LoadingButton,
+} from '@/components/ui/loading';
 import { SecurityUtils } from '@/utils/security';
 import { toast } from 'sonner';
 
 export function SecurityUXPage() {
   const { theme, actualTheme, setTheme, toggleTheme } = useTheme();
   const { isMobile, isTablet, isDesktop: _isDesktop, windowSize } = useResponsive();
-  const { errors, isLoading: _isLoading, handleError, handleAsyncOperation, clearErrors } = useErrorHandling();
-  
+  const {
+    errors,
+    isLoading: _isLoading,
+    handleError,
+    handleAsyncOperation,
+    clearErrors,
+  } = useErrorHandling();
+
   // Derive current breakpoint from responsive state
   const currentBreakpoint = isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop';
-  
+
   const [demoLoading, setDemoLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [testInput, setTestInput] = useState('');
@@ -32,10 +44,13 @@ export function SecurityUXPage() {
   };
 
   const simulateAsyncOperation = async () => {
-    await handleAsyncOperation(async () => {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      throw new Error('Async operation failed');
-    }, { context: 'Async Demo' });
+    await handleAsyncOperation(
+      async () => {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        throw new Error('Async operation failed');
+      },
+      { context: 'Async Demo' }
+    );
   };
 
   const simulateLoading = () => {
@@ -53,7 +68,7 @@ export function SecurityUXPage() {
       containsSuspicious: SecurityUtils.containsSuspiciousContent(testInput),
       sanitized: SecurityUtils.escapeHtml(testInput),
     };
-    
+
     toast.info('Security test completed', {
       description: `Valid email: ${results.isValidEmail}, Valid URL: ${results.isValidUrl}`,
     });
@@ -73,15 +88,15 @@ export function SecurityUXPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Security & UX Enhancements</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Security & UX Enhancements
+          </h1>
           <p className="text-gray-600">
             Comprehensive security features, error handling, and user experience improvements
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Badge variant="outline">
-            {currentBreakpoint.toUpperCase()}
-          </Badge>
+          <Badge variant="outline">{currentBreakpoint.toUpperCase()}</Badge>
           <Badge variant={actualTheme === 'dark' ? 'default' : 'secondary'}>
             {actualTheme} theme
           </Badge>
@@ -118,9 +133,7 @@ export function SecurityUXPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Theme Controls</CardTitle>
-                <CardDescription>
-                  Manage application theme and appearance
-                </CardDescription>
+                <CardDescription>Manage application theme and appearance</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -133,7 +146,7 @@ export function SecurityUXPage() {
                     {actualTheme}
                   </Badge>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Button onClick={() => setTheme('light')} variant="outline" className="w-full">
                     Light Theme
@@ -166,8 +179,12 @@ export function SecurityUXPage() {
                   </p>
                   <div className="flex space-x-2">
                     <Button size="sm">Primary</Button>
-                    <Button size="sm" variant="outline">Outline</Button>
-                    <Button size="sm" variant="secondary">Secondary</Button>
+                    <Button size="sm" variant="outline">
+                      Outline
+                    </Button>
+                    <Button size="sm" variant="secondary">
+                      Secondary
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -181,15 +198,15 @@ export function SecurityUXPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Responsive Information</CardTitle>
-                <CardDescription>
-                  Current device and breakpoint information
-                </CardDescription>
+                <CardDescription>Current device and breakpoint information</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-600">Breakpoint:</span>
-                    <Badge variant="outline" className="ml-2">{currentBreakpoint}</Badge>
+                    <Badge variant="outline" className="ml-2">
+                      {currentBreakpoint}
+                    </Badge>
                   </div>
                   <div>
                     <span className="text-gray-600">Device:</span>
@@ -212,14 +229,15 @@ export function SecurityUXPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Responsive Grid</CardTitle>
-                <CardDescription>
-                  Grid that adapts to screen size
-                </CardDescription>
+                <CardDescription>Grid that adapts to screen size</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                    <div key={i} className="h-16 bg-slate-100 dark:bg-slate-800/60 rounded-lg flex items-center justify-center">
+                    <div
+                      key={i}
+                      className="h-16 bg-slate-100 dark:bg-slate-800/60 rounded-lg flex items-center justify-center"
+                    >
                       {i}
                     </div>
                   ))}
@@ -235,9 +253,7 @@ export function SecurityUXPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Loading Components</CardTitle>
-                <CardDescription>
-                  Various loading states and spinners
-                </CardDescription>
+                <CardDescription>Various loading states and spinners</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
@@ -254,7 +270,7 @@ export function SecurityUXPage() {
                     <span>Pulse variant</span>
                   </div>
                 </div>
-                
+
                 <LoadingButton
                   isLoading={demoLoading}
                   onClick={simulateLoading}
@@ -268,9 +284,7 @@ export function SecurityUXPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Loading Skeletons</CardTitle>
-                <CardDescription>
-                  Skeleton loaders for better UX
-                </CardDescription>
+                <CardDescription>Skeleton loaders for better UX</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <LoadingSkeleton variant="text" lines={3} />
@@ -284,7 +298,10 @@ export function SecurityUXPage() {
           </div>
 
           <LoadingOverlay isLoading={demoLoading} loadingText="Demo in progress...">
-            <LoadingCard title="Sample Loading Card" description="This shows how loading states work" />
+            <LoadingCard
+              title="Sample Loading Card"
+              description="This shows how loading states work"
+            />
           </LoadingOverlay>
         </TabsContent>
 
@@ -294,9 +311,7 @@ export function SecurityUXPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Error Simulation</CardTitle>
-                <CardDescription>
-                  Test error handling and display
-                </CardDescription>
+                <CardDescription>Test error handling and display</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Button onClick={simulateError} variant="destructive" className="w-full">
@@ -314,9 +329,7 @@ export function SecurityUXPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Recent Errors</CardTitle>
-                <CardDescription>
-                  {errors.length} error(s) logged
-                </CardDescription>
+                <CardDescription>{errors.length} error(s) logged</CardDescription>
               </CardHeader>
               <CardContent>
                 {errors.length === 0 ? (
@@ -342,9 +355,7 @@ export function SecurityUXPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Input Validation</CardTitle>
-                <CardDescription>
-                  Test security validation features
-                </CardDescription>
+                <CardDescription>Test security validation features</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -357,7 +368,7 @@ export function SecurityUXPage() {
                     Test Security Validation
                   </Button>
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="relative">
                     <Input
@@ -385,9 +396,7 @@ export function SecurityUXPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Browser Security</CardTitle>
-                <CardDescription>
-                  Current browser security capabilities
-                </CardDescription>
+                <CardDescription>Current browser security capabilities</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 text-sm">

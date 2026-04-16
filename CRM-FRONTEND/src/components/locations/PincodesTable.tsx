@@ -84,9 +84,7 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
       <div className="text-center py-12">
         <MapPin className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No pincodes found</h3>
-        <p className="text-gray-600">
-          Get started by adding your first pincode.
-        </p>
+        <p className="text-gray-600">Get started by adding your first pincode.</p>
       </div>
     );
   }
@@ -113,9 +111,7 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                       <MapPin className="h-4 w-4 text-primary" />
                     </div>
-                    <Badge className={baseBadgeStyle}>
-                      {formatBadgeLabel(pincode.code)}
-                    </Badge>
+                    <Badge className={baseBadgeStyle}>{formatBadgeLabel(pincode.code)}</Badge>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -132,19 +128,19 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
                   )}
                 </TableCell>
                 <TableCell>
-                  {(pincode.state || (pincode as Pincode & { stateName?: string }).stateName) ? (
+                  {pincode.state || (pincode as Pincode & { stateName?: string }).stateName ? (
                     <Badge className={baseBadgeStyle}>
                       {formatBadgeLabel(
-                        pincode.state || (pincode as Pincode & { stateName?: string }).stateName || ''
+                        pincode.state ||
+                          (pincode as Pincode & { stateName?: string }).stateName ||
+                          ''
                       )}
                     </Badge>
                   ) : (
                     <span className="text-gray-600">-</span>
                   )}
                 </TableCell>
-                <TableCell>
-                  {new Date(pincode.createdAt).toLocaleDateString()}
-                </TableCell>
+                <TableCell>{new Date(pincode.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -191,9 +187,13 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the pincode
-              &quot;{pincodeToDelete?.code}&quot; for areas &quot;{pincodeToDelete?.areas?.[0]?.name || pincodeToDelete?.area || 'Unknown'}&quot;
-              {pincodeToDelete?.areas && pincodeToDelete.areas.length > 1 && ` and ${pincodeToDelete.areas.length - 1} other area(s)`}.
+              This action cannot be undone. This will permanently delete the pincode &quot;
+              {pincodeToDelete?.code}&quot; for areas &quot;
+              {pincodeToDelete?.areas?.[0]?.name || pincodeToDelete?.area || 'Unknown'}&quot;
+              {pincodeToDelete?.areas &&
+                pincodeToDelete.areas.length > 1 &&
+                ` and ${pincodeToDelete.areas.length - 1} other area(s)`}
+              .
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

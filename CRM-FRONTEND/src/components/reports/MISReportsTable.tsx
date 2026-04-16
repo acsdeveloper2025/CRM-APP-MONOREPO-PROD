@@ -55,8 +55,7 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
       setReportToDelete(null);
     },
     onError: (error: unknown) => {
-      const message =
-        error instanceof Error ? error.message : 'Failed to delete report';
+      const message = error instanceof Error ? error.message : 'Failed to delete report';
       const axiosError = error as { response?: { data?: { message?: string } } };
       toast.error(axiosError.response?.data?.message || message);
     },
@@ -96,8 +95,11 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
       QUALITY: { variant: 'default' as const, label: 'Quality' },
       FINANCIAL: { variant: 'secondary' as const, label: 'Financial' },
     };
-    
-    const config = typeConfig[type as keyof typeof typeConfig] || { variant: 'outline' as const, label: type };
+
+    const config = typeConfig[type as keyof typeof typeConfig] || {
+      variant: 'outline' as const,
+      label: type,
+    };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -110,9 +112,7 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
       <div className="text-center py-12">
         <BarChart3 className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No MIS reports found</h3>
-        <p className="text-gray-600">
-          Get started by generating your first MIS report.
-        </p>
+        <p className="text-gray-600">Get started by generating your first MIS report.</p>
       </div>
     );
   }
@@ -143,9 +143,7 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
                     <span>{report.title}</span>
                   </div>
                 </TableCell>
-                <TableCell>
-                  {getReportTypeBadge(report.reportType)}
-                </TableCell>
+                <TableCell>{getReportTypeBadge(report.reportType)}</TableCell>
                 <TableCell>
                   <span className="text-sm text-gray-600">
                     {report.description || 'No description'}
@@ -157,9 +155,7 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
                 <TableCell>
                   <span className="text-sm">{report.generatedBy}</span>
                 </TableCell>
-                <TableCell>
-                  {new Date(report.generatedAt).toLocaleDateString()}
-                </TableCell>
+                <TableCell>{new Date(report.generatedAt).toLocaleDateString()}</TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -205,8 +201,8 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the report
-              &quot;{reportToDelete?.title}&quot;.
+              This action cannot be undone. This will permanently delete the report &quot;
+              {reportToDelete?.title}&quot;.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

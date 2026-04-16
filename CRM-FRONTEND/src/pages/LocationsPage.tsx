@@ -36,7 +36,9 @@ export function LocationsPage() {
   const [showCascadingCreatePincode, setShowCascadingCreatePincode] = useState(false);
   const [showCreateArea, setShowCreateArea] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
-  const [bulkImportType, setBulkImportType] = useState<'countries' | 'states' | 'cities' | 'pincodes'>('countries');
+  const [bulkImportType, setBulkImportType] = useState<
+    'countries' | 'states' | 'cities' | 'pincodes'
+  >('countries');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,15 +70,10 @@ export function LocationsPage() {
   };
 
   // Unified search with 800ms debounce
-  const {
-    searchValue,
-    debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
-  } = useUnifiedSearch({
-    syncWithUrl: true,
-  });
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({
+      syncWithUrl: true,
+    });
 
   // Reset to page 1 when search changes
   React.useEffect(() => {
@@ -85,55 +82,60 @@ export function LocationsPage() {
 
   const { data: countriesData, isLoading: countriesLoading } = useQuery({
     queryKey: ['countries', debouncedSearchValue, currentPage, pageSize],
-    queryFn: () => locationsService.getCountries({
-      search: debouncedSearchValue || undefined,
-      page: currentPage,
-      limit: pageSize,
-    }),
+    queryFn: () =>
+      locationsService.getCountries({
+        search: debouncedSearchValue || undefined,
+        page: currentPage,
+        limit: pageSize,
+      }),
     enabled: activeTab === 'countries',
     placeholderData: keepPreviousData,
   });
 
   const { data: statesData, isLoading: statesLoading } = useQuery({
     queryKey: ['states', debouncedSearchValue, currentPage, pageSize],
-    queryFn: () => locationsService.getStates({
-      search: debouncedSearchValue || undefined,
-      page: currentPage,
-      limit: pageSize,
-    }),
+    queryFn: () =>
+      locationsService.getStates({
+        search: debouncedSearchValue || undefined,
+        page: currentPage,
+        limit: pageSize,
+      }),
     enabled: activeTab === 'states',
     placeholderData: keepPreviousData,
   });
 
   const { data: citiesData, isLoading: citiesLoading } = useQuery({
     queryKey: ['cities', debouncedSearchValue, currentPage, pageSize],
-    queryFn: () => locationsService.getCities({
-      search: debouncedSearchValue || undefined,
-      page: currentPage,
-      limit: pageSize,
-    }),
+    queryFn: () =>
+      locationsService.getCities({
+        search: debouncedSearchValue || undefined,
+        page: currentPage,
+        limit: pageSize,
+      }),
     enabled: activeTab === 'cities',
     placeholderData: keepPreviousData,
   });
 
   const { data: pincodesData, isLoading: pincodesLoading } = useQuery({
     queryKey: ['pincodes', debouncedSearchValue, currentPage, pageSize],
-    queryFn: () => locationsService.getPincodes({
-      search: debouncedSearchValue || undefined,
-      page: currentPage,
-      limit: pageSize
-    }),
+    queryFn: () =>
+      locationsService.getPincodes({
+        search: debouncedSearchValue || undefined,
+        page: currentPage,
+        limit: pageSize,
+      }),
     enabled: activeTab === 'pincodes',
     placeholderData: keepPreviousData,
   });
 
   const { data: areasData, isLoading: areasLoading } = useQuery({
     queryKey: ['areas', debouncedSearchValue, currentPage, pageSize],
-    queryFn: () => locationsService.getAreas({
-      search: debouncedSearchValue || undefined,
-      page: currentPage,
-      limit: pageSize
-    }),
+    queryFn: () =>
+      locationsService.getAreas({
+        search: debouncedSearchValue || undefined,
+        page: currentPage,
+        limit: pageSize,
+      }),
     enabled: activeTab === 'areas',
     placeholderData: keepPreviousData,
   });
@@ -152,7 +154,9 @@ export function LocationsPage() {
       const readTotal = (
         payload: { pagination?: { total?: number }; data?: unknown[] } | null | undefined
       ): number => {
-        if (!payload) {return 0;}
+        if (!payload) {
+          return 0;
+        }
         if (typeof payload.pagination?.total === 'number') {
           return payload.pagination.total;
         }
@@ -199,9 +203,7 @@ export function LocationsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Location Management</h1>
-          <p className="text-gray-600">
-            Manage cities, states, pincodes, and geographical data
-          </p>
+          <p className="text-gray-600">Manage cities, states, pincodes, and geographical data</p>
         </div>
       </div>
 
@@ -214,9 +216,7 @@ export function LocationsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.countries}</div>
-            <p className="text-xs text-gray-600">
-              Across all continents
-            </p>
+            <p className="text-xs text-gray-600">Across all continents</p>
           </CardContent>
         </Card>
         <Card>
@@ -226,9 +226,7 @@ export function LocationsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.states}</div>
-            <p className="text-xs text-gray-600">
-              Across all countries
-            </p>
+            <p className="text-xs text-gray-600">Across all countries</p>
           </CardContent>
         </Card>
         <Card>
@@ -238,9 +236,7 @@ export function LocationsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.cities}</div>
-            <p className="text-xs text-gray-600">
-              Across all states and countries
-            </p>
+            <p className="text-xs text-gray-600">Across all states and countries</p>
           </CardContent>
         </Card>
         <Card>
@@ -250,9 +246,7 @@ export function LocationsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.pincodes}</div>
-            <p className="text-xs text-gray-600">
-              Postal codes across all cities
-            </p>
+            <p className="text-xs text-gray-600">Postal codes across all cities</p>
           </CardContent>
         </Card>
         <Card>
@@ -262,9 +256,7 @@ export function LocationsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.areas}</div>
-            <p className="text-xs text-gray-600">
-              Areas across all pincodes
-            </p>
+            <p className="text-xs text-gray-600">Areas across all pincodes</p>
           </CardContent>
         </Card>
       </div>
@@ -287,168 +279,152 @@ export function LocationsPage() {
               {/* Tab List and Action Buttons Row */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <TabsList className="flex min-w-max space-x-1">
-                    <TabsTrigger value="countries" className="whitespace-nowrap">
-                      Countries
-                      <Badge variant="secondary" className="ml-2">
-                        {stats.countries}
-                      </Badge>
-                    </TabsTrigger>
-                    <TabsTrigger value="states" className="whitespace-nowrap">
-                      States
-                      <Badge variant="secondary" className="ml-2">
-                        {stats.states}
-                      </Badge>
-                    </TabsTrigger>
-                    <TabsTrigger value="cities" className="whitespace-nowrap">
-                      Cities
-                      <Badge variant="secondary" className="ml-2">
-                        {stats.cities}
-                      </Badge>
-                    </TabsTrigger>
-                    <TabsTrigger value="pincodes" className="whitespace-nowrap">
-                      Pincodes
-                      <Badge variant="secondary" className="ml-2">
-                        {stats.pincodes}
-                      </Badge>
-                    </TabsTrigger>
-                    <TabsTrigger value="areas" className="whitespace-nowrap">
-                      Areas
-                      <Badge variant="secondary" className="ml-2">
-                        {stats.areas}
-                      </Badge>
-                    </TabsTrigger>
-                  </TabsList>
+                  <TabsTrigger value="countries" className="whitespace-nowrap">
+                    Countries
+                    <Badge variant="secondary" className="ml-2">
+                      {stats.countries}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="states" className="whitespace-nowrap">
+                    States
+                    <Badge variant="secondary" className="ml-2">
+                      {stats.states}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="cities" className="whitespace-nowrap">
+                    Cities
+                    <Badge variant="secondary" className="ml-2">
+                      {stats.cities}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="pincodes" className="whitespace-nowrap">
+                    Pincodes
+                    <Badge variant="secondary" className="ml-2">
+                      {stats.pincodes}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="areas" className="whitespace-nowrap">
+                    Areas
+                    <Badge variant="secondary" className="ml-2">
+                      {stats.areas}
+                    </Badge>
+                  </TabsTrigger>
+                </TabsList>
 
                 <div className="flex flex-wrap gap-2">
-                {activeTab === 'countries' && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleBulkImport('countries')}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Import
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => setShowCreateCountry(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Country
-                    </Button>
-                  </>
-                )}
+                  {activeTab === 'countries' && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleBulkImport('countries')}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Import
+                      </Button>
+                      <Button size="sm" onClick={() => setShowCreateCountry(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Country
+                      </Button>
+                    </>
+                  )}
 
-                {activeTab === 'states' && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleBulkImport('states')}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Import
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => setShowCreateState(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add State
-                    </Button>
-                  </>
-                )}
+                  {activeTab === 'states' && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleBulkImport('states')}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Import
+                      </Button>
+                      <Button size="sm" onClick={() => setShowCreateState(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add State
+                      </Button>
+                    </>
+                  )}
 
-                {activeTab === 'cities' && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleBulkImport('cities')}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Import
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => setShowCreateCity(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add City
-                    </Button>
-                  </>
-                )}
+                  {activeTab === 'cities' && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleBulkImport('cities')}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Import
+                      </Button>
+                      <Button size="sm" onClick={() => setShowCreateCity(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add City
+                      </Button>
+                    </>
+                  )}
 
-                {activeTab === 'pincodes' && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleBulkImport('pincodes')}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Import
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowCreatePincode(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Quick Add
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => setShowCascadingCreatePincode(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Pincode
-                    </Button>
-                  </>
-                )}
+                  {activeTab === 'pincodes' && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleBulkImport('pincodes')}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Import
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowCreatePincode(true)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Quick Add
+                      </Button>
+                      <Button size="sm" onClick={() => setShowCascadingCreatePincode(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Pincode
+                      </Button>
+                    </>
+                  )}
 
-                {activeTab === 'areas' && (
-                  <Button
-                    size="sm"
-                    onClick={() => setShowCreateArea(true)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Area
-                  </Button>
-                )}
+                  {activeTab === 'areas' && (
+                    <Button size="sm" onClick={() => setShowCreateArea(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Area
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Search Input Row */}
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <UnifiedSearchInput
-                  value={searchValue}
-                  onChange={setSearchValue}
-                  onClear={clearSearch}
-                  isLoading={isDebouncing}
-                  placeholder={`Search ${activeTab}...`}
-                />
+              {/* Search Input Row */}
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <UnifiedSearchInput
+                    value={searchValue}
+                    onChange={setSearchValue}
+                    onClear={clearSearch}
+                    isLoading={isDebouncing}
+                    placeholder={`Search ${activeTab}...`}
+                  />
+                </div>
               </div>
-            </div>
             </div>
 
             <TabsContent value="countries" className="space-y-4">
-              <CountriesTable
-                data={countriesData?.data || []}
-                isLoading={countriesLoading}
-              />
+              <CountriesTable data={countriesData?.data || []} isLoading={countriesLoading} />
               {countriesData?.pagination && (
                 <div className="flex items-center justify-between px-2">
                   <div className="text-sm text-gray-600">
-                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, countriesData.pagination.total)} of {countriesData.pagination.total} countries
+                    Showing {(currentPage - 1) * pageSize + 1} to{' '}
+                    {Math.min(currentPage * pageSize, countriesData.pagination.total)} of{' '}
+                    {countriesData.pagination.total} countries
                   </div>
                   <div className="flex items-center space-x-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
                     >
                       Previous
@@ -459,7 +435,7 @@ export function LocationsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      onClick={() => setCurrentPage((prev) => prev + 1)}
                       disabled={currentPage >= (countriesData.pagination.totalPages || 1)}
                     >
                       Next
@@ -470,20 +446,19 @@ export function LocationsPage() {
             </TabsContent>
 
             <TabsContent value="states" className="space-y-4">
-              <StatesTable
-                data={statesData?.data || []}
-                isLoading={statesLoading}
-              />
+              <StatesTable data={statesData?.data || []} isLoading={statesLoading} />
               {statesData?.pagination && (
                 <div className="flex items-center justify-between px-2">
                   <div className="text-sm text-gray-600">
-                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, statesData.pagination.total)} of {statesData.pagination.total} states
+                    Showing {(currentPage - 1) * pageSize + 1} to{' '}
+                    {Math.min(currentPage * pageSize, statesData.pagination.total)} of{' '}
+                    {statesData.pagination.total} states
                   </div>
                   <div className="flex items-center space-x-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
                     >
                       Previous
@@ -494,7 +469,7 @@ export function LocationsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      onClick={() => setCurrentPage((prev) => prev + 1)}
                       disabled={currentPage >= (statesData.pagination.totalPages || 1)}
                     >
                       Next
@@ -505,20 +480,19 @@ export function LocationsPage() {
             </TabsContent>
 
             <TabsContent value="cities" className="space-y-4">
-              <CitiesTable
-                data={citiesData?.data || []}
-                isLoading={citiesLoading}
-              />
+              <CitiesTable data={citiesData?.data || []} isLoading={citiesLoading} />
               {citiesData?.pagination && (
                 <div className="flex items-center justify-between px-2">
                   <div className="text-sm text-gray-600">
-                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, citiesData.pagination.total)} of {citiesData.pagination.total} cities
+                    Showing {(currentPage - 1) * pageSize + 1} to{' '}
+                    {Math.min(currentPage * pageSize, citiesData.pagination.total)} of{' '}
+                    {citiesData.pagination.total} cities
                   </div>
                   <div className="flex items-center space-x-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
                     >
                       Previous
@@ -529,7 +503,7 @@ export function LocationsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      onClick={() => setCurrentPage((prev) => prev + 1)}
                       disabled={currentPage >= (citiesData.pagination.totalPages || 1)}
                     >
                       Next
@@ -540,20 +514,19 @@ export function LocationsPage() {
             </TabsContent>
 
             <TabsContent value="pincodes" className="space-y-4">
-              <PincodesTable
-                data={pincodesData?.data || []}
-                isLoading={pincodesLoading}
-              />
+              <PincodesTable data={pincodesData?.data || []} isLoading={pincodesLoading} />
               {pincodesData?.pagination && (
                 <div className="flex items-center justify-between px-2">
                   <div className="text-sm text-gray-600">
-                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, pincodesData.pagination.total)} of {pincodesData.pagination.total} pincodes
+                    Showing {(currentPage - 1) * pageSize + 1} to{' '}
+                    {Math.min(currentPage * pageSize, pincodesData.pagination.total)} of{' '}
+                    {pincodesData.pagination.total} pincodes
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
                     >
                       Previous
@@ -564,7 +537,7 @@ export function LocationsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(p => p + 1)}
+                      onClick={() => setCurrentPage((p) => p + 1)}
                       disabled={currentPage >= (pincodesData.pagination.totalPages || 1)}
                     >
                       Next
@@ -582,13 +555,15 @@ export function LocationsPage() {
               {areasData?.pagination && (
                 <div className="flex items-center justify-between px-2">
                   <div className="text-sm text-gray-600">
-                    Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, areasData.pagination.total)} of {areasData.pagination.total} areas
+                    Showing {(currentPage - 1) * pageSize + 1} to{' '}
+                    {Math.min(currentPage * pageSize, areasData.pagination.total)} of{' '}
+                    {areasData.pagination.total} areas
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
                     >
                       Previous
@@ -599,7 +574,7 @@ export function LocationsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(p => p + 1)}
+                      onClick={() => setCurrentPage((p) => p + 1)}
                       disabled={currentPage >= (areasData.pagination.totalPages || 1)}
                     >
                       Next
@@ -613,35 +588,20 @@ export function LocationsPage() {
       </Card>
 
       {/* Dialogs */}
-      <CreateCountryDialog
-        open={showCreateCountry}
-        onOpenChange={setShowCreateCountry}
-      />
+      <CreateCountryDialog open={showCreateCountry} onOpenChange={setShowCreateCountry} />
 
-      <CreateStateDialog
-        open={showCreateState}
-        onOpenChange={setShowCreateState}
-      />
+      <CreateStateDialog open={showCreateState} onOpenChange={setShowCreateState} />
 
-      <CreateCityDialog
-        open={showCreateCity}
-        onOpenChange={setShowCreateCity}
-      />
+      <CreateCityDialog open={showCreateCity} onOpenChange={setShowCreateCity} />
 
-      <CreatePincodeDialog
-        open={showCreatePincode}
-        onOpenChange={setShowCreatePincode}
-      />
+      <CreatePincodeDialog open={showCreatePincode} onOpenChange={setShowCreatePincode} />
 
       <CascadingCreatePincodeDialog
         open={showCascadingCreatePincode}
         onOpenChange={setShowCascadingCreatePincode}
       />
 
-      <CreateAreaDialog
-        open={showCreateArea}
-        onOpenChange={setShowCreateArea}
-      />
+      <CreateAreaDialog open={showCreateArea} onOpenChange={setShowCreateArea} />
 
       <BulkImportLocationDialog
         open={showBulkImport}

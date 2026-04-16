@@ -35,11 +35,15 @@ import { Pincode } from '@/types/location';
 import { EnhancedAreasMultiSelect } from './EnhancedAreasMultiSelect';
 
 const editPincodeSchema = z.object({
-  code: z.string()
+  code: z
+    .string()
     .min(6, 'Pincode must be 6 digits')
     .max(6, 'Pincode must be 6 digits')
     .regex(/^\d{6}$/, 'Pincode must contain only numbers'),
-  areas: z.array(z.string()).min(1, 'At least one area must be selected').max(15, 'Maximum 15 areas allowed'),
+  areas: z
+    .array(z.string())
+    .min(1, 'At least one area must be selected')
+    .max(15, 'Maximum 15 areas allowed'),
   cityId: z.string().min(1, 'City selection is required'),
 });
 
@@ -56,7 +60,7 @@ export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDi
     resolver: zodResolver(editPincodeSchema),
     defaultValues: {
       code: String(pincode.code),
-      areas: pincode.areas?.map(area => String(area.id)) || [], // Convert areas to IDs or empty array
+      areas: pincode.areas?.map((area) => String(area.id)) || [], // Convert areas to IDs or empty array
       cityId: String(pincode.cityId),
     },
   });
@@ -65,7 +69,7 @@ export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDi
     if (pincode) {
       form.reset({
         code: String(pincode.code),
-        areas: pincode.areas?.map(area => String(area.id)) || [], // Convert areas to IDs or empty array
+        areas: pincode.areas?.map((area) => String(area.id)) || [], // Convert areas to IDs or empty array
         cityId: String(pincode.cityId),
       });
     }
@@ -101,9 +105,7 @@ export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDi
       <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Pincode</DialogTitle>
-          <DialogDescription>
-            Update the pincode information.
-          </DialogDescription>
+          <DialogDescription>Update the pincode information.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -122,9 +124,7 @@ export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDi
                       maxLength={6}
                     />
                   </FormControl>
-                  <FormDescription>
-                    6-digit postal code (numbers only)
-                  </FormDescription>
+                  <FormDescription>6-digit postal code (numbers only)</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -188,7 +188,11 @@ export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDi
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateMutation.isPending} className="w-full sm:w-auto">
+              <Button
+                type="submit"
+                disabled={updateMutation.isPending}
+                className="w-full sm:w-auto"
+              >
                 {updateMutation.isPending ? 'Updating...' : 'Update Pincode'}
               </Button>
             </DialogFooter>

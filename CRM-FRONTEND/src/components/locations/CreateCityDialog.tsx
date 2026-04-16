@@ -108,14 +108,9 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
                 <FormItem>
                   <FormLabel>City Name</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="Enter city name"
-                      {...field}
-                    />
+                    <Input placeholder="Enter city name" {...field} />
                   </FormControl>
-                  <FormDescription>
-                    The official name of the city
-                  </FormDescription>
+                  <FormDescription>The official name of the city</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -141,9 +136,7 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
                       ))}
                     </SelectContent>
                   </Select>
-                  <FormDescription>
-                    The state or province where the city is located
-                  </FormDescription>
+                  <FormDescription>The state or province where the city is located</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -169,9 +162,7 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
                       ))}
                     </SelectContent>
                   </Select>
-                  <FormDescription>
-                    The country where the city is located
-                  </FormDescription>
+                  <FormDescription>The country where the city is located</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -190,7 +181,8 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
-               className="w-full sm:w-auto">
+                className="w-full sm:w-auto"
+              >
                 {createMutation.isPending ? 'Creating...' : 'Create City'}
               </Button>
             </DialogFooter>

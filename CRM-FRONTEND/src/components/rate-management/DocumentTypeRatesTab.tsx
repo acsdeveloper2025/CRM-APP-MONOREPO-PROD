@@ -69,19 +69,26 @@ export function DocumentTypeRatesTab() {
   // Fetch configured document type rates
   const { data: ratesData, isLoading: ratesLoading } = useQuery({
     queryKey: ['document-type-rates', selectedClientId, selectedProductId, currentPage, pageSize],
-    queryFn: () => documentTypeRatesService.getDocumentTypeRates({
-      clientId: selectedClientId || undefined,
-      productId: selectedProductId || undefined,
-      isActive: true,
-      page: currentPage,
-      limit: pageSize,
-    }),
+    queryFn: () =>
+      documentTypeRatesService.getDocumentTypeRates({
+        clientId: selectedClientId || undefined,
+        productId: selectedProductId || undefined,
+        isActive: true,
+        page: currentPage,
+        limit: pageSize,
+      }),
     enabled: !!(selectedClientId || selectedProductId),
   });
 
   // Create/Update mutation
   const saveRateMutation = useMutationWithInvalidation({
-    mutationFn: async (data: { clientId: number; productId: number; documentTypeId: number; amount: number; currency: string }) => {
+    mutationFn: async (data: {
+      clientId: number;
+      productId: number;
+      documentTypeId: number;
+      amount: number;
+      currency: string;
+    }) => {
       return documentTypeRatesService.createOrUpdateDocumentTypeRate(data);
     },
     invalidateKeys: [['document-type-rates'], ['rate-management-stats']],
@@ -183,7 +190,10 @@ export function DocumentTypeRatesTab() {
             {/* Client Selection */}
             <div className="space-y-2">
               <Label htmlFor="client-select">Client *</Label>
-              <Select value={selectedClientId ? String(selectedClientId) : ""} onValueChange={handleClientChange}>
+              <Select
+                value={selectedClientId ? String(selectedClientId) : ''}
+                onValueChange={handleClientChange}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a client" />
                 </SelectTrigger>
@@ -201,7 +211,7 @@ export function DocumentTypeRatesTab() {
             <div className="space-y-2">
               <Label htmlFor="product-select">Product *</Label>
               <Select
-                value={selectedProductId ? String(selectedProductId) : ""}
+                value={selectedProductId ? String(selectedProductId) : ''}
                 onValueChange={handleProductChange}
                 disabled={!selectedClientId}
               >
@@ -222,7 +232,7 @@ export function DocumentTypeRatesTab() {
             <div className="space-y-2">
               <Label htmlFor="document-type-select">KYC Document Type *</Label>
               <Select
-                value={selectedDocumentTypeId ? String(selectedDocumentTypeId) : ""}
+                value={selectedDocumentTypeId ? String(selectedDocumentTypeId) : ''}
                 onValueChange={handleDocumentTypeChange}
                 disabled={!selectedProductId}
               >
@@ -284,7 +294,11 @@ export function DocumentTypeRatesTab() {
                   disabled={!canSave || saveRateMutation.isPending}
                   className="flex-1"
                 >
-                  {saveRateMutation.isPending ? 'Saving...' : editingRateId ? 'Update Rate' : 'Save Rate'}
+                  {saveRateMutation.isPending
+                    ? 'Saving...'
+                    : editingRateId
+                      ? 'Update Rate'
+                      : 'Save Rate'}
                 </Button>
                 {editingRateId && (
                   <Button variant="outline" onClick={resetForm}>
@@ -330,7 +344,9 @@ export function DocumentTypeRatesTab() {
                     <TableCell>{rate.documentTypeName}</TableCell>
                     <TableCell>
                       {rate.documentTypeCategory && (
-                        <Badge variant="outline" className="text-xs">{rate.documentTypeCategory}</Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {rate.documentTypeCategory}
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right font-mono">
@@ -343,11 +359,7 @@ export function DocumentTypeRatesTab() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditRate(rate)}
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => handleEditRate(rate)}>
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
@@ -376,7 +388,7 @@ export function DocumentTypeRatesTab() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
                 >
                   Previous
@@ -387,7 +399,7 @@ export function DocumentTypeRatesTab() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  onClick={() => setCurrentPage((prev) => prev + 1)}
                   disabled={currentPage >= (ratesData.pagination.totalPages || 1)}
                 >
                   Next

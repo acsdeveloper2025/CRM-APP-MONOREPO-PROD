@@ -1,5 +1,19 @@
- 
-import { FileText, Clock, User, Eye, Camera, Smartphone, Wifi, WifiOff, Download, MapPin, Grid, BarChart3, CheckCircle, AlertCircle } from 'lucide-react';
+import {
+  FileText,
+  Clock,
+  User,
+  Eye,
+  Camera,
+  Smartphone,
+  Wifi,
+  WifiOff,
+  Download,
+  MapPin,
+  Grid,
+  BarChart3,
+  CheckCircle,
+  AlertCircle,
+} from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,8 +48,6 @@ export function FormViewer({
   onFieldChange,
   onSectionToggle: _onSectionToggle,
 }: EnhancedFormViewerProps) {
-
-
   // Helper functions for styling
   const getOutcomeColor = (outcome: string) => {
     switch (outcome.toLowerCase()) {
@@ -79,7 +91,7 @@ export function FormViewer({
       DRAFT: { variant: 'secondary' as const, label: 'Draft' },
       COMPLETED: { variant: 'default' as const, label: 'Completed' },
     };
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.DRAFT;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
@@ -87,7 +99,7 @@ export function FormViewer({
   const getFormTypeLabel = (formType: string) => {
     return formType
       .split(/[-_]/)
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
 
@@ -99,7 +111,11 @@ export function FormViewer({
     };
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.VALID;
-    return <Badge variant={config.variant} className={config.color}>{config.label}</Badge>;
+    return (
+      <Badge variant={config.variant} className={config.color}>
+        {config.label}
+      </Badge>
+    );
   };
 
   /* Removed unused _getDeviceIcon function */
@@ -133,7 +149,9 @@ export function FormViewer({
                 </CardTitle>
                 <CardDescription className="text-lg mt-2 space-y-2">
                   <div className="flex items-center space-x-4">
-                    <span className="font-semibold text-gray-900">{submission.verificationType}</span>
+                    <span className="font-semibold text-gray-900">
+                      {submission.verificationType}
+                    </span>
                     <span className="text-gray-600">•</span>
                     <span className={`font-bold ${getOutcomeColor(submission.outcome)}`}>
                       {submission.outcome}
@@ -147,10 +165,12 @@ export function FormViewer({
                     <div className="flex items-center space-x-1">
                       <Clock className="h-4 w-4" />
                       <span>
-                        {submission.submittedAt && !isNaN(new Date(submission.submittedAt).getTime())
-                          ? formatDistanceToNow(new Date(submission.submittedAt), { addSuffix: true })
-                          : 'Unknown time'
-                        }
+                        {submission.submittedAt &&
+                        !isNaN(new Date(submission.submittedAt).getTime())
+                          ? formatDistanceToNow(new Date(submission.submittedAt), {
+                              addSuffix: true,
+                            })
+                          : 'Unknown time'}
                       </span>
                     </div>
                     <div className="flex items-center space-x-1">
@@ -195,7 +215,9 @@ export function FormViewer({
             </div>
             <div>
               <div className="text-sm font-medium text-gray-600">Photos Captured</div>
-              <div className="text-2xl font-bold text-gray-900">{submission.photos?.length || 0}</div>
+              <div className="text-2xl font-bold text-gray-900">
+                {submission.photos?.length || 0}
+              </div>
             </div>
           </div>
         </Card>
@@ -240,9 +262,7 @@ export function FormViewer({
                 <Grid className="h-5 w-5" />
                 <span>Form Data</span>
               </CardTitle>
-              <CardDescription>
-                Complete form submission with all field values
-              </CardDescription>
+              <CardDescription>Complete form submission with all field values</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {submission.sections.map((section, sectionIndex) => (
@@ -279,9 +299,7 @@ export function FormViewer({
                               <span>{field.label}</span>
                               {field.isRequired && <span className="text-red-500">*</span>}
                             </Label>
-                            <Badge className={baseBadgeStyle}>
-                              {field.type.toUpperCase()}
-                            </Badge>
+                            <Badge className={baseBadgeStyle}>{field.type.toUpperCase()}</Badge>
                           </div>
 
                           {/* Field Value */}
@@ -297,7 +315,10 @@ export function FormViewer({
                           {field.validation && (
                             <div className="flex items-center space-x-1 text-xs">
                               {field.validation.isValid ? (
-                                <Badge variant="outline" className="text-green-600 border-green-200">
+                                <Badge
+                                  variant="outline"
+                                  className="text-green-600 border-green-200"
+                                >
                                   <CheckCircle className="h-3 w-3 mr-1" />
                                   Valid
                                 </Badge>
@@ -384,17 +405,23 @@ export function FormViewer({
                 <div className="space-y-3">
                   <div>
                     <div className="text-sm font-medium text-gray-900 mb-1">Platform</div>
-                    <div className="text-sm text-gray-600">{submission.metadata.deviceInfo.platform}</div>
+                    <div className="text-sm text-gray-600">
+                      {submission.metadata.deviceInfo.platform}
+                    </div>
                   </div>
                   <div>
                     <div className="text-sm font-medium text-gray-900 mb-1">App Version</div>
-                    <div className="text-sm text-gray-600">v{submission.metadata.deviceInfo.appVersion}</div>
+                    <div className="text-sm text-gray-600">
+                      v{submission.metadata.deviceInfo.appVersion}
+                    </div>
                   </div>
                   <div>
                     <div className="text-sm font-medium text-gray-900 mb-1">Network</div>
                     <div className="flex items-center space-x-2">
                       {getNetworkIcon(submission.metadata.networkInfo.type)}
-                      <span className="text-sm text-gray-600">{submission.metadata.networkInfo.type}</span>
+                      <span className="text-sm text-gray-600">
+                        {submission.metadata.networkInfo.type}
+                      </span>
                     </div>
                   </div>
                   <div>
@@ -438,11 +465,10 @@ export function FormViewer({
             <span>Form as Submitted by Field Agent</span>
           </CardTitle>
           <CardDescription>
-            Exact replica of the form filled by {submission.submittedByName} on {
-              submission.submittedAt && !isNaN(new Date(submission.submittedAt).getTime())
-                ? new Date(submission.submittedAt).toLocaleDateString()
-                : 'Unknown date'
-            }
+            Exact replica of the form filled by {submission.submittedByName} on{' '}
+            {submission.submittedAt && !isNaN(new Date(submission.submittedAt).getTime())
+              ? new Date(submission.submittedAt).toLocaleDateString()
+              : 'Unknown date'}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
@@ -460,7 +486,9 @@ export function FormViewer({
               </div>
               <div className="bg-white p-3 rounded-lg border">
                 <div className="font-medium text-gray-600">Field Agent</div>
-                <div className="text-lg font-semibold text-gray-900">{submission.submittedByName}</div>
+                <div className="text-lg font-semibold text-gray-900">
+                  {submission.submittedByName}
+                </div>
               </div>
               <div className="bg-white p-3 rounded-lg border">
                 <div className="font-medium text-gray-600">Verification Outcome</div>
@@ -481,20 +509,19 @@ export function FormViewer({
               <div className="inline-flex items-center space-x-2 bg-white px-4 py-2 rounded-full border">
                 <Clock className="h-4 w-4 text-gray-600" />
                 <span className="text-sm text-gray-600">
-                  Submitted on {
-                    submission.submittedAt && !isNaN(new Date(submission.submittedAt).getTime())
-                      ? new Date(submission.submittedAt).toLocaleDateString('en-US', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })
-                      : 'Unknown date'
-                  } at {
-                    submission.submittedAt && !isNaN(new Date(submission.submittedAt).getTime())
-                      ? new Date(submission.submittedAt).toLocaleTimeString()
-                      : 'Unknown time'
-                  }
+                  Submitted on{' '}
+                  {submission.submittedAt && !isNaN(new Date(submission.submittedAt).getTime())
+                    ? new Date(submission.submittedAt).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })
+                    : 'Unknown date'}{' '}
+                  at{' '}
+                  {submission.submittedAt && !isNaN(new Date(submission.submittedAt).getTime())
+                    ? new Date(submission.submittedAt).toLocaleTimeString()
+                    : 'Unknown time'}
                 </span>
               </div>
             </div>
@@ -595,7 +622,10 @@ export function FormViewer({
               </div>
               <div className="bg-white p-4 rounded-lg border">
                 <div className="text-sm font-medium text-gray-900">Validation Status</div>
-                <Badge className={getValidationColor(submission.validationStatus)} variant="outline">
+                <Badge
+                  className={getValidationColor(submission.validationStatus)}
+                  variant="outline"
+                >
                   {submission.validationStatus}
                 </Badge>
               </div>
@@ -613,27 +643,33 @@ export function FormViewer({
                 <h5 className="text-sm font-bold text-gray-900 mb-2">Submission Metadata</h5>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-600">
                   <div>
-                    <span className="font-medium">Platform:</span> {submission.metadata.deviceInfo?.platform || 'Unknown'}
+                    <span className="font-medium">Platform:</span>{' '}
+                    {submission.metadata.deviceInfo?.platform || 'Unknown'}
                   </div>
                   <div>
-                    <span className="font-medium">App Version:</span> {submission.metadata.deviceInfo?.appVersion || 'Unknown'}
+                    <span className="font-medium">App Version:</span>{' '}
+                    {submission.metadata.deviceInfo?.appVersion || 'Unknown'}
                   </div>
                   <div>
-                    <span className="font-medium">Network:</span> {submission.metadata.networkInfo?.type || 'Unknown'}
+                    <span className="font-medium">Network:</span>{' '}
+                    {submission.metadata.networkInfo?.type || 'Unknown'}
                   </div>
                   {/* Use intersection type to access extended properties */}
-                  {((submission.metadata as unknown) as { totalImages?: number }).totalImages && (
+                  {(submission.metadata as unknown as { totalImages?: number }).totalImages && (
                     <div>
-                      <span className="font-medium">Images Captured:</span> {((submission.metadata as unknown) as { totalImages?: number }).totalImages}
+                      <span className="font-medium">Images Captured:</span>{' '}
+                      {(submission.metadata as unknown as { totalImages?: number }).totalImages}
                     </div>
                   )}
-                  {((submission.metadata as unknown) as { formType?: string }).formType && (
+                  {(submission.metadata as unknown as { formType?: string }).formType && (
                     <div>
-                      <span className="font-medium">Form Type:</span> {((submission.metadata as unknown) as { formType?: string }).formType}
+                      <span className="font-medium">Form Type:</span>{' '}
+                      {(submission.metadata as unknown as { formType?: string }).formType}
                     </div>
                   )}
                   <div>
-                    <span className="font-medium">Submission Attempts:</span> {submission.metadata.submissionAttempts || 1}
+                    <span className="font-medium">Submission Attempts:</span>{' '}
+                    {submission.metadata.submissionAttempts || 1}
                   </div>
                 </div>
               </div>
@@ -655,18 +691,12 @@ export function FormViewer({
 
       {/* Form Attachments */}
       {showAttachments && submission.attachments.length > 0 && (
-        <FormAttachmentsViewer
-          attachments={submission.attachments}
-          readonly={readonly}
-        />
+        <FormAttachmentsViewer attachments={submission.attachments} readonly={readonly} />
       )}
 
       {/* Form Location */}
       {showLocation && submission.geoLocation && (
-        <FormLocationViewer
-          location={submission.geoLocation}
-          readonly={readonly}
-        />
+        <FormLocationViewer location={submission.geoLocation} readonly={readonly} />
       )}
 
       {/* Review Comments */}

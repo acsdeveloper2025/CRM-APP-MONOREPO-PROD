@@ -11,9 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  FileText, Search, Upload, X, ChevronDown, Check,
-} from 'lucide-react';
+import { FileText, Search, Upload, X, ChevronDown, Check } from 'lucide-react';
 import { useKYCDocumentTypes } from '@/hooks/useKYC';
 import type { KYCCustomField } from '@/services/kyc';
 import { useQuery } from '@tanstack/react-query';
@@ -58,7 +56,11 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
   const { data: kycUsers = [] } = useQuery({
     queryKey: ['users-for-kyc-assign'],
     queryFn: async () => {
-      const res = await apiService.get('/users', { limit: 200, isActive: 'true', role: 'KYC_VERIFIER' });
+      const res = await apiService.get('/users', {
+        limit: 200,
+        isActive: 'true',
+        role: 'KYC_VERIFIER',
+      });
       return res.data as Array<{ id: string; name: string; employeeId: string }>;
     },
     staleTime: 5 * 60 * 1000,
@@ -70,9 +72,13 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const toggleExpanded = (code: string) => {
-    setExpandedDocs(prev => {
+    setExpandedDocs((prev) => {
       const next = new Set(prev);
-      if (next.has(code)) {next.delete(code);} else {next.add(code);}
+      if (next.has(code)) {
+        next.delete(code);
+      } else {
+        next.add(code);
+      }
       return next;
     });
   };
@@ -88,14 +94,16 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const isSelected = (code: string) => selectedDocuments.some(d => d.documentTypeCode === code);
+  const isSelected = (code: string) => selectedDocuments.some((d) => d.documentTypeCode === code);
 
   const toggleDocument = (code: string) => {
     if (isSelected(code)) {
-      onChange(selectedDocuments.filter(d => d.documentTypeCode !== code));
+      onChange(selectedDocuments.filter((d) => d.documentTypeCode !== code));
     } else {
-      const docType = documentTypes.find(dt => dt.code === code);
-      if (!docType) {return;}
+      const docType = documentTypes.find((dt) => dt.code === code);
+      if (!docType) {
+        return;
+      }
       onChange([
         ...selectedDocuments,
         {
@@ -110,20 +118,18 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
   };
 
   const removeDocument = (code: string) => {
-    onChange(selectedDocuments.filter(d => d.documentTypeCode !== code));
+    onChange(selectedDocuments.filter((d) => d.documentTypeCode !== code));
   };
 
   const updateDocField = (code: string, field: keyof KYCDocumentSelection, value: string) => {
     onChange(
-      selectedDocuments.map(d =>
-        d.documentTypeCode === code ? { ...d, [field]: value } : d
-      )
+      selectedDocuments.map((d) => (d.documentTypeCode === code ? { ...d, [field]: value } : d))
     );
   };
 
   const updateCustomField = (code: string, fieldKey: string, value: string) => {
     onChange(
-      selectedDocuments.map(d =>
+      selectedDocuments.map((d) =>
         d.documentTypeCode === code
           ? { ...d, documentDetails: { ...d.documentDetails, [fieldKey]: value } }
           : d
@@ -132,23 +138,22 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
   };
 
   const updateFile = (code: string, file: File | undefined) => {
-    onChange(
-      selectedDocuments.map(d =>
-        d.documentTypeCode === code ? { ...d, file } : d
-      )
-    );
+    onChange(selectedDocuments.map((d) => (d.documentTypeCode === code ? { ...d, file } : d)));
   };
 
   // Filter by search term
   const filteredTypes = searchTerm.trim()
-    ? documentTypes.filter(dt =>
-        dt.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        dt.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (CATEGORY_LABELS[dt.category] || '').toLowerCase().includes(searchTerm.toLowerCase())
+    ? documentTypes.filter(
+        (dt) =>
+          dt.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          dt.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (CATEGORY_LABELS[dt.category] || '').toLowerCase().includes(searchTerm.toLowerCase())
       )
     : documentTypes;
 
-  if (documentTypes.length === 0) {return null;}
+  if (documentTypes.length === 0) {
+    return null;
+  }
 
   return (
     <Card className="border-amber-200 bg-amber-50/30">
@@ -169,7 +174,10 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
         <div ref={dropdownRef} className="relative">
           <button
             type="button"
-            onClick={() => { setDropdownOpen(!dropdownOpen); setTimeout(() => inputRef.current?.focus(), 50); }}
+            onClick={() => {
+              setDropdownOpen(!dropdownOpen);
+              setTimeout(() => inputRef.current?.focus(), 50);
+            }}
             className="w-full flex items-center justify-between border rounded-md px-3 py-2 bg-white hover:bg-gray-50 transition-colors text-sm min-h-[40px]"
           >
             <span className={selectedDocuments.length === 0 ? 'text-muted-foreground' : ''}>
@@ -177,13 +185,15 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                 ? 'Select KYC document types...'
                 : `${selectedDocuments.length} document type${selectedDocuments.length > 1 ? 's' : ''} selected`}
             </span>
-            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              className={`h-4 w-4 text-muted-foreground transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
+            />
           </button>
 
           {/* Selected tags */}
           {selectedDocuments.length > 0 && !dropdownOpen && (
             <div className="flex flex-wrap gap-1.5 mt-2">
-              {selectedDocuments.map(doc => (
+              {selectedDocuments.map((doc) => (
                 <Badge
                   key={doc.documentTypeCode}
                   variant="secondary"
@@ -192,7 +202,10 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                   {doc.documentTypeName}
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); removeDocument(doc.documentTypeCode); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeDocument(doc.documentTypeCode);
+                    }}
                     className="ml-0.5 rounded-full hover:bg-gray-300/50 p-0.5"
                   >
                     <X className="h-3 w-3" />
@@ -226,7 +239,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                     No document types found
                   </div>
                 ) : (
-                  filteredTypes.map(dt => {
+                  filteredTypes.map((dt) => {
                     const checked = isSelected(dt.code);
                     const categoryLabel = CATEGORY_LABELS[dt.category] || dt.category;
                     const customFieldCount = (dt.customFields || []).length;
@@ -238,13 +251,18 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                         onClick={() => toggleDocument(dt.code)}
                         className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm hover:bg-gray-50 transition-colors ${checked ? 'bg-primary/5' : ''}`}
                       >
-                        <div className={`flex items-center justify-center h-4 w-4 rounded border shrink-0 ${checked ? 'bg-primary border-primary text-white' : 'border-gray-300'}`}>
+                        <div
+                          className={`flex items-center justify-center h-4 w-4 rounded border shrink-0 ${checked ? 'bg-primary border-primary text-white' : 'border-gray-300'}`}
+                        >
                           {checked && <Check className="h-3 w-3" />}
                         </div>
                         <span className="flex-1">{dt.name}</span>
                         <span className="text-xs text-muted-foreground">{categoryLabel}</span>
                         {customFieldCount > 0 && (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-muted-foreground">
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] px-1.5 py-0 text-muted-foreground"
+                          >
                             {customFieldCount} field{customFieldCount > 1 ? 's' : ''}
                           </Badge>
                         )}
@@ -262,48 +280,77 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-xs font-medium text-gray-500">
-                {selectedDocuments.length} document{selectedDocuments.length > 1 ? 's' : ''} selected — click to expand details
+                {selectedDocuments.length} document{selectedDocuments.length > 1 ? 's' : ''}{' '}
+                selected — click to expand details
               </p>
               <div className="flex gap-1">
-                <Button type="button" variant="ghost" size="sm" className="h-6 text-xs px-2"
-                  onClick={() => setExpandedDocs(new Set(selectedDocuments.map(d => d.documentTypeCode)))}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs px-2"
+                  onClick={() =>
+                    setExpandedDocs(new Set(selectedDocuments.map((d) => d.documentTypeCode)))
+                  }
+                >
                   Expand All
                 </Button>
-                <Button type="button" variant="ghost" size="sm" className="h-6 text-xs px-2"
-                  onClick={() => setExpandedDocs(new Set())}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs px-2"
+                  onClick={() => setExpandedDocs(new Set())}
+                >
                   Collapse All
                 </Button>
               </div>
             </div>
 
-            {selectedDocuments.map(doc => {
-              const docType = documentTypes.find(dt => dt.code === doc.documentTypeCode);
+            {selectedDocuments.map((doc) => {
+              const docType = documentTypes.find((dt) => dt.code === doc.documentTypeCode);
               const customFields: KYCCustomField[] = docType?.customFields || [];
               const isExpanded = expandedDocs.has(doc.documentTypeCode);
 
               return (
-                <div key={doc.documentTypeCode} className="border rounded-lg bg-white overflow-hidden">
+                <div
+                  key={doc.documentTypeCode}
+                  className="border rounded-lg bg-white overflow-hidden"
+                >
                   {/* Compact header row — always visible */}
                   <div
                     className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors"
                     onClick={() => toggleExpanded(doc.documentTypeCode)}
                   >
-                    <ChevronDown className={`h-3.5 w-3.5 text-gray-400 shrink-0 transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`} />
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 text-gray-400 shrink-0 transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`}
+                    />
                     <FileText className="h-4 w-4 text-amber-600 shrink-0" />
-                    <span className="text-sm font-medium flex-1 truncate">{doc.documentTypeName}</span>
-                    <Badge variant="outline" className="text-[10px] shrink-0">{CATEGORY_LABELS[doc.documentCategory] || doc.documentCategory}</Badge>
+                    <span className="text-sm font-medium flex-1 truncate">
+                      {doc.documentTypeName}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] shrink-0">
+                      {CATEGORY_LABELS[doc.documentCategory] || doc.documentCategory}
+                    </Badge>
                     {doc.documentNumber && (
-                      <span className="text-xs text-gray-400 hidden sm:inline">#{doc.documentNumber}</span>
+                      <span className="text-xs text-gray-400 hidden sm:inline">
+                        #{doc.documentNumber}
+                      </span>
                     )}
                     {doc.file && (
-                      <Badge variant="secondary" className="text-[10px] shrink-0">File attached</Badge>
+                      <Badge variant="secondary" className="text-[10px] shrink-0">
+                        File attached
+                      </Badge>
                     )}
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       className="h-6 w-6 p-0 text-gray-400 hover:text-red-500 shrink-0"
-                      onClick={(e) => { e.stopPropagation(); removeDocument(doc.documentTypeCode); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeDocument(doc.documentTypeCode);
+                      }}
                     >
                       <X className="h-3.5 w-3.5" />
                     </Button>
@@ -315,7 +362,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                       {/* Custom fields from LOS */}
                       {customFields.length > 0 && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                          {customFields.map(field => (
+                          {customFields.map((field) => (
                             <div key={field.key}>
                               <Label className="text-xs text-gray-500">
                                 {field.label}
@@ -326,7 +373,9 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                                 placeholder={`Enter ${field.label.toLowerCase()}`}
                                 className="h-7 text-xs mt-0.5"
                                 value={doc.documentDetails[field.key] || ''}
-                                onChange={(e) => updateCustomField(doc.documentTypeCode, field.key, e.target.value)}
+                                onChange={(e) =>
+                                  updateCustomField(doc.documentTypeCode, field.key, e.target.value)
+                                }
                               />
                             </div>
                           ))}
@@ -341,7 +390,9 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                             placeholder="Enter number"
                             className="h-7 text-xs mt-0.5"
                             value={doc.documentNumber || ''}
-                            onChange={(e) => updateDocField(doc.documentTypeCode, 'documentNumber', e.target.value)}
+                            onChange={(e) =>
+                              updateDocField(doc.documentTypeCode, 'documentNumber', e.target.value)
+                            }
                           />
                         </div>
                         <div>
@@ -350,7 +401,13 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                             placeholder="Holder name"
                             className="h-7 text-xs mt-0.5"
                             value={doc.documentHolderName || ''}
-                            onChange={(e) => updateDocField(doc.documentTypeCode, 'documentHolderName', e.target.value)}
+                            onChange={(e) =>
+                              updateDocField(
+                                doc.documentTypeCode,
+                                'documentHolderName',
+                                e.target.value
+                              )
+                            }
                           />
                         </div>
                         <div>
@@ -359,7 +416,9 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                           </Label>
                           <Select
                             value={doc.assignedTo || ''}
-                            onValueChange={(v) => updateDocField(doc.documentTypeCode, 'assignedTo', v)}
+                            onValueChange={(v) =>
+                              updateDocField(doc.documentTypeCode, 'assignedTo', v)
+                            }
                           >
                             <SelectTrigger
                               className={`h-7 text-xs mt-0.5 ${
@@ -369,7 +428,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                               <SelectValue placeholder="Select verifier..." />
                             </SelectTrigger>
                             <SelectContent>
-                              {kycUsers.map(u => (
+                              {kycUsers.map((u) => (
                                 <SelectItem key={u.id} value={u.id}>
                                   {u.name} ({u.employeeId})
                                 </SelectItem>
@@ -388,8 +447,13 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                             <div className="flex items-center gap-1 mt-0.5 h-7 px-2 bg-gray-50 rounded border text-xs">
                               <FileText className="h-3 w-3 text-gray-400 shrink-0" />
                               <span className="truncate flex-1">{doc.file.name}</span>
-                              <Button type="button" variant="ghost" size="sm" className="h-5 w-5 p-0 shrink-0"
-                                onClick={() => updateFile(doc.documentTypeCode, undefined)}>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 w-5 p-0 shrink-0"
+                                onClick={() => updateFile(doc.documentTypeCode, undefined)}
+                              >
                                 <X className="h-3 w-3" />
                               </Button>
                             </div>
@@ -397,8 +461,17 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                             <label className="flex items-center gap-1 mt-0.5 h-7 px-2 bg-gray-50 rounded border border-dashed cursor-pointer hover:bg-gray-100 transition-colors text-xs text-gray-500">
                               <Upload className="h-3 w-3" />
                               <span>Upload</span>
-                              <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                                onChange={(e) => { const file = e.target.files?.[0]; if (file) {updateFile(doc.documentTypeCode, file);} }} />
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    updateFile(doc.documentTypeCode, file);
+                                  }
+                                }}
+                              />
                             </label>
                           )}
                         </div>
@@ -411,7 +484,9 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                           placeholder="Optional notes..."
                           className="h-7 text-xs mt-0.5"
                           value={doc.description || ''}
-                          onChange={(e) => updateDocField(doc.documentTypeCode, 'description', e.target.value)}
+                          onChange={(e) =>
+                            updateDocField(doc.documentTypeCode, 'description', e.target.value)
+                          }
                         />
                       </div>
                     </div>

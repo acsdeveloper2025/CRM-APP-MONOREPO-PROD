@@ -27,20 +27,20 @@ interface CascadingLocationSelectorProps {
   // Form control
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: UseFormReturn<any>;
-  
+
   // Field names
   countryField?: string;
   stateField?: string;
   cityField?: string;
   pincodeField?: string;
   areasField?: string;
-  
+
   // Configuration
   mode: 'create' | 'edit';
   showPincodeInput?: boolean;
   showAreasSelect?: boolean;
   disabled?: boolean;
-  
+
   // Callbacks
   onLocationChange?: (location: {
     countryId?: string;
@@ -54,7 +54,7 @@ interface CascadingLocationSelectorProps {
 export function CascadingLocationSelector({
   form,
   countryField = 'countryId',
-  stateField = 'stateId', 
+  stateField = 'stateId',
   cityField = 'cityId',
   pincodeField = 'pincodeCode',
   areasField = 'areas',
@@ -64,7 +64,6 @@ export function CascadingLocationSelector({
   disabled = false,
   onLocationChange,
 }: CascadingLocationSelectorProps) {
-  
   // Watch form values for cascading updates
   const selectedCountryId = form.watch(countryField);
   const selectedStateId = form.watch(stateField);
@@ -82,11 +81,15 @@ export function CascadingLocationSelector({
   const { data: statesData, isLoading: statesLoading } = useQuery({
     queryKey: ['states', selectedCountryId],
     queryFn: () => {
-      if (!selectedCountryId) {return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<State[]>);}
+      if (!selectedCountryId) {
+        return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<State[]>);
+      }
       const selectedCountry = countries.find(
         (c: Country) => String(c.id) === String(selectedCountryId)
       );
-      if (!selectedCountry) {return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<State[]>);}
+      if (!selectedCountry) {
+        return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<State[]>);
+      }
       return locationsService.getStates({ country: selectedCountry.name, limit: 100 });
     },
     enabled: !!selectedCountryId,
@@ -96,9 +99,13 @@ export function CascadingLocationSelector({
   const { data: citiesData, isLoading: citiesLoading } = useQuery({
     queryKey: ['cities', selectedStateId],
     queryFn: () => {
-      if (!selectedStateId) {return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<City[]>);}
+      if (!selectedStateId) {
+        return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<City[]>);
+      }
       const selectedState = states.find((s: State) => String(s.id) === String(selectedStateId));
-      if (!selectedState) {return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<City[]>);}
+      if (!selectedState) {
+        return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<City[]>);
+      }
       return locationsService.getCities({ state: selectedState.name, limit: 100 });
     },
     enabled: !!selectedStateId,
@@ -108,7 +115,9 @@ export function CascadingLocationSelector({
   const { data: pincodesData, isLoading: pincodesLoading } = useQuery({
     queryKey: ['pincodes', selectedCityId],
     queryFn: () => {
-      if (!selectedCityId || mode === 'create') {return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<Pincode[]>);}
+      if (!selectedCityId || mode === 'create') {
+        return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<Pincode[]>);
+      }
       return locationsService.getPincodesByCity(selectedCityId);
     },
     enabled: !!selectedCityId && mode === 'edit',
@@ -120,37 +129,49 @@ export function CascadingLocationSelector({
   const cities = citiesData?.data || [];
   const pincodes = pincodesData?.data || [];
 
-
-
   // Handle clearing dependent fields when parent changes
   const handleCountryChange = (countryId: string) => {
     form.setValue(countryField, countryId);
     form.setValue(stateField, '');
     form.setValue(cityField, '');
-    if (showPincodeInput) {form.setValue(pincodeField, '');}
+    if (showPincodeInput) {
+      form.setValue(pincodeField, '');
+    }
     // Only clear areas in create mode
-    if (showAreasSelect && mode === 'create') {form.setValue(areasField, []);}
+    if (showAreasSelect && mode === 'create') {
+      form.setValue(areasField, []);
+    }
   };
 
   const handleStateChange = (stateId: string) => {
     form.setValue(stateField, stateId);
     form.setValue(cityField, '');
-    if (showPincodeInput) {form.setValue(pincodeField, '');}
+    if (showPincodeInput) {
+      form.setValue(pincodeField, '');
+    }
     // Only clear areas in create mode
-    if (showAreasSelect && mode === 'create') {form.setValue(areasField, []);}
+    if (showAreasSelect && mode === 'create') {
+      form.setValue(areasField, []);
+    }
   };
 
   const handleCityChange = (cityId: string) => {
     form.setValue(cityField, cityId);
-    if (showPincodeInput) {form.setValue(pincodeField, '');}
+    if (showPincodeInput) {
+      form.setValue(pincodeField, '');
+    }
     // Only clear areas in create mode
-    if (showAreasSelect && mode === 'create') {form.setValue(areasField, []);}
+    if (showAreasSelect && mode === 'create') {
+      form.setValue(areasField, []);
+    }
   };
 
   const handlePincodeChange = (pincodeCode: string) => {
     form.setValue(pincodeField, pincodeCode);
     // Only clear areas in create mode
-    if (showAreasSelect && mode === 'create') {form.setValue(areasField, []);}
+    if (showAreasSelect && mode === 'create') {
+      form.setValue(areasField, []);
+    }
   };
 
   // Keep edit-mode pincode preselected when opening the dialog.
@@ -163,8 +184,6 @@ export function CascadingLocationSelector({
     }
   }, [mode, selectedPincodeCode, form, pincodeField]);
 
-
-
   // Notify parent of location changes
   useEffect(() => {
     if (onLocationChange) {
@@ -176,7 +195,14 @@ export function CascadingLocationSelector({
         areaIds: selectedAreas,
       });
     }
-  }, [selectedCountryId, selectedStateId, selectedCityId, selectedPincodeCode, selectedAreas, onLocationChange]);
+  }, [
+    selectedCountryId,
+    selectedStateId,
+    selectedCityId,
+    selectedPincodeCode,
+    selectedAreas,
+    onLocationChange,
+  ]);
 
   return (
     <div className="space-y-4">
@@ -206,9 +232,7 @@ export function CascadingLocationSelector({
                 ))}
               </SelectContent>
             </Select>
-            <FormDescription>
-              Select the country for this location
-            </FormDescription>
+            <FormDescription>Select the country for this location</FormDescription>
             <FormMessage />
           </FormItem>
         )}
@@ -228,7 +252,9 @@ export function CascadingLocationSelector({
             >
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder={selectedCountryId ? "Select a state" : "Select country first"} />
+                  <SelectValue
+                    placeholder={selectedCountryId ? 'Select a state' : 'Select country first'}
+                  />
                   {statesLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 </SelectTrigger>
               </FormControl>
@@ -240,9 +266,7 @@ export function CascadingLocationSelector({
                 ))}
               </SelectContent>
             </Select>
-            <FormDescription>
-              Select the state within the chosen country
-            </FormDescription>
+            <FormDescription>Select the state within the chosen country</FormDescription>
             <FormMessage />
           </FormItem>
         )}
@@ -262,7 +286,9 @@ export function CascadingLocationSelector({
             >
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder={selectedStateId ? "Select a city" : "Select state first"} />
+                  <SelectValue
+                    placeholder={selectedStateId ? 'Select a city' : 'Select state first'}
+                  />
                   {citiesLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 </SelectTrigger>
               </FormControl>
@@ -274,9 +300,7 @@ export function CascadingLocationSelector({
                 ))}
               </SelectContent>
             </Select>
-            <FormDescription>
-              Select the city within the chosen state
-            </FormDescription>
+            <FormDescription>Select the city within the chosen state</FormDescription>
             <FormMessage />
           </FormItem>
         )}
@@ -289,9 +313,7 @@ export function CascadingLocationSelector({
           name={pincodeField}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>
-                {mode === 'create' ? 'Pincode' : 'Pincode'}
-              </FormLabel>
+              <FormLabel>{mode === 'create' ? 'Pincode' : 'Pincode'}</FormLabel>
               {mode === 'create' ? (
                 <FormControl>
                   <Input
@@ -311,7 +333,9 @@ export function CascadingLocationSelector({
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder={selectedCityId ? "Select a pincode" : "Select city first"} />
+                      <SelectValue
+                        placeholder={selectedCityId ? 'Select a pincode' : 'Select city first'}
+                      />
                       {pincodesLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                     </SelectTrigger>
                   </FormControl>
@@ -330,10 +354,9 @@ export function CascadingLocationSelector({
                 </Select>
               )}
               <FormDescription>
-                {mode === 'create' 
-                  ? "Enter the 6-digit pincode for this city" 
-                  : "Select an existing pincode in this city"
-                }
+                {mode === 'create'
+                  ? 'Enter the 6-digit pincode for this city'
+                  : 'Select an existing pincode in this city'}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -353,17 +376,24 @@ export function CascadingLocationSelector({
                 <EnhancedAreasMultiSelect
                   selectedAreaIds={field.value || []}
                   onAreasChange={field.onChange}
-                  disabled={disabled || (mode === 'create' ? !selectedPincodeCode : !selectedCityId)}
+                  disabled={
+                    disabled || (mode === 'create' ? !selectedPincodeCode : !selectedCityId)
+                  }
                   placeholder={
-                    mode === 'create' 
-                      ? (selectedPincodeCode ? "Select areas for this pincode..." : "Enter pincode first")
-                      : (selectedCityId ? "Select areas..." : "Select city first")
+                    mode === 'create'
+                      ? selectedPincodeCode
+                        ? 'Select areas for this pincode...'
+                        : 'Enter pincode first'
+                      : selectedCityId
+                        ? 'Select areas...'
+                        : 'Select city first'
                   }
                   maxAreas={15}
                 />
               </FormControl>
               <FormDescription>
-                Select one or more areas {mode === 'create' ? 'for this pincode' : 'to filter by'} (max 15)
+                Select one or more areas {mode === 'create' ? 'for this pincode' : 'to filter by'}{' '}
+                (max 15)
               </FormDescription>
               <FormMessage />
             </FormItem>

@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Download, Receipt, DollarSign, TrendingUp, Calendar, AlertTriangle } from 'lucide-react';
+import {
+  Plus,
+  Download,
+  Receipt,
+  DollarSign,
+  TrendingUp,
+  Calendar,
+  AlertTriangle,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,9 +28,7 @@ export function BillingPage() {
   const pageSize = 20;
 
   // Unified search with 800ms debounce
-  const {
-    debouncedSearchValue,
-  } = useUnifiedSearch({
+  const { debouncedSearchValue } = useUnifiedSearch({
     syncWithUrl: true,
   });
 
@@ -33,21 +39,23 @@ export function BillingPage() {
 
   const { data: invoicesData, isLoading: invoicesLoading } = useQuery({
     queryKey: ['invoices', debouncedSearchValue, currentPage, pageSize],
-    queryFn: () => billingService.getInvoices({
-      search: debouncedSearchValue || undefined,
-      page: currentPage,
-      limit: pageSize,
-    }),
+    queryFn: () =>
+      billingService.getInvoices({
+        search: debouncedSearchValue || undefined,
+        page: currentPage,
+        limit: pageSize,
+      }),
     enabled: activeTab === 'invoices',
   });
 
   const { data: commissionsData, isLoading: commissionsLoading } = useQuery({
     queryKey: ['commissions', debouncedSearchValue, currentPage, pageSize],
-    queryFn: () => billingService.getCommissions({
-      search: debouncedSearchValue || undefined,
-      page: currentPage,
-      limit: pageSize,
-    }),
+    queryFn: () =>
+      billingService.getCommissions({
+        search: debouncedSearchValue || undefined,
+        page: currentPage,
+        limit: pageSize,
+      }),
     enabled: activeTab === 'commissions',
   });
 
@@ -84,23 +92,23 @@ export function BillingPage() {
   const getTabStats = () => {
     const invoices = invoicesData?.data || [];
     const commissions = commissionsData?.data || [];
-    
+
     return {
       invoices: {
         total: invoices.length,
         totalAmount: invoices.reduce((sum, inv) => sum + inv.totalAmount, 0),
-        draft: invoices.filter(inv => inv.status === 'DRAFT').length,
+        draft: invoices.filter((inv) => inv.status === 'DRAFT').length,
         draftAmount: invoices
-          .filter(inv => inv.status === 'DRAFT')
+          .filter((inv) => inv.status === 'DRAFT')
           .reduce((sum, inv) => sum + inv.totalAmount, 0),
-        overdue: invoices.filter(inv => inv.status === 'OVERDUE').length,
+        overdue: invoices.filter((inv) => inv.status === 'OVERDUE').length,
       },
       commissions: {
         total: commissions.length,
         totalAmount: commissions.reduce((sum, comm) => sum + comm.amount, 0),
-        pending: commissions.filter(comm => comm.status === 'PENDING').length,
-        paid: commissions.filter(comm => comm.status === 'PAID').length,
-      }
+        pending: commissions.filter((comm) => comm.status === 'PENDING').length,
+        paid: commissions.filter((comm) => comm.status === 'PAID').length,
+      },
     };
   };
 
@@ -140,9 +148,7 @@ export function BillingPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{stats.invoices.draft}</div>
-            <p className="text-xs text-gray-600">
-              {stats.invoices.overdue} overdue
-            </p>
+            <p className="text-xs text-gray-600">{stats.invoices.overdue} overdue</p>
           </CardContent>
         </Card>
 
@@ -166,9 +172,7 @@ export function BillingPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">{stats.commissions.pending}</div>
-            <p className="text-xs text-gray-600">
-              {stats.commissions.paid} paid
-            </p>
+            <p className="text-xs text-gray-600">{stats.commissions.paid} paid</p>
           </CardContent>
         </Card>
 
@@ -181,9 +185,7 @@ export function BillingPage() {
             <div className="text-2xl font-bold text-red-600">
               ₹{(stats.invoices.draftAmount || 0).toLocaleString()}
             </div>
-            <p className="text-xs text-gray-600">
-              Draft invoice value
-            </p>
+            <p className="text-xs text-gray-600">Draft invoice value</p>
           </CardContent>
         </Card>
       </div>
@@ -224,20 +226,13 @@ export function BillingPage() {
 
               {/* Actions */}
               <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadReport}
-                >
+                <Button variant="outline" size="sm" onClick={handleDownloadReport}>
                   <Download className="h-4 w-4 mr-2" />
                   Download Report
                 </Button>
-                
+
                 {activeTab === 'invoices' && (
-                  <Button
-                    size="sm"
-                    onClick={() => setShowCreateInvoice(true)}
-                  >
+                  <Button size="sm" onClick={() => setShowCreateInvoice(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Create Invoice
                   </Button>
@@ -245,23 +240,19 @@ export function BillingPage() {
               </div>
             </div>
 
-
-
             <TabsContent value="invoices" className="space-y-4">
-              <InvoicesTable
-                data={invoicesData?.data || []}
-                isLoading={invoicesLoading}
-              />
+              <InvoicesTable data={invoicesData?.data || []} isLoading={invoicesLoading} />
               {invoicesData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
                   <div className="text-sm text-gray-600">
-                    Showing {invoicesData.data?.length || 0} of {invoicesData.pagination.total} invoices
+                    Showing {invoicesData.data?.length || 0} of {invoicesData.pagination.total}{' '}
+                    invoices
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
                     >
                       Previous
@@ -272,7 +263,7 @@ export function BillingPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      onClick={() => setCurrentPage((prev) => prev + 1)}
                       disabled={currentPage >= (invoicesData.pagination.totalPages || 1)}
                     >
                       Next
@@ -286,20 +277,18 @@ export function BillingPage() {
               {commissionSummaryData?.data && (
                 <CommissionSummaryCard summary={commissionSummaryData.data} />
               )}
-              <CommissionsTable
-                data={commissionsData?.data || []}
-                isLoading={commissionsLoading}
-              />
+              <CommissionsTable data={commissionsData?.data || []} isLoading={commissionsLoading} />
               {commissionsData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
                   <div className="text-sm text-gray-600">
-                    Showing {commissionsData.data?.length || 0} of {commissionsData.pagination.total} commissions
+                    Showing {commissionsData.data?.length || 0} of{' '}
+                    {commissionsData.pagination.total} commissions
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
                     >
                       Previous
@@ -310,7 +299,7 @@ export function BillingPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage(prev => prev + 1)}
+                      onClick={() => setCurrentPage((prev) => prev + 1)}
                       disabled={currentPage >= (commissionsData.pagination.totalPages || 1)}
                     >
                       Next
@@ -324,10 +313,7 @@ export function BillingPage() {
       </Card>
 
       {/* Dialogs */}
-      <CreateInvoiceDialog
-        open={showCreateInvoice}
-        onOpenChange={setShowCreateInvoice}
-      />
+      <CreateInvoiceDialog open={showCreateInvoice} onOpenChange={setShowCreateInvoice} />
     </div>
   );
 }

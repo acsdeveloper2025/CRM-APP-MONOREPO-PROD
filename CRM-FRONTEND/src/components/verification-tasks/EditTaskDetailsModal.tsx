@@ -1,10 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { AlertCircle, Edit } from 'lucide-react';
 import { TaskPriority, UpdateVerificationTaskRequest } from '@/types/verificationTask';
 import { logger } from '@/utils/logger';
@@ -27,7 +39,7 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
   task,
   open,
   onOpenChange,
-  onSubmit
+  onSubmit,
 }) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -53,9 +65,9 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
   }, [task, open]);
 
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
@@ -118,7 +130,9 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="taskTitle">Task Title <span className="text-red-500">*</span></Label>
+            <Label htmlFor="taskTitle">
+              Task Title <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="taskTitle"
               value={formData.taskTitle}
@@ -154,7 +168,9 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="pincode">Pincode <span className="text-red-500">*</span></Label>
+              <Label htmlFor="pincode">
+                Pincode <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="pincode"
                 value={formData.pincode}
@@ -162,7 +178,7 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
                 className={errors.pincode ? 'border-red-500' : ''}
                 placeholder="Enter pincode"
               />
-               {errors.pincode && (
+              {errors.pincode && (
                 <p className="text-sm text-red-500 flex items-center mt-1">
                   <AlertCircle className="h-4 w-4 mr-1" />
                   {errors.pincode}
@@ -172,7 +188,9 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="address">Address <span className="text-red-500">*</span></Label>
+            <Label htmlFor="address">
+              Address <span className="text-red-500">*</span>
+            </Label>
             <Textarea
               id="address"
               value={formData.address}
@@ -201,7 +219,12 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
           </div>
 
           <DialogFooter className="pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>

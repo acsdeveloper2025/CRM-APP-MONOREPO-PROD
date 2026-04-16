@@ -11,16 +11,16 @@ interface RetryConfig {
 
 class EnterpriseApiClient {
   // Delegate to apiService
-  
+
   constructor() {
     logger.warn('🏢 Enterprise API Client - Initialized (Delegating to Core API Service)');
   }
 
   // Enhanced GET with caching
   async get<T = unknown>(
-    url: string, 
-    config?: AxiosRequestConfig & { 
-      cacheTTL?: number; 
+    url: string,
+    config?: AxiosRequestConfig & {
+      cacheTTL?: number;
       useCache?: boolean;
       retryConfig?: RetryConfig;
     }
@@ -30,8 +30,8 @@ class EnterpriseApiClient {
 
   // Enhanced POST with retry logic
   async post<T = unknown>(
-    url: string, 
-    data?: unknown, 
+    url: string,
+    data?: unknown,
     config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
   ): Promise<AxiosResponse<T>> {
     return apiService.postRaw<T>(url, data, config);
@@ -39,8 +39,8 @@ class EnterpriseApiClient {
 
   // Enhanced PUT with retry logic
   async put<T = unknown>(
-    url: string, 
-    data?: unknown, 
+    url: string,
+    data?: unknown,
     config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
   ): Promise<AxiosResponse<T>> {
     return apiService.putRaw<T>(url, data, config);
@@ -48,20 +48,22 @@ class EnterpriseApiClient {
 
   // Enhanced DELETE with retry logic
   async delete<T = unknown>(
-    url: string, 
+    url: string,
     config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
   ): Promise<AxiosResponse<T>> {
     return apiService.deleteRaw<T>(url, config);
   }
 
   // Batch requests for efficiency
-  async batch<T = unknown>(requests: Array<{
-    method: 'get' | 'post' | 'put' | 'delete';
-    url: string;
-    data?: unknown;
-    config?: AxiosRequestConfig;
-  }>): Promise<AxiosResponse<T>[]> {
-    const promises = requests.map(req => {
+  async batch<T = unknown>(
+    requests: Array<{
+      method: 'get' | 'post' | 'put' | 'delete';
+      url: string;
+      data?: unknown;
+      config?: AxiosRequestConfig;
+    }>
+  ): Promise<AxiosResponse<T>[]> {
+    const promises = requests.map((req) => {
       switch (req.method) {
         case 'get':
           return this.get<T>(req.url, req.config);
@@ -87,7 +89,7 @@ class EnterpriseApiClient {
   // Performance metrics
   getMetrics() {
     const metrics = apiService.getMetrics();
-    
+
     if (metrics.length === 0) {
       return {
         totalRequests: 0,
@@ -100,9 +102,9 @@ class EnterpriseApiClient {
 
     const totalRequests = metrics.length;
     const averageResponseTime = metrics.reduce((sum, m) => sum + m.duration, 0) / totalRequests;
-    const cacheHits = metrics.filter(m => m.cached).length;
-    const errors = metrics.filter(m => m.status >= 400).length;
-    const slowRequests = metrics.filter(m => m.duration > 1000).length;
+    const cacheHits = metrics.filter((m) => m.cached).length;
+    const errors = metrics.filter((m) => m.status >= 400).length;
+    const slowRequests = metrics.filter((m) => m.duration > 1000).length;
 
     return {
       totalRequests,
@@ -120,11 +122,11 @@ class EnterpriseApiClient {
     timestamp: number;
   }> {
     const start = Date.now();
-    
+
     try {
       await this.get('/health', { useCache: false, timeout: 5000 });
       const latency = Date.now() - start;
-      
+
       return {
         status: latency < 1000 ? 'healthy' : 'degraded',
         latency,

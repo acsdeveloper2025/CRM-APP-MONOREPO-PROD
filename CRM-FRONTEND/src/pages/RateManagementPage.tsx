@@ -41,7 +41,15 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
   const stats = statsData?.data || {
     rateTypes: { total: 0, active: 0, inactive: 0 },
     rates: { total: 0, active: 0, inactive: 0, averageAmount: 0 },
-    documentTypeRates: { totalRates: 0, totalClients: 0, totalProducts: 0, totalDocumentTypes: 0, averageRate: 0, minRate: 0, maxRate: 0 }
+    documentTypeRates: {
+      totalRates: 0,
+      totalClients: 0,
+      totalProducts: 0,
+      totalDocumentTypes: 0,
+      averageRate: 0,
+      minRate: 0,
+      maxRate: 0,
+    },
   };
 
   return (
@@ -116,9 +124,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
             <div className="text-2xl font-bold">
               ₹{Number(stats.rates.averageAmount || 0).toFixed(0)}
             </div>
-            <p className="text-xs text-gray-600 mt-2">
-              Verification services
-            </p>
+            <p className="text-xs text-gray-600 mt-2">Verification services</p>
           </CardContent>
         </Card>
 
@@ -131,9 +137,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               <div className="w-2 h-2 bg-green-500 rounded-full" />
               <span className="text-sm font-medium">Operational</span>
             </div>
-            <p className="text-xs text-gray-600 mt-2">
-              All systems running
-            </p>
+            <p className="text-xs text-gray-600 mt-2">All systems running</p>
           </CardContent>
         </Card>
       </div>
@@ -184,7 +188,8 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
                 <div className="border rounded-lg p-4">
                   <h3 className="text-lg font-semibold mb-2">Rate Type Rules</h3>
                   <p className="text-sm text-gray-600 mb-4">
-                    Map client, product, pincode, and area combinations to a rate type before pricing is applied
+                    Map client, product, pincode, and area combinations to a rate type before
+                    pricing is applied
                   </p>
                   <ServiceZoneRulesTab />
                 </div>
@@ -238,7 +243,9 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
       <Card>
         <CardHeader>
           <CardTitle>Rate Management Workflow</CardTitle>
-          <CardDescription>Follow these steps to set up rates for verification services</CardDescription>
+          <CardDescription>
+            Follow these steps to set up rates for verification services
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-6">

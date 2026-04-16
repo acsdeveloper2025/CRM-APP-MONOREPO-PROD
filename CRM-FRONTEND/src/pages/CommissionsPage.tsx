@@ -3,7 +3,17 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Calculator, BarChart3, FileText, HelpCircle, Download, DollarSign, Clock, CheckCircle, TrendingUp } from 'lucide-react';
+import {
+  Calculator,
+  BarChart3,
+  FileText,
+  HelpCircle,
+  Download,
+  DollarSign,
+  Clock,
+  CheckCircle,
+  TrendingUp,
+} from 'lucide-react';
 import { CommissionCalculationsTab } from '@/components/commission/CommissionCalculationsTab';
 import { CommissionStatsTab } from '@/components/commission/CommissionStatsTab';
 import { commissionManagementService } from '@/services/commissionManagement';
@@ -70,9 +80,7 @@ export const CommissionsPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalCommissions}</div>
-            <p className="text-xs text-gray-600">
-              All commission records
-            </p>
+            <p className="text-xs text-gray-600">All commission records</p>
           </CardContent>
         </Card>
 
@@ -83,9 +91,7 @@ export const CommissionsPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pendingCommissions}</div>
-            <p className="text-xs text-gray-600">
-              ₹{pendingAmount.toLocaleString()} pending
-            </p>
+            <p className="text-xs text-gray-600">₹{pendingAmount.toLocaleString()} pending</p>
           </CardContent>
         </Card>
 
@@ -96,9 +102,7 @@ export const CommissionsPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{approvedCommissions}</div>
-            <p className="text-xs text-gray-600">
-              Ready for payment
-            </p>
+            <p className="text-xs text-gray-600">Ready for payment</p>
           </CardContent>
         </Card>
 
@@ -109,9 +113,7 @@ export const CommissionsPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{totalAmount.toLocaleString()}</div>
-            <p className="text-xs text-gray-600">
-              All commissions
-            </p>
+            <p className="text-xs text-gray-600">All commissions</p>
           </CardContent>
         </Card>
 
@@ -122,11 +124,12 @@ export const CommissionsPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ₹{totalCommissions > 0 ? Math.round(totalAmount / totalCommissions).toLocaleString() : 0}
+              ₹
+              {totalCommissions > 0
+                ? Math.round(totalAmount / totalCommissions).toLocaleString()
+                : 0}
             </div>
-            <p className="text-xs text-gray-600">
-              Per calculation
-            </p>
+            <p className="text-xs text-gray-600">Per calculation</p>
           </CardContent>
         </Card>
       </div>
@@ -165,7 +168,10 @@ export const CommissionsPage: React.FC = () => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => window.location.href = '/commission-management'}>
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => (window.location.href = '/commission-management')}
+        >
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="p-2 bg-primary/10 rounded-lg">
@@ -179,7 +185,10 @@ export const CommissionsPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => window.location.href = '/billing'}>
+        <Card
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => (window.location.href = '/billing')}
+        >
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="p-2 bg-primary/10 rounded-lg">
@@ -204,11 +213,26 @@ export const CommissionsPage: React.FC = () => {
             <div>
               <h3 className="font-semibold mb-2">Commission Reports Guide</h3>
               <div className="space-y-2 text-sm text-gray-600">
-                <p>• <strong>Commission Calculations:</strong> View detailed commission calculations for each field user with payment status and case details</p>
-                <p>• <strong>Statistics & Analytics:</strong> Monitor commission trends, top performers, and overall commission metrics</p>
-                <p>• <strong>Payment Tracking:</strong> Track paid, pending, and overdue commission payments</p>
-                <p>• <strong>Performance Insights:</strong> Analyze field user performance and commission distribution patterns</p>
-                <p>• <strong>Commission Management:</strong> Configure commission rates and assignments in Commission Management section</p>
+                <p>
+                  • <strong>Commission Calculations:</strong> View detailed commission calculations
+                  for each field user with payment status and case details
+                </p>
+                <p>
+                  • <strong>Statistics & Analytics:</strong> Monitor commission trends, top
+                  performers, and overall commission metrics
+                </p>
+                <p>
+                  • <strong>Payment Tracking:</strong> Track paid, pending, and overdue commission
+                  payments
+                </p>
+                <p>
+                  • <strong>Performance Insights:</strong> Analyze field user performance and
+                  commission distribution patterns
+                </p>
+                <p>
+                  • <strong>Commission Management:</strong> Configure commission rates and
+                  assignments in Commission Management section
+                </p>
               </div>
             </div>
           </div>

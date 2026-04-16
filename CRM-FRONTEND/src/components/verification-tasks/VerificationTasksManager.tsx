@@ -11,12 +11,7 @@ import { TaskAssignmentModal } from './TaskAssignmentModal';
 import { TaskCompletionModal } from './TaskCompletionModal';
 import { TaskSummaryCards } from './TaskSummaryCards';
 import { BulkActionsToolbar } from './BulkActionsToolbar';
-import {
-  Plus,
-  Filter,
-  RefreshCw,
-  AlertCircle
-} from 'lucide-react';
+import { Plus, Filter, RefreshCw, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -31,7 +26,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
   caseId,
   caseNumber,
   customerName,
-  readonly = false
+  readonly = false,
 }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>('all');
@@ -44,13 +39,13 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
 
   // Use the actual hook structure
   const { data, isLoading, error, refetch } = useVerificationTasks(caseId);
-  
+
   const tasks = data?.tasks || [];
   const loading = isLoading;
 
   // Helper function to filter tasks by status
   const getTasksByStatus = (status: string) => {
-    return tasks.filter(task => task.status === status);
+    return tasks.filter((task) => task.status === status);
   };
 
   // Get tasks by status for tabs
@@ -71,10 +66,8 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
 
   // Selection handlers
   const selectTask = (taskId: string) => {
-    setSelectedTasks(prev => 
-      prev.includes(taskId) 
-        ? prev.filter(id => id !== taskId)
-        : [...prev, taskId]
+    setSelectedTasks((prev) =>
+      prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]
     );
   };
 
@@ -82,7 +75,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
     if (selectedTasks.length === tasks.length) {
       setSelectedTasks([]);
     } else {
-      setSelectedTasks(tasks.map(t => t.id));
+      setSelectedTasks(tasks.map((t) => t.id));
     }
   };
 
@@ -133,9 +126,12 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
     }
   };
 
-  const handleViewTask = useCallback((taskId: string) => {
-    navigate(`/tasks/${taskId}`);
-  }, [navigate]);
+  const handleViewTask = useCallback(
+    (taskId: string) => {
+      navigate(`/tasks/${taskId}`);
+    },
+    [navigate]
+  );
 
   const handleRefresh = useCallback(() => {
     refetch();
@@ -193,12 +189,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
             <AlertCircle className="h-5 w-5" />
             <span>Error loading verification tasks: {(error as Error).message}</span>
           </div>
-          <Button 
-            onClick={handleRefresh} 
-            variant="outline" 
-            size="sm" 
-            className="mt-4"
-          >
+          <Button onClick={handleRefresh} variant="outline" size="sm" className="mt-4">
             <RefreshCw className="h-4 w-4 mr-2" />
             Retry
           </Button>
@@ -212,41 +203,27 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
-            Verification Tasks
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-900">Verification Tasks</h2>
           {caseNumber && customerName && (
             <p className="text-sm text-gray-600 mt-1">
               Case #{caseNumber} - {customerName}
             </p>
           )}
         </div>
-        
+
         <div className="flex items-center space-x-3">
-          <Button
-            onClick={() => setShowFilters(!showFilters)}
-            variant="outline"
-            size="sm"
-          >
+          <Button onClick={() => setShowFilters(!showFilters)} variant="outline" size="sm">
             <Filter className="h-4 w-4 mr-2" />
             Filters
           </Button>
-          
-          <Button
-            onClick={handleRefresh}
-            variant="outline"
-            size="sm"
-            disabled={loading}
-          >
+
+          <Button onClick={handleRefresh} variant="outline" size="sm" disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          
+
           {!readonly && (
-            <Button
-              onClick={() => setShowCreateModal(true)}
-              size="sm"
-            >
+            <Button onClick={() => setShowCreateModal(true)} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Add Tasks
             </Button>
@@ -299,7 +276,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
             </TabsList>
           </Tabs>
         </CardHeader>
-        
+
         <CardContent>
           <VerificationTasksList
             tasks={filteredTasks}

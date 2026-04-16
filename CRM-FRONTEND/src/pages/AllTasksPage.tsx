@@ -16,7 +16,10 @@ import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
+import {
+  UnifiedSearchFilterLayout,
+  FilterGrid,
+} from '@/components/ui/unified-search-filter-layout';
 import {
   ListTodo,
   Clock,
@@ -24,7 +27,7 @@ import {
   AlertTriangle,
   RefreshCw,
   Users,
-  Download
+  Download,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -39,15 +42,10 @@ export const AllTasksPage: React.FC = () => {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   // Unified search with 800ms debounce
-  const {
-    searchValue,
-    debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
-  } = useUnifiedSearch({
-    syncWithUrl: true,
-  });
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({
+      syncWithUrl: true,
+    });
 
   // Unified filters with URL sync
   const {
@@ -74,16 +72,17 @@ export const AllTasksPage: React.FC = () => {
     priority: activeFilters.priority || undefined,
   };
 
-  const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);
+  const { tasks, loading, error, pagination, statistics, refreshTasks } =
+    useAllVerificationTasks(queryFilters);
 
   const activeFilterCount = Object.keys(activeFilters).filter(
-    key => activeFilters[key as keyof TaskFilters] !== undefined
+    (key) => activeFilters[key as keyof TaskFilters] !== undefined
   ).length;
 
   const handleFilterChange = (key: string, value: string | number) => {
-    setPaginationState(prev => ({
+    setPaginationState((prev) => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }));
   };
 
@@ -103,7 +102,9 @@ export const AllTasksPage: React.FC = () => {
 
   const handleEditCase = (caseId: string, taskId?: string) => {
     if (caseId) {
-      const url = taskId ? `/cases/new?edit=${caseId}&taskId=${taskId}` : `/cases/new?edit=${caseId}`;
+      const url = taskId
+        ? `/cases/new?edit=${caseId}&taskId=${taskId}`
+        : `/cases/new?edit=${caseId}`;
       navigate(url);
     }
   };
@@ -113,7 +114,9 @@ export const AllTasksPage: React.FC = () => {
       {/* Page Header — matches CasesPage */}
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">All Verification Tasks</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
+            All Verification Tasks
+          </h1>
           <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
             Manage and track all verification tasks
           </p>
@@ -172,7 +175,9 @@ export const AllTasksPage: React.FC = () => {
             <AlertTriangle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(statistics.urgent || 0) + (statistics.highPriority || 0)}</div>
+            <div className="text-2xl font-bold">
+              {(statistics.urgent || 0) + (statistics.highPriority || 0)}
+            </div>
             <p className="text-xs text-gray-600">Urgent + High</p>
           </CardContent>
         </Card>
@@ -215,7 +220,9 @@ export const AllTasksPage: React.FC = () => {
               <Label htmlFor="priority">Priority</Label>
               <Select
                 value={activeFilters.priority || 'all'}
-                onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
+                onValueChange={(value) =>
+                  setFilter('priority', value === 'all' ? undefined : value)
+                }
               >
                 <SelectTrigger id="priority">
                   <SelectValue placeholder="All priorities" />
@@ -260,12 +267,7 @@ export const AllTasksPage: React.FC = () => {
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refreshTasks()}
-              disabled={loading}
-            >
+            <Button variant="outline" size="sm" onClick={() => refreshTasks()} disabled={loading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
@@ -297,7 +299,9 @@ export const AllTasksPage: React.FC = () => {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600">
-                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} tasks
+                Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+                {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+                {pagination.total} tasks
               </p>
               {pagination.totalPages > 1 && (
                 <div className="flex items-center space-x-2">

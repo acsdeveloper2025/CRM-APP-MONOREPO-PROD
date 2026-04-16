@@ -1,34 +1,28 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  BarChart, 
-  Bar, 
-  PieChart, 
-  Pie, 
+import {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
   Cell,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer 
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
 } from 'recharts';
 import { useCaseAnalytics } from '@/hooks/useAnalytics';
 import type { CaseAnalytics } from '@/services/analytics';
-import {
-  FileText,
-  TrendingUp,
-  CheckCircle2,
-  Clock,
-  XCircle
-} from 'lucide-react';
+import { FileText, TrendingUp, CheckCircle2, Clock, XCircle } from 'lucide-react';
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: '#f59e0b',
@@ -36,7 +30,7 @@ const STATUS_COLORS: Record<string, string> = {
   COMPLETED: '#10b981',
   APPROVED: '#059669',
   REJECTED: '#ef4444',
-  REWORK_REQUIRED: '#f97316'
+  REWORK_REQUIRED: '#f97316',
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -44,7 +38,7 @@ const PRIORITY_COLORS: Record<string, string> = {
   MEDIUM: '#3b82f6',
   HIGH: '#f59e0b',
   URGENT: '#ef4444',
-  CRITICAL: '#dc2626'
+  CRITICAL: '#dc2626',
 };
 
 const getDateFromRange = (range: string): string => {
@@ -65,7 +59,11 @@ export const CasesAnalytics: React.FC = () => {
   const [timeRange, setTimeRange] = useState('30d');
   const [viewType, setViewType] = useState<'status' | 'client' | 'priority'>('status');
 
-  const { data: analyticsData, isLoading, error } = useCaseAnalytics({
+  const {
+    data: analyticsData,
+    isLoading,
+    error,
+  } = useCaseAnalytics({
     dateFrom: getDateFromRange(timeRange),
     dateTo: new Date().toISOString().split('T')[0],
   });
@@ -74,11 +72,13 @@ export const CasesAnalytics: React.FC = () => {
   const cases = analyticsData?.data?.cases || [];
 
   // Calculate distributions
-  const statusDistribution = Object.entries(summary?.statusDistribution || {}).map(([status, count]) => ({
-    name: status.replace(/_/g, ' '),
-    value: count,
-    color: STATUS_COLORS[status] || '#6b7280'
-  }));
+  const statusDistribution = Object.entries(summary?.statusDistribution || {}).map(
+    ([status, count]) => ({
+      name: status.replace(/_/g, ' '),
+      value: count,
+      color: STATUS_COLORS[status] || '#6b7280',
+    })
+  );
 
   const clientDistribution = cases.reduce((acc: Record<string, number>, c: CaseAnalytics) => {
     const client = c.clientName || 'Unknown';
@@ -86,11 +86,14 @@ export const CasesAnalytics: React.FC = () => {
     return acc;
   }, {});
 
-  const clientData = Object.entries(clientDistribution).map(([name, count], index) => ({
-    name,
-    value: count,
-    color: `hsl(${index * 45}, 70%, 50%)`
-  })).sort((a, b) => b.value - a.value).slice(0, 10);
+  const clientData = Object.entries(clientDistribution)
+    .map(([name, count], index) => ({
+      name,
+      value: count,
+      color: `hsl(${index * 45}, 70%, 50%)`,
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10);
 
   const priorityDistribution = cases.reduce((acc: Record<string, number>, c: CaseAnalytics) => {
     const priority = c.priority || 'MEDIUM';
@@ -101,7 +104,7 @@ export const CasesAnalytics: React.FC = () => {
   const priorityData = Object.entries(priorityDistribution).map(([name, count]) => ({
     name,
     value: count,
-    color: PRIORITY_COLORS[name] || '#6b7280'
+    color: PRIORITY_COLORS[name] || '#6b7280',
   }));
 
   // Loading state
@@ -172,9 +175,7 @@ export const CasesAnalytics: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{summary?.totalCases || 0}</div>
-            <p className="text-xs text-gray-600">
-              All cases in selected period
-            </p>
+            <p className="text-xs text-gray-600">All cases in selected period</p>
           </CardContent>
         </Card>
 
@@ -186,7 +187,9 @@ export const CasesAnalytics: React.FC = () => {
           <CardContent>
             <div className="text-2xl font-bold">{summary?.completedCases || 0}</div>
             <p className="text-xs text-gray-600">
-              {summary?.completionRate ? `${summary.completionRate.toFixed(1)}% completion rate` : '0% completion rate'}
+              {summary?.completionRate
+                ? `${summary.completionRate.toFixed(1)}% completion rate`
+                : '0% completion rate'}
             </p>
           </CardContent>
         </Card>
@@ -200,9 +203,7 @@ export const CasesAnalytics: React.FC = () => {
             <div className="text-2xl font-bold">
               {summary?.avgCompletionDays ? `${summary.avgCompletionDays.toFixed(1)}d` : 'N/A'}
             </div>
-            <p className="text-xs text-gray-600">
-              Average days to complete
-            </p>
+            <p className="text-xs text-gray-600">Average days to complete</p>
           </CardContent>
         </Card>
 
@@ -215,9 +216,7 @@ export const CasesAnalytics: React.FC = () => {
             <div className="text-2xl font-bold">
               {summary?.avgFormCompletion ? `${summary.avgFormCompletion.toFixed(1)}%` : 'N/A'}
             </div>
-            <p className="text-xs text-gray-600">
-              Average task completion
-            </p>
+            <p className="text-xs text-gray-600">Average task completion</p>
           </CardContent>
         </Card>
       </div>
@@ -230,7 +229,10 @@ export const CasesAnalytics: React.FC = () => {
               <CardTitle>Case Distribution</CardTitle>
               <CardDescription>Breakdown by different dimensions</CardDescription>
             </div>
-            <Select value={viewType} onValueChange={(v) => setViewType(v as 'status' | 'client' | 'priority')}>
+            <Select
+              value={viewType}
+              onValueChange={(v) => setViewType(v as 'status' | 'client' | 'priority')}
+            >
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
@@ -249,16 +251,29 @@ export const CasesAnalytics: React.FC = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={viewType === 'status' ? statusDistribution : viewType === 'priority' ? priorityData : clientData}
+                    data={
+                      viewType === 'status'
+                        ? statusDistribution
+                        : viewType === 'priority'
+                          ? priorityData
+                          : clientData
+                    }
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={(props: { name?: string; percent?: number }) => `${props.name || ''}: ${((props.percent || 0) * 100).toFixed(0)}%`}
+                    label={(props: { name?: string; percent?: number }) =>
+                      `${props.name || ''}: ${((props.percent || 0) * 100).toFixed(0)}%`
+                    }
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {(viewType === 'status' ? statusDistribution : viewType === 'priority' ? priorityData : clientData).map((entry, index) => (
+                    {(viewType === 'status'
+                      ? statusDistribution
+                      : viewType === 'priority'
+                        ? priorityData
+                        : clientData
+                    ).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -271,13 +286,26 @@ export const CasesAnalytics: React.FC = () => {
             {/* Bar Chart */}
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={viewType === 'status' ? statusDistribution : viewType === 'priority' ? priorityData : clientData}>
+                <BarChart
+                  data={
+                    viewType === 'status'
+                      ? statusDistribution
+                      : viewType === 'priority'
+                        ? priorityData
+                        : clientData
+                  }
+                >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
                   <YAxis />
                   <Tooltip />
                   <Bar dataKey="value" fill="#3b82f6">
-                    {(viewType === 'status' ? statusDistribution : viewType === 'priority' ? priorityData : clientData).map((entry, index) => (
+                    {(viewType === 'status'
+                      ? statusDistribution
+                      : viewType === 'priority'
+                        ? priorityData
+                        : clientData
+                    ).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Bar>
@@ -297,13 +325,19 @@ export const CasesAnalytics: React.FC = () => {
         <CardContent>
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {statusDistribution.map((status) => (
-              <div key={status.name} className="flex items-center justify-between p-4 border rounded-lg">
+              <div
+                key={status.name}
+                className="flex items-center justify-between p-4 border rounded-lg"
+              >
                 <div className="flex items-center space-x-3">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: status.color }} />
                   <div>
                     <p className="font-medium">{status.name}</p>
                     <p className="text-sm text-gray-600">
-                      {summary?.totalCases ? ((status.value / summary.totalCases) * 100).toFixed(1) : 0}%
+                      {summary?.totalCases
+                        ? ((status.value / summary.totalCases) * 100).toFixed(1)
+                        : 0}
+                      %
                     </p>
                   </div>
                 </div>
@@ -316,4 +350,3 @@ export const CasesAnalytics: React.FC = () => {
     </div>
   );
 };
-

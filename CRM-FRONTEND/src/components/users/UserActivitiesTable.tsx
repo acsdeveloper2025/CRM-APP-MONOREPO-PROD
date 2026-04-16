@@ -43,7 +43,7 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
       DELETE: { variant: 'destructive', label: 'Delete' },
       VIEW: { variant: 'secondary', label: 'View' },
     };
-    
+
     const config = actionConfig[action] || { variant: 'outline', label: action };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
@@ -67,7 +67,11 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback>
-                      {(activity.userName || 'U').split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {(activity.userName || 'U')
+                        .split(' ')
+                        .map((n) => n[0])
+                        .join('')
+                        .toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
@@ -76,9 +80,7 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
                   </div>
                 </div>
               </TableCell>
-              <TableCell>
-                {getActionBadge(activity.action)}
-              </TableCell>
+              <TableCell>{getActionBadge(activity.action)}</TableCell>
               <TableCell>
                 <code className="text-[10px] bg-gray-100 p-1 rounded block max-w-[200px] truncate">
                   {JSON.stringify(activity.details || {})}
@@ -90,9 +92,7 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
               <TableCell>
                 <div className="flex items-center space-x-1 whitespace-nowrap">
                   <Clock className="h-3 w-3 text-gray-600" />
-                  <span className="text-sm">
-                    {new Date(activity.createdAt).toLocaleString()}
-                  </span>
+                  <span className="text-sm">{new Date(activity.createdAt).toLocaleString()}</span>
                 </div>
               </TableCell>
             </TableRow>

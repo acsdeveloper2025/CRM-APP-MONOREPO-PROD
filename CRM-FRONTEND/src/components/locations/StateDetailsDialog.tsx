@@ -37,9 +37,7 @@ export function StateDetailsDialog({ state, open, onOpenChange }: StateDetailsDi
             <MapPin className="h-5 w-5" />
             {state.name}
           </DialogTitle>
-          <DialogDescription>
-            Detailed information about {state.name} state
-          </DialogDescription>
+          <DialogDescription>Detailed information about {state.name} state</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -87,9 +85,7 @@ export function StateDetailsDialog({ state, open, onOpenChange }: StateDetailsDi
                 <Building className="h-5 w-5" />
                 Cities ({cities.length})
               </CardTitle>
-              <CardDescription>
-                Cities located in {state.name}
-              </CardDescription>
+              <CardDescription>Cities located in {state.name}</CardDescription>
             </CardHeader>
             <CardContent>
               {citiesLoading ? (
@@ -146,7 +142,9 @@ export function StateDetailsDialog({ state, open, onOpenChange }: StateDetailsDi
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
-                    {Math.round((Date.now() - new Date(state.createdAt).getTime()) / (1000 * 60 * 60 * 24))}
+                    {Math.round(
+                      (Date.now() - new Date(state.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+                    )}
                   </p>
                   <p className="text-sm text-gray-600">Days Old</p>
                 </div>

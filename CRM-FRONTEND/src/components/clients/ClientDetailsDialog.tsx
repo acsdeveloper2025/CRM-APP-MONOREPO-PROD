@@ -14,7 +14,6 @@ import { LoadingSpinner } from '@/components/ui/loading';
 import { clientsService } from '@/services/clients';
 import { Client, VerificationType } from '@/types/client';
 
-
 interface ClientDetailsDialogProps {
   client: Client;
   open: boolean;
@@ -47,9 +46,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
             <Building2 className="h-5 w-5" />
             <span>Client Details</span>
           </DialogTitle>
-          <DialogDescription>
-            Comprehensive information about {clientData.name}
-          </DialogDescription>
+          <DialogDescription>Comprehensive information about {clientData.name}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -72,7 +69,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
                     </div>
                     <p className="font-medium">{clientData.name}</p>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <Code className="h-4 w-4" />
@@ -82,7 +79,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
                       {clientData.code}
                     </Badge>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <Calendar className="h-4 w-4" />
@@ -96,7 +93,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
                       })}
                     </p>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2 text-sm text-gray-600">
                       <CheckCircle className="h-4 w-4" />
@@ -117,9 +114,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
                 <span>Products</span>
                 <Badge variant="secondary">{products.length}</Badge>
               </CardTitle>
-              <CardDescription>
-                Products associated with this client
-              </CardDescription>
+              <CardDescription>Products associated with this client</CardDescription>
             </CardHeader>
             <CardContent>
               {products.length === 0 ? (
@@ -173,7 +168,10 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {verificationTypes.map((vt: VerificationType) => (
-                    <div key={vt.id} className="flex items-center justify-between p-3 rounded-lg border">
+                    <div
+                      key={vt.id}
+                      className="flex items-center justify-between p-3 rounded-lg border"
+                    >
                       <div className="space-y-1">
                         <p className="font-medium">{vt.name}</p>
                         <Badge variant="outline" className="text-xs">
@@ -195,9 +193,7 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
                 <span>Document Types</span>
                 <Badge variant="secondary">{documentTypes.length}</Badge>
               </CardTitle>
-              <CardDescription>
-                Document types assigned to this client
-              </CardDescription>
+              <CardDescription>Document types assigned to this client</CardDescription>
             </CardHeader>
             <CardContent>
               {documentTypes.length === 0 ? (
@@ -208,7 +204,10 @@ export function ClientDetailsDialog({ client, open, onOpenChange }: ClientDetail
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {documentTypes.map((dt) => (
-                    <div key={dt.id} className="flex items-center justify-between p-3 rounded-lg border">
+                    <div
+                      key={dt.id}
+                      className="flex items-center justify-between p-3 rounded-lg border"
+                    >
                       <div className="space-y-1">
                         <p className="font-medium">{dt.name}</p>
                         <div className="flex items-center space-x-2">

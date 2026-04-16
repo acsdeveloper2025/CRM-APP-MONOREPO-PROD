@@ -1,10 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCRUDMutation } from './useStandardizedMutation';
-import { 
-  verificationTypesService, 
-  VerificationType, 
-  CreateVerificationTypeData, 
-  UpdateVerificationTypeData 
+import {
+  verificationTypesService,
+  VerificationType,
+  CreateVerificationTypeData,
+  UpdateVerificationTypeData,
 } from '@/services/verificationTypes';
 import type { PaginationQuery } from '@/types/api';
 
@@ -38,7 +38,7 @@ export function useVerificationType(id: number) {
 // Create verification type
 export function useCreateVerificationType() {
   return useCRUDMutation({
-    mutationFn: (data: CreateVerificationTypeData) => 
+    mutationFn: (data: CreateVerificationTypeData) =>
       verificationTypesService.createVerificationType(data),
     queryKey: VERIFICATION_TYPES_KEYS.lists(),
     resourceName: 'Verification Type',
@@ -75,11 +75,11 @@ export function useDeleteVerificationType() {
 // Get active verification types (helper hook)
 export function useActiveVerificationTypes() {
   const { data, ...rest } = useVerificationTypes();
-  
+
   const activeTypes = data?.data?.filter((type: VerificationType) => type.isActive) || [];
-  
+
   return {
     data: { ...data, data: activeTypes },
-    ...rest
+    ...rest,
   };
 }

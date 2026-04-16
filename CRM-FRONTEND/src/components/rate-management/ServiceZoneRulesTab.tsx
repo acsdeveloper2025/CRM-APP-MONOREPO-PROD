@@ -71,7 +71,8 @@ export function ServiceZoneRulesTab() {
   const [pincodeSearchQuery, setPincodeSearchQuery] = useState('');
   const { data: pincodesResponse } = useQuery({
     queryKey: ['service-zone-pincodes', pincodeSearchQuery],
-    queryFn: () => locationsService.getPincodes({ search: pincodeSearchQuery || undefined, limit: 30 }),
+    queryFn: () =>
+      locationsService.getPincodes({ search: pincodeSearchQuery || undefined, limit: 30 }),
   });
   const { data: areasResponse } = useQuery({
     queryKey: ['service-zone-areas', formState.pincodeId],
@@ -137,10 +138,7 @@ export function ServiceZoneRulesTab() {
   const products = useMemo(() => productsResponse?.data || [], [productsResponse?.data]);
   const pincodes = useMemo(() => pincodesResponse?.data || [], [pincodesResponse?.data]);
   const areas = useMemo(() => areasResponse?.data || [], [areasResponse?.data]);
-  const rateTypes = useMemo(
-    () => rateTypesResponse?.data || [],
-    [rateTypesResponse?.data]
-  );
+  const rateTypes = useMemo(() => rateTypesResponse?.data || [], [rateTypesResponse?.data]);
   const rules = useMemo(() => rulesResponse?.data || [], [rulesResponse?.data]);
 
   useEffect(() => {
@@ -226,7 +224,10 @@ export function ServiceZoneRulesTab() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="space-y-2">
               <Label>Client *</Label>
-              <Select value={formState.clientId} onValueChange={(value) => handleFormChange('clientId', value)}>
+              <Select
+                value={formState.clientId}
+                onValueChange={(value) => handleFormChange('clientId', value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select client" />
                 </SelectTrigger>
@@ -248,7 +249,9 @@ export function ServiceZoneRulesTab() {
                 disabled={!formState.clientId}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={formState.clientId ? 'Select product' : 'Select client first'} />
+                  <SelectValue
+                    placeholder={formState.clientId ? 'Select product' : 'Select client first'}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {products.map((product) => (
@@ -262,7 +265,10 @@ export function ServiceZoneRulesTab() {
 
             <div className="space-y-2">
               <Label>Pincode *</Label>
-              <Select value={formState.pincodeId} onValueChange={(value) => handleFormChange('pincodeId', value)}>
+              <Select
+                value={formState.pincodeId}
+                onValueChange={(value) => handleFormChange('pincodeId', value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select pincode" />
                 </SelectTrigger>
@@ -293,7 +299,9 @@ export function ServiceZoneRulesTab() {
                 disabled={!formState.pincodeId}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={formState.pincodeId ? 'Select area' : 'Select pincode first'} />
+                  <SelectValue
+                    placeholder={formState.pincodeId ? 'Select area' : 'Select pincode first'}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {areas.map((area) => (

@@ -45,10 +45,11 @@ export function CreateProductDialog({ open, onOpenChange }: CreateProductDialogP
   });
 
   const createMutation = useCRUDMutation({
-    mutationFn: (data: CreateProductFormData) => productsService.createProduct({
-      name: data.name,
-      code: data.code,
-    }),
+    mutationFn: (data: CreateProductFormData) =>
+      productsService.createProduct({
+        name: data.name,
+        code: data.code,
+      }),
     queryKey: ['products'],
     resourceName: 'Product',
     operation: 'create',
@@ -69,7 +70,8 @@ export function CreateProductDialog({ open, onOpenChange }: CreateProductDialogP
         <DialogHeader>
           <DialogTitle>Create New Product</DialogTitle>
           <DialogDescription>
-            Create a standalone product that can be assigned to clients later. Products define the verification services you offer.
+            Create a standalone product that can be assigned to clients later. Products define the
+            verification services you offer.
           </DialogDescription>
         </DialogHeader>
 
@@ -84,9 +86,7 @@ export function CreateProductDialog({ open, onOpenChange }: CreateProductDialogP
                   <FormControl>
                     <Input placeholder="e.g., LOAN_VERIFICATION" {...field} />
                   </FormControl>
-                  <FormDescription>
-                    Unique identifier for this product
-                  </FormDescription>
+                  <FormDescription>Unique identifier for this product</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -99,14 +99,9 @@ export function CreateProductDialog({ open, onOpenChange }: CreateProductDialogP
                 <FormItem>
                   <FormLabel>Product Name</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="Enter product name"
-                      {...field}
-                    />
+                    <Input placeholder="Enter product name" {...field} />
                   </FormControl>
-                  <FormDescription>
-                    The name of the product or service
-                  </FormDescription>
+                  <FormDescription>The name of the product or service</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

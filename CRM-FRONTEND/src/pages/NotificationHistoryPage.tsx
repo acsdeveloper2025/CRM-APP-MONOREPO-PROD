@@ -124,7 +124,7 @@ export function NotificationHistoryPage() {
 
   const markReadMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      await Promise.all(ids.map(id => notificationService.markRead(id)));
+      await Promise.all(ids.map((id) => notificationService.markRead(id)));
     },
     onSuccess: async () => {
       await refreshLists();
@@ -137,7 +137,7 @@ export function NotificationHistoryPage() {
 
   const markUnreadMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      await Promise.all(ids.map(id => notificationService.markUnread(id)));
+      await Promise.all(ids.map((id) => notificationService.markUnread(id)));
     },
     onSuccess: async () => {
       await refreshLists();
@@ -150,7 +150,7 @@ export function NotificationHistoryPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      await Promise.all(ids.map(id => notificationService.remove(id)));
+      await Promise.all(ids.map((id) => notificationService.remove(id)));
     },
     onSuccess: async () => {
       await refreshLists();
@@ -254,7 +254,7 @@ export function NotificationHistoryPage() {
       return;
     }
 
-    setSelectedIds(new Set(pagedNotifications.map(notification => notification.id)));
+    setSelectedIds(new Set(pagedNotifications.map((notification) => notification.id)));
   };
 
   const isBusy =
@@ -270,9 +270,7 @@ export function NotificationHistoryPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
-          <p className="text-gray-600">
-            Unified inbox backed by the CRM notification service.
-          </p>
+          <p className="text-gray-600">Unified inbox backed by the CRM notification service.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -402,7 +400,9 @@ export function NotificationHistoryPage() {
             <>
               <div className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-2">
                 <Checkbox
-                  checked={pagedNotifications.length > 0 && selectedIds.size === pagedNotifications.length}
+                  checked={
+                    pagedNotifications.length > 0 && selectedIds.size === pagedNotifications.length
+                  }
                   onCheckedChange={handleSelectAll}
                 />
                 <span className="text-sm text-gray-600">Select page</span>
@@ -428,7 +428,9 @@ export function NotificationHistoryPage() {
                         />
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-gray-900">{notification.title}</span>
+                            <span className="font-semibold text-gray-900">
+                              {notification.title}
+                            </span>
                             <Badge variant={notification.isRead ? 'outline' : 'default'}>
                               {notification.isRead ? 'Read' : 'Unread'}
                             </Badge>
@@ -441,7 +443,9 @@ export function NotificationHistoryPage() {
                     <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
                       {notification.caseNumber && <span>Case: {notification.caseNumber}</span>}
                       {notification.taskNumber && <span>Task: {notification.taskNumber}</span>}
-                      <span>{formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}</span>
+                      <span>
+                        {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                      </span>
                       {notification.deliveryStatus && <span>{notification.deliveryStatus}</span>}
                     </div>
                   </button>
@@ -458,7 +462,7 @@ export function NotificationHistoryPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setPage(previous => Math.max(1, previous - 1))}
+                onClick={() => setPage((previous) => Math.max(1, previous - 1))}
                 disabled={currentPage === 1}
               >
                 Previous
@@ -466,7 +470,7 @@ export function NotificationHistoryPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setPage(previous => Math.min(totalPages, previous + 1))}
+                onClick={() => setPage((previous) => Math.min(totalPages, previous + 1))}
                 disabled={currentPage === totalPages}
               >
                 Next
