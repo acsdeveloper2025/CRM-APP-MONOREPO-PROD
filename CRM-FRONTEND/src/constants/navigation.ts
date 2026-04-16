@@ -86,6 +86,14 @@ export const navigationItems: NavigationItem[] = [
         permissionCode: 'page.cases',
         permission: { resource: 'cases', action: 'read' },
       },
+      {
+        id: 'data-entry-mis',
+        label: 'Data Entry MIS',
+        href: '/data-entry-mis',
+        icon: BarChart3,
+        permissionCode: 'page.cases',
+        permission: { resource: 'cases', action: 'read' },
+      },
     ],
   },
   {

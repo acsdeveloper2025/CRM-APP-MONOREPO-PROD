@@ -135,6 +135,11 @@ const DataEntryDashboardPage = React.lazy(() =>
     default: module.DataEntryDashboardPage,
   }))
 );
+const DataEntryMISPage = React.lazy(() =>
+  import('@/pages/DataEntryMISPage').then((module) => ({
+    default: module.DataEntryMISPage,
+  }))
+);
 // KYC pages restored as sidebar section with sub-pages.
 const KYCDashboardPage = React.lazy(() =>
   import('@/pages/KYCDashboardPage').then((module) => ({ default: module.KYCDashboardPage }))
@@ -659,6 +664,14 @@ export const AppRoutes: React.FC = () => {
             element={
               <ProtectedRoute permission="page.cases">
                 <DataEntryDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/data-entry-mis"
+            element={
+              <ProtectedRoute permission="page.cases">
+                <DataEntryMISPage />
               </ProtectedRoute>
             }
           />
