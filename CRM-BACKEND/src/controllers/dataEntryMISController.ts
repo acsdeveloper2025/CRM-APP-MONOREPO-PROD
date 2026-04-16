@@ -8,6 +8,7 @@ import {
   getPrefillValue,
   type PrefillContext,
 } from '@/services/templateFieldPrefillResolver';
+import { resolveDataScope } from '@/security/dataScope';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -171,6 +172,25 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
+    // Scope check: user must be assigned to this client+product.
+    const scope = await resolveDataScope(req);
+    if (scope.restricted) {
+      if (scope.assignedClientIds && !scope.assignedClientIds.includes(clientId)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied — client not in your scope',
+          error: { code: 'FORBIDDEN' },
+        });
+      }
+      if (scope.assignedProductIds && !scope.assignedProductIds.includes(productId)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied — product not in your scope',
+          error: { code: 'FORBIDDEN' },
+        });
+      }
+    }
+
     const template = await getActiveTemplate(clientId, productId);
     if (!template) {
       return res.json({
@@ -258,6 +278,25 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
         message: 'clientId and productId are required',
         error: { code: 'MISSING_PARAMS' },
       });
+    }
+
+    // Scope check: user must be assigned to this client+product.
+    const scope = await resolveDataScope(req);
+    if (scope.restricted) {
+      if (scope.assignedClientIds && !scope.assignedClientIds.includes(clientId)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied — client not in your scope',
+          error: { code: 'FORBIDDEN' },
+        });
+      }
+      if (scope.assignedProductIds && !scope.assignedProductIds.includes(productId)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied — product not in your scope',
+          error: { code: 'FORBIDDEN' },
+        });
+      }
     }
 
     const template = await getActiveTemplate(clientId, productId);
