@@ -68,6 +68,10 @@ const createInstanceValidation = [
     .trim()
     .isLength({ min: 1, max: 100 })
     .withMessage('instanceLabel must be 1-100 characters'),
+  body('verificationTaskId')
+    .optional()
+    .isUUID()
+    .withMessage('verificationTaskId must be a valid UUID'),
 ];
 
 // ---------------------------------------------------------------------------

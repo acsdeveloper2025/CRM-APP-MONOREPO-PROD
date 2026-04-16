@@ -325,12 +325,15 @@ export const getEntry = async (req: AuthenticatedRequest, res: Response) => {
     const caseId = caseRow.id;
 
     const entriesRes = await query(
-      `SELECT id, case_id, template_id, template_version, instance_index, instance_label,
-              data, is_completed, completed_at, completed_by, created_by, updated_by,
-              created_at, updated_at
-         FROM case_data_entries
-        WHERE case_id = $1
-        ORDER BY instance_index ASC`,
+      `SELECT e.id, e.case_id, e.template_id, e.template_version, e.instance_index,
+              e.instance_label, e.data, e.is_completed, e.completed_at, e.completed_by,
+              e.created_by, e.updated_by, e.created_at, e.updated_at,
+              e.verification_task_id,
+              vt.task_number, vt.task_title
+         FROM case_data_entries e
+         LEFT JOIN verification_tasks vt ON vt.id = e.verification_task_id
+        WHERE e.case_id = $1
+        ORDER BY e.instance_index ASC`,
       [caseId]
     );
     const entries = entriesRes.rows;
@@ -396,13 +399,17 @@ export const getEntry = async (req: AuthenticatedRequest, res: Response) => {
 
 // ---------------------------------------------------------------------------
 // POST /api/case-data-entries/:caseId/instances
-// Create a new instance for a case. Body: { instanceLabel?: string }
+// Create a new instance for a case.
+// Body: { instanceLabel?: string, verificationTaskId?: string (UUID) }
 // Returns the new entry row with its auto-assigned instance_index.
 // ---------------------------------------------------------------------------
 export const createInstance = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { caseId: rawCaseId } = req.params;
-    const { instanceLabel } = req.body as { instanceLabel?: string };
+    const { instanceLabel, verificationTaskId } = req.body as {
+      instanceLabel?: string;
+      verificationTaskId?: string;
+    };
     const userId = req.user!.id;
 
     const caseRow = await loadCaseByIdentifier(rawCaseId);
@@ -448,10 +455,10 @@ export const createInstance = async (req: AuthenticatedRequest, res: Response) =
       const insertRes = await client.query(
         `INSERT INTO case_data_entries
            (case_id, template_id, template_version, instance_index, instance_label,
-            data, created_by, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, '{}'::jsonb, $6, NOW(), NOW())
+            verification_task_id, data, created_by, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, '{}'::jsonb, $7, NOW(), NOW())
          RETURNING *`,
-        [caseId, tpl.id, tpl.version, nextIdx, label, userId]
+        [caseId, tpl.id, tpl.version, nextIdx, label, verificationTaskId || null, userId]
       );
       const entry = insertRes.rows[0];
 

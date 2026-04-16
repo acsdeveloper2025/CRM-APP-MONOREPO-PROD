@@ -434,6 +434,11 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
             {entries.map((entry) => (
               <TabsTrigger key={entry.instanceIndex} value={String(entry.instanceIndex)}>
                 {entry.instanceLabel}
+                {entry.taskNumber && (
+                  <span className="ml-1 text-xs text-muted-foreground">
+                    ({entry.taskNumber})
+                  </span>
+                )}
                 {dirtyIndexes.has(entry.instanceIndex) && (
                   <span className="ml-1 text-orange-500">●</span>
                 )}

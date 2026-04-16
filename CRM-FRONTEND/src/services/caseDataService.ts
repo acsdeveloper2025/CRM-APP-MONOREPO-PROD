@@ -61,6 +61,12 @@ export interface CaseDataEntry {
   updatedBy: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Sprint 7: link to the verification task this instance was created for.
+   *  Null for legacy instances created before Sprint 7. */
+  verificationTaskId?: string | null;
+  /** Populated via LEFT JOIN on verification_tasks in the bundle response. */
+  taskNumber?: string | null;
+  taskTitle?: string | null;
 }
 
 export interface CaseDataBundle {

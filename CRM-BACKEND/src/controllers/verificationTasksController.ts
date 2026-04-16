@@ -478,9 +478,61 @@ export class VerificationTasksController {
         [newTask.caseId]
       );
 
+      // 6. Auto-create a blank data entry instance for the revisit task
+      // (Sprint 7). This gives the backend user a ready-to-fill form when
+      // they open the case, without having to manually add an instance.
+      try {
+        const caseInfoRes = await client.query(
+          `SELECT client_id, product_id FROM cases WHERE id = $1`,
+          [newTask.caseId]
+        );
+        const caseInfo = caseInfoRes.rows[0];
+        if (caseInfo) {
+          const tplRes = await client.query(
+            `SELECT id, version FROM case_data_templates
+              WHERE client_id = $1 AND product_id = $2 AND is_active = true
+              ORDER BY version DESC LIMIT 1`,
+            [caseInfo.clientId, caseInfo.productId]
+          );
+          const tpl = tplRes.rows[0];
+          if (tpl) {
+            const nextIdxRes = await client.query(
+              `SELECT COALESCE(MAX(instance_index) + 1, 0) AS next_idx
+                 FROM case_data_entries WHERE case_id = $1`,
+              [newTask.caseId]
+            );
+            const nextIdx = Number(nextIdxRes.rows[0].nextIdx);
+            await client.query(
+              `INSERT INTO case_data_entries
+                 (case_id, template_id, template_version, instance_index, instance_label,
+                  verification_task_id, data, created_by, created_at, updated_at)
+               VALUES ($1, $2, $3, $4, $5, $6, '{}'::jsonb, $7, NOW(), NOW())`,
+              [
+                newTask.caseId,
+                tpl.id,
+                tpl.version,
+                nextIdx,
+                `Revisit: ${newTask.taskTitle || 'Task'}`,
+                newTask.id,
+                userId,
+              ]
+            );
+            logger.info('Auto-created data entry instance for revisit task', {
+              caseId: newTask.caseId,
+              taskId: newTask.id,
+              instanceIndex: nextIdx,
+            });
+          }
+        }
+      } catch (deErr) {
+        // Non-fatal: if auto-create fails, the revisit task is still
+        // valid; the user can manually create the instance later.
+        logger.warn('Failed to auto-create data entry instance for revisit:', deErr);
+      }
+
       await client.query('COMMIT');
 
-      // 6. Send notification (if assigned)
+      // 7. Send notification (if assigned)
       if (assignedTo) {
         try {
           // Get case details for notifications
