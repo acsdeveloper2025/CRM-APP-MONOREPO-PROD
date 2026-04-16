@@ -25,8 +25,13 @@ export type PrefillContext = Record<string, unknown>;
 // backend's auto-camelizeRow transform for snake→camel, which means
 // the JS side will see `customerName`, `taskNumber`, etc., so we
 // access by the camelCase alias).
+// Only fields that are visible in the frontend UI. Cross-checked against
+// CaseDetailPage, NewCasePage, TaskDetailPage on 2026-04-16. 16 invisible
+// fields removed (city/state/country, verifier email/phone/designation,
+// applicant pan/role, revoke_reason, client/product code, etc.).
 const PREFILL_QUERY = `
   SELECT
+    -- Case-level
     c.customer_name,
     c.customer_phone,
     c.customer_calling_code,
@@ -40,19 +45,11 @@ const PREFILL_QUERY = `
     c.created_at                    AS received_date,
     c.completed_at                  AS completed_date,
     c.status                        AS case_status,
-    c.verification_outcome,
-    c.revoke_reason,
-
+    -- Case via joins
     cl.name                         AS client_name,
-    cl.code                         AS client_code,
     p.name                          AS product_name,
-    p.code                          AS product_code,
-    rt.name                         AS rate_type_name,
     vt.name                         AS verification_type_name,
-    ci.name                         AS city_name,
-    st.name                         AS state_name,
-    co.name                         AS country_name,
-
+    -- Task-level (earliest)
     t.task_number,
     t.task_title,
     t.task_type::text               AS task_type,
@@ -61,35 +58,24 @@ const PREFILL_QUERY = `
     t.pincode                       AS task_pincode,
     t.estimated_amount,
     t.actual_amount,
-    t.estimated_completion_date,
     t.priority                      AS task_priority,
     t.applicant_type                AS task_applicant_type,
     t.status                        AS task_status,
+    rt.name                         AS rate_type_name,
     t.assigned_at                   AS task_assigned_at,
     t.started_at                    AS task_started_at,
     t.completed_at                  AS task_completed_at,
-    t.submitted_at                  AS task_submitted_at,
-    t.verification_outcome          AS task_outcome,
     tu.name                         AS verifier_name,
-    tu.email                        AS verifier_email,
-    tu.phone                        AS verifier_phone,
-    tu.employee_id                  AS verifier_employee_id,
-    tu.designation                  AS verifier_designation,
     ab.name                         AS assigned_by_name,
-
+    -- Applicant-level (earliest)
     ap.name                         AS applicant_name,
     ap.mobile                       AS applicant_mobile,
-    ap.pan_number                   AS applicant_pan,
-    ap.role                         AS applicant_role,
-
+    -- Other
     cu.name                         AS case_created_by_name
   FROM cases c
   LEFT JOIN clients            cl ON cl.id = c.client_id
   LEFT JOIN products           p  ON p.id  = c.product_id
   LEFT JOIN verification_types vt ON vt.id = c.verification_type_id
-  LEFT JOIN cities             ci ON ci.id = c.city_id
-  LEFT JOIN states             st ON st.id = ci.state_id
-  LEFT JOIN countries          co ON co.id = ci.country_id
   LEFT JOIN users              cu ON cu.id = c.created_by_backend_user
   LEFT JOIN LATERAL (
     SELECT * FROM verification_tasks WHERE case_id = c.id
