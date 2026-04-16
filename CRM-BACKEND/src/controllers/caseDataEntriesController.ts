@@ -778,16 +778,24 @@ export const completeCase = async (req: AuthenticatedRequest, res: Response) => 
       // mapped field. Shared across iterations — the context is
       // case-scoped, not entry-scoped.
       let prefillCtx: PrefillContext | null = null;
+      // Cache fields by template_id so multi-instance cases sharing the
+      // same template don't re-query template_fields per instance (was
+      // N+1; now 1 query per distinct template_id).
+      const fieldsCache = new Map<number, TemplateField[]>();
       for (const entry of entries) {
-        const fieldsRes = await client.query(
-          `SELECT id, field_key, field_label, field_type, is_required, display_order,
-                  section, placeholder, default_value, validation_rules, options, is_active,
-                  prefill_source
-             FROM case_data_template_fields
-            WHERE template_id = $1 AND is_active = true`,
-          [entry.templateId]
-        );
-        const fields = fieldsRes.rows as TemplateField[];
+        let fields = fieldsCache.get(entry.templateId);
+        if (!fields) {
+          const fieldsRes = await client.query(
+            `SELECT id, field_key, field_label, field_type, is_required, display_order,
+                    section, placeholder, default_value, validation_rules, options, is_active,
+                    prefill_source
+               FROM case_data_template_fields
+              WHERE template_id = $1 AND is_active = true`,
+            [entry.templateId]
+          );
+          fields = fieldsRes.rows as TemplateField[];
+          fieldsCache.set(entry.templateId, fields);
+        }
         const data = (entry.data || {}) as Record<string, unknown>;
         const hasDynamic = fields.some(f => !f.prefillSource);
         const hasAnyData = Object.keys(data).length > 0;
