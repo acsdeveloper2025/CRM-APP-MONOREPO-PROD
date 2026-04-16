@@ -8,20 +8,24 @@ import { getScopedOperationalUserIds } from '@/security/userScope';
 import { resolveDataScope } from '@/security/dataScope';
 
 const getBackendUserScopeFilters = async (req: AuthenticatedRequest) => {
+  const empty = {
+    clientIds: undefined as number[] | undefined,
+    productIds: undefined as number[] | undefined,
+    creatorUserIds: undefined as string[] | undefined,
+  };
   if (!req.user?.id || !isScopedOperationsUser(req.user)) {
-    return {
-      clientIds: undefined as number[] | undefined,
-      productIds: undefined as number[] | undefined,
-    };
+    return empty;
   }
 
-  // Use resolveDataScope which aggregates client/product IDs across hierarchy
+  // Creator-based scope: BACKEND_USER sees only their own data,
+  // TL sees team's, Manager sees managed tree's. Falls back to
+  // client+product if hierarchy returns undefined.
+  const scopedUserIds = await getScopedOperationalUserIds(req.user.id);
+  const creatorUserIds = scopedUserIds ?? [req.user.id];
+
   const scope = await resolveDataScope(req);
   if (!scope.restricted) {
-    return {
-      clientIds: undefined as number[] | undefined,
-      productIds: undefined as number[] | undefined,
-    };
+    return empty;
   }
 
   const { assignedClientIds: ac, assignedProductIds: ap } = scope;
@@ -31,6 +35,7 @@ const getBackendUserScopeFilters = async (req: AuthenticatedRequest) => {
   return {
     clientIds: safeClientIds,
     productIds: safeProductIds,
+    creatorUserIds,
   };
 };
 
@@ -61,6 +66,7 @@ export const getDashboardData = async (req: AuthenticatedRequest, res: Response)
       agentIds: effectiveAgentId ? undefined : hierarchyAgentIds,
       clientIds: backendScope.clientIds,
       productIds: backendScope.productIds,
+      creatorUserIds: backendScope.creatorUserIds,
     };
 
     const kpi = await DashboardKPIService.getKPIs(filters);
@@ -208,6 +214,7 @@ export const getPerformanceMetrics = async (req: AuthenticatedRequest, res: Resp
       agentIds: effectiveAgentId ? undefined : hierarchyAgentIds,
       clientIds: backendScope.clientIds,
       productIds: backendScope.productIds,
+      creatorUserIds: backendScope.creatorUserIds,
     };
 
     const kpi = await DashboardKPIService.getKPIs(filters);
@@ -268,6 +275,7 @@ export const getDashboardStats = async (req: AuthenticatedRequest, res: Response
       agentIds: effectiveAgentId ? undefined : hierarchyAgentIds,
       clientIds: backendScope.clientIds,
       productIds: backendScope.productIds,
+      creatorUserIds: backendScope.creatorUserIds,
     };
 
     const kpi = await DashboardKPIService.getKPIs(filters);
@@ -429,6 +437,12 @@ export const getOverdueTasks = async (req: AuthenticatedRequest, res: Response) 
       paramIdx++;
     }
 
+    if (backendScope.creatorUserIds) {
+      conditions.push(`c.created_by_backend_user = ANY($${paramIdx}::uuid[])`);
+      params.push(backendScope.creatorUserIds as unknown as number[]);
+      paramIdx++;
+    }
+
     if (backendScope.clientIds) {
       conditions.push(`c.client_id = ANY($${paramIdx}::int[])`);
       params.push(backendScope.clientIds);
@@ -569,6 +583,7 @@ export const getTATStats = async (req: AuthenticatedRequest, res: Response) => {
       agentId: effectiveAgentId,
       clientIds: backendScope.clientIds,
       productIds: backendScope.productIds,
+      creatorUserIds: backendScope.creatorUserIds,
     };
 
     const kpi = await DashboardKPIService.getKPIs(filters);
@@ -623,6 +638,7 @@ export const getSLARiskMonitoring = async (req: AuthenticatedRequest, res: Respo
       agentId: effectiveAgentId,
       clientIds: backendScope.clientIds,
       productIds: backendScope.productIds,
+      creatorUserIds: backendScope.creatorUserIds,
     };
 
     const kpi = await DashboardKPIService.getKPIs(filters);

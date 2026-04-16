@@ -117,6 +117,7 @@ export class DashboardKPIService {
     agentIds?: string[];
     clientIds?: number[];
     productIds?: number[];
+    creatorUserIds?: string[];
   }): Promise<VerificationOperationsKPI> {
     // ----------------------------------------------------------------------
     // DATE MATH (7-Day Rolling Window)
@@ -125,13 +126,18 @@ export class DashboardKPIService {
     // PP: [Now-14d, Now-7d]
     // Note: We use Postgres intervals in SQL for precision, but passed params are helpful.
 
-    const { clientId, agentId, agentIds, clientIds, productIds } = filters;
+    const { clientId, agentId, agentIds, clientIds, productIds, creatorUserIds } = filters;
 
     // Base WHERE clauses
     const conditions: string[] = ['1=1'];
     const params: QueryParams = [];
     let idx = 1;
 
+    // Creator-based scope: BACKEND_USER sees only their own cases' stats.
+    if (creatorUserIds && creatorUserIds.length > 0) {
+      conditions.push(`c.created_by_backend_user = ANY($${idx++}::uuid[])`);
+      params.push(creatorUserIds);
+    }
     if (clientId) {
       conditions.push(`c.client_id = $${idx++}`);
       params.push(clientId);

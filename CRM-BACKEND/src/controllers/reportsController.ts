@@ -65,10 +65,15 @@ const getBackendUserReportScope = async (req: AuthenticatedRequest) => {
       clientIds: undefined as number[] | undefined,
       productIds: undefined as number[] | undefined,
       scopedUserIds: undefined as string[] | undefined,
+      creatorUserIds: undefined as string[] | undefined,
     };
   }
 
-  // Use resolveDataScope for hierarchy-aggregated client/product filtering
+  // Creator-based scope: BACKEND_USER sees only their created cases.
+  const rawScopedUserIds = await getScopedOperationalUserIds(req.user.id);
+  const creatorUserIds = rawScopedUserIds ?? [req.user.id];
+
+  // Also keep client/product for backwards-compatible filtering
   const scope = await resolveDataScope(req);
   const scopedUserIds = scope.scopedUserIds;
 
@@ -79,6 +84,7 @@ const getBackendUserReportScope = async (req: AuthenticatedRequest) => {
     clientIds: clientIds && clientIds.length > 0 ? clientIds : [-1],
     productIds: productIds && productIds.length > 0 ? productIds : [-1],
     scopedUserIds,
+    creatorUserIds,
   };
 };
 
@@ -122,11 +128,8 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
         if (hierarchyUserIds.length === 0) {
           conditions.push('FALSE');
         } else {
-          conditions.push(`EXISTS (
-            SELECT 1 FROM verification_tasks vt_scope
-            WHERE vt_scope.case_id = c.id
-              AND vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
-          )`);
+          // Creator-based scope (RBAC audit)
+          conditions.push(`c.created_by_backend_user = ANY($${paramIndex}::uuid[])`);
           params.push(hierarchyUserIds);
           paramIndex++;
         }
@@ -654,19 +657,15 @@ export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) 
 
     if (isScopedOperationsUser(req.user) && req.user?.id) {
       const scopedUserIds = await getScopedOperationalUserIds(req.user.id);
-      if (scopedUserIds) {
+      const creatorIds = scopedUserIds ?? [req.user.id];
+      if (creatorIds.length > 0) {
         const scopeCheck = await dbQuery(
           `SELECT 1
            FROM cases c
-           LEFT JOIN verification_tasks vt ON vt.case_id = c.id
            WHERE c.case_id = $1
-             AND (
-               c.created_by_backend_user = ANY($2::uuid[]) OR
-               EXISTS (SELECT 1 FROM verification_tasks vt_scope WHERE vt_scope.case_id = c.id AND vt_scope.assigned_to = ANY($2::uuid[])) OR
-               vt.assigned_to = ANY($2::uuid[])
-             )
+             AND c.created_by_backend_user = ANY($2::uuid[])
            LIMIT 1`,
-          [caseId, scopedUserIds]
+          [caseId, creatorIds]
         );
         if (scopeCheck.rows.length === 0) {
           return res.status(403).json({
@@ -1145,17 +1144,9 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
       paramIndex++;
     }
 
-    if (backendScope.scopedUserIds) {
-      conditions.push(`(
-        c.created_by_backend_user = ANY($${paramIndex}::uuid[]) OR
-        c.assigned_to = ANY($${paramIndex}::uuid[]) OR
-        EXISTS (
-          SELECT 1 FROM verification_tasks vt_scope
-          WHERE vt_scope.case_id = c.id
-            AND vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
-        )
-      )`);
-      params.push(backendScope.scopedUserIds);
+    if (backendScope.creatorUserIds) {
+      conditions.push(`c.created_by_backend_user = ANY($${paramIndex}::uuid[])`);
+      params.push(backendScope.creatorUserIds);
       paramIndex++;
     }
     if (backendScope.clientIds) {
@@ -1528,12 +1519,9 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
       paramIndex++;
     }
 
-    if (backendScope.scopedUserIds) {
-      conditions.push(`(
-        vt.assigned_to = ANY($${paramIndex}::uuid[]) OR
-        c.created_by_backend_user = ANY($${paramIndex}::uuid[])
-      )`);
-      params.push(backendScope.scopedUserIds);
+    if (backendScope.creatorUserIds) {
+      conditions.push(`c.created_by_backend_user = ANY($${paramIndex}::uuid[])`);
+      params.push(backendScope.creatorUserIds);
       paramIndex++;
     }
     if (backendScope.clientIds) {
@@ -1818,12 +1806,9 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       paramIndex++;
     }
 
-    if (backendScope.scopedUserIds) {
-      conditions.push(`(
-        vt.assigned_to = ANY($${paramIndex}::uuid[]) OR
-        c.created_by_backend_user = ANY($${paramIndex}::uuid[])
-      )`);
-      params.push(backendScope.scopedUserIds);
+    if (backendScope.creatorUserIds) {
+      conditions.push(`c.created_by_backend_user = ANY($${paramIndex}::uuid[])`);
+      params.push(backendScope.creatorUserIds);
       paramIndex++;
     }
     if (backendScope.clientIds) {
@@ -2158,16 +2143,17 @@ const buildInvoiceReportScope = async (req: AuthenticatedRequest) => {
   const params: QueryParams = [];
   let paramIndex = 1;
 
-  if (backendScope.scopedUserIds) {
+  if (backendScope.creatorUserIds) {
     conditions.push(`EXISTS (
       SELECT 1
       FROM invoice_item_tasks iit_scope
       JOIN verification_tasks vt_scope ON vt_scope.id = iit_scope.verification_task_id
+      JOIN cases c_scope ON c_scope.id = vt_scope.case_id
       JOIN invoice_items ii_scope ON ii_scope.id = iit_scope.invoice_item_id
       WHERE ii_scope.invoice_id = i.id
-        AND vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
+        AND c_scope.created_by_backend_user = ANY($${paramIndex}::uuid[])
     )`);
-    params.push(backendScope.scopedUserIds);
+    params.push(backendScope.creatorUserIds);
     paramIndex++;
   }
 
