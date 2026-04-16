@@ -50,10 +50,18 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
 
   const getDeviceInfo = (userAgent: string) => {
     // Simple user agent parsing
-    if (userAgent.includes('Chrome')) {return 'Chrome';}
-    if (userAgent.includes('Firefox')) {return 'Firefox';}
-    if (userAgent.includes('Safari')) {return 'Safari';}
-    if (userAgent.includes('Edge')) {return 'Edge';}
+    if (userAgent.includes('Chrome')) {
+      return 'Chrome';
+    }
+    if (userAgent.includes('Firefox')) {
+      return 'Firefox';
+    }
+    if (userAgent.includes('Safari')) {
+      return 'Safari';
+    }
+    if (userAgent.includes('Edge')) {
+      return 'Edge';
+    }
     return 'Unknown Browser';
   };
 
@@ -66,9 +74,7 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
       <div className="text-center py-12">
         <Monitor className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No active sessions</h3>
-        <p className="text-gray-600">
-          User sessions will appear here when users are logged in.
-        </p>
+        <p className="text-gray-600">User sessions will appear here when users are logged in.</p>
       </div>
     );
   }
@@ -94,7 +100,11 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback>
-                      {(session.userName || 'U').split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {(session.userName || 'U')
+                        .split(' ')
+                        .map((n) => n[0])
+                        .join('')
+                        .toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
@@ -120,9 +130,7 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
               <TableCell>
                 <div className="flex items-center space-x-1">
                   <Clock className="h-3 w-3 text-gray-600" />
-                  <span className="text-sm">
-                    {new Date(session.createdAt).toLocaleString()}
-                  </span>
+                  <span className="text-sm">{new Date(session.createdAt).toLocaleString()}</span>
                 </div>
               </TableCell>
               <TableCell>

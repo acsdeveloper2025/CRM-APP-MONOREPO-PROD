@@ -101,19 +101,17 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
     if (checked) {
       setSelectedCommissions([...selectedCommissions, commissionId]);
     } else {
-      setSelectedCommissions(selectedCommissions.filter(id => id !== commissionId));
+      setSelectedCommissions(selectedCommissions.filter((id) => id !== commissionId));
     }
   };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedCommissions(data.map(commission => commission.id));
+      setSelectedCommissions(data.map((commission) => commission.id));
     } else {
       setSelectedCommissions([]);
     }
   };
-
-
 
   if (isLoading) {
     return <LoadingState message="Loading commissions..." size="lg" />;
@@ -124,20 +122,18 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
       <div className="text-center py-12">
         <TrendingUp className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No commissions found</h3>
-        <p className="text-gray-600">
-          Commissions will appear here once cases are completed.
-        </p>
+        <p className="text-gray-600">Commissions will appear here once cases are completed.</p>
       </div>
     );
   }
 
-  const pendingCommissions = selectedCommissions.filter(id => {
-    const commission = data.find(c => c.id === id);
+  const pendingCommissions = selectedCommissions.filter((id) => {
+    const commission = data.find((c) => c.id === id);
     return commission?.status === 'PENDING';
   });
 
-  const approvedCommissions = selectedCommissions.filter(id => {
-    const commission = data.find(c => c.id === id);
+  const approvedCommissions = selectedCommissions.filter((id) => {
+    const commission = data.find((c) => c.id === id);
     return commission?.status === 'APPROVED';
   });
 
@@ -200,7 +196,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
                 <TableCell>
                   <Checkbox
                     checked={selectedCommissions.includes(commission.id)}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked) =>
                       handleSelectCommission(commission.id, checked as boolean)
                     }
                   />
@@ -212,30 +208,26 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
                     </div>
                     <div>
                       <div className="font-medium">{commission.user.name}</div>
-                      <div className="text-sm text-gray-600">
-                        {commission.user.employeeId}
-                      </div>
+                      <div className="text-sm text-gray-600">{commission.user.employeeId}</div>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div>
                     <div className="font-medium">{commission.case.title}</div>
-                    <div className="text-sm text-gray-600">
-                      {commission.case.customerName}
-                    </div>
+                    <div className="text-sm text-gray-600">{commission.case.customerName}</div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div>
                     <div className="font-medium">{commission.client.name}</div>
-                    <div className="text-sm text-gray-600">
-                      {commission.client.code}
-                    </div>
+                    <div className="text-sm text-gray-600">{commission.client.code}</div>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="font-medium">₹{Number(commission.amount || 0).toLocaleString()}</div>
+                  <div className="font-medium">
+                    ₹{Number(commission.amount || 0).toLocaleString()}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge className={baseBadgeStyle}>{commission.percentage}%</Badge>
@@ -243,9 +235,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
                 <TableCell>
                   <Badge className={baseBadgeStyle}>{formatBadgeLabel(commission.status)}</Badge>
                 </TableCell>
-                <TableCell>
-                  {new Date(commission.calculatedAt).toLocaleDateString()}
-                </TableCell>
+                <TableCell>{new Date(commission.calculatedAt).toLocaleDateString()}</TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -257,7 +247,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       {commission.status === 'PENDING' && (
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           onClick={() => approveCommissionMutation.mutate(commission.id)}
                           disabled={approveCommissionMutation.isPending}
                         >
@@ -266,7 +256,7 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
                         </DropdownMenuItem>
                       )}
                       {commission.status === 'APPROVED' && (
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           onClick={() => markPaidMutation.mutate(commission.id)}
                           disabled={markPaidMutation.isPending}
                         >

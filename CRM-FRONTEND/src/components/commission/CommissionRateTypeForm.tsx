@@ -54,9 +54,13 @@ export const CommissionRateTypeForm: React.FC<CommissionRateTypeFormProps> = ({
       return commissionManagementService.createCommissionRateType(data);
     },
     invalidateKeys: [['commission-rate-types']],
-    successMessage: isEditing ? 'Commission rate type updated successfully' : 'Commission rate type created successfully',
+    successMessage: isEditing
+      ? 'Commission rate type updated successfully'
+      : 'Commission rate type created successfully',
     errorContext: isEditing ? 'Commission Rate Type Update' : 'Commission Rate Type Creation',
-    errorFallbackMessage: isEditing ? 'Failed to update commission rate type' : 'Failed to create commission rate type',
+    errorFallbackMessage: isEditing
+      ? 'Failed to update commission rate type'
+      : 'Failed to create commission rate type',
     onSuccess: () => {
       onSuccess();
     },
@@ -101,8 +105,6 @@ export const CommissionRateTypeForm: React.FC<CommissionRateTypeFormProps> = ({
     saveMutation.mutate(submitData);
   };
 
-
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Rate Type Selection */}
@@ -110,7 +112,7 @@ export const CommissionRateTypeForm: React.FC<CommissionRateTypeFormProps> = ({
         <Label htmlFor="rateTypeId">Rate Type *</Label>
         <Select
           value={formData.rateTypeId.toString()}
-          onValueChange={(value) => setFormData(prev => ({ ...prev, rateTypeId: Number(value) }))}
+          onValueChange={(value) => setFormData((prev) => ({ ...prev, rateTypeId: Number(value) }))}
           disabled={isEditing} // Cannot change rate type when editing
         >
           <SelectTrigger>
@@ -127,53 +129,53 @@ export const CommissionRateTypeForm: React.FC<CommissionRateTypeFormProps> = ({
             ))}
           </SelectContent>
         </Select>
-        {errors.rateTypeId && (
-          <p className="text-sm text-destructive">{errors.rateTypeId}</p>
-        )}
+        {errors.rateTypeId && <p className="text-sm text-destructive">{errors.rateTypeId}</p>}
       </div>
 
       {/* Commission Amount */}
-        <div className="space-y-2">
-          <Label htmlFor="commissionAmount">Commission Amount *</Label>
-          <div className="flex gap-2">
-            <Select
-              value={formData.currency}
-              onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}
-            >
-              <SelectTrigger className="w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="INR">INR</SelectItem>
-                <SelectItem value="USD">USD</SelectItem>
-                <SelectItem value="EUR">EUR</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input
-              id="commissionAmount"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0.00"
-              value={formData.commissionAmount || ''}
-              onChange={(e) => setFormData(prev => ({
+      <div className="space-y-2">
+        <Label htmlFor="commissionAmount">Commission Amount *</Label>
+        <div className="flex gap-2">
+          <Select
+            value={formData.currency}
+            onValueChange={(value) => setFormData((prev) => ({ ...prev, currency: value }))}
+          >
+            <SelectTrigger className="w-24">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="INR">INR</SelectItem>
+              <SelectItem value="USD">USD</SelectItem>
+              <SelectItem value="EUR">EUR</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input
+            id="commissionAmount"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            value={formData.commissionAmount || ''}
+            onChange={(e) =>
+              setFormData((prev) => ({
                 ...prev,
-                commissionAmount: e.target.value ? Number(e.target.value) : 0
-              }))}
-              className="flex-1"
-            />
-          </div>
-          {errors.commissionAmount && (
-            <p className="text-sm text-destructive">{errors.commissionAmount}</p>
-          )}
+                commissionAmount: e.target.value ? Number(e.target.value) : 0,
+              }))
+            }
+            className="flex-1"
+          />
         </div>
+        {errors.commissionAmount && (
+          <p className="text-sm text-destructive">{errors.commissionAmount}</p>
+        )}
+      </div>
 
       {/* Active Status */}
       <div className="flex items-center space-x-2">
         <Switch
           id="isActive"
           checked={formData.isActive}
-          onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
+          onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, isActive: checked }))}
         />
         <Label htmlFor="isActive">Active</Label>
       </div>

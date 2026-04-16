@@ -5,7 +5,7 @@ import {
   type VerificationOutcome as VerificationOutcomeConstant,
   type FormSubmissionStatus,
   type ValidationStatusType,
-  type FormFieldType as FormFieldTypeConstant
+  type FormFieldType as FormFieldTypeConstant,
 } from './constants';
 
 // Re-export types from constants for consistency
@@ -47,7 +47,7 @@ export const DetailedFormType = {
   RESIDENCE_CUM_OFFICE_UNTRACEABLE: 'residence-cum-office-untraceable',
 } as const;
 
-export type DetailedFormType = typeof DetailedFormType[keyof typeof DetailedFormType];
+export type DetailedFormType = (typeof DetailedFormType)[keyof typeof DetailedFormType];
 
 // Verification type display names
 export const VerificationTypeDisplayNames = {
@@ -71,14 +71,22 @@ export const VerificationOutcomeDisplayNames = {
   UNTRACEABLE: 'Untraceable',
 } as const;
 
-
-
 // Common Form Field Types
 export interface FormField {
   id: string;
   name: string;
   label: string;
-  type: 'text' | 'number' | 'select' | 'multiselect' | 'date' | 'boolean' | 'textarea' | 'checkbox' | 'radio' | 'file';
+  type:
+    | 'text'
+    | 'number'
+    | 'select'
+    | 'multiselect'
+    | 'date'
+    | 'boolean'
+    | 'textarea'
+    | 'checkbox'
+    | 'radio'
+    | 'file';
   value: unknown;
   displayValue?: string;
   options?: { value: string; label: string }[];
@@ -201,13 +209,13 @@ export interface ResidenceFormData {
   applicantAge?: number;
   applicantRelation: string;
   applicantContact?: string;
-  
+
   // Address Information
   addressLocatable: string;
   addressRating: string;
   houseStatus: string;
   localityType: string;
-  
+
   // Verification Details
   personMet: string;
   relationToApplicant: string;
@@ -215,16 +223,16 @@ export interface ResidenceFormData {
   workingStatus: string;
   documentShown: string;
   documentType?: string;
-  
+
   // Third Party Confirmation
   tpcMetPerson?: string;
   tpcConfirmation?: string;
-  
+
   // Area Information
   politicalConnection: string;
   dominatedArea: string;
   feedbackFromNeighbour: string;
-  
+
   // Final Assessment
   finalStatus: string;
   remarks?: string;
@@ -236,27 +244,27 @@ export interface OfficeFormData {
   companyName: string;
   officeType: string;
   designation: string;
-  
+
   // Address Information
   addressLocatable: string;
   addressRating: string;
   officeStatus: string;
   localityType: string;
-  
+
   // Verification Details
   personMet: string;
   workingStatus: string;
   applicantWorkingPremises: string;
-  
+
   // Third Party Confirmation
   tpcMetPerson?: string;
   tpcConfirmation?: string;
-  
+
   // Area Information
   politicalConnection: string;
   dominatedArea: string;
   feedbackFromNeighbour: string;
-  
+
   // Final Assessment
   finalStatus: string;
   remarks?: string;
@@ -268,22 +276,22 @@ export interface BusinessFormData {
   businessName: string;
   businessType: string;
   ownershipType: string;
-  
+
   // Address Information
   addressLocatable: string;
   addressRating: string;
   businessStatus: string;
   premisesStatus: string;
-  
+
   // Verification Details
   businessExistence: string;
   applicantExistence: string;
-  
+
   // Area Information
   politicalConnection: string;
   dominatedArea: string;
   feedbackFromNeighbour: string;
-  
+
   // Final Assessment
   finalStatus: string;
   remarks?: string;

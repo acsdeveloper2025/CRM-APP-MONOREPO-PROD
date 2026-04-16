@@ -15,15 +15,10 @@ export function ProductsPage() {
   const pageSize = 20;
 
   // Unified search with 800ms debounce
-  const {
-    searchValue,
-    debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
-  } = useUnifiedSearch({
-    syncWithUrl: true,
-  });
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({
+      syncWithUrl: true,
+    });
 
   // Reset pagination to page 1 when search changes
   useEffect(() => {
@@ -32,11 +27,12 @@ export function ProductsPage() {
 
   const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ['products', debouncedSearchValue, currentPage, pageSize],
-    queryFn: () => productsService.getProducts({
-      search: debouncedSearchValue || undefined,
-      page: currentPage,
-      limit: pageSize,
-    }),
+    queryFn: () =>
+      productsService.getProducts({
+        search: debouncedSearchValue || undefined,
+        page: currentPage,
+        limit: pageSize,
+      }),
   });
 
   // Fetch product stats
@@ -54,9 +50,7 @@ export function ProductsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Product Management</h1>
-          <p className="text-gray-600">
-            Manage verification products, categories, and pricing
-          </p>
+          <p className="text-gray-600">Manage verification products, categories, and pricing</p>
         </div>
       </div>
 
@@ -69,9 +63,7 @@ export function ProductsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-gray-600">
-              All products
-            </p>
+            <p className="text-xs text-gray-600">All products</p>
           </CardContent>
         </Card>
 
@@ -82,9 +74,7 @@ export function ProductsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.active}</div>
-            <p className="text-xs text-gray-600">
-              Currently active
-            </p>
+            <p className="text-xs text-gray-600">Currently active</p>
           </CardContent>
         </Card>
 
@@ -95,9 +85,7 @@ export function ProductsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.inactive}</div>
-            <p className="text-xs text-gray-600">
-              Disabled products
-            </p>
+            <p className="text-xs text-gray-600">Disabled products</p>
           </CardContent>
         </Card>
 
@@ -107,10 +95,8 @@ export function ProductsPage() {
             <TrendingUp className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{products.filter(p => p.hasRates).length}</div>
-            <p className="text-xs text-gray-600">
-              Rate configured
-            </p>
+            <div className="text-2xl font-bold">{products.filter((p) => p.hasRates).length}</div>
+            <p className="text-xs text-gray-600">Rate configured</p>
           </CardContent>
         </Card>
 
@@ -121,17 +107,19 @@ export function ProductsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {products.filter(p => {
-                if (!p.createdAt) {return false;}
-                const created = new Date(p.createdAt);
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                return created >= thirtyDaysAgo;
-              }).length}
+              {
+                products.filter((p) => {
+                  if (!p.createdAt) {
+                    return false;
+                  }
+                  const created = new Date(p.createdAt);
+                  const thirtyDaysAgo = new Date();
+                  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                  return created >= thirtyDaysAgo;
+                }).length
+              }
             </div>
-            <p className="text-xs text-gray-600">
-              Last 30 days
-            </p>
+            <p className="text-xs text-gray-600">Last 30 days</p>
           </CardContent>
         </Card>
       </div>
@@ -142,9 +130,7 @@ export function ProductsPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Products Console</CardTitle>
-              <CardDescription>
-                Create, edit, and manage verification products
-              </CardDescription>
+              <CardDescription>Create, edit, and manage verification products</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -158,10 +144,7 @@ export function ProductsPage() {
               searchPlaceholder="Search products by name, code or category..."
               showFilters={false}
               actions={
-                <Button
-                  size="sm"
-                  onClick={() => setShowCreateProduct(true)}
-                >
+                <Button size="sm" onClick={() => setShowCreateProduct(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Product
                 </Button>
@@ -169,22 +152,20 @@ export function ProductsPage() {
             />
 
             {/* Products Table */}
-            <ProductsTable
-              data={products}
-              isLoading={productsLoading}
-            />
+            <ProductsTable data={products} isLoading={productsLoading} />
 
             {/* Pagination Controls */}
             {productsData?.pagination && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
                 <div className="text-sm text-gray-600">
-                  Showing {productsData.data?.length || 0} of {productsData.pagination.total} products
+                  Showing {productsData.data?.length || 0} of {productsData.pagination.total}{' '}
+                  products
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
                   >
                     Previous
@@ -195,7 +176,7 @@ export function ProductsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    onClick={() => setCurrentPage((prev) => prev + 1)}
                     disabled={currentPage >= (productsData.pagination.totalPages || 1)}
                   >
                     Next
@@ -208,10 +189,7 @@ export function ProductsPage() {
       </Card>
 
       {/* Dialogs */}
-      <CreateProductDialog
-        open={showCreateProduct}
-        onOpenChange={setShowCreateProduct}
-      />
+      <CreateProductDialog open={showCreateProduct} onOpenChange={setShowCreateProduct} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 /**
  * Base API Service
- * 
+ *
  * Provides centralized API configuration, URL detection, and common functionality
  * to eliminate code duplication across service files.
  */
@@ -31,11 +31,7 @@ export class BaseApiService {
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
     try {
-      return await coreApiService.get<T>(
-        `${this.baseEndpoint}${endpoint}`,
-        params,
-        config
-      );
+      return await coreApiService.get<T>(`${this.baseEndpoint}${endpoint}`, params, config);
     } catch (error) {
       return this.handleError(error);
     }
@@ -48,11 +44,7 @@ export class BaseApiService {
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
     try {
-      return await coreApiService.post<T>(
-        `${this.baseEndpoint}${endpoint}`,
-        data,
-        config
-      );
+      return await coreApiService.post<T>(`${this.baseEndpoint}${endpoint}`, data, config);
     } catch (error) {
       return this.handleError(error);
     }
@@ -65,11 +57,7 @@ export class BaseApiService {
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
     try {
-      return await coreApiService.put<T>(
-        `${this.baseEndpoint}${endpoint}`,
-        data,
-        config
-      );
+      return await coreApiService.put<T>(`${this.baseEndpoint}${endpoint}`, data, config);
     } catch (error) {
       return this.handleError(error);
     }
@@ -82,11 +70,7 @@ export class BaseApiService {
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
     try {
-      return await coreApiService.patch<T>(
-        `${this.baseEndpoint}${endpoint}`,
-        data,
-        config
-      );
+      return await coreApiService.patch<T>(`${this.baseEndpoint}${endpoint}`, data, config);
     } catch (error) {
       return this.handleError(error);
     }
@@ -98,10 +82,7 @@ export class BaseApiService {
     config?: AxiosRequestConfig
   ): Promise<ApiResponse<T>> {
     try {
-      return await coreApiService.delete<T>(
-        `${this.baseEndpoint}${endpoint}`,
-        config
-      );
+      return await coreApiService.delete<T>(`${this.baseEndpoint}${endpoint}`, config);
     } catch (error) {
       return this.handleError(error);
     }
@@ -139,23 +120,19 @@ export class BaseApiService {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       if (additionalData) {
         Object.entries(additionalData).forEach(([key, value]) => {
           formData.append(key, String(value));
         });
       }
 
-      return await coreApiService.post<T>(
-        `${this.baseEndpoint}${endpoint}`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          onUploadProgress,
-        }
-      );
+      return await coreApiService.post<T>(`${this.baseEndpoint}${endpoint}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress,
+      });
     } catch (error) {
       return this.handleError(error);
     }
@@ -182,7 +159,10 @@ export class BaseApiService {
     filters?: Record<string, unknown>
   ): Promise<Blob> {
     try {
-      return await coreApiService.getBlob(`${this.baseEndpoint}${endpoint}`, { format, ...filters });
+      return await coreApiService.getBlob(`${this.baseEndpoint}${endpoint}`, {
+        format,
+        ...filters,
+      });
     } catch (error) {
       throw this.handleError(error);
     }
@@ -196,7 +176,7 @@ export class BaseApiService {
       if (error.response) {
         // Server responded with error status
         const { status, data } = error.response;
-        
+
         return {
           success: false,
           message: data?.message || `HTTP Error ${status}`,

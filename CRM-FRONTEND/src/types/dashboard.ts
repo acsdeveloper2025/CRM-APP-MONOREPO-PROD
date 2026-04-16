@@ -6,14 +6,14 @@ export interface DashboardStats {
   pendingReviewCases?: number; // Backend doesn't return this yet
   revokedTasks?: number;
   rejectedCases?: number;
-  
+
   totalClients: number; // Renamed from activeClients to match backend
   activeUsers: number;
-  
+
   totalInvoices?: number; // Backend doesn't return this
   pendingCommissions?: number; // Backend doesn't return this
   monthlyRevenue?: number; // Backend doesn't return this
-  
+
   completionRate?: number;
   avgTurnaroundDays?: number;
 }

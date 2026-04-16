@@ -90,9 +90,7 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
       <div className="text-center py-12">
         <Building className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No cities found</h3>
-        <p className="text-gray-600">
-          Get started by adding your first city.
-        </p>
+        <p className="text-gray-600">Get started by adding your first city.</p>
       </div>
     );
   }
@@ -127,9 +125,7 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
                 <TableCell>
                   <Badge className={baseBadgeStyle}>{formatBadgeLabel(city.country)}</Badge>
                 </TableCell>
-                <TableCell>
-                  {new Date(city.createdAt).toLocaleDateString()}
-                </TableCell>
+                <TableCell>{new Date(city.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -189,8 +185,8 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the city
-              &quot;{cityToDelete?.name}&quot; and all associated pincodes.
+              This action cannot be undone. This will permanently delete the city &quot;
+              {cityToDelete?.name}&quot; and all associated pincodes.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -65,7 +65,7 @@ export function useResponsive(customBreakpoints?: Partial<BreakpointValues>) {
 
   // Helper functions
   const isBreakpoint = (breakpoint: Breakpoint) => currentBreakpoint === breakpoint;
-  
+
   const isBreakpointUp = (breakpoint: Breakpoint) => {
     const breakpointOrder: Breakpoint[] = ['xs', 'sm', 'md', 'lg', 'xl', '2xl'];
     const currentIndex = breakpointOrder.indexOf(currentBreakpoint);
@@ -82,7 +82,8 @@ export function useResponsive(customBreakpoints?: Partial<BreakpointValues>) {
 
   const isMobile = currentBreakpoint === 'xs' || currentBreakpoint === 'sm';
   const isTablet = currentBreakpoint === 'md';
-  const isDesktop = currentBreakpoint === 'lg' || currentBreakpoint === 'xl' || currentBreakpoint === '2xl';
+  const isDesktop =
+    currentBreakpoint === 'lg' || currentBreakpoint === 'xl' || currentBreakpoint === '2xl';
 
   // Device detection
   const isTouchDevice = typeof window !== 'undefined' && 'ontouchstart' in window;
@@ -93,7 +94,7 @@ export function useResponsive(customBreakpoints?: Partial<BreakpointValues>) {
   const getResponsiveValue = <T,>(values: Partial<Record<Breakpoint, T>>, fallback: T): T => {
     const breakpointOrder: Breakpoint[] = ['2xl', 'xl', 'lg', 'md', 'sm', 'xs'];
     const currentIndex = breakpointOrder.indexOf(currentBreakpoint);
-    
+
     // Find the closest breakpoint value
     for (let i = currentIndex; i < breakpointOrder.length; i++) {
       const bp = breakpointOrder[i];
@@ -101,7 +102,7 @@ export function useResponsive(customBreakpoints?: Partial<BreakpointValues>) {
         return values[bp] as T;
       }
     }
-    
+
     return fallback;
   };
 
@@ -110,26 +111,26 @@ export function useResponsive(customBreakpoints?: Partial<BreakpointValues>) {
     windowSize,
     width: windowSize.width,
     height: windowSize.height,
-    
+
     // Current breakpoint
     currentBreakpoint,
     breakpoints,
-    
+
     // Breakpoint checks
     isBreakpoint,
     isBreakpointUp,
     isBreakpointDown,
-    
+
     // Device categories
     isMobile,
     isTablet,
     isDesktop,
-    
+
     // Device capabilities
     isTouchDevice,
     isLandscape,
     isPortrait,
-    
+
     // Utilities
     getResponsiveValue,
   };
@@ -139,13 +140,21 @@ export function useResponsive(customBreakpoints?: Partial<BreakpointValues>) {
 export function useResponsiveClasses() {
   const { currentBreakpoint, isMobile, isTablet, isDesktop } = useResponsive();
 
-  const getResponsiveClasses = (classes: Partial<Record<Breakpoint | 'mobile' | 'tablet' | 'desktop', string>>) => {
+  const getResponsiveClasses = (
+    classes: Partial<Record<Breakpoint | 'mobile' | 'tablet' | 'desktop', string>>
+  ) => {
     const classArray: string[] = [];
 
     // Add device category classes
-    if (classes.mobile && isMobile) {classArray.push(classes.mobile);}
-    if (classes.tablet && isTablet) {classArray.push(classes.tablet);}
-    if (classes.desktop && isDesktop) {classArray.push(classes.desktop);}
+    if (classes.mobile && isMobile) {
+      classArray.push(classes.mobile);
+    }
+    if (classes.tablet && isTablet) {
+      classArray.push(classes.tablet);
+    }
+    if (classes.desktop && isDesktop) {
+      classArray.push(classes.desktop);
+    }
 
     // Add specific breakpoint class
     if (classes[currentBreakpoint]) {
@@ -163,10 +172,10 @@ export function useResponsiveGrid(
   columns: Partial<Record<Breakpoint, number>> = { xs: 1, sm: 2, md: 3, lg: 4 }
 ) {
   const { getResponsiveValue } = useResponsive();
-  
+
   const currentColumns = getResponsiveValue(columns, 1);
   const gridClasses = `grid-cols-${currentColumns}`;
-  
+
   return {
     columns: currentColumns,
     gridClasses,
@@ -179,8 +188,12 @@ export function useResponsiveSpacing() {
   const { isMobile, isTablet } = useResponsive();
 
   const getSpacing = (mobile: string, tablet: string, desktop: string) => {
-    if (isMobile) {return mobile;}
-    if (isTablet) {return tablet;}
+    if (isMobile) {
+      return mobile;
+    }
+    if (isTablet) {
+      return tablet;
+    }
     return desktop;
   };
 
@@ -204,5 +217,3 @@ export function useResponsiveSpacing() {
 
   return { padding, margin, gap, getSpacing };
 }
-
-

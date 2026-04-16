@@ -53,10 +53,10 @@ export const ReassignCaseModal: React.FC<ReassignCaseModalProps> = ({
     onClose();
   };
 
-  const selectedUser = fieldUsers?.find(user => user.id === selectedUserId);
-  
+  const selectedUser = fieldUsers?.find((user) => user.id === selectedUserId);
+
   // Use legacy assignedToId to lookup name as assignedTo object is deprecated
-  const currentAssigneeUser = fieldUsers?.find(user => user.id === caseItem.assignedToId);
+  const currentAssigneeUser = fieldUsers?.find((user) => user.id === caseItem.assignedToId);
   const currentAssignee = currentAssigneeUser?.name || 'Unassigned';
 
   return (
@@ -87,8 +87,8 @@ export const ReassignCaseModal: React.FC<ReassignCaseModalProps> = ({
           {/* Field Agent Selection */}
           <div className="space-y-2">
             <Label htmlFor="assignedTo">Reassign to Field Agent *</Label>
-            <Select 
-              value={selectedUserId} 
+            <Select
+              value={selectedUserId}
               onValueChange={setSelectedUserId}
               disabled={loadingUsers || isLoading}
             >
@@ -109,12 +109,14 @@ export const ReassignCaseModal: React.FC<ReassignCaseModalProps> = ({
                   </SelectItem>
                 ) : (
                   fieldUsers
-                    .filter(user => user.id !== caseItem.assignedToId) // Exclude current assignee (using legacy field)
+                    .filter((user) => user.id !== caseItem.assignedToId) // Exclude current assignee (using legacy field)
                     .map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         <div className="flex items-center space-x-2">
                           <User className="h-4 w-4" />
-                          <span>{user.name} ({user.email})</span>
+                          <span>
+                            {user.name} ({user.email})
+                          </span>
                         </div>
                       </SelectItem>
                     ))
@@ -143,25 +145,16 @@ export const ReassignCaseModal: React.FC<ReassignCaseModalProps> = ({
                 <span className="font-medium">Will be assigned to:</span>{' '}
                 <span className="text-green-600">{selectedUser.name}</span>
               </div>
-              <div className="text-sm text-gray-600 mt-1">
-                Email: {selectedUser.email}
-              </div>
+              <div className="text-sm text-gray-600 mt-1">Email: {selectedUser.email}</div>
             </div>
           )}
         </div>
 
         <DialogFooter>
-          <Button 
-            variant="outline" 
-            onClick={handleClose}
-            disabled={isLoading}
-          >
+          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleSubmit}
-            disabled={!selectedUserId || !reason.trim() || isLoading}
-          >
+          <Button onClick={handleSubmit} disabled={!selectedUserId || !reason.trim() || isLoading}>
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -1,12 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import {
-  CheckCircle,
-  Clock,
-  TrendingUp,
-  Play
-} from 'lucide-react';
+import { CheckCircle, Clock, TrendingUp, Play } from 'lucide-react';
 
 interface TaskSummaryCardsProps {
   totalTasks: number;
@@ -23,7 +18,7 @@ export const TaskSummaryCards: React.FC<TaskSummaryCardsProps> = ({
   completionPercentage,
   pendingCount,
   assignedCount,
-  inProgressCount
+  inProgressCount,
 }) => {
   const summaryCards = [
     {
@@ -32,7 +27,7 @@ export const TaskSummaryCards: React.FC<TaskSummaryCardsProps> = ({
       icon: TrendingUp,
       color: 'text-green-600',
       bgColor: 'bg-green-50',
-      description: 'All verification tasks'
+      description: 'All verification tasks',
     },
     {
       title: 'Completed',
@@ -40,7 +35,7 @@ export const TaskSummaryCards: React.FC<TaskSummaryCardsProps> = ({
       icon: CheckCircle,
       color: 'text-green-600',
       bgColor: 'bg-green-50',
-      description: `${completionPercentage.toFixed(1)}% completion rate`
+      description: `${completionPercentage.toFixed(1)}% completion rate`,
     },
     {
       title: 'In Progress',
@@ -48,7 +43,7 @@ export const TaskSummaryCards: React.FC<TaskSummaryCardsProps> = ({
       icon: Play,
       color: 'text-yellow-600',
       bgColor: 'bg-yellow-50',
-      description: 'Currently being worked on'
+      description: 'Currently being worked on',
     },
     {
       title: 'Pending',
@@ -56,29 +51,23 @@ export const TaskSummaryCards: React.FC<TaskSummaryCardsProps> = ({
       icon: Clock,
       color: 'text-yellow-600',
       bgColor: 'bg-yellow-50',
-      description: 'Awaiting action'
-    }
+      description: 'Awaiting action',
+    },
   ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {summaryCards.map((card, index) => {
         const Icon = card.icon;
-        
+
         return (
           <Card key={index} className="hover:shadow-md transition-shadow">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">
-                    {card.title}
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {card.value}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {card.description}
-                  </p>
+                  <p className="text-sm font-medium text-gray-600 mb-1">{card.title}</p>
+                  <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+                  <p className="text-xs text-gray-500 mt-1">{card.description}</p>
                 </div>
                 <div className={`p-3 rounded-full ${card.bgColor}`}>
                   <Icon className={`h-6 w-6 ${card.color}`} />
@@ -88,7 +77,7 @@ export const TaskSummaryCards: React.FC<TaskSummaryCardsProps> = ({
           </Card>
         );
       })}
-      
+
       {/* Progress Card */}
       {totalTasks > 0 && (
         <Card className="md:col-span-2 lg:col-span-4">
@@ -108,30 +97,21 @@ export const TaskSummaryCards: React.FC<TaskSummaryCardsProps> = ({
                   {completionPercentage.toFixed(1)}%
                 </span>
               </div>
-              
-              <Progress 
-                value={completionPercentage} 
-                className="h-3"
-              />
-              
+
+              <Progress value={completionPercentage} className="h-3" />
+
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-yellow-400 rounded-full" />
-                  <span className="text-gray-600">
-                    Pending: {pendingCount}
-                  </span>
+                  <span className="text-gray-600">Pending: {pendingCount}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-blue-400 rounded-full" />
-                  <span className="text-gray-600">
-                    Assigned: {assignedCount}
-                  </span>
+                  <span className="text-gray-600">Assigned: {assignedCount}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-orange-400 rounded-full" />
-                  <span className="text-gray-600">
-                    In Progress: {inProgressCount}
-                  </span>
+                  <span className="text-gray-600">In Progress: {inProgressCount}</span>
                 </div>
               </div>
             </div>

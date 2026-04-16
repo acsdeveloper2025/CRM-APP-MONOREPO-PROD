@@ -1,12 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientsService } from '@/services/clients';
-import type { 
-  CreateClientData, 
+import type {
+  CreateClientData,
   UpdateClientData,
   CreateProductData,
   UpdateProductData,
   CreateVerificationTypeData,
-  UpdateVerificationTypeData
+  UpdateVerificationTypeData,
 } from '@/types/client';
 import type { PaginationQuery, ApiErrorResponse } from '@/types/api';
 import { toast } from 'sonner';
@@ -117,7 +117,7 @@ export const useCreateClient = () => {
       // Invalidate all client-related queries to ensure lists update
       queryClient.invalidateQueries({
         queryKey: clientKeys.all,
-        exact: false // This will invalidate all queries that start with ['clients']
+        exact: false, // This will invalidate all queries that start with ['clients']
       });
       // Invalidate dashboard stats (affects Total Clients count)
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -139,7 +139,7 @@ export const useUpdateClient = () => {
       // Invalidate all client-related queries to ensure lists update
       queryClient.invalidateQueries({
         queryKey: clientKeys.all,
-        exact: false // This will invalidate all queries that start with ['clients']
+        exact: false, // This will invalidate all queries that start with ['clients']
       });
       // Invalidate dashboard stats
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -160,7 +160,7 @@ export const useDeleteClient = () => {
       // Invalidate all client-related queries to ensure lists update
       queryClient.invalidateQueries({
         queryKey: clientKeys.all,
-        exact: false // This will invalidate all queries that start with ['clients']
+        exact: false, // This will invalidate all queries that start with ['clients']
       });
       // Invalidate dashboard stats (affects Total Clients count)
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });

@@ -61,8 +61,8 @@ export const DedupePage: React.FC = () => {
 
   const handleSearch = async (page = 1) => {
     // Validate that at least one field is filled
-    const hasValidCriteria = Object.values(criteria).some(value => value.trim().length > 0);
-    
+    const hasValidCriteria = Object.values(criteria).some((value) => value.trim().length > 0);
+
     if (!hasValidCriteria) {
       toast.error('Please enter at least one search criterion');
       return;
@@ -88,11 +88,13 @@ export const DedupePage: React.FC = () => {
       if (response.success && response.data) {
         setResults(response.data.results);
         setPagination(response.data.pagination);
-        
+
         if (response.data.results.length === 0) {
           toast.info('No matching cases found');
         } else {
-          toast.success(`Found ${response.data.pagination.total} matching case${response.data.pagination.total === 1 ? '' : 's'}`);
+          toast.success(
+            `Found ${response.data.pagination.total} matching case${response.data.pagination.total === 1 ? '' : 's'}`
+          );
         }
       }
     } catch (error) {
@@ -367,9 +369,7 @@ export const DedupePage: React.FC = () => {
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Search className="h-12 w-12 text-gray-300 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-1">No cases found</h3>
-                <p className="text-sm text-gray-600">
-                  Try adjusting your search criteria
-                </p>
+                <p className="text-sm text-gray-600">Try adjusting your search criteria</p>
               </div>
             )}
           </CardContent>

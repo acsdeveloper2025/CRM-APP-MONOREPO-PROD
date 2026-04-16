@@ -13,7 +13,9 @@ export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const value = useMemo<PermissionContextValue>(
     () => ({
       hasPermissionCode: (code: string) => {
-        if (!user) {return false;}
+        if (!user) {
+          return false;
+        }
         const codes = Array.isArray(user.permissions) ? (user.permissions as string[]) : [];
         return codes.includes('*') || codes.includes(code);
       },

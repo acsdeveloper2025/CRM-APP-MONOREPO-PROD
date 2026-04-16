@@ -16,15 +16,10 @@ export const DocumentTypesPage: React.FC = () => {
   const pageSize = 20;
 
   // Unified search with 800ms debounce
-  const {
-    searchValue,
-    debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
-  } = useUnifiedSearch({
-    syncWithUrl: true,
-  });
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({
+      syncWithUrl: true,
+    });
 
   // Reset pagination to page 1 when search changes
   useEffect(() => {
@@ -33,13 +28,14 @@ export const DocumentTypesPage: React.FC = () => {
 
   const { data: documentTypesData, isLoading: documentTypesLoading } = useQuery({
     queryKey: ['document-types', debouncedSearchValue, currentPage, pageSize],
-    queryFn: () => documentTypesService.getDocumentTypes({
-      page: currentPage,
-      limit: pageSize,
-      sortBy: 'name',
-      sortOrder: 'asc',
-      search: debouncedSearchValue || undefined,
-    }),
+    queryFn: () =>
+      documentTypesService.getDocumentTypes({
+        page: currentPage,
+        limit: pageSize,
+        sortBy: 'name',
+        sortOrder: 'asc',
+        search: debouncedSearchValue || undefined,
+      }),
   });
 
   // Fetch stats
@@ -59,7 +55,9 @@ export const DocumentTypesPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Document Types Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Document Types Management
+          </h1>
           <p className="text-gray-600">Manage document types with only name and code.</p>
         </div>
       </div>
@@ -79,7 +77,9 @@ export const DocumentTypesPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Types</CardTitle>
-            <Badge variant="default" className="bg-green-500">Active</Badge>
+            <Badge variant="default" className="bg-green-500">
+              Active
+            </Badge>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.activeDocumentTypes}</div>
@@ -92,9 +92,7 @@ export const DocumentTypesPage: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle>Document Types</CardTitle>
-          <CardDescription>
-            Configure document types
-          </CardDescription>
+          <CardDescription>Configure document types</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -106,10 +104,7 @@ export const DocumentTypesPage: React.FC = () => {
               searchPlaceholder="Search document types by name or code..."
               showFilters={false}
               actions={
-                <Button
-                  size="sm"
-                  onClick={() => setShowCreateDocumentType(true)}
-                >
+                <Button size="sm" onClick={() => setShowCreateDocumentType(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Document Type
                 </Button>
@@ -117,22 +112,20 @@ export const DocumentTypesPage: React.FC = () => {
             />
 
             {/* Document Types Table */}
-            <DocumentTypesTable
-              data={documentTypes}
-              isLoading={documentTypesLoading}
-            />
+            <DocumentTypesTable data={documentTypes} isLoading={documentTypesLoading} />
 
             {/* Pagination Controls */}
             {documentTypesData?.pagination && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
                 <div className="text-sm text-gray-600">
-                  Showing {documentTypesData.data?.length || 0} of {documentTypesData.pagination.total} document types
+                  Showing {documentTypesData.data?.length || 0} of{' '}
+                  {documentTypesData.pagination.total} document types
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
                   >
                     Previous
@@ -143,7 +136,7 @@ export const DocumentTypesPage: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    onClick={() => setCurrentPage((prev) => prev + 1)}
                     disabled={currentPage >= (documentTypesData.pagination.totalPages || 1)}
                   >
                     Next

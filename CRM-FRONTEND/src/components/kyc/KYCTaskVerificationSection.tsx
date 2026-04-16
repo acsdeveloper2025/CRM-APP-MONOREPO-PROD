@@ -22,7 +22,12 @@ import {
   UserPlus,
   Loader2,
 } from 'lucide-react';
-import { useKYCTasksForCase, useVerifyKYCDocument, useUploadKYCDocument, useAssignKYCTask } from '@/hooks/useKYC';
+import {
+  useKYCTasksForCase,
+  useVerifyKYCDocument,
+  useUploadKYCDocument,
+  useAssignKYCTask,
+} from '@/hooks/useKYC';
 import type { KYCTask } from '@/services/kyc';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -41,7 +46,10 @@ interface KYCTaskVerificationSectionProps {
   readonly?: boolean;
 }
 
-export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProps> = ({ caseId, readonly = false }) => {
+export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProps> = ({
+  caseId,
+  readonly = false,
+}) => {
   const { data: kycTasks = [], isLoading } = useKYCTasksForCase(caseId);
   const { mutateAsync: verifyDoc, isPending: isVerifying } = useVerifyKYCDocument();
   const { mutateAsync: uploadDoc } = useUploadKYCDocument();
@@ -56,7 +64,11 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
   const { data: usersData } = useQuery({
     queryKey: ['users-for-kyc-assign'],
     queryFn: async () => {
-      const res = await apiService.get('/users', { limit: 200, isActive: 'true', role: 'KYC_VERIFIER' });
+      const res = await apiService.get('/users', {
+        limit: 200,
+        isActive: 'true',
+        role: 'KYC_VERIFIER',
+      });
       return res.data as Array<{ id: string; name: string; employeeId: string }>;
     },
     staleTime: 5 * 60 * 1000,
@@ -96,7 +108,9 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
 
   const handleAssign = async (docId: string) => {
     const userId = assignUser[docId];
-    if (!userId) {return;}
+    if (!userId) {
+      return;
+    }
     try {
       await assignDoc({ taskId: docId, assignedTo: userId });
       toast.success('Document assigned');
@@ -139,9 +153,17 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
             KYC Document Verification
           </CardTitle>
           <div className="flex gap-2 text-xs">
-            <Badge variant="outline" className="bg-yellow-50">{pendingCount} Pending</Badge>
-            <Badge variant="outline" className="bg-green-50">{passedCount} Passed</Badge>
-            {failedCount > 0 && <Badge variant="outline" className="bg-red-50">{failedCount} Failed</Badge>}
+            <Badge variant="outline" className="bg-yellow-50">
+              {pendingCount} Pending
+            </Badge>
+            <Badge variant="outline" className="bg-green-50">
+              {passedCount} Passed
+            </Badge>
+            {failedCount > 0 && (
+              <Badge variant="outline" className="bg-red-50">
+                {failedCount} Failed
+              </Badge>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -151,7 +173,10 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
           const StatusIcon = statusConf.icon;
           const isExpanded = expandedDoc === doc.id;
           const isPending = doc.verificationStatus === 'PENDING';
-          const customFields = doc.documentDetails && Object.keys(doc.documentDetails).length > 0 ? doc.documentDetails : null;
+          const customFields =
+            doc.documentDetails && Object.keys(doc.documentDetails).length > 0
+              ? doc.documentDetails
+              : null;
 
           return (
             <div
@@ -164,15 +189,21 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                 className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 transition-colors"
                 onClick={() => setExpandedDoc(isExpanded ? null : doc.id)}
               >
-                <StatusIcon className={`h-4 w-4 shrink-0 ${
-                  doc.verificationStatus === 'PASS' ? 'text-green-600' :
-                  doc.verificationStatus === 'FAIL' ? 'text-red-600' :
-                  'text-yellow-600'
-                }`} />
+                <StatusIcon
+                  className={`h-4 w-4 shrink-0 ${
+                    doc.verificationStatus === 'PASS'
+                      ? 'text-green-600'
+                      : doc.verificationStatus === 'FAIL'
+                        ? 'text-red-600'
+                        : 'text-yellow-600'
+                  }`}
+                />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm">{doc.documentTypeName}</span>
-                    <Badge variant="outline" className="text-xs">{doc.documentCategory}</Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {doc.documentCategory}
+                    </Badge>
                   </div>
                   <div className="text-xs text-gray-500 mt-0.5">
                     {doc.documentNumber && <span>#{doc.documentNumber} · </span>}
@@ -207,12 +238,14 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                   {/* Custom fields from LOS */}
                   {customFields && (
                     <div className="border rounded p-3 bg-blue-50/50">
-                      <p className="text-xs font-semibold text-gray-600 mb-2">Verification Details</p>
+                      <p className="text-xs font-semibold text-gray-600 mb-2">
+                        Verification Details
+                      </p>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                         {Object.entries(customFields).map(([key, value]) => (
                           <div key={key}>
                             <p className="text-xs text-gray-500">
-                              {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              {key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
                             </p>
                             <p className="text-sm font-medium">{value || '-'}</p>
                           </div>
@@ -250,7 +283,9 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
-                          if (file) {handleUpload(doc.id, file);}
+                          if (file) {
+                            handleUpload(doc.id, file);
+                          }
                         }}
                       />
                     </label>
@@ -264,13 +299,13 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                       <UserPlus className="h-4 w-4 text-gray-400 shrink-0" />
                       <Select
                         value={assignUser[doc.id] || doc.assignedTo || ''}
-                        onValueChange={(v) => setAssignUser(prev => ({ ...prev, [doc.id]: v }))}
+                        onValueChange={(v) => setAssignUser((prev) => ({ ...prev, [doc.id]: v }))}
                       >
                         <SelectTrigger className="h-8 text-sm flex-1">
                           <SelectValue placeholder="Assign to user..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {users.map(u => (
+                          {users.map((u) => (
                             <SelectItem key={u.id} value={u.id}>
                               {u.name} ({u.employeeId})
                             </SelectItem>
@@ -291,15 +326,26 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
 
                   {/* Previous verification result */}
                   {!isPending && (
-                    <div className={`border rounded p-3 ${
-                      doc.verificationStatus === 'PASS' ? 'bg-green-50 border-green-200' :
-                      'bg-red-50 border-red-200'
-                    }`}>
+                    <div
+                      className={`border rounded p-3 ${
+                        doc.verificationStatus === 'PASS'
+                          ? 'bg-green-50 border-green-200'
+                          : 'bg-red-50 border-red-200'
+                      }`}
+                    >
                       <p className="font-medium text-sm">Result: {doc.verificationStatus}</p>
-                      {doc.verifiedByName && <p className="text-xs mt-1">By: {doc.verifiedByName}</p>}
-                      {doc.verifiedAt && <p className="text-xs">Date: {format(new Date(doc.verifiedAt), 'dd MMM yyyy HH:mm')}</p>}
+                      {doc.verifiedByName && (
+                        <p className="text-xs mt-1">By: {doc.verifiedByName}</p>
+                      )}
+                      {doc.verifiedAt && (
+                        <p className="text-xs">
+                          Date: {format(new Date(doc.verifiedAt), 'dd MMM yyyy HH:mm')}
+                        </p>
+                      )}
                       {doc.remarks && <p className="text-xs mt-1">Remarks: {doc.remarks}</p>}
-                      {doc.rejectionReason && <p className="text-xs text-red-600">Reason: {doc.rejectionReason}</p>}
+                      {doc.rejectionReason && (
+                        <p className="text-xs text-red-600">Reason: {doc.rejectionReason}</p>
+                      )}
                     </div>
                   )}
 
@@ -312,7 +358,9 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                           placeholder="Add observations..."
                           className="text-sm min-h-[60px]"
                           value={remarks[doc.id] || ''}
-                          onChange={(e) => setRemarks(prev => ({ ...prev, [doc.id]: e.target.value }))}
+                          onChange={(e) =>
+                            setRemarks((prev) => ({ ...prev, [doc.id]: e.target.value }))
+                          }
                         />
                       </div>
                       <div>
@@ -321,7 +369,9 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                           placeholder="Why verification failed..."
                           className="text-sm h-8"
                           value={rejectionReasons[doc.id] || ''}
-                          onChange={(e) => setRejectionReasons(prev => ({ ...prev, [doc.id]: e.target.value }))}
+                          onChange={(e) =>
+                            setRejectionReasons((prev) => ({ ...prev, [doc.id]: e.target.value }))
+                          }
                         />
                       </div>
                       <div className="flex gap-2">

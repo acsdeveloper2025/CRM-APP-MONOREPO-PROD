@@ -9,7 +9,7 @@ import {
   DollarSign,
   Clock,
   CheckCircle,
-  TrendingUp
+  TrendingUp,
 } from 'lucide-react';
 import { FieldUserAssignmentsTab } from '@/components/commission/FieldUserAssignmentsTab';
 import { commissionManagementService } from '@/services/commissionManagement';
@@ -37,7 +37,9 @@ export const CommissionManagementPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Commission Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
+            Commission Management
+          </h1>
           <p className="text-sm sm:text-base text-gray-600 mt-1">
             Manage field employee commissions, rate assignments, and payments
           </p>
@@ -63,9 +65,7 @@ export const CommissionManagementPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{stats.paidAmount?.toLocaleString() || 0}</div>
-            <p className="text-xs text-gray-600">
-              {stats.paidCommissions || 0} commissions paid
-            </p>
+            <p className="text-xs text-gray-600">{stats.paidCommissions || 0} commissions paid</p>
           </CardContent>
         </Card>
 
@@ -89,9 +89,7 @@ export const CommissionManagementPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.activeFieldUsers || 0}</div>
-            <p className="text-xs text-gray-600">
-              Field agents with assignments
-            </p>
+            <p className="text-xs text-gray-600">Field agents with assignments</p>
           </CardContent>
         </Card>
 
@@ -101,10 +99,10 @@ export const CommissionManagementPage: React.FC = () => {
             <TrendingUp className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{stats.averageCommissionPerCase?.toLocaleString() || 0}</div>
-            <p className="text-xs text-gray-600">
-              Per completed task
-            </p>
+            <div className="text-2xl font-bold">
+              ₹{stats.averageCommissionPerCase?.toLocaleString() || 0}
+            </div>
+            <p className="text-xs text-gray-600">Per completed task</p>
           </CardContent>
         </Card>
 
@@ -115,9 +113,7 @@ export const CommissionManagementPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{stats.totalAmount?.toLocaleString() || 0}</div>
-            <p className="text-xs text-gray-600">
-              Total commissions
-            </p>
+            <p className="text-xs text-gray-600">Total commissions</p>
           </CardContent>
         </Card>
       </div>
@@ -135,8 +131,6 @@ export const CommissionManagementPage: React.FC = () => {
         </CardContent>
       </Card>
 
-
-
       {/* Help Section */}
       <Card className="bg-slate-100/70 dark:bg-slate-800/50">
         <CardContent className="p-4">
@@ -147,10 +141,22 @@ export const CommissionManagementPage: React.FC = () => {
             <div>
               <h3 className="font-semibold text-gray-900 mb-2">Commission Management Guide</h3>
               <div className="space-y-1 text-sm text-gray-600">
-                <p>• <strong>Rate Assignments:</strong> Assign commission rates to field users using existing rate types from the rate management system</p>
-                <p>• <strong>Rate Selection:</strong> Choose from available rate types (Local, OGL, Outstation, etc.) when creating assignments</p>
-                <p>• <strong>Auto-Calculation:</strong> Commissions are automatically calculated when field users complete cases</p>
-                <p>• <strong>Commission Reports:</strong> View calculated commissions and payment tracking in Billing & Commission → Commissions</p>
+                <p>
+                  • <strong>Rate Assignments:</strong> Assign commission rates to field users using
+                  existing rate types from the rate management system
+                </p>
+                <p>
+                  • <strong>Rate Selection:</strong> Choose from available rate types (Local, OGL,
+                  Outstation, etc.) when creating assignments
+                </p>
+                <p>
+                  • <strong>Auto-Calculation:</strong> Commissions are automatically calculated when
+                  field users complete cases
+                </p>
+                <p>
+                  • <strong>Commission Reports:</strong> View calculated commissions and payment
+                  tracking in Billing & Commission → Commissions
+                </p>
               </div>
             </div>
           </div>

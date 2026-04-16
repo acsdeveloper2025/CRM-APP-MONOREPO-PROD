@@ -23,7 +23,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Send, Loader2, Building, Settings, Plus, Trash2, AlertCircle, Paperclip, Upload, FileText, Image } from 'lucide-react';
+import {
+  ArrowLeft,
+  Send,
+  Loader2,
+  Building,
+  Settings,
+  Plus,
+  Trash2,
+  AlertCircle,
+  Paperclip,
+  Upload,
+  FileText,
+  Image,
+} from 'lucide-react';
 import { useAvailableFieldUsers } from '@/hooks/useUsers';
 import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/useClients';
 import { usePincodeSearch } from '@/hooks/useLocations';
@@ -46,7 +59,10 @@ import { logger } from '@/utils/logger';
 const caseLevelSchema = z.object({
   clientId: z.string().min(1, 'Client selection is required'),
   productId: z.string().min(1, 'Product selection is required'),
-  backendContactNumber: z.string().min(1, 'Backend contact number is required').regex(/^[+]?[\d\s\-()]{10,15}$/, 'Please enter a valid phone number'),
+  backendContactNumber: z
+    .string()
+    .min(1, 'Backend contact number is required')
+    .regex(/^[+]?[\d\s\-()]{10,15}$/, 'Please enter a valid phone number'),
   createdByBackendUser: z.string().min(1, 'Created by backend user is required'),
 });
 
@@ -103,7 +119,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   onCaseTypeChange,
 }) => {
   const { user } = useAuth();
-  
+
   // Case-level form
   const form = useForm<CaseLevelFormData>({
     resolver: zodResolver(caseLevelSchema),
@@ -131,13 +147,15 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
       attachments: [],
     },
   ]);
-  const [taskValidationState, setTaskValidationState] = useState<Record<string, TaskValidationState>>({});
+  const [taskValidationState, setTaskValidationState] = useState<
+    Record<string, TaskValidationState>
+  >({});
 
   // Populate form with initial data
   useEffect(() => {
     if (initialData) {
       logger.info('TaskCaseCreationForm populating with initialData');
-      
+
       if (initialData.caseLevelData) {
         form.reset({
           clientId: initialData.caseLevelData.clientId,
@@ -149,7 +167,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
       if (initialData.tasks && initialData.tasks.length > 0) {
         logger.info('TaskCaseCreationForm setting tasks');
         setTasks(initialData.tasks);
-        
+
         // Verify state was set correctly
         setTimeout(() => {
           logger.info('TaskCaseCreationForm tasks state after set', {
@@ -170,7 +188,10 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   const { pincodes, setSearchTerm: setPincodeSearch } = usePincodeSearch();
 
   const allClients = useMemo(() => clientsResponse?.data || [], [clientsResponse?.data]);
-  const verificationTypes = useMemo(() => verificationTypesResponse?.data || [], [verificationTypesResponse?.data]);
+  const verificationTypes = useMemo(
+    () => verificationTypesResponse?.data || [],
+    [verificationTypesResponse?.data]
+  );
 
   // Watch for client selection to fetch products
   const selectedClientId = form.watch('clientId');
@@ -182,14 +203,14 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   // Filter clients and products based on user role and assignments
   const clients = useMemo(() => {
     if (isBackendScopedUser(user) && Array.isArray(user?.assignedClients)) {
-      return allClients.filter(client => user.assignedClients?.includes(client.id));
+      return allClients.filter((client) => user.assignedClients?.includes(client.id));
     }
     return allClients;
   }, [allClients, user]);
 
   const products = useMemo(() => {
     if (isBackendScopedUser(user) && Array.isArray(user?.assignedProducts)) {
-      return allProducts.filter(product => user.assignedProducts?.includes(product.id));
+      return allProducts.filter((product) => user.assignedProducts?.includes(product.id));
     }
     return allProducts;
   }, [allProducts, user]);
@@ -231,7 +252,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
       toast.error('At least 1 task is required');
       return;
     }
-    setTasks(tasks.filter(t => t.id !== taskId));
+    setTasks(tasks.filter((t) => t.id !== taskId));
     setTaskValidationState((prev) => {
       const next = { ...prev };
       delete next[taskId];
@@ -241,31 +262,30 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
 
   // Update task field
   const updateTask = (taskId: string, field: keyof TaskFormData, value: unknown) => {
-    setTasks(prevTasks =>
-      prevTasks.map(t =>
-        t.id === taskId ? { ...t, [field]: value } : t
-      )
-    );
+    setTasks((prevTasks) => prevTasks.map((t) => (t.id === taskId ? { ...t, [field]: value } : t)));
   };
 
-  const updateTaskValidationState = useCallback((taskId: string, nextState: TaskValidationState) => {
-    setTaskValidationState((prev) => {
-      const current = prev[taskId];
-      if (
-        current?.isReady === nextState.isReady &&
-        current?.isLoading === nextState.isLoading &&
-        current?.isValid === nextState.isValid &&
-        current?.message === nextState.message
-      ) {
-        return prev;
-      }
+  const updateTaskValidationState = useCallback(
+    (taskId: string, nextState: TaskValidationState) => {
+      setTaskValidationState((prev) => {
+        const current = prev[taskId];
+        if (
+          current?.isReady === nextState.isReady &&
+          current?.isLoading === nextState.isLoading &&
+          current?.isValid === nextState.isValid &&
+          current?.message === nextState.message
+        ) {
+          return prev;
+        }
 
-      return {
-        ...prev,
-        [taskId]: nextState,
-      };
-    });
-  }, []);
+        return {
+          ...prev,
+          [taskId]: nextState,
+        };
+      });
+    },
+    []
+  );
 
   const hasBlockingConfigurationState = tasks.some((task) => {
     const state = taskValidationState[task.id];
@@ -276,15 +296,16 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   const handleSubmit = (caseLevelData: CaseLevelFormData) => {
     // Only validate field tasks when caseType includes field verification
     if (caseType === 'field' || caseType === 'both') {
-      const invalidTasks = tasks.filter(task =>
-        !task.applicantType ||
-        !task.verificationTypeId ||
-        !task.pincodeId ||
-        !task.areaId ||
-        !task.address ||
-        !task.trigger ||
-        !task.rateTypeId ||
-        !task.assignedTo
+      const invalidTasks = tasks.filter(
+        (task) =>
+          !task.applicantType ||
+          !task.verificationTypeId ||
+          !task.pincodeId ||
+          !task.areaId ||
+          !task.address ||
+          !task.trigger ||
+          !task.rateTypeId ||
+          !task.assignedTo
       );
 
       if (invalidTasks.length > 0) {
@@ -297,7 +318,10 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
         .find((state) => state?.isReady && !state.isValid);
 
       if (firstConfigError) {
-        toast.error(firstConfigError.message || 'Complete pricing configuration for all tasks before submitting');
+        toast.error(
+          firstConfigError.message ||
+            'Complete pricing configuration for all tasks before submitting'
+        );
         return;
       }
     }
@@ -311,13 +335,14 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Create Case with Tasks</h2>
         <p className="text-gray-600">
-          {editMode ? 'Update case details and verification tasks' : 'Fill in case details once, then configure verification tasks'}
+          {editMode
+            ? 'Update case details and verification tasks'
+            : 'Fill in case details once, then configure verification tasks'}
         </p>
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-          
           {/* CASE-LEVEL SECTION */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b">
@@ -365,10 +390,13 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Client *</FormLabel>
-                        <Select onValueChange={(value) => {
-                          field.onChange(value);
-                          form.setValue('productId', '');
-                        }} value={field.value}>
+                        <Select
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            form.setValue('productId', '');
+                          }}
+                          value={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select client" />
@@ -399,10 +427,18 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Product *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedClientId}>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={!selectedClientId}
+                        >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder={selectedClientId ? "Select product" : "Select client first"} />
+                              <SelectValue
+                                placeholder={
+                                  selectedClientId ? 'Select product' : 'Select client first'
+                                }
+                              />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -433,7 +469,11 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                       <FormItem>
                         <FormLabel>Created By *</FormLabel>
                         <FormControl>
-                          <Input {...field} disabled className="bg-slate-100 dark:bg-slate-800/60 text-black dark:text-slate-100" />
+                          <Input
+                            {...field}
+                            disabled
+                            className="bg-slate-100 dark:bg-slate-800/60 text-black dark:text-slate-100"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -469,11 +509,23 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 gap-3">
-                  {([
-                    { value: 'field' as CaseType, label: 'Field Verification', desc: 'Physical site visit by field agent' },
-                    { value: 'kyc' as CaseType, label: 'KYC Verification', desc: 'Document verification by central team' },
-                    { value: 'both' as CaseType, label: 'Both', desc: 'Field visit + document verification' },
-                  ]).map((option) => (
+                  {[
+                    {
+                      value: 'field' as CaseType,
+                      label: 'Field Verification',
+                      desc: 'Physical site visit by field agent',
+                    },
+                    {
+                      value: 'kyc' as CaseType,
+                      label: 'KYC Verification',
+                      desc: 'Document verification by central team',
+                    },
+                    {
+                      value: 'both' as CaseType,
+                      label: 'Both',
+                      desc: 'Field visit + document verification',
+                    },
+                  ].map((option) => (
                     <button
                       key={option.value}
                       type="button"
@@ -484,7 +536,9 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                           : 'border-border hover:border-primary/40'
                       }`}
                     >
-                      <p className={`text-sm font-medium ${caseType === option.value ? 'text-primary' : ''}`}>
+                      <p
+                        className={`text-sm font-medium ${caseType === option.value ? 'text-primary' : ''}`}
+                      >
                         {option.label}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">{option.desc}</p>
@@ -497,42 +551,43 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
 
           {/* TASK-LEVEL SECTION — only for field or both */}
           {(caseType === 'field' || caseType === 'both') && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b">
-              <div className="flex items-center gap-2">
-                <Settings className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-semibold">Verification Tasks</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-primary" />
+                  <h3 className="text-lg font-semibold">Verification Tasks</h3>
+                </div>
+                <Button type="button" onClick={addTask} variant="outline" size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Task
+                </Button>
               </div>
-              <Button type="button" onClick={addTask} variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Task
-              </Button>
-            </div>
 
-            {/* Render task cards */}
-            {tasks.map((task, index) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                index={index}
-                updateTask={updateTask}
-                onValidationStateChange={updateTaskValidationState}
-                removeTask={removeTask}
-                canRemove={tasks.length > 1}
-                clientId={selectedClientId}
-                productId={form.watch('productId')}
-                verificationTypes={verificationTypes}
-                pincodes={pincodes}
-                setPincodeSearch={setPincodeSearch}
-              />
-            ))}
-          </div>
+              {/* Render task cards */}
+              {tasks.map((task, index) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  index={index}
+                  updateTask={updateTask}
+                  onValidationStateChange={updateTaskValidationState}
+                  removeTask={removeTask}
+                  canRemove={tasks.length > 1}
+                  clientId={selectedClientId}
+                  productId={form.watch('productId')}
+                  verificationTypes={verificationTypes}
+                  pincodes={pincodes}
+                  setPincodeSearch={setPincodeSearch}
+                />
+              ))}
+            </div>
           )}
 
           {hasBlockingConfigurationState && (
             <Alert variant="destructive">
               <AlertDescription>
-                Resolve rate type or billing configuration errors in the task cards before creating the case.
+                Resolve rate type or billing configuration errors in the task cards before creating
+                the case.
               </AlertDescription>
             </Alert>
           )}
@@ -541,7 +596,9 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
           {renderAfterTasks}
 
           {/* Form Actions */}
-          <div className={`flex items-center ${onBack ? 'justify-between' : 'justify-end'} pt-6 border-t`}>
+          <div
+            className={`flex items-center ${onBack ? 'justify-between' : 'justify-end'} pt-6 border-t`}
+          >
             {onBack && (
               <Button type="button" variant="outline" onClick={onBack} disabled={isSubmitting}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -563,7 +620,11 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-2" />
-                  {editMode ? 'Update Case' : caseType === 'kyc' ? 'Create Case with KYC Tasks' : `Create Case with ${tasks.length} ${tasks.length === 1 ? 'Task' : 'Tasks'}${caseType === 'both' ? ' + KYC' : ''}`}
+                  {editMode
+                    ? 'Update Case'
+                    : caseType === 'kyc'
+                      ? 'Create Case with KYC Tasks'
+                      : `Create Case with ${tasks.length} ${tasks.length === 1 ? 'Task' : 'Tasks'}${caseType === 'both' ? ' + KYC' : ''}`}
                 </>
               )}
             </Button>
@@ -609,7 +670,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
     selectedAreaNumber
   );
   // Fetch areas based on selected pincode
-  const { data: areasResponse } = useAreasByPincode(task.pincodeId ? parseInt(task.pincodeId) : undefined);
+  const { data: areasResponse } = useAreasByPincode(
+    task.pincodeId ? parseInt(task.pincodeId) : undefined
+  );
   const areas = useMemo(() => areasResponse?.data || [], [areasResponse?.data]);
   const areaIds = useMemo(() => areas.map((area) => area.id.toString()), [areas]);
 
@@ -640,25 +703,19 @@ const TaskCard: React.FC<TaskCardProps> = ({
   // Fetch rate types based on client, product, and verification type
   const { data: rateTypesResponse } = useQuery({
     queryKey: ['availableRateTypes', clientId, productId, task.verificationTypeId],
-    queryFn: () => rateTypesService.getAvailableRateTypesForCase(
-      parseInt(clientId || '0'),
-      parseInt(productId || '0'),
-      task.verificationTypeId || 0
-    ),
+    queryFn: () =>
+      rateTypesService.getAvailableRateTypesForCase(
+        parseInt(clientId || '0'),
+        parseInt(productId || '0'),
+        task.verificationTypeId || 0
+      ),
     enabled: !!(clientId && productId && task.verificationTypeId),
   });
   const rateTypes = rateTypesResponse?.data || [];
   const shouldValidateConfiguration = Boolean(
-    clientId &&
-      productId &&
-      task.verificationTypeId &&
-      task.pincodeId &&
-      task.areaId
+    clientId && productId && task.verificationTypeId && task.pincodeId && task.areaId
   );
-  const {
-    data: configValidationResponse,
-    isLoading: validatingConfiguration,
-  } = useQuery({
+  const { data: configValidationResponse, isLoading: validatingConfiguration } = useQuery({
     queryKey: [
       'task-case-config-validation',
       task.id,
@@ -811,13 +868,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
             disabled={!clientId || !productId || !task.verificationTypeId}
           >
             <SelectTrigger>
-              <SelectValue placeholder={
-                !clientId || !productId || !task.verificationTypeId
-                  ? "Select client, product & verification type first"
-                  : rateTypes.length === 0
-                  ? "No rate types available"
-                  : "Select rate type"
-              } />
+              <SelectValue
+                placeholder={
+                  !clientId || !productId || !task.verificationTypeId
+                    ? 'Select client, product & verification type first'
+                    : rateTypes.length === 0
+                      ? 'No rate types available'
+                      : 'Select rate type'
+                }
+              />
             </SelectTrigger>
             <SelectContent>
               {rateTypes.map((rateType) => (
@@ -829,7 +888,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
           </Select>
           {task.rateTypeId && rateTypes.length > 0 ? (
             <p className="text-sm text-green-600 mt-1">
-              Rate: ₹{rateTypes.find(rt => rt.id.toString() === task.rateTypeId)?.amount || '0.00'} INR
+              Rate: ₹
+              {rateTypes.find((rt) => rt.id.toString() === task.rateTypeId)?.amount || '0.00'} INR
             </p>
           ) : (
             <p className="text-sm text-red-600 mt-1">
@@ -842,7 +902,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
         {shouldValidateConfiguration && (
           <Alert
             variant={configValidation?.isValid === false ? 'destructive' : 'default'}
-            className={configValidation?.isValid ? 'border-green-200 bg-green-50 text-green-900' : undefined}
+            className={
+              configValidation?.isValid ? 'border-green-200 bg-green-50 text-green-900' : undefined
+            }
           >
             <AlertDescription>
               {validatingConfiguration
@@ -862,10 +924,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
           <div>
             <label className="text-sm font-medium">Pincode *</label>
             <SearchableSelect
-                options={pincodes.map((pincode) => ({
+              options={pincodes.map((pincode) => ({
                 value: pincode.id.toString(),
                 label: pincode.code,
-                description: pincode.cityName || pincode.city?.name
+                description: pincode.cityName || pincode.city?.name,
               }))}
               value={task.pincodeId}
               onValueChange={(value) => updateTask(task.id, 'pincodeId', value)}
@@ -889,14 +951,14 @@ const TaskCard: React.FC<TaskCardProps> = ({
               onValueChange={(value) => updateTask(task.id, 'areaId', value)}
               disabled={!task.pincodeId}
             >
-            <SelectTrigger>
+              <SelectTrigger>
                 <SelectValue
                   placeholder={
                     !task.pincodeId
-                      ? "Select pincode first"
+                      ? 'Select pincode first'
                       : areas.length === 1
-                        ? "Auto-selected area"
-                        : "Select area"
+                        ? 'Auto-selected area'
+                        : 'Select area'
                   }
                 />
               </SelectTrigger>
@@ -978,13 +1040,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
               onValueChange={(value) => updateTask(task.id, 'assignedTo', value)}
             >
               <SelectTrigger>
-                <SelectValue placeholder={
-                  !task.pincodeId || !task.areaId
-                    ? "Select pincode and area first"
-                    : availableFieldUsers.length === 0
-                      ? "No field users available"
-                      : "Select field user"
-                } />
+                <SelectValue
+                  placeholder={
+                    !task.pincodeId || !task.areaId
+                      ? 'Select pincode and area first'
+                      : availableFieldUsers.length === 0
+                        ? 'No field users available'
+                        : 'Select field user'
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {loadingFieldUsers ? (
@@ -994,8 +1058,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 ) : availableFieldUsers.length === 0 ? (
                   <SelectItem value="no-users" disabled>
                     {!task.pincodeId || !task.areaId
-                      ? "Please select pincode and area first"
-                      : "No field users have access to this pincode and area"}
+                      ? 'Please select pincode and area first'
+                      : 'No field users have access to this pincode and area'}
                   </SelectItem>
                 ) : (
                   availableFieldUsers.map((user) => (
@@ -1016,10 +1080,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
               task.areaId &&
               availableFieldUsers.length === 0 &&
               !loadingFieldUsers && (
-              <p className="text-sm text-amber-600 mt-1">
-                <AlertCircle className="h-3 w-3 inline mr-1" />
-                No field users have access to the selected pincode and area
-              </p>
+                <p className="text-sm text-amber-600 mt-1">
+                  <AlertCircle className="h-3 w-3 inline mr-1" />
+                  No field users have access to the selected pincode and area
+                </p>
               )}
           </div>
         </div>
@@ -1062,7 +1126,7 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
     'image/png',
     'image/gif',
     'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   ];
 
   const validateFile = (file: File): string | null => {
@@ -1076,7 +1140,9 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
   };
 
   const handleFileSelect = (files: FileList | null) => {
-    if (!files) {return;}
+    if (!files) {
+      return;
+    }
 
     const fileArray = Array.from(files);
     const errors: string[] = [];
@@ -1087,7 +1153,7 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
       return;
     }
 
-    fileArray.forEach(file => {
+    fileArray.forEach((file) => {
       const error = validateFile(file);
       if (error) {
         errors.push(error);
@@ -1101,18 +1167,22 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
     }
 
     if (validFiles.length > 0) {
-      setSelectedFiles(prev => [...prev, ...validFiles]);
+      setSelectedFiles((prev) => [...prev, ...validFiles]);
     }
   };
 
   const addFiles = async () => {
-    if (selectedFiles.length === 0) {return;}
+    if (selectedFiles.length === 0) {
+      return;
+    }
 
     const newAttachments: CaseFormAttachment[] = [];
 
     for (const file of selectedFiles) {
       const getFileType = (mimeType: string): 'pdf' | 'image' => {
-        if (mimeType.startsWith('image/')) {return 'image';}
+        if (mimeType.startsWith('image/')) {
+          return 'image';
+        }
         return 'pdf';
       };
 
@@ -1148,21 +1218,23 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
   };
 
   const removeAttachment = (id: string) => {
-    const updatedAttachments = attachments.filter(att => att.id !== id);
+    const updatedAttachments = attachments.filter((att) => att.id !== id);
     onAttachmentsChange(updatedAttachments);
     toast.success('File removed');
   };
 
   const removeSelectedFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) {return '0 Bytes';}
+    if (bytes === 0) {
+      return '0 Bytes';
+    }
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))  } ${  sizes[i]}`;
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
 
   const getFileIcon = (type: string) => {
@@ -1211,7 +1283,9 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
           <Paperclip className="h-4 w-4" />
           Task Attachments
           {attachments.length > 0 && (
-            <Badge variant="secondary" className="text-xs">{attachments.length}</Badge>
+            <Badge variant="secondary" className="text-xs">
+              {attachments.length}
+            </Badge>
           )}
         </label>
       </div>
@@ -1235,8 +1309,8 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
             disabled={attachments.length >= MAX_FILES}
           >
             Browse files
-          </button>
-          {' '}or drag and drop
+          </button>{' '}
+          or drag and drop
         </p>
         <p className="text-xs text-gray-600">
           PDF, images, Word docs • Max 10MB • {MAX_FILES} files total
@@ -1260,7 +1334,9 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
       {selectedFiles.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-yellow-700">Selected ({selectedFiles.length})</span>
+            <span className="text-xs font-medium text-yellow-700">
+              Selected ({selectedFiles.length})
+            </span>
             <div className="space-x-2">
               <Button
                 type="button"
@@ -1283,7 +1359,10 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
             </div>
           </div>
           {selectedFiles.map((file, index) => (
-            <div key={index} className="flex items-center gap-2 p-2 border border-yellow-300 rounded bg-yellow-50 text-xs">
+            <div
+              key={index}
+              className="flex items-center gap-2 p-2 border border-yellow-300 rounded bg-yellow-50 text-xs"
+            >
               {getFileIcon(file.type.startsWith('image/') ? 'image' : 'pdf')}
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{file.name}</div>
@@ -1306,9 +1385,14 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
       {/* Attached Files */}
       {attachments.length > 0 && (
         <div className="space-y-2">
-          <span className="text-xs font-medium text-green-700">Attached ({attachments.length})</span>
+          <span className="text-xs font-medium text-green-700">
+            Attached ({attachments.length})
+          </span>
           {attachments.map((attachment) => (
-            <div key={attachment.id} className="flex items-center gap-2 p-2 border border-green-200 rounded bg-green-50 text-xs">
+            <div
+              key={attachment.id}
+              className="flex items-center gap-2 p-2 border border-green-200 rounded bg-green-50 text-xs"
+            >
               {getFileIcon(attachment.type)}
               <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{attachment.name}</div>

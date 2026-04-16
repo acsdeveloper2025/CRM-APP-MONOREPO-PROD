@@ -22,13 +22,15 @@ export const NewCasePage: React.FC = () => {
   const editTaskId = searchParams.get('taskId'); // Get the specific task ID to edit
   const isEditMode = !!editCaseId;
 
-
-  const [initialData, setInitialData] = useState<{
-    customerInfo?: CustomerInfoData;
-    caseFormData?: FullCaseFormData; // Keeping for backward compatibility if needed, but mainly using new structure
-    caseLevelData?: CaseLevelFormData;
-    tasks?: TaskFormData[];
-  } | undefined>();
+  const [initialData, setInitialData] = useState<
+    | {
+        customerInfo?: CustomerInfoData;
+        caseFormData?: FullCaseFormData; // Keeping for backward compatibility if needed, but mainly using new structure
+        caseLevelData?: CaseLevelFormData;
+        tasks?: TaskFormData[];
+      }
+    | undefined
+  >();
 
   // Only fetch case data if we're in edit mode
   const shouldFetchCase = isEditMode && editCaseId;
@@ -40,7 +42,7 @@ export const NewCasePage: React.FC = () => {
     search: editPincodeCode,
     limit: 30,
   });
-  
+
   // Fetch verification tasks to get address (address is stored at task level, not case level)
   const { data: verificationTasksResponse } = useQuery({
     queryKey: ['verification-tasks', 'case', editCaseId],
@@ -50,7 +52,7 @@ export const NewCasePage: React.FC = () => {
     },
     enabled: isEditMode && !!editCaseId,
   });
-  
+
   const { data: caseAttachmentsResponse } = useQuery({
     queryKey: ['case-attachments', editCaseId],
     queryFn: async () => attachmentsService.getAttachmentsByCase(editCaseId || ''),
@@ -68,7 +70,9 @@ export const NewCasePage: React.FC = () => {
       const selectedTask = editTaskId
         ? tasks.find((t: VerificationTask) => t.id === editTaskId)
         : tasks[0];
-      const taskPincodeCode = (selectedTask as unknown as Record<string, unknown>)?.pincode as string | undefined;
+      const taskPincodeCode = (selectedTask as unknown as Record<string, unknown>)?.pincode as
+        | string
+        | undefined;
       const code = taskPincodeCode || caseData.data.pincode;
       if (code && code !== editPincodeCode) {
         setEditPincodeCode(code);
@@ -85,11 +89,13 @@ export const NewCasePage: React.FC = () => {
       const selectedTask = editTaskId
         ? tasks.find((t: VerificationTask) => t.id === editTaskId)
         : tasks[0];
-      const taskPincodeCode = (selectedTask as unknown as Record<string, unknown>)?.pincode as string | undefined;
+      const taskPincodeCode = (selectedTask as unknown as Record<string, unknown>)?.pincode as
+        | string
+        | undefined;
       const effectivePincodeCode = taskPincodeCode || caseItem.pincode;
 
       // Find pincode ID based on task-level pincode code first
-      const foundPincode = pincodes.find(p => p.code === effectivePincodeCode);
+      const foundPincode = pincodes.find((p) => p.code === effectivePincodeCode);
       if (foundPincode) {
         setPincodeIdForAreas(parseInt(foundPincode.id));
       } else {
@@ -105,10 +111,13 @@ export const NewCasePage: React.FC = () => {
       if (isEditMode && caseData?.data && pincodesResponse?.data) {
         const caseItem = caseData.data;
         const pincodes = pincodesResponse.data;
-        
+
         const tasks = verificationTasksResponse?.data?.tasks || [];
         if (!tasks.length) {
-          logger.error('❌ No tasks found for case in edit mode', { editTaskId, caseId: editCaseId });
+          logger.error('❌ No tasks found for case in edit mode', {
+            editTaskId,
+            caseId: editCaseId,
+          });
           return;
         }
 
@@ -140,7 +149,7 @@ export const NewCasePage: React.FC = () => {
         const effectivePincodeCode = taskPincodeCode || String(caseItem.pincode || '');
 
         // Find pincode ID based on task-level pincode code first
-        const foundPincode = pincodes.find(p => p.code === effectivePincodeCode);
+        const foundPincode = pincodes.find((p) => p.code === effectivePincodeCode);
         const pincodeId = foundPincode?.id?.toString() || '';
 
         // Use task-level areaId directly when available
@@ -152,18 +161,30 @@ export const NewCasePage: React.FC = () => {
           customerName: String(caseItem.customerName || caseItem.applicantName || ''),
           mobileNumber: String(caseItem.customerPhone || caseItem.applicantPhone || ''),
           panNumber: String(caseItem.panNumber || ''),
-          customerCallingCode: String(caseItem.customerCallingCode || '')
+          customerCallingCode: String(caseItem.customerCallingCode || ''),
         };
 
         // Map case data to FullCaseFormData format
-        const addressValue = taskAddress || caseItem.address || [caseItem.addressStreet, caseItem.addressCity, caseItem.addressState, caseItem.addressPincode].filter(Boolean).join(', ') || '';
-        
+        const addressValue =
+          taskAddress ||
+          caseItem.address ||
+          [
+            caseItem.addressStreet,
+            caseItem.addressCity,
+            caseItem.addressState,
+            caseItem.addressPincode,
+          ]
+            .filter(Boolean)
+            .join(', ') ||
+          '';
+
         const caseFormData: FullCaseFormData = {
           clientId: String(caseItem.clientId || ''),
           productId: String(caseItem.productId || ''),
           verificationTypeId: String(caseItem.verificationTypeId || ''),
           applicantType: String(caseItem.applicantType || ''),
-          createdByBackendUser: caseItem.createdByBackendUser?.name || String(caseItem.createdByBackendUser || ''), // Handle object or string
+          createdByBackendUser:
+            caseItem.createdByBackendUser?.name || String(caseItem.createdByBackendUser || ''), // Handle object or string
           backendContactNumber: String(caseItem.backendContactNumber || ''),
           assignedToId: '', // Case-level assignment is deprecated, leave empty
           priority: String(caseItem.priority || 'MEDIUM'), // Convert to string
@@ -192,21 +213,28 @@ export const NewCasePage: React.FC = () => {
         const mappedTasks: TaskFormData[] = selectedTasks.map((task: VerificationTask) => {
           const taskRecord = task as unknown as Record<string, unknown>;
           const rawAssignedTo = taskRecord.assignedTo || taskRecord.assignedTo;
-          const assignedToId = typeof rawAssignedTo === 'object' && rawAssignedTo
-            ? String((rawAssignedTo as { id?: string }).id || '')
-            : String(rawAssignedTo || '');
+          const assignedToId =
+            typeof rawAssignedTo === 'object' && rawAssignedTo
+              ? String((rawAssignedTo as { id?: string }).id || '')
+              : String(rawAssignedTo || '');
 
           const taskId = String(taskRecord.id || '');
           const taskAttachments = allAttachments.filter(
-            att => String(att.verificationTaskId || '') === taskId
+            (att) => String(att.verificationTaskId || '') === taskId
           );
-          const fallbackAttachments = !taskAttachments.length && selectedTasks.length === 1
-            ? allAttachments
-            : taskAttachments;
+          const fallbackAttachments =
+            !taskAttachments.length && selectedTasks.length === 1
+              ? allAttachments
+              : taskAttachments;
 
           return {
             id: taskId,
-            applicantType: String(taskRecord.applicantType || taskRecord.applicantType || caseFormData.applicantType || ''),
+            applicantType: String(
+              taskRecord.applicantType ||
+                taskRecord.applicantType ||
+                caseFormData.applicantType ||
+                ''
+            ),
             verificationTypeId: taskRecord.verificationTypeId
               ? parseInt(String(taskRecord.verificationTypeId), 10)
               : taskRecord.verificationTypeId
@@ -215,13 +243,17 @@ export const NewCasePage: React.FC = () => {
             rateTypeId: String(taskRecord.rateTypeId || taskRecord.rateTypeId || ''),
             pincodeId: (() => {
               const taskPincodeCode = String(taskRecord.pincode || '');
-              const found = pincodes.find(p => p.code === taskPincodeCode);
+              const found = pincodes.find((p) => p.code === taskPincodeCode);
               return found?.id?.toString() || '';
             })(),
             areaId: String(taskRecord.areaId || taskRecord.areaId || ''),
             address: String(taskRecord.address || ''),
             trigger: String(taskRecord.trigger || caseFormData.trigger || ''),
-            priority: (String(taskRecord.priority || caseFormData.priority || 'MEDIUM') as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'),
+            priority: String(taskRecord.priority || caseFormData.priority || 'MEDIUM') as
+              | 'LOW'
+              | 'MEDIUM'
+              | 'HIGH'
+              | 'URGENT',
             assignedTo: assignedToId,
             documentType: String(taskRecord.documentType || taskRecord.documentType || ''),
             documentNumber: String(taskRecord.documentNumber || taskRecord.documentNumber || ''),
@@ -238,7 +270,7 @@ export const NewCasePage: React.FC = () => {
             backendContactNumber: caseFormData.backendContactNumber,
             createdByBackendUser: caseFormData.createdByBackendUser,
           },
-          tasks: mappedTasks
+          tasks: mappedTasks,
         };
 
         logger.warn('✅ NewCasePage - Mapped data ready', {
@@ -256,8 +288,16 @@ export const NewCasePage: React.FC = () => {
       }
       // Don't redirect on error, just log it
     }
-
-  }, [isEditMode, caseData, pincodesResponse, areasResponse, verificationTasksResponse, caseAttachmentsResponse, editCaseId, editTaskId]);
+  }, [
+    isEditMode,
+    caseData,
+    pincodesResponse,
+    areasResponse,
+    verificationTasksResponse,
+    caseAttachmentsResponse,
+    editCaseId,
+    editTaskId,
+  ]);
 
   const handleSuccess = (caseId: string) => {
     if (caseId && caseId.trim() !== '') {
@@ -271,8 +311,6 @@ export const NewCasePage: React.FC = () => {
   const handleCancel = () => {
     navigate('/cases');
   };
-
-
 
   if (isEditMode && loadingCase) {
     return (
@@ -291,7 +329,9 @@ export const NewCasePage: React.FC = () => {
     return (
       <div className="space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-red-600">Edit Mode - No Data</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-red-600">
+            Edit Mode - No Data
+          </h1>
           <div className="text-gray-600 space-y-2">
             <p>Edit Case ID: {editCaseId}</p>
             <p>Loading: {loadingCase ? 'Yes' : 'No'}</p>
@@ -326,9 +366,10 @@ export const NewCasePage: React.FC = () => {
 
   // Prevent editing completed cases ONLY if there are no pending/in-progress tasks
   // This handles cases where the status might be cached but revisit tasks exist
-  const hasPendingTasks = (caseData?.data?.pendingTasks || 0) > 0 || (caseData?.data?.inProgressTasks || 0) > 0;
+  const hasPendingTasks =
+    (caseData?.data?.pendingTasks || 0) > 0 || (caseData?.data?.inProgressTasks || 0) > 0;
   const isCompleted = caseData?.data?.status === 'COMPLETED' && !hasPendingTasks;
-  
+
   if (isEditMode && isCompleted) {
     return (
       <div className="space-y-6">
@@ -341,24 +382,20 @@ export const NewCasePage: React.FC = () => {
             </div>
             <h2 className="text-xl font-bold mb-2">Cannot Edit Completed Case</h2>
             <p className="text-gray-600 mb-6">
-              This case has been marked as completed and can no longer be edited.
-              If you need to make changes, please contact your administrator.
+              This case has been marked as completed and can no longer be edited. If you need to
+              make changes, please contact your administrator.
             </p>
             <div className="flex gap-2 justify-center">
               <Button onClick={() => navigate(-1)} variant="outline">
                 Go Back
               </Button>
-              <Button onClick={() => navigate(`/cases/${editCaseId}`)}>
-                View Case Details
-              </Button>
+              <Button onClick={() => navigate(`/cases/${editCaseId}`)}>View Case Details</Button>
             </div>
           </div>
         </div>
       </div>
     );
   }
-
-
 
   return (
     <div className="space-y-6">
@@ -369,8 +406,7 @@ export const NewCasePage: React.FC = () => {
         <p className="text-gray-600">
           {isEditMode
             ? 'Update the case details using the form below.'
-            : 'Follow the steps below to create a new verification case with duplicate detection.'
-          }
+            : 'Follow the steps below to create a new verification case with duplicate detection.'}
         </p>
       </div>
 

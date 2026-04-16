@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { logger } from '@/utils/logger';
 // Replaced lodash throttle with local implementation to avoid dependency
-function throttle<T extends (...args: unknown[]) => unknown>(func: T, limit: number): T & { cancel: () => void } {
+function throttle<T extends (...args: unknown[]) => unknown>(
+  func: T,
+  limit: number
+): T & { cancel: () => void } {
   let inThrottle: boolean;
   let lastFunc: ReturnType<typeof setTimeout>;
   let lastRan: number;
-  
-  const wrapper = function(this: unknown, ...args: unknown[]) {
+
+  const wrapper = function (this: unknown, ...args: unknown[]) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const context = this;
     if (!inThrottle) {
@@ -15,12 +18,15 @@ function throttle<T extends (...args: unknown[]) => unknown>(func: T, limit: num
       inThrottle = true;
     } else {
       clearTimeout(lastFunc);
-      lastFunc = setTimeout(function() {
-        if ((Date.now() - lastRan) >= limit) {
-          func.apply(context, args);
-          lastRan = Date.now();
-        }
-      }, limit - (Date.now() - lastRan));
+      lastFunc = setTimeout(
+        function () {
+          if (Date.now() - lastRan >= limit) {
+            func.apply(context, args);
+            lastRan = Date.now();
+          }
+        },
+        limit - (Date.now() - lastRan)
+      );
     }
   };
 
@@ -55,10 +61,7 @@ export const useThrottle = <T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number
 ): T => {
-  const throttledCallback = useMemo(
-    () => throttle(callback, delay),
-    [callback, delay]
-  );
+  const throttledCallback = useMemo(() => throttle(callback, delay), [callback, delay]);
 
   useEffect(() => {
     return () => {
@@ -70,15 +73,15 @@ export const useThrottle = <T extends (...args: unknown[]) => unknown>(
 };
 
 // Custom hook for infinite scrolling with performance optimization
-export const useInfiniteScroll = (
-  hasMore: boolean,
-  loading: boolean,
-  onLoadMore: () => void
-) => {
+export const useInfiniteScroll = (hasMore: boolean, loading: boolean, onLoadMore: () => void) => {
   const [isFetching, setIsFetching] = useState(false);
 
   const handleScroll = useThrottle(() => {
-    if (window.innerHeight + document.documentElement.scrollTop !== document.documentElement.offsetHeight || isFetching) {
+    if (
+      window.innerHeight + document.documentElement.scrollTop !==
+        document.documentElement.offsetHeight ||
+      isFetching
+    ) {
       return;
     }
     if (hasMore && !loading) {
@@ -92,7 +95,9 @@ export const useInfiniteScroll = (
   }, [handleScroll]);
 
   useEffect(() => {
-    if (!isFetching) {return;}
+    if (!isFetching) {
+      return;
+    }
     onLoadMore();
     setIsFetching(false);
   }, [isFetching, onLoadMore]);
@@ -110,11 +115,14 @@ export const useOptimisticUpdate = <T>(
   const [originalData, setOriginalData] = useState<T>(initialData);
   const [isOptimistic, setIsOptimistic] = useState(false);
 
-  const applyOptimisticUpdate = useCallback((update: Partial<T>) => {
-    setOriginalData(data);
-    setData(prev => updateFunction(prev, update));
-    setIsOptimistic(true);
-  }, [data, updateFunction]);
+  const applyOptimisticUpdate = useCallback(
+    (update: Partial<T>) => {
+      setOriginalData(data);
+      setData((prev) => updateFunction(prev, update));
+      setIsOptimistic(true);
+    },
+    [data, updateFunction]
+  );
 
   const confirmUpdate = useCallback((confirmedData: T) => {
     setData(confirmedData);
@@ -122,7 +130,7 @@ export const useOptimisticUpdate = <T>(
   }, []);
 
   const revertUpdate = useCallback(() => {
-    setData(prev => revertFunction(prev, originalData));
+    setData((prev) => revertFunction(prev, originalData));
     setIsOptimistic(false);
   }, [originalData, revertFunction]);
 
@@ -137,36 +145,35 @@ export const useOptimisticUpdate = <T>(
 
 // Custom hook for batch operations with progress tracking
 export const useBatchOperation = () => {
-  const [operations, setOperations] = useState<Map<string, {
-    id: string;
-    type: string;
-    progress: number;
-    total: number;
-    status: 'pending' | 'processing' | 'completed' | 'failed';
-    errors: string[];
-  }>>(new Map());
+  const [operations, setOperations] = useState<
+    Map<
+      string,
+      {
+        id: string;
+        type: string;
+        progress: number;
+        total: number;
+        status: 'pending' | 'processing' | 'completed' | 'failed';
+        errors: string[];
+      }
+    >
+  >(new Map());
 
-  const startBatchOperation = useCallback((
-    id: string,
-    type: string,
-    total: number
-  ) => {
-    setOperations(prev => new Map(prev).set(id, {
-      id,
-      type,
-      progress: 0,
-      total,
-      status: 'pending',
-      errors: [],
-    }));
+  const startBatchOperation = useCallback((id: string, type: string, total: number) => {
+    setOperations((prev) =>
+      new Map(prev).set(id, {
+        id,
+        type,
+        progress: 0,
+        total,
+        status: 'pending',
+        errors: [],
+      })
+    );
   }, []);
 
-  const updateBatchProgress = useCallback((
-    id: string,
-    progress: number,
-    errors: string[] = []
-  ) => {
-    setOperations(prev => {
+  const updateBatchProgress = useCallback((id: string, progress: number, errors: string[] = []) => {
+    setOperations((prev) => {
       const newMap = new Map(prev);
       const operation = newMap.get(id);
       if (operation) {
@@ -182,7 +189,7 @@ export const useBatchOperation = () => {
   }, []);
 
   const failBatchOperation = useCallback((id: string, error: string) => {
-    setOperations(prev => {
+    setOperations((prev) => {
       const newMap = new Map(prev);
       const operation = newMap.get(id);
       if (operation) {
@@ -197,7 +204,7 @@ export const useBatchOperation = () => {
   }, []);
 
   const removeBatchOperation = useCallback((id: string) => {
-    setOperations(prev => {
+    setOperations((prev) => {
       const newMap = new Map(prev);
       newMap.delete(id);
       return newMap;
@@ -239,12 +246,14 @@ export const usePerformanceMonitor = (componentName: string) => {
       // was silently dead. Use `import.meta.env.DEV` so the guard
       // actually fires in dev and stays off in prod.
       if (import.meta.env.DEV) {
-        if (renderTime > 16) { // 60fps threshold
+        if (renderTime > 16) {
+          // 60fps threshold
           logger.warn(`${componentName} render took ${renderTime.toFixed(2)}ms (>16ms)`);
         }
 
         if (renderCount.current % 50 === 0) {
-          const avgRenderTime = renderTimes.current.reduce((a, b) => a + b, 0) / renderTimes.current.length;
+          const avgRenderTime =
+            renderTimes.current.reduce((a, b) => a + b, 0) / renderTimes.current.length;
           logger.warn(`${componentName} performance stats:`, {
             renders: renderCount.current,
             avgRenderTime: avgRenderTime.toFixed(2),
@@ -255,13 +264,17 @@ export const usePerformanceMonitor = (componentName: string) => {
     };
   });
 
-  const getPerformanceStats = useCallback(() => ({
-    renderCount: renderCount.current,
-    avgRenderTime: renderTimes.current.length > 0 
-      ? renderTimes.current.reduce((a, b) => a + b, 0) / renderTimes.current.length 
-      : 0,
-    lastRenderTime: renderTimes.current[renderTimes.current.length - 1] || 0,
-  }), []);
+  const getPerformanceStats = useCallback(
+    () => ({
+      renderCount: renderCount.current,
+      avgRenderTime:
+        renderTimes.current.length > 0
+          ? renderTimes.current.reduce((a, b) => a + b, 0) / renderTimes.current.length
+          : 0,
+      lastRenderTime: renderTimes.current[renderTimes.current.length - 1] || 0,
+    }),
+    []
+  );
 
   return { getPerformanceStats };
 };
@@ -277,7 +290,11 @@ export const useMemoryMonitor = () => {
   useEffect(() => {
     const updateMemoryInfo = () => {
       if ('memory' in performance) {
-        const memory = (performance as { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
+        const memory = (
+          performance as {
+            memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number };
+          }
+        ).memory;
         setMemoryInfo({
           usedJSHeapSize: memory.usedJSHeapSize,
           totalJSHeapSize: memory.totalJSHeapSize,
@@ -293,7 +310,9 @@ export const useMemoryMonitor = () => {
   }, []);
 
   const getMemoryUsagePercentage = useCallback(() => {
-    if (!memoryInfo) {return 0;}
+    if (!memoryInfo) {
+      return 0;
+    }
     return (memoryInfo.usedJSHeapSize / memoryInfo.jsHeapSizeLimit) * 100;
   }, [memoryInfo]);
 
@@ -314,32 +333,35 @@ export const useApiCache = <T>(
   const [error, setError] = useState<string | null>(null);
   const cache = useRef<Map<string, { data: T; timestamp: number }>>(new Map());
 
-  const fetchData = useCallback(async (forceRefresh = false) => {
-    const cached = cache.current.get(key);
-    const now = Date.now();
+  const fetchData = useCallback(
+    async (forceRefresh = false) => {
+      const cached = cache.current.get(key);
+      const now = Date.now();
 
-    // Return cached data if valid and not forcing refresh
-    if (!forceRefresh && cached && (now - cached.timestamp) < ttl) {
-      setData(cached.data);
-      return cached.data;
-    }
+      // Return cached data if valid and not forcing refresh
+      if (!forceRefresh && cached && now - cached.timestamp < ttl) {
+        setData(cached.data);
+        return cached.data;
+      }
 
-    setLoading(true);
-    setError(null);
+      setLoading(true);
+      setError(null);
 
-    try {
-      const result = await fetcher();
-      cache.current.set(key, { data: result, timestamp: now });
-      setData(result);
-      return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [key, fetcher, ttl]);
+      try {
+        const result = await fetcher();
+        cache.current.set(key, { data: result, timestamp: now });
+        setData(result);
+        return result;
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [key, fetcher, ttl]
+  );
 
   const invalidateCache = useCallback(() => {
     cache.current.delete(key);
@@ -407,7 +429,7 @@ export const useEnterpriseList = <T extends { id: string }>(
   const totalPages = Math.ceil(processedItems.length / pageSize);
 
   const toggleSelection = useCallback((id: string) => {
-    setSelectedItems(prev => {
+    setSelectedItems((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(id)) {
         newSet.delete(id);
@@ -419,7 +441,7 @@ export const useEnterpriseList = <T extends { id: string }>(
   }, []);
 
   const selectAll = useCallback(() => {
-    setSelectedItems(new Set(paginatedItems.map(item => item.id)));
+    setSelectedItems(new Set(paginatedItems.map((item) => item.id)));
   }, [paginatedItems]);
 
   const clearSelection = useCallback(() => {
@@ -427,22 +449,20 @@ export const useEnterpriseList = <T extends { id: string }>(
   }, []);
 
   const updateItem = useCallback((id: string, updates: Partial<T>) => {
-    setItems(prev => prev.map(item => 
-      item.id === id ? { ...item, ...updates } : item
-    ));
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
   }, []);
 
   const removeItems = useCallback((ids: string[]) => {
-    setItems(prev => prev.filter(item => !ids.includes(item.id)));
-    setSelectedItems(prev => {
+    setItems((prev) => prev.filter((item) => !ids.includes(item.id)));
+    setSelectedItems((prev) => {
       const newSet = new Set(prev);
-      ids.forEach(id => newSet.delete(id));
+      ids.forEach((id) => newSet.delete(id));
       return newSet;
     });
   }, []);
 
   const sort = useCallback((key: keyof T, direction?: 'asc' | 'desc') => {
-    setSortConfig(prev => ({
+    setSortConfig((prev) => ({
       key,
       direction: direction || (prev?.key === key && prev.direction === 'asc' ? 'desc' : 'asc'),
     }));
@@ -470,4 +490,3 @@ export const useEnterpriseList = <T extends { id: string }>(
 };
 
 // Export all hooks
-

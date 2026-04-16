@@ -30,7 +30,11 @@ interface BulkImportLocationDialogProps {
   type: 'countries' | 'states' | 'cities' | 'pincodes';
 }
 
-export function BulkImportLocationDialog({ open, onOpenChange, type }: BulkImportLocationDialogProps) {
+export function BulkImportLocationDialog({
+  open,
+  onOpenChange,
+  type,
+}: BulkImportLocationDialogProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
@@ -77,15 +81,18 @@ export function BulkImportLocationDialog({ open, onOpenChange, type }: BulkImpor
   };
 
   const handleImport = () => {
-    if (!selectedFile) {return;}
+    if (!selectedFile) {
+      return;
+    }
     importMutation.mutate(selectedFile);
   };
 
   const handleDownloadTemplate = () => {
-    const csvContent = type === 'cities' 
-      ? 'name,state,country\nMumbai,Maharashtra,India\nDelhi,Delhi,India'
-      : 'code,area,cityName,state,country\n400001,Fort,Mumbai,Maharashtra,India\n110001,Connaught Place,Delhi,Delhi,India';
-    
+    const csvContent =
+      type === 'cities'
+        ? 'name,state,country\nMumbai,Maharashtra,India\nDelhi,Delhi,India'
+        : 'code,area,cityName,state,country\n400001,Fort,Mumbai,Maharashtra,India\n110001,Connaught Place,Delhi,Delhi,India';
+
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -115,14 +122,14 @@ export function BulkImportLocationDialog({ open, onOpenChange, type }: BulkImpor
         title: 'Import Cities',
         description: 'Upload a CSV file to bulk import cities',
         format: 'CSV format: name, state, country',
-        example: 'Mumbai, Maharashtra, India'
+        example: 'Mumbai, Maharashtra, India',
       };
     } else {
       return {
         title: 'Import Pincodes',
         description: 'Upload a CSV file to bulk import pincodes',
         format: 'CSV format: code, area, cityName, state, country',
-        example: '400001, Fort, Mumbai, Maharashtra, India'
+        example: '400001, Fort, Mumbai, Maharashtra, India',
       };
     }
   };
@@ -137,9 +144,7 @@ export function BulkImportLocationDialog({ open, onOpenChange, type }: BulkImpor
             <Upload className="h-5 w-5" />
             <span>{instructions.title}</span>
           </DialogTitle>
-          <DialogDescription>
-            {instructions.description}
-          </DialogDescription>
+          <DialogDescription>{instructions.description}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -148,8 +153,12 @@ export function BulkImportLocationDialog({ open, onOpenChange, type }: BulkImpor
             <FileText className="h-4 w-4" />
             <AlertDescription>
               <div className="space-y-2">
-                <p><strong>Format:</strong> {instructions.format}</p>
-                <p><strong>Example:</strong> {instructions.example}</p>
+                <p>
+                  <strong>Format:</strong> {instructions.format}
+                </p>
+                <p>
+                  <strong>Example:</strong> {instructions.example}
+                </p>
                 <Button
                   variant="link"
                   size="sm"
@@ -208,10 +217,14 @@ export function BulkImportLocationDialog({ open, onOpenChange, type }: BulkImpor
                     {importResult.success ? 'Import Successful' : 'Import Failed'}
                   </p>
                   {importResult.imported && (
-                    <p>Successfully imported: {importResult.imported} {type}</p>
+                    <p>
+                      Successfully imported: {importResult.imported} {type}
+                    </p>
                   )}
                   {importResult.failed && (
-                    <p>Failed to import: {importResult.failed} {type}</p>
+                    <p>
+                      Failed to import: {importResult.failed} {type}
+                    </p>
                   )}
                   {importResult.errors && importResult.errors.length > 0 && (
                     <div className="mt-2">
@@ -240,7 +253,8 @@ export function BulkImportLocationDialog({ open, onOpenChange, type }: BulkImpor
             <Button
               onClick={handleImport}
               disabled={!selectedFile || importMutation.isPending}
-             className="w-full sm:w-auto">
+              className="w-full sm:w-auto"
+            >
               {importMutation.isPending ? 'Importing...' : `Import ${type}`}
             </Button>
           )}

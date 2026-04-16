@@ -2,17 +2,17 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { 
-  Users,
-  X,
-  UserCheck,
-  AlertTriangle,
-  User
-} from 'lucide-react';
+import { Users, X, UserCheck, AlertTriangle, User } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { isFieldAgentUser } from '@/utils/userPermissionProfiles';
 
@@ -24,7 +24,7 @@ interface BulkActionsToolbarProps {
 export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   selectedCount,
   onBulkAssign,
-  onClearSelection
+  onClearSelection,
 }) => {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assignedTo, setAssignedTo] = useState<string>('');
@@ -32,7 +32,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   const [loading, setLoading] = useState(false);
 
   const { data: usersData } = useUsers();
-  const fieldUsers = usersData?.filter(user => isFieldAgentUser(user)) || [];
+  const fieldUsers = usersData?.filter((user) => isFieldAgentUser(user)) || [];
 
   const [validationError, setValidationError] = useState<string>('');
 
@@ -68,14 +68,12 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2">
                 <Users className="h-5 w-5 text-green-600" />
-                <span className="font-medium text-green-900">
-                  Bulk Actions
-                </span>
+                <span className="font-medium text-green-900">Bulk Actions</span>
                 <Badge variant="secondary" className="bg-green-100 text-green-800">
                   {selectedCount} selected
                 </Badge>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <Button
                   onClick={() => setShowAssignModal(true)}
@@ -141,25 +139,24 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
                 </Label>
                 <Select
                   value={assignedTo}
-                  onValueChange={(v) => { setAssignedTo(v); setValidationError(''); }}
+                  onValueChange={(v) => {
+                    setAssignedTo(v);
+                    setValidationError('');
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a field user">
                       {assignedTo && (
                         <div className="flex items-center space-x-2">
                           <User className="h-4 w-4" />
-                          <span>
-                            {fieldUsers.find(user => user.id === assignedTo)?.name}
-                          </span>
+                          <span>{fieldUsers.find((user) => user.id === assignedTo)?.name}</span>
                         </div>
                       )}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {fieldUsers.length === 0 ? (
-                      <div className="p-2 text-sm text-gray-500">
-                        No field users available
-                      </div>
+                      <div className="p-2 text-sm text-gray-500">No field users available</div>
                     ) : (
                       fieldUsers.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
@@ -175,16 +172,12 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
                     )}
                   </SelectContent>
                 </Select>
-                {validationError && (
-                  <p className="text-sm text-red-600">{validationError}</p>
-                )}
+                {validationError && <p className="text-sm text-red-600">{validationError}</p>}
               </div>
 
               {/* Assignment Reason */}
               <div className="space-y-2">
-                <Label htmlFor="bulkAssignmentReason">
-                  Assignment Reason (Optional)
-                </Label>
+                <Label htmlFor="bulkAssignmentReason">Assignment Reason (Optional)</Label>
                 <Textarea
                   id="bulkAssignmentReason"
                   value={assignmentReason}
@@ -206,8 +199,9 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
                   <div className="text-sm text-yellow-800">
                     <p className="font-medium">Bulk Assignment Warning</p>
                     <p className="mt-1">
-                      This action will assign all {selectedCount} selected task{selectedCount !== 1 ? 's' : ''} to the chosen user. 
-                      This action cannot be undone in bulk.
+                      This action will assign all {selectedCount} selected task
+                      {selectedCount !== 1 ? 's' : ''} to the chosen user. This action cannot be
+                      undone in bulk.
                     </p>
                   </div>
                 </div>
@@ -219,25 +213,22 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
               <Card className="bg-green-50 border-green-200">
                 <CardContent className="p-4">
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-green-900">
-                      Assignment Summary
-                    </p>
+                    <p className="text-sm font-medium text-green-900">Assignment Summary</p>
                     <div className="text-sm text-green-800">
                       <p>
                         <span className="font-medium">Assignee:</span>{' '}
-                        {fieldUsers.find(user => user.id === assignedTo)?.name}
+                        {fieldUsers.find((user) => user.id === assignedTo)?.name}
                       </p>
                       <p>
-                        <span className="font-medium">Tasks:</span>{' '}
-                        {selectedCount} task{selectedCount !== 1 ? 's' : ''}
+                        <span className="font-medium">Tasks:</span> {selectedCount} task
+                        {selectedCount !== 1 ? 's' : ''}
                       </p>
                       {assignmentReason && (
                         <p>
                           <span className="font-medium">Reason:</span>{' '}
-                          {assignmentReason.length > 50 
-                            ? `${assignmentReason.substring(0, 50)}...` 
-                            : assignmentReason
-                          }
+                          {assignmentReason.length > 50
+                            ? `${assignmentReason.substring(0, 50)}...`
+                            : assignmentReason}
                         </p>
                       )}
                     </div>
@@ -251,11 +242,10 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
               <Button onClick={handleCloseModal} variant="outline">
                 Cancel
               </Button>
-              <Button 
-                onClick={handleBulkAssign} 
-                disabled={loading || !assignedTo}
-              >
-                {loading ? 'Assigning...' : `Assign ${selectedCount} Task${selectedCount !== 1 ? 's' : ''}`}
+              <Button onClick={handleBulkAssign} disabled={loading || !assignedTo}>
+                {loading
+                  ? 'Assigning...'
+                  : `Assign ${selectedCount} Task${selectedCount !== 1 ? 's' : ''}`}
               </Button>
             </div>
           </div>

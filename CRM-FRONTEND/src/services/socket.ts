@@ -27,7 +27,9 @@ class FrontendSocketService {
 
   private getSocketUrl(): string {
     const apiBase = import.meta.env.VITE_API_BASE_URL as string | undefined;
-    if (!apiBase) {return window.location.origin;}
+    if (!apiBase) {
+      return window.location.origin;
+    }
     try {
       const parsed = new URL(apiBase);
       return parsed.origin;
@@ -72,7 +74,9 @@ class FrontendSocketService {
   }
 
   onPermissionsUpdated(handler: (payload: PermissionUpdatedPayload) => void): (() => void) | null {
-    if (!this.socket) {return null;}
+    if (!this.socket) {
+      return null;
+    }
     this.socket.on('permissions_updated', handler);
     return () => {
       this.socket?.off('permissions_updated', handler);
@@ -80,7 +84,9 @@ class FrontendSocketService {
   }
 
   onNotification(handler: (payload: NotificationPayload) => void): (() => void) | null {
-    if (!this.socket) {return null;}
+    if (!this.socket) {
+      return null;
+    }
     this.socket.on('notification', handler);
     return () => {
       this.socket?.off('notification', handler);

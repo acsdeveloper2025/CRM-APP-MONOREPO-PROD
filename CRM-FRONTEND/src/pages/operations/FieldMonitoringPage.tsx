@@ -1,14 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Activity,
-  ArrowLeft,
-  Eye,
-  Navigation,
-  Radio,
-  RefreshCw,
-  UserCheck,
-} from 'lucide-react';
+import { Activity, ArrowLeft, Eye, Navigation, Radio, RefreshCw, UserCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate, useParams } from 'react-router-dom';
 import { StatsCard } from '@/components/dashboard/StatsCard';
@@ -92,7 +84,9 @@ const formatTimestamp = (value: string | null | undefined): string => {
   }
 };
 
-const getMobileDisplay = (user: Pick<FieldMonitoringRosterItem, 'phone' | 'employeeId' | 'username'>): string => {
+const getMobileDisplay = (
+  user: Pick<FieldMonitoringRosterItem, 'phone' | 'employeeId' | 'username'>
+): string => {
   if (user.phone?.trim()) {
     return user.phone;
   }
@@ -167,7 +161,9 @@ function FieldMonitoringDetailView({ userId }: { userId: string }) {
             Back
           </Button>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Field Executive Detail</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+              Field Executive Detail
+            </h1>
             <p className="text-gray-600">Current operational snapshot and recent field activity</p>
           </div>
         </div>
@@ -216,7 +212,9 @@ function FieldMonitoringDetailView({ userId }: { userId: string }) {
                 <p>Longitude: {detail.lastKnownLocation?.lng ?? '-'}</p>
                 <p>
                   Recorded At:{' '}
-                  {formatTimestamp(detail.lastKnownLocation?.recordedAt || detail.activity.lastHeartbeatAt)}
+                  {formatTimestamp(
+                    detail.lastKnownLocation?.recordedAt || detail.activity.lastHeartbeatAt
+                  )}
                 </p>
               </CardContent>
             </Card>
@@ -230,7 +228,9 @@ function FieldMonitoringDetailView({ userId }: { userId: string }) {
                 <p>Last Task Activity: {formatTimestamp(detail.activity.lastTaskActivityAt)}</p>
                 <p>
                   Last Location:{' '}
-                  {formatTimestamp(detail.activity.lastLocationAt || detail.activity.lastHeartbeatAt)}
+                  {formatTimestamp(
+                    detail.activity.lastLocationAt || detail.activity.lastHeartbeatAt
+                  )}
                 </p>
                 <p>Last Submission: {formatTimestamp(detail.activity.lastSubmissionAt)}</p>
               </CardContent>
@@ -247,7 +247,7 @@ function FieldMonitoringDetailView({ userId }: { userId: string }) {
                   Assigned Areas:{' '}
                   {detail.operatingTerritory.assignedTerritory.areas.length > 0
                     ? detail.operatingTerritory.assignedTerritory.areas
-                        .map(area => `${area.areaName} (${area.pincodeCode})`)
+                        .map((area) => `${area.areaName} (${area.pincodeCode})`)
                         .join(', ')
                     : '-'}
                 </p>
@@ -255,7 +255,7 @@ function FieldMonitoringDetailView({ userId }: { userId: string }) {
                   Assigned Pincodes:{' '}
                   {detail.operatingTerritory.assignedTerritory.pincodes.length > 0
                     ? detail.operatingTerritory.assignedTerritory.pincodes
-                        .map(pincode => pincode.pincodeCode)
+                        .map((pincode) => pincode.pincodeCode)
                         .join(', ')
                     : '-'}
                 </p>
@@ -271,7 +271,7 @@ function FieldMonitoringDetailView({ userId }: { userId: string }) {
                   <p className="text-sm text-gray-600">No open assignments.</p>
                 ) : (
                   <div className="space-y-3">
-                    {detail.openAssignments.map(assignment => (
+                    {detail.openAssignments.map((assignment) => (
                       <div
                         key={assignment.task.id}
                         className="rounded-lg border border-gray-200 p-3"
@@ -404,11 +404,10 @@ function FieldMonitoringRosterView() {
     () =>
       mapRoster
         .filter(
-          user =>
-            typeof user.lastLocation?.lat === 'number' &&
-            typeof user.lastLocation?.lng === 'number'
+          (user) =>
+            typeof user.lastLocation?.lat === 'number' && typeof user.lastLocation?.lng === 'number'
         )
-        .map(user => ({
+        .map((user) => ({
           id: user.id,
           title: user.name,
           lat: user.lastLocation?.lat as number,
@@ -508,7 +507,7 @@ function FieldMonitoringRosterView() {
                   <Label htmlFor="field-monitoring-pincode">Pincode</Label>
                   <Select
                     value={filters.filters.pincode || 'all'}
-                    onValueChange={value => {
+                    onValueChange={(value) => {
                       filters.setFilter('pincode', value === 'all' ? undefined : value);
                     }}
                   >
@@ -517,7 +516,7 @@ function FieldMonitoringRosterView() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All pincodes</SelectItem>
-                      {pincodeOptions.map(pincode => (
+                      {pincodeOptions.map((pincode) => (
                         <SelectItem key={String(pincode.id)} value={pincode.code}>
                           {pincode.code}
                         </SelectItem>
@@ -530,7 +529,7 @@ function FieldMonitoringRosterView() {
                   <Label htmlFor="field-monitoring-area">Area</Label>
                   <Select
                     value={filters.filters.areaId || 'all'}
-                    onValueChange={value => {
+                    onValueChange={(value) => {
                       filters.setFilter('areaId', value === 'all' ? undefined : value);
                     }}
                   >
@@ -539,7 +538,7 @@ function FieldMonitoringRosterView() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All areas</SelectItem>
-                      {areaOptions.map(area => (
+                      {areaOptions.map((area) => (
                         <SelectItem key={String(area.id)} value={String(area.id)}>
                           {area.name}
                         </SelectItem>
@@ -552,7 +551,7 @@ function FieldMonitoringRosterView() {
                   <Label htmlFor="field-monitoring-status">Status</Label>
                   <Select
                     value={filters.filters.status || 'all'}
-                    onValueChange={value => {
+                    onValueChange={(value) => {
                       filters.setFilter(
                         'status',
                         value === 'all' ? undefined : (value as FieldMonitoringLiveStatus)
@@ -564,7 +563,7 @@ function FieldMonitoringRosterView() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All statuses</SelectItem>
-                      {STATUS_OPTIONS.map(status => (
+                      {STATUS_OPTIONS.map((status) => (
                         <SelectItem key={status} value={status}>
                           {status}
                         </SelectItem>
@@ -578,7 +577,7 @@ function FieldMonitoringRosterView() {
 
           <Tabs
             value={activeView}
-            onValueChange={value => setActiveView(value as 'table' | 'map')}
+            onValueChange={(value) => setActiveView(value as 'table' | 'map')}
             className="space-y-4"
           >
             <TabsList className="grid w-full max-w-sm grid-cols-2">
@@ -615,7 +614,7 @@ function FieldMonitoringRosterView() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {roster.map(user => (
+                        {roster.map((user) => (
                           <TableRow key={user.id}>
                             <TableCell>
                               <div className="space-y-1">
@@ -667,7 +666,7 @@ function FieldMonitoringRosterView() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setPage(current => Math.max(1, current - 1))}
+                        onClick={() => setPage((current) => Math.max(1, current - 1))}
                         disabled={page <= 1}
                       >
                         Previous
@@ -678,7 +677,7 @@ function FieldMonitoringRosterView() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setPage(current => current + 1)}
+                        onClick={() => setPage((current) => current + 1)}
                         disabled={page >= pagination.totalPages}
                       >
                         Next

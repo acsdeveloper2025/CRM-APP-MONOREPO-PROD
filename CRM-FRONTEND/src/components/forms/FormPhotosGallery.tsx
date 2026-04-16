@@ -19,11 +19,13 @@ interface PhotoViewerProps {
 
 const PhotoViewer: React.FC<PhotoViewerProps> = ({ photo, isOpen, onClose }) => {
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) {return '0 Bytes';}
+    if (bytes === 0) {
+      return '0 Bytes';
+    }
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))  } ${  sizes[i]}`;
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
 
   return (
@@ -33,12 +35,10 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ photo, isOpen, onClose }) => 
           <DialogTitle className="flex items-center space-x-2">
             <Camera className="h-5 w-5" />
             <span>{photo.type === 'selfie' ? 'Verification Selfie' : 'Verification Photo'}</span>
-            <Badge variant={photo.type === 'selfie' ? 'secondary' : 'default'}>
-              {photo.type}
-            </Badge>
+            <Badge variant={photo.type === 'selfie' ? 'secondary' : 'default'}>{photo.type}</Badge>
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           {/* Photo */}
           <div className="flex justify-center">
@@ -50,7 +50,7 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ photo, isOpen, onClose }) => 
               className="max-w-full max-h-96 object-contain rounded-lg border"
             />
           </div>
-          
+
           {/* Photo Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Location Information */}
@@ -62,7 +62,9 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ photo, isOpen, onClose }) => 
                 </h4>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="font-medium">Coordinates:</span> {photo.geoLocation.latitude.toFixed(6)}, {photo.geoLocation.longitude.toFixed(6)}
+                    <span className="font-medium">Coordinates:</span>{' '}
+                    {photo.geoLocation.latitude.toFixed(6)},{' '}
+                    {photo.geoLocation.longitude.toFixed(6)}
                   </div>
                   <div>
                     <span className="font-medium">Accuracy:</span> ±{photo.geoLocation.accuracy}m
@@ -73,12 +75,15 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ photo, isOpen, onClose }) => 
                     </div>
                   )}
                   <div>
-                    <span className="font-medium">Captured:</span> {formatDistanceToNow(new Date(photo.geoLocation.timestamp), { addSuffix: true })}
+                    <span className="font-medium">Captured:</span>{' '}
+                    {formatDistanceToNow(new Date(photo.geoLocation.timestamp), {
+                      addSuffix: true,
+                    })}
                   </div>
                 </div>
               </CardContent>
             </Card>
-            
+
             {/* Photo Metadata */}
             <Card>
               <CardContent className="p-4">
@@ -88,13 +93,16 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ photo, isOpen, onClose }) => 
                 </h4>
                 <div className="space-y-2 text-sm">
                   <div>
-                    <span className="font-medium">File Size:</span> {formatFileSize(photo.metadata.fileSize)}
+                    <span className="font-medium">File Size:</span>{' '}
+                    {formatFileSize(photo.metadata.fileSize)}
                   </div>
                   <div>
-                    <span className="font-medium">Dimensions:</span> {photo.metadata.dimensions.width} × {photo.metadata.dimensions.height}
+                    <span className="font-medium">Dimensions:</span>{' '}
+                    {photo.metadata.dimensions.width} × {photo.metadata.dimensions.height}
                   </div>
                   <div>
-                    <span className="font-medium">Captured At:</span> {formatDistanceToNow(new Date(photo.metadata.capturedAt), { addSuffix: true })}
+                    <span className="font-medium">Captured At:</span>{' '}
+                    {formatDistanceToNow(new Date(photo.metadata.capturedAt), { addSuffix: true })}
                   </div>
                   {photo.metadata.deviceInfo && (
                     <div>
@@ -105,7 +113,7 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ photo, isOpen, onClose }) => 
               </CardContent>
             </Card>
           </div>
-          
+
           {/* Actions */}
           <div className="flex justify-end space-x-2">
             <Button variant="outline" onClick={() => window.open(photo.url, '_blank')}>
@@ -122,8 +130,8 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ photo, isOpen, onClose }) => 
 export const FormPhotosGallery: React.FC<FormPhotosGalleryProps> = ({ photos }) => {
   const [selectedPhoto, setSelectedPhoto] = useState<FormPhoto | null>(null);
 
-  const verificationPhotos = photos.filter(photo => photo.type === 'verification');
-  const selfiePhotos = photos.filter(photo => photo.type === 'selfie');
+  const verificationPhotos = photos.filter((photo) => photo.type === 'verification');
+  const selfiePhotos = photos.filter((photo) => photo.type === 'selfie');
 
   return (
     <div className="space-y-6">
@@ -185,9 +193,7 @@ export const FormPhotosGallery: React.FC<FormPhotosGalleryProps> = ({ photos }) 
                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity rounded-lg flex items-center justify-center">
                   <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <Badge className="absolute top-2 right-2 text-xs">
-                  Selfie
-                </Badge>
+                <Badge className="absolute top-2 right-2 text-xs">Selfie</Badge>
               </div>
             ))}
           </div>

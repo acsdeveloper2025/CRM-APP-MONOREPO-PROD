@@ -97,7 +97,7 @@ export const CreateDocumentTypeDialog: React.FC<CreateDocumentTypeDialogProps> =
                     <Input
                       placeholder="e.g., AADHAAR"
                       {...field}
-                      onChange={e => field.onChange(e.target.value.toUpperCase())}
+                      onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                     />
                   </FormControl>
                   <FormMessage />
@@ -120,7 +120,12 @@ export const CreateDocumentTypeDialog: React.FC<CreateDocumentTypeDialogProps> =
             />
 
             <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button type="button" variant="outline" onClick={handleClose} className="w-full sm:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClose}
+                className="w-full sm:w-auto"
+              >
                 Cancel
               </Button>
               <Button

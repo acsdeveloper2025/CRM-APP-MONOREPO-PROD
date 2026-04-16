@@ -4,7 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, AlertCircle, DollarSign } from 'lucide-react';
@@ -19,7 +25,7 @@ interface TaskCompletionModalProps {
 export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
   taskId,
   onClose,
-  onSubmit
+  onSubmit,
 }) => {
   const [verificationOutcome, setVerificationOutcome] = useState<string>('');
   const [actualAmount, setActualAmount] = useState<number | undefined>();
@@ -66,7 +72,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
       verificationOutcome,
       actualAmount,
       completionNotes,
-      formSubmissionId: formSubmissionId || undefined
+      formSubmissionId: formSubmissionId || undefined,
     };
 
     try {
@@ -78,7 +84,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
 
   const clearError = (field: string) => {
     if (errors[field]) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
@@ -87,7 +93,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
   };
 
   const getOutcomeColor = (outcome: string) => {
-    const option = outcomeOptions.find(opt => opt.value === outcome);
+    const option = outcomeOptions.find((opt) => opt.value === outcome);
     return option?.color || 'bg-gray-100 text-gray-800';
   };
 
@@ -110,13 +116,9 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
                   <p className="text-sm font-medium text-gray-900">
                     Task ID: {taskId.slice(0, 8)}...
                   </p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    Mark this task as completed
-                  </p>
+                  <p className="text-xs text-gray-600 mt-1">Mark this task as completed</p>
                 </div>
-                <Badge className="bg-green-100 text-green-800">
-                  Completing
-                </Badge>
+                <Badge className="bg-green-100 text-green-800">Completing</Badge>
               </div>
             </CardContent>
           </Card>
@@ -139,7 +141,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
                   <SelectValue placeholder="Select verification outcome">
                     {verificationOutcome && (
                       <Badge className={getOutcomeColor(verificationOutcome)}>
-                        {outcomeOptions.find(opt => opt.value === verificationOutcome)?.label}
+                        {outcomeOptions.find((opt) => opt.value === verificationOutcome)?.label}
                       </Badge>
                     )}
                   </SelectValue>
@@ -147,9 +149,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
                 <SelectContent>
                   {outcomeOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
-                      <Badge className={option.color}>
-                        {option.label}
-                      </Badge>
+                      <Badge className={option.color}>{option.label}</Badge>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -164,9 +164,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
 
             {/* Actual Amount */}
             <div className="space-y-2">
-              <Label htmlFor="actualAmount">
-                Actual Amount (₹)
-              </Label>
+              <Label htmlFor="actualAmount">Actual Amount (₹)</Label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
@@ -196,9 +194,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
 
             {/* Form Submission ID */}
             <div className="space-y-2">
-              <Label htmlFor="formSubmissionId">
-                Form Submission ID (Optional)
-              </Label>
+              <Label htmlFor="formSubmissionId">Form Submission ID (Optional)</Label>
               <Input
                 id="formSubmissionId"
                 value={formSubmissionId}
@@ -243,26 +239,23 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
             <Card className="bg-green-50 border-green-200">
               <CardContent className="p-4">
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-green-900">
-                    Completion Summary
-                  </p>
+                  <p className="text-sm font-medium text-green-900">Completion Summary</p>
                   <div className="text-sm text-green-800 space-y-1">
                     <p>
                       <span className="font-medium">Outcome:</span>{' '}
                       <Badge className={getOutcomeColor(verificationOutcome)}>
-                        {outcomeOptions.find(opt => opt.value === verificationOutcome)?.label}
+                        {outcomeOptions.find((opt) => opt.value === verificationOutcome)?.label}
                       </Badge>
                     </p>
                     {actualAmount && (
                       <p>
-                        <span className="font-medium">Amount:</span>{' '}
-                        ₹{actualAmount.toLocaleString('en-IN')}
+                        <span className="font-medium">Amount:</span> ₹
+                        {actualAmount.toLocaleString('en-IN')}
                       </p>
                     )}
                     {formSubmissionId && (
                       <p>
-                        <span className="font-medium">Form Ref:</span>{' '}
-                        {formSubmissionId}
+                        <span className="font-medium">Form Ref:</span> {formSubmissionId}
                       </p>
                     )}
                   </div>
@@ -276,10 +269,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
             <Button onClick={onClose} variant="outline">
               Cancel
             </Button>
-            <Button 
-              onClick={handleSubmit} 
-              disabled={loading || !verificationOutcome}
-            >
+            <Button onClick={handleSubmit} disabled={loading || !verificationOutcome}>
               {loading ? 'Completing...' : 'Complete Task'}
             </Button>
           </div>

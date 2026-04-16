@@ -4,7 +4,10 @@ import { Button } from '@/components/ui/button';
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
+import {
+  UnifiedSearchFilterLayout,
+  FilterGrid,
+} from '@/components/ui/unified-search-filter-layout';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -13,15 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  CheckCircle,
-  RefreshCw,
-  TrendingUp,
-  Calendar,
-  Clock,
-  Award,
-  Download
-} from 'lucide-react';
+import { CheckCircle, RefreshCw, TrendingUp, Calendar, Clock, Award, Download } from 'lucide-react';
 import { VerificationTasksService } from '@/services/verificationTasks';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -36,15 +31,10 @@ export const CompletedTasksPage: React.FC = () => {
   const navigate = useNavigate();
 
   // Unified search with 800ms debounce
-  const {
-    searchValue,
-    debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
-  } = useUnifiedSearch({
-    syncWithUrl: true,
-  });
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({
+      syncWithUrl: true,
+    });
 
   // Unified filters with URL sync
   const {
@@ -66,7 +56,7 @@ export const CompletedTasksPage: React.FC = () => {
 
   // Reset pagination when search or filters change
   useEffect(() => {
-    setPaginationState(prev => ({ ...prev, page: 1 }));
+    setPaginationState((prev) => ({ ...prev, page: 1 }));
   }, [debouncedSearchValue, activeFilters]);
 
   const queryFilters = {
@@ -75,16 +65,17 @@ export const CompletedTasksPage: React.FC = () => {
     priority: activeFilters.priority || undefined,
   };
 
-  const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);
+  const { tasks, loading, error, pagination, statistics, refreshTasks } =
+    useAllVerificationTasks(queryFilters);
 
   // Use backend statistics
-  const { 
+  const {
     completed: totalCompleted = 0,
     avgTurnaround = 0,
     completedToday = 0,
     inProgress = 0,
     pending = 0,
-    assigned = 0
+    assigned = 0,
   } = statistics || {};
 
   const handleViewTask = (taskId: string) => {
@@ -99,7 +90,9 @@ export const CompletedTasksPage: React.FC = () => {
 
   const handleEditCase = (caseId: string, taskId?: string) => {
     if (caseId) {
-      const url = taskId ? `/cases/new?edit=${caseId}&taskId=${taskId}` : `/cases/new?edit=${caseId}`;
+      const url = taskId
+        ? `/cases/new?edit=${caseId}&taskId=${taskId}`
+        : `/cases/new?edit=${caseId}`;
       navigate(url);
     }
   };
@@ -107,7 +100,7 @@ export const CompletedTasksPage: React.FC = () => {
   const handleRevisitTask = async (taskId: string) => {
     try {
       await VerificationTasksService.revisitTask(taskId);
-      
+
       // Show success notification
       toast.success(
         'Revisit task created successfully! The task has been moved to the Revisit tab.',
@@ -116,10 +109,10 @@ export const CompletedTasksPage: React.FC = () => {
           // icon: '✅', // Removed icon as Sonner handles success icons well
         }
       );
-      
+
       // Refresh tasks to remove the completed task from the list
       refreshTasks();
-      
+
       // Optionally navigate to revisit tasks page after a short delay
       setTimeout(() => {
         navigate('/tasks/revisit');
@@ -139,9 +132,7 @@ export const CompletedTasksPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Completed Tasks</h1>
-          <p className="text-gray-600 mt-1">
-            Verification tasks that have been completed
-          </p>
+          <p className="text-gray-600 mt-1">Verification tasks that have been completed</p>
         </div>
         {/* Refresh button moved to UnifiedSearchFilterLayout actions */}
       </div>
@@ -155,9 +146,7 @@ export const CompletedTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalCompleted}</div>
-            <p className="text-xs text-gray-600">
-              All completed
-            </p>
+            <p className="text-xs text-gray-600">All completed</p>
           </CardContent>
         </Card>
 
@@ -168,9 +157,7 @@ export const CompletedTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pagination.total}</div>
-            <p className="text-xs text-gray-600">
-              Current period
-            </p>
+            <p className="text-xs text-gray-600">Current period</p>
           </CardContent>
         </Card>
 
@@ -182,12 +169,13 @@ export const CompletedTasksPage: React.FC = () => {
           <CardContent>
             <div className="text-2xl font-bold">
               {totalCompleted > 0
-                ? Math.round((totalCompleted / (totalCompleted + inProgress + pending + assigned)) * 100)
-                : 0}%
+                ? Math.round(
+                    (totalCompleted / (totalCompleted + inProgress + pending + assigned)) * 100
+                  )
+                : 0}
+              %
             </div>
-            <p className="text-xs text-gray-600">
-              Overall rate
-            </p>
+            <p className="text-xs text-gray-600">Overall rate</p>
           </CardContent>
         </Card>
 
@@ -197,12 +185,8 @@ export const CompletedTasksPage: React.FC = () => {
             <Clock className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.round(avgTurnaround)} days
-            </div>
-            <p className="text-xs text-gray-600">
-              Average turnaround
-            </p>
+            <div className="text-2xl font-bold">{Math.round(avgTurnaround)} days</div>
+            <p className="text-xs text-gray-600">Average turnaround</p>
           </CardContent>
         </Card>
 
@@ -212,12 +196,8 @@ export const CompletedTasksPage: React.FC = () => {
             <Award className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {completedToday}
-            </div>
-            <p className="text-xs text-gray-600">
-              Completed today
-            </p>
+            <div className="text-2xl font-bold">{completedToday}</div>
+            <p className="text-xs text-gray-600">Completed today</p>
           </CardContent>
         </Card>
       </div>
@@ -239,7 +219,9 @@ export const CompletedTasksPage: React.FC = () => {
               <Label htmlFor="priority">Priority</Label>
               <Select
                 value={activeFilters.priority || 'all'}
-                onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
+                onValueChange={(value) =>
+                  setFilter('priority', value === 'all' ? undefined : value)
+                }
               >
                 <SelectTrigger id="priority">
                   <SelectValue placeholder="All priorities" />
@@ -257,15 +239,33 @@ export const CompletedTasksPage: React.FC = () => {
         }
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={async () => {
-              try {
- toast.info('Generating Excel export...'); const blob = await VerificationTasksService.exportToExcel({ status: 'COMPLETED' }); const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `completedTasks_${new Date().toISOString().split('T')[0]}.xlsx`; a.click(); window.URL.revokeObjectURL(url); toast.success('Export downloaded');
-              } catch (err) { logger.error('Export failed:', err); toast.error('Export failed'); }
-            }}>
-              <Download className="h-4 w-4 mr-2" />Export
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  toast.info('Generating Excel export...');
+                  const blob = await VerificationTasksService.exportToExcel({
+                    status: 'COMPLETED',
+                  });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `completedTasks_${new Date().toISOString().split('T')[0]}.xlsx`;
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  toast.success('Export downloaded');
+                } catch (err) {
+                  logger.error('Export failed:', err);
+                  toast.error('Export failed');
+                }
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
             </Button>
             <Button variant="outline" onClick={() => refreshTasks()} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />Refresh
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
             </Button>
           </div>
         }
@@ -296,14 +296,16 @@ export const CompletedTasksPage: React.FC = () => {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600">
-                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} tasks
+                Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+                {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+                {pagination.total} tasks
               </p>
               {pagination.totalPages > 1 && (
                 <div className="flex items-center space-x-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPaginationState(prev => ({ ...prev, page: prev.page - 1 }))}
+                    onClick={() => setPaginationState((prev) => ({ ...prev, page: prev.page - 1 }))}
                     disabled={pagination.page === 1}
                   >
                     Previous
@@ -314,7 +316,7 @@ export const CompletedTasksPage: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPaginationState(prev => ({ ...prev, page: prev.page + 1 }))}
+                    onClick={() => setPaginationState((prev) => ({ ...prev, page: prev.page + 1 }))}
                     disabled={pagination.page === pagination.totalPages}
                   >
                     Next

@@ -5,7 +5,10 @@ import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
+import {
+  UnifiedSearchFilterLayout,
+  FilterGrid,
+} from '@/components/ui/unified-search-filter-layout';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -21,7 +24,7 @@ import {
   Calendar,
   AlertTriangle,
   Clock,
-  Download
+  Download,
 } from 'lucide-react';
 import { VerificationTasksService } from '@/services/verificationTasks';
 import { toast } from 'sonner';
@@ -39,15 +42,10 @@ export const RevisitTasksPage: React.FC = () => {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   // Unified search with 800ms debounce
-  const {
-    searchValue,
-    debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
-  } = useUnifiedSearch({
-    syncWithUrl: true,
-  });
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({
+      syncWithUrl: true,
+    });
 
   // Unified filters with URL sync
   const {
@@ -71,7 +69,7 @@ export const RevisitTasksPage: React.FC = () => {
 
   // Reset pagination when search or filters change
   useEffect(() => {
-    setPaginationState(prev => ({ ...prev, page: 1 }));
+    setPaginationState((prev) => ({ ...prev, page: 1 }));
   }, [debouncedSearchValue, activeFilters]);
 
   const queryFilters = {
@@ -82,7 +80,8 @@ export const RevisitTasksPage: React.FC = () => {
     status: activeFilters.status || paginationState.status,
   };
 
-  const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);
+  const { tasks, loading, error, pagination, statistics, refreshTasks } =
+    useAllVerificationTasks(queryFilters);
 
   const handleViewTask = (taskId: string) => {
     navigate(`/tasks/${taskId}`);
@@ -97,7 +96,9 @@ export const RevisitTasksPage: React.FC = () => {
   const handleEditCase = (caseId: string, taskId?: string) => {
     if (caseId) {
       // Pass both case ID and task ID so we know which specific task to update
-      const url = taskId ? `/cases/new?edit=${caseId}&taskId=${taskId}` : `/cases/new?edit=${caseId}`;
+      const url = taskId
+        ? `/cases/new?edit=${caseId}&taskId=${taskId}`
+        : `/cases/new?edit=${caseId}`;
       navigate(url);
     }
   };
@@ -127,9 +128,7 @@ export const RevisitTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pagination.total}</div>
-            <p className="text-xs text-gray-600">
-              All revisit tasks
-            </p>
+            <p className="text-xs text-gray-600">All revisit tasks</p>
           </CardContent>
         </Card>
 
@@ -140,19 +139,21 @@ export const RevisitTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {tasks.filter(t => {
-                if (!t.createdAt) {
-                  return false;
-                }
-                const created = new Date(t.createdAt);
-                const now = new Date();
-                return created.getMonth() === now.getMonth() && 
-                       created.getFullYear() === now.getFullYear();
-              }).length}
+              {
+                tasks.filter((t) => {
+                  if (!t.createdAt) {
+                    return false;
+                  }
+                  const created = new Date(t.createdAt);
+                  const now = new Date();
+                  return (
+                    created.getMonth() === now.getMonth() &&
+                    created.getFullYear() === now.getFullYear()
+                  );
+                }).length
+              }
             </div>
-            <p className="text-xs text-gray-600">
-              Current period
-            </p>
+            <p className="text-xs text-gray-600">Current period</p>
           </CardContent>
         </Card>
 
@@ -165,11 +166,10 @@ export const RevisitTasksPage: React.FC = () => {
             <div className="text-2xl font-bold">
               {pagination.total > 0
                 ? Math.round((statistics.completed / pagination.total) * 100)
-                : 0}%
+                : 0}
+              %
             </div>
-            <p className="text-xs text-gray-600">
-              Completed revisits
-            </p>
+            <p className="text-xs text-gray-600">Completed revisits</p>
           </CardContent>
         </Card>
 
@@ -180,9 +180,7 @@ export const RevisitTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{statistics.pending + statistics.assigned}</div>
-            <p className="text-xs text-gray-600">
-              Awaiting verification
-            </p>
+            <p className="text-xs text-gray-600">Awaiting verification</p>
           </CardContent>
         </Card>
 
@@ -192,10 +190,10 @@ export const RevisitTasksPage: React.FC = () => {
             <AlertTriangle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(statistics.urgent || 0) + (statistics.highPriority || 0)}</div>
-            <p className="text-xs text-gray-600">
-              Urgent + High
-            </p>
+            <div className="text-2xl font-bold">
+              {(statistics.urgent || 0) + (statistics.highPriority || 0)}
+            </div>
+            <p className="text-xs text-gray-600">Urgent + High</p>
           </CardContent>
         </Card>
       </div>
@@ -238,7 +236,9 @@ export const RevisitTasksPage: React.FC = () => {
               <Label htmlFor="priority">Priority</Label>
               <Select
                 value={activeFilters.priority || 'all'}
-                onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
+                onValueChange={(value) =>
+                  setFilter('priority', value === 'all' ? undefined : value)
+                }
               >
                 <SelectTrigger id="priority">
                   <SelectValue placeholder="All priorities" />
@@ -256,15 +256,33 @@ export const RevisitTasksPage: React.FC = () => {
         }
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={async () => {
-              try {
- toast.info('Generating Excel export...'); const blob = await VerificationTasksService.exportToExcel({ taskType: 'REVISIT' }); const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `revisit_tasks_${new Date().toISOString().split('T')[0]}.xlsx`; a.click(); window.URL.revokeObjectURL(url); toast.success('Export downloaded');
-              } catch (err) { logger.error('Export failed:', err); toast.error('Export failed'); }
-            }}>
-              <Download className="h-4 w-4 mr-2" />Export
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  toast.info('Generating Excel export...');
+                  const blob = await VerificationTasksService.exportToExcel({
+                    taskType: 'REVISIT',
+                  });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `revisit_tasks_${new Date().toISOString().split('T')[0]}.xlsx`;
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  toast.success('Export downloaded');
+                } catch (err) {
+                  logger.error('Export failed:', err);
+                  toast.error('Export failed');
+                }
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
             </Button>
             <Button variant="outline" onClick={() => refreshTasks()} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />Refresh
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
             </Button>
           </div>
         }
@@ -294,14 +312,16 @@ export const RevisitTasksPage: React.FC = () => {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600">
-                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} tasks
+                Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+                {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+                {pagination.total} tasks
               </p>
               {pagination.totalPages > 1 && (
                 <div className="flex items-center space-x-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPaginationState(prev => ({ ...prev, page: prev.page - 1 }))}
+                    onClick={() => setPaginationState((prev) => ({ ...prev, page: prev.page - 1 }))}
                     disabled={pagination.page === 1}
                   >
                     Previous
@@ -312,7 +332,7 @@ export const RevisitTasksPage: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPaginationState(prev => ({ ...prev, page: prev.page + 1 }))}
+                    onClick={() => setPaginationState((prev) => ({ ...prev, page: prev.page + 1 }))}
                     disabled={pagination.page === pagination.totalPages}
                   >
                     Next

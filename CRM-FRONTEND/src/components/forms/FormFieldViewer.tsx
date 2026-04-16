@@ -1,7 +1,13 @@
 import { Check, X, FileText, Calendar, Hash, Type, List, MessageSquare } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -51,15 +57,13 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
             ) : (
               <X className="h-4 w-4 text-red-600" />
             )}
-            <span className="text-sm">
-              {field.value ? 'Yes' : 'No'}
-            </span>
+            <span className="text-sm">{field.value ? 'Yes' : 'No'}</span>
           </div>
         );
 
       case 'select':
       case 'radio': {
-        const selectedOption = field.options?.find(opt => opt.value === field.value);
+        const selectedOption = field.options?.find((opt) => opt.value === field.value);
         return (
           <div className="text-sm">
             {selectedOption ? selectedOption.label : (field.value as string) || 'Not selected'}
@@ -100,16 +104,14 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
       case 'date':
         return (
           <div className="text-sm">
-            {field.value ? new Date(field.value as string).toLocaleDateString() : 'No date selected'}
+            {field.value
+              ? new Date(field.value as string).toLocaleDateString()
+              : 'No date selected'}
           </div>
         );
 
       default:
-        return (
-          <div className="text-sm">
-            {(field.value as string) || 'No value provided'}
-          </div>
-        );
+        return <div className="text-sm">{(field.value as string) || 'No value provided'}</div>;
     }
   };
 
@@ -120,7 +122,7 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
         return (
           <Input
             type={field.type}
-            value={field.value as string || ''}
+            value={(field.value as string) || ''}
             onChange={(e) => onChange?.(e.target.value)}
           />
         );
@@ -128,7 +130,7 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
       case 'textarea':
         return (
           <Textarea
-            value={field.value as string || ''}
+            value={(field.value as string) || ''}
             onChange={(e) => onChange?.(e.target.value)}
             rows={3}
           />
@@ -136,10 +138,7 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
 
       case 'select':
         return (
-          <Select
-            value={field.value as string || ''}
-            onValueChange={onChange}
-          >
+          <Select value={(field.value as string) || ''} onValueChange={onChange}>
             <SelectTrigger>
               <SelectValue placeholder="Select an option" />
             </SelectTrigger>
@@ -156,13 +155,8 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
       case 'checkbox':
         return (
           <div className="flex items-center space-x-2">
-            <Checkbox
-              checked={field.value as boolean || false}
-              onCheckedChange={onChange}
-            />
-            <Label className="text-sm">
-              {field.label}
-            </Label>
+            <Checkbox checked={(field.value as boolean) || false} onCheckedChange={onChange} />
+            <Label className="text-sm">{field.label}</Label>
           </div>
         );
 
@@ -170,7 +164,7 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
         return (
           <Input
             type="date"
-            value={field.value as string || ''}
+            value={(field.value as string) || ''}
             onChange={(e) => onChange?.(e.target.value)}
           />
         );
@@ -205,9 +199,7 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
   return (
     <div className="space-y-2">
       <div className="flex items-center space-x-2">
-        <div className="text-gray-600">
-          {getFieldIcon(field.type)}
-        </div>
+        <div className="text-gray-600">{getFieldIcon(field.type)}</div>
         <Label className="text-sm font-medium">
           {field.label}
           {field.isRequired && <span className="text-red-500 ml-1">*</span>}
@@ -220,9 +212,7 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
       </div>
 
       {!readonly && field.type === 'file' && (
-        <div className="text-xs text-gray-600">
-          Supported formats: JPG, PNG, PDF (Max 10MB)
-        </div>
+        <div className="text-xs text-gray-600">Supported formats: JPG, PNG, PDF (Max 10MB)</div>
       )}
     </div>
   );

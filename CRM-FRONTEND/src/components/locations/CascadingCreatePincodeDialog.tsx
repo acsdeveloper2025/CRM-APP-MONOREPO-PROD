@@ -1,4 +1,3 @@
-
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -22,11 +21,15 @@ const cascadingCreatePincodeSchema = z.object({
   countryId: z.string().min(1, 'Country selection is required'),
   stateId: z.string().min(1, 'State selection is required'),
   cityId: z.string().min(1, 'City selection is required'),
-  pincodeCode: z.string()
+  pincodeCode: z
+    .string()
     .min(6, 'Pincode must be 6 digits')
     .max(6, 'Pincode must be 6 digits')
     .regex(/^\d{6}$/, 'Pincode must contain only numbers'),
-  areas: z.array(z.string()).min(1, 'At least one area must be selected').max(15, 'Maximum 15 areas allowed'),
+  areas: z
+    .array(z.string())
+    .min(1, 'At least one area must be selected')
+    .max(15, 'Maximum 15 areas allowed'),
 });
 
 type CascadingCreatePincodeFormData = z.infer<typeof cascadingCreatePincodeSchema>;
@@ -36,7 +39,10 @@ interface CascadingCreatePincodeDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function CascadingCreatePincodeDialog({ open, onOpenChange }: CascadingCreatePincodeDialogProps) {
+export function CascadingCreatePincodeDialog({
+  open,
+  onOpenChange,
+}: CascadingCreatePincodeDialogProps) {
   const queryClient = useQueryClient();
 
   const form = useForm<CascadingCreatePincodeFormData>({
@@ -50,8 +56,6 @@ export function CascadingCreatePincodeDialog({ open, onOpenChange }: CascadingCr
     },
     mode: 'onChange', // Enable real-time validation
   });
-
-
 
   const createMutation = useMutation({
     mutationFn: async (data: CascadingCreatePincodeFormData) => {
@@ -95,7 +99,8 @@ export function CascadingCreatePincodeDialog({ open, onOpenChange }: CascadingCr
         <DialogHeader>
           <DialogTitle>Create New Pincode</DialogTitle>
           <DialogDescription>
-            Create a new pincode by selecting the complete geographic hierarchy: Country → State → City → Pincode → Areas.
+            Create a new pincode by selecting the complete geographic hierarchy: Country → State →
+            City → Pincode → Areas.
           </DialogDescription>
         </DialogHeader>
 
@@ -127,7 +132,8 @@ export function CascadingCreatePincodeDialog({ open, onOpenChange }: CascadingCr
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
-               className="w-full sm:w-auto">
+                className="w-full sm:w-auto"
+              >
                 {createMutation.isPending ? 'Creating...' : 'Create Pincode'}
               </Button>
             </DialogFooter>

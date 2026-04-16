@@ -17,16 +17,12 @@ interface CompletedCaseFilters {
 
 export const CompletedCasesPage: React.FC = () => {
   // Unified search with 800ms debounce
-  const {
-    debouncedSearchValue,
-  } = useUnifiedSearch({
+  const { debouncedSearchValue } = useUnifiedSearch({
     syncWithUrl: true,
   });
 
   // Unified filters with URL sync
-  const {
-    filters: activeFilters,
-  } = useUnifiedFilters<CompletedCaseFilters>({
+  const { filters: activeFilters } = useUnifiedFilters<CompletedCaseFilters>({
     syncWithUrl: true,
   });
 
@@ -51,16 +47,20 @@ export const CompletedCasesPage: React.FC = () => {
 
   const cases = casesData?.data?.data || [];
   const statistics = casesData?.data?.statistics;
-  const paginationData = casesData?.data?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
+  const paginationData = casesData?.data?.pagination || {
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  };
 
   const handlePageChange = (page: number) => {
-    setPagination(prev => ({ ...prev, page }));
+    setPagination((prev) => ({ ...prev, page }));
   };
 
   const handleItemsPerPageChange = (limit: number) => {
-    setPagination(prev => ({ ...prev, limit, page: 1 }));
+    setPagination((prev) => ({ ...prev, limit, page: 1 }));
   };
-
 
   const handleExport = async () => {
     try {
@@ -90,13 +90,17 @@ export const CompletedCasesPage: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={async () => {
-            await refreshCases({
-              clearCache: true,
-              preserveFilters: true,
-              showToast: true
-            });
-          }} disabled={isLoading}>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              await refreshCases({
+                clearCache: true,
+                preserveFilters: true,
+                showToast: true,
+              });
+            }}
+            disabled={isLoading}
+          >
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
@@ -182,8 +186,6 @@ export const CompletedCasesPage: React.FC = () => {
         </Card>
       </div>
 
-
-
       {/* Cases Table */}
       <Card>
         <CardHeader>
@@ -191,19 +193,15 @@ export const CompletedCasesPage: React.FC = () => {
             <div>
               <CardTitle>Completed Cases</CardTitle>
               <CardDescription>
-                {paginationData.total > 0 
+                {paginationData.total > 0
                   ? `Showing ${paginationData.total} completed case${paginationData.total === 1 ? '' : 's'}`
-                  : 'No completed cases found'
-                }
+                  : 'No completed cases found'}
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <CompletedCaseTable
-            cases={cases}
-            isLoading={isLoading}
-          />
+          <CompletedCaseTable cases={cases} isLoading={isLoading} />
         </CardContent>
       </Card>
 

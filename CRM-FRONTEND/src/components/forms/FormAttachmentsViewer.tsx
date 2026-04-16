@@ -11,7 +11,10 @@ interface FormAttachmentsViewerProps {
   readonly?: boolean;
 }
 
-export function FormAttachmentsViewer({ attachments, readonly: _readonly = true }: FormAttachmentsViewerProps) {
+export function FormAttachmentsViewer({
+  attachments,
+  readonly: _readonly = true,
+}: FormAttachmentsViewerProps) {
   const [selectedAttachment, setSelectedAttachment] = useState<FormAttachment | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
@@ -34,17 +37,19 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
       DOCUMENT: { variant: 'secondary' as const, label: 'Document' },
       OTHER: { variant: 'outline' as const, label: 'Other' },
     };
-    
+
     const config = typeConfig[category] || typeConfig.DOCUMENT;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) {return '0 Bytes';}
+    if (bytes === 0) {
+      return '0 Bytes';
+    }
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))  } ${  sizes[i]}`;
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
 
   const isImageFile = (mimeType: string) => {
@@ -67,13 +72,16 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
     document.body.removeChild(link);
   };
 
-  const groupedAttachments = attachments.reduce((acc, attachment) => {
-    if (!acc[attachment.category]) {
-      acc[attachment.category] = [];
-    }
-    acc[attachment.category].push(attachment);
-    return acc;
-  }, {} as Record<string, FormAttachment[]>);
+  const groupedAttachments = attachments.reduce(
+    (acc, attachment) => {
+      if (!acc[attachment.category]) {
+        acc[attachment.category] = [];
+      }
+      acc[attachment.category].push(attachment);
+      return acc;
+    },
+    {} as Record<string, FormAttachment[]>
+  );
 
   return (
     <>
@@ -105,7 +113,7 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
                       {categoryAttachments.length}
                     </Badge>
                   </div>
-                  
+
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {categoryAttachments.map((attachment) => (
                       <div
@@ -141,7 +149,7 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
                             <span>Size:</span>
                             <span>{formatFileSize(attachment.size)}</span>
                           </div>
-                          
+
                           <div className="flex items-center space-x-1">
                             <Clock className="h-3 w-3" />
                             <span>{new Date(attachment.uploadedAt).toLocaleString()}</span>
@@ -195,7 +203,7 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
               {selectedAttachment && getAttachmentTypeBadge(selectedAttachment.category)}
             </DialogTitle>
           </DialogHeader>
-          
+
           {selectedAttachment && (
             <div className="space-y-4">
               {/* Image */}
@@ -225,13 +233,9 @@ export function FormAttachmentsViewer({ attachments, readonly: _readonly = true 
                 </div>
               </div>
 
-
               {/* Actions */}
               <div className="flex justify-end space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => handleDownload(selectedAttachment)}
-                >
+                <Button variant="outline" onClick={() => handleDownload(selectedAttachment)}>
                   <Download className="h-4 w-4 mr-2" />
                   Download
                 </Button>

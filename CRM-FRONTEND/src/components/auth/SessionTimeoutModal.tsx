@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import {
   AlertDialog,
@@ -17,7 +16,11 @@ interface SessionTimeoutModalProps {
   remainingSeconds: number;
 }
 
-export function SessionTimeoutModal({ isOpen, onClose, remainingSeconds }: SessionTimeoutModalProps) {
+export function SessionTimeoutModal({
+  isOpen,
+  onClose,
+  remainingSeconds,
+}: SessionTimeoutModalProps) {
   const [seconds, setSeconds] = useState(remainingSeconds);
 
   useEffect(() => {
@@ -41,7 +44,9 @@ export function SessionTimeoutModal({ isOpen, onClose, remainingSeconds }: Sessi
     }
   };
 
-  if (!isOpen) {return null;}
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -49,17 +54,15 @@ export function SessionTimeoutModal({ isOpen, onClose, remainingSeconds }: Sessi
         <AlertDialogHeader>
           <AlertDialogTitle>Session Timeout Warning</AlertDialogTitle>
           <AlertDialogDescription>
-            You have been inactive for a while. For your security, you will be automatically logged out in{' '}
-            <span className="font-bold text-red-500">{seconds} seconds</span>.
+            You have been inactive for a while. For your security, you will be automatically logged
+            out in <span className="font-bold text-red-500">{seconds} seconds</span>.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <Button variant="outline" onClick={handleLogout}>
             Logout Now
           </Button>
-          <Button onClick={handleStayLoggedIn}>
-            Stay Logged In
-          </Button>
+          <Button onClick={handleStayLoggedIn}>Stay Logged In</Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

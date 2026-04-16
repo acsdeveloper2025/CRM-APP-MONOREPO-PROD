@@ -96,15 +96,18 @@ export const usePincodeSearch = (initialPincodeId?: string) => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const debounceRef = useState<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleSearchChange = useCallback((term: string) => {
-    setSearchTerm(term);
-    if (debounceRef[0]) {
-      clearTimeout(debounceRef[0]);
-    }
-    debounceRef[0] = setTimeout(() => {
-      setDebouncedSearch(term);
-    }, 300);
-  }, [debounceRef]);
+  const handleSearchChange = useCallback(
+    (term: string) => {
+      setSearchTerm(term);
+      if (debounceRef[0]) {
+        clearTimeout(debounceRef[0]);
+      }
+      debounceRef[0] = setTimeout(() => {
+        setDebouncedSearch(term);
+      }, 300);
+    },
+    [debounceRef]
+  );
 
   // Fetch initial/default pincodes (first 30) for immediate dropdown
   const { data: defaultData, isLoading: defaultLoading } = useQuery({
@@ -151,9 +154,11 @@ export const usePincodeSearch = (initialPincodeId?: string) => {
     if (!initialPincodeId) {
       return null;
     }
-    return pincodes.find(
-      (p: { id: string | number }) => String(p.id) === String(initialPincodeId)
-    ) || selectedData?.data || null;
+    return (
+      pincodes.find((p: { id: string | number }) => String(p.id) === String(initialPincodeId)) ||
+      selectedData?.data ||
+      null
+    );
   }, [pincodes, initialPincodeId, selectedData]);
 
   return {

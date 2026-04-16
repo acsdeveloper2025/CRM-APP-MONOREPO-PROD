@@ -7,7 +7,14 @@ export interface MISFilters {
   clientId?: number;
   productId?: number;
   verificationTypeId?: number;
-  caseStatus?: 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'APPROVED' | 'REJECTED' | 'REVOKED';
+  caseStatus?:
+    | 'PENDING'
+    | 'ASSIGNED'
+    | 'IN_PROGRESS'
+    | 'COMPLETED'
+    | 'APPROVED'
+    | 'REJECTED'
+    | 'REVOKED';
   fieldAgentId?: string;
   backendUserId?: string;
   priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';

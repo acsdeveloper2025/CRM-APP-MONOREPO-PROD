@@ -4,7 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, AlertCircle, Settings } from 'lucide-react';
@@ -46,7 +52,13 @@ interface TaskAreaSelectProps {
   error?: string;
 }
 
-const TaskAreaSelect: React.FC<TaskAreaSelectProps> = ({ taskId, pincodeId, value, onChange, error }) => {
+const TaskAreaSelect: React.FC<TaskAreaSelectProps> = ({
+  taskId,
+  pincodeId,
+  value,
+  onChange,
+  error,
+}) => {
   const { data: areasData } = useAreasByPincode(pincodeId);
   const areas = areasData?.data || [];
 
@@ -59,7 +71,7 @@ const TaskAreaSelect: React.FC<TaskAreaSelectProps> = ({ taskId, pincodeId, valu
         disabled={!pincodeId}
       >
         <SelectTrigger className={error ? 'border-red-500' : ''}>
-          <SelectValue placeholder={pincodeId ? "Select area" : "Select pincode first"} />
+          <SelectValue placeholder={pincodeId ? 'Select area' : 'Select pincode first'} />
         </SelectTrigger>
         <SelectContent>
           {areas.map((area) => (
@@ -79,11 +91,7 @@ const TaskAreaSelect: React.FC<TaskAreaSelectProps> = ({ taskId, pincodeId, valu
   );
 };
 
-export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
-  caseId,
-  onClose,
-  onSubmit
-}) => {
+export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClose, onSubmit }) => {
   const [tasks, setTasks] = useState<TaskFormData[]>([
     {
       id: '1',
@@ -96,7 +104,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
       address: undefined,
       pincode: undefined,
       areaId: undefined,
-    }
+    },
   ]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -116,12 +124,18 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
   // Fetch available rate types for the case's client/product/verification type combination
   const { data: availableRateTypesData } = useQuery({
-    queryKey: ['available-rate-types-for-case', caseDetails?.clientId, caseDetails?.productId, caseDetails?.verificationTypeId],
-    queryFn: () => rateTypesService.getAvailableRateTypesForCase(
-      parseInt(String(caseDetails?.clientId || 0)),
-      parseInt(String(caseDetails?.productId || 0)),
-      parseInt(String(caseDetails?.verificationTypeId || 0))
-    ),
+    queryKey: [
+      'available-rate-types-for-case',
+      caseDetails?.clientId,
+      caseDetails?.productId,
+      caseDetails?.verificationTypeId,
+    ],
+    queryFn: () =>
+      rateTypesService.getAvailableRateTypesForCase(
+        parseInt(String(caseDetails?.clientId || 0)),
+        parseInt(String(caseDetails?.productId || 0)),
+        parseInt(String(caseDetails?.verificationTypeId || 0))
+      ),
     enabled: !!(caseDetails?.clientId && caseDetails?.productId && caseDetails?.verificationTypeId),
   });
 
@@ -152,7 +166,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
   const removeTask = (taskId: string) => {
     if (tasks.length > 1) {
-      setTasks(tasks.filter(task => task.id !== taskId));
+      setTasks(tasks.filter((task) => task.id !== taskId));
     }
   };
 
@@ -160,21 +174,23 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     if (import.meta.env.DEV) {
       logger.info('updateTask called', { taskId, field });
     }
-    setTasks(tasks.map(task => {
-      if (task.id === taskId) {
-        const updatedTask = { ...task, [field]: value };
-        if (import.meta.env.DEV) {
-          logger.info('Task updated', { taskId });
+    setTasks(
+      tasks.map((task) => {
+        if (task.id === taskId) {
+          const updatedTask = { ...task, [field]: value };
+          if (import.meta.env.DEV) {
+            logger.info('Task updated', { taskId });
+          }
+          return updatedTask;
         }
-        return updatedTask;
-      }
-      return task;
-    }));
+        return task;
+      })
+    );
 
     // Clear error for this field
     const errorKey = `${taskId}.${field}`;
     if (errors[errorKey]) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[errorKey];
         return newErrors;
@@ -219,8 +235,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     }
 
     setLoading(true);
-    
-    const taskRequests: CreateVerificationTaskRequest[] = tasks.map(task => ({
+
+    const taskRequests: CreateVerificationTaskRequest[] = tasks.map((task) => ({
       verificationTypeId: task.verificationTypeId as number,
       taskTitle: task.taskTitle,
       taskDescription: task.taskDescription || undefined,
@@ -260,9 +276,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               <Card key={task.id} className="border-gray-200">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">
-                      Task {index + 1}
-                    </CardTitle>
+                    <CardTitle className="text-lg">Task {index + 1}</CardTitle>
                     {tasks.length > 1 && (
                       <Button
                         onClick={() => removeTask(task.id)}
@@ -275,7 +289,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                     )}
                   </div>
                 </CardHeader>
-                
+
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Task Title */}
@@ -305,9 +319,15 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                       </Label>
                       <Select
                         value={task.verificationTypeId?.toString() || ''}
-                        onValueChange={(value) => updateTask(task.id, 'verificationTypeId', parseInt(value))}
+                        onValueChange={(value) =>
+                          updateTask(task.id, 'verificationTypeId', parseInt(value))
+                        }
                       >
-                        <SelectTrigger className={getFieldError(task.id, 'verificationTypeId') ? 'border-red-500' : ''}>
+                        <SelectTrigger
+                          className={
+                            getFieldError(task.id, 'verificationTypeId') ? 'border-red-500' : ''
+                          }
+                        >
                           <SelectValue placeholder="Select verification type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -331,7 +351,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                       <Label htmlFor={`priority-${task.id}`}>Priority</Label>
                       <Select
                         value={task.priority}
-                        onValueChange={(value: TaskPriority) => updateTask(task.id, 'priority', value)}
+                        onValueChange={(value: TaskPriority) =>
+                          updateTask(task.id, 'priority', value)
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -350,7 +372,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                       <Label htmlFor={`assignee-${task.id}`}>Assign To (Optional)</Label>
                       <Select
                         value={task.assignedTo || ''}
-                        onValueChange={(value) => updateTask(task.id, 'assignedTo', value || undefined)}
+                        onValueChange={(value) =>
+                          updateTask(task.id, 'assignedTo', value || undefined)
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select field user" />
@@ -371,17 +395,27 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                       <Label htmlFor={`ratetype-${task.id}`}>Rate Type *</Label>
                       <Select
                         value={task.rateTypeId || ''}
-                        onValueChange={(value) => updateTask(task.id, 'rateTypeId', value || undefined)}
-                        disabled={!caseDetails?.clientId || !caseDetails?.productId || !caseDetails?.verificationTypeId}
+                        onValueChange={(value) =>
+                          updateTask(task.id, 'rateTypeId', value || undefined)
+                        }
+                        disabled={
+                          !caseDetails?.clientId ||
+                          !caseDetails?.productId ||
+                          !caseDetails?.verificationTypeId
+                        }
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder={
-                            !caseDetails?.clientId || !caseDetails?.productId || !caseDetails?.verificationTypeId
-                              ? "Loading case details..."
-                              : availableRateTypes.length === 0
-                              ? "No rate types available"
-                              : "Select rate type"
-                          } />
+                          <SelectValue
+                            placeholder={
+                              !caseDetails?.clientId ||
+                              !caseDetails?.productId ||
+                              !caseDetails?.verificationTypeId
+                                ? 'Loading case details...'
+                                : availableRateTypes.length === 0
+                                  ? 'No rate types available'
+                                  : 'Select rate type'
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent>
                           {availableRateTypes.map((rateType) => (
@@ -390,7 +424,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                                 <div className="flex flex-col">
                                   <span className="font-medium text-gray-900">{rateType.name}</span>
                                   {rateType.description && (
-                                    <span className="text-xs text-gray-600 mt-1">{rateType.description}</span>
+                                    <span className="text-xs text-gray-600 mt-1">
+                                      {rateType.description}
+                                    </span>
                                   )}
                                 </div>
                                 {rateType.hasRate && rateType.amount && (
@@ -403,18 +439,23 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                           ))}
                         </SelectContent>
                       </Select>
-                      {task.rateTypeId && (() => {
-                        const selectedRateType = availableRateTypes.find(rt => rt.id.toString() === task.rateTypeId);
-                        return selectedRateType && selectedRateType.hasRate && selectedRateType.amount ? (
-                          <div className="text-sm text-green-600 font-medium">
-                            Rate: ₹{selectedRateType.amount} {selectedRateType.currency || 'INR'}
-                          </div>
-                        ) : selectedRateType && !selectedRateType.hasRate ? (
-                          <div className="text-sm text-amber-600">
-                            Rate not configured for this type
-                          </div>
-                        ) : null;
-                      })()}
+                      {task.rateTypeId &&
+                        (() => {
+                          const selectedRateType = availableRateTypes.find(
+                            (rt) => rt.id.toString() === task.rateTypeId
+                          );
+                          return selectedRateType &&
+                            selectedRateType.hasRate &&
+                            selectedRateType.amount ? (
+                            <div className="text-sm text-green-600 font-medium">
+                              Rate: ₹{selectedRateType.amount} {selectedRateType.currency || 'INR'}
+                            </div>
+                          ) : selectedRateType && !selectedRateType.hasRate ? (
+                            <div className="text-sm text-amber-600">
+                              Rate not configured for this type
+                            </div>
+                          ) : null;
+                        })()}
                       {getFieldError(task.id, 'rateTypeId') && (
                         <p className="text-sm text-red-600 flex items-center space-x-1">
                           <AlertCircle className="h-4 w-4" />
@@ -443,99 +484,105 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                     )}
                   </div>
 
-
                   {/* Assignment & Location Section */}
                   <div className="border-t pt-4 mt-4">
                     <h4 className="text-sm font-medium text-gray-900 mb-4 flex items-center gap-2">
                       <Settings className="h-4 w-4" />
                       Assignment & Location
                     </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {/* Pincode */}
-                    <div className="space-y-2">
-                      <Label htmlFor={`pincode-${task.id}`}>Pincode *</Label>
-                      <Select
-                        value={task.pincode || ''}
-                        onValueChange={(value) => {
-                          if (import.meta.env.DEV) {
-                            logger.info('Pincode selection changed', { value, taskId: task.id });
-                          }
-                          // Update both pincode and reset area in a single state update
-                          setTasks(tasks.map(t =>
-                            t.id === task.id
-                              ? { ...t, pincode: value || undefined, areaId: undefined }
-                              : t
-                          ));
-                        }}
-                      >
-                        <SelectTrigger className={getFieldError(task.id, 'pincode') ? 'border-red-500' : ''}>
-                          <SelectValue placeholder="Select pincode" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {pincodes.map((pincode) => (
-                            <SelectItem key={pincode.id} value={pincode.id.toString()}>
-                              {pincode.code}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {getFieldError(task.id, 'pincode') && (
-                        <p className="text-sm text-red-600 flex items-center space-x-1">
-                          <AlertCircle className="h-4 w-4" />
-                          <span>{getFieldError(task.id, 'pincode')}</span>
-                        </p>
-                      )}
-                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {/* Pincode */}
+                      <div className="space-y-2">
+                        <Label htmlFor={`pincode-${task.id}`}>Pincode *</Label>
+                        <Select
+                          value={task.pincode || ''}
+                          onValueChange={(value) => {
+                            if (import.meta.env.DEV) {
+                              logger.info('Pincode selection changed', { value, taskId: task.id });
+                            }
+                            // Update both pincode and reset area in a single state update
+                            setTasks(
+                              tasks.map((t) =>
+                                t.id === task.id
+                                  ? { ...t, pincode: value || undefined, areaId: undefined }
+                                  : t
+                              )
+                            );
+                          }}
+                        >
+                          <SelectTrigger
+                            className={getFieldError(task.id, 'pincode') ? 'border-red-500' : ''}
+                          >
+                            <SelectValue placeholder="Select pincode" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {pincodes.map((pincode) => (
+                              <SelectItem key={pincode.id} value={pincode.id.toString()}>
+                                {pincode.code}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {getFieldError(task.id, 'pincode') && (
+                          <p className="text-sm text-red-600 flex items-center space-x-1">
+                            <AlertCircle className="h-4 w-4" />
+                            <span>{getFieldError(task.id, 'pincode')}</span>
+                          </p>
+                        )}
+                      </div>
 
-                    {/* Area */}
-                    <TaskAreaSelect
-                      taskId={task.id}
-                      pincodeId={task.pincode ? parseInt(task.pincode) : undefined}
-                      value={task.areaId}
-                      onChange={(value) => updateTask(task.id, 'areaId', value)}
-                      error={getFieldError(task.id, 'areaId')}
-                    />
-
-                    {/* Assign to Field User */}
-                    <div className="space-y-2">
-                      <Label htmlFor={`assignee-${task.id}`}>Assign to Field User</Label>
-                      <Select
-                        value={task.assignedTo || ''}
-                        onValueChange={(value) => updateTask(task.id, 'assignedTo', value || undefined)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select field user" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="unassigned">Unassigned</SelectItem>
-                          {fieldUsers.map((user) => (
-                            <SelectItem key={user.id} value={user.id}>
-                              {user.name} ({user.email})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Address */}
-                    <div className="space-y-2">
-                      <Label htmlFor={`address-${task.id}`}>Address *</Label>
-                      <Input
-                        id={`address-${task.id}`}
-                        value={task.address || ''}
-                        onChange={(e) => updateTask(task.id, 'address', e.target.value || undefined)}
-                        placeholder="Verification address"
-                        className={getFieldError(task.id, 'address') ? 'border-red-500' : ''}
+                      {/* Area */}
+                      <TaskAreaSelect
+                        taskId={task.id}
+                        pincodeId={task.pincode ? parseInt(task.pincode) : undefined}
+                        value={task.areaId}
+                        onChange={(value) => updateTask(task.id, 'areaId', value)}
+                        error={getFieldError(task.id, 'areaId')}
                       />
-                      {getFieldError(task.id, 'address') && (
-                        <p className="text-sm text-red-600 flex items-center space-x-1">
-                          <AlertCircle className="h-4 w-4" />
-                          <span>{getFieldError(task.id, 'address')}</span>
-                        </p>
-                      )}
-                    </div>
 
-                  </div>
+                      {/* Assign to Field User */}
+                      <div className="space-y-2">
+                        <Label htmlFor={`assignee-${task.id}`}>Assign to Field User</Label>
+                        <Select
+                          value={task.assignedTo || ''}
+                          onValueChange={(value) =>
+                            updateTask(task.id, 'assignedTo', value || undefined)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select field user" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="unassigned">Unassigned</SelectItem>
+                            {fieldUsers.map((user) => (
+                              <SelectItem key={user.id} value={user.id}>
+                                {user.name} ({user.email})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Address */}
+                      <div className="space-y-2">
+                        <Label htmlFor={`address-${task.id}`}>Address *</Label>
+                        <Input
+                          id={`address-${task.id}`}
+                          value={task.address || ''}
+                          onChange={(e) =>
+                            updateTask(task.id, 'address', e.target.value || undefined)
+                          }
+                          placeholder="Verification address"
+                          className={getFieldError(task.id, 'address') ? 'border-red-500' : ''}
+                        />
+                        {getFieldError(task.id, 'address') && (
+                          <p className="text-sm text-red-600 flex items-center space-x-1">
+                            <AlertCircle className="h-4 w-4" />
+                            <span>{getFieldError(task.id, 'address')}</span>
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -543,11 +590,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
           </div>
 
           {/* Add Task Button */}
-          <Button
-            onClick={addTask}
-            variant="outline"
-            className="w-full"
-          >
+          <Button onClick={addTask} variant="outline" className="w-full">
             <Plus className="h-4 w-4 mr-2" />
             Add Another Task
           </Button>
@@ -561,13 +604,18 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                     Creating {tasks.length} verification task{tasks.length !== 1 ? 's' : ''}
                   </p>
                   <p className="text-sm text-green-700">
-                    Total estimated amount: ₹{tasks.reduce((sum, task) => {
-                      if (task.rateTypeId) {
-                        const selectedRateType = availableRateTypes.find(rt => rt.id.toString() === task.rateTypeId);
-                        return sum + (selectedRateType?.amount || 0);
-                      }
-                      return sum;
-                    }, 0).toLocaleString('en-IN')}
+                    Total estimated amount: ₹
+                    {tasks
+                      .reduce((sum, task) => {
+                        if (task.rateTypeId) {
+                          const selectedRateType = availableRateTypes.find(
+                            (rt) => rt.id.toString() === task.rateTypeId
+                          );
+                          return sum + (selectedRateType?.amount || 0);
+                        }
+                        return sum;
+                      }, 0)
+                      .toLocaleString('en-IN')}
                   </p>
                 </div>
                 <Badge variant="secondary" className="bg-green-100 text-green-800">

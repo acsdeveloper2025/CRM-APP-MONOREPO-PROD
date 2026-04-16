@@ -24,21 +24,23 @@ export function ThemeProvider({
 
   useEffect(() => {
     const root = window.document.documentElement;
-    
+
     const updateTheme = () => {
       let resolvedTheme: 'light' | 'dark';
-      
+
       if (theme === 'system') {
-        resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light';
       } else {
         resolvedTheme = theme;
       }
-      
+
       setActualTheme(resolvedTheme);
-      
+
       root.classList.remove('light', 'dark');
       root.classList.add(resolvedTheme);
-      
+
       // Update meta theme-color for mobile browsers
       const metaThemeColor = document.querySelector('meta[name="theme-color"]');
       if (metaThemeColor) {
@@ -60,13 +62,16 @@ export function ThemeProvider({
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [theme]);
 
-  const handleSetTheme = useCallback((newTheme: Theme) => {
-    localStorage.setItem(storageKey, newTheme);
-    setTheme(newTheme);
-  }, [storageKey]);
+  const handleSetTheme = useCallback(
+    (newTheme: Theme) => {
+      localStorage.setItem(storageKey, newTheme);
+      setTheme(newTheme);
+    },
+    [storageKey]
+  );
 
   const toggleTheme = useCallback(() => {
-    setTheme(prev => {
+    setTheme((prev) => {
       const next = prev === 'light' ? 'dark' : prev === 'dark' ? 'system' : 'light';
       localStorage.setItem(storageKey, next);
       return next;
@@ -78,11 +83,7 @@ export function ThemeProvider({
     [theme, actualTheme, handleSetTheme, toggleTheme]
   );
 
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 // Theme-aware component wrapper
@@ -94,14 +95,14 @@ interface ThemeAwareProps {
 
 export function ThemeAware({ children, lightContent, darkContent }: ThemeAwareProps) {
   const { actualTheme } = useTheme();
-  
+
   if (lightContent && actualTheme === 'light') {
     return <>{lightContent}</>;
   }
-  
+
   if (darkContent && actualTheme === 'dark') {
     return <>{darkContent}</>;
   }
-  
+
   return <>{children}</>;
 }

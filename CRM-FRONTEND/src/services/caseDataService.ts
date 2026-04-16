@@ -83,7 +83,12 @@ class CaseDataService {
     search?: string;
     page?: number;
     limit?: number;
-  }): Promise<ApiResponse<{ data: CaseDataTemplate[]; pagination: { total: number; page: number; limit: number; totalPages: number } }>> {
+  }): Promise<
+    ApiResponse<{
+      data: CaseDataTemplate[];
+      pagination: { total: number; page: number; limit: number; totalPages: number };
+    }>
+  > {
     return apiService.get('/case-data-templates', params);
   }
 

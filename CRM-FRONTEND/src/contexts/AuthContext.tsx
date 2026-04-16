@@ -22,16 +22,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoading: true,
   });
 
-  const normalizeUserPermissions = useCallback(<T extends { permissions?: unknown; permissionCodes?: string[] }>(
-    user: T | null
-  ): T | null => {
-    if (!user) {return null;}
-    if (Array.isArray(user.permissions)) {return user;}
-    if (Array.isArray(user.permissionCodes)) {
-      return { ...user, permissions: user.permissionCodes } as T;
-    }
-    return { ...user, permissions: [] } as T;
-  }, []);
+  const normalizeUserPermissions = useCallback(
+    <T extends { permissions?: unknown; permissionCodes?: string[] }>(user: T | null): T | null => {
+      if (!user) {
+        return null;
+      }
+      if (Array.isArray(user.permissions)) {
+        return user;
+      }
+      if (Array.isArray(user.permissionCodes)) {
+        return { ...user, permissions: user.permissionCodes } as T;
+      }
+      return { ...user, permissions: [] } as T;
+    },
+    []
+  );
 
   const refreshUserPermissions = useCallback(async (): Promise<void> => {
     try {
@@ -49,7 +54,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const normalizedUpdated = normalizeUserPermissions(updated);
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         user: normalizedUpdated,
         token: authService.getToken(),
@@ -142,7 +147,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [normalizeUserPermissions]);
 
   const logout = useCallback(async (customMessage?: string): Promise<void> => {
-    setState(prev => ({ ...prev, isLoading: true }));
+    setState((prev) => ({ ...prev, isLoading: true }));
 
     try {
       await authService.logout();
@@ -210,45 +215,52 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
 
     return () => {
-      if (unsubscribePermissions) {unsubscribePermissions();}
-      if (unsubscribeNotifications) {unsubscribeNotifications();}
+      if (unsubscribePermissions) {
+        unsubscribePermissions();
+      }
+      if (unsubscribeNotifications) {
+        unsubscribeNotifications();
+      }
       socket.off('connect_error');
       frontendSocketService.disconnect();
     };
   }, [state.isAuthenticated, state.token, refreshUserPermissions, queryClient]);
 
-  const login = useCallback(async (credentials: LoginRequest): Promise<boolean> => {
-    setState(prev => ({ ...prev, isLoading: true }));
-    
-    try {
-      const response = await authService.login(credentials);
-      
-      if (response.success && response.data) {
-        // Refresh user data to get latest permissions
-        const refreshedUser = await authService.refreshUserData();
+  const login = useCallback(
+    async (credentials: LoginRequest): Promise<boolean> => {
+      setState((prev) => ({ ...prev, isLoading: true }));
 
-        setState({
-          user: normalizeUserPermissions(refreshedUser || response.data.user),
-          token: response.data.tokens.accessToken,
-          isAuthenticated: true,
-          isLoading: false,
-        });
+      try {
+        const response = await authService.login(credentials);
 
-        toast.success('Login successful!');
-        return true;
-      } else {
-        toast.error(response.message || 'Login failed');
-        setState(prev => ({ ...prev, isLoading: false }));
+        if (response.success && response.data) {
+          // Refresh user data to get latest permissions
+          const refreshedUser = await authService.refreshUserData();
+
+          setState({
+            user: normalizeUserPermissions(refreshedUser || response.data.user),
+            token: response.data.tokens.accessToken,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+
+          toast.success('Login successful!');
+          return true;
+        } else {
+          toast.error(response.message || 'Login failed');
+          setState((prev) => ({ ...prev, isLoading: false }));
+          return false;
+        }
+      } catch (error) {
+        const err = error as { response?: { data?: { message?: string } } };
+        const message = err.response?.data?.message || 'Login failed';
+        toast.error(message);
+        setState((prev) => ({ ...prev, isLoading: false }));
         return false;
       }
-    } catch (error) {
-      const err = error as { response?: { data?: { message?: string } } };
-      const message = err.response?.data?.message || 'Login failed';
-      toast.error(message);
-      setState(prev => ({ ...prev, isLoading: false }));
-      return false;
-    }
-  }, [normalizeUserPermissions]);
+    },
+    [normalizeUserPermissions]
+  );
 
   const value = useMemo<AuthContextType>(
     () => ({ ...state, login, logout, refreshUserPermissions }),

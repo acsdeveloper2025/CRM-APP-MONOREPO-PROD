@@ -1,19 +1,17 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useCaseAttachments } from '@/hooks/useCases';
 import type { Attachment } from '@/services/attachments';
 import { authenticatedFetch } from '@/services/api';
-import {
-  Upload,
-  FileText,
-  Image,
-  Download,
-  Eye,
-  Trash2,
-  Paperclip
-} from 'lucide-react';
+import { Upload, FileText, Image, Download, Eye, Trash2, Paperclip } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -25,9 +23,9 @@ interface CaseAttachmentsSectionProps {
 const ALLOWED_FILE_TYPES = {
   'application/pdf': '.pdf',
   'image/jpeg': '.jpg',
-  'image/jpg': '.jpg', 
+  'image/jpg': '.jpg',
   'image/png': '.png',
-  'image/gif': '.gif'
+  'image/gif': '.gif',
 };
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -72,7 +70,9 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
   };
 
   const handleFileSelect = (files: FileList | null) => {
-    if (!files) {return;}
+    if (!files) {
+      return;
+    }
 
     const fileArray = Array.from(files);
     const validFiles: File[] = [];
@@ -83,7 +83,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
       return;
     }
 
-    fileArray.forEach(file => {
+    fileArray.forEach((file) => {
       const error = validateFile(file);
       if (error) {
         errors.push(`${file.name}: ${error}`);
@@ -97,7 +97,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
     }
 
     if (validFiles.length > 0) {
-      setSelectedFiles(prev => [...prev, ...validFiles]);
+      setSelectedFiles((prev) => [...prev, ...validFiles]);
     }
   };
 
@@ -118,18 +118,18 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
   };
 
   const removeSelectedFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-
-
   const uploadFiles = async () => {
-    if (selectedFiles.length === 0) {return;}
+    if (selectedFiles.length === 0) {
+      return;
+    }
 
     setUploading(true);
     try {
       const formData = new FormData();
-      selectedFiles.forEach(file => {
+      selectedFiles.forEach((file) => {
         formData.append('files', file);
       });
       formData.append('caseId', caseId);
@@ -207,7 +207,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
           const url = URL.createObjectURL(blob);
           setPreviewUrl(url);
         } else {
-            toast.error('Failed to load image preview');
+          toast.error('Failed to load image preview');
         }
       } catch (error) {
         logger.error('Error loading preview:', error);
@@ -224,11 +224,13 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
   };
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) {return '0 Bytes';}
+    if (bytes === 0) {
+      return '0 Bytes';
+    }
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))  } ${  sizes[i]}`;
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
   };
 
   return (
@@ -242,9 +244,9 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
       {/* Upload Area */}
       <div
         className={cn(
-          "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
-          dragOver ? "border-green-500 bg-green-50" : "border-border",
-          "hover:border-border"
+          'border-2 border-dashed rounded-lg p-6 text-center transition-colors',
+          dragOver ? 'border-green-500 bg-green-50' : 'border-border',
+          'hover:border-border'
         )}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -279,17 +281,16 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
         <div className="space-y-2">
           <h4 className="text-sm font-medium">Files to Upload:</h4>
           {selectedFiles.map((file, index) => (
-            <div key={index} className="flex items-center justify-between p-2 bg-slate-100 dark:bg-slate-800/60 rounded">
+            <div
+              key={index}
+              className="flex items-center justify-between p-2 bg-slate-100 dark:bg-slate-800/60 rounded"
+            >
               <div className="flex items-center space-x-2">
                 {getFileIcon(file.type)}
                 <span className="text-sm">{file.name}</span>
                 <span className="text-xs text-gray-600">({formatFileSize(file.size)})</span>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => removeSelectedFile(index)}
-              >
+              <Button variant="ghost" size="sm" onClick={() => removeSelectedFile(index)}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
@@ -310,7 +311,10 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
         <div className="space-y-2">
           <h4 className="text-sm font-medium">Uploaded Files:</h4>
           {attachments.map((attachment) => (
-            <div key={attachment.id} className="flex items-center justify-between p-3 border rounded-lg">
+            <div
+              key={attachment.id}
+              className="flex items-center justify-between p-3 border rounded-lg"
+            >
               <div className="flex items-center space-x-3">
                 {getFileIcon(attachment.mimeType)}
                 <div>
@@ -319,9 +323,13 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
                     {formatFileSize(getAttachmentSize(attachment))} •{' '}
                     {(() => {
                       const rawDate = getAttachmentDate(attachment);
-                      if (!rawDate) {return 'Unknown Date';}
+                      if (!rawDate) {
+                        return 'Unknown Date';
+                      }
                       const parsed = new Date(rawDate);
-                      return Number.isNaN(parsed.getTime()) ? 'Unknown Date' : parsed.toLocaleDateString();
+                      return Number.isNaN(parsed.getTime())
+                        ? 'Unknown Date'
+                        : parsed.toLocaleDateString();
                     })()}
                   </p>
                 </div>
@@ -334,11 +342,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
                 >
                   <Eye className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => downloadAttachment(attachment)}
-                >
+                <Button variant="ghost" size="sm" onClick={() => downloadAttachment(attachment)}>
                   <Download className="h-4 w-4" />
                 </Button>
                 <Button
@@ -389,10 +393,7 @@ export const CaseAttachmentsSection: React.FC<CaseAttachmentsSectionProps> = ({ 
                 <div className="text-center py-8">
                   <FileText className="h-16 w-16 mx-auto mb-4 text-gray-600" />
                   <p className="text-gray-600">Preview not available for this file type</p>
-                  <Button
-                    onClick={() => downloadAttachment(previewAttachment)}
-                    className="mt-4"
-                  >
+                  <Button onClick={() => downloadAttachment(previewAttachment)} className="mt-4">
                     <Download className="h-4 w-4 mr-2" />
                     Download to View
                   </Button>

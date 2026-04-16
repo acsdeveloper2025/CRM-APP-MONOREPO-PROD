@@ -36,4 +36,3 @@ export function PasswordPolicyChecklist({ password, className }: PasswordPolicyC
     </div>
   );
 }
-

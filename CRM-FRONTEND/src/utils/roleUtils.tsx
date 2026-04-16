@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  Crown,
-  ShieldCheck,
-  Users,
-  Server,
-  MapPin,
-} from 'lucide-react';
+import { Crown, ShieldCheck, Users, Server, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { normalizeUserRole } from '@/types/constants';
 
@@ -21,49 +15,51 @@ export const roleConfigs: Record<string, RoleConfig> = {
     icon: Crown,
     variant: 'destructive',
     label: 'Super Admin',
-    color: 'text-red-600'
+    color: 'text-red-600',
   },
   MANAGER: {
     icon: ShieldCheck,
     variant: 'default',
     label: 'Manager',
-    color: 'text-emerald-700'
+    color: 'text-emerald-700',
   },
   TEAM_LEADER: {
     icon: Users,
     variant: 'secondary',
     label: 'Team Leader',
-    color: 'text-teal-700'
+    color: 'text-teal-700',
   },
   BACKEND_USER: {
     icon: Server,
     variant: 'secondary',
     label: 'Backend User',
-    color: 'text-blue-600'
+    color: 'text-blue-600',
   },
   FIELD_AGENT: {
     icon: MapPin,
     variant: 'outline',
     label: 'Field Agent',
-    color: 'text-purple-600'
-  }
+    color: 'text-purple-600',
+  },
 };
 
 export const getRoleIcon = (roleName: string, size: 'sm' | 'md' | 'lg' = 'md') => {
-  const config = roleConfigs[normalizeUserRole(roleName) || 'BACKEND_USER'] || roleConfigs.BACKEND_USER;
+  const config =
+    roleConfigs[normalizeUserRole(roleName) || 'BACKEND_USER'] || roleConfigs.BACKEND_USER;
   const Icon = config.icon;
-  
+
   const sizeClasses = {
     sm: 'h-3 w-3',
     md: 'h-4 w-4',
-    lg: 'h-5 w-5'
+    lg: 'h-5 w-5',
   };
-  
+
   return <Icon className={`${sizeClasses[size]} ${config.color}`} />;
 };
 
 export const getRoleBadge = (roleName: string) => {
-  const config = roleConfigs[normalizeUserRole(roleName) || 'BACKEND_USER'] || roleConfigs.BACKEND_USER;
+  const config =
+    roleConfigs[normalizeUserRole(roleName) || 'BACKEND_USER'] || roleConfigs.BACKEND_USER;
   return <Badge variant={config.variant}>{config.label}</Badge>;
 };
 

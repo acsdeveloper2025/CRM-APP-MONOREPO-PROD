@@ -28,7 +28,7 @@ export const useFormTemplate = (formType: string) => {
 // Hook to submit form
 export const useSubmitForm = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ caseId, formData }: { caseId: string; formData: VerificationFormData }) =>
       formsService.submitForm(caseId, formData),
@@ -67,11 +67,11 @@ export const useAutoSavedForm = (caseId: string) => {
 // Utility hook to get form submission by ID
 export const useFormSubmission = (caseId: string, submissionId: string) => {
   const { data: formSubmissions } = useCaseFormSubmissions(caseId);
-  
+
   const submission = formSubmissions?.data?.submissions?.find(
     (sub: FormSubmission) => sub.id === submissionId
   );
-  
+
   return {
     data: submission,
     isLoading: !formSubmissions,
@@ -88,7 +88,9 @@ export const useLatestFormSubmission = (caseId: string) => {
   return {
     data: latestSubmission,
     isLoading,
-    error: error || (!latestSubmission && formSubmissions ? new Error('No form submissions found') : null),
+    error:
+      error ||
+      (!latestSubmission && formSubmissions ? new Error('No form submissions found') : null),
   };
 };
 

@@ -6,7 +6,7 @@ import type { ApiResponse, PaginationQuery } from '@/types/api';
 import type {
   CompleteCaseData,
   CreateCaseWithMultipleTasksPayload,
-  CreateCaseWithMultipleTasksResponse
+  CreateCaseWithMultipleTasksResponse,
 } from '@/types/dto/case.dto';
 import type { CaseConfigValidationResult } from '@/types/rateManagement';
 import { validateResponse } from './schemas/runtime';
@@ -75,7 +75,10 @@ export class CasesService extends BaseApiService {
   }
 
   async getCases(query: CaseListQuery = {}): Promise<ApiResponse<CaseListResponse>> {
-    const response = await this.get<CaseListResponse>('', query as unknown as Record<string, unknown>);
+    const response = await this.get<CaseListResponse>(
+      '',
+      query as unknown as Record<string, unknown>
+    );
     if (response.success && response.data) {
       validateResponse(CaseListResponseSchema, response.data, {
         service: 'cases',
@@ -96,7 +99,9 @@ export class CasesService extends BaseApiService {
     return response;
   }
 
-  async createCaseWithMultipleTasks(payload: CreateCaseWithMultipleTasksPayload): Promise<ApiResponse<CreateCaseWithMultipleTasksResponse>> {
+  async createCaseWithMultipleTasks(
+    payload: CreateCaseWithMultipleTasksPayload
+  ): Promise<ApiResponse<CreateCaseWithMultipleTasksResponse>> {
     // Payload is already in unified format from CaseWithTasksCreationForm
     return this.post('/create', payload);
   }
@@ -140,7 +145,11 @@ export class CasesService extends BaseApiService {
     return attachmentsService.getAttachmentsByCase(id);
   }
 
-  async uploadCaseAttachments(caseId: string, files: File[], verificationTaskId?: string): Promise<ApiResponse<unknown>> {
+  async uploadCaseAttachments(
+    caseId: string,
+    files: File[],
+    verificationTaskId?: string
+  ): Promise<ApiResponse<unknown>> {
     // Delegate to attachments service which uses the correct /api/attachments base path
     return attachmentsService.uploadAttachments({ caseId, files, verificationTaskId });
   }
@@ -168,13 +177,13 @@ export class CasesService extends BaseApiService {
       this.getCases({
         status: 'PENDING',
         sortBy: 'pendingDuration',
-        sortOrder: 'desc'
+        sortOrder: 'desc',
       }),
       this.getCases({
         status: 'IN_PROGRESS',
         sortBy: 'pendingDuration',
-        sortOrder: 'desc'
-      })
+        sortOrder: 'desc',
+      }),
     ]);
 
     // Combine the results and sort by pending duration
@@ -192,7 +201,7 @@ export class CasesService extends BaseApiService {
     return {
       success: true,
       data: allCases,
-      message: 'Pending cases retrieved successfully'
+      message: 'Pending cases retrieved successfully',
     };
   }
 
@@ -208,16 +217,18 @@ export class CasesService extends BaseApiService {
     return this.post(`/${id}/rework`, { feedback });
   }
 
-  async exportCases(params: {
-    exportType?: 'all' | 'pending' | 'in-progress' | 'completed';
-    status?: string;
-    search?: string;
-    assignedTo?: string;
-    clientId?: string;
-    priority?: string;
-    dateFrom?: string;
-    dateTo?: string;
-  } = {}): Promise<{ blob: Blob; filename: string }> {
+  async exportCases(
+    params: {
+      exportType?: 'all' | 'pending' | 'in-progress' | 'completed';
+      status?: string;
+      search?: string;
+      assignedTo?: string;
+      clientId?: string;
+      priority?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    } = {}
+  ): Promise<{ blob: Blob; filename: string }> {
     const queryParams: Record<string, string> = {};
 
     Object.entries(params).forEach(([key, value]) => {
@@ -226,9 +237,9 @@ export class CasesService extends BaseApiService {
       }
     });
 
-    const response = await apiService.getRaw<Blob>('/cases/export', undefined, { 
-        params: queryParams,
-        responseType: 'blob' 
+    const response = await apiService.getRaw<Blob>('/cases/export', undefined, {
+      params: queryParams,
+      responseType: 'blob',
     });
 
     // Extract filename from Content-Disposition header

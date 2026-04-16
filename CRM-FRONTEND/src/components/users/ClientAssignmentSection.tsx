@@ -35,7 +35,9 @@ export function ClientAssignmentSection({ user }: ClientAssignmentSectionProps) 
   // Update selected clients when assignments data loads
   useEffect(() => {
     if (assignmentsData?.data) {
-      const assignedClientIds = assignmentsData.data.map((assignment: { clientId: number }) => assignment.clientId);
+      const assignedClientIds = assignmentsData.data.map(
+        (assignment: { clientId: number }) => assignment.clientId
+      );
       setSelectedClientIds(assignedClientIds);
     }
   }, [assignmentsData]);
@@ -64,9 +66,9 @@ export function ClientAssignmentSection({ user }: ClientAssignmentSectionProps) 
 
   const handleClientToggle = (clientId: number, checked: boolean) => {
     if (checked) {
-      setSelectedClientIds(prev => [...prev, clientId]);
+      setSelectedClientIds((prev) => [...prev, clientId]);
     } else {
-      setSelectedClientIds(prev => prev.filter(id => id !== clientId));
+      setSelectedClientIds((prev) => prev.filter((id) => id !== clientId));
     }
   };
 
@@ -83,9 +85,7 @@ export function ClientAssignmentSection({ user }: ClientAssignmentSectionProps) 
           <Building2 className="h-5 w-5" />
           Client Assignments
         </CardTitle>
-        <CardDescription>
-          Select which clients this user can access
-        </CardDescription>
+        <CardDescription>Select which clients this user can access</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading ? (
@@ -111,7 +111,7 @@ export function ClientAssignmentSection({ user }: ClientAssignmentSectionProps) 
                 </div>
               ))}
             </div>
-            <Button 
+            <Button
               onClick={handleSaveAssignments}
               disabled={saveAssignmentsMutation.isPending}
               className="w-full"

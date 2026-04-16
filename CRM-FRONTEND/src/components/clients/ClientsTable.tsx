@@ -93,18 +93,13 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
       <div className="text-center py-12">
         <Building2 className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No clients found</h3>
-        <p className="text-gray-600">
-          Get started by creating your first client.
-        </p>
-
+        <p className="text-gray-600">Get started by creating your first client.</p>
       </div>
     );
   }
 
   return (
     <>
-
-
       <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
@@ -193,9 +188,7 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
                     )}
                   </div>
                 </TableCell>
-                <TableCell>
-                  {new Date(client.createdAt).toLocaleDateString()}
-                </TableCell>
+                <TableCell>{new Date(client.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell>
                   <Badge className={baseBadgeStyle}>ACTIVE</Badge>
                 </TableCell>
@@ -258,8 +251,8 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the client
-              &quot;{clientToDelete?.name}&quot; and all associated data.
+              This action cannot be undone. This will permanently delete the client &quot;
+              {clientToDelete?.name}&quot; and all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -104,9 +104,7 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
       <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit City</DialogTitle>
-          <DialogDescription>
-            Update the city information.
-          </DialogDescription>
+          <DialogDescription>Update the city information.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -185,7 +183,11 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateMutation.isPending} className="w-full sm:w-auto">
+              <Button
+                type="submit"
+                disabled={updateMutation.isPending}
+                className="w-full sm:w-auto"
+              >
                 {updateMutation.isPending ? 'Updating...' : 'Update City'}
               </Button>
             </DialogFooter>

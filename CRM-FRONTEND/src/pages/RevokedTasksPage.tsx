@@ -12,15 +12,11 @@ import {
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
 import {
-  XCircle,
-  AlertTriangle,
-  RefreshCw,
-  Package,
-  UserCheck,
-  Download
-} from 'lucide-react';
+  UnifiedSearchFilterLayout,
+  FilterGrid,
+} from '@/components/ui/unified-search-filter-layout';
+import { XCircle, AlertTriangle, RefreshCw, Package, UserCheck, Download } from 'lucide-react';
 import { VerificationTasksService } from '@/services/verificationTasks';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -36,15 +32,10 @@ export const RevokedTasksPage: React.FC = () => {
   const navigate = useNavigate();
 
   // Unified search with 800ms debounce
-  const {
-    searchValue,
-    debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
-  } = useUnifiedSearch({
-    syncWithUrl: true,
-  });
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({
+      syncWithUrl: true,
+    });
 
   // Unified filters with URL sync
   const {
@@ -70,16 +61,19 @@ export const RevokedTasksPage: React.FC = () => {
     priority: activeFilters.priority || undefined,
   };
 
-  const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);
+  const { tasks, loading, error, pagination, statistics, refreshTasks } =
+    useAllVerificationTasks(queryFilters);
 
   const activeFilterCount = Object.keys(activeFilters).filter(
-    key => activeFilters[key as keyof RevokedTaskFilters] !== undefined
+    (key) => activeFilters[key as keyof RevokedTaskFilters] !== undefined
   ).length;
 
   const totalRevoked = statistics?.revoked || pagination?.total || 0;
   const highPriorityCount = (statistics?.highPriority || 0) + (statistics?.urgent || 0);
   const uniqueCases = new Set(tasks.map((t: VerificationTask) => t.caseId)).size;
-  const uniqueFieldAgents = new Set(tasks.map((t: VerificationTask) => t.assignedTo?.id).filter(Boolean)).size;
+  const uniqueFieldAgents = new Set(
+    tasks.map((t: VerificationTask) => t.assignedTo?.id).filter(Boolean)
+  ).size;
 
   const handleViewTask = (taskId: string) => {
     navigate(`/tasks/${taskId}`);
@@ -93,7 +87,9 @@ export const RevokedTasksPage: React.FC = () => {
 
   const handleEditCase = (caseId: string, taskId?: string) => {
     if (caseId) {
-      const url = taskId ? `/cases/new?edit=${caseId}&taskId=${taskId}` : `/cases/new?edit=${caseId}`;
+      const url = taskId
+        ? `/cases/new?edit=${caseId}&taskId=${taskId}`
+        : `/cases/new?edit=${caseId}`;
       navigate(url);
     }
   };
@@ -103,21 +99,49 @@ export const RevokedTasksPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: '#000000' }}>Revoked Tasks</h1>
+          <h1
+            className="text-2xl sm:text-3xl font-bold tracking-tight"
+            style={{ color: '#000000' }}
+          >
+            Revoked Tasks
+          </h1>
           <p className="mt-1" style={{ color: '#1F2937' }}>
             Verification tasks that have been revoked by field agents
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={async () => {
-            try {
- toast.info('Generating Excel export...'); const blob = await VerificationTasksService.exportToExcel({ status: 'REVOKED' }); const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `revoked_tasks_${new Date().toISOString().split('T')[0]}.xlsx`; a.click(); window.URL.revokeObjectURL(url); toast.success('Export downloaded');
-            } catch (err) { logger.error('Export failed:', err); toast.error('Export failed'); }
-          }}>
-            <Download className="h-4 w-4 mr-2" />Export
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                toast.info('Generating Excel export...');
+                const blob = await VerificationTasksService.exportToExcel({ status: 'REVOKED' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `revoked_tasks_${new Date().toISOString().split('T')[0]}.xlsx`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                toast.success('Export downloaded');
+              } catch (err) {
+                logger.error('Export failed:', err);
+                toast.error('Export failed');
+              }
+            }}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export
           </Button>
-          <Button onClick={() => refreshTasks()} variant="outline" size="sm" disabled={loading} className="gap-2">
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />Refresh
+          <Button
+            onClick={() => refreshTasks()}
+            variant="outline"
+            size="sm"
+            disabled={loading}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
           </Button>
         </div>
       </div>
@@ -126,7 +150,9 @@ export const RevokedTasksPage: React.FC = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card style={{ backgroundColor: '#FFFFFF' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium" style={{ color: '#1F2937' }}>Total Revoked</CardTitle>
+            <CardTitle className="text-sm font-medium" style={{ color: '#1F2937' }}>
+              Total Revoked
+            </CardTitle>
             <XCircle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
@@ -141,7 +167,9 @@ export const RevokedTasksPage: React.FC = () => {
 
         <Card style={{ backgroundColor: '#FFFFFF' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium" style={{ color: '#1F2937' }}>High Priority</CardTitle>
+            <CardTitle className="text-sm font-medium" style={{ color: '#1F2937' }}>
+              High Priority
+            </CardTitle>
             <AlertTriangle className="h-4 w-4" style={{ color: '#10B981' }} />
           </CardHeader>
           <CardContent>
@@ -156,7 +184,9 @@ export const RevokedTasksPage: React.FC = () => {
 
         <Card style={{ backgroundColor: '#FFFFFF' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium" style={{ color: '#1F2937' }}>Unique Cases</CardTitle>
+            <CardTitle className="text-sm font-medium" style={{ color: '#1F2937' }}>
+              Unique Cases
+            </CardTitle>
             <Package className="h-4 w-4" style={{ color: '#10B981' }} />
           </CardHeader>
           <CardContent>
@@ -171,7 +201,9 @@ export const RevokedTasksPage: React.FC = () => {
 
         <Card style={{ backgroundColor: '#FFFFFF' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium" style={{ color: '#1F2937' }}>Field Agents</CardTitle>
+            <CardTitle className="text-sm font-medium" style={{ color: '#1F2937' }}>
+              Field Agents
+            </CardTitle>
             <UserCheck className="h-4 w-4" style={{ color: '#10B981' }} />
           </CardHeader>
           <CardContent>
@@ -201,7 +233,9 @@ export const RevokedTasksPage: React.FC = () => {
               <Label htmlFor="priority">Priority</Label>
               <Select
                 value={activeFilters.priority || 'all'}
-                onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
+                onValueChange={(value) =>
+                  setFilter('priority', value === 'all' ? undefined : value)
+                }
               >
                 <SelectTrigger id="priority">
                   <SelectValue placeholder="All Priorities" />
@@ -243,14 +277,16 @@ export const RevokedTasksPage: React.FC = () => {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600">
-                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} tasks
+                Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+                {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+                {pagination.total} tasks
               </p>
               {pagination.totalPages > 1 && (
                 <div className="flex items-center space-x-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPaginationState(prev => ({ ...prev, page: prev.page - 1 }))}
+                    onClick={() => setPaginationState((prev) => ({ ...prev, page: prev.page - 1 }))}
                     disabled={pagination.page === 1}
                   >
                     Previous
@@ -261,7 +297,7 @@ export const RevokedTasksPage: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPaginationState(prev => ({ ...prev, page: prev.page + 1 }))}
+                    onClick={() => setPaginationState((prev) => ({ ...prev, page: prev.page + 1 }))}
                     disabled={pagination.page === pagination.totalPages}
                   >
                     Next

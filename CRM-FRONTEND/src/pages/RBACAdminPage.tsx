@@ -19,7 +19,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 type RoleFormState = {
   name: string;
@@ -49,7 +55,9 @@ function RoleModal({
   });
 
   React.useEffect(() => {
-    if (!open) {return;}
+    if (!open) {
+      return;
+    }
     setForm({
       name: initialRole?.name || '',
       description: initialRole?.description || '',
@@ -73,14 +81,17 @@ function RoleModal({
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Role Name</Label>
-            <Input value={form.name} onChange={e => setForm(s => ({ ...s, name: e.target.value }))} />
+            <Input
+              value={form.name}
+              onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+            />
           </div>
           <div className="space-y-2">
             <Label>Description</Label>
             <Textarea
               rows={3}
               value={form.description}
-              onChange={e => setForm(s => ({ ...s, description: e.target.value }))}
+              onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
             />
           </div>
           {mode === 'create' && (
@@ -88,14 +99,14 @@ function RoleModal({
               <Label>Clone From (Optional)</Label>
               <Select
                 value={form.cloneFromRoleId}
-                onValueChange={value => setForm(s => ({ ...s, cloneFromRoleId: value }))}
+                onValueChange={(value) => setForm((s) => ({ ...s, cloneFromRoleId: value }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Do not clone permissions" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Do not clone</SelectItem>
-                  {roles.map(role => (
+                  {roles.map((role) => (
                     <SelectItem key={role.id} value={role.id}>
                       {role.name}
                     </SelectItem>
@@ -115,7 +126,9 @@ function RoleModal({
                 name: form.name.trim(),
                 description: form.description.trim() || undefined,
                 parentRoleId:
-                  mode === 'create' && form.cloneFromRoleId !== 'none' ? form.cloneFromRoleId : null,
+                  mode === 'create' && form.cloneFromRoleId !== 'none'
+                    ? form.cloneFromRoleId
+                    : null,
               })
             }
           >
@@ -145,7 +158,7 @@ export function RBACAdminPage() {
   });
 
   const roles = React.useMemo(() => rolesQuery.data?.data || [], [rolesQuery.data]);
-  const selectedRole = roles.find(r => r.id === selectedRoleId) || null;
+  const selectedRole = roles.find((r) => r.id === selectedRoleId) || null;
 
   React.useEffect(() => {
     if (!selectedRoleId && roles.length > 0) {
@@ -173,12 +186,14 @@ export function RBACAdminPage() {
   const createRoleMutation = useMutation({
     mutationFn: (payload: { name: string; description?: string; parentRoleId?: string | null }) =>
       rbacAdminService.createRole(payload),
-    onSuccess: async response => {
+    onSuccess: async (response) => {
       toast.success('Role created');
       setShowCreate(false);
       const newId = response.data?.id || null;
       await refreshRoleData(newId);
-      if (newId) {setSelectedRoleId(newId);}
+      if (newId) {
+        setSelectedRoleId(newId);
+      }
     },
     onError: (error: unknown) => {
       toast.error((error as { message?: string }).message || 'Failed to create role');
@@ -186,8 +201,10 @@ export function RBACAdminPage() {
   });
 
   const updateRoleMutation = useMutation({
-    mutationFn: (payload: { id: string; data: { name?: string; description?: string; parentRoleId?: string | null } }) =>
-      rbacAdminService.updateRole(payload.id, payload.data),
+    mutationFn: (payload: {
+      id: string;
+      data: { name?: string; description?: string; parentRoleId?: string | null };
+    }) => rbacAdminService.updateRole(payload.id, payload.data),
     onSuccess: async () => {
       toast.success('Role updated');
       setEditingRole(null);
@@ -209,7 +226,8 @@ export function RBACAdminPage() {
   });
 
   const savePermissionsMutation = useMutation({
-    mutationFn: () => rbacAdminService.updateRolePermissions(selectedRoleId as string, selectedPermissionCodes),
+    mutationFn: () =>
+      rbacAdminService.updateRolePermissions(selectedRoleId as string, selectedPermissionCodes),
     onSuccess: async () => {
       toast.success('Permissions updated');
       await refreshRoleData(selectedRoleId);
@@ -220,8 +238,8 @@ export function RBACAdminPage() {
   });
 
   const togglePermission = (code: string, checked: boolean) => {
-    setSelectedPermissionCodes(prev =>
-      checked ? Array.from(new Set([...prev, code])) : prev.filter(p => p !== code)
+    setSelectedPermissionCodes((prev) =>
+      checked ? Array.from(new Set([...prev, code])) : prev.filter((p) => p !== code)
     );
   };
 
@@ -231,7 +249,7 @@ export function RBACAdminPage() {
   );
   const stats = React.useMemo(() => {
     const totalRoles = roles.length;
-    const systemRoles = roles.filter(role => role.isSystem).length;
+    const systemRoles = roles.filter((role) => role.isSystem).length;
     const customRoles = totalRoles - systemRoles;
     const totalAssignedUsers = roles.reduce((sum, role) => sum + (role.userCount || 0), 0);
     const totalPermissions = permissionMeta.length;
@@ -251,9 +269,7 @@ export function RBACAdminPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">RBAC Administration</h1>
-        <p className="text-gray-600">
-          Manage roles and permission assignments for the system.
-        </p>
+        <p className="text-gray-600">Manage roles and permission assignments for the system.</p>
       </div>
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
@@ -300,7 +316,9 @@ export function RBACAdminPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalPermissions}</div>
             <p className="text-xs text-gray-600">
-              {selectedRole ? `${stats.selectedRolePermissions} selected for ${selectedRole.name}` : 'Catalog size'}
+              {selectedRole
+                ? `${stats.selectedRolePermissions} selected for ${selectedRole.name}`
+                : 'Catalog size'}
             </p>
           </CardContent>
         </Card>
@@ -328,20 +346,26 @@ export function RBACAdminPage() {
                 </Button>
               </CardHeader>
               <CardContent className="space-y-3">
-                {roles.map(role => (
+                {roles.map((role) => (
                   <div
                     key={role.id}
                     onClick={() => setSelectedRoleId(role.id)}
                     className={`rounded-lg border p-3 cursor-pointer ${
-                      selectedRoleId === role.id ? 'border-green-500 bg-green-50' : 'border-gray-200'
+                      selectedRoleId === role.id
+                        ? 'border-green-500 bg-green-50'
+                        : 'border-gray-200'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="font-medium truncate">{role.name}</div>
-                        <div className="text-xs text-gray-500 line-clamp-2">{role.description || 'No description'}</div>
+                        <div className="text-xs text-gray-500 line-clamp-2">
+                          {role.description || 'No description'}
+                        </div>
                         <div className="mt-2 flex flex-wrap gap-1">
-                          {role.parentRoleName && <Badge variant="outline">Parent: {role.parentRoleName}</Badge>}
+                          {role.parentRoleName && (
+                            <Badge variant="outline">Parent: {role.parentRoleName}</Badge>
+                          )}
                           <Badge variant="secondary">Users: {role.userCount || 0}</Badge>
                         </div>
                       </div>
@@ -349,7 +373,7 @@ export function RBACAdminPage() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          onClick={e => {
+                          onClick={(e) => {
                             e.stopPropagation();
                             setEditingRole(role);
                           }}
@@ -360,7 +384,7 @@ export function RBACAdminPage() {
                           size="icon"
                           variant="ghost"
                           disabled={!!role.isSystem}
-                          onClick={e => {
+                          onClick={(e) => {
                             e.stopPropagation();
                             // eslint-disable-next-line no-alert
                             if (window.confirm(`Delete role "${role.name}"?`)) {
@@ -374,9 +398,7 @@ export function RBACAdminPage() {
                     </div>
                   </div>
                 ))}
-                {roles.length === 0 && (
-                  <div className="text-sm text-gray-500">No roles found.</div>
-                )}
+                {roles.length === 0 && <div className="text-sm text-gray-500">No roles found.</div>}
               </CardContent>
             </Card>
 
@@ -385,7 +407,9 @@ export function RBACAdminPage() {
                 <div>
                   <CardTitle>Permission Matrix</CardTitle>
                   <div className="text-sm text-gray-500 mt-1">
-                    {selectedRole ? `Editing permissions for ${selectedRole.name}` : 'Select a role to edit permissions'}
+                    {selectedRole
+                      ? `Editing permissions for ${selectedRole.name}`
+                      : 'Select a role to edit permissions'}
                   </div>
                 </div>
                 <Button
@@ -408,9 +432,9 @@ export function RBACAdminPage() {
                         <h3 className="font-semibold text-sm text-gray-700">{moduleName}</h3>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {codes.map(code => {
+                        {codes.map((code) => {
                           const checked = selectedPermissionCodes.includes(code);
-                          const meta = permissionMeta.find(p => p.code === code);
+                          const meta = permissionMeta.find((p) => p.code === code);
                           return (
                             <label
                               key={code}
@@ -418,7 +442,7 @@ export function RBACAdminPage() {
                             >
                               <Checkbox
                                 checked={checked}
-                                onCheckedChange={value => togglePermission(code, value === true)}
+                                onCheckedChange={(value) => togglePermission(code, value === true)}
                               />
                               <div>
                                 <div className="text-sm font-medium">{code}</div>
@@ -442,11 +466,11 @@ export function RBACAdminPage() {
               <CardTitle>Page Access Guide</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-              {PAGE_PERMISSION_GUIDE.map(item => (
+              {PAGE_PERMISSION_GUIDE.map((item) => (
                 <div key={item.page} className="rounded border p-3">
                   <div className="font-medium text-sm">{item.page}</div>
                   <div className="mt-2 flex flex-wrap gap-1">
-                    {item.permissions.map(code => (
+                    {item.permissions.map((code) => (
                       <Badge key={code} variant="outline" className="text-xs">
                         {code}
                       </Badge>
@@ -464,19 +488,23 @@ export function RBACAdminPage() {
         onOpenChange={setShowCreate}
         roles={roles}
         mode="create"
-        onSubmit={payload => createRoleMutation.mutate(payload)}
+        onSubmit={(payload) => createRoleMutation.mutate(payload)}
       />
 
       <RoleModal
         open={!!editingRole}
-        onOpenChange={open => {
-          if (!open) {setEditingRole(null);}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingRole(null);
+          }
         }}
         roles={roles}
         mode="edit"
         initialRole={editingRole}
-        onSubmit={payload => {
-          if (!editingRole) {return;}
+        onSubmit={(payload) => {
+          if (!editingRole) {
+            return;
+          }
           updateRoleMutation.mutate({ id: editingRole.id, data: payload });
         }}
       />

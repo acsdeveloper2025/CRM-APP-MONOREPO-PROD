@@ -268,9 +268,7 @@ export class LocationsService {
     return response;
   }
 
-  async getAreaById(
-    id: string
-  ): Promise<
+  async getAreaById(id: string): Promise<
     ApiResponse<{
       id: string;
       name: string;

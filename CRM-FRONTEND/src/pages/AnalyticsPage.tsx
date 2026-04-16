@@ -8,14 +8,7 @@ import { AgentPerformanceCharts } from '@/components/analytics/AgentPerformanceC
 import { useCaseAnalytics } from '@/hooks/useAnalytics';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '@/services/api';
-import {
-  BarChart3,
-  FileText,
-  Users,
-  CheckSquare,
-  TrendingUp,
-  Clock
-} from 'lucide-react';
+import { BarChart3, FileText, Users, CheckSquare, TrendingUp, Clock } from 'lucide-react';
 
 export const AnalyticsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -23,7 +16,7 @@ export const AnalyticsPage: React.FC = () => {
   // Get overview data for the summary cards
   const { data: caseAnalytics } = useCaseAnalytics({
     dateFrom: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    dateTo: new Date().toISOString().split('T')[0]
+    dateTo: new Date().toISOString().split('T')[0],
   });
 
   const { data: tasksData } = useQuery({
@@ -32,7 +25,7 @@ export const AnalyticsPage: React.FC = () => {
       const params = new URLSearchParams({
         limit: '100',
         dateFrom: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        dateTo: new Date().toISOString().split('T')[0]
+        dateTo: new Date().toISOString().split('T')[0],
       });
       return apiService.get(`/verification-tasks?${params.toString()}`);
     },
@@ -41,24 +34,26 @@ export const AnalyticsPage: React.FC = () => {
   });
 
   const caseSummary = caseAnalytics?.data?.summary;
-  
+
   // Extract task statistics and pagination info from backend
-  const taskPayload = (tasksData?.data as { 
-    data?: { 
-      statistics: {
-        pending: number;
-        assigned: number;
-        inProgress: number;
-        completed: number;
-        highPriority: number;
-        totalAgents: number;
-      }, 
-      pagination: { total: number } 
-    } 
-  })?.data;
+  const taskPayload = (
+    tasksData?.data as {
+      data?: {
+        statistics: {
+          pending: number;
+          assigned: number;
+          inProgress: number;
+          completed: number;
+          highPriority: number;
+          totalAgents: number;
+        };
+        pagination: { total: number };
+      };
+    }
+  )?.data;
   const taskStats = taskPayload?.statistics;
   const totalTasks = taskPayload?.pagination?.total || 0;
-  
+
   const completedTasks = taskStats?.completed || 0;
   const inProgressTasks = taskStats?.inProgress || 0;
   const pendingTasks = (taskStats?.pending || 0) + (taskStats?.assigned || 0);
@@ -84,19 +79,31 @@ export const AnalyticsPage: React.FC = () => {
         <div className="relative">
           <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             <TabsList className="inline-flex w-auto min-w-full sm:w-full sm:grid sm:grid-cols-5 gap-1">
-              <TabsTrigger value="overview" className="flex items-center justify-center gap-2 whitespace-nowrap px-3 sm:px-4">
+              <TabsTrigger
+                value="overview"
+                className="flex items-center justify-center gap-2 whitespace-nowrap px-3 sm:px-4"
+              >
                 <BarChart3 className="h-4 w-4 shrink-0" />
                 <span>Overview</span>
               </TabsTrigger>
-              <TabsTrigger value="cases" className="flex items-center justify-center gap-2 whitespace-nowrap px-3 sm:px-4">
+              <TabsTrigger
+                value="cases"
+                className="flex items-center justify-center gap-2 whitespace-nowrap px-3 sm:px-4"
+              >
                 <FileText className="h-4 w-4 shrink-0" />
                 <span>Cases</span>
               </TabsTrigger>
-              <TabsTrigger value="tasks" className="flex items-center justify-center gap-2 whitespace-nowrap px-3 sm:px-4">
+              <TabsTrigger
+                value="tasks"
+                className="flex items-center justify-center gap-2 whitespace-nowrap px-3 sm:px-4"
+              >
                 <CheckSquare className="h-4 w-4 shrink-0" />
                 <span>Tasks</span>
               </TabsTrigger>
-              <TabsTrigger value="agents" className="flex items-center justify-center gap-2 whitespace-nowrap px-3 sm:px-4">
+              <TabsTrigger
+                value="agents"
+                className="flex items-center justify-center gap-2 whitespace-nowrap px-3 sm:px-4"
+              >
                 <Users className="h-4 w-4 shrink-0" />
                 <span>Agents</span>
               </TabsTrigger>
@@ -119,8 +126,7 @@ export const AnalyticsPage: React.FC = () => {
                 <p className="text-xs text-gray-600">
                   {caseSummary?.completionRate
                     ? `${caseSummary.completionRate.toFixed(1)}%`
-                    : 'No cases'
-                  }
+                    : 'No cases'}
                 </p>
               </CardContent>
             </Card>
@@ -133,9 +139,7 @@ export const AnalyticsPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalTasks}</div>
-                <p className="text-xs text-gray-600">
-                  {taskCompletionRate.toFixed(1)}%
-                </p>
+                <p className="text-xs text-gray-600">{taskCompletionRate.toFixed(1)}%</p>
               </CardContent>
             </Card>
 
@@ -147,9 +151,7 @@ export const AnalyticsPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">{completedTasks}</div>
-                <p className="text-xs text-gray-600">
-                  {inProgressTasks} in progress
-                </p>
+                <p className="text-xs text-gray-600">{inProgressTasks} in progress</p>
               </CardContent>
             </Card>
 
@@ -161,9 +163,7 @@ export const AnalyticsPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{activeAgents}</div>
-                <p className="text-xs text-gray-600">
-                  Field agents
-                </p>
+                <p className="text-xs text-gray-600">Field agents</p>
               </CardContent>
             </Card>
 
@@ -175,9 +175,7 @@ export const AnalyticsPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{pendingTasks}</div>
-                <p className="text-xs text-gray-600">
-                  Awaiting action
-                </p>
+                <p className="text-xs text-gray-600">Awaiting action</p>
               </CardContent>
             </Card>
           </div>
@@ -211,19 +209,25 @@ export const AnalyticsPage: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Avg Completion Time</span>
                     <span className="text-sm text-gray-600">
-                      {caseSummary?.avgCompletionDays ? `${caseSummary.avgCompletionDays.toFixed(1)} days` : 'N/A'}
+                      {caseSummary?.avgCompletionDays
+                        ? `${caseSummary.avgCompletionDays.toFixed(1)} days`
+                        : 'N/A'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Task Progress</span>
                     <span className="text-sm text-gray-600">
-                      {caseSummary?.avgFormCompletion ? `${caseSummary.avgFormCompletion.toFixed(1)}%` : 'N/A'}
+                      {caseSummary?.avgFormCompletion
+                        ? `${caseSummary.avgFormCompletion.toFixed(1)}%`
+                        : 'N/A'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Tasks per Case</span>
                     <span className="text-sm text-gray-600">
-                      {caseSummary?.totalCases && totalTasks ? (totalTasks / caseSummary.totalCases).toFixed(1) : 'N/A'}
+                      {caseSummary?.totalCases && totalTasks
+                        ? (totalTasks / caseSummary.totalCases).toFixed(1)
+                        : 'N/A'}
                     </span>
                   </div>
                 </div>
@@ -235,9 +239,7 @@ export const AnalyticsPage: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle>Analytics Overview</CardTitle>
-              <CardDescription>
-                Explore detailed insights using the tabs above
-              </CardDescription>
+              <CardDescription>Explore detailed insights using the tabs above</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">

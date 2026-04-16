@@ -8,7 +8,11 @@ interface LoadingSpinnerProps {
   className?: string;
 }
 
-export function LoadingSpinner({ size = 'md', variant = 'default', className }: LoadingSpinnerProps) {
+export function LoadingSpinner({
+  size = 'md',
+  variant = 'default',
+  className,
+}: LoadingSpinnerProps) {
   // Map size to react-loading-indicators size values
   const sizeMap = {
     sm: 'small' as const,
@@ -27,9 +31,13 @@ export function LoadingSpinner({ size = 'md', variant = 'default', className }: 
             key={i}
             className={cn(
               'rounded-full bg-primary animate-bounce',
-              size === 'sm' ? 'h-2 w-2' :
-              size === 'md' ? 'h-3 w-3' :
-              size === 'lg' ? 'h-4 w-4' : 'h-6 w-6'
+              size === 'sm'
+                ? 'h-2 w-2'
+                : size === 'md'
+                  ? 'h-3 w-3'
+                  : size === 'lg'
+                    ? 'h-4 w-4'
+                    : 'h-6 w-6'
             )}
             style={{ animationDelay: `${i * 0.1}s` }}
           />
@@ -40,22 +48,36 @@ export function LoadingSpinner({ size = 'md', variant = 'default', className }: 
 
   if (variant === 'pulse') {
     return (
-      <div className={cn('rounded-full bg-primary animate-pulse',
-        size === 'sm' ? 'h-4 w-4' :
-        size === 'md' ? 'h-6 w-6' :
-        size === 'lg' ? 'h-8 w-8' : 'h-12 w-12',
-        className)}
+      <div
+        className={cn(
+          'rounded-full bg-primary animate-pulse',
+          size === 'sm'
+            ? 'h-4 w-4'
+            : size === 'md'
+              ? 'h-6 w-6'
+              : size === 'lg'
+                ? 'h-8 w-8'
+                : 'h-12 w-12',
+          className
+        )}
       />
     );
   }
 
   if (variant === 'bounce') {
     return (
-      <div className={cn('rounded-full bg-primary animate-bounce',
-        size === 'sm' ? 'h-4 w-4' :
-        size === 'md' ? 'h-6 w-6' :
-        size === 'lg' ? 'h-8 w-8' : 'h-12 w-12',
-        className)}
+      <div
+        className={cn(
+          'rounded-full bg-primary animate-bounce',
+          size === 'sm'
+            ? 'h-4 w-4'
+            : size === 'md'
+              ? 'h-6 w-6'
+              : size === 'lg'
+                ? 'h-8 w-8'
+                : 'h-12 w-12',
+          className
+        )}
       />
     );
   }
@@ -91,7 +113,11 @@ export function LoadingOverlay({
       {isLoading && (
         <div className="absolute inset-0 bg-[#FAFAFA]/95 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="flex flex-col items-center space-y-4">
-            <LoadingSpinner size={spinnerSize} variant={spinnerVariant} className="text-[#10B981]" />
+            <LoadingSpinner
+              size={spinnerSize}
+              variant={spinnerVariant}
+              className="text-[#10B981]"
+            />
             <p className="text-sm text-[#1F2937] font-medium">{loadingText}</p>
           </div>
         </div>
@@ -113,9 +139,7 @@ export function LoadingCard({ title = 'Loading', description, className }: Loadi
         <LoadingSpinner size="lg" />
         <div>
           <h3 className="font-medium">{title}</h3>
-          {description && (
-            <p className="text-sm text-gray-600">{description}</p>
-          )}
+          {description && <p className="text-sm text-gray-600">{description}</p>}
         </div>
       </div>
     </div>
@@ -138,7 +162,7 @@ export function LoadingSkeleton({
   lines = 1,
 }: LoadingSkeletonProps) {
   const baseClasses = 'animate-pulse bg-slate-100 dark:bg-slate-800/60';
-  
+
   if (variant === 'text') {
     return (
       <div className={cn('space-y-2', className)}>
@@ -156,20 +180,10 @@ export function LoadingSkeleton({
   }
 
   if (variant === 'circular') {
-    return (
-      <div
-        className={cn(baseClasses, 'rounded-full', className)}
-        style={{ width, height }}
-      />
-    );
+    return <div className={cn(baseClasses, 'rounded-full', className)} style={{ width, height }} />;
   }
 
-  return (
-    <div
-      className={cn(baseClasses, 'rounded', className)}
-      style={{ width, height }}
-    />
-  );
+  return <div className={cn(baseClasses, 'rounded', className)} style={{ width, height }} />;
 }
 
 interface LoadingTableProps {
@@ -187,10 +201,14 @@ export function LoadingTable({ rows = 5, columns = 4, className }: LoadingTableP
           <LoadingSkeleton key={i} height="20px" />
         ))}
       </div>
-      
+
       {/* Rows */}
       {Array.from({ length: rows }).map((_, rowIndex) => (
-        <div key={rowIndex} className="grid gap-4" style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}>
+        <div
+          key={rowIndex}
+          className="grid gap-4"
+          style={{ gridTemplateColumns: `repeat(${columns}, 1fr)` }}
+        >
           {Array.from({ length: columns }).map((_, colIndex) => (
             <LoadingSkeleton key={colIndex} height="16px" />
           ))}
@@ -209,7 +227,7 @@ interface LoadingPageProps {
 export function LoadingPage({
   title = 'Loading',
   description = 'Please wait while we load your content',
-  className
+  className,
 }: LoadingPageProps) {
   return (
     <div className={cn('min-h-screen flex items-center justify-center bg-[#FAFAFA]', className)}>
@@ -251,7 +269,8 @@ export function LoadingButton({
         'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background',
         {
           'bg-primary text-primary-foreground hover:bg-primary/90': variant === 'default',
-          'bg-destructive text-destructive-foreground hover:bg-destructive/90': variant === 'destructive',
+          'bg-destructive text-destructive-foreground hover:bg-destructive/90':
+            variant === 'destructive',
           'border border-input hover:bg-accent hover:text-accent-foreground': variant === 'outline',
           'bg-secondary text-secondary-foreground hover:bg-secondary/80': variant === 'secondary',
           'hover:bg-accent hover:text-accent-foreground': variant === 'ghost',
@@ -287,7 +306,7 @@ interface LoadingStateProps {
 export function LoadingState({
   message = 'Loading...',
   size = 'lg',
-  className
+  className,
 }: LoadingStateProps) {
   return (
     <div className={cn('flex flex-col items-center justify-center py-12 space-y-4', className)}>

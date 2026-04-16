@@ -1,6 +1,6 @@
 /**
  * Shared Constants for CRM Frontend
- * 
+ *
  * This file contains all constant values used across the application
  * to ensure consistency and prevent magic strings/numbers.
  */
@@ -14,7 +14,7 @@ export const USER_ROLES = {
   FIELD_AGENT: 'FIELD_AGENT',
 } as const;
 
-export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
+export type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES];
 
 export const LEGACY_ROLE_ALIASES = {
   ADMIN: USER_ROLES.SUPER_ADMIN,
@@ -32,7 +32,9 @@ export const USER_ROLE_OPTIONS: ReadonlyArray<{ value: UserRole; label: string }
 ];
 
 export const normalizeUserRole = (role: string | null | undefined): UserRole | undefined => {
-  if (!role) {return undefined;}
+  if (!role) {
+    return undefined;
+  }
   const normalized = role.trim().toUpperCase();
   if ((CANONICAL_USER_ROLE_VALUES as readonly string[]).includes(normalized)) {
     return normalized as UserRole;
@@ -45,10 +47,10 @@ export const CASE_STATUS = {
   PENDING: 'PENDING',
   IN_PROGRESS: 'IN_PROGRESS',
   COMPLETED: 'COMPLETED',
-  REWORK_REQUIRED: 'REWORK_REQUIRED'
+  REWORK_REQUIRED: 'REWORK_REQUIRED',
 } as const;
 
-export type CaseStatusType = typeof CASE_STATUS[keyof typeof CASE_STATUS];
+export type CaseStatusType = (typeof CASE_STATUS)[keyof typeof CASE_STATUS];
 
 // Case Priority
 // Priority is a string literal across the API contract — backend stores
@@ -74,10 +76,10 @@ export const FORM_TYPES = {
   NOC: 'NOC',
   PROPERTY_APF: 'PROPERTY_APF',
   PROPERTY_INDIVIDUAL: 'PROPERTY_INDIVIDUAL',
-  RESIDENCE_CUM_OFFICE: 'RESIDENCE_CUM_OFFICE'
+  RESIDENCE_CUM_OFFICE: 'RESIDENCE_CUM_OFFICE',
 } as const;
 
-export type FormType = typeof FORM_TYPES[keyof typeof FORM_TYPES];
+export type FormType = (typeof FORM_TYPES)[keyof typeof FORM_TYPES];
 
 // Verification Outcomes
 export const VERIFICATION_OUTCOMES = {
@@ -87,18 +89,20 @@ export const VERIFICATION_OUTCOMES = {
   NSP: 'NSP', // No Such Person
   ENTRY_RESTRICTED: 'ENTRY_RESTRICTED',
   UNTRACEABLE: 'UNTRACEABLE',
-  REFER_TO_CREDIT: 'REFER_TO_CREDIT'
+  REFER_TO_CREDIT: 'REFER_TO_CREDIT',
 } as const;
 
-export type VerificationOutcome = typeof VERIFICATION_OUTCOMES[keyof typeof VERIFICATION_OUTCOMES];
+export type VerificationOutcome =
+  (typeof VERIFICATION_OUTCOMES)[keyof typeof VERIFICATION_OUTCOMES];
 
 // Form Submission Status
 export const FORM_SUBMISSION_STATUS = {
   DRAFT: 'DRAFT',
-  COMPLETED: 'COMPLETED'
+  COMPLETED: 'COMPLETED',
 } as const;
 
-export type FormSubmissionStatus = typeof FORM_SUBMISSION_STATUS[keyof typeof FORM_SUBMISSION_STATUS];
+export type FormSubmissionStatus =
+  (typeof FORM_SUBMISSION_STATUS)[keyof typeof FORM_SUBMISSION_STATUS];
 
 // Validation Status
 export const VALIDATION_STATUS = {
@@ -106,27 +110,31 @@ export const VALIDATION_STATUS = {
   VALID: 'VALID',
   INVALID: 'INVALID',
   WARNING: 'WARNING',
-  REQUIRES_REVIEW: 'REQUIRES_REVIEW'
+  REQUIRES_REVIEW: 'REQUIRES_REVIEW',
 } as const;
 
-export type ValidationStatusType = typeof VALIDATION_STATUS[keyof typeof VALIDATION_STATUS];
+export type ValidationStatusType = (typeof VALIDATION_STATUS)[keyof typeof VALIDATION_STATUS];
 
 // File Types
 export const FILE_TYPES = {
   IMAGE: 'image',
   DOCUMENT: 'document',
   VIDEO: 'video',
-  AUDIO: 'audio'
+  AUDIO: 'audio',
 } as const;
 
-export type FileType = typeof FILE_TYPES[keyof typeof FILE_TYPES];
+export type FileType = (typeof FILE_TYPES)[keyof typeof FILE_TYPES];
 
 // Supported MIME Types
 export const SUPPORTED_MIME_TYPES = {
   IMAGES: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
-  DOCUMENTS: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  DOCUMENTS: [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  ],
   VIDEOS: ['video/mp4', 'video/avi', 'video/mov', 'video/wmv'],
-  AUDIO: ['audio/mp3', 'audio/wav', 'audio/aac']
+  AUDIO: ['audio/mp3', 'audio/wav', 'audio/aac'],
 } as const;
 
 // File Size Limits (in bytes)
@@ -134,7 +142,7 @@ export const FILE_SIZE_LIMITS = {
   IMAGE: 10 * 1024 * 1024, // 10MB
   DOCUMENT: 25 * 1024 * 1024, // 25MB
   VIDEO: 100 * 1024 * 1024, // 100MB
-  AUDIO: 50 * 1024 * 1024 // 50MB
+  AUDIO: 50 * 1024 * 1024, // 50MB
 } as const;
 
 // Notification Types
@@ -142,10 +150,10 @@ export const NOTIFICATION_TYPES = {
   INFO: 'info',
   SUCCESS: 'success',
   WARNING: 'warning',
-  ERROR: 'error'
+  ERROR: 'error',
 } as const;
 
-export type NotificationType = typeof NOTIFICATION_TYPES[keyof typeof NOTIFICATION_TYPES];
+export type NotificationType = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES];
 
 // WebSocket Event Types
 export const WEBSOCKET_EVENTS = {
@@ -155,55 +163,55 @@ export const WEBSOCKET_EVENTS = {
   FORM_SUBMITTED: 'formSubmitted',
   NOTIFICATION: 'notification',
   USER_STATUS: 'userStatus',
-  SYSTEM_ALERT: 'systemAlert'
+  SYSTEM_ALERT: 'systemAlert',
 } as const;
 
-export type WebSocketEventType = typeof WEBSOCKET_EVENTS[keyof typeof WEBSOCKET_EVENTS];
+export type WebSocketEventType = (typeof WEBSOCKET_EVENTS)[keyof typeof WEBSOCKET_EVENTS];
 
 // API Response Status
 export const API_STATUS = {
   SUCCESS: 'success',
   ERROR: 'error',
   LOADING: 'loading',
-  IDLE: 'idle'
+  IDLE: 'idle',
 } as const;
 
-export type ApiStatus = typeof API_STATUS[keyof typeof API_STATUS];
+export type ApiStatus = (typeof API_STATUS)[keyof typeof API_STATUS];
 
 // Theme Constants
 export const THEME_MODES = {
   LIGHT: 'light',
   DARK: 'dark',
-  SYSTEM: 'system'
+  SYSTEM: 'system',
 } as const;
 
-export type ThemeMode = typeof THEME_MODES[keyof typeof THEME_MODES];
+export type ThemeMode = (typeof THEME_MODES)[keyof typeof THEME_MODES];
 
 // Color Schemes
 export const COLOR_SCHEMES = {
   BLUE: 'blue',
   GREEN: 'green',
   PURPLE: 'purple',
-  ORANGE: 'orange'
+  ORANGE: 'orange',
 } as const;
 
-export type ColorScheme = typeof COLOR_SCHEMES[keyof typeof COLOR_SCHEMES];
+export type ColorScheme = (typeof COLOR_SCHEMES)[keyof typeof COLOR_SCHEMES];
 
 // Pagination Constants
 export const PAGINATION = {
   DEFAULT_PAGE: 1,
   DEFAULT_LIMIT: 20,
   MAX_LIMIT: 500,
-  PAGE_SIZE_OPTIONS: [10, 20, 50, 100, 200]
+  PAGE_SIZE_OPTIONS: [10, 20, 50, 100, 200],
 } as const;
 
 // Sort Orders
 export const SORT_ORDERS = {
   ASC: 'asc',
-  DESC: 'desc'
+  DESC: 'desc',
 } as const;
 
-export type SortOrder = typeof SORT_ORDERS[keyof typeof SORT_ORDERS];
+export type SortOrder = (typeof SORT_ORDERS)[keyof typeof SORT_ORDERS];
 
 // Date Formats
 export const DATE_FORMATS = {
@@ -211,17 +219,17 @@ export const DATE_FORMATS = {
   DISPLAY_WITH_TIME: 'DD/MM/YYYY HH:mm',
   API: 'YYYY-MM-DD',
   API_WITH_TIME: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
-  FILENAME: 'YYYY-MM-DD_HH-mm-ss'
+  FILENAME: 'YYYY-MM-DD_HH-mm-ss',
 } as const;
 
 // Export Formats
 export const EXPORT_FORMATS = {
   EXCEL: 'excel',
   CSV: 'csv',
-  PDF: 'pdf'
+  PDF: 'pdf',
 } as const;
 
-export type ExportFormat = typeof EXPORT_FORMATS[keyof typeof EXPORT_FORMATS];
+export type ExportFormat = (typeof EXPORT_FORMATS)[keyof typeof EXPORT_FORMATS];
 
 // Commission Status
 export const COMMISSION_STATUS = {
@@ -229,29 +237,29 @@ export const COMMISSION_STATUS = {
   CALCULATED: 'CALCULATED',
   APPROVED: 'APPROVED',
   PAID: 'PAID',
-  REJECTED: 'REJECTED'
+  REJECTED: 'REJECTED',
 } as const;
 
-export type CommissionStatus = typeof COMMISSION_STATUS[keyof typeof COMMISSION_STATUS];
+export type CommissionStatus = (typeof COMMISSION_STATUS)[keyof typeof COMMISSION_STATUS];
 
 // Rate Types
 export const RATE_TYPES = {
   LOCAL: 'LOCAL',
   OGL: 'OGL', // Out of Geolocation
   OUTSTATION: 'OUTSTATION',
-  STANDARD: 'STANDARD'
+  STANDARD: 'STANDARD',
 } as const;
 
-export type RateType = typeof RATE_TYPES[keyof typeof RATE_TYPES];
+export type RateType = (typeof RATE_TYPES)[keyof typeof RATE_TYPES];
 
 // Currency
 export const CURRENCIES = {
   INR: 'INR',
   USD: 'USD',
-  EUR: 'EUR'
+  EUR: 'EUR',
 } as const;
 
-export type Currency = typeof CURRENCIES[keyof typeof CURRENCIES];
+export type Currency = (typeof CURRENCIES)[keyof typeof CURRENCIES];
 
 // Form Field Types
 export const FORM_FIELD_TYPES = {
@@ -270,10 +278,10 @@ export const FORM_FIELD_TYPES = {
   FILE: 'file',
   IMAGE: 'image',
   LOCATION: 'location',
-  SIGNATURE: 'signature'
+  SIGNATURE: 'signature',
 } as const;
 
-export type FormFieldType = typeof FORM_FIELD_TYPES[keyof typeof FORM_FIELD_TYPES];
+export type FormFieldType = (typeof FORM_FIELD_TYPES)[keyof typeof FORM_FIELD_TYPES];
 
 // Validation Rules
 export const VALIDATION_RULES = {
@@ -285,10 +293,10 @@ export const VALIDATION_RULES = {
   MIN_VALUE: 'minValue',
   MAX_VALUE: 'maxValue',
   PATTERN: 'pattern',
-  CUSTOM: 'custom'
+  CUSTOM: 'custom',
 } as const;
 
-export type ValidationRule = typeof VALIDATION_RULES[keyof typeof VALIDATION_RULES];
+export type ValidationRule = (typeof VALIDATION_RULES)[keyof typeof VALIDATION_RULES];
 
 // Error Codes
 export const ERROR_CODES = {
@@ -298,10 +306,10 @@ export const ERROR_CODES = {
   VALIDATION_ERROR: 'VALIDATION_ERROR',
   SERVER_ERROR: 'SERVER_ERROR',
   NETWORK_ERROR: 'NETWORK_ERROR',
-  TIMEOUT: 'TIMEOUT'
+  TIMEOUT: 'TIMEOUT',
 } as const;
 
-export type ErrorCode = typeof ERROR_CODES[keyof typeof ERROR_CODES];
+export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
 
 // Local Storage Keys
 export const STORAGE_KEYS = {
@@ -312,13 +320,13 @@ export const STORAGE_KEYS = {
   COLOR_SCHEME: 'crmColorScheme',
   SIDEBAR_COLLAPSED: 'crmSidebarCollapsed',
   FORM_DRAFT: 'crmFormDraft',
-  LAST_ROUTE: 'crmLastRoute'
+  LAST_ROUTE: 'crmLastRoute',
 } as const;
 
 // Cross-tab Synchronization Keys
 export const SYNC_KEYS = {
   LAST_ACTIVITY: 'crmLastActivity',
-  FORCE_LOGOUT: 'crmForceLogout'
+  FORCE_LOGOUT: 'crmForceLogout',
 } as const;
 
 // API Endpoints
@@ -327,7 +335,7 @@ export const API_ENDPOINTS = {
     LOGIN: '/auth/login',
     LOGOUT: '/auth/logout',
     REFRESH: '/auth/refresh',
-    UUID_LOGIN: '/auth/uuid-login'
+    UUID_LOGIN: '/auth/uuid-login',
   },
   CASES: {
     LIST: '/cases',
@@ -336,7 +344,7 @@ export const API_ENDPOINTS = {
     UPDATE: '/cases/:id',
     DELETE: '/cases/:id',
     BULK: '/cases/bulk',
-    EXPORT: '/cases/export'
+    EXPORT: '/cases/export',
   },
   USERS: {
     LIST: '/users',
@@ -344,23 +352,23 @@ export const API_ENDPOINTS = {
     CREATE: '/users',
     UPDATE: '/users/:id',
     PROFILE: '/user/profile',
-    ACTIVITIES: '/users/:id/activities'
+    ACTIVITIES: '/users/:id/activities',
   },
   FORMS: {
     SUBMISSIONS: '/forms/submissions',
     SUBMIT: '/forms/submissions',
-    VALIDATE: '/forms/submissions/:id/validate'
+    VALIDATE: '/forms/submissions/:id/validate',
   },
   ATTACHMENTS: {
     UPLOAD: '/attachments/upload',
     DETAIL: '/attachments/:id',
     DELETE: '/attachments/:id',
-    CASE_ATTACHMENTS: '/attachments/case/:caseId'
+    CASE_ATTACHMENTS: '/attachments/case/:caseId',
   },
   DASHBOARD: {
     STATS: '/dashboard/stats',
-    ACTIVITIES: '/dashboard/activities'
-  }
+    ACTIVITIES: '/dashboard/activities',
+  },
 } as const;
 
 // Regular Expressions
@@ -371,5 +379,5 @@ export const REGEX_PATTERNS = {
   PAN: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/,
   AADHAAR: /^\d{12}$/,
   IFSC: /^[A-Z]{4}0[A-Z0-9]{6}$/,
-  EMPLOYEE_ID: /^[A-Z0-9]{4,10}$/
+  EMPLOYEE_ID: /^[A-Z0-9]{4,10}$/,
 } as const;

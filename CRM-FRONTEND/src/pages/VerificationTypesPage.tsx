@@ -15,15 +15,10 @@ export function VerificationTypesPage() {
   const pageSize = 20;
 
   // Unified search with 800ms debounce
-  const {
-    searchValue,
-    debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
-  } = useUnifiedSearch({
-    syncWithUrl: true,
-  });
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({
+      syncWithUrl: true,
+    });
 
   // Reset pagination to page 1 when search changes
   useEffect(() => {
@@ -32,11 +27,12 @@ export function VerificationTypesPage() {
 
   const { data: verificationTypesData, isLoading: verificationTypesLoading } = useQuery({
     queryKey: ['verification-types', debouncedSearchValue, currentPage, pageSize],
-    queryFn: () => verificationTypesService.getVerificationTypes({
-      search: debouncedSearchValue || undefined,
-      page: currentPage,
-      limit: pageSize,
-    }),
+    queryFn: () =>
+      verificationTypesService.getVerificationTypes({
+        search: debouncedSearchValue || undefined,
+        page: currentPage,
+        limit: pageSize,
+      }),
   });
 
   // Fetch verification types stats
@@ -53,10 +49,10 @@ export function VerificationTypesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Verification Types Management</h1>
-          <p className="text-gray-600">
-            Manage verification types, categories, and configurations
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Verification Types Management
+          </h1>
+          <p className="text-gray-600">Manage verification types, categories, and configurations</p>
         </div>
       </div>
 
@@ -69,9 +65,7 @@ export function VerificationTypesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-gray-600">
-              All types
-            </p>
+            <p className="text-xs text-gray-600">All types</p>
           </CardContent>
         </Card>
 
@@ -82,9 +76,7 @@ export function VerificationTypesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.active}</div>
-            <p className="text-xs text-gray-600">
-              Currently active
-            </p>
+            <p className="text-xs text-gray-600">Currently active</p>
           </CardContent>
         </Card>
 
@@ -95,9 +87,7 @@ export function VerificationTypesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.inactive}</div>
-            <p className="text-xs text-gray-600">
-              Disabled types
-            </p>
+            <p className="text-xs text-gray-600">Disabled types</p>
           </CardContent>
         </Card>
 
@@ -108,9 +98,7 @@ export function VerificationTypesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{Object.keys(stats.byCategory || {}).length}</div>
-            <p className="text-xs text-gray-600">
-              Type categories
-            </p>
+            <p className="text-xs text-gray-600">Type categories</p>
           </CardContent>
         </Card>
 
@@ -120,10 +108,10 @@ export function VerificationTypesPage() {
             <TrendingUp className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{verificationTypes.filter(v => v.hasRates).length}</div>
-            <p className="text-xs text-gray-600">
-              Rate mappings
-            </p>
+            <div className="text-2xl font-bold">
+              {verificationTypes.filter((v) => v.hasRates).length}
+            </div>
+            <p className="text-xs text-gray-600">Rate mappings</p>
           </CardContent>
         </Card>
       </div>
@@ -150,10 +138,7 @@ export function VerificationTypesPage() {
               searchPlaceholder="Search verification types by name, code or category..."
               showFilters={false}
               actions={
-                <Button
-                  size="sm"
-                  onClick={() => setShowCreateVerificationType(true)}
-                >
+                <Button size="sm" onClick={() => setShowCreateVerificationType(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Type
                 </Button>
@@ -161,22 +146,20 @@ export function VerificationTypesPage() {
             />
 
             {/* Verification Types Table */}
-            <VerificationTypesTable
-              data={verificationTypes}
-              isLoading={verificationTypesLoading}
-            />
+            <VerificationTypesTable data={verificationTypes} isLoading={verificationTypesLoading} />
 
             {/* Pagination Controls */}
             {verificationTypesData?.pagination && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
                 <div className="text-sm text-gray-600">
-                  Showing {verificationTypesData.data?.length || 0} of {verificationTypesData.pagination.total} verification types
+                  Showing {verificationTypesData.data?.length || 0} of{' '}
+                  {verificationTypesData.pagination.total} verification types
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
                   >
                     Previous
@@ -187,7 +170,7 @@ export function VerificationTypesPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    onClick={() => setCurrentPage((prev) => prev + 1)}
                     disabled={currentPage >= (verificationTypesData.pagination.totalPages || 1)}
                   >
                     Next

@@ -99,7 +99,7 @@ class AttachmentsService extends BaseApiService {
       formData.append('verificationTaskId', data.verificationTaskId);
     }
 
-    data.files.forEach(file => {
+    data.files.forEach((file) => {
       formData.append('files', file);
     });
 
@@ -121,9 +121,7 @@ class AttachmentsService extends BaseApiService {
   /**
    * Bulk upload attachments
    */
-  async bulkUploadAttachments(
-    data: UploadAttachmentData
-  ): Promise<ApiResponse<Attachment[]>> {
+  async bulkUploadAttachments(data: UploadAttachmentData): Promise<ApiResponse<Attachment[]>> {
     const formData = this.buildUploadFormData(data, { includeTaskId: false });
     return this.post('/bulk-upload', formData, {
       headers: {
@@ -157,9 +155,13 @@ class AttachmentsService extends BaseApiService {
    * Download an attachment
    */
   async downloadAttachment(id: string): Promise<Blob> {
-    const response = await this.post(`/${id}/download`, {}, {
-      responseType: 'blob',
-    });
+    const response = await this.post(
+      `/${id}/download`,
+      {},
+      {
+        responseType: 'blob',
+      }
+    );
     return response.data as Blob;
   }
 

@@ -15,7 +15,7 @@
 import { SelectionState, DayFlag } from 'react-day-picker';
 
 /** camelCase aliases for the library's SelectionState enum. */
- 
+
 export const Selection = Object.freeze({
   rangeEnd: SelectionState.range_end,
   rangeMiddle: SelectionState.range_middle,

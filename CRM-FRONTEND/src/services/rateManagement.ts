@@ -1,8 +1,27 @@
 // Combined rate management service that orchestrates all rate-related operations
-import { rateTypesService, type RateType, type CreateRateTypeData, type UpdateRateTypeData } from './rateTypes';
-import { rateTypeAssignmentsService, type RateTypeAssignmentStatus, type BulkAssignRateTypesData } from './rateTypeAssignments';
-import { ratesService, type Rate, type AvailableRateType, type CreateOrUpdateRateData } from './rates';
-import { documentTypeRatesService, type DocumentTypeRate, type CreateDocumentTypeRateData, type DocumentTypeRateStats } from './documentTypeRates';
+import {
+  rateTypesService,
+  type RateType,
+  type CreateRateTypeData,
+  type UpdateRateTypeData,
+} from './rateTypes';
+import {
+  rateTypeAssignmentsService,
+  type RateTypeAssignmentStatus,
+  type BulkAssignRateTypesData,
+} from './rateTypeAssignments';
+import {
+  ratesService,
+  type Rate,
+  type AvailableRateType,
+  type CreateOrUpdateRateData,
+} from './rates';
+import {
+  documentTypeRatesService,
+  type DocumentTypeRate,
+  type CreateDocumentTypeRateData,
+  type DocumentTypeRateStats,
+} from './documentTypeRates';
 import type { ApiResponse } from '@/types/api';
 
 export interface RateManagementWorkflow {
@@ -57,7 +76,7 @@ export class RateManagementService {
     return rateTypeAssignmentsService.getAssignmentsByCombination({
       clientId,
       productId,
-      verificationTypeId
+      verificationTypeId,
     });
   }
 
@@ -74,7 +93,7 @@ export class RateManagementService {
     return ratesService.getAvailableRateTypesForAssignment({
       clientId,
       productId,
-      verificationTypeId
+      verificationTypeId,
     });
   }
 
@@ -90,19 +109,23 @@ export class RateManagementService {
     search?: string;
     isActive?: boolean;
   }): Promise<ApiResponse<Rate[]>> {
-    const queryFilters = filters ? {
-      ...filters,
-      clientId: filters.clientId ? Number(filters.clientId) : undefined,
-      productId: filters.productId ? Number(filters.productId) : undefined,
-      verificationTypeId: filters.verificationTypeId ? Number(filters.verificationTypeId) : undefined
-    } : undefined;
+    const queryFilters = filters
+      ? {
+          ...filters,
+          clientId: filters.clientId ? Number(filters.clientId) : undefined,
+          productId: filters.productId ? Number(filters.productId) : undefined,
+          verificationTypeId: filters.verificationTypeId
+            ? Number(filters.verificationTypeId)
+            : undefined,
+        }
+      : undefined;
 
     const response = await ratesService.getAllRates(queryFilters);
     return {
       success: response.success,
       message: response.message,
       data: response.data || [],
-      error: response.error
+      error: response.error,
     };
   }
 
@@ -115,21 +138,23 @@ export class RateManagementService {
     clientId: number,
     productId: number,
     verificationTypeId: number
-  ): Promise<ApiResponse<{
-    assignmentStatus: RateTypeAssignmentStatus[];
-    availableRateTypes: AvailableRateType[];
-  }>> {
+  ): Promise<
+    ApiResponse<{
+      assignmentStatus: RateTypeAssignmentStatus[];
+      availableRateTypes: AvailableRateType[];
+    }>
+  > {
     try {
       const [assignmentResponse, availableResponse] = await Promise.all([
         this.getAssignmentStatusForCombination(clientId, productId, verificationTypeId),
-        this.getAvailableRateTypesForRateAssignment(clientId, productId, verificationTypeId)
+        this.getAvailableRateTypesForRateAssignment(clientId, productId, verificationTypeId),
       ]);
 
       if (!assignmentResponse.success) {
         return {
           success: false,
           message: assignmentResponse.message,
-          error: assignmentResponse.error
+          error: assignmentResponse.error,
         };
       }
 
@@ -137,7 +162,7 @@ export class RateManagementService {
         return {
           success: false,
           message: availableResponse.message,
-          error: availableResponse.error
+          error: availableResponse.error,
         };
       }
 
@@ -146,14 +171,14 @@ export class RateManagementService {
         message: 'Workflow initialized successfully',
         data: {
           assignmentStatus: assignmentResponse.data || [],
-          availableRateTypes: availableResponse.data || []
-        }
+          availableRateTypes: availableResponse.data || [],
+        },
       };
     } catch (_error) {
       return {
         success: false,
         message: 'Failed to initialize workflow',
-        error: { code: 'WORKFLOW_INIT_ERROR' }
+        error: { code: 'WORKFLOW_INIT_ERROR' },
       };
     }
   }
@@ -172,7 +197,7 @@ export class RateManagementService {
         clientId,
         productId,
         verificationTypeId,
-        rateTypeIds
+        rateTypeIds,
       });
 
       if (!assignmentResponse.success) {
@@ -180,37 +205,37 @@ export class RateManagementService {
       }
 
       // Step 2: Set rates for assigned rate types
-      const ratePromises = rates.map(rate =>
+      const ratePromises = rates.map((rate) =>
         this.setRateAmount({
           clientId,
           productId,
           verificationTypeId,
           rateTypeId: rate.rateTypeId,
           amount: rate.amount,
-          currency: rate.currency || 'INR'
+          currency: rate.currency || 'INR',
         })
       );
 
       const rateResponses = await Promise.all(ratePromises);
-      const failedRates = rateResponses.filter(response => !response.success);
+      const failedRates = rateResponses.filter((response) => !response.success);
 
       if (failedRates.length > 0) {
         return {
           success: false,
           message: `Failed to set ${failedRates.length} rates`,
-          error: { code: 'PARTIAL_RATE_SETUP_FAILURE' }
+          error: { code: 'PARTIAL_RATE_SETUP_FAILURE' },
         };
       }
 
       return {
         success: true,
-        message: 'Rate setup workflow completed successfully'
+        message: 'Rate setup workflow completed successfully',
       };
     } catch (_error) {
       return {
         success: false,
         message: 'Failed to complete rate setup workflow',
-        error: { code: 'WORKFLOW_COMPLETION_ERROR' }
+        error: { code: 'WORKFLOW_COMPLETION_ERROR' },
       };
     }
   }
@@ -226,7 +251,9 @@ export class RateManagementService {
     return documentTypeRatesService.getDocumentTypeRates(filters);
   }
 
-  async createOrUpdateDocumentTypeRate(data: CreateDocumentTypeRateData): Promise<ApiResponse<void>> {
+  async createOrUpdateDocumentTypeRate(
+    data: CreateDocumentTypeRateData
+  ): Promise<ApiResponse<void>> {
     return documentTypeRatesService.createOrUpdateDocumentTypeRate(data);
   }
 
@@ -239,23 +266,25 @@ export class RateManagementService {
   }
 
   // Statistics and reporting
-  async getRateManagementStats(): Promise<ApiResponse<{
-    rateTypes: { total: number; active: number; inactive: number };
-    rates: { total: number; active: number; inactive: number; averageAmount: number };
-    documentTypeRates?: DocumentTypeRateStats;
-  }>> {
+  async getRateManagementStats(): Promise<
+    ApiResponse<{
+      rateTypes: { total: number; active: number; inactive: number };
+      rates: { total: number; active: number; inactive: number; averageAmount: number };
+      documentTypeRates?: DocumentTypeRateStats;
+    }>
+  > {
     try {
       const [rateTypeStats, rateStats, documentTypeRateStats] = await Promise.all([
         rateTypesService.getRateTypeStats(),
         ratesService.getRateStats(),
-        documentTypeRatesService.getDocumentTypeRateStats()
+        documentTypeRatesService.getDocumentTypeRateStats(),
       ]);
 
       if (!rateTypeStats.success || !rateStats.success) {
         return {
           success: false,
           message: 'Failed to retrieve statistics',
-          error: { code: 'STATS_RETRIEVAL_ERROR' }
+          error: { code: 'STATS_RETRIEVAL_ERROR' },
         };
       }
 
@@ -265,14 +294,14 @@ export class RateManagementService {
         data: {
           rateTypes: rateTypeStats.data || { total: 0, active: 0, inactive: 0 },
           rates: rateStats.data || { total: 0, active: 0, inactive: 0, averageAmount: 0 },
-          documentTypeRates: documentTypeRateStats.data
-        }
+          documentTypeRates: documentTypeRateStats.data,
+        },
       };
     } catch (_error) {
       return {
         success: false,
         message: 'Failed to retrieve statistics',
-        error: { code: 'STATS_ERROR' }
+        error: { code: 'STATS_ERROR' },
       };
     }
   }
@@ -295,5 +324,5 @@ export type {
   CreateOrUpdateRateData,
   DocumentTypeRate,
   CreateDocumentTypeRateData,
-  DocumentTypeRateStats
+  DocumentTypeRateStats,
 };

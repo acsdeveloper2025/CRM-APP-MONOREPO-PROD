@@ -10,75 +10,75 @@ export interface UnifiedSearchFilterLayoutProps {
    * Search value
    */
   searchValue: string;
-  
+
   /**
    * Callback when search value changes
    */
   onSearchChange: (value: string) => void;
-  
+
   /**
    * Callback when search is cleared
    */
   onSearchClear?: () => void;
-  
+
   /**
    * Whether search is loading/debouncing
    */
   isSearchLoading?: boolean;
-  
+
   /**
    * Search placeholder
    */
   searchPlaceholder?: string;
-  
+
   /**
    * Filter panel content
    */
   filterContent?: ReactNode;
-  
+
   /**
    * Whether filters are active
    */
   hasActiveFilters?: boolean;
-  
+
   /**
    * Number of active filters
    */
   activeFilterCount?: number;
-  
+
   /**
    * Callback when clear filters is clicked
    */
   onClearFilters?: () => void;
-  
+
   /**
    * Action buttons (e.g., Add, Export, Refresh)
    */
   actions?: ReactNode;
-  
+
   /**
    * Whether to show the filter panel
    * @default true
    */
   showFilters?: boolean;
-  
+
   /**
    * Whether filters are collapsible
    * @default true
    */
   filtersCollapsible?: boolean;
-  
+
   /**
    * Initial collapsed state for filters
    * @default false
    */
   filtersDefaultCollapsed?: boolean;
-  
+
   /**
    * Additional CSS classes
    */
   className?: string;
-  
+
   /**
    * Layout variant
    * @default "stacked" - Search on top, filters below
@@ -89,14 +89,14 @@ export interface UnifiedSearchFilterLayoutProps {
 
 /**
  * Unified search and filter layout component
- * 
+ *
  * Provides a standardized layout for search input, filters, and action buttons
- * 
+ *
  * @example
  * ```tsx
  * const { searchValue, setSearchValue, clearSearch, isDebouncing } = useUnifiedSearch();
  * const { filters, setFilter, clearFilters, hasActiveFilters } = useUnifiedFilters();
- * 
+ *
  * <UnifiedSearchFilterLayout
  *   searchValue={searchValue}
  *   onSearchChange={setSearchValue}
@@ -176,12 +176,8 @@ export const UnifiedSearchFilterLayout: React.FC<UnifiedSearchFilterLayoutProps>
                 )}
               </Button>
             )}
-            
-            {actions && (
-              <div className="flex items-center gap-2">
-                {actions}
-              </div>
-            )}
+
+            {actions && <div className="flex items-center gap-2">{actions}</div>}
           </div>
         </div>
 
@@ -218,11 +214,7 @@ export const UnifiedSearchFilterLayout: React.FC<UnifiedSearchFilterLayoutProps>
         </div>
 
         {/* Actions */}
-        {actions && (
-          <div className="flex items-center gap-2 flex-wrap">
-            {actions}
-          </div>
-        )}
+        {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
       </div>
 
       {/* Filter Panel */}
@@ -249,32 +241,32 @@ export interface SearchOnlyLayoutProps {
    * Search value
    */
   searchValue: string;
-  
+
   /**
    * Callback when search value changes
    */
   onSearchChange: (value: string) => void;
-  
+
   /**
    * Callback when search is cleared
    */
   onSearchClear?: () => void;
-  
+
   /**
    * Whether search is loading/debouncing
    */
   isSearchLoading?: boolean;
-  
+
   /**
    * Search placeholder
    */
   searchPlaceholder?: string;
-  
+
   /**
    * Action buttons
    */
   actions?: ReactNode;
-  
+
   /**
    * Additional CSS classes
    */
@@ -304,11 +296,7 @@ export const SearchOnlyLayout: React.FC<SearchOnlyLayoutProps> = ({
       </div>
 
       {/* Actions */}
-      {actions && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {actions}
-        </div>
-      )}
+      {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
     </div>
   );
 };
@@ -322,11 +310,7 @@ export interface FilterGridProps {
   columns?: 1 | 2 | 3 | 4;
 }
 
-export const FilterGrid: React.FC<FilterGridProps> = ({
-  children,
-  className,
-  columns = 3,
-}) => {
+export const FilterGrid: React.FC<FilterGridProps> = ({ children, className, columns = 3 }) => {
   const gridCols = {
     1: 'grid-cols-1',
     2: 'grid-cols-1 md:grid-cols-2',
@@ -334,9 +318,5 @@ export const FilterGrid: React.FC<FilterGridProps> = ({
     4: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4',
   };
 
-  return (
-    <div className={cn('grid gap-4', gridCols[columns], className)}>
-      {children}
-    </div>
-  );
+  return <div className={cn('grid gap-4', gridCols[columns], className)}>{children}</div>;
 };

@@ -54,18 +54,25 @@ export function RateAssignmentTab() {
   // Fetch verification types for selected product
   const { data: verificationTypesData } = useQuery({
     queryKey: ['product-verification-types', selectedProductId],
-    queryFn: () => verificationTypesService.getVerificationTypesByProduct(String(selectedProductId || '')),
+    queryFn: () =>
+      verificationTypesService.getVerificationTypesByProduct(String(selectedProductId || '')),
     enabled: !!selectedProductId,
   });
 
   // Fetch available rate types for selected combination
   const { data: availableRateTypesData, isLoading: rateTypesLoading } = useQuery({
-    queryKey: ['available-rate-types', selectedClientId, selectedProductId, selectedVerificationTypeId],
-    queryFn: () => ratesService.getAvailableRateTypesForAssignment({
-      clientId: Number(selectedClientId),
-      productId: Number(selectedProductId),
-      verificationTypeId: Number(selectedVerificationTypeId),
-    }),
+    queryKey: [
+      'available-rate-types',
+      selectedClientId,
+      selectedProductId,
+      selectedVerificationTypeId,
+    ],
+    queryFn: () =>
+      ratesService.getAvailableRateTypesForAssignment({
+        clientId: Number(selectedClientId),
+        productId: Number(selectedProductId),
+        verificationTypeId: Number(selectedVerificationTypeId),
+      }),
     enabled: !!(selectedClientId && selectedProductId && selectedVerificationTypeId),
   });
 
@@ -73,7 +80,7 @@ export function RateAssignmentTab() {
   useEffect(() => {
     if (availableRateTypesData?.data) {
       const inputs: Record<string, RateInput> = {};
-      availableRateTypesData.data.forEach(rateType => {
+      availableRateTypesData.data.forEach((rateType) => {
         inputs[rateType.rateTypeId] = {
           rateTypeId: rateType.rateTypeId,
           amount: rateType.currentAmount?.toString() || '',
@@ -98,7 +105,7 @@ export function RateAssignmentTab() {
     },
     invalidateKeys: [
       ['available-rate-types', selectedClientId, selectedProductId, selectedVerificationTypeId],
-      ['rate-management-stats']
+      ['rate-management-stats'],
     ],
     successMessage: 'Rate saved successfully',
     errorContext: 'Rate Assignment',
@@ -129,7 +136,7 @@ export function RateAssignmentTab() {
   };
 
   const handleRateInputChange = (rateTypeId: number, field: keyof RateInput, value: string) => {
-    setRateInputs(prev => ({
+    setRateInputs((prev) => ({
       ...prev,
       [rateTypeId]: {
         ...prev[rateTypeId],
@@ -172,7 +179,10 @@ export function RateAssignmentTab() {
             {/* Client Selection */}
             <div className="space-y-2">
               <Label htmlFor="client-select">Client *</Label>
-              <Select value={selectedClientId ? String(selectedClientId) : ""} onValueChange={handleClientChange}>
+              <Select
+                value={selectedClientId ? String(selectedClientId) : ''}
+                onValueChange={handleClientChange}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a client" />
                 </SelectTrigger>
@@ -190,7 +200,7 @@ export function RateAssignmentTab() {
             <div className="space-y-2">
               <Label htmlFor="product-select">Product *</Label>
               <Select
-                value={selectedProductId ? String(selectedProductId) : ""}
+                value={selectedProductId ? String(selectedProductId) : ''}
                 onValueChange={handleProductChange}
                 disabled={!selectedClientId}
               >
@@ -211,7 +221,7 @@ export function RateAssignmentTab() {
             <div className="space-y-2">
               <Label htmlFor="verification-type-select">Verification Type *</Label>
               <Select
-                value={selectedVerificationTypeId ? String(selectedVerificationTypeId) : ""}
+                value={selectedVerificationTypeId ? String(selectedVerificationTypeId) : ''}
                 onValueChange={handleVerificationTypeChange}
                 disabled={!selectedProductId}
               >
@@ -235,13 +245,14 @@ export function RateAssignmentTab() {
               <h4 className="font-medium mb-2">Selected Combination:</h4>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">
-                  Client: {clients.find(c => c.id === selectedClientId)?.name}
+                  Client: {clients.find((c) => c.id === selectedClientId)?.name}
                 </Badge>
                 <Badge variant="outline">
-                  Product: {products.find(p => p.id === selectedProductId)?.name}
+                  Product: {products.find((p) => p.id === selectedProductId)?.name}
                 </Badge>
                 <Badge variant="outline">
-                  Verification: {verificationTypes.find(vt => vt.id === selectedVerificationTypeId)?.name}
+                  Verification:{' '}
+                  {verificationTypes.find((vt) => vt.id === selectedVerificationTypeId)?.name}
                 </Badge>
               </div>
             </div>
@@ -262,9 +273,7 @@ export function RateAssignmentTab() {
               </div>
             ) : availableRateTypes.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-600">
-                  No rate types are assigned to this combination.
-                </p>
+                <p className="text-gray-600">No rate types are assigned to this combination.</p>
                 <p className="text-sm text-gray-600 mt-2">
                   Please assign rate types in the &quot;Rate Type Assignment&quot; tab first.
                 </p>
@@ -292,9 +301,7 @@ export function RateAssignmentTab() {
 
                       return (
                         <TableRow key={rateType.rateTypeId}>
-                          <TableCell className="font-medium">
-                            {rateType.rateTypeName}
-                          </TableCell>
+                          <TableCell className="font-medium">{rateType.rateTypeName}</TableCell>
                           <TableCell className="text-gray-600">
                             {rateType.rateTypeDescription || 'No description'}
                           </TableCell>

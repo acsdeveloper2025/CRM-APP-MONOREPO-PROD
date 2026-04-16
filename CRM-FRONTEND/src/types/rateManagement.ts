@@ -74,7 +74,9 @@ export interface CreateRateData {
   effectiveFrom?: string;
 }
 
-export type UpdateRateData = Partial<Omit<CreateRateData, 'clientId' | 'productId' | 'verificationTypeId' | 'rateTypeId'>>;
+export type UpdateRateData = Partial<
+  Omit<CreateRateData, 'clientId' | 'productId' | 'verificationTypeId' | 'rateTypeId'>
+>;
 
 export interface RateHistory {
   id: number; // Changed from string (UUID) to number (BIGSERIAL)

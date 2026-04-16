@@ -2,7 +2,17 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
-import { MoreHorizontal, Edit, Trash2, UserCheck, UserX, Eye, Shield, Key, RefreshCw } from 'lucide-react';
+import {
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  UserCheck,
+  UserX,
+  Eye,
+  Shield,
+  Key,
+  RefreshCw,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -20,10 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  MobileTableCard,
-  MobileTableField,
-} from '@/components/ui/responsive-table';
+import { MobileTableCard, MobileTableField } from '@/components/ui/responsive-table';
 import { Badge } from '@/components/ui/badge';
 import { LoadingState } from '@/components/ui/loading';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -47,7 +54,11 @@ import { UserDetailsDialog } from './UserDetailsDialog';
 import { ResetPasswordDialog } from './ResetPasswordDialog';
 
 import { getRoleBadge } from '@/utils/roleUtils';
-import { getPrimaryRoleLabel, isBackendScopedUser, isFieldAgentUser } from '@/utils/userPermissionProfiles';
+import {
+  getPrimaryRoleLabel,
+  isBackendScopedUser,
+  isFieldAgentUser,
+} from '@/utils/userPermissionProfiles';
 import { logger } from '@/utils/logger';
 
 interface UsersTableProps {
@@ -114,13 +125,13 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
     if (checked) {
       setSelectedUsers([...selectedUsers, userId]);
     } else {
-      setSelectedUsers(selectedUsers.filter(id => id !== userId));
+      setSelectedUsers(selectedUsers.filter((id) => id !== userId));
     }
   };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedUsers(data.map(user => user.id));
+      setSelectedUsers(data.map((user) => user.id));
     } else {
       setSelectedUsers([]);
     }
@@ -173,9 +184,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
 
   const getStatusBadge = (isActive: boolean) => {
     return (
-      <Badge variant={isActive ? 'default' : 'secondary'}>
-        {isActive ? 'Active' : 'Inactive'}
-      </Badge>
+      <Badge variant={isActive ? 'default' : 'secondary'}>{isActive ? 'Active' : 'Inactive'}</Badge>
     );
   };
 
@@ -188,9 +197,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
       <div className="text-center py-12">
         <Shield className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-4 text-lg font-semibold">No users found</h3>
-        <p className="text-gray-600">
-          Get started by adding your first user.
-        </p>
+        <p className="text-gray-600">Get started by adding your first user.</p>
       </div>
     );
   }
@@ -200,15 +207,13 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
       {/* Bulk Actions */}
       {selectedUsers.length > 0 && (
         <div className="flex items-center justify-between p-4 bg-slate-100 dark:bg-slate-800/60 rounded-lg mb-4">
-          <span className="text-sm font-medium">
-            {selectedUsers.length} user(s) selected
-          </span>
+          <span className="text-sm font-medium">{selectedUsers.length} user(s) selected</span>
           <div className="flex items-center space-x-2">
             <Button
               size="sm"
               variant="outline"
               onClick={() => {
-                selectedUsers.forEach(id => activateUserMutation.mutate(id));
+                selectedUsers.forEach((id) => activateUserMutation.mutate(id));
                 setSelectedUsers([]);
               }}
             >
@@ -219,7 +224,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
               size="sm"
               variant="outline"
               onClick={() => {
-                selectedUsers.forEach(id => deactivateUserMutation.mutate(id));
+                selectedUsers.forEach((id) => deactivateUserMutation.mutate(id));
                 setSelectedUsers([]);
               }}
             >
@@ -257,9 +262,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                 <TableCell>
                   <Checkbox
                     checked={selectedUsers.includes(user.id)}
-                    onCheckedChange={(checked) =>
-                      handleSelectUser(user.id, checked as boolean)
-                    }
+                    onCheckedChange={(checked) => handleSelectUser(user.id, checked as boolean)}
                   />
                 </TableCell>
                 <TableCell>
@@ -267,7 +270,11 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user.profilePhotoUrl} alt={user.name} />
                       <AvatarFallback>
-                        {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        {user.name
+                          .split(' ')
+                          .map((n) => n[0])
+                          .join('')
+                          .toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div>
@@ -287,29 +294,39 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                 <TableCell className="hidden lg:table-cell">
                   <div>
                     <div className="font-medium">{user.departmentName || 'No Department'}</div>
-                    <div className="text-sm text-gray-600">{user.designationName || user.designation}</div>
+                    <div className="text-sm text-gray-600">
+                      {user.designationName || user.designation}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
                   {isBackendScopedUser(user) ? (
                     <div className="text-sm">
                       <div className="flex items-center gap-1">
-                        <span className="font-medium text-green-700">{user.assignedClientsCount || 0}</span>
+                        <span className="font-medium text-green-700">
+                          {user.assignedClientsCount || 0}
+                        </span>
                         <span className="text-gray-600">clients</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span className="font-medium text-green-700">{user.assignedProductsCount || 0}</span>
+                        <span className="font-medium text-green-700">
+                          {user.assignedProductsCount || 0}
+                        </span>
                         <span className="text-gray-600">products</span>
                       </div>
                     </div>
                   ) : isFieldAgentUser(user) ? (
                     <div className="text-sm">
                       <div className="flex items-center gap-1">
-                        <span className="font-medium text-green-700">{user.assignedPincodesCount || 0}</span>
+                        <span className="font-medium text-green-700">
+                          {user.assignedPincodesCount || 0}
+                        </span>
                         <span className="text-gray-600">pincodes</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span className="font-medium text-green-700">{user.assignedAreasCount || 0}</span>
+                        <span className="font-medium text-green-700">
+                          {user.assignedAreasCount || 0}
+                        </span>
                         <span className="text-gray-600">areas</span>
                       </div>
                     </div>
@@ -317,11 +334,9 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                     <span className="text-sm text-gray-400">N/A</span>
                   )}
                 </TableCell>
-                <TableCell>
-                  {getStatusBadge(user.isActive ?? false)}
-                </TableCell>
+                <TableCell>{getStatusBadge(user.isActive ?? false)}</TableCell>
                 <TableCell className="hidden xl:table-cell">
-                  {(user.lastLogin || user.lastLoginAt) ? (
+                  {user.lastLogin || user.lastLoginAt ? (
                     <div className="text-sm">
                       {new Date(user.lastLogin || user.lastLoginAt || '').toLocaleString()}
                     </div>
@@ -365,16 +380,12 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
 
                       <DropdownMenuSeparator />
                       {user.isActive ? (
-                        <DropdownMenuItem
-                          onClick={() => deactivateUserMutation.mutate(user.id)}
-                        >
+                        <DropdownMenuItem onClick={() => deactivateUserMutation.mutate(user.id)}>
                           <UserX className="mr-2 h-4 w-4" />
                           Deactivate
                         </DropdownMenuItem>
                       ) : (
-                        <DropdownMenuItem
-                          onClick={() => activateUserMutation.mutate(user.id)}
-                        >
+                        <DropdownMenuItem onClick={() => activateUserMutation.mutate(user.id)}>
                           <UserCheck className="mr-2 h-4 w-4" />
                           Activate
                         </DropdownMenuItem>
@@ -404,14 +415,16 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
               <div className="flex items-center space-x-3 flex-1 min-w-0">
                 <Checkbox
                   checked={selectedUsers.includes(user.id)}
-                  onCheckedChange={(checked) =>
-                    handleSelectUser(user.id, checked as boolean)
-                  }
+                  onCheckedChange={(checked) => handleSelectUser(user.id, checked as boolean)}
                 />
                 <Avatar className="h-10 w-10 shrink-0">
                   <AvatarImage src={user.profilePhotoUrl} alt={user.name} />
                   <AvatarFallback>
-                    {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                    {user.name
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')
+                      .toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
@@ -454,25 +467,18 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
 
                   <DropdownMenuSeparator />
                   {user.isActive ? (
-                    <DropdownMenuItem
-                      onClick={() => deactivateUserMutation.mutate(user.id)}
-                    >
+                    <DropdownMenuItem onClick={() => deactivateUserMutation.mutate(user.id)}>
                       <UserX className="mr-2 h-4 w-4" />
                       Deactivate
                     </DropdownMenuItem>
                   ) : (
-                    <DropdownMenuItem
-                      onClick={() => activateUserMutation.mutate(user.id)}
-                    >
+                    <DropdownMenuItem onClick={() => activateUserMutation.mutate(user.id)}>
                       <UserCheck className="mr-2 h-4 w-4" />
                       Activate
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => handleDelete(user)}
-                    className="text-destructive"
-                  >
+                  <DropdownMenuItem onClick={() => handleDelete(user)} className="text-destructive">
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete User
                   </DropdownMenuItem>
@@ -481,21 +487,17 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <MobileTableField
-                label="Role"
-                value={getUserRoleBadge(getPrimaryRoleLabel(user))}
-              />
-              <MobileTableField
-                label="Status"
-                value={getStatusBadge(user.isActive ?? false)}
-              />
+              <MobileTableField label="Role" value={getUserRoleBadge(getPrimaryRoleLabel(user))} />
+              <MobileTableField label="Status" value={getStatusBadge(user.isActive ?? false)} />
               <MobileTableField
                 label="Department"
                 value={
                   <div>
                     <div className="font-medium">{user.departmentName || 'No Department'}</div>
                     {user.designation && (
-                      <div className="text-sm text-gray-600">{user.designationName || user.designation}</div>
+                      <div className="text-sm text-gray-600">
+                        {user.designationName || user.designation}
+                      </div>
                     )}
                   </div>
                 }
@@ -506,11 +508,15 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                   value={
                     <div className="text-sm">
                       <div className="flex items-center gap-1">
-                        <span className="font-medium text-green-700">{user.assignedClientsCount || 0}</span>
+                        <span className="font-medium text-green-700">
+                          {user.assignedClientsCount || 0}
+                        </span>
                         <span className="text-gray-600">clients</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span className="font-medium text-green-700">{user.assignedProductsCount || 0}</span>
+                        <span className="font-medium text-green-700">
+                          {user.assignedProductsCount || 0}
+                        </span>
                         <span className="text-gray-600">products</span>
                       </div>
                     </div>
@@ -523,11 +529,15 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                   value={
                     <div className="text-sm">
                       <div className="flex items-center gap-1">
-                        <span className="font-medium text-green-700">{user.assignedPincodesCount || 0}</span>
+                        <span className="font-medium text-green-700">
+                          {user.assignedPincodesCount || 0}
+                        </span>
                         <span className="text-gray-600">pincodes</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span className="font-medium text-green-700">{user.assignedAreasCount || 0}</span>
+                        <span className="font-medium text-green-700">
+                          {user.assignedAreasCount || 0}
+                        </span>
                         <span className="text-gray-600">areas</span>
                       </div>
                     </div>
@@ -537,7 +547,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
               <MobileTableField
                 label="Last Login"
                 value={
-                  (user.lastLogin || user.lastLoginAt) ? (
+                  user.lastLogin || user.lastLoginAt ? (
                     <div className="text-sm">
                       {new Date(user.lastLogin || user.lastLoginAt || '').toLocaleDateString()}
                     </div>
@@ -584,16 +594,14 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
         />
       )}
 
-
-
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the user
-              &quot;{userToDelete?.name}&quot; and all associated data.
+              This action cannot be undone. This will permanently delete the user &quot;
+              {userToDelete?.name}&quot; and all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

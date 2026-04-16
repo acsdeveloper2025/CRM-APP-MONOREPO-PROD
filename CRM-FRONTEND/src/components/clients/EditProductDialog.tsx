@@ -76,9 +76,7 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
       <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Product</DialogTitle>
-          <DialogDescription>
-            Update the product information.
-          </DialogDescription>
+          <DialogDescription>Update the product information.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -90,14 +88,9 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
                 <FormItem>
                   <FormLabel>Product Code</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="e.g., LOAN_VERIFICATION"
-                      {...field}
-                    />
+                    <Input placeholder="e.g., LOAN_VERIFICATION" {...field} />
                   </FormControl>
-                  <FormDescription>
-                    Unique identifier for this product
-                  </FormDescription>
+                  <FormDescription>Unique identifier for this product</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -110,14 +103,9 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
                 <FormItem>
                   <FormLabel>Product Name</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="Enter product name"
-                      {...field}
-                    />
+                    <Input placeholder="Enter product name" {...field} />
                   </FormControl>
-                  <FormDescription>
-                    The name of the product or service
-                  </FormDescription>
+                  <FormDescription>The name of the product or service</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -136,7 +124,8 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
               <Button
                 type="submit"
                 disabled={updateMutation.isPending}
-               className="w-full sm:w-auto">
+                className="w-full sm:w-auto"
+              >
                 {updateMutation.isPending ? 'Updating...' : 'Update Product'}
               </Button>
             </DialogFooter>

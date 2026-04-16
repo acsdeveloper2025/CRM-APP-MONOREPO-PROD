@@ -33,10 +33,7 @@ interface CompletedCaseTableProps {
   isLoading?: boolean;
 }
 
-export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
-  cases,
-  isLoading,
-}) => {
+export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({ cases, isLoading }) => {
   if (isLoading) {
     return (
       <div className="border rounded-lg">
@@ -76,9 +73,7 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
       <div className="border rounded-lg p-8 text-center">
         <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-900 mb-2">No completed cases found</h3>
-        <p className="text-gray-600">
-          There are no completed cases matching your current filters.
-        </p>
+        <p className="text-gray-600">There are no completed cases matching your current filters.</p>
       </div>
     );
   }
@@ -139,35 +134,43 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({
               <TableCell>
                 <div>
                   <div className="font-medium">{caseItem.clientName || caseItem.client?.name}</div>
-                  <div className="text-sm text-gray-600">{caseItem.clientCode || caseItem.client?.code}</div>
+                  <div className="text-sm text-gray-600">
+                    {caseItem.clientCode || caseItem.client?.code}
+                  </div>
                 </div>
               </TableCell>
               <TableCell>
                 <div>
-                  <div className="font-medium">{caseItem.productName || caseItem.product?.name || 'Not specified'}</div>
-                  <div className="text-sm text-gray-600">{caseItem.productCode || caseItem.product?.code}</div>
+                  <div className="font-medium">
+                    {caseItem.productName || caseItem.product?.name || 'Not specified'}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {caseItem.productCode || caseItem.product?.code}
+                  </div>
                 </div>
               </TableCell>
               <TableCell>
                 <div>
-                  <div className="font-medium">{caseItem.createdByBackendUser?.name || 'Unknown'}</div>
-                  <div className="text-sm text-gray-600">{caseItem.createdByBackendUser?.employeeId}</div>
+                  <div className="font-medium">
+                    {caseItem.createdByBackendUser?.name || 'Unknown'}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {caseItem.createdByBackendUser?.employeeId}
+                  </div>
                 </div>
               </TableCell>
               <TableCell>
                 <div className="text-sm text-gray-600">
                   {caseItem.completedAt
                     ? format(new Date(caseItem.completedAt), 'dd MMM yyyy')
-                    : format(new Date(caseItem.updatedAt), 'dd MMM yyyy')
-                  }
+                    : format(new Date(caseItem.updatedAt), 'dd MMM yyyy')}
                 </div>
               </TableCell>
               <TableCell>
                 <div className="text-sm text-gray-600">
                   {caseItem.completedAt
                     ? format(new Date(caseItem.completedAt), 'hh:mm a')
-                    : format(new Date(caseItem.updatedAt), 'hh:mm a')
-                  }
+                    : format(new Date(caseItem.updatedAt), 'hh:mm a')}
                 </div>
               </TableCell>
               <TableCell>

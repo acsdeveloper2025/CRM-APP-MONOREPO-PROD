@@ -17,7 +17,7 @@ export class SecurityUtils {
       "'": '&#x27;',
       '/': '&#x2F;',
     };
-    
+
     return input.replace(/[&<>"'/]/g, (char) => escapeMap[char]);
   }
 
@@ -105,7 +105,7 @@ export class SecurityUtils {
   static generateNonce(): string {
     const array = new Uint8Array(16);
     crypto.getRandomValues(array);
-    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
   }
 
   // Rate limiting helpers
@@ -115,23 +115,23 @@ export class SecurityUtils {
     return (identifier: string): boolean => {
       const now = Date.now();
       const windowStart = now - windowMs;
-      
+
       if (!requests.has(identifier)) {
         requests.set(identifier, []);
       }
 
       const userRequests = requests.get(identifier) || [];
-      
+
       // Remove old requests outside the window
-      const validRequests = userRequests.filter(time => time > windowStart);
-      
+      const validRequests = userRequests.filter((time) => time > windowStart);
+
       if (validRequests.length >= maxRequests) {
         return false; // Rate limit exceeded
       }
 
       validRequests.push(now);
       requests.set(identifier, validRequests);
-      
+
       return true; // Request allowed
     };
   }
@@ -170,21 +170,21 @@ export class SecurityUtils {
   // Data masking for logging
   static maskSensitiveData(data: unknown): unknown {
     const sensitiveFields = ['password', 'token', 'secret', 'key', 'ssn', 'creditCard'];
-    
+
     if (typeof data !== 'object' || data === null) {
       return data;
     }
 
     if (Array.isArray(data)) {
-      return data.map(item => this.maskSensitiveData(item));
+      return data.map((item) => this.maskSensitiveData(item));
     }
 
     const masked = { ...data } as Record<string, unknown>;
-    
+
     for (const [key, value] of Object.entries(masked)) {
       const lowerKey = key.toLowerCase();
-      
-      if (sensitiveFields.some(field => lowerKey.includes(field))) {
+
+      if (sensitiveFields.some((field) => lowerKey.includes(field))) {
         masked[key] = '***MASKED***';
       } else if (typeof value === 'object') {
         masked[key] = this.maskSensitiveData(value);
@@ -195,7 +195,10 @@ export class SecurityUtils {
   }
 
   // Input validation
-  static validateInput(input: string, type: 'alphanumeric' | 'numeric' | 'alpha' | 'email' | 'url'): boolean {
+  static validateInput(
+    input: string,
+    type: 'alphanumeric' | 'numeric' | 'alpha' | 'email' | 'url'
+  ): boolean {
     const patterns = {
       alphanumeric: /^[a-zA-Z0-9]+$/,
       numeric: /^[0-9]+$/,
@@ -212,8 +215,8 @@ export class SecurityUtils {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const array = new Uint8Array(length);
     crypto.getRandomValues(array);
-    
-    return Array.from(array, byte => chars[byte % chars.length]).join('');
+
+    return Array.from(array, (byte) => chars[byte % chars.length]).join('');
   }
 
   // Content validation
@@ -226,7 +229,7 @@ export class SecurityUtils {
       /vbscript:/i,
     ];
 
-    return suspiciousPatterns.some(pattern => pattern.test(content));
+    return suspiciousPatterns.some((pattern) => pattern.test(content));
   }
 
   // Browser security checks
@@ -250,12 +253,12 @@ export class SecurityUtils {
   static secureStore(key: string, value: unknown, encrypt: boolean = false): void {
     try {
       let dataToStore = JSON.stringify(value);
-      
+
       if (encrypt) {
         // In a real app, you would use proper encryption
         dataToStore = btoa(dataToStore);
       }
-      
+
       localStorage.setItem(key, dataToStore);
     } catch (error) {
       logger.error('Failed to store data securely:', error);
@@ -265,13 +268,15 @@ export class SecurityUtils {
   static secureRetrieve(key: string, decrypt: boolean = false): unknown {
     try {
       let data = localStorage.getItem(key);
-      
-      if (!data) {return null;}
-      
+
+      if (!data) {
+        return null;
+      }
+
       if (decrypt) {
         data = atob(data);
       }
-      
+
       return JSON.parse(data);
     } catch (error) {
       logger.error('Failed to retrieve data securely:', error);

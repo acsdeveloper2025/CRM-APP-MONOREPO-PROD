@@ -6,7 +6,16 @@
 /**
  * Form field value types
  */
-export type FormFieldValue = string | number | boolean | Date | null | undefined | string[] | File | File[];
+export type FormFieldValue =
+  | string
+  | number
+  | boolean
+  | Date
+  | null
+  | undefined
+  | string[]
+  | File
+  | File[];
 
 /**
  * Form values generic type
@@ -24,7 +33,17 @@ export type FormErrors = Record<string, string | string[]>;
 export interface FormField {
   name: string;
   label: string;
-  type: 'text' | 'email' | 'password' | 'number' | 'date' | 'select' | 'textarea' | 'checkbox' | 'radio' | 'file';
+  type:
+    | 'text'
+    | 'email'
+    | 'password'
+    | 'number'
+    | 'date'
+    | 'select'
+    | 'textarea'
+    | 'checkbox'
+    | 'radio'
+    | 'file';
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;

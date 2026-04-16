@@ -119,9 +119,7 @@ export function DataEntryDashboardPage() {
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Data Entry Dashboard</h1>
-        <p className="text-muted-foreground text-sm">
-          Track data entry progress across all cases
-        </p>
+        <p className="text-muted-foreground text-sm">Track data entry progress across all cases</p>
       </div>
 
       {/* Stats cards */}
@@ -249,9 +247,7 @@ export function DataEntryDashboardPage() {
                             </span>
                           </TableCell>
                           <TableCell>
-                            <Badge
-                              variant={r.caseStatus === 'COMPLETED' ? 'default' : 'secondary'}
-                            >
+                            <Badge variant={r.caseStatus === 'COMPLETED' ? 'default' : 'secondary'}>
                               {r.caseStatus}
                             </Badge>
                           </TableCell>

@@ -6,13 +6,18 @@ export const dashboardKeys = {
   all: ['dashboard'] as const,
   data: (query: DashboardQuery) => [...dashboardKeys.all, 'data', query] as const,
   stats: (query: DashboardQuery) => [...dashboardKeys.all, 'stats', query] as const,
-  caseDistribution: (query: DashboardQuery) => [...dashboardKeys.all, 'case-distribution', query] as const,
+  caseDistribution: (query: DashboardQuery) =>
+    [...dashboardKeys.all, 'case-distribution', query] as const,
   clientStats: (query: DashboardQuery) => [...dashboardKeys.all, 'client-stats', query] as const,
-  monthlyTrends: (query: DashboardQuery) => [...dashboardKeys.all, 'monthly-trends', query] as const,
+  monthlyTrends: (query: DashboardQuery) =>
+    [...dashboardKeys.all, 'monthly-trends', query] as const,
   recentActivities: (limit: number) => [...dashboardKeys.all, 'recent-activities', limit] as const,
-  performanceMetrics: (query: DashboardQuery) => [...dashboardKeys.all, 'performance-metrics', query] as const,
-  turnaroundTimes: (query: DashboardQuery) => [...dashboardKeys.all, 'turnaround-times', query] as const,
-  topPerformers: (query: DashboardQuery) => [...dashboardKeys.all, 'top-performers', query] as const,
+  performanceMetrics: (query: DashboardQuery) =>
+    [...dashboardKeys.all, 'performance-metrics', query] as const,
+  turnaroundTimes: (query: DashboardQuery) =>
+    [...dashboardKeys.all, 'turnaround-times', query] as const,
+  topPerformers: (query: DashboardQuery) =>
+    [...dashboardKeys.all, 'top-performers', query] as const,
   upcomingDeadlines: () => [...dashboardKeys.all, 'upcoming-deadlines'] as const,
   alerts: () => [...dashboardKeys.all, 'alerts'] as const,
   overdueTasks: (params: unknown) => [...dashboardKeys.all, 'overdue-tasks', params] as const,
@@ -113,16 +118,18 @@ export const useAlerts = () => {
   });
 };
 
-export const useOverdueTasks = (params: {
-  threshold?: number;
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-  search?: string;
-  priority?: string;
-  status?: string;
-} = {}) => {
+export const useOverdueTasks = (
+  params: {
+    threshold?: number;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    search?: string;
+    priority?: string;
+    status?: string;
+  } = {}
+) => {
   return useQuery({
     queryKey: dashboardKeys.overdueTasks(params),
     queryFn: () => dashboardService.getOverdueTasks(params),

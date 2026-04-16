@@ -38,7 +38,11 @@ interface EditVerificationTypeDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function EditVerificationTypeDialog({ verificationType, open, onOpenChange }: EditVerificationTypeDialogProps) {
+export function EditVerificationTypeDialog({
+  verificationType,
+  open,
+  onOpenChange,
+}: EditVerificationTypeDialogProps) {
   const form = useForm<EditVerificationTypeFormData>({
     resolver: zodResolver(editVerificationTypeSchema),
     defaultValues: {
@@ -77,9 +81,7 @@ export function EditVerificationTypeDialog({ verificationType, open, onOpenChang
       <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Verification Type</DialogTitle>
-          <DialogDescription>
-            Update the verification type information.
-          </DialogDescription>
+          <DialogDescription>Update the verification type information.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -91,14 +93,9 @@ export function EditVerificationTypeDialog({ verificationType, open, onOpenChang
                 <FormItem>
                   <FormLabel>Verification Type Code</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="e.g., RESIDENCE_VERIFICATION"
-                      {...field}
-                    />
+                    <Input placeholder="e.g., RESIDENCE_VERIFICATION" {...field} />
                   </FormControl>
-                  <FormDescription>
-                    Unique identifier for this verification type
-                  </FormDescription>
+                  <FormDescription>Unique identifier for this verification type</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -111,14 +108,9 @@ export function EditVerificationTypeDialog({ verificationType, open, onOpenChang
                 <FormItem>
                   <FormLabel>Verification Type Name</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="Enter verification type name"
-                      {...field}
-                    />
+                    <Input placeholder="Enter verification type name" {...field} />
                   </FormControl>
-                  <FormDescription>
-                    The name of the verification type
-                  </FormDescription>
+                  <FormDescription>The name of the verification type</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -137,7 +129,8 @@ export function EditVerificationTypeDialog({ verificationType, open, onOpenChang
               <Button
                 type="submit"
                 disabled={updateMutation.isPending}
-               className="w-full sm:w-auto">
+                className="w-full sm:w-auto"
+              >
                 {updateMutation.isPending ? 'Updating...' : 'Update Type'}
               </Button>
             </DialogFooter>

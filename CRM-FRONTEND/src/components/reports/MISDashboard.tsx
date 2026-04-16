@@ -15,7 +15,10 @@ import { MISSummaryCards } from './MISSummaryCards';
 import { MISDataTable } from './MISDataTable';
 import { reportsService } from '@/services/reports';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
+import {
+  UnifiedSearchFilterLayout,
+  FilterGrid,
+} from '@/components/ui/unified-search-filter-layout';
 import type { MISFilters, MISDataResponse } from '@/types/mis';
 import { toast } from 'sonner';
 import type { VerificationType } from '@/types/client';
@@ -41,15 +44,10 @@ interface MISFilterValues {
 
 export function MISDashboard() {
   // Unified search with 800ms debounce
-  const {
-    searchValue,
-    debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
-  } = useUnifiedSearch({
-    syncWithUrl: true,
-  });
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({
+      syncWithUrl: true,
+    });
 
   // Unified filters with URL sync
   const {
@@ -84,8 +82,8 @@ export function MISDashboard() {
   const products = productsData?.data || [];
   const verificationTypes = verificationTypesData?.data || [];
   const users = usersData || [];
-  const fieldAgents = users.filter(u => isFieldAgentUser(u));
-  const backendUsers = users.filter(u => isBackendScopedUser(u));
+  const fieldAgents = users.filter((u) => isFieldAgentUser(u));
+  const backendUsers = users.filter((u) => isBackendScopedUser(u));
 
   // Build query with search and filters
   const buildFilters = useCallback((): MISFilters => {
@@ -95,7 +93,9 @@ export function MISDashboard() {
       dateTo: activeFilters.dateTo,
       clientId: activeFilters.clientId ? parseInt(activeFilters.clientId) : undefined,
       productId: activeFilters.productId ? parseInt(activeFilters.productId) : undefined,
-      verificationTypeId: activeFilters.verificationTypeId ? parseInt(activeFilters.verificationTypeId) : undefined,
+      verificationTypeId: activeFilters.verificationTypeId
+        ? parseInt(activeFilters.verificationTypeId)
+        : undefined,
       caseStatus: activeFilters.caseStatus as MISFilters['caseStatus'],
       priority: activeFilters.priority as MISFilters['priority'],
       fieldAgentId: activeFilters.fieldAgentId,
@@ -104,8 +104,6 @@ export function MISDashboard() {
       limit: pagination.limit,
     };
   }, [debouncedSearchValue, activeFilters, pagination]);
-
-
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -151,7 +149,10 @@ export function MISDashboard() {
 
   // Count active filters (excluding dateFrom and dateTo which are default)
   const activeFilterCount = Object.keys(activeFilters).filter(
-    key => key !== 'dateFrom' && key !== 'dateTo' && activeFilters[key as keyof MISFilterValues] !== undefined
+    (key) =>
+      key !== 'dateFrom' &&
+      key !== 'dateTo' &&
+      activeFilters[key as keyof MISFilterValues] !== undefined
   ).length;
 
   return (
@@ -167,9 +168,7 @@ export function MISDashboard() {
       </div>
 
       {/* Summary Cards */}
-      {data && (
-        <MISSummaryCards summary={data.summary} isLoading={isLoading} />
-      )}
+      {data && <MISSummaryCards summary={data.summary} isLoading={isLoading} />}
 
       {/* Unified Search and Filter Layout */}
       <UnifiedSearchFilterLayout
@@ -210,7 +209,9 @@ export function MISDashboard() {
               <Label htmlFor="client">Client</Label>
               <Select
                 value={activeFilters.clientId || 'all'}
-                onValueChange={(value) => setFilter('clientId', value === 'all' ? undefined : value)}
+                onValueChange={(value) =>
+                  setFilter('clientId', value === 'all' ? undefined : value)
+                }
               >
                 <SelectTrigger id="client">
                   <SelectValue placeholder="All clients" />
@@ -231,7 +232,9 @@ export function MISDashboard() {
               <Label htmlFor="product">Product</Label>
               <Select
                 value={activeFilters.productId || 'all'}
-                onValueChange={(value) => setFilter('productId', value === 'all' ? undefined : value)}
+                onValueChange={(value) =>
+                  setFilter('productId', value === 'all' ? undefined : value)
+                }
               >
                 <SelectTrigger id="product">
                   <SelectValue placeholder="All products" />
@@ -252,7 +255,9 @@ export function MISDashboard() {
               <Label htmlFor="verificationType">Verification Type</Label>
               <Select
                 value={activeFilters.verificationTypeId || 'all'}
-                onValueChange={(value) => setFilter('verificationTypeId', value === 'all' ? undefined : value)}
+                onValueChange={(value) =>
+                  setFilter('verificationTypeId', value === 'all' ? undefined : value)
+                }
               >
                 <SelectTrigger id="verificationType">
                   <SelectValue placeholder="All types" />
@@ -273,7 +278,9 @@ export function MISDashboard() {
               <Label htmlFor="caseStatus">Task Status</Label>
               <Select
                 value={activeFilters.caseStatus || 'all'}
-                onValueChange={(value) => setFilter('caseStatus', value === 'all' ? undefined : value)}
+                onValueChange={(value) =>
+                  setFilter('caseStatus', value === 'all' ? undefined : value)
+                }
               >
                 <SelectTrigger id="caseStatus">
                   <SelectValue placeholder="All statuses" />
@@ -295,7 +302,9 @@ export function MISDashboard() {
               <Label htmlFor="priority">Priority</Label>
               <Select
                 value={activeFilters.priority || 'all'}
-                onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
+                onValueChange={(value) =>
+                  setFilter('priority', value === 'all' ? undefined : value)
+                }
               >
                 <SelectTrigger id="priority">
                   <SelectValue placeholder="All priorities" />
@@ -315,7 +324,9 @@ export function MISDashboard() {
               <Label htmlFor="fieldAgent">Field Agent</Label>
               <Select
                 value={activeFilters.fieldAgentId || 'all'}
-                onValueChange={(value) => setFilter('fieldAgentId', value === 'all' ? undefined : value)}
+                onValueChange={(value) =>
+                  setFilter('fieldAgentId', value === 'all' ? undefined : value)
+                }
               >
                 <SelectTrigger id="fieldAgent">
                   <SelectValue placeholder="All field agents" />
@@ -336,7 +347,9 @@ export function MISDashboard() {
               <Label htmlFor="backendUser">Backend User</Label>
               <Select
                 value={activeFilters.backendUserId || 'all'}
-                onValueChange={(value) => setFilter('backendUserId', value === 'all' ? undefined : value)}
+                onValueChange={(value) =>
+                  setFilter('backendUserId', value === 'all' ? undefined : value)
+                }
               >
                 <SelectTrigger id="backendUser">
                   <SelectValue placeholder="All backend users" />
@@ -386,7 +399,7 @@ export function MISDashboard() {
           <CardDescription>
             {data?.pagination ? (
               <>
-                Showing {((data.pagination.page - 1) * data.pagination.limit) + 1} to{' '}
+                Showing {(data.pagination.page - 1) * data.pagination.limit + 1} to{' '}
                 {Math.min(data.pagination.page * data.pagination.limit, data.pagination.total)} of{' '}
                 {data.pagination.total} records
               </>

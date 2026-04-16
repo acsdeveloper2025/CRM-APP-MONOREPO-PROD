@@ -38,9 +38,10 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
   const generatePasswordMutation = useMutationWithInvalidation({
     mutationFn: (userId: string) => usersService.generateTemporaryPassword(userId),
     invalidateKeys: [['users']],
-    successMessage: resetMethod === 'email'
-      ? 'Temporary password generated and sent via email'
-      : 'Temporary password generated successfully',
+    successMessage:
+      resetMethod === 'email'
+        ? 'Temporary password generated and sent via email'
+        : 'Temporary password generated successfully',
     errorContext: 'Generate Temporary Password',
     errorFallbackMessage: 'Failed to generate temporary password',
     onSuccess: (data: ApiResponse<{ temporaryPassword: string }>) => {
@@ -101,9 +102,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
             <Key className="h-5 w-5" />
             <span>Reset Password</span>
           </DialogTitle>
-          <DialogDescription>
-            Generate a temporary password for {user.name}
-          </DialogDescription>
+          <DialogDescription>Generate a temporary password for {user.name}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -112,7 +111,8 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
               <Alert>
                 <RefreshCw className="h-4 w-4" />
                 <AlertDescription>
-                  Choose how you want to reset the password for this user. The user will be required to change the temporary password on their next login.
+                  Choose how you want to reset the password for this user. The user will be required
+                  to change the temporary password on their next login.
                 </AlertDescription>
               </Alert>
 
@@ -135,7 +135,8 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                       <h5 className="font-medium">Show Password</h5>
                     </div>
                     <p className="text-sm text-gray-600">
-                      Generate and display the temporary password in this dialog. You can copy it and share with the user manually.
+                      Generate and display the temporary password in this dialog. You can copy it
+                      and share with the user manually.
                     </p>
                     <Button
                       onClick={() => handleGeneratePassword('show')}
@@ -143,7 +144,9 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                       variant="outline"
                       className="w-full"
                     >
-                      {generatePasswordMutation.isPending ? 'Generating...' : 'Reset & Show Password'}
+                      {generatePasswordMutation.isPending
+                        ? 'Generating...'
+                        : 'Reset & Show Password'}
                     </Button>
                   </div>
 
@@ -153,7 +156,8 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                       <h5 className="font-medium">Send via Email</h5>
                     </div>
                     <p className="text-sm text-gray-600">
-                      Generate and automatically send the temporary password to {user.email} via email.
+                      Generate and automatically send the temporary password to {user.email} via
+                      email.
                     </p>
                     <Button
                       onClick={() => handleGeneratePassword('email')}
@@ -225,10 +229,9 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                           )}
                         </Button>
                       </div>
-                      {confirmCustomPassword &&
-                        customPassword !== confirmCustomPassword && (
-                          <p className="text-xs text-red-600">Passwords do not match</p>
-                        )}
+                      {confirmCustomPassword && customPassword !== confirmCustomPassword && (
+                        <p className="text-xs text-red-600">Passwords do not match</p>
+                      )}
                     </div>
 
                     <PasswordPolicyChecklist password={customPassword} />
@@ -253,8 +256,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                 <AlertDescription className="text-green-800">
                   {resetMethod === 'email'
                     ? `Password generated successfully! An email has been sent to ${user.email} with the new credentials.`
-                    : 'Password generated successfully! You can now copy the password and share it with the user.'
-                  }
+                    : 'Password generated successfully! You can now copy the password and share it with the user.'}
                 </AlertDescription>
               </Alert>
 
@@ -287,7 +289,11 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                         className="h-8 w-8 p-0"
                         onClick={() => setShowPassword(!showPassword)}
                       >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
                       </Button>
                       <Button
                         type="button"
@@ -307,14 +313,17 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                     <>
                       <Mail className="h-4 w-4" />
                       <AlertDescription>
-                        The credentials have been sent to <strong>{user.email}</strong>. Please inform the user to check their email and change the password after logging in.
+                        The credentials have been sent to <strong>{user.email}</strong>. Please
+                        inform the user to check their email and change the password after logging
+                        in.
                       </AlertDescription>
                     </>
                   ) : (
                     <>
                       <Eye className="h-4 w-4" />
                       <AlertDescription>
-                        Please share these credentials with <strong>{user.name}</strong> securely and inform them to change the password after logging in.
+                        Please share these credentials with <strong>{user.name}</strong> securely
+                        and inform them to change the password after logging in.
                       </AlertDescription>
                     </>
                   )}
@@ -330,7 +339,8 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
             variant="outline"
             onClick={handleClose}
             disabled={generatePasswordMutation.isPending}
-           className="w-full sm:w-auto">
+            className="w-full sm:w-auto"
+          >
             {generatedPassword ? 'Close' : 'Cancel'}
           </Button>
         </DialogFooter>

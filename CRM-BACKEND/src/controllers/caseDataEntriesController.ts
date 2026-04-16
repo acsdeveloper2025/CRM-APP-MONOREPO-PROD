@@ -405,7 +405,7 @@ export const getEntry = async (req: AuthenticatedRequest, res: Response) => {
 // ---------------------------------------------------------------------------
 export const createInstance = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { caseId: rawCaseId } = req.params;
+    const rawCaseId = String(req.params.caseId);
     const { instanceLabel, verificationTaskId } = req.body as {
       instanceLabel?: string;
       verificationTaskId?: string;
@@ -505,7 +505,7 @@ export const createInstance = async (req: AuthenticatedRequest, res: Response) =
 export const saveInstance = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const rawCaseId = String(req.params.caseId);
-    const instanceIndex = req.params.instanceIndex;
+    const instanceIndex = String(req.params.instanceIndex);
     const instanceIdx = Number(instanceIndex);
     const { data, templateVersion } = req.body as {
       data: Record<string, unknown>;
@@ -697,7 +697,7 @@ export const saveInstance = async (req: AuthenticatedRequest, res: Response) => 
 export const deleteInstance = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const rawCaseId = String(req.params.caseId);
-    const instanceIndex = req.params.instanceIndex;
+    const instanceIndex = String(req.params.instanceIndex);
     const instanceIdx = Number(instanceIndex);
 
     const caseRow = await loadCaseByIdentifier(rawCaseId);
@@ -739,7 +739,7 @@ export const deleteInstance = async (req: AuthenticatedRequest, res: Response) =
 // ---------------------------------------------------------------------------
 export const completeCase = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { caseId: rawCaseId } = req.params;
+    const rawCaseId = String(req.params.caseId);
     const userId = req.user!.id;
 
     const caseRow = await loadCaseByIdentifier(rawCaseId);

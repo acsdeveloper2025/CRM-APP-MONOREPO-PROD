@@ -13,8 +13,7 @@ import type {
 // Helper: coerce to string or return fallback.
 const str = (v: unknown, fallback?: string): string | undefined =>
   typeof v === 'string' ? v : fallback;
-const strReq = (v: unknown, fallback: string): string =>
-  typeof v === 'string' ? v : fallback;
+const strReq = (v: unknown, fallback: string): string => (typeof v === 'string' ? v : fallback);
 const num = (v: unknown): number | undefined =>
   typeof v === 'number' ? v : v != null ? Number(v) : undefined;
 
@@ -104,16 +103,15 @@ export const useVerificationTasks = (caseId: string) => {
         { excludeTaskType: 'KYC' }
       );
       return {
-        caseId:
-          typeof response.data.caseId === 'string' ? response.data.caseId : caseId,
+        caseId: typeof response.data.caseId === 'string' ? response.data.caseId : caseId,
         caseNumber:
-          typeof response.data.caseNumber === 'string' || typeof response.data.caseNumber === 'number'
+          typeof response.data.caseNumber === 'string' ||
+          typeof response.data.caseNumber === 'number'
             ? String(response.data.caseNumber)
             : '',
         customerName:
           typeof response.data.customerName === 'string' ? response.data.customerName : '',
-        totalTasks:
-          typeof response.data.totalTasks === 'number' ? response.data.totalTasks : 0,
+        totalTasks: typeof response.data.totalTasks === 'number' ? response.data.totalTasks : 0,
         completedTasks:
           typeof response.data.completedTasks === 'number' ? response.data.completedTasks : 0,
         completionPercentage:
@@ -121,7 +119,9 @@ export const useVerificationTasks = (caseId: string) => {
             ? response.data.completionPercentage
             : 0,
         tasks: Array.isArray(response.data.tasks)
-          ? response.data.tasks.map((task) => normalizeTaskForUi(task as unknown as Record<string, unknown>))
+          ? response.data.tasks.map((task) =>
+              normalizeTaskForUi(task as unknown as Record<string, unknown>)
+            )
           : [],
       };
     },
@@ -171,7 +171,13 @@ export const useCreateVerificationTasks = (caseId: string) => {
 export const useAssignVerificationTask = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ taskId, data }: { taskId: string; data: AssignVerificationTaskRequest }) => {
+    mutationFn: async ({
+      taskId,
+      data,
+    }: {
+      taskId: string;
+      data: AssignVerificationTaskRequest;
+    }) => {
       const response = await VerificationTasksService.assignTask(taskId, data);
       return response.data;
     },
@@ -192,7 +198,10 @@ export const useAllVerificationTasks = (filters: Record<string, unknown> = {}) =
   const { data, isLoading, error, refetch } = useQuery({
     queryKey,
     queryFn: async () => {
-      const response = await api.get<VerificationTaskListResponse>('/verification-tasks', mergedFilters);
+      const response = await api.get<VerificationTaskListResponse>(
+        '/verification-tasks',
+        mergedFilters
+      );
       return response.data;
     },
   });
@@ -202,19 +211,19 @@ export const useAllVerificationTasks = (filters: Record<string, unknown> = {}) =
     loading: isLoading,
     error: error ? (error as Error).message : null,
     pagination: data?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 },
-    statistics: data?.statistics || { 
-      pending: 0, 
-      assigned: 0, 
-      completed: 0, 
-      inProgress: 0, 
-      urgent: 0, 
-      revoked: 0, 
-      onHold: 0, 
+    statistics: data?.statistics || {
+      pending: 0,
+      assigned: 0,
+      completed: 0,
+      inProgress: 0,
+      urgent: 0,
+      revoked: 0,
+      onHold: 0,
       highPriority: 0,
       totalAgents: 0,
       longRunning: 0,
       avgDuration: 0,
-      completedToday: 0
+      completedToday: 0,
     },
     refreshTasks: refetch,
   };

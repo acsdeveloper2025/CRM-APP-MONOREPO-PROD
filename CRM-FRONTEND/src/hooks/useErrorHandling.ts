@@ -40,10 +40,7 @@ export function useErrorHandling() {
   const [errors, setErrors] = useState<AppError[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleError = useCallback((
-    error: unknown,
-    options: ErrorHandlingOptions = {}
-  ) => {
+  const handleError = useCallback((error: unknown, options: ErrorHandlingOptions = {}) => {
     const {
       showToast = true,
       logToConsole = true,
@@ -65,7 +62,7 @@ export function useErrorHandling() {
     };
 
     // Add to error list
-    setErrors(prev => [appError, ...prev.slice(0, 9)]); // Keep last 10 errors
+    setErrors((prev) => [appError, ...prev.slice(0, 9)]); // Keep last 10 errors
 
     // Log to console
     if (logToConsole) {
@@ -77,14 +74,17 @@ export function useErrorHandling() {
       const toastMessage = getUserFriendlyMessage(appError);
 
       // Check if there are detailed error descriptions from backend
-      const hasDetailedError = appError.details && typeof appError.details === 'string' && appError.details.length > 0;
+      const hasDetailedError =
+        appError.details && typeof appError.details === 'string' && appError.details.length > 0;
 
       // Determine toast duration based on error complexity
       const toastDuration = hasDetailedError ? 10000 : undefined; // 10 seconds for detailed errors
 
       if (appError.statusCode && appError.statusCode >= 500) {
         toast.error(toastMessage, {
-          description: hasDetailedError ? (appError.details as string) : 'Please try again later or contact support if the problem persists.',
+          description: hasDetailedError
+            ? (appError.details as string)
+            : 'Please try again later or contact support if the problem persists.',
           duration: toastDuration,
         });
       } else if (appError.statusCode === 401) {
@@ -118,57 +118,62 @@ export function useErrorHandling() {
     return appError;
   }, []);
 
-  const handleAsyncOperation = useCallback(async <T>(
-    operation: () => Promise<T>,
-    options: ErrorHandlingOptions = {}
-  ): Promise<T | null> => {
-    setIsLoading(true);
-    
-    try {
-      const result = await operation();
-      setIsLoading(false);
-      return result;
-    } catch (error) {
-      setIsLoading(false);
-      handleError(error, options);
-      return null;
-    }
-  }, [handleError]);
+  const handleAsyncOperation = useCallback(
+    async <T>(
+      operation: () => Promise<T>,
+      options: ErrorHandlingOptions = {}
+    ): Promise<T | null> => {
+      setIsLoading(true);
+
+      try {
+        const result = await operation();
+        setIsLoading(false);
+        return result;
+      } catch (error) {
+        setIsLoading(false);
+        handleError(error, options);
+        return null;
+      }
+    },
+    [handleError]
+  );
 
   const clearErrors = useCallback(() => {
     setErrors([]);
   }, []);
 
   const clearError = useCallback((timestamp: string) => {
-    setErrors(prev => prev.filter(error => error.timestamp !== timestamp));
+    setErrors((prev) => prev.filter((error) => error.timestamp !== timestamp));
   }, []);
 
-  const retryOperation = useCallback(async <T>(
-    operation: () => Promise<T>,
-    maxRetries: number = 3,
-    delay: number = 1000,
-    options: ErrorHandlingOptions = {}
-  ): Promise<T | null> => {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        return await operation();
-      } catch (error) {
-        
-        if (attempt === maxRetries) {
-          handleError(error, {
-            ...options,
-            context: `${options.context || 'Operation'} failed after ${maxRetries} attempts`,
-          });
-          break;
+  const retryOperation = useCallback(
+    async <T>(
+      operation: () => Promise<T>,
+      maxRetries: number = 3,
+      delay: number = 1000,
+      options: ErrorHandlingOptions = {}
+    ): Promise<T | null> => {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          return await operation();
+        } catch (error) {
+          if (attempt === maxRetries) {
+            handleError(error, {
+              ...options,
+              context: `${options.context || 'Operation'} failed after ${maxRetries} attempts`,
+            });
+            break;
+          }
+
+          // Wait before retrying
+          await new Promise((resolve) => setTimeout(resolve, delay * attempt));
         }
-        
-        // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, delay * attempt));
       }
-    }
-    
-    return null;
-  }, [handleError]);
+
+      return null;
+    },
+    [handleError]
+  );
 
   return {
     errors,
@@ -206,9 +211,10 @@ function logErrorToService(appError: AppError, originalError: unknown) {
   // In a real application, you would send this to your error monitoring service
   // Examples: Sentry, LogRocket, Bugsnag, etc.
 
-  const errorDetails = originalError instanceof Error
-    ? { name: originalError.name, message: originalError.message, stack: originalError.stack }
-    : { name: 'Unknown', message: String(originalError), stack: undefined };
+  const errorDetails =
+    originalError instanceof Error
+      ? { name: originalError.name, message: originalError.message, stack: originalError.stack }
+      : { name: 'Unknown', message: String(originalError), stack: undefined };
 
   const _errorData = {
     ...appError,

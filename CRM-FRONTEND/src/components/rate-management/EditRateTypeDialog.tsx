@@ -27,7 +27,10 @@ import { Button } from '@/components/ui/button';
 import { rateTypesService, type RateType, type UpdateRateTypeData } from '@/services/rateTypes';
 
 const updateRateTypeSchema = z.object({
-  name: z.string().min(1, 'Rate type name is required').max(100, 'Name must be less than 100 characters'),
+  name: z
+    .string()
+    .min(1, 'Rate type name is required')
+    .max(100, 'Name must be less than 100 characters'),
   description: z.string().max(500, 'Description must be less than 500 characters').optional(),
   isActive: z.boolean(),
 });
@@ -144,10 +147,7 @@ export function EditRateTypeDialog({ rateType, open, onOpenChange }: EditRateTyp
                     </FormDescription>
                   </div>
                   <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
                 </FormItem>
               )}
@@ -163,7 +163,11 @@ export function EditRateTypeDialog({ rateType, open, onOpenChange }: EditRateTyp
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateMutation.isPending} className="w-full sm:w-auto">
+              <Button
+                type="submit"
+                disabled={updateMutation.isPending}
+                className="w-full sm:w-auto"
+              >
                 {updateMutation.isPending ? 'Updating...' : 'Update Rate Type'}
               </Button>
             </DialogFooter>

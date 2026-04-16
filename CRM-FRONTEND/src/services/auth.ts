@@ -153,10 +153,14 @@ export class AuthService {
 
   async resetRateLimit(): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await apiService.post<{ success: boolean; message: string }>('/auth/reset-rate-limit');
+      const response = await apiService.post<{ success: boolean; message: string }>(
+        '/auth/reset-rate-limit'
+      );
       return {
         success: response.success,
-        message: response.message || (response.success ? 'Rate limit reset successfully' : 'Failed to reset rate limit'),
+        message:
+          response.message ||
+          (response.success ? 'Rate limit reset successfully' : 'Failed to reset rate limit'),
       };
     } catch (error) {
       logger.error('Failed to reset rate limit:', error);
@@ -167,12 +171,22 @@ export class AuthService {
     }
   }
 
-  async resetUserRateLimit(userId: string, ip?: string): Promise<{ success: boolean; message: string }> {
+  async resetUserRateLimit(
+    userId: string,
+    ip?: string
+  ): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await apiService.post<{ success: boolean; message: string }>(`/auth/reset-user-rate-limit/${userId}`, { ip });
+      const response = await apiService.post<{ success: boolean; message: string }>(
+        `/auth/reset-user-rate-limit/${userId}`,
+        { ip }
+      );
       return {
         success: response.success,
-        message: response.message || (response.success ? 'User rate limit reset successfully' : 'Failed to reset user rate limit'),
+        message:
+          response.message ||
+          (response.success
+            ? 'User rate limit reset successfully'
+            : 'Failed to reset user rate limit'),
       };
     } catch (error) {
       logger.error('Failed to reset user rate limit:', error);

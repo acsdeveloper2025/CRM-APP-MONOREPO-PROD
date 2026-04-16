@@ -32,8 +32,8 @@ export const AssignmentSummary: React.FC<AssignmentSummaryProps> = ({
         <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
         <h3 className="text-lg font-medium text-gray-900 mb-2">No Saved Assignments</h3>
         <p className="text-gray-600 max-w-md mx-auto">
-          This field agent has not been assigned to any territories yet. Use the Pincodes and Areas tabs
-          to create new assignments.
+          This field agent has not been assigned to any territories yet. Use the Pincodes and Areas
+          tabs to create new assignments.
         </p>
       </div>
     );
@@ -47,8 +47,8 @@ export const AssignmentSummary: React.FC<AssignmentSummaryProps> = ({
         <div className="text-sm text-blue-900">
           <p className="font-medium mb-1">Read-Only View</p>
           <p className="text-blue-700">
-            This tab shows the currently saved territory assignments for this field agent. To make changes,
-            use the Pincodes and Areas tabs, then save your changes.
+            This tab shows the currently saved territory assignments for this field agent. To make
+            changes, use the Pincodes and Areas tabs, then save your changes.
           </p>
         </div>
       </div>
@@ -100,7 +100,8 @@ export const AssignmentSummary: React.FC<AssignmentSummaryProps> = ({
 
               {/* Assignment date */}
               <div className="pl-6 text-xs text-gray-500">
-                Assigned on: {new Date(assignment.assignedAt).toLocaleDateString('en-IN', {
+                Assigned on:{' '}
+                {new Date(assignment.assignedAt).toLocaleDateString('en-IN', {
                   year: 'numeric',
                   month: 'short',
                   day: 'numeric',
@@ -115,4 +116,3 @@ export const AssignmentSummary: React.FC<AssignmentSummaryProps> = ({
     </div>
   );
 };
-

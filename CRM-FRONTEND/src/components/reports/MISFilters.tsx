@@ -51,7 +51,7 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
       setClients((clientsRes.data as unknown[]) || []);
       setProducts((productsRes.data as unknown[]) || []);
       setVerificationTypes((verificationTypesRes.data as unknown[]) || []);
-      
+
       const users = (usersRes.data as unknown[]) || [];
       setFieldAgents(users.filter((u: unknown) => isFieldAgentUser(u as never)));
       setBackendUsers(users.filter((u: unknown) => isBackendScopedUser(u as never)));
@@ -74,26 +74,16 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
         <div className="flex items-center gap-2">
           <Filter className="h-5 w-5 text-gray-600" />
           <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
-          {hasActiveFilters && (
-            <Badge variant="secondary">Active</Badge>
-          )}
+          {hasActiveFilters && <Badge variant="secondary">Active</Badge>}
         </div>
         <div className="flex items-center gap-2">
           {hasActiveFilters && (
-            <Button
-              onClick={onReset}
-              variant="ghost"
-              size="sm"
-            >
+            <Button onClick={onReset} variant="ghost" size="sm">
               <X className="h-4 w-4 mr-2" />
               Clear All
             </Button>
           )}
-          <Button
-            onClick={() => setShowFilters(!showFilters)}
-            variant="outline"
-            size="sm"
-          >
+          <Button onClick={() => setShowFilters(!showFilters)} variant="outline" size="sm">
             {showFilters ? 'Hide' : 'Show'} Filters
           </Button>
         </div>
@@ -127,7 +117,9 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
             <Label htmlFor="client">Client</Label>
             <Select
               value={filters.clientId?.toString() || 'all'}
-              onValueChange={(value) => handleFilterChange('clientId', value !== 'all' ? parseInt(value) : undefined)}
+              onValueChange={(value) =>
+                handleFilterChange('clientId', value !== 'all' ? parseInt(value) : undefined)
+              }
             >
               <SelectTrigger id="client">
                 <SelectValue placeholder="All Clients" />
@@ -148,7 +140,9 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
             <Label htmlFor="product">Product</Label>
             <Select
               value={filters.productId?.toString() || 'all'}
-              onValueChange={(value) => handleFilterChange('productId', value !== 'all' ? parseInt(value) : undefined)}
+              onValueChange={(value) =>
+                handleFilterChange('productId', value !== 'all' ? parseInt(value) : undefined)
+              }
             >
               <SelectTrigger id="product">
                 <SelectValue placeholder="All Products" />
@@ -169,7 +163,12 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
             <Label htmlFor="verificationType">Verification Type</Label>
             <Select
               value={filters.verificationTypeId?.toString() || 'all'}
-              onValueChange={(value) => handleFilterChange('verificationTypeId', value !== 'all' ? parseInt(value) : undefined)}
+              onValueChange={(value) =>
+                handleFilterChange(
+                  'verificationTypeId',
+                  value !== 'all' ? parseInt(value) : undefined
+                )
+              }
             >
               <SelectTrigger id="verificationType">
                 <SelectValue placeholder="All Types" />
@@ -190,7 +189,9 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
             <Label htmlFor="caseStatus">Case Status</Label>
             <Select
               value={filters.caseStatus || 'all'}
-              onValueChange={(value) => handleFilterChange('caseStatus', value !== 'all' ? value : undefined)}
+              onValueChange={(value) =>
+                handleFilterChange('caseStatus', value !== 'all' ? value : undefined)
+              }
             >
               <SelectTrigger id="caseStatus">
                 <SelectValue placeholder="All Statuses" />
@@ -210,7 +211,9 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
             <Label htmlFor="priority">Priority</Label>
             <Select
               value={filters.priority || 'all'}
-              onValueChange={(value) => handleFilterChange('priority', value !== 'all' ? value : undefined)}
+              onValueChange={(value) =>
+                handleFilterChange('priority', value !== 'all' ? value : undefined)
+              }
             >
               <SelectTrigger id="priority">
                 <SelectValue placeholder="All Priorities" />
@@ -230,7 +233,9 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
             <Label htmlFor="fieldAgent">Field Agent</Label>
             <Select
               value={filters.fieldAgentId || 'all'}
-              onValueChange={(value) => handleFilterChange('fieldAgentId', value !== 'all' ? value : undefined)}
+              onValueChange={(value) =>
+                handleFilterChange('fieldAgentId', value !== 'all' ? value : undefined)
+              }
             >
               <SelectTrigger id="fieldAgent">
                 <SelectValue placeholder="All Field Agents" />
@@ -251,7 +256,9 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
             <Label htmlFor="backendUser">Backend User</Label>
             <Select
               value={filters.backendUserId || 'all'}
-              onValueChange={(value) => handleFilterChange('backendUserId', value !== 'all' ? value : undefined)}
+              onValueChange={(value) =>
+                handleFilterChange('backendUserId', value !== 'all' ? value : undefined)
+              }
             >
               <SelectTrigger id="backendUser">
                 <SelectValue placeholder="All Backend Users" />

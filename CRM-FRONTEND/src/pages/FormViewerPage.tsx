@@ -3,7 +3,13 @@ import { FileText, Eye, Download, Share2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { FormViewer } from '@/components/forms/FormViewer';
 import { FormSubmission } from '@/types/form';
 import { logger } from '@/utils/logger';
@@ -23,9 +29,7 @@ export function FormViewerPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Form Viewer</h1>
-          <p className="text-gray-600">
-            View and interact with verification form submissions
-          </p>
+          <p className="text-gray-600">View and interact with verification form submissions</p>
         </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline" size="sm">
@@ -69,7 +73,10 @@ export function FormViewerPage() {
             </div>
             <div className="flex-1">
               <label className="text-sm font-medium mb-2 block">View Mode</label>
-              <Select value={viewMode} onValueChange={(value: 'readonly' | 'editable') => setViewMode(value)}>
+              <Select
+                value={viewMode}
+                onValueChange={(value: 'readonly' | 'editable') => setViewMode(value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select view mode" />
                 </SelectTrigger>
@@ -122,9 +129,7 @@ export function FormViewerPage() {
           <Card>
             <CardHeader>
               <CardTitle>Form Submission JSON</CardTitle>
-              <CardDescription>
-                Raw JSON data structure of the form submission
-              </CardDescription>
+              <CardDescription>Raw JSON data structure of the form submission</CardDescription>
             </CardHeader>
             <CardContent>
               <pre className="bg-slate-100 dark:bg-slate-800/60 p-4 rounded-lg overflow-auto text-xs">

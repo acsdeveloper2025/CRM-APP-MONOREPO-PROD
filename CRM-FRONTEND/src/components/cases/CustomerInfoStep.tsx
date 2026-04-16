@@ -18,19 +18,30 @@ import { Search, ArrowRight, User, CreditCard, Phone, Hash } from 'lucide-react'
 // Function to generate unique customer calling code
 const generateCustomerCallingCode = (): string => {
   const timestamp = Date.now().toString();
-  const randomDigits = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  const randomDigits = Math.floor(Math.random() * 1000)
+    .toString()
+    .padStart(3, '0');
   return `CC-${timestamp}-${randomDigits}`;
 };
 
 const customerInfoSchema = z.object({
-  customerName: z.string().min(1, 'Customer name is required').max(100, 'Customer name must be less than 100 characters'),
+  customerName: z
+    .string()
+    .min(1, 'Customer name is required')
+    .max(100, 'Customer name must be less than 100 characters'),
   customerCallingCode: z.string().min(1, 'Customer calling code is required'),
-  panNumber: z.string().optional().refine((val) => !val || /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(val), {
-    message: 'PAN must be in format: ABCDE1234F'
-  }),
-  mobileNumber: z.string().optional().refine((val) => !val || /^[0-9]{10,15}$/.test(val.replace(/\D/g, '')), {
-    message: 'Mobile number must be 10-15 digits'
-  }),
+  panNumber: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(val), {
+      message: 'PAN must be in format: ABCDE1234F',
+    }),
+  mobileNumber: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[0-9]{10,15}$/.test(val.replace(/\D/g, '')), {
+      message: 'Mobile number must be 10-15 digits',
+    }),
 });
 
 export type CustomerInfoData = z.infer<typeof customerInfoSchema>;
@@ -50,7 +61,7 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
   isSearching = false,
   initialData = {},
   deduplicationCompleted = false,
-  onDataChange
+  onDataChange,
 }) => {
   const form = useForm<CustomerInfoData>({
     resolver: zodResolver(customerInfoSchema),
@@ -86,7 +97,11 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       // Reset deduplication when key fields change
-      if (name && ['customerName', 'panNumber', 'mobileNumber'].includes(name) && deduplicationCompleted) {
+      if (
+        name &&
+        ['customerName', 'panNumber', 'mobileNumber'].includes(name) &&
+        deduplicationCompleted
+      ) {
         onDataChange?.();
       }
     });
@@ -120,7 +135,8 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
             Customer Details
           </CardTitle>
           <CardDescription>
-            Provide at least the customer name. Additional information helps with duplicate detection.
+            Provide at least the customer name. Additional information helps with duplicate
+            detection.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -187,9 +203,9 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
                       <span className="text-sm text-gray-600">(Optional)</span>
                     </FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="ABCDE1234F" 
-                        {...field} 
+                      <Input
+                        placeholder="ABCDE1234F"
+                        {...field}
                         onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                         maxLength={10}
                         className="text-base font-mono"
@@ -212,8 +228,8 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
                       <span className="text-sm text-gray-600">(Optional)</span>
                     </FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Enter 10-digit mobile number" 
+                      <Input
+                        placeholder="Enter 10-digit mobile number"
                         {...field}
                         onChange={(e) => {
                           const value = e.target.value.replace(/\D/g, '');
@@ -249,13 +265,13 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
                     </>
                   )}
                 </Button>
-                
+
                 <Button
                   type="button"
                   onClick={form.handleSubmit(handleCreateNew)}
                   disabled={!hasMinimumData || isSearching || !deduplicationCompleted}
                   className="flex-1"
-                  title={!deduplicationCompleted ? "Please search for existing cases first" : ""}
+                  title={!deduplicationCompleted ? 'Please search for existing cases first' : ''}
                 >
                   <ArrowRight className="h-4 w-4 mr-2" />
                   Create New Case
@@ -269,18 +285,28 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
               <div className="text-sm text-gray-600 bg-slate-100/70 dark:bg-slate-800/50 p-4 rounded-lg">
                 <p className="font-medium mb-2">Mandatory Deduplication Process</p>
                 <ul className="space-y-1 text-xs">
-                  <li>• <strong>Step 1:</strong> Search for existing cases to prevent duplicates</li>
-                  <li>• <strong>Step 2:</strong> Review any potential duplicates found</li>
-                  <li>• <strong>Step 3:</strong> Create new case only after deduplication check</li>
+                  <li>
+                    • <strong>Step 1:</strong> Search for existing cases to prevent duplicates
+                  </li>
+                  <li>
+                    • <strong>Step 2:</strong> Review any potential duplicates found
+                  </li>
+                  <li>
+                    • <strong>Step 3:</strong> Create new case only after deduplication check
+                  </li>
                 </ul>
                 {!deduplicationCompleted && (
                   <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded text-amber-800">
-                    <p className="text-xs font-medium">⚠️ Deduplication search is required before creating a new case</p>
+                    <p className="text-xs font-medium">
+                      ⚠️ Deduplication search is required before creating a new case
+                    </p>
                   </div>
                 )}
                 {deduplicationCompleted && (
                   <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded text-green-800">
-                    <p className="text-xs font-medium">✅ Deduplication check completed. You can now create a new case.</p>
+                    <p className="text-xs font-medium">
+                      ✅ Deduplication check completed. You can now create a new case.
+                    </p>
                   </div>
                 )}
               </div>

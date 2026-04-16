@@ -1,6 +1,6 @@
 /**
  * Standardized Badge Styling Utility
- * 
+ *
  * This file provides consistent badge styling across the entire CRM application.
  * All badges should use green background with white text and uppercase labels.
  */
@@ -56,7 +56,9 @@ export function getTaskPriorityBadgeStyle(_priority?: string): string {
  * Format badge label to uppercase
  */
 export function formatBadgeLabel(label: string | number | undefined): string {
-  if (label === undefined || label === null) {return 'N/A';}
+  if (label === undefined || label === null) {
+    return 'N/A';
+  }
   return String(label).toUpperCase().replace('_', ' ');
 }
 
@@ -85,4 +87,3 @@ export function getPriorityLabel(priority: number | string): string {
 export function getStatusLabel(status: string): string {
   return status.toUpperCase().replace('_', ' ');
 }
-

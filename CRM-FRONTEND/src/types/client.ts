@@ -17,8 +17,6 @@ export interface Client extends Omit<BaseEntity, 'id'> {
   documentTypes?: DocumentType[];
 }
 
-
-
 export interface VerificationType extends Omit<BaseEntity, 'id'> {
   id: number; // Numeric ID for verification types (SERIAL)
   name: string;

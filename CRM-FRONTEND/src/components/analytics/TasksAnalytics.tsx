@@ -1,35 +1,29 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  BarChart, 
-  Bar, 
-  PieChart, 
-  Pie, 
+import {
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
   Cell,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer 
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
 } from 'recharts';
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '@/services/api';
 import type { ApiResponse } from '@/types/api';
-import {
-  CheckSquare,
-  Clock,
-  DollarSign,
-  FileCheck,
-  XCircle
-} from 'lucide-react';
+import { CheckSquare, Clock, DollarSign, FileCheck, XCircle } from 'lucide-react';
 
 interface VerificationTask {
   id: string;
@@ -67,7 +61,7 @@ const STATUS_COLORS: Record<string, string> = {
   IN_PROGRESS: '#8b5cf6',
   COMPLETED: '#10b981',
   REVOKED: '#ef4444',
-  ON_HOLD: '#6b7280'
+  ON_HOLD: '#6b7280',
 };
 
 const getDateFromRange = (range: string): string => {
@@ -89,16 +83,20 @@ export const TasksAnalytics: React.FC = () => {
   const [viewType, setViewType] = useState<'status' | 'type' | 'agent'>('status');
 
   // Fetch verification tasks (backend max limit is 100)
-  const { data: tasksData, isLoading, error } = useQuery<ApiResponse<VerificationTasksResponse>>({
+  const {
+    data: tasksData,
+    isLoading,
+    error,
+  } = useQuery<ApiResponse<VerificationTasksResponse>>({
     queryKey: ['verification-tasks', timeRange],
     queryFn: async () => {
       const params = new URLSearchParams({
         limit: '100',
         dateFrom: getDateFromRange(timeRange),
-        dateTo: new Date().toISOString().split('T')[0]
+        dateTo: new Date().toISOString().split('T')[0],
       });
       return apiService.get<VerificationTasksResponse>(`/verification-tasks?${params.toString()}`);
-    }
+    },
   });
 
   // Extract backend statistics
@@ -120,14 +118,20 @@ export const TasksAnalytics: React.FC = () => {
     { name: 'Completed', value: taskStats?.completed || 0, color: STATUS_COLORS.COMPLETED },
     { name: 'Revoked', value: taskStats?.revoked || 0, color: STATUS_COLORS.REVOKED },
     { name: 'On Hold', value: taskStats?.onHold || 0, color: STATUS_COLORS.ON_HOLD },
-  ].filter(d => d.value > 0);
+  ].filter((d) => d.value > 0);
 
   // Still need to use the tasks array for type and agent distribution as backend doesn't aggregate them yet
   const tasks: VerificationTask[] = payload?.tasks || [];
 
   // Calculate total amounts (ideally these should also come from backend statistics)
-  const totalEstimatedAmount = tasks.reduce((sum: number, t: VerificationTask) => sum + (parseFloat(t.estimatedAmount) || 0), 0);
-  const totalActualAmount = tasks.reduce((sum: number, t: VerificationTask) => sum + (parseFloat(t.actualAmount) || 0), 0);
+  const totalEstimatedAmount = tasks.reduce(
+    (sum: number, t: VerificationTask) => sum + (parseFloat(t.estimatedAmount) || 0),
+    0
+  );
+  const totalActualAmount = tasks.reduce(
+    (sum: number, t: VerificationTask) => sum + (parseFloat(t.actualAmount) || 0),
+    0
+  );
 
   // Verification type distribution
   const typeDistribution = tasks.reduce((acc: Record<string, number>, t: VerificationTask) => {
@@ -136,11 +140,14 @@ export const TasksAnalytics: React.FC = () => {
     return acc;
   }, {});
 
-  const typeData = Object.entries(typeDistribution).map(([name, count], index) => ({
-    name,
-    value: count as number,
-    color: `hsl(${index * 45}, 70%, 50%)`
-  })).sort((a, b) => b.value - a.value).slice(0, 10);
+  const typeData = Object.entries(typeDistribution)
+    .map(([name, count], index) => ({
+      name,
+      value: count as number,
+      color: `hsl(${index * 45}, 70%, 50%)`,
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10);
 
   // Agent distribution
   const agentDistribution = tasks.reduce((acc: Record<string, number>, t: VerificationTask) => {
@@ -149,11 +156,14 @@ export const TasksAnalytics: React.FC = () => {
     return acc;
   }, {});
 
-  const agentData = Object.entries(agentDistribution).map(([name, count], index) => ({
-    name,
-    value: count as number,
-    color: `hsl(${index * 45}, 70%, 50%)`
-  })).sort((a, b) => b.value - a.value).slice(0, 10);
+  const agentData = Object.entries(agentDistribution)
+    .map(([name, count], index) => ({
+      name,
+      value: count as number,
+      color: `hsl(${index * 45}, 70%, 50%)`,
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 10);
 
   // Loading state
   if (isLoading) {
@@ -195,7 +205,9 @@ export const TasksAnalytics: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Verification Tasks Analytics</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+            Verification Tasks Analytics
+          </h2>
           <p className="mt-1 text-sm sm:text-base text-gray-600">
             Task-level metrics and performance analysis
           </p>
@@ -223,9 +235,7 @@ export const TasksAnalytics: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalTasks}</div>
-            <p className="text-xs text-gray-600">
-              All verification tasks
-            </p>
+            <p className="text-xs text-gray-600">All verification tasks</p>
           </CardContent>
         </Card>
 
@@ -236,9 +246,7 @@ export const TasksAnalytics: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{completedTasks}</div>
-            <p className="text-xs text-gray-600">
-              {completionRate.toFixed(1)}% completion rate
-            </p>
+            <p className="text-xs text-gray-600">{completionRate.toFixed(1)}% completion rate</p>
           </CardContent>
         </Card>
 
@@ -249,9 +257,7 @@ export const TasksAnalytics: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{inProgressTasks}</div>
-            <p className="text-xs text-gray-600">
-              {pendingTasks} pending assignment
-            </p>
+            <p className="text-xs text-gray-600">{pendingTasks} pending assignment</p>
           </CardContent>
         </Card>
 
@@ -262,9 +268,7 @@ export const TasksAnalytics: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{totalActualAmount.toLocaleString()}</div>
-            <p className="text-xs text-gray-600">
-              Est: ₹{totalEstimatedAmount.toLocaleString()}
-            </p>
+            <p className="text-xs text-gray-600">Est: ₹{totalEstimatedAmount.toLocaleString()}</p>
           </CardContent>
         </Card>
       </div>
@@ -277,7 +281,10 @@ export const TasksAnalytics: React.FC = () => {
               <CardTitle>Task Distribution</CardTitle>
               <CardDescription>Breakdown by different dimensions</CardDescription>
             </div>
-            <Select value={viewType} onValueChange={(v) => setViewType(v as 'status' | 'type' | 'agent')}>
+            <Select
+              value={viewType}
+              onValueChange={(v) => setViewType(v as 'status' | 'type' | 'agent')}
+            >
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
@@ -296,16 +303,29 @@ export const TasksAnalytics: React.FC = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={viewType === 'status' ? statusData : viewType === 'type' ? typeData : agentData}
+                    data={
+                      viewType === 'status'
+                        ? statusData
+                        : viewType === 'type'
+                          ? typeData
+                          : agentData
+                    }
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={(props: { name?: string; percent?: number }) => `${props.name || ''}: ${((props.percent || 0) * 100).toFixed(0)}%`}
+                    label={(props: { name?: string; percent?: number }) =>
+                      `${props.name || ''}: ${((props.percent || 0) * 100).toFixed(0)}%`
+                    }
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {(viewType === 'status' ? statusData : viewType === 'type' ? typeData : agentData).map((entry, index) => (
+                    {(viewType === 'status'
+                      ? statusData
+                      : viewType === 'type'
+                        ? typeData
+                        : agentData
+                    ).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -318,13 +338,22 @@ export const TasksAnalytics: React.FC = () => {
             {/* Bar Chart */}
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={viewType === 'status' ? statusData : viewType === 'type' ? typeData : agentData}>
+                <BarChart
+                  data={
+                    viewType === 'status' ? statusData : viewType === 'type' ? typeData : agentData
+                  }
+                >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
                   <YAxis />
                   <Tooltip />
                   <Bar dataKey="value" fill="#3b82f6">
-                    {(viewType === 'status' ? statusData : viewType === 'type' ? typeData : agentData).map((entry, index) => (
+                    {(viewType === 'status'
+                      ? statusData
+                      : viewType === 'type'
+                        ? typeData
+                        : agentData
+                    ).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Bar>
@@ -344,7 +373,10 @@ export const TasksAnalytics: React.FC = () => {
         <CardContent>
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {statusData.map((status) => (
-              <div key={status.name} className="flex items-center justify-between p-4 border rounded-lg">
+              <div
+                key={status.name}
+                className="flex items-center justify-between p-4 border rounded-lg"
+              >
                 <div className="flex items-center space-x-3">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: status.color }} />
                   <div>
@@ -363,4 +395,3 @@ export const TasksAnalytics: React.FC = () => {
     </div>
   );
 };
-

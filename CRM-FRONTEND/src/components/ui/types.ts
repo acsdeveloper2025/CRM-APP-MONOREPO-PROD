@@ -1,6 +1,6 @@
 /**
  * Standardized Component Prop Interfaces
- * 
+ *
  * This file defines consistent prop interfaces and patterns for all UI components
  * to ensure consistency across the component library.
  */
@@ -95,8 +95,11 @@ export interface BaseFieldProps extends BaseComponentProps, DisableableProps {
 /**
  * Input component props
  */
-export interface InputProps extends BaseFieldProps, SizeVariantProps, 
-  Omit<InputHTMLAttributes<HTMLInputElement>, 'size' | 'className' | 'children'> {
+export interface InputProps
+  extends
+    BaseFieldProps,
+    SizeVariantProps,
+    Omit<InputHTMLAttributes<HTMLInputElement>, 'size' | 'className' | 'children'> {
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
   clearable?: boolean;
@@ -106,9 +109,13 @@ export interface InputProps extends BaseFieldProps, SizeVariantProps,
 /**
  * Button component props
  */
-export interface ButtonProps extends BaseComponentProps, DisableableProps, 
-  SizeVariantProps, ColorVariantProps,
-  Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'children'> {
+export interface ButtonProps
+  extends
+    BaseComponentProps,
+    DisableableProps,
+    SizeVariantProps,
+    ColorVariantProps,
+    Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'children'> {
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
   iconOnly?: boolean;

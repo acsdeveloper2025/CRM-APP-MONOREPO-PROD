@@ -1,13 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Download,
-  FileText,
-  CheckCircle,
-  Clock,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react';
+import { Download, FileText, CheckCircle, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

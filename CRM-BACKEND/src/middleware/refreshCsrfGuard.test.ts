@@ -49,13 +49,18 @@ function makeReq(opts: {
   };
 }
 
-function makeRes(): { status: ReturnType<typeof vi.fn>; json: ReturnType<typeof vi.fn> } & Response {
+function makeRes(): {
+  status: ReturnType<typeof vi.fn>;
+  json: ReturnType<typeof vi.fn>;
+} & Response {
   const res = {
     status: vi.fn().mockReturnThis(),
     json: vi.fn().mockReturnThis(),
   };
-  return res as unknown as { status: ReturnType<typeof vi.fn>; json: ReturnType<typeof vi.fn> } &
-    Response;
+  return res as unknown as {
+    status: ReturnType<typeof vi.fn>;
+    json: ReturnType<typeof vi.fn>;
+  } & Response;
 }
 
 describe('refreshCsrfGuard', () => {

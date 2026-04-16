@@ -56,7 +56,9 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
   };
 
   const handleImport = () => {
-    if (!selectedFile) {return;}
+    if (!selectedFile) {
+      return;
+    }
     importMutation.mutate(selectedFile);
   };
 
@@ -106,8 +108,14 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
             <FileText className="h-4 w-4" />
             <AlertDescription>
               <div className="space-y-2">
-                <p><strong>Required columns:</strong> name, username, email, role, employeeId, designation, department</p>
-                <p><strong>Optional columns:</strong> password (will be auto-generated if not provided)</p>
+                <p>
+                  <strong>Required columns:</strong> name, username, email, role, employeeId,
+                  designation, department
+                </p>
+                <p>
+                  <strong>Optional columns:</strong> password (will be auto-generated if not
+                  provided)
+                </p>
                 <Button
                   variant="link"
                   size="sm"
@@ -167,9 +175,7 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
                   {importResult.imported > 0 && (
                     <p>Successfully imported: {importResult.imported} users</p>
                   )}
-                  {importResult.failed > 0 && (
-                    <p>Failed to import: {importResult.failed} users</p>
-                  )}
+                  {importResult.failed > 0 && <p>Failed to import: {importResult.failed} users</p>}
                   {importResult.errors && importResult.errors.length > 0 && (
                     <div className="mt-2">
                       <p className="text-sm font-medium">Errors:</p>
@@ -197,7 +203,8 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
             <Button
               onClick={handleImport}
               disabled={!selectedFile || importMutation.isPending}
-             className="w-full sm:w-auto">
+              className="w-full sm:w-auto"
+            >
               {importMutation.isPending ? 'Importing...' : 'Import Users'}
             </Button>
           )}

@@ -4,7 +4,7 @@ import { useErrorHandling, ErrorHandlingOptions } from './useErrorHandling';
 
 /**
  * Standardized query hook that wraps useQuery with automatic error handling
- * 
+ *
  * @example
  * ```typescript
  * const { data, isLoading, error } = useStandardizedQuery({
@@ -21,28 +21,28 @@ interface StandardizedQueryOptions<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey
+  TQueryKey extends QueryKey = QueryKey,
 > extends Omit<UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>, 'onError'> {
   /**
    * Context for error logging (e.g., 'Fetching Users', 'Loading Dashboard')
    */
   errorContext?: string;
-  
+
   /**
    * Fallback error message if backend doesn't provide one
    */
   errorFallbackMessage?: string;
-  
+
   /**
    * Additional error handling options
    */
   errorOptions?: Omit<ErrorHandlingOptions, 'context' | 'fallbackMessage'>;
-  
+
   /**
    * Custom error handler (will be called after standardized error handling)
    */
   onErrorCallback?: (error: TError) => void;
-  
+
   /**
    * Whether to show toast notification on error (default: true)
    */
@@ -53,12 +53,10 @@ export function useStandardizedQuery<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey
->(
-  options: StandardizedQueryOptions<TQueryFnData, TError, TData, TQueryKey>
-) {
+  TQueryKey extends QueryKey = QueryKey,
+>(options: StandardizedQueryOptions<TQueryFnData, TError, TData, TQueryKey>) {
   const { handleError } = useErrorHandling();
-  
+
   // Extract options to avoid dependency cycle if possible or just use them
   const {
     errorContext,
@@ -68,11 +66,11 @@ export function useStandardizedQuery<
     showErrorToast = true,
     ...queryOptions
   } = options;
-  
+
   const query = useQuery({
     ...queryOptions,
   });
-  
+
   // Handle errors when they occur
   useEffect(() => {
     if (query.error && showErrorToast) {
@@ -82,20 +80,28 @@ export function useStandardizedQuery<
         showToast: showErrorToast,
         ...errorOptions,
       });
-      
+
       // Call custom error callback if provided
       if (onErrorCallback) {
         onErrorCallback(query.error);
       }
     }
-  }, [query.error, showErrorToast, handleError, errorContext, errorFallbackMessage, errorOptions, onErrorCallback]);
-  
+  }, [
+    query.error,
+    showErrorToast,
+    handleError,
+    errorContext,
+    errorFallbackMessage,
+    errorOptions,
+    onErrorCallback,
+  ]);
+
   return query;
 }
 
 /**
  * Hook for queries with retry logic
- * 
+ *
  * @example
  * ```typescript
  * const { data, isLoading } = useQueryWithRetry({
@@ -112,13 +118,13 @@ interface QueryWithRetryOptions<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey
+  TQueryKey extends QueryKey = QueryKey,
 > extends StandardizedQueryOptions<TQueryFnData, TError, TData, TQueryKey> {
   /**
    * Number of retry attempts (default: 3)
    */
   retryCount?: number;
-  
+
   /**
    * Delay between retries in milliseconds (default: 1000)
    */
@@ -129,16 +135,10 @@ export function useQueryWithRetry<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey
->(
-  options: QueryWithRetryOptions<TQueryFnData, TError, TData, TQueryKey>
-) {
-  const {
-    retryCount = 3,
-    retryDelay = 1000,
-    ...restOptions
-  } = options;
-  
+  TQueryKey extends QueryKey = QueryKey,
+>(options: QueryWithRetryOptions<TQueryFnData, TError, TData, TQueryKey>) {
+  const { retryCount = 3, retryDelay = 1000, ...restOptions } = options;
+
   return useStandardizedQuery({
     ...restOptions,
     retry: retryCount,
@@ -148,7 +148,7 @@ export function useQueryWithRetry<
 
 /**
  * Hook for paginated queries with standardized error handling
- * 
+ *
  * @example
  * ```typescript
  * const { data, isLoading } = usePaginatedQuery({
@@ -165,13 +165,13 @@ interface PaginatedQueryOptions<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey
+  TQueryKey extends QueryKey = QueryKey,
 > extends StandardizedQueryOptions<TQueryFnData, TError, TData, TQueryKey> {
   /**
    * Current page number
    */
   page?: number;
-  
+
   /**
    * Items per page
    */
@@ -182,10 +182,8 @@ export function usePaginatedQuery<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey
->(
-  options: PaginatedQueryOptions<TQueryFnData, TError, TData, TQueryKey>
-) {
+  TQueryKey extends QueryKey = QueryKey,
+>(options: PaginatedQueryOptions<TQueryFnData, TError, TData, TQueryKey>) {
   const { page: _page, limit: _limit, ...restOptions } = options;
 
   return useStandardizedQuery({
@@ -197,11 +195,11 @@ export function usePaginatedQuery<
 
 /**
  * Hook for queries that depend on other data
- * 
+ *
  * @example
  * ```typescript
  * const { data: user } = useQuery({ queryKey: ['user'], queryFn: getUser });
- * 
+ *
  * const { data: userDetails } = useDependentQuery({
  *   queryKey: ['user-details', user?.id],
  *   queryFn: () => getUserDetails(user!.id),
@@ -215,7 +213,7 @@ interface DependentQueryOptions<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey
+  TQueryKey extends QueryKey = QueryKey,
 > extends StandardizedQueryOptions<TQueryFnData, TError, TData, TQueryKey> {
   /**
    * Data that this query depends on. Query will only run if this is truthy.
@@ -227,12 +225,10 @@ export function useDependentQuery<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey
->(
-  options: DependentQueryOptions<TQueryFnData, TError, TData, TQueryKey>
-) {
+  TQueryKey extends QueryKey = QueryKey,
+>(options: DependentQueryOptions<TQueryFnData, TError, TData, TQueryKey>) {
   const { dependsOn, enabled, ...restOptions } = options;
-  
+
   return useStandardizedQuery({
     ...restOptions,
     enabled: !!dependsOn && (enabled !== undefined ? enabled : true),
@@ -241,7 +237,7 @@ export function useDependentQuery<
 
 /**
  * Example usage patterns:
- * 
+ *
  * // Basic query with error handling
  * const { data, isLoading } = useStandardizedQuery({
  *   queryKey: ['users'],
@@ -249,7 +245,7 @@ export function useDependentQuery<
  *   errorContext: 'Loading Users',
  *   errorFallbackMessage: 'Failed to load users',
  * });
- * 
+ *
  * // Query with retry logic
  * const { data } = useQueryWithRetry({
  *   queryKey: ['critical-data'],
@@ -257,7 +253,7 @@ export function useDependentQuery<
  *   errorContext: 'Loading Critical Data',
  *   retryCount: 5,
  * });
- * 
+ *
  * // Paginated query
  * const { data } = usePaginatedQuery({
  *   queryKey: ['users', page, limit],
@@ -266,7 +262,7 @@ export function useDependentQuery<
  *   page,
  *   limit,
  * });
- * 
+ *
  * // Dependent query
  * const { data: user } = useQuery({ queryKey: ['user'], queryFn: getUser });
  * const { data: details } = useDependentQuery({
@@ -276,4 +272,3 @@ export function useDependentQuery<
  *   errorContext: 'Loading User Details',
  * });
  */
-

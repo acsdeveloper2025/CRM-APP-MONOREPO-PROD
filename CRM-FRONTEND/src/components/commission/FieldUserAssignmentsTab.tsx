@@ -1,23 +1,43 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Plus, Edit, Trash2, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
-  MobileTableCard,
-  MobileTableField,
-} from '@/components/ui/responsive-table';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { MobileTableCard, MobileTableField } from '@/components/ui/responsive-table';
 import { Badge } from '@/components/ui/badge';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { UnifiedSearchInput } from '@/components/ui/unified-search-input';
 import { UnifiedFilterPanel, FilterGrid } from '@/components/ui/unified-filter-panel';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { commissionManagementApi } from '../../services/commissionManagementApi';
-import { FieldUserCommissionAssignment, CreateFieldUserCommissionAssignmentData } from '../../types/commission';
+import {
+  FieldUserCommissionAssignment,
+  CreateFieldUserCommissionAssignmentData,
+} from '../../types/commission';
 import { logger } from '@/utils/logger';
 import { User } from '../../types/user';
 import { RateType } from '../../types/rateManagement';
@@ -40,20 +60,17 @@ export const FieldUserAssignmentsTab: React.FC = () => {
   const [rateTypes, setRateTypes] = useState<RateType[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingAssignment, setEditingAssignment] = useState<FieldUserCommissionAssignment | null>(null);
+  const [editingAssignment, setEditingAssignment] = useState<FieldUserCommissionAssignment | null>(
+    null
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   // Unified search with 800ms debounce
-  const {
-    searchValue,
-    debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
-  } = useUnifiedSearch({
-    syncWithUrl: true,
-  });
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({
+      syncWithUrl: true,
+    });
 
   // Unified filters
   const {
@@ -70,14 +87,14 @@ export const FieldUserAssignmentsTab: React.FC = () => {
 
   // Count active filters
   const activeFilterCount = Object.keys(filters).filter(
-    key => filters[key as keyof typeof filters] !== undefined
+    (key) => filters[key as keyof typeof filters] !== undefined
   ).length;
 
   const [formData, setFormData] = useState<FieldUserAssignmentFormData>({
     userId: '',
     rateTypeId: 0,
     commissionAmount: 0,
-    currency: 'INR'
+    currency: 'INR',
   });
 
   const loadData = useCallback(async () => {
@@ -90,7 +107,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
         limit: 20,
         search: debouncedSearchValue || undefined,
         userId: (filterUserId as string) || undefined,
-        rateTypeId: filterRateTypeId ? Number(filterRateTypeId) : undefined
+        rateTypeId: filterRateTypeId ? Number(filterRateTypeId) : undefined,
       });
 
       setAssignments(assignmentsResponse.data || []);
@@ -99,7 +116,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
       // Load users and rate types for dropdowns
       const [usersResponse, rateTypesResponse] = await Promise.all([
         userApi.getUsers({ role: 'FIELD_AGENT', limit: 100 }),
-        rateTypeApi.getRateTypes({ isActive: true })
+        rateTypeApi.getRateTypes({ isActive: true }),
       ]);
 
       setUsers(usersResponse.data);
@@ -125,7 +142,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
         currency: formData.currency,
         clientId: formData.clientId,
         effectiveFrom: formData.effectiveFrom,
-        effectiveTo: formData.effectiveTo
+        effectiveTo: formData.effectiveTo,
       };
 
       if (editingAssignment) {
@@ -151,7 +168,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
       userId: '',
       rateTypeId: 0,
       commissionAmount: 0,
-      currency: 'INR'
+      currency: 'INR',
     });
   };
 
@@ -163,8 +180,12 @@ export const FieldUserAssignmentsTab: React.FC = () => {
       commissionAmount: Number(assignment.commissionAmount),
       currency: assignment.currency,
       clientId: assignment.clientId || undefined,
-      effectiveFrom: assignment.effectiveFrom ? new Date(assignment.effectiveFrom).toISOString().split('T')[0] : undefined,
-      effectiveTo: assignment.effectiveTo ? new Date(assignment.effectiveTo).toISOString().split('T')[0] : undefined
+      effectiveFrom: assignment.effectiveFrom
+        ? new Date(assignment.effectiveFrom).toISOString().split('T')[0]
+        : undefined,
+      effectiveTo: assignment.effectiveTo
+        ? new Date(assignment.effectiveTo).toISOString().split('T')[0]
+        : undefined,
     });
     setShowForm(true);
   };
@@ -183,16 +204,26 @@ export const FieldUserAssignmentsTab: React.FC = () => {
 
   const exportData = () => {
     const csvContent = [
-      ['User Name', 'Rate Type', 'Commission Amount', 'Currency', 'Effective From', 'Effective To', 'Status'].join(','),
-      ...assignments.map(assignment => [
-        assignment.userName || '',
-        assignment.rateTypeName || '',
-        assignment.commissionAmount,
-        assignment.currency,
-        assignment.effectiveFrom ? new Date(assignment.effectiveFrom).toLocaleDateString() : '',
-        assignment.effectiveTo ? new Date(assignment.effectiveTo).toLocaleDateString() : '',
-        assignment.isActive ? 'Active' : 'Inactive'
-      ].join(','))
+      [
+        'User Name',
+        'Rate Type',
+        'Commission Amount',
+        'Currency',
+        'Effective From',
+        'Effective To',
+        'Status',
+      ].join(','),
+      ...assignments.map((assignment) =>
+        [
+          assignment.userName || '',
+          assignment.rateTypeName || '',
+          assignment.commissionAmount,
+          assignment.currency,
+          assignment.effectiveFrom ? new Date(assignment.effectiveFrom).toLocaleDateString() : '',
+          assignment.effectiveTo ? new Date(assignment.effectiveTo).toLocaleDateString() : '',
+          assignment.isActive ? 'Active' : 'Inactive',
+        ].join(',')
+      ),
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -245,7 +276,8 @@ export const FieldUserAssignmentsTab: React.FC = () => {
             Commission Rate Assignments
           </CardTitle>
           <p className="text-sm text-gray-600 mt-2">
-            Configure commission rates for field users by rate type and client (not for case assignments)
+            Configure commission rates for field users by rate type and client (not for case
+            assignments)
           </p>
         </CardHeader>
         <CardContent className="p-6">
@@ -343,12 +375,22 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                     </TableCell>
                     <TableCell className="hidden xl:table-cell">
                       <div className="text-sm">
-                        <div>From: {assignment.effectiveFrom ? new Date(assignment.effectiveFrom).toLocaleDateString() : 'N/A'}</div>
-                        <div>To: {assignment.effectiveTo ? new Date(assignment.effectiveTo).toLocaleDateString() : 'Ongoing'}</div>
+                        <div>
+                          From:{' '}
+                          {assignment.effectiveFrom
+                            ? new Date(assignment.effectiveFrom).toLocaleDateString()
+                            : 'N/A'}
+                        </div>
+                        <div>
+                          To:{' '}
+                          {assignment.effectiveTo
+                            ? new Date(assignment.effectiveTo).toLocaleDateString()
+                            : 'Ongoing'}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={assignment.isActive ? "default" : "secondary"}>
+                      <Badge variant={assignment.isActive ? 'default' : 'secondary'}>
                         {assignment.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
@@ -388,15 +430,11 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                     <div className="text-sm text-gray-600">{assignment.userEmail}</div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Badge variant={assignment.isActive ? "default" : "secondary"}>
+                    <Badge variant={assignment.isActive ? 'default' : 'secondary'}>
                       {assignment.isActive ? 'Active' : 'Inactive'}
                     </Badge>
                     <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => handleEdit(assignment)}
-                      >
+                      <Button variant="ghost" size="icon-sm" onClick={() => handleEdit(assignment)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
@@ -421,11 +459,19 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                 />
                 <MobileTableField
                   label="Effective From"
-                  value={assignment.effectiveFrom ? new Date(assignment.effectiveFrom).toLocaleDateString() : 'N/A'}
+                  value={
+                    assignment.effectiveFrom
+                      ? new Date(assignment.effectiveFrom).toLocaleDateString()
+                      : 'N/A'
+                  }
                 />
                 <MobileTableField
                   label="Effective To"
-                  value={assignment.effectiveTo ? new Date(assignment.effectiveTo).toLocaleDateString() : 'Ongoing'}
+                  value={
+                    assignment.effectiveTo
+                      ? new Date(assignment.effectiveTo).toLocaleDateString()
+                      : 'Ongoing'
+                  }
                 />
               </MobileTableCard>
             ))}
@@ -441,7 +487,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
                 >
                   Previous
@@ -449,7 +495,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
                 >
                   Next
@@ -465,13 +511,14 @@ export const FieldUserAssignmentsTab: React.FC = () => {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {editingAssignment ? 'Edit Commission Rate Assignment' : 'Create Commission Rate Assignment'}
+              {editingAssignment
+                ? 'Edit Commission Rate Assignment'
+                : 'Create Commission Rate Assignment'}
             </DialogTitle>
             <DialogDescription>
               {editingAssignment
                 ? 'Update the commission rate assignment details for the selected field user.'
-                : 'Create a new commission rate assignment for a field user. This will determine their commission rate for specific verification types.'
-              }
+                : 'Create a new commission rate assignment for a field user. This will determine their commission rate for specific verification types.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -480,10 +527,10 @@ export const FieldUserAssignmentsTab: React.FC = () => {
               <div className="space-y-2">
                 <Label htmlFor="userId">Field User *</Label>
                 <SearchableSelect
-                  options={(users || []).map(user => ({
+                  options={(users || []).map((user) => ({
                     value: user.id,
                     label: user.name,
-                    description: user.email
+                    description: user.email,
                   }))}
                   value={formData.userId}
                   onValueChange={(value) => setFormData({ ...formData, userId: value })}
@@ -496,13 +543,15 @@ export const FieldUserAssignmentsTab: React.FC = () => {
               <div className="space-y-2">
                 <Label htmlFor="rateTypeId">Rate Type *</Label>
                 <SearchableSelect
-                  options={(rateTypes || []).map(rateType => ({
+                  options={(rateTypes || []).map((rateType) => ({
                     value: rateType.id.toString(),
                     label: rateType.name,
-                                        description: `Rate: ${(rateType as unknown).rateAmount || 'Not set'}`
+                    description: `Rate: ${(rateType as unknown).rateAmount || 'Not set'}`,
                   }))}
                   value={formData.rateTypeId ? formData.rateTypeId.toString() : ''}
-                  onValueChange={(value) => setFormData({ ...formData, rateTypeId: value ? Number(value) : 0 })}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, rateTypeId: value ? Number(value) : 0 })
+                  }
                   placeholder="Search and select rate type..."
                   searchPlaceholder="Search rate types..."
                   emptyMessage="No rate types found"
@@ -535,7 +584,9 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                     step="0.01"
                     min="0"
                     value={formData.commissionAmount}
-                    onChange={(e) => setFormData({ ...formData, commissionAmount: Number(e.target.value) })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, commissionAmount: Number(e.target.value) })
+                    }
                     placeholder="0.00"
                     required
                   />

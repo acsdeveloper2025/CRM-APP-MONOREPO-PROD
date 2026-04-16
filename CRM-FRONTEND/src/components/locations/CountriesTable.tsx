@@ -90,14 +90,10 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
       <div className="text-center py-8">
         <Globe className="mx-auto h-12 w-12 text-gray-600" />
         <h3 className="mt-2 text-sm font-medium text-gray-900">No countries found</h3>
-        <p className="mt-1 text-sm text-gray-600">
-          Get started by creating a new country.
-        </p>
+        <p className="mt-1 text-sm text-gray-600">Get started by creating a new country.</p>
       </div>
     );
   }
-
-
 
   return (
     <>
@@ -187,8 +183,8 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the country
-              &quot;{countryToDelete?.name}&quot; and all associated states.
+              This action cannot be undone. This will permanently delete the country &quot;
+              {countryToDelete?.name}&quot; and all associated states.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

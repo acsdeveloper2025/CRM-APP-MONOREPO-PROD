@@ -3,11 +3,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { UserCheck, AlertCircle, User, Loader2 } from 'lucide-react';
-import { AssignVerificationTaskRequest, TaskPriority, VerificationTask } from '@/types/verificationTask';
+import {
+  AssignVerificationTaskRequest,
+  TaskPriority,
+  VerificationTask,
+} from '@/types/verificationTask';
 import { useFieldUsersByPincode } from '@/hooks/useUsers';
 import { useVerificationTask, useAssignVerificationTask } from '@/hooks/useVerificationTasks';
 import { logger } from '@/utils/logger';
@@ -23,17 +33,19 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
   taskId,
   isOpen = true,
   onClose,
-  onSuccess
+  onSuccess,
 }) => {
   const [assignedTo, setAssignedTo] = useState<string>('');
   const [assignmentReason, setAssignmentReason] = useState<string>('');
   const [priority, setPriority] = useState<TaskPriority>('MEDIUM');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
-  
+
   // Fetch task details using useVerificationTask
   const { data: rawTaskData, isLoading: _loadingTask } = useVerificationTask(taskId);
-  const task = (Array.isArray(rawTaskData) ? rawTaskData[0] : rawTaskData) as VerificationTask | undefined;
+  const task = (Array.isArray(rawTaskData) ? rawTaskData[0] : rawTaskData) as
+    | VerificationTask
+    | undefined;
 
   // Fetch field users filtered by the task's pincode
   const { data: fieldUsers = [], isLoading: loadingUsers } = useFieldUsersByPincode(task?.pincode);
@@ -82,7 +94,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
     const assignmentData: AssignVerificationTaskRequest = {
       assignedTo,
       assignmentReason,
-      priority
+      priority,
     };
 
     try {
@@ -99,7 +111,8 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
         error !== null &&
         'response' in error &&
         typeof (error as { response?: unknown }).response === 'object' &&
-        (error as { response?: { data?: { error?: { code?: string } } } }).response?.data?.error?.code;
+        (error as { response?: { data?: { error?: { code?: string } } } }).response?.data?.error
+          ?.code;
 
       if (apiCode === 'MUST_REVOKE_TASK_FIRST') {
         setSubmitError('This task is already in progress. Revoke it first, then reassign it.');
@@ -112,7 +125,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
 
   const clearError = (field: string) => {
     if (errors[field]) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
@@ -126,7 +139,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
       LOW: 'bg-gray-100 text-gray-800',
       MEDIUM: 'bg-green-100 text-green-800',
       HIGH: 'bg-yellow-100 text-orange-800',
-      URGENT: 'bg-red-100 text-red-800'
+      URGENT: 'bg-red-100 text-red-800',
     };
     return colors[priority];
   };
@@ -154,7 +167,9 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                     {task?.pincode ? `Pincode: ${task.pincode}` : 'Assigning task to field user'}
                   </span>
                 </div>
-                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getPriorityColor(priority)}`}>
+                <span
+                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getPriorityColor(priority)}`}
+                >
                   {priority}
                 </span>
               </div>
@@ -170,7 +185,8 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
 
           {requiresRevokeFirst && (
             <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded text-sm">
-              This task is already in progress. Revoke it from the task actions menu before assigning it to a different field executive.
+              This task is already in progress. Revoke it from the task actions menu before
+              assigning it to a different field executive.
             </div>
           )}
 
@@ -195,14 +211,20 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                 disabled={loadingUsers || !task || isAssigning || requiresRevokeFirst}
               >
                 <SelectTrigger className={errors.assignedTo ? 'border-red-500' : ''}>
-                  <SelectValue placeholder={loadingUsers ? "Loading field users..." : "Select a field user"}>
+                  <SelectValue
+                    placeholder={loadingUsers ? 'Loading field users...' : 'Select a field user'}
+                  >
                     {assignedTo && (
                       <div className="flex items-center space-x-2">
                         <User className="h-4 w-4" />
                         <span>
-                          {fieldUsers.find(user => 
-                            (typeof user.id === 'string' ? user.id : String(user.id)) === assignedTo
-                          )?.name}
+                          {
+                            fieldUsers.find(
+                              (user) =>
+                                (typeof user.id === 'string' ? user.id : String(user.id)) ===
+                                assignedTo
+                            )?.name
+                          }
                         </span>
                       </div>
                     )}
@@ -311,19 +333,22 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
             <Card className="bg-green-50 border-green-200">
               <CardContent className="p-4">
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-green-900">
-                    Assignment Summary
-                  </p>
+                  <p className="text-sm font-medium text-green-900">Assignment Summary</p>
                   <div className="text-sm text-green-800">
                     <p>
                       <span className="font-medium">Assignee:</span>{' '}
-                      {fieldUsers.find(user => 
-                        (typeof user.id === 'string' ? user.id : String(user.id)) === assignedTo
-                      )?.name}
+                      {
+                        fieldUsers.find(
+                          (user) =>
+                            (typeof user.id === 'string' ? user.id : String(user.id)) === assignedTo
+                        )?.name
+                      }
                     </p>
                     <div className="flex items-center gap-1">
                       <span className="font-medium">Priority:</span>
-                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getPriorityColor(priority)}`}>
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getPriorityColor(priority)}`}
+                      >
                         {priority}
                       </span>
                     </div>
@@ -338,8 +363,8 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
             <Button onClick={onClose} variant="outline" disabled={isAssigning}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleSubmit} 
+            <Button
+              onClick={handleSubmit}
               disabled={isAssigning || !assignedTo || requiresRevokeFirst}
             >
               {isAssigning ? (
@@ -347,7 +372,11 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   Assigning...
                 </>
-              ) : requiresRevokeFirst ? 'Revoke First' : 'Assign Task'}
+              ) : requiresRevokeFirst ? (
+                'Revoke First'
+              ) : (
+                'Assign Task'
+              )}
             </Button>
           </div>
         </div>

@@ -82,11 +82,14 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   // is set to 'COMPLETED' which maps to statusNot=PENDING (show all
   // non-pending docs: PASS, FAIL, REFER).
   const isCompletedPage = defaultStatus === 'COMPLETED';
-  const effectiveStatus =
-    statusFilter !== 'ALL' && !isCompletedPage ? statusFilter : undefined;
+  const effectiveStatus = statusFilter !== 'ALL' && !isCompletedPage ? statusFilter : undefined;
   const effectiveStatusNot = isCompletedPage ? 'PENDING' : undefined;
 
-  const { data: taskData, isLoading, refetch } = useKYCTasks({
+  const {
+    data: taskData,
+    isLoading,
+    refetch,
+  } = useKYCTasks({
     page,
     limit: 20,
     search: search || undefined,
@@ -186,14 +189,25 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                   placeholder="Customer name, document number..."
                   className="pl-9"
                   value={search}
-                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
                 />
               </div>
             </div>
             <div>
               <Label>Status</Label>
-              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => {
+                  setStatusFilter(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Statuses</SelectItem>
                   <SelectItem value="PENDING">Pending</SelectItem>
@@ -205,12 +219,22 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
             </div>
             <div>
               <Label>Document Type</Label>
-              <Select value={docTypeFilter} onValueChange={(v) => { setDocTypeFilter(v); setPage(1); }}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={docTypeFilter}
+                onValueChange={(v) => {
+                  setDocTypeFilter(v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Types</SelectItem>
                   {docTypes.map((dt) => (
-                    <SelectItem key={dt.code} value={dt.code}>{dt.name}</SelectItem>
+                    <SelectItem key={dt.code} value={dt.code}>
+                      {dt.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -251,18 +275,24 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                       <TableCell className="font-medium">#{task.caseNumber}</TableCell>
                       <TableCell>{task.customerName}</TableCell>
                       <TableCell>
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_COLORS[task.documentCategory] || 'bg-gray-100 text-gray-700'}`}>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_COLORS[task.documentCategory] || 'bg-gray-100 text-gray-700'}`}
+                        >
                           {task.documentCategory}
                         </span>
                       </TableCell>
                       <TableCell>{task.documentTypeName}</TableCell>
-                      <TableCell className="font-mono text-sm">{task.documentNumber || '-'}</TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {task.documentNumber || '-'}
+                      </TableCell>
                       <TableCell>
                         <Badge className={STATUS_COLORS[task.verificationStatus] || ''}>
                           {task.verificationStatus}
                         </Badge>
                       </TableCell>
-                      <TableCell>{task.assignedToName || <span className="text-gray-400">Unassigned</span>}</TableCell>
+                      <TableCell>
+                        {task.assignedToName || <span className="text-gray-400">Unassigned</span>}
+                      </TableCell>
                       <TableCell className="text-sm text-gray-500">
                         {format(new Date(task.createdAt), 'dd MMM yyyy')}
                       </TableCell>
@@ -288,10 +318,20 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                     Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
                   </span>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page === 1}
+                      onClick={() => setPage((p) => p - 1)}
+                    >
                       Previous
                     </Button>
-                    <Button variant="outline" size="sm" disabled={page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={page >= pagination.totalPages}
+                      onClick={() => setPage((p) => p + 1)}
+                    >
                       Next
                     </Button>
                   </div>

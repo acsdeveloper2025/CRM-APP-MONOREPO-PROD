@@ -35,7 +35,9 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
   // Update selected products when assignments data loads
   useEffect(() => {
     if (assignmentsData?.data) {
-      const assignedProductIds = assignmentsData.data.map((assignment: { productId: number }) => assignment.productId);
+      const assignedProductIds = assignmentsData.data.map(
+        (assignment: { productId: number }) => assignment.productId
+      );
       setSelectedProductIds(assignedProductIds);
     }
   }, [assignmentsData]);
@@ -64,9 +66,9 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
 
   const handleProductToggle = (productId: number, checked: boolean) => {
     if (checked) {
-      setSelectedProductIds(prev => [...prev, productId]);
+      setSelectedProductIds((prev) => [...prev, productId]);
     } else {
-      setSelectedProductIds(prev => prev.filter(id => id !== productId));
+      setSelectedProductIds((prev) => prev.filter((id) => id !== productId));
     }
   };
 
@@ -83,9 +85,7 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
           <Package className="h-5 w-5" />
           Product Assignments
         </CardTitle>
-        <CardDescription>
-          Select which products this user can access
-        </CardDescription>
+        <CardDescription>Select which products this user can access</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading ? (
@@ -100,7 +100,9 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
                   <Checkbox
                     id={`product-${product.id}`}
                     checked={selectedProductIds.includes(product.id)}
-                    onCheckedChange={(checked) => handleProductToggle(product.id, checked as boolean)}
+                    onCheckedChange={(checked) =>
+                      handleProductToggle(product.id, checked as boolean)
+                    }
                   />
                   <label
                     htmlFor={`product-${product.id}`}
@@ -111,7 +113,7 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
                 </div>
               ))}
             </div>
-            <Button 
+            <Button
               onClick={handleSaveAssignments}
               disabled={saveAssignmentsMutation.isPending}
               className="w-full"

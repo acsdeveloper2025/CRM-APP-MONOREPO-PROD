@@ -100,8 +100,15 @@ export const useUpdateCase = () => {
 
 export const useAssignCase = () => {
   return useMutationWithInvalidation({
-    mutationFn: ({ id, assignedToId, reason }: { id: string; assignedToId: string; reason?: string }) =>
-      casesService.assignCase(id, assignedToId, reason),
+    mutationFn: ({
+      id,
+      assignedToId,
+      reason,
+    }: {
+      id: string;
+      assignedToId: string;
+      reason?: string;
+    }) => casesService.assignCase(id, assignedToId, reason),
     invalidateKeys: [caseKeys.all],
     successMessage: 'Case reassigned successfully',
     errorContext: 'Case Assignment',
@@ -111,7 +118,8 @@ export const useAssignCase = () => {
 
 export const useCreateCase = () => {
   return useMutationWithInvalidation({
-    mutationFn: (data: CreateCaseWithMultipleTasksPayload) => casesService.createCaseWithMultipleTasks(data),
+    mutationFn: (data: CreateCaseWithMultipleTasksPayload) =>
+      casesService.createCaseWithMultipleTasks(data),
     invalidateKeys: [caseKeys.all, ['dashboard'], ['verification-tasks']],
     successMessage: 'Case created and assigned successfully',
     errorContext: 'Case Creation',
@@ -156,66 +164,65 @@ export const useRequestRework = () => {
 export const useRefreshCases = () => {
   const queryClient = useQueryClient();
 
-  const refreshCases = useCallback(async (options?: {
-    clearCache?: boolean;
-    preserveFilters?: boolean;
-    showToast?: boolean;
-  }) => {
-    const {
-      clearCache = true,
-      preserveFilters: _preserveFilters = true,
-      showToast = true
-    } = options || {};
+  const refreshCases = useCallback(
+    async (options?: { clearCache?: boolean; preserveFilters?: boolean; showToast?: boolean }) => {
+      const {
+        clearCache = true,
+        preserveFilters: _preserveFilters = true,
+        showToast = true,
+      } = options || {};
 
-    try {
-      if (showToast) {
-        toast.loading('Refreshing cases...', { id: 'refresh-cases' });
-      }
-
-      if (clearCache) {
-        // Clear all case-related cache entries
-        queryClient.removeQueries({ queryKey: caseKeys.all });
-
-        // Clear browser storage for cases (if any)
-        try {
-          const cacheKeys = Object.keys(localStorage).filter(key =>
-            key.includes('case') || key.includes('Case')
-          );
-          cacheKeys.forEach(key => localStorage.removeItem(key));
-        } catch (error) {
-          logger.warn('Failed to clear localStorage:', error);
+      try {
+        if (showToast) {
+          toast.loading('Refreshing cases...', { id: 'refresh-cases' });
         }
 
-        // Clear session storage for cases (if any)
-        try {
-          const sessionKeys = Object.keys(sessionStorage).filter(key =>
-            key.includes('case') || key.includes('Case')
-          );
-          sessionKeys.forEach(key => sessionStorage.removeItem(key));
-        } catch (error) {
-          logger.warn('Failed to clear sessionStorage:', error);
+        if (clearCache) {
+          // Clear all case-related cache entries
+          queryClient.removeQueries({ queryKey: caseKeys.all });
+
+          // Clear browser storage for cases (if any)
+          try {
+            const cacheKeys = Object.keys(localStorage).filter(
+              (key) => key.includes('case') || key.includes('Case')
+            );
+            cacheKeys.forEach((key) => localStorage.removeItem(key));
+          } catch (error) {
+            logger.warn('Failed to clear localStorage:', error);
+          }
+
+          // Clear session storage for cases (if any)
+          try {
+            const sessionKeys = Object.keys(sessionStorage).filter(
+              (key) => key.includes('case') || key.includes('Case')
+            );
+            sessionKeys.forEach((key) => sessionStorage.removeItem(key));
+          } catch (error) {
+            logger.warn('Failed to clear sessionStorage:', error);
+          }
         }
+
+        // Invalidate and refetch all case queries
+        await queryClient.invalidateQueries({ queryKey: caseKeys.all });
+
+        // Force refetch of all active case queries
+        await queryClient.refetchQueries({ queryKey: caseKeys.all });
+
+        if (showToast) {
+          toast.success('Cases refreshed successfully', { id: 'refresh-cases' });
+        }
+
+        return true;
+      } catch (error) {
+        logger.error('Failed to refresh cases:', error);
+        if (showToast) {
+          toast.error('Failed to refresh cases', { id: 'refresh-cases' });
+        }
+        return false;
       }
-
-      // Invalidate and refetch all case queries
-      await queryClient.invalidateQueries({ queryKey: caseKeys.all });
-
-      // Force refetch of all active case queries
-      await queryClient.refetchQueries({ queryKey: caseKeys.all });
-
-      if (showToast) {
-        toast.success('Cases refreshed successfully', { id: 'refresh-cases' });
-      }
-
-      return true;
-    } catch (error) {
-      logger.error('Failed to refresh cases:', error);
-      if (showToast) {
-        toast.error('Failed to refresh cases', { id: 'refresh-cases' });
-      }
-      return false;
-    }
-  }, [queryClient]);
+    },
+    [queryClient]
+  );
 
   return { refreshCases };
 };

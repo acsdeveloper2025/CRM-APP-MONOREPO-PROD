@@ -39,16 +39,18 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
 
   const { data: pincodesData, isLoading: pincodesLoading } = useQuery({
     queryKey: ['pincodes', 'territory-search', debouncedPincodeSearch],
-    queryFn: () => locationsService.getPincodes({
-      search: debouncedPincodeSearch || undefined,
-      limit: 50,
-    }),
+    queryFn: () =>
+      locationsService.getPincodes({
+        search: debouncedPincodeSearch || undefined,
+        limit: 50,
+      }),
     staleTime: 2 * 60 * 1000,
   });
 
   // Fetch user's existing territory assignments
-  const { data: existingAssignments, isLoading: assignmentsLoading } =
-    useUserTerritoryAssignments(user.id);
+  const { data: existingAssignments, isLoading: assignmentsLoading } = useUserTerritoryAssignments(
+    user.id
+  );
 
   // Fetch areas for selected pincodes
   const selectedPincodeIdsArray = Array.from(selectedPincodeIds);
@@ -133,24 +135,24 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
       return [];
     }
 
-    return pincodesData.data.map((p): PincodeWithCity => ({
-      id: typeof p.id === 'string' ? parseInt(p.id, 10) : p.id,
-      code: p.code,
-      cityId: typeof p.cityId === 'string' ? parseInt(p.cityId, 10) : p.cityId,
-      cityName: p.cityName,
-      stateId: p.city?.stateId || 0,
-      stateName: p.state,
-      countryId: p.city?.countryId || 0,
-      countryName: p.country,
-    }));
+    return pincodesData.data.map(
+      (p): PincodeWithCity => ({
+        id: typeof p.id === 'string' ? parseInt(p.id, 10) : p.id,
+        code: p.code,
+        cityId: typeof p.cityId === 'string' ? parseInt(p.cityId, 10) : p.cityId,
+        cityName: p.cityName,
+        stateId: p.city?.stateId || 0,
+        stateName: p.state,
+        countryId: p.city?.countryId || 0,
+        countryName: p.country,
+      })
+    );
   }, [pincodesData]);
 
   // Get selected pincodes with city info
   const selectedPincodes = useMemo<PincodeWithCity[]>(() => {
     return allPincodes.filter((p) => selectedPincodeIds.has(p.id));
   }, [allPincodes, selectedPincodeIds]);
-
-
 
   // Calculate area count by pincode
   const areaCountByPincode = useMemo(() => {
@@ -179,8 +181,6 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
     );
   }
 
-
-
   return (
     <Card>
       <CardHeader>
@@ -189,8 +189,8 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
           Territory Assignments
         </CardTitle>
         <CardDescription>
-          Assign pincodes and areas to this field agent. They will only see cases and tasks for their
-          assigned territories.
+          Assign pincodes and areas to this field agent. They will only see cases and tasks for
+          their assigned territories.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -244,4 +244,3 @@ export const TerritoryAssignmentSection: React.FC<TerritoryAssignmentSectionProp
     </Card>
   );
 };
-

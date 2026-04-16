@@ -19,7 +19,7 @@ import {
   Clock,
   ShieldCheck,
   ShieldX,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -39,7 +39,7 @@ export const DashboardPage: React.FC = () => {
     trendsData: trData,
     activitiesData: actData,
     cardTrends,
-    isLoading
+    isLoading,
   } = useDashboardKPI();
 
   // Adapters for legacy JSX compatibility
@@ -55,7 +55,6 @@ export const DashboardPage: React.FC = () => {
 
   // Mock data fallback for development
 
-
   const stats = statsData?.data || {
     totalCases: 0,
     pendingCases: 0,
@@ -70,27 +69,33 @@ export const DashboardPage: React.FC = () => {
     totalInvoices: 0,
     pendingCommissions: 0,
     completionRate: 0,
-    avgTurnaroundDays: 0
+    avgTurnaroundDays: 0,
   };
 
-    const tatStats = tatStatsData?.data || {
+  const tatStats = tatStatsData?.data || {
     criticalOverdue: 0,
     totalOverdue: 0,
     totalActiveTasks: 0,
-    overduePercentage: 0
+    overduePercentage: 0,
   };
 
-  const kycStats = kycStatsRaw || { total: 0, pending: 0, passed: 0, failed: 0, referred: 0, verifiedToday: 0 };
+  const kycStats = kycStatsRaw || {
+    total: 0,
+    pending: 0,
+    passed: 0,
+    failed: 0,
+    referred: 0,
+    verifiedToday: 0,
+  };
 
   // Mock data removed - using real API data only
-
 
   // Fallback data for charts when API data is not available
   const mockCaseDistribution = [
     { status: 'PENDING', count: 0, percentage: 0 },
     { status: 'IN_PROGRESS', count: 0, percentage: 0 },
     { status: 'COMPLETED', count: 0, percentage: 0 },
-    { status: 'PENDING_REVIEW', count: 0, percentage: 0 }
+    { status: 'PENDING_REVIEW', count: 0, percentage: 0 },
   ];
 
   const mockTrends = [
@@ -99,66 +104,72 @@ export const DashboardPage: React.FC = () => {
     { month: 'Mar', totalCases: 0, revenue: 0, completionRate: 0 },
     { month: 'Apr', totalCases: 0, revenue: 0, completionRate: 0 },
     { month: 'May', totalCases: 0, revenue: 0, completionRate: 0 },
-    { month: 'Jun', totalCases: 0, revenue: 0, completionRate: 0 }
+    { month: 'Jun', totalCases: 0, revenue: 0, completionRate: 0 },
   ];
 
   // Activities handled by kpiStats or actData
 
   const quickActions = [
-    ...(hasCasesAccess ? [
-      {
-        title: 'Create New Case',
-        description: 'Assign new case to field user',
-        href: '/cases/new',
-        icon: Plus,
-        count: null as number | null,
-        color: 'bg-green-500',
-      },
-      {
-        title: 'All Cases',
-        description: 'View all case statuses',
-        href: '/cases',
-        icon: FileText,
-        count: stats.totalCases,
-        color: 'bg-green-500',
-      },
-    ] : []),
-    ...(hasTasksAccess ? [
-      {
-        title: 'Pending Reviews',
-        description: 'Cases waiting for approval',
-        href: '/tasks/pending',
-        icon: CheckSquare,
-        count: stats.pendingReviewCases,
-        color: 'bg-yellow-500',
-      },
-      {
-        title: 'Completed Tasks',
-        description: 'View finished verifications',
-        href: '/tasks/completed',
-        icon: CheckCircle,
-        count: stats.completedCases,
-        color: 'bg-green-500',
-      },
-    ] : []),
-    ...(hasKYCAccess ? [
-      {
-        title: 'KYC Dashboard',
-        description: 'View all KYC verifications',
-        href: '/kyc',
-        icon: FileCheck,
-        count: kycStats.total,
-        color: 'bg-blue-500',
-      },
-      {
-        title: 'Pending KYC',
-        description: 'Documents awaiting verification',
-        href: '/kyc',
-        icon: Clock,
-        count: kycStats.pending,
-        color: 'bg-amber-500',
-      },
-    ] : []),
+    ...(hasCasesAccess
+      ? [
+          {
+            title: 'Create New Case',
+            description: 'Assign new case to field user',
+            href: '/cases/new',
+            icon: Plus,
+            count: null as number | null,
+            color: 'bg-green-500',
+          },
+          {
+            title: 'All Cases',
+            description: 'View all case statuses',
+            href: '/cases',
+            icon: FileText,
+            count: stats.totalCases,
+            color: 'bg-green-500',
+          },
+        ]
+      : []),
+    ...(hasTasksAccess
+      ? [
+          {
+            title: 'Pending Reviews',
+            description: 'Cases waiting for approval',
+            href: '/tasks/pending',
+            icon: CheckSquare,
+            count: stats.pendingReviewCases,
+            color: 'bg-yellow-500',
+          },
+          {
+            title: 'Completed Tasks',
+            description: 'View finished verifications',
+            href: '/tasks/completed',
+            icon: CheckCircle,
+            count: stats.completedCases,
+            color: 'bg-green-500',
+          },
+        ]
+      : []),
+    ...(hasKYCAccess
+      ? [
+          {
+            title: 'KYC Dashboard',
+            description: 'View all KYC verifications',
+            href: '/kyc',
+            icon: FileCheck,
+            count: kycStats.total,
+            color: 'bg-blue-500',
+          },
+          {
+            title: 'Pending KYC',
+            description: 'Documents awaiting verification',
+            href: '/kyc',
+            icon: Clock,
+            count: kycStats.pending,
+            color: 'bg-amber-500',
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -171,7 +182,11 @@ export const DashboardPage: React.FC = () => {
             Welcome back! Here&apos;s what&apos;s happening with your cases today.
           </p>
         </div>
-        <Button variant="outline" size="sm" className="flex items-center space-x-2 hover:shadow-md transition-all duration-200 w-full sm:w-auto">
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex items-center space-x-2 hover:shadow-md transition-all duration-200 w-full sm:w-auto"
+        >
           <Download className="h-4 w-4" />
           <span>Export Report</span>
         </Button>
@@ -181,7 +196,7 @@ export const DashboardPage: React.FC = () => {
       <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-5">
         <StatsCard
           title="Pending Tasks"
-          value={(stats.pendingCases || 0)}
+          value={stats.pendingCases || 0}
           description="Pending & Assigned tasks"
           icon={FileText}
           trend={cardTrends?.totalCases}
@@ -290,19 +305,14 @@ export const DashboardPage: React.FC = () => {
           data={caseDistributionData?.data || mockCaseDistribution}
           isLoading={distributionLoading}
         />
-        <MonthlyTrendsChart
-          data={trendsData?.data || mockTrends}
-          isLoading={trendsLoading}
-        />
+        <MonthlyTrendsChart data={trendsData?.data || mockTrends} isLoading={trendsLoading} />
       </div>
 
       {/* Quick Actions */}
       <Card>
         <CardHeader>
           <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>
-            Common tasks and shortcuts
-          </CardDescription>
+          <CardDescription>Common tasks and shortcuts</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -317,13 +327,9 @@ export const DashboardPage: React.FC = () => {
                       <h3 className="font-medium text-gray-900 group-hover:text-green-600">
                         {action.title}
                       </h3>
-                      <p className="text-sm text-gray-600">
-                      {action.description}
-                      </p>
+                      <p className="text-sm text-gray-600">{action.description}</p>
                       {action.count !== null && (
-                        <p className="text-lg font-bold text-gray-900 mt-1">
-                          {action.count}
-                        </p>
+                        <p className="text-lg font-bold text-gray-900 mt-1">{action.count}</p>
                       )}
                     </div>
                   </div>
@@ -337,10 +343,7 @@ export const DashboardPage: React.FC = () => {
       {/* Recent Activities and Additional Stats */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <RecentActivities
-            activities={activitiesData?.data || []}
-            isLoading={activitiesLoading}
-          />
+          <RecentActivities activities={activitiesData?.data || []} isLoading={activitiesLoading} />
         </div>
 
         <div className="space-y-6">

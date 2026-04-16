@@ -52,12 +52,18 @@ export function RateTypeAssignmentTab() {
 
   // Fetch assignment status for selected combination
   const { data: assignmentStatusData, isLoading: assignmentLoading } = useStandardizedQuery({
-    queryKey: ['rate-type-assignments', selectedClientId, selectedProductId, selectedVerificationTypeId],
-    queryFn: () => rateTypeAssignmentsService.getAssignmentsByCombination({
-      clientId: Number(selectedClientId),
-      productId: Number(selectedProductId),
-      verificationTypeId: Number(selectedVerificationTypeId),
-    }),
+    queryKey: [
+      'rate-type-assignments',
+      selectedClientId,
+      selectedProductId,
+      selectedVerificationTypeId,
+    ],
+    queryFn: () =>
+      rateTypeAssignmentsService.getAssignmentsByCombination({
+        clientId: Number(selectedClientId),
+        productId: Number(selectedProductId),
+        verificationTypeId: Number(selectedVerificationTypeId),
+      }),
     enabled: !!(selectedClientId && selectedProductId && selectedVerificationTypeId),
     errorContext: 'Loading Rate Type Assignments',
     errorFallbackMessage: 'Failed to load rate type assignments',
@@ -67,23 +73,24 @@ export function RateTypeAssignmentTab() {
   useEffect(() => {
     if (assignmentStatusData?.data) {
       const assigned = assignmentStatusData.data
-        .filter(item => item.isAssigned)
-        .map(item => String(item.rateTypeId));
+        .filter((item) => item.isAssigned)
+        .map((item) => String(item.rateTypeId));
       setAssignedRateTypeIds(assigned);
     }
   }, [assignmentStatusData]);
 
   // Save assignments mutation
   const saveAssignmentsMutation = useMutationWithInvalidation({
-    mutationFn: () => rateTypeAssignmentsService.bulkAssignRateTypes({
-      clientId: Number(selectedClientId),
-      productId: Number(selectedProductId),
-      verificationTypeId: Number(selectedVerificationTypeId),
-      rateTypeIds: assignedRateTypeIds.map(Number),
-    }),
+    mutationFn: () =>
+      rateTypeAssignmentsService.bulkAssignRateTypes({
+        clientId: Number(selectedClientId),
+        productId: Number(selectedProductId),
+        verificationTypeId: Number(selectedVerificationTypeId),
+        rateTypeIds: assignedRateTypeIds.map(Number),
+      }),
     invalidateKeys: [
       ['rate-type-assignments', selectedClientId, selectedProductId, selectedVerificationTypeId],
-      ['rate-management-stats']
+      ['rate-management-stats'],
     ],
     successMessage: 'Rate type assignments saved successfully',
     errorContext: 'Rate Type Assignment',
@@ -115,9 +122,9 @@ export function RateTypeAssignmentTab() {
 
   const handleRateTypeToggle = (rateTypeId: string, checked: boolean) => {
     if (checked) {
-      setAssignedRateTypeIds(prev => [...prev, rateTypeId]);
+      setAssignedRateTypeIds((prev) => [...prev, rateTypeId]);
     } else {
-      setAssignedRateTypeIds(prev => prev.filter(id => id !== rateTypeId));
+      setAssignedRateTypeIds((prev) => prev.filter((id) => id !== rateTypeId));
     }
   };
 
@@ -126,9 +133,15 @@ export function RateTypeAssignmentTab() {
   };
 
   const canShowAssignments = selectedClientId && selectedProductId && selectedVerificationTypeId;
-  const hasChanges = assignmentStatus.length > 0 &&
+  const hasChanges =
+    assignmentStatus.length > 0 &&
     JSON.stringify(assignedRateTypeIds.sort()) !==
-    JSON.stringify(assignmentStatus.filter(item => item.isAssigned).map(item => String(item.rateTypeId)).sort());
+      JSON.stringify(
+        assignmentStatus
+          .filter((item) => item.isAssigned)
+          .map((item) => String(item.rateTypeId))
+          .sort()
+      );
 
   return (
     <div className="space-y-6">
@@ -205,13 +218,17 @@ export function RateTypeAssignmentTab() {
               <h4 className="font-medium mb-2">Selected Combination:</h4>
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline">
-                  Client: {clients.find(c => String(c.id) === selectedClientId)?.name}
+                  Client: {clients.find((c) => String(c.id) === selectedClientId)?.name}
                 </Badge>
                 <Badge variant="outline">
-                  Product: {products.find(p => String(p.id) === selectedProductId)?.name}
+                  Product: {products.find((p) => String(p.id) === selectedProductId)?.name}
                 </Badge>
                 <Badge variant="outline">
-                  Verification: {verificationTypes.find(vt => String(vt.id) === selectedVerificationTypeId)?.name}
+                  Verification:{' '}
+                  {
+                    verificationTypes.find((vt) => String(vt.id) === selectedVerificationTypeId)
+                      ?.name
+                  }
                 </Badge>
               </div>
             </div>
@@ -285,8 +302,10 @@ export function RateTypeAssignmentTab() {
                     {assignedRateTypeIds.length === 0 ? (
                       <span className="text-gray-600 text-sm">No rate types assigned</span>
                     ) : (
-                        assignedRateTypeIds.map(rateTypeId => {
-                          const rateType = assignmentStatus.find(rt => String(rt.rateTypeId) === rateTypeId);
+                      assignedRateTypeIds.map((rateTypeId) => {
+                        const rateType = assignmentStatus.find(
+                          (rt) => String(rt.rateTypeId) === rateTypeId
+                        );
                         return (
                           <Badge key={rateTypeId} variant="default">
                             {rateType?.rateTypeName}
@@ -309,7 +328,9 @@ export function RateTypeAssignmentTab() {
         </CardHeader>
         <CardContent>
           <ol className="list-decimal list-inside space-y-2 text-sm text-gray-600">
-            <li>Select a client from the dropdown to see available products and verification types</li>
+            <li>
+              Select a client from the dropdown to see available products and verification types
+            </li>
             <li>Choose a product that is assigned to the selected client</li>
             <li>Select a verification type that is available for the client</li>
             <li>Check the rate types you want to assign to this combination</li>

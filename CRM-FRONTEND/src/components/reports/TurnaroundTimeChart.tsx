@@ -16,9 +16,7 @@ export function TurnaroundTimeChart({ data }: TurnaroundTimeChartProps) {
             <Clock className="h-5 w-5" />
             <span>Turnaround Time Analysis</span>
           </CardTitle>
-          <CardDescription>
-            Average case completion times and performance metrics
-          </CardDescription>
+          <CardDescription>Average case completion times and performance metrics</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
@@ -33,12 +31,19 @@ export function TurnaroundTimeChart({ data }: TurnaroundTimeChartProps) {
     );
   }
 
-  const performanceColor = data.performancePercentage >= 80 ? 'text-green-600' : 
-                          data.performancePercentage >= 60 ? 'text-yellow-600' : 'text-red-600';
+  const performanceColor =
+    data.performancePercentage >= 80
+      ? 'text-green-600'
+      : data.performancePercentage >= 60
+        ? 'text-yellow-600'
+        : 'text-red-600';
 
-  const performanceIcon = data.performancePercentage >= data.targetTurnaroundTime ? 
-                         <TrendingUp className="h-4 w-4 text-green-600" /> : 
-                         <TrendingDown className="h-4 w-4 text-red-600" />;
+  const performanceIcon =
+    data.performancePercentage >= data.targetTurnaroundTime ? (
+      <TrendingUp className="h-4 w-4 text-green-600" />
+    ) : (
+      <TrendingDown className="h-4 w-4 text-red-600" />
+    );
 
   return (
     <Card>
@@ -47,9 +52,7 @@ export function TurnaroundTimeChart({ data }: TurnaroundTimeChartProps) {
           <Clock className="h-5 w-5" />
           <span>Turnaround Time Analysis</span>
         </CardTitle>
-        <CardDescription>
-          Average case completion times and performance metrics
-        </CardDescription>
+        <CardDescription>Average case completion times and performance metrics</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Key Metrics */}
@@ -63,7 +66,9 @@ export function TurnaroundTimeChart({ data }: TurnaroundTimeChartProps) {
             <div className="text-sm text-gray-600">Target Time</div>
           </div>
           <div className="text-center">
-            <div className={`text-2xl font-bold flex items-center justify-center space-x-1 ${performanceColor}`}>
+            <div
+              className={`text-2xl font-bold flex items-center justify-center space-x-1 ${performanceColor}`}
+            >
               {performanceIcon}
               <span>{data.performancePercentage}%</span>
             </div>
@@ -80,8 +85,8 @@ export function TurnaroundTimeChart({ data }: TurnaroundTimeChartProps) {
                 <span className="text-sm">{range.range}</span>
                 <div className="flex items-center space-x-2">
                   <div className="w-32 bg-slate-100 dark:bg-slate-800/60 rounded-full h-2">
-                    <div 
-                      className="bg-primary h-2 rounded-full" 
+                    <div
+                      className="bg-primary h-2 rounded-full"
                       style={{ width: `${range.percentage}%` }}
                     />
                   </div>
@@ -100,7 +105,10 @@ export function TurnaroundTimeChart({ data }: TurnaroundTimeChartProps) {
           <h4 className="font-medium mb-3">Top Performing Users</h4>
           <div className="space-y-2">
             {data.userWisePerformance.slice(0, 5).map((user, index) => (
-              <div key={user.userId} className="flex items-center justify-between p-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/50">
+              <div
+                key={user.userId}
+                className="flex items-center justify-between p-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/50"
+              >
                 <div className="flex items-center space-x-2">
                   <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
                     {index + 1}

@@ -33,7 +33,8 @@ import type { CreateStateData } from '@/types/location';
 
 const createStateSchema = z.object({
   name: z.string().min(1, 'State name is required').max(100, 'State name is too long'),
-  code: z.string()
+  code: z
+    .string()
     .min(2, 'State code must be at least 2 characters')
     .max(10, 'State code is too long')
     .regex(/^[A-Z0-9]+$/, 'State code must contain only uppercase letters and numbers'),
@@ -109,10 +110,7 @@ export function CreateStateDialog({ open, onOpenChange }: CreateStateDialogProps
                 <FormItem>
                   <FormLabel>State Name</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="Enter state name"
-                      {...field}
-                    />
+                    <Input placeholder="Enter state name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -179,7 +177,8 @@ export function CreateStateDialog({ open, onOpenChange }: CreateStateDialogProps
               <Button
                 type="submit"
                 disabled={createStateMutation.isPending}
-               className="w-full sm:w-auto">
+                className="w-full sm:w-auto"
+              >
                 {createStateMutation.isPending ? 'Creating...' : 'Create State'}
               </Button>
             </DialogFooter>

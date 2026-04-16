@@ -5,7 +5,10 @@ import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
+import {
+  UnifiedSearchFilterLayout,
+  FilterGrid,
+} from '@/components/ui/unified-search-filter-layout';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -14,14 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Play,
-  Clock,
-  RefreshCw,
-  TrendingUp,
-  Users,
-  Download
-} from 'lucide-react';
+import { Play, Clock, RefreshCw, TrendingUp, Users, Download } from 'lucide-react';
 import { VerificationTasksService } from '@/services/verificationTasks';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -37,15 +33,10 @@ export const InProgressTasksPage: React.FC = () => {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   // Unified search with 800ms debounce
-  const {
-    searchValue,
-    debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
-  } = useUnifiedSearch({
-    syncWithUrl: true,
-  });
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({
+      syncWithUrl: true,
+    });
 
   // Unified filters with URL sync
   const {
@@ -67,7 +58,7 @@ export const InProgressTasksPage: React.FC = () => {
 
   // Reset pagination when search or filters change
   useEffect(() => {
-    setPaginationState(prev => ({ ...prev, page: 1 }));
+    setPaginationState((prev) => ({ ...prev, page: 1 }));
   }, [debouncedSearchValue, activeFilters]);
 
   const queryFilters = {
@@ -76,24 +67,25 @@ export const InProgressTasksPage: React.FC = () => {
     priority: activeFilters.priority || undefined,
   };
 
-  const { tasks, loading, error, pagination, statistics, refreshTasks } = useAllVerificationTasks(queryFilters);
+  const { tasks, loading, error, pagination, statistics, refreshTasks } =
+    useAllVerificationTasks(queryFilters);
 
   const handleFilterChange = (key: string, value: unknown) => {
     if (key === 'page') {
-      setPaginationState(prev => ({ ...prev, page: value as number }));
+      setPaginationState((prev) => ({ ...prev, page: value as number }));
     } else {
       setFilter(key as keyof InProgressTaskFilters, value);
     }
   };
 
   // Use backend statistics
-  const { 
+  const {
     inProgress: totalInProgress = 0,
     longRunning: longRunningTasks = 0,
     urgent = 0,
     highPriority = 0,
     totalAgents = 0,
-    avgDuration = 0
+    avgDuration = 0,
   } = statistics || {};
 
   const handleAssignTask = (taskId: string) => {
@@ -112,7 +104,9 @@ export const InProgressTasksPage: React.FC = () => {
 
   const handleEditCase = (caseId: string, taskId?: string) => {
     if (caseId) {
-      const url = taskId ? `/cases/new?edit=${caseId}&taskId=${taskId}` : `/cases/new?edit=${caseId}`;
+      const url = taskId
+        ? `/cases/new?edit=${caseId}&taskId=${taskId}`
+        : `/cases/new?edit=${caseId}`;
       navigate(url);
     }
   };
@@ -140,9 +134,7 @@ export const InProgressTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalInProgress}</div>
-            <p className="text-xs text-gray-600">
-              Active tasks
-            </p>
+            <p className="text-xs text-gray-600">Active tasks</p>
           </CardContent>
         </Card>
 
@@ -153,9 +145,7 @@ export const InProgressTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{longRunningTasks}</div>
-            <p className="text-xs text-gray-600">
-              &gt; 24 hours
-            </p>
+            <p className="text-xs text-gray-600">&gt; 24 hours</p>
           </CardContent>
         </Card>
 
@@ -165,10 +155,8 @@ export const InProgressTasksPage: React.FC = () => {
             <TrendingUp className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(urgent) + (highPriority)}</div>
-            <p className="text-xs text-gray-600">
-              Urgent + High
-            </p>
+            <div className="text-2xl font-bold">{urgent + highPriority}</div>
+            <p className="text-xs text-gray-600">Urgent + High</p>
           </CardContent>
         </Card>
 
@@ -179,9 +167,7 @@ export const InProgressTasksPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalAgents}</div>
-            <p className="text-xs text-gray-600">
-              Field agents
-            </p>
+            <p className="text-xs text-gray-600">Field agents</p>
           </CardContent>
         </Card>
 
@@ -191,12 +177,8 @@ export const InProgressTasksPage: React.FC = () => {
             <TrendingUp className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.round(avgDuration)}h
-            </div>
-            <p className="text-xs text-gray-600">
-              Average runtime
-            </p>
+            <div className="text-2xl font-bold">{Math.round(avgDuration)}h</div>
+            <p className="text-xs text-gray-600">Average runtime</p>
           </CardContent>
         </Card>
       </div>
@@ -218,7 +200,9 @@ export const InProgressTasksPage: React.FC = () => {
               <Label htmlFor="priority">Priority</Label>
               <Select
                 value={activeFilters.priority || 'all'}
-                onValueChange={(value) => setFilter('priority', value === 'all' ? undefined : value)}
+                onValueChange={(value) =>
+                  setFilter('priority', value === 'all' ? undefined : value)
+                }
               >
                 <SelectTrigger id="priority">
                   <SelectValue placeholder="All priorities" />
@@ -236,15 +220,33 @@ export const InProgressTasksPage: React.FC = () => {
         }
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" onClick={async () => {
-              try {
- toast.info('Generating Excel export...'); const blob = await VerificationTasksService.exportToExcel({ status: 'IN_PROGRESS' }); const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `inProgressTasks_${new Date().toISOString().split('T')[0]}.xlsx`; a.click(); window.URL.revokeObjectURL(url); toast.success('Export downloaded');
-              } catch (err) { logger.error('Export failed:', err); toast.error('Export failed'); }
-            }}>
-              <Download className="h-4 w-4 mr-2" />Export
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  toast.info('Generating Excel export...');
+                  const blob = await VerificationTasksService.exportToExcel({
+                    status: 'IN_PROGRESS',
+                  });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `inProgressTasks_${new Date().toISOString().split('T')[0]}.xlsx`;
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  toast.success('Export downloaded');
+                } catch (err) {
+                  logger.error('Export failed:', err);
+                  toast.error('Export failed');
+                }
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
             </Button>
             <Button variant="outline" onClick={() => refreshTasks()} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />Refresh
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
             </Button>
           </div>
         }
@@ -274,7 +276,9 @@ export const InProgressTasksPage: React.FC = () => {
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-gray-600">
-                Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} tasks
+                Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+                {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
+                {pagination.total} tasks
               </p>
               {pagination.totalPages > 1 && (
                 <div className="flex items-center space-x-2">

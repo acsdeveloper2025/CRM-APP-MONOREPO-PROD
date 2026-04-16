@@ -94,7 +94,8 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
           <TableBody>
             <TableRow>
               <TableCell colSpan={4} className="text-center py-8 text-gray-600">
-                No areas found. Areas will appear here when pincodes are created with area information.
+                No areas found. Areas will appear here when pincodes are created with area
+                information.
               </TableCell>
             </TableRow>
           </TableBody>
@@ -133,9 +134,7 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
                     {areaWithDetails.usageCount !== undefined && (
                       <div className="flex items-center space-x-1">
                         <Hash className="h-3 w-3 text-gray-600" />
-                        <span className="text-sm font-medium">
-                          {areaWithDetails.usageCount}
-                        </span>
+                        <span className="text-sm font-medium">{areaWithDetails.usageCount}</span>
                       </div>
                     )}
                   </TableCell>
@@ -178,11 +177,7 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
 
       {/* Edit Dialog */}
       {areaToEdit && (
-        <EditAreaDialog
-          area={areaToEdit}
-          open={showEditDialog}
-          onOpenChange={setShowEditDialog}
-        />
+        <EditAreaDialog area={areaToEdit} open={showEditDialog} onOpenChange={setShowEditDialog} />
       )}
 
       {/* Delete Confirmation Dialog */}
@@ -197,16 +192,16 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
             <AlertDialogDescription>
               {areaToDelete?.usageCount && areaToDelete.usageCount > 0 ? (
                 <>
-                  Cannot delete area &quot;{areaToDelete?.name}&quot; because it is currently assigned to{' '}
-                  <strong>{areaToDelete.usageCount}</strong> pincode(s).
+                  Cannot delete area &quot;{areaToDelete?.name}&quot; because it is currently
+                  assigned to <strong>{areaToDelete.usageCount}</strong> pincode(s).
                   <span className="block mt-2 text-amber-600 font-medium">
                     Please remove this area from all pincodes before deleting it.
                   </span>
                 </>
               ) : (
                 <>
-                  This action cannot be undone. This will permanently delete the area
-                  &quot;{areaToDelete?.name}&quot;.
+                  This action cannot be undone. This will permanently delete the area &quot;
+                  {areaToDelete?.name}&quot;.
                 </>
               )}
             </AlertDialogDescription>

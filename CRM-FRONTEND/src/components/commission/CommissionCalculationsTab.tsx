@@ -25,15 +25,10 @@ export const CommissionCalculationsTab: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
 
   // Unified search with 800ms debounce
-  const {
-    searchValue,
-    debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
-  } = useUnifiedSearch({
-    syncWithUrl: true,
-  });
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({
+      syncWithUrl: true,
+    });
 
   const loadCalculations = useCallback(async () => {
     try {
@@ -59,7 +54,9 @@ export const CommissionCalculationsTab: React.FC = () => {
 
   // Format date to "MMM YYYY" format
   const formatMonth = (dateString: string): string => {
-    if (!dateString) {return 'N/A';}
+    if (!dateString) {
+      return 'N/A';
+    }
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
   };
@@ -67,7 +64,7 @@ export const CommissionCalculationsTab: React.FC = () => {
   // Calculate monthly summary
   const monthlySummary = useMemo(() => {
     const summary: { [key: string]: { total: number; count: number; currency: string } } = {};
-    calculations.forEach(calc => {
+    calculations.forEach((calc) => {
       const month = formatMonth(calc.createdAt);
       if (!summary[month]) {
         summary[month] = { total: 0, count: 0, currency: calc.currency };
@@ -93,8 +90,6 @@ export const CommissionCalculationsTab: React.FC = () => {
     }
   };
 
-
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -108,25 +103,27 @@ export const CommissionCalculationsTab: React.FC = () => {
       {/* Monthly Summary Cards */}
       {Object.keys(monthlySummary).length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {Object.entries(monthlySummary).slice(0, 3).map(([month, data]) => (
-            <Card key={month}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      {month}
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900 mt-1">
-                      {data.currency} {data.total.toFixed(2)}
-                    </p>
-                    <p className="text-xs text-gray-600 mt-1">{data.count} commissions</p>
+          {Object.entries(monthlySummary)
+            .slice(0, 3)
+            .map(([month, data]) => (
+              <Card key={month}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        {month}
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900 mt-1">
+                        {data.currency} {data.total.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-gray-600 mt-1">{data.count} commissions</p>
+                    </div>
+                    <Calculator className="h-10 w-10 text-gray-600" />
                   </div>
-                  <Calculator className="h-10 w-10 text-gray-600" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))}
         </div>
       )}
 
@@ -138,9 +135,7 @@ export const CommissionCalculationsTab: React.FC = () => {
                 <Calculator className="h-5 w-5" />
                 Commission Calculations ({calculations.length})
               </CardTitle>
-              <CardDescription>
-                Monthly commission payments for field users
-              </CardDescription>
+              <CardDescription>Monthly commission payments for field users</CardDescription>
             </div>
             <Button onClick={exportCalculations}>
               <Download className="h-4 w-4 mr-2" />
@@ -174,83 +169,82 @@ export const CommissionCalculationsTab: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-                {calculations.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-64 text-center">
-                      <div className="flex flex-col items-center justify-center text-gray-600">
-                        <Calculator className="h-12 w-12 mb-4" />
-                        <p className="text-lg font-semibold">No commission calculations found</p>
-                        <p className="text-sm mt-2">Complete verification tasks to generate commissions</p>
+              {calculations.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-64 text-center">
+                    <div className="flex flex-col items-center justify-center text-gray-600">
+                      <Calculator className="h-12 w-12 mb-4" />
+                      <p className="text-lg font-semibold">No commission calculations found</p>
+                      <p className="text-sm mt-2">
+                        Complete verification tasks to generate commissions
+                      </p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                calculations.map((calculation) => (
+                  <TableRow key={calculation.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {calculation.taskNumber || 'N/A'}
+                        </div>
+                        {calculation.verificationTypeName && (
+                          <div className="text-sm text-gray-600">
+                            {calculation.verificationTypeName}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {calculation.userName || 'N/A'}
+                        </div>
+                        <div className="text-sm text-gray-600">{calculation.userEmail || ''}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium text-gray-900">
+                        {calculation.clientName || 'N/A'}
+                      </div>
+                    </TableCell>
+                    <TableCell>{calculation.productName || 'N/A'}</TableCell>
+                    <TableCell>
+                      <Badge className={baseBadgeStyle}>
+                        {formatBadgeLabel(calculation.rateTypeName || 'N/A')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div>
+                        <div className="font-semibold">
+                          {calculation.currency} {Number(calculation.commissionAmount).toFixed(2)}
+                        </div>
+                        {calculation.baseAmount && (
+                          <div className="text-sm text-gray-600">
+                            Base: {calculation.currency} {Number(calculation.baseAmount).toFixed(2)}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5 text-gray-600" />
+                        <span className="text-sm">{formatMonth(calculation.createdAt)}</span>
                       </div>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  calculations.map((calculation) => (
-                    <TableRow key={calculation.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {calculation.taskNumber || 'N/A'}
-                          </div>
-                          {calculation.verificationTypeName && (
-                            <div className="text-sm text-gray-600">
-                              {calculation.verificationTypeName}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {calculation.userName || 'N/A'}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {calculation.userEmail || ''}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium text-gray-900">
-                          {calculation.clientName || 'N/A'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {calculation.productName || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={baseBadgeStyle}>{formatBadgeLabel(calculation.rateTypeName || 'N/A')}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div>
-                          <div className="font-semibold">
-                            {calculation.currency} {Number(calculation.commissionAmount).toFixed(2)}
-                          </div>
-                          {calculation.baseAmount && (
-                            <div className="text-sm text-gray-600">
-                              Base: {calculation.currency} {Number(calculation.baseAmount).toFixed(2)}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5 text-gray-600" />
-                          <span className="text-sm">
-                            {formatMonth(calculation.createdAt)}
-                          </span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                ))
+              )}
+            </TableBody>
+          </Table>
 
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6 pt-4 border-t">
               <div className="text-sm text-gray-600">
-                Showing <span className="font-medium text-gray-900">{calculations.length}</span> commissions
+                Showing <span className="font-medium text-gray-900">{calculations.length}</span>{' '}
+                commissions
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">
@@ -260,7 +254,7 @@ export const CommissionCalculationsTab: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
                   >
                     Previous
@@ -268,7 +262,7 @@ export const CommissionCalculationsTab: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
                   >
                     Next

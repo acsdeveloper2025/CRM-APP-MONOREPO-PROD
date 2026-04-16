@@ -1,10 +1,18 @@
 import type { User } from '@/types/user';
 import { normalizeUserRole } from '@/types/constants';
 
-const getPermissionCodes = (user?: Pick<User, 'permissionCodes' | 'permissions'> | null): string[] => {
-  if (!user) {return [];}
-  if (Array.isArray(user.permissionCodes)) {return user.permissionCodes;}
-  if (Array.isArray(user.permissions)) {return user.permissions.filter((p): p is string => typeof p === 'string');}
+const getPermissionCodes = (
+  user?: Pick<User, 'permissionCodes' | 'permissions'> | null
+): string[] => {
+  if (!user) {
+    return [];
+  }
+  if (Array.isArray(user.permissionCodes)) {
+    return user.permissionCodes;
+  }
+  if (Array.isArray(user.permissions)) {
+    return user.permissions.filter((p): p is string => typeof p === 'string');
+  }
   return [];
 };
 
@@ -30,8 +38,12 @@ export const isSupervisoryUser = (user?: User | null): boolean =>
   userHasPermissionCode(user, 'page.analytics') &&
   !userHasPermissionCode(user, 'visit.start');
 
-const getNormalizedUserRoles = (user?: User | null): Array<ReturnType<typeof normalizeUserRole>> => {
-  if (!user) {return [];}
+const getNormalizedUserRoles = (
+  user?: User | null
+): Array<ReturnType<typeof normalizeUserRole>> => {
+  if (!user) {
+    return [];
+  }
   const rawRoles = [
     user.role,
     user.roleName,
@@ -39,33 +51,42 @@ const getNormalizedUserRoles = (user?: User | null): Array<ReturnType<typeof nor
   ].filter((role): role is string => typeof role === 'string' && role.trim().length > 0);
 
   return rawRoles
-    .map(role => normalizeUserRole(role))
+    .map((role) => normalizeUserRole(role))
     .filter((role): role is NonNullable<ReturnType<typeof normalizeUserRole>> => Boolean(role));
 };
 
 export const isFieldAgentUser = (user?: User | null): boolean => {
-  if (!user || isAdminLikeUser(user)) {return false;}
+  if (!user || isAdminLikeUser(user)) {
+    return false;
+  }
 
   const normalizedRoles = getNormalizedUserRoles(user);
   return normalizedRoles.includes('FIELD_AGENT');
 };
 
-export const canViewAdminUserOps = (user?: User | null): boolean =>
-  isAdminLikeUser(user);
+export const canViewAdminUserOps = (user?: User | null): boolean => isAdminLikeUser(user);
 
 export const matchesLegacyRoleAlias = (user: User | null | undefined, role: string): boolean => {
   const normalized = normalizeUserRole(role);
-  if (normalized === 'SUPER_ADMIN') {return isAdminLikeUser(user);}
-  if (normalized === 'MANAGER' || normalized === 'TEAM_LEADER') {return isSupervisoryUser(user);}
-  if (normalized === 'BACKEND_USER') {return isBackendScopedUser(user);}
-  if (normalized === 'FIELD_AGENT') {return isFieldAgentUser(user);}
+  if (normalized === 'SUPER_ADMIN') {
+    return isAdminLikeUser(user);
+  }
+  if (normalized === 'MANAGER' || normalized === 'TEAM_LEADER') {
+    return isSupervisoryUser(user);
+  }
+  if (normalized === 'BACKEND_USER') {
+    return isBackendScopedUser(user);
+  }
+  if (normalized === 'FIELD_AGENT') {
+    return isFieldAgentUser(user);
+  }
   return false;
 };
 
 export const matchesAnyLegacyRoleAlias = (
   user: User | null | undefined,
   roles: string[]
-): boolean => roles.some(role => matchesLegacyRoleAlias(user, role));
+): boolean => roles.some((role) => matchesLegacyRoleAlias(user, role));
 
 export const getPrimaryRoleLabel = (user?: User | null): string => {
   if (user?.roles && user.roles.length > 0) {

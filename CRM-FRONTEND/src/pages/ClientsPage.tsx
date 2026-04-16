@@ -37,15 +37,10 @@ export function ClientsPage() {
   const pageSize = 20;
 
   // Unified search with 800ms debounce
-  const {
-    searchValue,
-    debouncedSearchValue,
-    setSearchValue,
-    clearSearch,
-    isDebouncing,
-  } = useUnifiedSearch({
-    syncWithUrl: true,
-  });
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({
+      syncWithUrl: true,
+    });
 
   // Reset pagination to page 1 when search changes for all tabs
   useEffect(() => {
@@ -57,38 +52,42 @@ export function ClientsPage() {
 
   const { data: clientsData, isLoading: clientsLoading } = useQuery({
     queryKey: ['clients', debouncedSearchValue, clientsPage, pageSize],
-    queryFn: () => clientsService.getClients({
-      search: debouncedSearchValue || undefined,
-      page: clientsPage,
-      limit: pageSize,
-    }),
+    queryFn: () =>
+      clientsService.getClients({
+        search: debouncedSearchValue || undefined,
+        page: clientsPage,
+        limit: pageSize,
+      }),
   });
 
   const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ['products', debouncedSearchValue, productsPage, pageSize],
-    queryFn: () => clientsService.getProducts({
-      search: debouncedSearchValue || undefined,
-      page: productsPage,
-      limit: pageSize,
-    }),
+    queryFn: () =>
+      clientsService.getProducts({
+        search: debouncedSearchValue || undefined,
+        page: productsPage,
+        limit: pageSize,
+      }),
   });
 
   const { data: verificationTypesData, isLoading: verificationTypesLoading } = useQuery({
     queryKey: ['verification-types', debouncedSearchValue, verificationTypesPage, pageSize],
-    queryFn: () => clientsService.getVerificationTypes({
-      search: debouncedSearchValue || undefined,
-      page: verificationTypesPage,
-      limit: pageSize,
-    }),
+    queryFn: () =>
+      clientsService.getVerificationTypes({
+        search: debouncedSearchValue || undefined,
+        page: verificationTypesPage,
+        limit: pageSize,
+      }),
   });
 
   const { data: documentTypesData, isLoading: documentTypesLoading } = useQuery({
     queryKey: ['document-types', debouncedSearchValue, documentTypesPage, pageSize],
-    queryFn: () => documentTypesService.getDocumentTypes({
-      search: debouncedSearchValue || undefined,
-      page: documentTypesPage,
-      limit: pageSize,
-    }),
+    queryFn: () =>
+      documentTypesService.getDocumentTypes({
+        search: debouncedSearchValue || undefined,
+        page: documentTypesPage,
+        limit: pageSize,
+      }),
   });
 
   const { data: dashboardStatsData } = useQuery({
@@ -106,7 +105,8 @@ export function ClientsPage() {
     return {
       clients: clientsData?.pagination?.total || clientsData?.data?.length || 0,
       products: productsData?.pagination?.total || productsData?.data?.length || 0,
-      verificationTypes: verificationTypesData?.pagination?.total || verificationTypesData?.data?.length || 0,
+      verificationTypes:
+        verificationTypesData?.pagination?.total || verificationTypesData?.data?.length || 0,
       documentTypes: documentTypesData?.pagination?.total || documentTypesData?.data?.length || 0,
       activeCases: (statsData?.inProgressCases || 0) + (statsData?.pendingCases || 0),
     };
@@ -116,12 +116,12 @@ export function ClientsPage() {
 
   return (
     <div className="space-y-6">
-
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Client & Product Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Client & Product Management
+          </h1>
           <p className="text-gray-600">
             Manage clients, products, verification types, and their relationships
           </p>
@@ -136,9 +136,7 @@ export function ClientsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.clients}</div>
-            <p className="text-xs text-gray-600">
-              Active organizations
-            </p>
+            <p className="text-xs text-gray-600">Active organizations</p>
           </CardContent>
         </Card>
         <Card className="transition-all duration-200 hover:shadow-md">
@@ -147,9 +145,7 @@ export function ClientsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.products}</div>
-            <p className="text-xs text-gray-600">
-              All products
-            </p>
+            <p className="text-xs text-gray-600">All products</p>
           </CardContent>
         </Card>
         <Card className="transition-all duration-200 hover:shadow-md">
@@ -158,9 +154,7 @@ export function ClientsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.verificationTypes}</div>
-            <p className="text-xs text-gray-600">
-              Available types
-            </p>
+            <p className="text-xs text-gray-600">Available types</p>
           </CardContent>
         </Card>
         <Card className="transition-all duration-200 hover:shadow-md">
@@ -169,9 +163,7 @@ export function ClientsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.documentTypes}</div>
-            <p className="text-xs text-gray-600">
-              Document types
-            </p>
+            <p className="text-xs text-gray-600">Document types</p>
           </CardContent>
         </Card>
         <Card className="transition-all duration-200 hover:shadow-md">
@@ -180,9 +172,7 @@ export function ClientsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.activeCases || 0}</div>
-            <p className="text-xs text-gray-600">
-              In progress
-            </p>
+            <p className="text-xs text-gray-600">In progress</p>
           </CardContent>
         </Card>
       </div>
@@ -203,43 +193,49 @@ export function ClientsPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-auto lg:grid-cols-4 min-w-max">
-                  <TabsTrigger value="clients" className="text-xs sm:text-sm whitespace-nowrap">
-                    <span className="hidden sm:inline">Clients</span>
-                    <span className="sm:hidden">Clients</span>
-                    {stats.clients > 0 && (
-                      <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
-                        {stats.clients}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="products" className="text-xs sm:text-sm whitespace-nowrap">
-                    <span className="hidden sm:inline">Products</span>
-                    <span className="sm:hidden">Products</span>
-                    {stats.products > 0 && (
-                      <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
-                        {stats.products}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="verification-types" className="text-xs sm:text-sm whitespace-nowrap">
-                    <span className="hidden sm:inline">Verification Types</span>
-                    <span className="sm:hidden">Verify</span>
-                    {stats.verificationTypes > 0 && (
-                      <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
-                        {stats.verificationTypes}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                  <TabsTrigger value="document-types" className="text-xs sm:text-sm whitespace-nowrap">
-                    <span className="hidden sm:inline">Document Types</span>
-                    <span className="sm:hidden">Docs</span>
-                    {stats.documentTypes > 0 && (
-                      <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
-                        {stats.documentTypes}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                </TabsList>
+                <TabsTrigger value="clients" className="text-xs sm:text-sm whitespace-nowrap">
+                  <span className="hidden sm:inline">Clients</span>
+                  <span className="sm:hidden">Clients</span>
+                  {stats.clients > 0 && (
+                    <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
+                      {stats.clients}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="products" className="text-xs sm:text-sm whitespace-nowrap">
+                  <span className="hidden sm:inline">Products</span>
+                  <span className="sm:hidden">Products</span>
+                  {stats.products > 0 && (
+                    <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
+                      {stats.products}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger
+                  value="verification-types"
+                  className="text-xs sm:text-sm whitespace-nowrap"
+                >
+                  <span className="hidden sm:inline">Verification Types</span>
+                  <span className="sm:hidden">Verify</span>
+                  {stats.verificationTypes > 0 && (
+                    <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
+                      {stats.verificationTypes}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger
+                  value="document-types"
+                  className="text-xs sm:text-sm whitespace-nowrap"
+                >
+                  <span className="hidden sm:inline">Document Types</span>
+                  <span className="sm:hidden">Docs</span>
+                  {stats.documentTypes > 0 && (
+                    <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
+                      {stats.documentTypes}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              </TabsList>
 
               <div className="flex flex-wrap gap-2">
                 {/* Actions handled by UnifiedSearchFilterLayout within tabs */}
@@ -257,18 +253,11 @@ export function ClientsPage() {
                 showFilters={false}
                 actions={
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleBulkImport('clients')}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => handleBulkImport('clients')}>
                       <Upload className="h-4 w-4 mr-2" />
                       Import
                     </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => setShowCreateClient(true)}
-                    >
+                    <Button size="sm" onClick={() => setShowCreateClient(true)}>
                       <Plus className="h-4 w-4 mr-2" />
                       Add Client
                     </Button>
@@ -277,22 +266,20 @@ export function ClientsPage() {
               />
               <div className="overflow-x-auto">
                 <div className="min-w-[800px] lg:min-w-0">
-                  <ClientsTable
-                    data={clientsData?.data || []}
-                    isLoading={clientsLoading}
-                  />
+                  <ClientsTable data={clientsData?.data || []} isLoading={clientsLoading} />
                 </div>
                 {/* Pagination Controls */}
                 {clientsData?.pagination && (
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
                     <div className="text-sm text-gray-600">
-                      Showing {clientsData.data?.length || 0} of {clientsData.pagination.total} clients
+                      Showing {clientsData.data?.length || 0} of {clientsData.pagination.total}{' '}
+                      clients
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setClientsPage(prev => Math.max(1, prev - 1))}
+                        onClick={() => setClientsPage((prev) => Math.max(1, prev - 1))}
                         disabled={clientsPage === 1}
                       >
                         Previous
@@ -303,7 +290,7 @@ export function ClientsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setClientsPage(prev => prev + 1)}
+                        onClick={() => setClientsPage((prev) => prev + 1)}
                         disabled={clientsPage >= (clientsData.pagination.totalPages || 1)}
                       >
                         Next
@@ -332,10 +319,7 @@ export function ClientsPage() {
                       <Upload className="h-4 w-4 mr-2" />
                       Import
                     </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => setShowCreateProduct(true)}
-                    >
+                    <Button size="sm" onClick={() => setShowCreateProduct(true)}>
                       <Plus className="h-4 w-4 mr-2" />
                       Add Product
                     </Button>
@@ -344,22 +328,20 @@ export function ClientsPage() {
               />
               <div className="overflow-x-auto">
                 <div className="min-w-[800px] lg:min-w-0">
-                  <ProductsTable
-                    data={productsData?.data || []}
-                    isLoading={productsLoading}
-                  />
+                  <ProductsTable data={productsData?.data || []} isLoading={productsLoading} />
                 </div>
                 {/* Pagination Controls */}
                 {productsData?.pagination && (
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
                     <div className="text-sm text-gray-600">
-                      Showing {productsData.data?.length || 0} of {productsData.pagination.total} products
+                      Showing {productsData.data?.length || 0} of {productsData.pagination.total}{' '}
+                      products
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setProductsPage(prev => Math.max(1, prev - 1))}
+                        onClick={() => setProductsPage((prev) => Math.max(1, prev - 1))}
                         disabled={productsPage === 1}
                       >
                         Previous
@@ -370,7 +352,7 @@ export function ClientsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setProductsPage(prev => prev + 1)}
+                        onClick={() => setProductsPage((prev) => prev + 1)}
                         disabled={productsPage >= (productsData.pagination.totalPages || 1)}
                       >
                         Next
@@ -390,10 +372,7 @@ export function ClientsPage() {
                 searchPlaceholder="Search verification types by name, code or category..."
                 showFilters={false}
                 actions={
-                  <Button
-                    size="sm"
-                    onClick={() => setShowCreateVerificationType(true)}
-                  >
+                  <Button size="sm" onClick={() => setShowCreateVerificationType(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Type
                   </Button>
@@ -410,25 +389,30 @@ export function ClientsPage() {
                 {verificationTypesData?.pagination && (
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
                     <div className="text-sm text-gray-600">
-                      Showing {verificationTypesData.data?.length || 0} of {verificationTypesData.pagination.total} verification types
+                      Showing {verificationTypesData.data?.length || 0} of{' '}
+                      {verificationTypesData.pagination.total} verification types
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setVerificationTypesPage(prev => Math.max(1, prev - 1))}
+                        onClick={() => setVerificationTypesPage((prev) => Math.max(1, prev - 1))}
                         disabled={verificationTypesPage === 1}
                       >
                         Previous
                       </Button>
                       <div className="text-sm">
-                        Page {verificationTypesPage} of {verificationTypesData.pagination.totalPages || 1}
+                        Page {verificationTypesPage} of{' '}
+                        {verificationTypesData.pagination.totalPages || 1}
                       </div>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setVerificationTypesPage(prev => prev + 1)}
-                        disabled={verificationTypesPage >= (verificationTypesData.pagination.totalPages || 1)}
+                        onClick={() => setVerificationTypesPage((prev) => prev + 1)}
+                        disabled={
+                          verificationTypesPage >=
+                          (verificationTypesData.pagination.totalPages || 1)
+                        }
                       >
                         Next
                       </Button>
@@ -447,10 +431,7 @@ export function ClientsPage() {
                 searchPlaceholder="Search document types by name, code or category..."
                 showFilters={false}
                 actions={
-                  <Button
-                    size="sm"
-                    onClick={() => setShowCreateDocumentType(true)}
-                  >
+                  <Button size="sm" onClick={() => setShowCreateDocumentType(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Document Type
                   </Button>
@@ -467,13 +448,14 @@ export function ClientsPage() {
                 {documentTypesData?.pagination && (
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
                     <div className="text-sm text-gray-600">
-                      Showing {documentTypesData.data?.length || 0} of {documentTypesData.pagination.total} document types
+                      Showing {documentTypesData.data?.length || 0} of{' '}
+                      {documentTypesData.pagination.total} document types
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setDocumentTypesPage(prev => Math.max(1, prev - 1))}
+                        onClick={() => setDocumentTypesPage((prev) => Math.max(1, prev - 1))}
                         disabled={documentTypesPage === 1}
                       >
                         Previous
@@ -484,8 +466,10 @@ export function ClientsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setDocumentTypesPage(prev => prev + 1)}
-                        disabled={documentTypesPage >= (documentTypesData.pagination.totalPages || 1)}
+                        onClick={() => setDocumentTypesPage((prev) => prev + 1)}
+                        disabled={
+                          documentTypesPage >= (documentTypesData.pagination.totalPages || 1)
+                        }
                       >
                         Next
                       </Button>
@@ -499,16 +483,10 @@ export function ClientsPage() {
       </Card>
 
       {/* Dialogs */}
-      <CreateClientDialog
-        open={showCreateClient}
-        onOpenChange={setShowCreateClient}
-      />
-      
-      <CreateProductDialog
-        open={showCreateProduct}
-        onOpenChange={setShowCreateProduct}
-      />
-      
+      <CreateClientDialog open={showCreateClient} onOpenChange={setShowCreateClient} />
+
+      <CreateProductDialog open={showCreateProduct} onOpenChange={setShowCreateProduct} />
+
       <CreateVerificationTypeDialog
         open={showCreateVerificationType}
         onOpenChange={setShowCreateVerificationType}
@@ -518,7 +496,7 @@ export function ClientsPage() {
         open={showCreateDocumentType}
         onOpenChange={setShowCreateDocumentType}
       />
-      
+
       <BulkImportDialog
         open={showBulkImport}
         onOpenChange={setShowBulkImport}

@@ -16,9 +16,18 @@ import { CreateUserDialog } from '@/components/users/CreateUserDialog';
 import { BulkImportUsersDialog } from '@/components/users/BulkImportUsersDialog';
 import { UserStatsCards } from '@/components/users/UserStatsCards';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { UnifiedSearchFilterLayout, FilterGrid } from '@/components/ui/unified-search-filter-layout';
+import {
+  UnifiedSearchFilterLayout,
+  FilterGrid,
+} from '@/components/ui/unified-search-filter-layout';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { LoadingState } from '@/components/ui/loading';
 import { useUserActivities } from '@/hooks/useUserActivities';
 import { useUserSessions } from '@/hooks/useUserSessions';
@@ -104,38 +113,63 @@ export function UsersPage() {
   });
 
   // Independent pagination resets
-  useEffect(() => { setUserPage(1); }, [userSearch.debouncedSearchValue, userFilters.filters]);
-  useEffect(() => { setActPage(1); }, [actSearch.debouncedSearchValue, actFilters.filters]);
-  useEffect(() => { setSessPage(1); }, [sessSearch.debouncedSearchValue]);
+  useEffect(() => {
+    setUserPage(1);
+  }, [userSearch.debouncedSearchValue, userFilters.filters]);
+  useEffect(() => {
+    setActPage(1);
+  }, [actSearch.debouncedSearchValue, actFilters.filters]);
+  useEffect(() => {
+    setSessPage(1);
+  }, [sessSearch.debouncedSearchValue]);
 
   // Queries
   const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: ['users', userSearch.debouncedSearchValue, userFilters.filters.role, userFilters.filters.status, userPage, userPageSize],
-    queryFn: () => usersService.getUsers({
-      search: userSearch.debouncedSearchValue || undefined,
-      role: userFilters.filters.role || undefined,
-      isActive: userFilters.filters.status === 'active' ? true : userFilters.filters.status === 'inactive' ? false : undefined,
-      page: userPage,
-      limit: userPageSize,
-    }),
+    queryKey: [
+      'users',
+      userSearch.debouncedSearchValue,
+      userFilters.filters.role,
+      userFilters.filters.status,
+      userPage,
+      userPageSize,
+    ],
+    queryFn: () =>
+      usersService.getUsers({
+        search: userSearch.debouncedSearchValue || undefined,
+        role: userFilters.filters.role || undefined,
+        isActive:
+          userFilters.filters.status === 'active'
+            ? true
+            : userFilters.filters.status === 'inactive'
+              ? false
+              : undefined,
+        page: userPage,
+        limit: userPageSize,
+      }),
     enabled: activeTab === 'users',
   });
 
-  const { data: activitiesData, isLoading: activitiesLoading } = useUserActivities({
-    page: actPage,
-    limit: 20,
-    search: actSearch.debouncedSearchValue || undefined,
-    fromDate: actFilters.filters.fromDate,
-    toDate: actFilters.filters.toDate,
-    userId: actFilters.filters.userId,
-  }, { enabled: activeTab === 'activities' && canManageRbac });
+  const { data: activitiesData, isLoading: activitiesLoading } = useUserActivities(
+    {
+      page: actPage,
+      limit: 20,
+      search: actSearch.debouncedSearchValue || undefined,
+      fromDate: actFilters.filters.fromDate,
+      toDate: actFilters.filters.toDate,
+      userId: actFilters.filters.userId,
+    },
+    { enabled: activeTab === 'activities' && canManageRbac }
+  );
 
-  const { data: sessionsData, isLoading: sessionsLoading } = useUserSessions({
-    userId: undefined, // Admins can filter by userId if implemented in UI
-    search: sessSearch.debouncedSearchValue || undefined,
-    page: sessPage,
-    limit: 20,
-  }, { enabled: activeTab === 'sessions' && canManageRbac });
+  const { data: sessionsData, isLoading: sessionsLoading } = useUserSessions(
+    {
+      userId: undefined, // Admins can filter by userId if implemented in UI
+      search: sessSearch.debouncedSearchValue || undefined,
+      page: sessPage,
+      limit: 20,
+    },
+    { enabled: activeTab === 'sessions' && canManageRbac }
+  );
 
   const { data: userStatsData } = useQuery({
     queryKey: ['user-stats'],
@@ -161,7 +195,9 @@ export function UsersPage() {
 
   const getTabStats = () => {
     try {
-      const usersStats = (usersData as { statistics?: { total: number; active: number; inactive: number } })?.statistics || { total: 0, active: 0, inactive: 0 };
+      const usersStats = (
+        usersData as { statistics?: { total: number; active: number; inactive: number } }
+      )?.statistics || { total: 0, active: 0, inactive: 0 };
       const activities = activitiesData?.data || [];
       const sessions = sessionsData?.data || [];
 
@@ -177,8 +213,10 @@ export function UsersPage() {
         },
         activities: {
           total: safeActivities.length,
-          today: safeActivities.filter(activity => {
-            if (!activity?.createdAt) {return false;}
+          today: safeActivities.filter((activity) => {
+            if (!activity?.createdAt) {
+              return false;
+            }
             try {
               const activityDate = new Date(activity.createdAt);
               const today = new Date();
@@ -190,15 +228,15 @@ export function UsersPage() {
         },
         sessions: {
           total: safeSessions.length,
-          active: safeSessions.filter(session => session?.isActive).length,
-        }
+          active: safeSessions.filter((session) => session?.isActive).length,
+        },
       };
     } catch (error) {
       logger.error('Error calculating tab stats:', error);
       return {
         users: { total: 0, active: 0, inactive: 0 },
         activities: { total: 0, today: 0 },
-        sessions: { total: 0, active: 0 }
+        sessions: { total: 0, active: 0 },
       };
     }
   };
@@ -236,9 +274,7 @@ export function UsersPage() {
       </div>
 
       {/* Stats Cards */}
-      {canViewUsersData && (
-        <UserStatsCards stats={resolvedUserStats} />
-      )}
+      {canViewUsersData && <UserStatsCards stats={resolvedUserStats} />}
 
       {/* Main Content */}
       <Card>
@@ -270,10 +306,13 @@ export function UsersPage() {
                     </Badge>
                   )}
                 </TabsTrigger>
-                
+
                 {canManageRbac && (
                   <>
-                    <TabsTrigger value="activities" className="text-xs sm:text-sm whitespace-nowrap">
+                    <TabsTrigger
+                      value="activities"
+                      className="text-xs sm:text-sm whitespace-nowrap"
+                    >
                       <span className="hidden sm:inline">Activities</span>
                       <span className="sm:hidden">Activity</span>
                       {stats.activities.total > 0 && (
@@ -293,7 +332,6 @@ export function UsersPage() {
                     </TabsTrigger>
                   </>
                 )}
-                
               </TabsList>
 
               {/* Actions */}
@@ -314,26 +352,15 @@ export function UsersPage() {
                 onClearFilters={userFilters.clearFilters}
                 actions={
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowBulkImport(true)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => setShowBulkImport(true)}>
                       <Upload className="h-4 w-4 mr-2" />
                       Import
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleExportUsers('EXCEL')}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => handleExportUsers('EXCEL')}>
                       <Download className="h-4 w-4 mr-2" />
                       Export
                     </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => setShowCreateUser(true)}
-                    >
+                    <Button size="sm" onClick={() => setShowCreateUser(true)}>
                       <Plus className="h-4 w-4 mr-2" />
                       Add User
                     </Button>
@@ -345,14 +372,19 @@ export function UsersPage() {
                       <Label>Role</Label>
                       <Select
                         value={userFilters.filters.role || 'all'}
-                        onValueChange={(value) => userFilters.setFilter('role', value === 'all' ? undefined : (value as Role))}
+                        onValueChange={(value) =>
+                          userFilters.setFilter(
+                            'role',
+                            value === 'all' ? undefined : (value as Role)
+                          )
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="All Roles" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Roles</SelectItem>
-                          {USER_ROLE_OPTIONS.map(option => (
+                          {USER_ROLE_OPTIONS.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
                               {option.label}
                             </SelectItem>
@@ -365,7 +397,9 @@ export function UsersPage() {
                       <Label>Status</Label>
                       <Select
                         value={userFilters.filters.status || 'all'}
-                        onValueChange={(value) => userFilters.setFilter('status', value === 'all' ? undefined : value)}
+                        onValueChange={(value) =>
+                          userFilters.setFilter('status', value === 'all' ? undefined : value)
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="All Status" />
@@ -396,7 +430,7 @@ export function UsersPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setUserPage(prev => Math.max(1, prev - 1))}
+                      onClick={() => setUserPage((prev) => Math.max(1, prev - 1))}
                       disabled={userPage === 1}
                     >
                       Previous
@@ -407,7 +441,7 @@ export function UsersPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setUserPage(prev => prev + 1)}
+                      onClick={() => setUserPage((prev) => prev + 1)}
                       disabled={userPage >= (usersData.pagination.totalPages || 1)}
                     >
                       Next
@@ -440,14 +474,25 @@ export function UsersPage() {
                             )}
                           >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {actFilters.filters.fromDate ? format(new Date(actFilters.filters.fromDate), 'PPP') : 'Pick a date'}
+                            {actFilters.filters.fromDate
+                              ? format(new Date(actFilters.filters.fromDate), 'PPP')
+                              : 'Pick a date'}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">
                           <Calendar
                             mode="single"
-                            selected={actFilters.filters.fromDate ? new Date(actFilters.filters.fromDate) : undefined}
-                            onSelect={(date) => actFilters.setFilter('fromDate', date ? date.toISOString() : undefined)}
+                            selected={
+                              actFilters.filters.fromDate
+                                ? new Date(actFilters.filters.fromDate)
+                                : undefined
+                            }
+                            onSelect={(date) =>
+                              actFilters.setFilter(
+                                'fromDate',
+                                date ? date.toISOString() : undefined
+                              )
+                            }
                             initialFocus
                           />
                         </PopoverContent>
@@ -466,14 +511,22 @@ export function UsersPage() {
                             )}
                           >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {actFilters.filters.toDate ? format(new Date(actFilters.filters.toDate), 'PPP') : 'Pick a date'}
+                            {actFilters.filters.toDate
+                              ? format(new Date(actFilters.filters.toDate), 'PPP')
+                              : 'Pick a date'}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">
                           <Calendar
                             mode="single"
-                            selected={actFilters.filters.toDate ? new Date(actFilters.filters.toDate) : undefined}
-                            onSelect={(date) => actFilters.setFilter('toDate', date ? date.toISOString() : undefined)}
+                            selected={
+                              actFilters.filters.toDate
+                                ? new Date(actFilters.filters.toDate)
+                                : undefined
+                            }
+                            onSelect={(date) =>
+                              actFilters.setFilter('toDate', date ? date.toISOString() : undefined)
+                            }
                             initialFocus
                           />
                         </PopoverContent>
@@ -492,13 +545,14 @@ export function UsersPage() {
               {activitiesData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
                   <div className="text-sm text-gray-600">
-                    Showing {activitiesData.data?.length || 0} of {activitiesData.pagination.total} activities
+                    Showing {activitiesData.data?.length || 0} of {activitiesData.pagination.total}{' '}
+                    activities
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setActPage(prev => Math.max(1, prev - 1))}
+                      onClick={() => setActPage((prev) => Math.max(1, prev - 1))}
                       disabled={actPage === 1}
                     >
                       Previous
@@ -509,7 +563,7 @@ export function UsersPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setActPage(prev => prev + 1)}
+                      onClick={() => setActPage((prev) => prev + 1)}
                       disabled={actPage >= (activitiesData.pagination.totalPages || 1)}
                     >
                       Next
@@ -536,21 +590,14 @@ export function UsersPage() {
 
               {/* Pagination Controls (Placeholder if needed) */}
             </TabsContent>
-
           </Tabs>
         </CardContent>
       </Card>
 
       {/* Dialogs */}
-      <CreateUserDialog
-        open={showCreateUser}
-        onOpenChange={setShowCreateUser}
-      />
-      
-      <BulkImportUsersDialog
-        open={showBulkImport}
-        onOpenChange={setShowBulkImport}
-      />
+      <CreateUserDialog open={showCreateUser} onOpenChange={setShowCreateUser} />
+
+      <BulkImportUsersDialog open={showBulkImport} onOpenChange={setShowBulkImport} />
     </div>
   );
 }

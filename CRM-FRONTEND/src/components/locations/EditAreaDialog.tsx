@@ -88,7 +88,7 @@ export function EditAreaDialog({ area, open, onOpenChange }: EditAreaDialogProps
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-                className="w-full sm:w-auto"
+              className="w-full sm:w-auto"
               disabled={updateMutation.isPending}
             >
               Cancel
@@ -102,4 +102,3 @@ export function EditAreaDialog({ area, open, onOpenChange }: EditAreaDialogProps
     </Dialog>
   );
 }
-

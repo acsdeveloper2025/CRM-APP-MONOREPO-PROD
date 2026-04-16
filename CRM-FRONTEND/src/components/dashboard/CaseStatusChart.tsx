@@ -40,12 +40,8 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     return (
       <div className="bg-white p-3 border rounded-lg shadow-lg">
         <p className="font-medium">{data.name}</p>
-        <p className="text-sm text-gray-600">
-          Count: {data.value}
-        </p>
-        <p className="text-sm text-gray-600">
-          Percentage: {data.payload.percentage}%
-        </p>
+        <p className="text-sm text-gray-600">Count: {data.value}</p>
+        <p className="text-sm text-gray-600">Percentage: {data.payload.percentage}%</p>
       </div>
     );
   }
@@ -72,7 +68,7 @@ export const CaseStatusChart: React.FC<CaseStatusChartProps> = React.memo(({ dat
   // Ensure data is an array
   const safeData = Array.isArray(data) ? data : [];
 
-  const chartData = safeData.map(item => ({
+  const chartData = safeData.map((item) => ({
     name: item.status.replace('_', ' '),
     value: item.count,
     percentage: item.percentage,
@@ -99,9 +95,9 @@ export const CaseStatusChart: React.FC<CaseStatusChartProps> = React.memo(({ dat
                 dataKey="value"
               >
                 {chartData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={COLORS[entry.name.replace(' ', '_') as keyof typeof COLORS] || '#8884d8'} 
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[entry.name.replace(' ', '_') as keyof typeof COLORS] || '#8884d8'}
                   />
                 ))}
               </Pie>

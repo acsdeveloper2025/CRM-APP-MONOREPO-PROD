@@ -12,12 +12,10 @@ import {
   User,
   Clock,
   Camera,
-
   Smartphone,
-
   Calendar,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 
@@ -30,12 +28,12 @@ const getFieldValue = (field: FormField): React.ReactNode => {
   if (field.displayValue) {
     return field.displayValue;
   }
-  
+
   const val = field.value;
   if (val === null || val === undefined || val === '') {
     return null;
   }
-  
+
   if (typeof val === 'string' || typeof val === 'number') {
     return val;
   }
@@ -45,12 +43,21 @@ const getFieldValue = (field: FormField): React.ReactNode => {
   if (Array.isArray(val)) {
     return val.join(', ');
   }
-  
+
   if (typeof val === 'object') {
     // Try to be smart about objects - if it has a url, likely a file
     const objVal = val as Record<string, unknown>;
     if ('url' in objVal && typeof objVal.url === 'string') {
-        return <a href={objVal.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View File</a>;
+      return (
+        <a
+          href={objVal.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 underline"
+        >
+          View File
+        </a>
+      );
     }
     try {
       return JSON.stringify(val);
@@ -58,13 +65,13 @@ const getFieldValue = (field: FormField): React.ReactNode => {
       return '[Complex Object]';
     }
   }
-  
+
   return String(val);
 };
 
 export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionViewerProps> = ({
   submission,
-  caseId
+  caseId,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -73,36 +80,46 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
     return formType.replace('_', ' ').toUpperCase();
   };
 
-
-
-
-
   // Extract key information
   const submissionDate = (() => {
     // Try submittedAt first, then metadata.submissionTimestamp
     const dateStr = submission.submittedAt || submission.metadata?.submissionTimestamp;
-    if (!dateStr) {return null;}
+    if (!dateStr) {
+      return null;
+    }
 
     // Clean up the malformed date string (remove duplicate timezone info)
-    const cleanDateStr = dateStr.replace(/T00:00:00\.000Z$/, '').replace(/GMT\+0530 \(India Standard Time\)/, '');
+    const cleanDateStr = dateStr
+      .replace(/T00:00:00\.000Z$/, '')
+      .replace(/GMT\+0530 \(India Standard Time\)/, '');
     const date = new Date(cleanDateStr);
     return isNaN(date.getTime()) ? null : date;
   })();
   const agentName = submission.submittedByName || submission.submittedBy || 'Unknown Agent';
   const formSections = submission.sections || [];
-  const totalFields = formSections.reduce((total, section) => total + (section.fields?.length || 0), 0);
-  
+  const totalFields = formSections.reduce(
+    (total, section) => total + (section.fields?.length || 0),
+    0
+  );
+
   // Try to get outcome from multiple sources
   const verificationOutcome = (() => {
-    if (submission.outcome) { return submission.outcome; }
-    if (submission.formType) { return submission.formType; }
+    if (submission.outcome) {
+      return submission.outcome;
+    }
+    if (submission.formType) {
+      return submission.formType;
+    }
 
-    const field = formSections.flatMap(s => s.fields || []).find(
-      f => f.id === 'finalStatus' || 
-           f.id === 'verificationOutcome' || 
-           f.label?.toLowerCase().includes('outcome') ||
-           f.label?.toLowerCase().includes('final status')
-    );
+    const field = formSections
+      .flatMap((s) => s.fields || [])
+      .find(
+        (f) =>
+          f.id === 'finalStatus' ||
+          f.id === 'verificationOutcome' ||
+          f.label?.toLowerCase().includes('outcome') ||
+          f.label?.toLowerCase().includes('final status')
+      );
 
     if (field?.value && typeof field.value === 'string') {
       return field.value;
@@ -126,9 +143,7 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
                   {getFormTypeLabel(submission.formType)} Verification
                 </CardTitle>
                 <div className="flex items-center space-x-2 mt-2">
-                  <Badge className={baseBadgeStyle}>
-                    {submission.status.toUpperCase()}
-                  </Badge>
+                  <Badge className={baseBadgeStyle}>{submission.status.toUpperCase()}</Badge>
                   <Badge className={baseBadgeStyle}>
                     {submission.validationStatus.toUpperCase()}
                   </Badge>
@@ -166,7 +181,9 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
               <div>
                 <p className="text-xs text-gray-600">Submitted</p>
                 <p className="text-sm font-medium">
-                  {submissionDate ? formatDistanceToNow(submissionDate, { addSuffix: true }) : 'Unknown time'}
+                  {submissionDate
+                    ? formatDistanceToNow(submissionDate, { addSuffix: true })
+                    : 'Unknown time'}
                 </p>
               </div>
             </div>
@@ -183,7 +200,9 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
               <FileText className="h-4 w-4 text-gray-600" />
               <div>
                 <p className="text-xs text-gray-600">Form Data</p>
-                <p className="text-sm font-medium">{formSections.length} sections, {totalFields} fields</p>
+                <p className="text-sm font-medium">
+                  {formSections.length} sections, {totalFields} fields
+                </p>
               </div>
             </div>
           </div>
@@ -204,11 +223,11 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
               <Smartphone className="h-4 w-4 text-gray-600" />
               <div>
                 <p className="text-xs text-gray-600">Platform</p>
-                <p className="text-sm font-medium">{submission.metadata?.deviceInfo?.platform || 'Unknown'}</p>
+                <p className="text-sm font-medium">
+                  {submission.metadata?.deviceInfo?.platform || 'Unknown'}
+                </p>
               </div>
             </div>
-
-
           </div>
         </CardContent>
       </Card>
@@ -222,20 +241,27 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
               <div className="flex items-center space-x-2">
                 <FileText className="h-5 w-5 text-green-600" />
                 <h3 className="text-lg font-semibold">Form Data</h3>
-                <Badge className={baseBadgeStyle}>{formSections.length} SECTIONS, {totalFields} FIELDS</Badge>
+                <Badge className={baseBadgeStyle}>
+                  {formSections.length} SECTIONS, {totalFields} FIELDS
+                </Badge>
               </div>
 
               <Card className="border-l-4 border-l-green-500">
                 <CardContent className="p-6 space-y-6">
                   {formSections.map((section, sectionIndex) => (
-                    <div key={sectionIndex} className={sectionIndex > 0 ? "pt-6 border-t border-gray-200" : ""}>
+                    <div
+                      key={sectionIndex}
+                      className={sectionIndex > 0 ? 'pt-6 border-t border-gray-200' : ''}
+                    >
                       {/* Section Header - Compact */}
                       <div className="flex items-center space-x-2 mb-3">
                         <div className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
                           {sectionIndex + 1}
                         </div>
                         <h4 className="text-base font-semibold text-gray-900">{section.title}</h4>
-                        <Badge className={baseBadgeStyle}>{section.fields?.length || 0} FIELDS</Badge>
+                        <Badge className={baseBadgeStyle}>
+                          {section.fields?.length || 0} FIELDS
+                        </Badge>
                       </div>
 
                       {/* Fields - Inline Single Column */}
@@ -247,7 +273,9 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
                               {field.label}:
                             </span>
                             <span className="text-sm text-gray-900 ml-2 flex-1">
-                              {getFieldValue(field) || <span className="text-gray-400 italic">Not provided</span>}
+                              {getFieldValue(field) || (
+                                <span className="text-gray-400 italic">Not provided</span>
+                              )}
                             </span>
                           </div>
                         ))}
@@ -295,7 +323,6 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
             verificationType={submission.verificationType || 'RESIDENCE'}
             outcome={submission.outcome || 'Positive &amp; Door Locked'}
           />
-
         </div>
       )}
     </div>

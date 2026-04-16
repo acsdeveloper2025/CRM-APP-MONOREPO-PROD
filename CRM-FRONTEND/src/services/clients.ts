@@ -8,7 +8,7 @@ import type {
   CreateProductData,
   UpdateProductData,
   CreateVerificationTypeData,
-  UpdateVerificationTypeData
+  UpdateVerificationTypeData,
 } from '@/types/client';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
 import { z } from 'zod';
@@ -92,7 +92,9 @@ export class ClientsService {
   }
 
   // Verification Type operations
-  async getVerificationTypes(query: PaginationQuery = {}): Promise<ApiResponse<VerificationType[]>> {
+  async getVerificationTypes(
+    query: PaginationQuery = {}
+  ): Promise<ApiResponse<VerificationType[]>> {
     return apiService.get('/verification-types', query);
   }
 
@@ -100,16 +102,24 @@ export class ClientsService {
     return apiService.get(`/verification-types/${id}`);
   }
 
-  async getVerificationTypesByClient(clientId: number, isActive?: boolean): Promise<ApiResponse<VerificationType[]>> {
+  async getVerificationTypesByClient(
+    clientId: number,
+    isActive?: boolean
+  ): Promise<ApiResponse<VerificationType[]>> {
     const params = isActive !== undefined ? { isActive } : {};
     return apiService.get(`/clients/${clientId}/verification-types`, params);
   }
 
-  async createVerificationType(data: CreateVerificationTypeData): Promise<ApiResponse<VerificationType>> {
+  async createVerificationType(
+    data: CreateVerificationTypeData
+  ): Promise<ApiResponse<VerificationType>> {
     return apiService.post('/verification-types', data);
   }
 
-  async updateVerificationType(id: number, data: UpdateVerificationTypeData): Promise<ApiResponse<VerificationType>> {
+  async updateVerificationType(
+    id: number,
+    data: UpdateVerificationTypeData
+  ): Promise<ApiResponse<VerificationType>> {
     return apiService.put(`/verification-types/${id}`, data);
   }
 
@@ -122,7 +132,10 @@ export class ClientsService {
     return apiService.post(`/clients/${clientId}/cities`, { cityIds });
   }
 
-  async mapProductToVerificationTypes(productId: number, verificationTypeIds: number[]): Promise<ApiResponse<void>> {
+  async mapProductToVerificationTypes(
+    productId: number,
+    verificationTypeIds: number[]
+  ): Promise<ApiResponse<void>> {
     return apiService.post(`/products/${productId}/verification-types`, { verificationTypeIds });
   }
 

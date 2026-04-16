@@ -12,14 +12,11 @@ export const verificationImageKeys = {
 /**
  * Hook to get all verification images for a case (for form submission display)
  */
-export const useVerificationImages = (
-  caseId: string,
-  options: { enabled?: boolean } = {}
-) => {
+export const useVerificationImages = (caseId: string, options: { enabled?: boolean } = {}) => {
   return useQuery({
     queryKey: [...verificationImageKeys.case(caseId), 'all'],
     queryFn: () => verificationImagesService.getVerificationImages(caseId),
-    enabled: !!caseId && (options.enabled !== false),
+    enabled: !!caseId && options.enabled !== false,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
@@ -28,16 +25,15 @@ export const useVerificationImages = (
  * Hook to get verification images by submission ID
  */
 export const useVerificationImagesBySubmission = (
-  caseId: string, 
+  caseId: string,
   submissionId: string,
   options: { enabled?: boolean } = {}
 ) => {
   return useQuery({
     queryKey: verificationImageKeys.submission(caseId, submissionId),
-    queryFn: () => verificationImagesService.getVerificationImagesBySubmission(caseId, submissionId),
-    enabled: !!caseId && !!submissionId && (options.enabled !== false),
+    queryFn: () =>
+      verificationImagesService.getVerificationImagesBySubmission(caseId, submissionId),
+    enabled: !!caseId && !!submissionId && options.enabled !== false,
     staleTime: 5 * 60 * 1000,
   });
 };
-
-

@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  FileText, 
-  Download, 
-  RefreshCw, 
-  Clock, 
-  CheckCircle, 
+import {
+  FileText,
+  Download,
+  RefreshCw,
+  Clock,
+  CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
 } from 'lucide-react';
 import { apiService } from '@/services/api';
 import { logger } from '@/utils/logger';
@@ -34,7 +34,7 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
   caseId,
   submissionId,
   verificationType: _verificationType,
-  outcome: _outcome
+  outcome: _outcome,
 }) => {
   const [report, setReport] = useState<TemplateReport | null>(null);
   const [loading, setLoading] = useState(false);
@@ -46,7 +46,7 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
       setLoading(true);
       setError(null);
 
-      const response = await apiService.getRaw<{ success: boolean; report: TemplateReport }> (
+      const response = await apiService.getRaw<{ success: boolean; report: TemplateReport }>(
         `/template-reports/cases/${caseId}/submissions/${submissionId}`
       );
 
@@ -95,7 +95,7 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
           id: response.data.reportId,
           content: response.data.report,
           metadata: response.data.metadata,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
         });
       } else {
         throw new Error(response.message || 'Failed to generate report');
@@ -110,7 +110,9 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
   };
 
   const downloadReport = () => {
-    if (!report) {return;}
+    if (!report) {
+      return;
+    }
 
     const content = `VERIFICATION REPORT
 Generated: ${new Date(report.createdAt).toLocaleString()}
@@ -138,7 +140,7 @@ ${report.content}`;
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
-      second: '2-digit'
+      second: '2-digit',
     });
   };
 
@@ -147,7 +149,9 @@ ${report.content}`;
       <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-green-600" />
-          <span className="ml-2 text-slate-600 dark:text-slate-300">Loading template report...</span>
+          <span className="ml-2 text-slate-600 dark:text-slate-300">
+            Loading template report...
+          </span>
         </div>
       </div>
     );

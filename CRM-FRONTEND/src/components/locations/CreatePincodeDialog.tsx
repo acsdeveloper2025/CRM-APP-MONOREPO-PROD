@@ -34,11 +34,15 @@ import { EnhancedAreasMultiSelect } from './EnhancedAreasMultiSelect';
 import { toast } from 'sonner';
 
 const createPincodeSchema = z.object({
-  code: z.string()
+  code: z
+    .string()
     .min(6, 'Pincode must be 6 digits')
     .max(6, 'Pincode must be 6 digits')
     .regex(/^\d{6}$/, 'Pincode must contain only numbers'),
-  areas: z.array(z.string()).min(1, 'At least one area must be selected').max(15, 'Maximum 15 areas allowed'),
+  areas: z
+    .array(z.string())
+    .min(1, 'At least one area must be selected')
+    .max(15, 'Maximum 15 areas allowed'),
   cityId: z.string().min(1, 'City selection is required'),
 });
 
@@ -84,7 +88,7 @@ export function CreatePincodeDialog({ open, onOpenChange }: CreatePincodeDialogP
 
   const onSubmit = (data: CreatePincodeFormData) => {
     // Find the selected city to get additional required fields
-    const selectedCity = cities.find(city => String(city.id) === data.cityId);
+    const selectedCity = cities.find((city) => String(city.id) === data.cityId);
 
     if (!selectedCity) {
       toast.error('Please select a valid city');
@@ -129,9 +133,7 @@ export function CreatePincodeDialog({ open, onOpenChange }: CreatePincodeDialogP
                       maxLength={6}
                     />
                   </FormControl>
-                  <FormDescription>
-                    6-digit postal code (numbers only)
-                  </FormDescription>
+                  <FormDescription>6-digit postal code (numbers only)</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -185,9 +187,7 @@ export function CreatePincodeDialog({ open, onOpenChange }: CreatePincodeDialogP
                       ))}
                     </SelectContent>
                   </Select>
-                  <FormDescription>
-                    Select the city this pincode belongs to
-                  </FormDescription>
+                  <FormDescription>Select the city this pincode belongs to</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -206,7 +206,8 @@ export function CreatePincodeDialog({ open, onOpenChange }: CreatePincodeDialogP
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
-               className="w-full sm:w-auto">
+                className="w-full sm:w-auto"
+              >
                 {createMutation.isPending ? 'Creating...' : 'Create Pincode'}
               </Button>
             </DialogFooter>

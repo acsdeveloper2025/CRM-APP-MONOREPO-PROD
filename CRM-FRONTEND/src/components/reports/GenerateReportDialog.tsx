@@ -180,7 +180,7 @@ export function GenerateReportDialog({ open, onOpenChange }: GenerateReportDialo
                 <FormItem>
                   <FormLabel>Description (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea 
+                    <Textarea
                       placeholder="Enter report description"
                       className="resize-none"
                       {...field}
@@ -193,10 +193,7 @@ export function GenerateReportDialog({ open, onOpenChange }: GenerateReportDialo
 
             <div className="space-y-2">
               <FormLabel>Date Range</FormLabel>
-              <DatePickerWithRange
-                date={dateRange}
-                onDateChange={setDateRange}
-              />
+              <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
             </div>
 
             <FormField
@@ -243,9 +240,7 @@ export function GenerateReportDialog({ open, onOpenChange }: GenerateReportDialo
                       <SelectItem value="CSV">CSV</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>
-                    Choose the format for the generated report
-                  </FormDescription>
+                  <FormDescription>Choose the format for the generated report</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -264,7 +259,8 @@ export function GenerateReportDialog({ open, onOpenChange }: GenerateReportDialo
               <Button
                 type="submit"
                 disabled={generateMutation.isPending}
-               className="w-full sm:w-auto">
+                className="w-full sm:w-auto"
+              >
                 {generateMutation.isPending ? 'Generating...' : 'Generate Report'}
               </Button>
             </DialogFooter>

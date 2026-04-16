@@ -160,7 +160,9 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
   const managers = managersData?.data || [];
   const teamLeaders = teamLeadersData?.data || [];
   const selectedRoleId = form.watch('roleId');
-  const selectedRoleName = roles.find(role => String(role.id) === selectedRoleId)?.name?.toUpperCase();
+  const selectedRoleName = roles
+    .find((role) => String(role.id) === selectedRoleId)
+    ?.name?.toUpperCase();
   const requiresTeamLeader =
     selectedRoleName === USER_ROLES.FIELD_AGENT || selectedRoleName === USER_ROLES.BACKEND_USER;
   const requiresManager = requiresTeamLeader || selectedRoleName === USER_ROLES.TEAM_LEADER;
@@ -197,7 +199,8 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>
           <DialogDescription>
-            Update user information. Use &quot;Manage Permissions&quot; to assign clients, products, pincodes, or areas.
+            Update user information. Use &quot;Manage Permissions&quot; to assign clients, products,
+            pincodes, or areas.
           </DialogDescription>
         </DialogHeader>
 
@@ -331,21 +334,34 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      Team Leader {requiresTeamLeader ? <span className="text-red-500">*</span> : null}
+                      Team Leader{' '}
+                      {requiresTeamLeader ? <span className="text-red-500">*</span> : null}
                     </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={disableTeamLeader}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={disableTeamLeader}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue
-                            placeholder={disableTeamLeader ? 'Not applicable for selected role' : 'Select team leader'}
+                            placeholder={
+                              disableTeamLeader
+                                ? 'Not applicable for selected role'
+                                : 'Select team leader'
+                            }
                           />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {teamLeadersLoading ? (
-                          <SelectItem value="loading" disabled>Loading team leaders...</SelectItem>
+                          <SelectItem value="loading" disabled>
+                            Loading team leaders...
+                          </SelectItem>
                         ) : teamLeaders.length === 0 ? (
-                          <SelectItem value="empty" disabled>No team leaders available</SelectItem>
+                          <SelectItem value="empty" disabled>
+                            No team leaders available
+                          </SelectItem>
                         ) : (
                           teamLeaders.map((leader) => (
                             <SelectItem key={leader.id} value={leader.id}>
@@ -368,19 +384,29 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                     <FormLabel>
                       Manager {requiresManager ? <span className="text-red-500">*</span> : null}
                     </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={disableManager}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={disableManager}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue
-                            placeholder={disableManager ? 'Not applicable for selected role' : 'Select manager'}
+                            placeholder={
+                              disableManager ? 'Not applicable for selected role' : 'Select manager'
+                            }
                           />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {managersLoading ? (
-                          <SelectItem value="loading" disabled>Loading managers...</SelectItem>
+                          <SelectItem value="loading" disabled>
+                            Loading managers...
+                          </SelectItem>
                         ) : managers.length === 0 ? (
-                          <SelectItem value="empty" disabled>No managers available</SelectItem>
+                          <SelectItem value="empty" disabled>
+                            No managers available
+                          </SelectItem>
                         ) : (
                           managers.map((manager) => (
                             <SelectItem key={manager.id} value={manager.id}>
@@ -396,8 +422,6 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
               />
             </div>
 
-
-
             <FormField
               control={form.control}
               name="isActive"
@@ -410,10 +434,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                     </div>
                   </div>
                   <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>
                 </FormItem>
               )}
@@ -429,7 +450,11 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={updateMutation.isPending} className="w-full sm:w-auto">
+              <Button
+                type="submit"
+                disabled={updateMutation.isPending}
+                className="w-full sm:w-auto"
+              >
                 {updateMutation.isPending ? 'Updating...' : 'Update User'}
               </Button>
             </DialogFooter>
