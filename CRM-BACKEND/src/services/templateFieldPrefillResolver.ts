@@ -86,7 +86,6 @@ const PREFILL_QUERY = `
   FROM cases c
   LEFT JOIN clients            cl ON cl.id = c.client_id
   LEFT JOIN products           p  ON p.id  = c.product_id
-  LEFT JOIN rate_types         rt ON rt.id = t.rate_type_id
   LEFT JOIN verification_types vt ON vt.id = c.verification_type_id
   LEFT JOIN cities             ci ON ci.id = c.city_id
   LEFT JOIN states             st ON st.id = ci.state_id
@@ -96,6 +95,7 @@ const PREFILL_QUERY = `
     SELECT * FROM verification_tasks WHERE case_id = c.id
      ORDER BY created_at ASC LIMIT 1
   ) t ON true
+  LEFT JOIN rate_types         rt ON rt.id = t.rate_type_id
   LEFT JOIN users              tu ON tu.id = t.assigned_to
   LEFT JOIN users              ab ON ab.id = t.assigned_by
   LEFT JOIN LATERAL (
