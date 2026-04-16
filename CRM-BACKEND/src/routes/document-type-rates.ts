@@ -67,10 +67,16 @@ const deleteDocumentTypeRateValidation = [
 // Routes
 
 // GET /api/document-type-rates/stats - Get statistics (must be before /:id route)
-router.get('/stats', getDocumentTypeRateStats);
+router.get('/stats', authorize('page.masterdata'), getDocumentTypeRateStats);
 
 // GET /api/document-type-rates - List document type rates
-router.get('/', listDocumentTypeRatesValidation, handleValidationErrors, getDocumentTypeRates);
+router.get(
+  '/',
+  authorize('page.masterdata'),
+  listDocumentTypeRatesValidation,
+  handleValidationErrors,
+  getDocumentTypeRates
+);
 
 // POST /api/document-type-rates - Create or update document type rate
 router.post(

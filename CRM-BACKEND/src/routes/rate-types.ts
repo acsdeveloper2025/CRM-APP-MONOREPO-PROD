@@ -1,7 +1,7 @@
 import express from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
-import { authorize } from '@/middleware/authorize';
+import { authorize, authorizeAny } from '@/middleware/authorize';
 import { handleValidationErrors } from '@/middleware/validation';
 import {
   getRateTypes,
@@ -83,13 +83,20 @@ const availableRateTypesValidation = [
 ];
 
 // Core CRUD routes
-router.get('/', listRateTypesValidation, handleValidationErrors, getRateTypes);
+router.get(
+  '/',
+  authorize('page.masterdata'),
+  listRateTypesValidation,
+  handleValidationErrors,
+  getRateTypes
+);
 
-router.get('/stats', getRateTypeStats);
+router.get('/stats', authorize('page.masterdata'), getRateTypeStats);
 
 // GET /api/rate-types/available-for-case - Get available rate types for case assignment
 router.get(
   '/available-for-case',
+  authorizeAny(['page.masterdata', 'case.create']),
   availableRateTypesValidation,
   handleValidationErrors,
   getAvailableRateTypesForCase
@@ -105,6 +112,7 @@ router.post(
 
 router.get(
   '/:id',
+  authorize('page.masterdata'),
   [param('id').trim().notEmpty().withMessage('Rate type ID is required')],
   handleValidationErrors,
   getRateTypeById
