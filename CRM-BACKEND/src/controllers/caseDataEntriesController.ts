@@ -310,7 +310,7 @@ const getTemplateFields = async (
 // ---------------------------------------------------------------------------
 export const getEntry = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { caseId: rawCaseId } = req.params;
+    const rawCaseId = String(req.params.caseId);
     const caseRow = await loadCaseByIdentifier(rawCaseId);
     if (!caseRow) {
       return res.status(404).json({
@@ -504,7 +504,8 @@ export const createInstance = async (req: AuthenticatedRequest, res: Response) =
 // ---------------------------------------------------------------------------
 export const saveInstance = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { caseId: rawCaseId, instanceIndex } = req.params;
+    const rawCaseId = String(req.params.caseId);
+    const instanceIndex = req.params.instanceIndex;
     const instanceIdx = Number(instanceIndex);
     const { data, templateVersion } = req.body as {
       data: Record<string, unknown>;
@@ -695,7 +696,8 @@ export const saveInstance = async (req: AuthenticatedRequest, res: Response) => 
 // ---------------------------------------------------------------------------
 export const deleteInstance = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { caseId: rawCaseId, instanceIndex } = req.params;
+    const rawCaseId = String(req.params.caseId);
+    const instanceIndex = req.params.instanceIndex;
     const instanceIdx = Number(instanceIndex);
 
     const caseRow = await loadCaseByIdentifier(rawCaseId);
