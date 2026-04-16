@@ -315,6 +315,20 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
     const params: QueryParams = [];
     let paramIndex = 1;
 
+    const backendScope = await getBackendUserReportScope(req);
+    if (backendScope.creatorUserIds) {
+      conditions.push(`(
+        c.created_by_backend_user = ANY($${paramIndex}::uuid[])
+        OR EXISTS (
+          SELECT 1 FROM verification_tasks vt_scope
+          WHERE vt_scope.case_id = c.id
+            AND vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
+        )
+      )`);
+      params.push(backendScope.creatorUserIds);
+      paramIndex++;
+    }
+
     if (dateFrom) {
       const alias = formType.toUpperCase() === 'RESIDENCE' ? 'r' : 'o';
       conditions.push(`${alias}.created_at >= $${paramIndex}`);
@@ -411,6 +425,21 @@ export const getFormValidationStatus = async (req: AuthenticatedRequest, res: Re
     const params: QueryParams = [];
     let paramIndex = 1;
 
+    const backendScope = await getBackendUserReportScope(req);
+    if (backendScope.creatorUserIds) {
+      conditions.push(`EXISTS (
+        SELECT 1 FROM verification_tasks vt_scope
+        JOIN cases c_scope ON vt_scope.case_id = c_scope.id
+        WHERE vt_scope.id = task_form_submissions.verification_task_id
+          AND (
+            c_scope.created_by_backend_user = ANY($${paramIndex}::uuid[])
+            OR vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
+          )
+      )`);
+      params.push(backendScope.creatorUserIds);
+      paramIndex++;
+    }
+
     if (dateFrom) {
       conditions.push(`createdAt >= $${paramIndex}`);
       params.push(dateFrom);
@@ -500,6 +529,20 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
     const conditions: string[] = [];
     const params: QueryParams = [];
     let paramIndex = 1;
+
+    const backendScope = await getBackendUserReportScope(req);
+    if (backendScope.creatorUserIds) {
+      conditions.push(`(
+        c.created_by_backend_user = ANY($${paramIndex}::uuid[])
+        OR EXISTS (
+          SELECT 1 FROM verification_tasks vt_scope
+          WHERE vt_scope.case_id = c.id
+            AND vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
+        )
+      )`);
+      params.push(backendScope.creatorUserIds);
+      paramIndex++;
+    }
 
     if (dateFrom) {
       conditions.push(`c.created_at >= $${paramIndex}`);
@@ -808,6 +851,16 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
     const params: QueryParams = [];
     let paramIndex = 1;
 
+    const backendScope = await getBackendUserReportScope(req);
+    if (backendScope.creatorUserIds) {
+      conditions.push(`(
+        cas.created_by_backend_user = ANY($${paramIndex}::uuid[])
+        OR vt.assigned_to = ANY($${paramIndex}::uuid[])
+      )`);
+      params.push(backendScope.creatorUserIds);
+      paramIndex++;
+    }
+
     if (dateFrom) {
       conditions.push(`vt.created_at >= $${paramIndex}`);
       params.push(dateFrom);
@@ -1035,6 +1088,20 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
     ];
     const params: QueryParams = [agentId];
     let paramIndex = 2;
+
+    const backendScope = await getBackendUserReportScope(req);
+    if (backendScope.creatorUserIds) {
+      conditions.push(`(
+        c.created_by_backend_user = ANY($${paramIndex}::uuid[])
+        OR EXISTS (
+          SELECT 1 FROM verification_tasks vt_scope
+          WHERE vt_scope.case_id = c.id
+            AND vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
+        )
+      )`);
+      params.push(backendScope.creatorUserIds);
+      paramIndex++;
+    }
 
     if (dateFrom) {
       conditions.push(`c.created_at >= $${paramIndex}`);
@@ -1403,18 +1470,37 @@ export const getClientReport = async (req: AuthenticatedRequest, res: Response) 
 // GET /api/reports/dashboard - Dashboard summary
 export const getDashboardReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const backendScope = await getBackendUserReportScope(req);
+
+    let caseScopeClause = '';
+    const params: QueryParams = [];
+    let paramIndex = 1;
+
+    if (backendScope.creatorUserIds) {
+      caseScopeClause = `AND (
+        c.created_by_backend_user = ANY($${paramIndex}::uuid[])
+        OR EXISTS (
+          SELECT 1 FROM verification_tasks vt_scope
+          WHERE vt_scope.case_id = c.id
+            AND vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
+        )
+      )`;
+      params.push(backendScope.creatorUserIds);
+      paramIndex++;
+    }
+
     // Get basic counts from database
     const summaryQuery = `
-      SELECT 
-        (SELECT COUNT(*) FROM cases) as total_cases,
-        (SELECT COUNT(*) FROM cases WHERE status = 'PENDING') as "pending_cases",
-        (SELECT COUNT(*) FROM cases WHERE status = 'IN_PROGRESS') as "in_progress_cases",
-        (SELECT COUNT(*) FROM cases WHERE status = 'COMPLETED') as "completed_cases",
+      SELECT
+        (SELECT COUNT(*) FROM cases c WHERE 1=1 ${caseScopeClause}) as total_cases,
+        (SELECT COUNT(*) FROM cases c WHERE status = 'PENDING' ${caseScopeClause}) as "pending_cases",
+        (SELECT COUNT(*) FROM cases c WHERE status = 'IN_PROGRESS' ${caseScopeClause}) as "in_progress_cases",
+        (SELECT COUNT(*) FROM cases c WHERE status = 'COMPLETED' ${caseScopeClause}) as "completed_cases",
         (SELECT COUNT(*) FROM users WHERE is_active = true) as "active_users",
         (SELECT COUNT(*) FROM clients WHERE is_active = true) as "active_clients"
     `;
 
-    const summaryResult = await dbQuery<DashboardSummaryRow>(summaryQuery);
+    const summaryResult = await dbQuery<DashboardSummaryRow>(summaryQuery, params);
     const summary = summaryResult.rows[0];
 
     res.json({
