@@ -171,7 +171,7 @@ const fieldValidation = [
     .trim()
     .isLength({ max: 255 })
     .withMessage('Placeholder must be ≤ 255 characters'),
-  body('fields.*.defaultValue').optional().isString().withMessage('Default value must be a string'),
+  body('fields.*.defaultValue').optional({ values: 'null' }).isString().withMessage('Default value must be a string'),
   body('fields.*.validationRules').optional().custom(assertValidValidationRules),
   body('fields.*.options').optional().custom(assertValidOptions),
   // Sprint 5: map this field to a live system source (read-only mirror).
