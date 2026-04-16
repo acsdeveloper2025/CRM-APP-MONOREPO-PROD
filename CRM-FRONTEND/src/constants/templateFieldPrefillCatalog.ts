@@ -42,7 +42,7 @@ export const PREFILL_CATALOG: readonly PrefillCatalogEntry[] = [
   { key: 'client_code',             label: 'Client Code',             group: 'caseJoin', kind: 'text' },
   { key: 'product_name',            label: 'Product Name',            group: 'caseJoin', kind: 'text' },
   { key: 'product_code',            label: 'Product Code',            group: 'caseJoin', kind: 'text' },
-  { key: 'rate_type_name',          label: 'Rate Type',               group: 'caseJoin', kind: 'text' },
+  { key: 'rate_type_name',          label: 'Rate Type',               group: 'task', kind: 'text' },
   { key: 'verification_type_name',  label: 'Verification Type',       group: 'caseJoin', kind: 'text' },
   { key: 'city_name',               label: 'City',                    group: 'caseJoin', kind: 'text' },
   { key: 'state_name',              label: 'State',                   group: 'caseJoin', kind: 'text' },

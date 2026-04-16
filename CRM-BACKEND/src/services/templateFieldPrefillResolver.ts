@@ -86,7 +86,7 @@ const PREFILL_QUERY = `
   FROM cases c
   LEFT JOIN clients            cl ON cl.id = c.client_id
   LEFT JOIN products           p  ON p.id  = c.product_id
-  LEFT JOIN rate_types         rt ON rt.id = c.rate_type_id
+  LEFT JOIN rate_types         rt ON rt.id = t.rate_type_id
   LEFT JOIN verification_types vt ON vt.id = c.verification_type_id
   LEFT JOIN cities             ci ON ci.id = c.city_id
   LEFT JOIN states             st ON st.id = ci.state_id

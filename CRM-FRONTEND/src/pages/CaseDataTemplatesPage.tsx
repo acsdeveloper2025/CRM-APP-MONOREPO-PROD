@@ -1,7 +1,9 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Pencil, Eye, Trash2, GripVertical, ChevronDown, Upload } from 'lucide-react';
+import { Plus, Pencil, Eye, Trash2, GripVertical, ChevronDown, Upload, ChevronLeft, ChevronRight, FileText, CheckCircle, XCircle } from 'lucide-react';
 import { TemplateImportDialog } from '@/components/cases/TemplateImportDialog';
+import { UnifiedSearchFilterLayout } from '@/components/ui/unified-search-filter-layout';
+import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import {
   PREFILL_CATALOG,
   PREFILL_GROUP_ORDER,
@@ -412,9 +414,28 @@ export const CaseDataTemplatesPage: React.FC = () => {
   });
 
   // Queries
+  // Search + pagination (matching ClientsPage / ProductsPage pattern)
+  const pageSize = 20;
+  const [currentPage, setCurrentPage] = useState(1);
+  const {
+    searchValue,
+    debouncedSearchValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useUnifiedSearch({ syncWithUrl: true });
+
+  // Reset to page 1 when search changes.
+  useEffect(() => { setCurrentPage(1); }, [debouncedSearchValue]);
+
   const { data: templatesRes, isLoading: templatesLoading } = useQuery({
-    queryKey: ['case-data-templates'],
-    queryFn: () => caseDataService.getTemplates(),
+    queryKey: ['case-data-templates', debouncedSearchValue, currentPage, pageSize],
+    queryFn: () =>
+      caseDataService.getTemplates({
+        search: debouncedSearchValue || undefined,
+        page: currentPage,
+        limit: pageSize,
+      }),
   });
 
   const { data: clientsRes } = useClients({ limit: 200 });
@@ -444,6 +465,17 @@ export const CaseDataTemplatesPage: React.FC = () => {
     }
     return Array.isArray(raw) ? raw : [];
   }, [templatesRes]);
+
+  const pagination = useMemo(() => {
+    const raw = templatesRes?.data;
+    if (raw && typeof raw === 'object' && 'pagination' in (raw as Record<string, unknown>)) {
+      return (raw as { pagination: { total: number; page: number; limit: number; totalPages: number } }).pagination;
+    }
+    return { total: templates.length, page: 1, limit: pageSize, totalPages: 1 };
+  }, [templatesRes, templates.length, pageSize]);
+
+  const activeCount = templates.filter(t => t.isActive).length;
+  const inactiveCount = templates.length - activeCount;
 
   // Mutations
   const createMutation = useMutation({
@@ -639,89 +671,165 @@ export const CaseDataTemplatesPage: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Case Data Templates</h1>
-          <p className="text-muted-foreground text-sm">
-            Define data entry templates for client-product combinations
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setImportOpen(true)}>
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Excel / CSV
-          </Button>
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Template
-          </Button>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Case Data Templates</h1>
+        <p className="text-muted-foreground text-sm">
+          Define data entry templates for client-product combinations
+        </p>
       </div>
+
+      {/* Stats Cards */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+        <Card className="transition-all duration-200 hover:shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Templates</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{pagination.total}</div>
+          </CardContent>
+        </Card>
+        <Card className="transition-all duration-200 hover:shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{activeCount}</div>
+          </CardContent>
+        </Card>
+        <Card className="transition-all duration-200 hover:shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Inactive</CardTitle>
+            <XCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{inactiveCount}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Search + Actions */}
+      <UnifiedSearchFilterLayout
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        onSearchClear={clearSearch}
+        isSearchLoading={isDebouncing}
+        searchPlaceholder="Search by template name, client, or product..."
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Upload Excel / CSV
+            </Button>
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Template
+            </Button>
+          </div>
+        }
+      />
 
       {/* Template List */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Templates</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {templatesLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
           ) : templates.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No templates found. Create your first template to get started.
+              {debouncedSearchValue
+                ? `No templates matching "${debouncedSearchValue}"`
+                : 'No templates found. Create your first template to get started.'}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Template Name</TableHead>
-                    <TableHead>Version</TableHead>
-                    <TableHead>Fields</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {templates.map((t) => (
-                    <TableRow key={t.id}>
-                      <TableCell>{clientMap.get(t.clientId) ?? `Client #${t.clientId}`}</TableCell>
-                      <TableCell>{`Product #${t.productId}`}</TableCell>
-                      <TableCell className="font-medium">{t.name}</TableCell>
-                      <TableCell>v{t.version}</TableCell>
-                      <TableCell>{t.fields?.length ?? 0}</TableCell>
-                      <TableCell>
-                        <Badge variant={t.isActive ? 'default' : 'secondary'}>
-                          {t.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditOrView(t, 'view')}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditOrView(t, 'edit')}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+            <>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Template Name</TableHead>
+                      <TableHead>Version</TableHead>
+                      <TableHead>Fields</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {templates.map((t) => (
+                      <TableRow key={t.id}>
+                        <TableCell>
+                          {clientMap.get(t.clientId) ?? `Client #${t.clientId}`}
+                        </TableCell>
+                        <TableCell>{`Product #${t.productId}`}</TableCell>
+                        <TableCell className="font-medium">{t.name}</TableCell>
+                        <TableCell>v{t.version}</TableCell>
+                        <TableCell>{t.fields?.length ?? 0}</TableCell>
+                        <TableCell>
+                          <Badge variant={t.isActive ? 'default' : 'secondary'}>
+                            {t.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEditOrView(t, 'view')}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEditOrView(t, 'edit')}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Pagination */}
+              {pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t mt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {(currentPage - 1) * pageSize + 1}–
+                    {Math.min(currentPage * pageSize, pagination.total)} of {pagination.total}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage <= 1}
+                      onClick={() => setCurrentPage((p) => p - 1)}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Page {currentPage} of {pagination.totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentPage >= pagination.totalPages}
+                      onClick={() => setCurrentPage((p) => p + 1)}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
