@@ -238,20 +238,20 @@ export const createTemplate = async (req: AuthenticatedRequest, res: Response) =
       });
     }
 
-    // Check no active template already exists for this combo
-    const existingRes = await query(
-      `SELECT id FROM case_data_templates WHERE client_id = $1 AND product_id = $2 AND is_active = true`,
-      [Number(clientId), Number(productId)]
-    );
-    if (existingRes.rows[0]) {
-      return res.status(400).json({
-        success: false,
-        message: 'An active template already exists for this client-product combination',
-        error: { code: 'DUPLICATE_TEMPLATE' },
-      });
-    }
-
     const result = await withTransaction(async client => {
+      // Check inside the transaction so the partial unique index
+      // idx_case_data_templates_unique_active catches any concurrent
+      // create that slips past this application-level check. The DB
+      // constraint is the real enforcer; this check provides a
+      // user-friendly error message instead of a raw constraint violation.
+      const existingRes = await client.query(
+        `SELECT id FROM case_data_templates WHERE client_id = $1 AND product_id = $2 AND is_active = true`,
+        [Number(clientId), Number(productId)]
+      );
+      if (existingRes.rows[0]) {
+        return { error: 'DUPLICATE_TEMPLATE' as const };
+      }
+
       // Insert template
       const tplRes = await client.query(
         `INSERT INTO case_data_templates (client_id, product_id, name, version, is_active, created_by, created_at, updated_at)
@@ -294,6 +294,14 @@ export const createTemplate = async (req: AuthenticatedRequest, res: Response) =
 
       return { ...template, fields: insertedFields };
     });
+
+    if ('error' in result && result.error === 'DUPLICATE_TEMPLATE') {
+      return res.status(400).json({
+        success: false,
+        message: 'An active template already exists for this client-product combination',
+        error: { code: 'DUPLICATE_TEMPLATE' },
+      });
+    }
 
     logger.info(`Created case data template: ${result.id}`, {
       userId,
