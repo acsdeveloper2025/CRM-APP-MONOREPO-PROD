@@ -42,8 +42,19 @@ const ruleValidation = [
   body('rateTypeId').isInt({ min: 1 }).withMessage('Rate type ID must be a valid integer'),
 ];
 
-router.get('/', listValidation, handleValidationErrors, listServiceZoneRules);
-router.get('/service-zones', handleValidationErrors, listServiceZones);
+router.get(
+  '/',
+  authorize('page.masterdata'),
+  listValidation,
+  handleValidationErrors,
+  listServiceZoneRules
+);
+router.get(
+  '/service-zones',
+  authorize('page.masterdata'),
+  handleValidationErrors,
+  listServiceZones
+);
 
 router.post(
   '/',

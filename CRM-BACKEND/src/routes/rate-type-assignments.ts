@@ -64,10 +64,17 @@ const createAssignmentValidation = [
 ];
 
 // Routes
-router.get('/', listAssignmentsValidation, handleValidationErrors, getRateTypeAssignments);
+router.get(
+  '/',
+  authorize('page.masterdata'),
+  listAssignmentsValidation,
+  handleValidationErrors,
+  getRateTypeAssignments
+);
 
 router.get(
   '/by-combination',
+  authorize('page.masterdata'),
   combinationValidation,
   handleValidationErrors,
   getAssignmentsByCombination

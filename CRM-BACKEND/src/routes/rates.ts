@@ -85,17 +85,25 @@ const createOrUpdateRateValidation = [
     .withMessage('Currency must be uppercase letters only'),
 ];
 
-// Routes
-router.get('/', listRatesValidation, handleValidationErrors, getRates);
+// Routes — rate data is sensitive (billing amounts); restrict reads
+// to users with masterdata page access. Sprint RBAC audit 2026-04-16.
+router.get(
+  '/',
+  authorize('page.masterdata'),
+  listRatesValidation,
+  handleValidationErrors,
+  getRates
+);
 
 router.get(
   '/available-for-assignment',
+  authorize('page.masterdata'),
   availableRateTypesValidation,
   handleValidationErrors,
   getAvailableRateTypesForAssignment
 );
 
-router.get('/stats', getRateStats);
+router.get('/stats', authorize('page.masterdata'), getRateStats);
 
 router.post(
   '/',
