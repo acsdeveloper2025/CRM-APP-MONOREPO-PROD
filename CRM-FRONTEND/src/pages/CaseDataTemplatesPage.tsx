@@ -767,7 +767,7 @@ export const CaseDataTemplatesPage: React.FC = () => {
                         <TableCell>{`Product #${t.productId}`}</TableCell>
                         <TableCell className="font-medium">{t.name}</TableCell>
                         <TableCell>v{t.version}</TableCell>
-                        <TableCell>{t.fields?.length ?? 0}</TableCell>
+                        <TableCell>{t.fieldCount ?? t.fields?.length ?? 0}</TableCell>
                         <TableCell>
                           <Badge variant={t.isActive ? 'default' : 'secondary'}>
                             {t.isActive ? 'Active' : 'Inactive'}
