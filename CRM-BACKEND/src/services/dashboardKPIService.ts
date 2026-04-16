@@ -133,10 +133,20 @@ export class DashboardKPIService {
     const params: QueryParams = [];
     let idx = 1;
 
-    // Creator-based scope: BACKEND_USER sees only their own cases' stats.
+    // Creator OR assignment scope: BACKEND_USER sees only their created
+    // cases. TL/Manager also see cases where tasks are assigned to their
+    // subordinates (field agents).
     if (creatorUserIds && creatorUserIds.length > 0) {
-      conditions.push(`c.created_by_backend_user = ANY($${idx++}::uuid[])`);
+      conditions.push(`(
+        c.created_by_backend_user = ANY($${idx}::uuid[])
+        OR EXISTS (
+          SELECT 1 FROM verification_tasks vt_scope
+          WHERE vt_scope.case_id = c.id
+            AND vt_scope.assigned_to = ANY($${idx}::uuid[])
+        )
+      )`);
       params.push(creatorUserIds);
+      idx++;
     }
     if (clientId) {
       conditions.push(`c.client_id = $${idx++}`);
