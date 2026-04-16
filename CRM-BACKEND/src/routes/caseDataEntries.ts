@@ -13,10 +13,16 @@ import {
   deleteInstance,
   completeCase,
 } from '@/controllers/caseDataEntriesController';
+import { getDataEntryDashboard } from '@/controllers/dataEntryDashboardController';
 
 const router = express.Router();
 
 router.use(authenticateToken);
+
+// Dashboard: paginated list of cases with data-entry status.
+// Mounted BEFORE the :caseId routes so "dashboard" isn't treated as a
+// caseId param.
+router.get('/dashboard', authorize('case.view'), getDataEntryDashboard);
 
 // ---------------------------------------------------------------------------
 // Composed case access: validates that the authenticated user has both

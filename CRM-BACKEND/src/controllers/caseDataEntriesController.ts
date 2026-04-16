@@ -4,7 +4,7 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
 import { CacheKeys, invalidateCachePatterns } from '@/services/enterpriseCacheService';
-import { recordEntryHistory, markCaseCompleted } from '@/services/caseLifecycleService';
+import { recordEntryHistory } from '@/services/caseLifecycleService';
 import {
   loadPrefillContext,
   getPrefillValue,
@@ -824,6 +824,32 @@ export const completeCase = async (req: AuthenticatedRequest, res: Response) => 
         return { error: 'VALIDATION' as const, details: allErrors };
       }
 
+      // Gate on verification tasks: ALL non-revoked tasks must be
+      // COMPLETED before data entry can be marked complete. Save-as-
+      // draft is always allowed (handled by saveInstance, not here).
+      const pendingTasksRes = await client.query(
+        `SELECT task_number, task_title, status
+           FROM verification_tasks
+          WHERE case_id = $1
+            AND status NOT IN ('COMPLETED', 'REVOKED')
+          ORDER BY created_at ASC`,
+        [caseId]
+      );
+      if (pendingTasksRes.rows.length > 0) {
+        const taskList = pendingTasksRes.rows
+          .map(
+            (t: { taskNumber: string; taskTitle: string; status: string }) =>
+              `${t.taskNumber} (${t.taskTitle}): ${t.status}`
+          )
+          .join(', ');
+        return {
+          error: 'TASKS_PENDING' as const,
+          details: [
+            `Cannot complete data entry — ${pendingTasksRes.rows.length} verification task(s) still pending: ${taskList}`,
+          ],
+        };
+      }
+
       // Mark all instances completed.
       await client.query(
         `UPDATE case_data_entries
@@ -848,8 +874,12 @@ export const completeCase = async (req: AuthenticatedRequest, res: Response) => 
         });
       }
 
-      const caseRowUpdated = await markCaseCompleted(client, caseId);
-      return { case: caseRowUpdated };
+      // NOTE: We do NOT call markCaseCompleted here. Case status is
+      // managed by CaseStatusSyncService.recalculateCaseStatus() which
+      // runs when verification tasks complete. Data entry completion is
+      // a separate flag (case_data_entries.is_completed) that does not
+      // directly drive cases.status.
+      return { success: true as const };
     });
 
     if ('error' in outcome) {
@@ -866,15 +896,20 @@ export const completeCase = async (req: AuthenticatedRequest, res: Response) => 
             message: 'Data entry has validation errors. Please fix them before completing.',
             error: { code: 'VALIDATION_ERROR', details: outcome.details },
           });
+        case 'TASKS_PENDING':
+          return res.status(400).json({
+            success: false,
+            message: outcome.details?.[0] ?? 'Verification tasks are still pending',
+            error: { code: 'TASKS_PENDING', details: outcome.details },
+          });
       }
     }
 
     void invalidateCachePatterns(CacheKeys.invalidateCase(caseId));
-    logger.info(`Completed case ${caseId}`, { userId });
+    logger.info(`Data entry completed for case ${caseId}`, { userId });
     return res.json({
       success: true,
-      data: outcome.case,
-      message: 'Case completed successfully',
+      message: 'Data entry completed successfully',
     });
   } catch (error) {
     logger.error('Error completing case:', error);

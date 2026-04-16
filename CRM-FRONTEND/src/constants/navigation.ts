@@ -19,6 +19,7 @@ import {
   XCircle,
   Copy,
   FileCheck,
+  ClipboardList,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -74,6 +75,14 @@ export const navigationItems: NavigationItem[] = [
         label: 'Dedupe',
         href: '/case-management/dedupe',
         icon: Copy,
+        permissionCode: 'page.cases',
+        permission: { resource: 'cases', action: 'read' },
+      },
+      {
+        id: 'data-entry-dashboard',
+        label: 'Data Entry',
+        href: '/data-entry-dashboard',
+        icon: ClipboardList,
         permissionCode: 'page.cases',
         permission: { resource: 'cases', action: 'read' },
       },
