@@ -102,48 +102,17 @@ export const getPrefillEntry = (key: string | null | undefined): PrefillCatalogE
 };
 
 /**
- * Heuristic: given an Excel column header, try to auto-suggest a
- * prefill catalog entry. Used by the upload dialog to pre-populate the
- * mapping dropdown on the preview step — admin can always override.
+ * No auto-suggest. Every field defaults to "None (dynamic field)" on
+ * upload. The admin explicitly picks which fields to map to system
+ * sources via the dropdown in the preview step.
  *
- * Matching is case-insensitive against exact label and a few obvious
- * aliases the templates-in-the-wild tend to use.
+ * Previously this function tried to match Excel headers to catalog
+ * entries via aliases ("CASE NAME" → customer_name, "STATUS" →
+ * case_status, etc.), but the heuristic was too aggressive and caused
+ * fields like STATUS to be silently mapped when the user intended them
+ * as editable dynamic fields. Removing the guesswork entirely avoids
+ * that class of bug.
  */
-const HEADER_ALIASES: Record<string, string> = {
-  'case name': 'customer_name',
-  'customer name': 'customer_name',
-  'applicant name': 'applicant_name',
-  'name': 'customer_name',
-  'product name': 'product_name',
-  'product': 'product_name',
-  'client name': 'client_name',
-  'client': 'client_name',
-  'tid no': 'task_number',
-  'tid': 'task_number',
-  'task number': 'task_number',
-  'verifier name': 'verifier_name',
-  'verifier': 'verifier_name',
-  'field user': 'verifier_name',
-  'agent': 'verifier_name',
-  'received date': 'received_date',
-  'completed date': 'completed_date',
-  'status': 'case_status',
-  'case status': 'case_status',
-  'pan number': 'pan_number',
-  'pan': 'pan_number',
-  'mobile': 'customer_phone',
-  'phone': 'customer_phone',
-  'pincode': 'pincode',
-  'rate type': 'rate_type_name',
-  'limits': 'rate_type_name',
-  'location': 'verification_address',
-  'address': 'verification_address',
-  'verification type': 'verification_type_name',
-};
-
-export const suggestPrefillSourceForHeader = (header: string): string | null => {
-  const norm = header.trim().toLowerCase().replace(/\s+/g, ' ');
-  if (HEADER_ALIASES[norm]) { return HEADER_ALIASES[norm]; }
-  const byLabel = PREFILL_CATALOG.find(e => e.label.toLowerCase() === norm);
-  return byLabel?.key ?? null;
+export const suggestPrefillSourceForHeader = (_header: string): null => {
+  return null;
 };
