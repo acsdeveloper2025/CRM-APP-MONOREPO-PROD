@@ -128,8 +128,15 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
         if (hierarchyUserIds.length === 0) {
           conditions.push('FALSE');
         } else {
-          // Creator-based scope (RBAC audit)
-          conditions.push(`c.created_by_backend_user = ANY($${paramIndex}::uuid[])`);
+          // Creator OR assignment scope (RBAC audit)
+          conditions.push(`(
+            c.created_by_backend_user = ANY($${paramIndex}::uuid[])
+            OR EXISTS (
+              SELECT 1 FROM verification_tasks vt_scope
+              WHERE vt_scope.case_id = c.id
+                AND vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
+            )
+          )`);
           params.push(hierarchyUserIds);
           paramIndex++;
         }
@@ -1145,7 +1152,14 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
     }
 
     if (backendScope.creatorUserIds) {
-      conditions.push(`c.created_by_backend_user = ANY($${paramIndex}::uuid[])`);
+      conditions.push(`(
+        c.created_by_backend_user = ANY($${paramIndex}::uuid[])
+        OR EXISTS (
+          SELECT 1 FROM verification_tasks vt_scope
+          WHERE vt_scope.case_id = c.id
+            AND vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
+        )
+      )`);
       params.push(backendScope.creatorUserIds);
       paramIndex++;
     }
@@ -1520,7 +1534,14 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     if (backendScope.creatorUserIds) {
-      conditions.push(`c.created_by_backend_user = ANY($${paramIndex}::uuid[])`);
+      conditions.push(`(
+        c.created_by_backend_user = ANY($${paramIndex}::uuid[])
+        OR EXISTS (
+          SELECT 1 FROM verification_tasks vt_scope
+          WHERE vt_scope.case_id = c.id
+            AND vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
+        )
+      )`);
       params.push(backendScope.creatorUserIds);
       paramIndex++;
     }
@@ -1807,7 +1828,14 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
     }
 
     if (backendScope.creatorUserIds) {
-      conditions.push(`c.created_by_backend_user = ANY($${paramIndex}::uuid[])`);
+      conditions.push(`(
+        c.created_by_backend_user = ANY($${paramIndex}::uuid[])
+        OR EXISTS (
+          SELECT 1 FROM verification_tasks vt_scope
+          WHERE vt_scope.case_id = c.id
+            AND vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
+        )
+      )`);
       params.push(backendScope.creatorUserIds);
       paramIndex++;
     }
@@ -2151,7 +2179,10 @@ const buildInvoiceReportScope = async (req: AuthenticatedRequest) => {
       JOIN cases c_scope ON c_scope.id = vt_scope.case_id
       JOIN invoice_items ii_scope ON ii_scope.id = iit_scope.invoice_item_id
       WHERE ii_scope.invoice_id = i.id
-        AND c_scope.created_by_backend_user = ANY($${paramIndex}::uuid[])
+        AND (
+          c_scope.created_by_backend_user = ANY($${paramIndex}::uuid[])
+          OR vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
+        )
     )`);
     params.push(backendScope.creatorUserIds);
     paramIndex++;

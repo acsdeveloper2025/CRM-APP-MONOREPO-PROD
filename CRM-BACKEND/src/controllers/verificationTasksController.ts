@@ -677,9 +677,13 @@ export class VerificationTasksController {
           if (hierarchyUserIds.length === 0) {
             conditions.push('FALSE');
           } else {
-            // Creator-based scope: BACKEND_USER sees tasks on cases
-            // they created; TL/Manager see their subordinates' cases.
-            conditions.push(`c.created_by_backend_user = ANY($${paramIndex}::uuid[])`);
+            // Creator OR assignment scope:
+            // BACKEND_USER [self]: creator-only (no tasks assigned to them)
+            // TL/Manager: created by subordinates OR tasks assigned to them
+            conditions.push(`(
+              c.created_by_backend_user = ANY($${paramIndex}::uuid[])
+              OR vt.assigned_to = ANY($${paramIndex}::uuid[])
+            )`);
             params.push(hierarchyUserIds);
             paramIndex++;
           }
@@ -2416,10 +2420,12 @@ export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Respons
     const isScopedOps = isScopedOperationsUser(req.user);
     const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
 
-    // Scoped access — creator-based (RBAC audit)
+    // Scoped access — creator OR assignment (RBAC audit)
     if (isScopedOps && userId) {
       if (hierarchyUserIds && hierarchyUserIds.length > 0) {
-        conditions.push(`c.created_by_backend_user = ANY($${paramIndex}::uuid[])`);
+        conditions.push(
+          `(c.created_by_backend_user = ANY($${paramIndex}::uuid[]) OR vt.assigned_to = ANY($${paramIndex}::uuid[]))`
+        );
         params.push(hierarchyUserIds);
         paramIndex++;
       } else {

@@ -356,11 +356,20 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         if (hierarchyUserIds.length === 0) {
           baseConditions.push('FALSE');
         } else {
-          // Creator-based scope: BACKEND_USER sees cases they created;
-          // TL sees cases created by self + team; Manager sees tree.
-          // Changed from vt.assigned_to (task-assignment scope) to
-          // created_by_backend_user (creator scope) per RBAC audit.
-          baseConditions.push(`c.created_by_backend_user = ANY($${baseParamIndex}::uuid[])`);
+          // Creator OR task-assignment scope:
+          // - BACKEND_USER [self]: effectively creator-only (no tasks
+          //   assigned to them, so vt.assigned_to never matches)
+          // - TL [self+team]: cases created by team OR tasks assigned
+          //   to team members (field agents)
+          // - Manager [self+tree]: same but wider tree
+          baseConditions.push(`(
+            c.created_by_backend_user = ANY($${baseParamIndex}::uuid[])
+            OR EXISTS (
+              SELECT 1 FROM verification_tasks vt_scope
+              WHERE vt_scope.case_id = c.id
+                AND vt_scope.assigned_to = ANY($${baseParamIndex}::uuid[])
+            )
+          )`);
           baseParams.push(hierarchyUserIds);
           baseParamIndex++;
         }
