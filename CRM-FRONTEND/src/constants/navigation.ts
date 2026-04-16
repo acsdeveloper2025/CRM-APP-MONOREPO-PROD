@@ -462,14 +462,7 @@ export const navigationItems: NavigationItem[] = [
       },
     ],
   },
-  {
-    id: 'forms',
-    label: 'Form Viewer',
-    href: '/forms',
-    icon: FileText,
-    permissionCode: 'page.tasks',
-    permission: { resource: 'forms', action: 'read' },
-  },
+  // Form Viewer removed — unused (RBAC audit 2026-04-16)
   {
     id: 'security-ux',
     label: 'Security & UX',

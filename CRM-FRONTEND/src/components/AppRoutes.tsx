@@ -93,9 +93,7 @@ const CommissionsPage = React.lazy(() =>
 const LocationsPage = React.lazy(() =>
   import('@/pages/LocationsPage').then((module) => ({ default: module.LocationsPage }))
 );
-const FormViewerPage = React.lazy(() =>
-  import('@/pages/FormViewerPage').then((module) => ({ default: module.FormViewerPage }))
-);
+// FormViewerPage removed — route was unused (RBAC audit 2026-04-16)
 const SecurityUXPage = React.lazy(() =>
   import('@/pages/SecurityUXPage').then((module) => ({ default: module.SecurityUXPage }))
 );
@@ -371,14 +369,7 @@ export const AppRoutes: React.FC = () => {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/forms"
-            element={
-              <ProtectedRoute permission="page.tasks">
-                <FormViewerPage />
-              </ProtectedRoute>
-            }
-          />
+          {/* /forms route removed — FormViewerPage was unused (RBAC audit 2026-04-16) */}
 
           <Route
             path="/clients"
