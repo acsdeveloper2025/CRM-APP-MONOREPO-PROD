@@ -2,7 +2,8 @@ import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
-import { resolveDataScope } from '@/security/dataScope';
+import { hasSystemScopeBypass } from '@/security/rbacAccess';
+import { getScopedOperationalUserIds } from '@/security/userScope';
 
 // ---------------------------------------------------------------------------
 // GET /api/case-data-entries/dashboard
@@ -23,16 +24,17 @@ export const getDataEntryDashboard = async (req: AuthenticatedRequest, res: Resp
     const dataEntryStatus =
       typeof req.query.dataEntryStatus === 'string' ? req.query.dataEntryStatus : null;
 
-    // Enforce client+product scope for non-admin users. A BACKEND_USER
-    // assigned to (HDFC, HOME LOAN) must only see cases for that combo.
-    const scope = await resolveDataScope(req);
-    if (scope.restricted) {
-      if (!scope.assignedClientIds?.length && !scope.assignedProductIds?.length) {
-        // User has no client/product assignments → empty result
-        return res.json({
-          success: true,
-          data: { data: [], pagination: { total: 0, page, limit, totalPages: 0 } },
-        });
+    // Scope: users see only cases created by themselves or their
+    // subordinates (BACKEND_USER → self, TL → self + team, MANAGER →
+    // self + managed tree). SUPER_ADMIN bypasses.
+    const isAdmin = hasSystemScopeBypass(req.user);
+    let scopedUserIds: string[] | undefined;
+    if (!isAdmin) {
+      scopedUserIds = await getScopedOperationalUserIds(req.user!.id);
+      // undefined means "no scope resolved" (shouldn't happen for
+      // operational users, but defensive). Treat as self-only.
+      if (!scopedUserIds) {
+        scopedUserIds = [req.user!.id];
       }
     }
 
@@ -41,14 +43,10 @@ export const getDataEntryDashboard = async (req: AuthenticatedRequest, res: Resp
     const params: unknown[] = [];
     let paramIdx = 1;
 
-    // Scope filtering — must come before user-supplied filters
-    if (scope.restricted && scope.assignedClientIds?.length) {
-      conditions.push(`c.client_id = ANY($${paramIdx++}::int[])`);
-      params.push(scope.assignedClientIds);
-    }
-    if (scope.restricted && scope.assignedProductIds?.length) {
-      conditions.push(`c.product_id = ANY($${paramIdx++}::int[])`);
-      params.push(scope.assignedProductIds);
+    // Creator-based scope filter
+    if (!isAdmin && scopedUserIds) {
+      conditions.push(`c.created_by_backend_user = ANY($${paramIdx++}::uuid[])`);
+      params.push(scopedUserIds);
     }
 
     if (search) {

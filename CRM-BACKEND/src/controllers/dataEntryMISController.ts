@@ -8,7 +8,8 @@ import {
   getPrefillValue,
   type PrefillContext,
 } from '@/services/templateFieldPrefillResolver';
-import { resolveDataScope } from '@/security/dataScope';
+import { hasSystemScopeBypass } from '@/security/rbacAccess';
+import { getScopedOperationalUserIds } from '@/security/userScope';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -70,11 +71,24 @@ const buildWhereAndParams = (
   clientId: number,
   productId: number,
   templateId: number,
-  opts: { dateFrom?: string; dateTo?: string; search?: string; dataEntryStatus?: string }
+  opts: {
+    dateFrom?: string;
+    dateTo?: string;
+    search?: string;
+    dataEntryStatus?: string;
+    scopedUserIds?: string[];
+  }
 ) => {
   const conditions = ['c.client_id = $1', 'c.product_id = $2', 'e.template_id = $3'];
   const params: unknown[] = [clientId, productId, templateId];
   let idx = 4;
+
+  // Creator-based scope: user sees only cases created by themselves
+  // or their subordinates (BACKEND_USER → self, TL → team, MGR → tree).
+  if (opts.scopedUserIds) {
+    conditions.push(`c.created_by_backend_user = ANY($${idx++}::uuid[])`);
+    params.push(opts.scopedUserIds);
+  }
 
   if (opts.dateFrom) {
     conditions.push(`c.created_at >= $${idx++}`);
@@ -172,22 +186,14 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
-    // Scope check: user must be assigned to this client+product.
-    const scope = await resolveDataScope(req);
-    if (scope.restricted) {
-      if (scope.assignedClientIds && !scope.assignedClientIds.includes(clientId)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied — client not in your scope',
-          error: { code: 'FORBIDDEN' },
-        });
-      }
-      if (scope.assignedProductIds && !scope.assignedProductIds.includes(productId)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied — product not in your scope',
-          error: { code: 'FORBIDDEN' },
-        });
+    // Scope: creator-based. Non-admin users see only cases created by
+    // themselves or their subordinates.
+    const isAdmin = hasSystemScopeBypass(req.user);
+    let scopedUserIds: string[] | undefined;
+    if (!isAdmin) {
+      scopedUserIds = await getScopedOperationalUserIds(req.user!.id);
+      if (!scopedUserIds) {
+        scopedUserIds = [req.user!.id];
       }
     }
 
@@ -213,6 +219,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
       dateTo: req.query.dateTo as string,
       search: typeof req.query.search === 'string' ? req.query.search.trim() : undefined,
       dataEntryStatus: req.query.dataEntryStatus as string,
+      scopedUserIds,
     });
 
     const countRes = await query(
@@ -280,22 +287,14 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       });
     }
 
-    // Scope check: user must be assigned to this client+product.
-    const scope = await resolveDataScope(req);
-    if (scope.restricted) {
-      if (scope.assignedClientIds && !scope.assignedClientIds.includes(clientId)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied — client not in your scope',
-          error: { code: 'FORBIDDEN' },
-        });
-      }
-      if (scope.assignedProductIds && !scope.assignedProductIds.includes(productId)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied — product not in your scope',
-          error: { code: 'FORBIDDEN' },
-        });
+    // Scope: creator-based. Non-admin users see only cases they created
+    // or their subordinates created.
+    const isAdmin = hasSystemScopeBypass(req.user);
+    let scopedUserIds: string[] | undefined;
+    if (!isAdmin) {
+      scopedUserIds = await getScopedOperationalUserIds(req.user!.id);
+      if (!scopedUserIds) {
+        scopedUserIds = [req.user!.id];
       }
     }
 
@@ -314,6 +313,7 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       dateTo: req.query.dateTo as string,
       search: typeof req.query.search === 'string' ? req.query.search.trim() : undefined,
       dataEntryStatus: req.query.dataEntryStatus as string,
+      scopedUserIds,
     });
 
     // No pagination on export — fetch all matching rows.
