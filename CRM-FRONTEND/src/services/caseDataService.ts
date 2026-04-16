@@ -38,6 +38,9 @@ export interface CaseDataTemplate {
   version: number;
   isActive: boolean;
   fields: CaseDataTemplateField[];
+  /** Populated by the list endpoint (subquery count); individual
+   *  template reads return the full fields array instead. */
+  fieldCount?: number;
   createdAt: string;
   updatedAt: string;
 }
