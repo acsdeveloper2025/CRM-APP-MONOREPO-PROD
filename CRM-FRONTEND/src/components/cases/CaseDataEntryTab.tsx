@@ -122,8 +122,14 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
   // Memoised so the empty-array fallback doesn't create a new reference
   // on every render and retrigger dependent useEffect / useBlocker hooks.
   const entries = useMemo(() => bundle?.entries ?? [], [bundle?.entries]);
-  const caseCompleted = bundle?.caseStatus === 'COMPLETED';
-  const effectiveReadonly = readonly || caseCompleted;
+  // Data entry readonly is driven by whether ALL instances are
+  // individually completed, NOT by the case's status. The case may
+  // be COMPLETED (all tasks done) while data entry is still pending
+  // — that's intentional so the backend user can fill and submit
+  // after field agents have finished.
+  const allInstancesCompleted =
+    entries.length > 0 && entries.every((e) => e.isCompleted);
+  const effectiveReadonly = readonly || allInstancesCompleted;
   const isDirty = dirtyIndexes.size > 0;
 
   // Initialise local form state from server entries. Runs only for entries
@@ -346,10 +352,10 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
           <Badge variant="outline" className="text-xs">
             v{template.version}
           </Badge>
-          {caseCompleted ? (
+          {allInstancesCompleted ? (
             <Badge className="bg-green-100 text-green-800">
               <CheckCircle className="h-3 w-3 mr-1" />
-              Completed
+              Data Entry Completed
             </Badge>
           ) : entries.length > 0 ? (
             <Badge className="bg-yellow-100 text-yellow-800">In Progress</Badge>

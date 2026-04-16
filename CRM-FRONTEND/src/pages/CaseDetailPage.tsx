@@ -428,7 +428,7 @@ export const CaseDetailPage: React.FC = () => {
                 caseId={safeId}
                 caseNumber={caseItem?.caseId?.toString()}
                 customerName={caseItem?.customerName}
-                readonly={caseItem?.status === 'COMPLETED'}
+                readonly={false}
               />
             </TabsContent>
 
@@ -453,7 +453,7 @@ export const CaseDetailPage: React.FC = () => {
                 caseId={safeId}
                 clientId={caseItem?.clientId ? Number(caseItem.clientId) : undefined}
                 productId={caseItem?.productId ? Number(caseItem.productId) : undefined}
-                readonly={caseItem?.status === 'COMPLETED'}
+                readonly={false}
               />
             </TabsContent>
 
