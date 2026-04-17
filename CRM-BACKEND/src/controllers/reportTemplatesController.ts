@@ -738,7 +738,11 @@ function sanitizeFilenameFragment(input: string | null): string {
 // ---------------------------------------------------------------------------
 export const generateReport = async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user!.id;
-  const { caseId } = req.params;
+  // Newer @types/express types route params as `string | string[]` even
+  // though Express never produces an array for a simple :param. Narrow once
+  // here so downstream code stays clean.
+  const caseIdParam = req.params.caseId;
+  const caseId = Array.isArray(caseIdParam) ? (caseIdParam[0] ?? '') : caseIdParam;
 
   try {
     const userRes = await query<{ name: string | null }>(`SELECT name FROM users WHERE id = $1`, [
@@ -846,7 +850,11 @@ export const generateReport = async (req: AuthenticatedRequest, res: Response) =
 // ---------------------------------------------------------------------------
 export const getContextPreview = async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user!.id;
-  const { caseId } = req.params;
+  // Newer @types/express types route params as `string | string[]` even
+  // though Express never produces an array for a simple :param. Narrow once
+  // here so downstream code stays clean.
+  const caseIdParam = req.params.caseId;
+  const caseId = Array.isArray(caseIdParam) ? (caseIdParam[0] ?? '') : caseIdParam;
 
   try {
     const userRes = await query<{ name: string | null }>(`SELECT name FROM users WHERE id = $1`, [
