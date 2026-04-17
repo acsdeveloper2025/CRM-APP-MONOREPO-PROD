@@ -12,6 +12,11 @@ export interface Client extends Omit<BaseEntity, 'id'> {
   phone?: string;
   address?: string;
   isActive?: boolean;
+  // Branding columns used by the PDF report template feature.
+  logoUrl?: string | null;
+  stampUrl?: string | null;
+  primaryColor?: string | null;
+  headerColor?: string | null;
   products?: Product[];
   verificationTypes?: VerificationType[];
   documentTypes?: DocumentType[];
@@ -40,6 +45,9 @@ export interface UpdateClientData {
   productIds?: number[]; // Changed from string[] to number[]
   verificationTypeIds?: number[]; // Changed from string[] to number[]
   documentTypeIds?: number[];
+  // Branding colors (hex like #FF9800). null or '' clears the column.
+  primaryColor?: string | null;
+  headerColor?: string | null;
 }
 
 export interface CreateProductData {

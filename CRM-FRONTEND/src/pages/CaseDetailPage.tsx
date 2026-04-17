@@ -29,6 +29,7 @@ import {
 import { CaseAttachmentsSection } from '@/components/attachments/CaseAttachmentsSection';
 import { VerificationTasksManager } from '@/components/verification-tasks';
 import { KYCTaskVerificationSection } from '@/components/kyc/KYCTaskVerificationSection';
+import { DownloadReportButton } from '@/components/reports/DownloadReportButton';
 import { useKYCTasksForCase } from '@/hooks/useKYC';
 import { formatDistanceToNow } from 'date-fns';
 import { LoadingState } from '@/components/ui/loading';
@@ -197,6 +198,7 @@ export const CaseDetailPage: React.FC = () => {
           <Badge className={getPriorityColor(caseItem.priority)}>
             {getPriorityLabel(caseItem.priority)}
           </Badge>
+          {caseItem.id && <DownloadReportButton caseId={caseItem.id} size="sm" />}
         </div>
       </div>
 

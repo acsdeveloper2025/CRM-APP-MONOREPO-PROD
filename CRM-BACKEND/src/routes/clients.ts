@@ -1,4 +1,5 @@
 import express from 'express';
+import multer from 'multer';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
@@ -17,7 +18,31 @@ import {
   deleteClient,
   getClientProducts,
   getClientVerificationTypes,
+  uploadClientLogo,
+  uploadClientStamp,
+  deleteClientLogo,
+  deleteClientStamp,
 } from '@/controllers/clientsController';
+
+// Dedicated uploader for branding assets. Memory storage is fine because the
+// controller writes the file to disk itself (allows us to tee the bytes to
+// whatever storage backend we add later without a second read).
+const brandingUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB: plenty for logos / stamps
+  fileFilter: (_req, file, cb) => {
+    const ok =
+      file.mimetype === 'image/png' ||
+      file.mimetype === 'image/jpeg' ||
+      file.mimetype === 'image/webp' ||
+      file.mimetype === 'image/svg+xml';
+    if (ok) {
+      cb(null, true);
+    } else {
+      cb(new Error('Unsupported image type (PNG, JPEG, WEBP, SVG only)'));
+    }
+  },
+});
 
 const router = express.Router();
 
@@ -176,6 +201,45 @@ router.get(
   ]),
   validateClientAccess(),
   getClientProducts
+);
+
+// -----------------------------------------------------------------------
+// Branding asset routes (logo + stamp). Uploads are multipart/form-data;
+// DELETE clears the column and removes the file on disk.
+// -----------------------------------------------------------------------
+
+const brandingParamValidation = [
+  param('id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer'),
+];
+
+router.post(
+  '/:id/logo',
+  authorize('settings.manage'),
+  brandingUpload.single('file'),
+  validate(brandingParamValidation),
+  uploadClientLogo
+);
+
+router.delete(
+  '/:id/logo',
+  authorize('settings.manage'),
+  validate(brandingParamValidation),
+  deleteClientLogo
+);
+
+router.post(
+  '/:id/stamp',
+  authorize('settings.manage'),
+  brandingUpload.single('file'),
+  validate(brandingParamValidation),
+  uploadClientStamp
+);
+
+router.delete(
+  '/:id/stamp',
+  authorize('settings.manage'),
+  validate(brandingParamValidation),
+  deleteClientStamp
 );
 
 export default router;

@@ -1,8 +1,11 @@
 import type { Response } from 'express';
+import path from 'path';
+import fs from 'fs/promises';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
 import type { QueryParams } from '@/types/database';
+import { config } from '@/config';
 import { getAssignedProductIds } from '@/middleware/productAccess';
 import { isScopedOperationsUser } from '@/security/rbacAccess';
 import { createAuditLog } from '@/utils/auditLogger';
@@ -100,7 +103,8 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
     const sortDir = sortOrderStr.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     const clientsRes = await query(
-      `SELECT id, name, code, created_at, updated_at
+      `SELECT id, name, code, logo_url, stamp_url, primary_color, header_color,
+              created_at, updated_at
        FROM clients
        ${whereClause}
        ORDER BY ${safeSortCol} ${sortDir}
@@ -211,7 +215,9 @@ export const getClientById = async (req: AuthenticatedRequest, res: Response) =>
     const { id } = req.params;
 
     const baseRes = await query(
-      `SELECT id, name, code, created_at, updated_at FROM clients WHERE id = $1`,
+      `SELECT id, name, code, logo_url, stamp_url, primary_color, header_color,
+              created_at, updated_at
+       FROM clients WHERE id = $1`,
       [Number(id)]
     );
     const client = baseRes.rows[0];
@@ -522,7 +528,39 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
       productIds?: unknown[];
       verificationTypeIds?: unknown[];
       documentTypeIds?: unknown[];
+      primaryColor?: string | null;
+      headerColor?: string | null;
     };
+
+    // Hex color validation (#RGB, #RRGGBB, or explicit null to clear).
+    const COLOR_PATTERN = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+    const validateColorField = (value: unknown, fieldName: string): true | string => {
+      if (value === null || value === undefined) {
+        return true;
+      }
+      if (typeof value !== 'string') {
+        return `${fieldName} must be a string or null`;
+      }
+      if (value === '') {
+        return true;
+      }
+      if (!COLOR_PATTERN.test(value)) {
+        return `${fieldName} must be a hex color like #FF9800 or #F90`;
+      }
+      return true;
+    };
+    const primaryColorCheck = validateColorField(updateData.primaryColor, 'primaryColor');
+    if (primaryColorCheck !== true) {
+      return res
+        .status(400)
+        .json({ success: false, message: primaryColorCheck, error: { code: 'INVALID_COLOR' } });
+    }
+    const headerColorCheck = validateColorField(updateData.headerColor, 'headerColor');
+    if (headerColorCheck !== true) {
+      return res
+        .status(400)
+        .json({ success: false, message: headerColorCheck, error: { code: 'INVALID_COLOR' } });
+    }
 
     const normalizeIdArray = (values: unknown[]): { normalized: number[]; invalid: boolean } => {
       const normalized: number[] = [];
@@ -605,6 +643,16 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
       if (updateData.code) {
         updates.push(`code = $${i++}`);
         vals.push(updateData.code);
+      }
+      // Explicit `in updateData` checks so callers can clear a color by
+      // sending null; a missing key leaves the column untouched.
+      if ('primaryColor' in updateData) {
+        updates.push(`primary_color = $${i++}`);
+        vals.push(updateData.primaryColor === '' ? null : (updateData.primaryColor ?? null));
+      }
+      if ('headerColor' in updateData) {
+        updates.push(`header_color = $${i++}`);
+        vals.push(updateData.headerColor === '' ? null : (updateData.headerColor ?? null));
       }
       updates.push(`updated_at = CURRENT_TIMESTAMP`);
       vals.push(id);
@@ -1037,3 +1085,195 @@ export const getClientVerificationTypes = async (req: AuthenticatedRequest, res:
     });
   }
 };
+
+// ---------------------------------------------------------------------------
+// Branding asset uploads (logo + stamp)
+// ---------------------------------------------------------------------------
+
+type BrandingAssetKind = 'logo' | 'stamp';
+
+const BRANDING_ALLOWED_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']);
+const BRANDING_EXT_BY_MIME: Record<string, string> = {
+  'image/png': '.png',
+  'image/jpeg': '.jpg',
+  'image/webp': '.webp',
+  'image/svg+xml': '.svg',
+};
+
+async function ensureDirectory(dir: string): Promise<void> {
+  await fs.mkdir(dir, { recursive: true });
+}
+
+async function safeUnlink(absPath: string): Promise<void> {
+  try {
+    await fs.unlink(absPath);
+  } catch (err) {
+    // Tolerate ENOENT - the old file is already gone, which is what we wanted.
+    const code = (err as { code?: string } | null)?.code;
+    if (code !== 'ENOENT') {
+      logger.warn('Failed to unlink branding asset', { absPath, err });
+    }
+  }
+}
+
+function resolveBrandingDiskPath(storedUrl: string): string {
+  if (!storedUrl) {
+    return '';
+  }
+  if (path.isAbsolute(storedUrl)) {
+    return storedUrl;
+  }
+  if (storedUrl.startsWith('/')) {
+    return path.join(process.cwd(), storedUrl);
+  }
+  return path.resolve(config.uploadPath, storedUrl);
+}
+
+async function handleBrandingUpload(
+  req: AuthenticatedRequest,
+  res: Response,
+  kind: BrandingAssetKind
+) {
+  try {
+    const { id } = req.params;
+    const clientId = Number(id);
+    if (!Number.isInteger(clientId) || clientId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid client id',
+        error: { code: 'INVALID_CLIENT_ID' },
+      });
+    }
+
+    const file = (req as AuthenticatedRequest & { file?: Express.Multer.File }).file;
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: 'File is required',
+        error: { code: 'FILE_REQUIRED' },
+      });
+    }
+    if (!BRANDING_ALLOWED_MIME.has(file.mimetype)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Unsupported image type. Allowed: PNG, JPEG, WEBP, SVG',
+        error: { code: 'UNSUPPORTED_MIME' },
+      });
+    }
+
+    const column = kind === 'logo' ? 'logo_url' : 'stamp_url';
+    // Locate the client and capture any previous asset so we can delete
+    // it on disk after we atomically replace the DB column.
+    const existingRes = await query<{
+      id: number;
+      logoUrl: string | null;
+      stampUrl: string | null;
+    }>(`SELECT id, logo_url, stamp_url FROM clients WHERE id = $1`, [clientId]);
+    if (!existingRes.rows[0]) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Client not found', error: { code: 'NOT_FOUND' } });
+    }
+    const existing = existingRes.rows[0];
+    const priorUrl = kind === 'logo' ? existing.logoUrl : existing.stampUrl;
+
+    // /uploads/branding/clients/<clientId>/<kind>_<timestamp>.<ext>
+    const ext = BRANDING_EXT_BY_MIME[file.mimetype] ?? path.extname(file.originalname) ?? '.png';
+    const relDir = path.join('branding', 'clients', String(clientId));
+    const absDir = path.resolve(config.uploadPath, relDir);
+    const filename = `${kind}_${Date.now()}${ext}`;
+    const absPath = path.join(absDir, filename);
+    const publicUrl = `/${path
+      .join(path.basename(config.uploadPath) || 'uploads', relDir, filename)
+      .replace(/\\+/g, '/')
+      .replace(/^\/+/, '')}`;
+
+    await ensureDirectory(absDir);
+    await fs.writeFile(absPath, file.buffer);
+
+    await query(`UPDATE clients SET ${column} = $1, updated_at = NOW() WHERE id = $2`, [
+      `/${publicUrl.replace(/^\/+/, '')}`,
+      clientId,
+    ]);
+
+    if (priorUrl && priorUrl !== `/${publicUrl.replace(/^\/+/, '')}`) {
+      await safeUnlink(resolveBrandingDiskPath(priorUrl));
+    }
+
+    logger.info('Updated client branding asset', {
+      clientId,
+      kind,
+      bytes: file.size,
+      url: `/${publicUrl.replace(/^\/+/, '')}`,
+    });
+
+    return res.json({
+      success: true,
+      data: { url: `/${publicUrl.replace(/^\/+/, '')}` },
+      message: `${kind === 'logo' ? 'Logo' : 'Stamp'} updated successfully`,
+    });
+  } catch (error) {
+    logger.error(`Error uploading client ${kind}:`, error);
+    return res.status(500).json({
+      success: false,
+      message: `Failed to upload ${kind}`,
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+}
+
+async function handleBrandingDelete(
+  req: AuthenticatedRequest,
+  res: Response,
+  kind: BrandingAssetKind
+) {
+  try {
+    const { id } = req.params;
+    const clientId = Number(id);
+    if (!Number.isInteger(clientId) || clientId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid client id',
+        error: { code: 'INVALID_CLIENT_ID' },
+      });
+    }
+
+    const column = kind === 'logo' ? 'logo_url' : 'stamp_url';
+    const existingRes = await query<{ id: number; url: string | null }>(
+      `SELECT id, ${column} AS url FROM clients WHERE id = $1`,
+      [clientId]
+    );
+    if (!existingRes.rows[0]) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Client not found', error: { code: 'NOT_FOUND' } });
+    }
+    const priorUrl = existingRes.rows[0].url;
+
+    await query(`UPDATE clients SET ${column} = NULL, updated_at = NOW() WHERE id = $1`, [
+      clientId,
+    ]);
+
+    if (priorUrl) {
+      await safeUnlink(resolveBrandingDiskPath(priorUrl));
+    }
+
+    return res.json({ success: true, message: `${kind === 'logo' ? 'Logo' : 'Stamp'} removed` });
+  } catch (error) {
+    logger.error(`Error deleting client ${kind}:`, error);
+    return res.status(500).json({
+      success: false,
+      message: `Failed to remove ${kind}`,
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+}
+
+export const uploadClientLogo = (req: AuthenticatedRequest, res: Response) =>
+  handleBrandingUpload(req, res, 'logo');
+export const uploadClientStamp = (req: AuthenticatedRequest, res: Response) =>
+  handleBrandingUpload(req, res, 'stamp');
+export const deleteClientLogo = (req: AuthenticatedRequest, res: Response) =>
+  handleBrandingDelete(req, res, 'logo');
+export const deleteClientStamp = (req: AuthenticatedRequest, res: Response) =>
+  handleBrandingDelete(req, res, 'stamp');

@@ -128,6 +128,11 @@ const CaseDataTemplatesPage = React.lazy(() =>
     default: module.CaseDataTemplatesPage,
   }))
 );
+const ReportTemplatesPage = React.lazy(() =>
+  import('@/pages/ReportTemplatesPage').then((module) => ({
+    default: module.ReportTemplatesPage,
+  }))
+);
 const DataEntryDashboardPage = React.lazy(() =>
   import('@/pages/DataEntryDashboardPage').then((module) => ({
     default: module.DataEntryDashboardPage,
@@ -647,6 +652,14 @@ export const AppRoutes: React.FC = () => {
             element={
               <ProtectedRoute permission="page.settings">
                 <CaseDataTemplatesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings/report-templates"
+            element={
+              <ProtectedRoute permission="report_template.manage">
+                <ReportTemplatesPage />
               </ProtectedRoute>
             }
           />

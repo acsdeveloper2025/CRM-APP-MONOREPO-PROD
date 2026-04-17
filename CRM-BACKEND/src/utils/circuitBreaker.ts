@@ -138,14 +138,9 @@ export class CircuitBreaker {
 
 /**
  * Pre-configured circuit breakers for external services.
- * Import and use: `await circuitBreakers.gemini.execute(() => geminiCall())`
+ * Import and use: `await circuitBreakers.firebase.execute(() => fcmCall())`
  */
 export const circuitBreakers = {
-  gemini: new CircuitBreaker({
-    name: 'GeminiAI',
-    failureThreshold: 3,
-    resetTimeoutMs: 60000, // 1 minute — AI service may need time to recover
-  }),
   firebase: new CircuitBreaker({
     name: 'Firebase-FCM',
     failureThreshold: 5,

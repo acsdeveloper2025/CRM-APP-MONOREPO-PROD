@@ -151,6 +151,27 @@ export class ClientsService {
     formData.append('file', file);
     return apiService.post('/products/bulk-import', formData);
   }
+
+  // Branding asset management (logo + stamp). Returns { url } on success.
+  async uploadClientLogo(clientId: number, file: File): Promise<ApiResponse<{ url: string }>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiService.post(`/clients/${clientId}/logo`, formData);
+  }
+
+  async uploadClientStamp(clientId: number, file: File): Promise<ApiResponse<{ url: string }>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiService.post(`/clients/${clientId}/stamp`, formData);
+  }
+
+  async deleteClientLogo(clientId: number): Promise<ApiResponse<unknown>> {
+    return apiService.delete(`/clients/${clientId}/logo`);
+  }
+
+  async deleteClientStamp(clientId: number): Promise<ApiResponse<unknown>> {
+    return apiService.delete(`/clients/${clientId}/stamp`);
+  }
 }
 
 export const clientsService = new ClientsService();
