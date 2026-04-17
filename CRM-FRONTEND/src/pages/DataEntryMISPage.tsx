@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/table';
 import { useClients, useProductsByClient } from '@/hooks/useClients';
 import { apiService } from '@/services/api';
+import { DownloadReportButton } from '@/components/reports/DownloadReportButton';
 import { toast } from 'sonner';
 
 interface MISField {
@@ -61,19 +62,20 @@ export function DataEntryMISPage() {
   const pageSize = 20;
 
   const { data: clientsRes } = useClients({ limit: 200 });
-  const clients = useMemo(
-    () =>
-      (clientsRes as unknown as { data?: { data?: Array<{ id: number; name: string }> } })?.data
-        ?.data ?? [],
-    [clientsRes]
-  );
+  const clients = useMemo(() => {
+    if (!clientsRes?.data) {
+      return [];
+    }
+    return Array.isArray(clientsRes.data) ? clientsRes.data : [];
+  }, [clientsRes]);
+
   const { data: productsRes } = useProductsByClient(clientId || undefined);
-  const products = useMemo(
-    () =>
-      (productsRes as unknown as { data?: { data?: Array<{ id: number; name: string }> } })?.data
-        ?.data ?? [],
-    [productsRes]
-  );
+  const products = useMemo(() => {
+    if (!productsRes?.data) {
+      return [];
+    }
+    return Array.isArray(productsRes.data) ? productsRes.data : [];
+  }, [productsRes]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -319,6 +321,7 @@ export function DataEntryMISPage() {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="whitespace-nowrap w-12" aria-label="Report" />
                           <TableHead className="whitespace-nowrap">Case #</TableHead>
                           <TableHead className="whitespace-nowrap">Customer</TableHead>
                           <TableHead className="whitespace-nowrap">Instance</TableHead>
@@ -338,6 +341,14 @@ export function DataEntryMISPage() {
                       <TableBody>
                         {rows.map((r, idx) => (
                           <TableRow key={`${r.caseId}-${idx}`}>
+                            <TableCell className="w-12">
+                              <DownloadReportButton
+                                caseId={r.caseId}
+                                size="icon"
+                                variant="ghost"
+                                label={`Download report for case ${r.caseId}`}
+                              />
+                            </TableCell>
                             <TableCell className="font-medium">{r.caseId}</TableCell>
                             <TableCell>{r.customerName}</TableCell>
                             <TableCell>{r.instanceLabel}</TableCell>

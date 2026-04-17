@@ -1,4 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Upload, Trash2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -34,6 +37,9 @@ import { documentTypesService } from '@/services/documentTypes';
 import type { Client, Product, VerificationType } from '@/types/client';
 import type { DocumentType } from '@/types/documentType';
 
+// Hex color validator: #RGB or #RRGGBB (empty string allowed to clear).
+const HEX_COLOR_REGEX = /^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$/;
+
 const editClientSchema = z.object({
   name: z.string().min(1, 'Client name is required').max(100, 'Name too long'),
   code: z
@@ -47,6 +53,14 @@ const editClientSchema = z.object({
   productIds: z.array(z.string()).optional(),
   verificationTypeIds: z.array(z.number()).optional(),
   documentTypeIds: z.array(z.number()).optional(),
+  primaryColor: z
+    .string()
+    .regex(HEX_COLOR_REGEX, 'Must be a hex color like #FF9800 or empty')
+    .optional(),
+  headerColor: z
+    .string()
+    .regex(HEX_COLOR_REGEX, 'Must be a hex color like #FFEB3B or empty')
+    .optional(),
 });
 
 type EditClientFormData = z.infer<typeof editClientSchema>;
@@ -66,8 +80,13 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
       productIds: [],
       verificationTypeIds: [],
       documentTypeIds: [],
+      primaryColor: '',
+      headerColor: '',
     },
   });
+
+  const qc = useQueryClient();
+  const [brandingBusy, setBrandingBusy] = useState(false);
 
   // Fetch products for selection
   const { data: productsData } = useStandardizedQuery({
@@ -121,6 +140,8 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
         verificationTypeIds:
           clientDetails.verificationTypes?.map((v: VerificationType) => v.id) || [],
         documentTypeIds: clientDetails.documentTypes?.map((d: DocumentType) => d.id) || [],
+        primaryColor: clientDetails.primaryColor ?? '',
+        headerColor: clientDetails.headerColor ?? '',
       });
     }
   }, [clientData, form]);
@@ -134,6 +155,9 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
         productIds: data.productIds?.map((id) => parseInt(id, 10)),
         verificationTypeIds: data.verificationTypeIds,
         documentTypeIds: data.documentTypeIds,
+        // Empty string means "clear the column" on the backend side.
+        primaryColor: data.primaryColor ?? '',
+        headerColor: data.headerColor ?? '',
       };
       if (!client) {
         throw new Error('Client ID missing');
@@ -151,6 +175,54 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
 
   const onSubmit = (data: EditClientFormData) => {
     updateMutation.mutate(data);
+  };
+
+  // Immediate upload on file pick. Runs its own mutation outside the main
+  // form because the endpoint is multipart and returns the new URL, which
+  // we want to reflect in the preview before the user clicks Save.
+  const handleBrandingUpload = async (file: File, kind: 'logo' | 'stamp') => {
+    if (!client) {
+      return;
+    }
+    setBrandingBusy(true);
+    try {
+      if (kind === 'logo') {
+        await clientsService.uploadClientLogo(client.id, file);
+      } else {
+        await clientsService.uploadClientStamp(client.id, file);
+      }
+      toast.success(`${kind === 'logo' ? 'Logo' : 'Stamp'} uploaded`);
+      // Refresh the client detail query so preview shows the new URL.
+      await qc.invalidateQueries({ queryKey: ['client', client.id] });
+      await qc.invalidateQueries({ queryKey: ['clients'] });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : `Failed to upload ${kind}`;
+      toast.error(msg);
+    } finally {
+      setBrandingBusy(false);
+    }
+  };
+
+  const handleBrandingDelete = async (kind: 'logo' | 'stamp') => {
+    if (!client) {
+      return;
+    }
+    setBrandingBusy(true);
+    try {
+      if (kind === 'logo') {
+        await clientsService.deleteClientLogo(client.id);
+      } else {
+        await clientsService.deleteClientStamp(client.id);
+      }
+      toast.success(`${kind === 'logo' ? 'Logo' : 'Stamp'} removed`);
+      await qc.invalidateQueries({ queryKey: ['client', client.id] });
+      await qc.invalidateQueries({ queryKey: ['clients'] });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : `Failed to remove ${kind}`;
+      toast.error(msg);
+    } finally {
+      setBrandingBusy(false);
+    }
   };
 
   if (!client) {
@@ -175,7 +247,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 gap-1">
                 <TabsTrigger value="basic" className="text-xs sm:text-sm">
                   Basic Info
                 </TabsTrigger>
@@ -187,6 +259,9 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                 </TabsTrigger>
                 <TabsTrigger value="document-types" className="text-xs sm:text-sm">
                   Documents
+                </TabsTrigger>
+                <TabsTrigger value="branding" className="text-xs sm:text-sm">
+                  Branding
                 </TabsTrigger>
               </TabsList>
 
@@ -426,6 +501,195 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                     </FormItem>
                   )}
                 />
+              </TabsContent>
+
+              <TabsContent value="branding" className="space-y-6">
+                <div className="rounded-md border p-4 space-y-4">
+                  <h4 className="text-sm font-medium text-gray-900">Report Colors</h4>
+                  <p className="text-xs text-gray-600">
+                    Used by PDF report templates. Leave blank to keep the template defaults.
+                  </p>
+                  <FormField
+                    control={form.control}
+                    name="primaryColor"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Primary Color (field labels, accents)</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="color"
+                              className="h-10 w-16 cursor-pointer p-1"
+                              value={field.value || '#FF9800'}
+                              onChange={(e) => field.onChange(e.target.value)}
+                            />
+                            <Input
+                              type="text"
+                              placeholder="#FF9800"
+                              className="flex-1 font-mono"
+                              value={field.value ?? ''}
+                              onChange={(e) => field.onChange(e.target.value)}
+                            />
+                            {field.value && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => field.onChange('')}
+                              >
+                                Clear
+                              </Button>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="headerColor"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Header Color (title banner)</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="color"
+                              className="h-10 w-16 cursor-pointer p-1"
+                              value={field.value || '#FFEB3B'}
+                              onChange={(e) => field.onChange(e.target.value)}
+                            />
+                            <Input
+                              type="text"
+                              placeholder="#FFEB3B"
+                              className="flex-1 font-mono"
+                              value={field.value ?? ''}
+                              onChange={(e) => field.onChange(e.target.value)}
+                            />
+                            {field.value && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => field.onChange('')}
+                              >
+                                Clear
+                              </Button>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="rounded-md border p-4 space-y-4">
+                  <h4 className="text-sm font-medium text-gray-900">Logo</h4>
+                  <p className="text-xs text-gray-600">
+                    PNG / JPEG / WEBP / SVG. Max 2 MB. Uploaded immediately.
+                  </p>
+                  <div className="flex items-start gap-4">
+                    <div className="h-24 w-24 border rounded bg-gray-50 flex items-center justify-center overflow-hidden">
+                      {clientData?.data?.logoUrl ? (
+                        <img
+                          src={clientData.data.logoUrl}
+                          alt="Client logo"
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-400">No logo</span>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <label
+                        htmlFor="client-logo-upload"
+                        className="inline-flex cursor-pointer items-center gap-1 rounded-md border px-3 py-2 text-sm hover:bg-accent"
+                      >
+                        <Upload className="h-4 w-4" /> Upload Logo
+                      </label>
+                      <input
+                        id="client-logo-upload"
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        className="hidden"
+                        disabled={brandingBusy}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            void handleBrandingUpload(file, 'logo');
+                          }
+                          e.target.value = '';
+                        }}
+                      />
+                      {clientData?.data?.logoUrl && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={brandingBusy}
+                          onClick={() => void handleBrandingDelete('logo')}
+                        >
+                          <Trash2 className="mr-1 h-4 w-4" /> Remove
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-md border p-4 space-y-4">
+                  <h4 className="text-sm font-medium text-gray-900">Agency Stamp</h4>
+                  <p className="text-xs text-gray-600">
+                    Shown near the verifier signature area on reports. Same file rules as logo.
+                  </p>
+                  <div className="flex items-start gap-4">
+                    <div className="h-24 w-24 border rounded bg-gray-50 flex items-center justify-center overflow-hidden">
+                      {clientData?.data?.stampUrl ? (
+                        <img
+                          src={clientData.data.stampUrl}
+                          alt="Agency stamp"
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-400">No stamp</span>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <label
+                        htmlFor="client-stamp-upload"
+                        className="inline-flex cursor-pointer items-center gap-1 rounded-md border px-3 py-2 text-sm hover:bg-accent"
+                      >
+                        <Upload className="h-4 w-4" /> Upload Stamp
+                      </label>
+                      <input
+                        id="client-stamp-upload"
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        className="hidden"
+                        disabled={brandingBusy}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            void handleBrandingUpload(file, 'stamp');
+                          }
+                          e.target.value = '';
+                        }}
+                      />
+                      {clientData?.data?.stampUrl && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={brandingBusy}
+                          onClick={() => void handleBrandingDelete('stamp')}
+                        >
+                          <Trash2 className="mr-1 h-4 w-4" /> Remove
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </TabsContent>
             </Tabs>
 

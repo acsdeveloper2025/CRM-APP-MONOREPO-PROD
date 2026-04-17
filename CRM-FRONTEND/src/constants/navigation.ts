@@ -244,6 +244,17 @@ export const navigationItems: NavigationItem[] = [
         permissionCode: 'page.settings',
         permission: { resource: 'settings', action: 'read' },
       },
+      {
+        id: 'report-templates',
+        label: 'Report Templates',
+        href: '/settings/report-templates',
+        icon: FileText,
+        // Gated on the manage permission so roles holding this perm (SUPER_ADMIN
+        // + MANAGER today) see the menu item without also needing page.settings.
+        // The route itself uses the same guard.
+        permissionCode: 'report_template.manage',
+        permission: { resource: 'settings', action: 'read' },
+      },
     ],
   },
   {

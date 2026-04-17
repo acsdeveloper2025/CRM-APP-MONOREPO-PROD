@@ -93,21 +93,28 @@ const PREFILL_QUERY = `
 `;
 
 /**
+ * Batch variant of the prefill query. The WHERE clause swaps `= $1` for
+ * `= ANY($1::uuid[])` so one round-trip returns prefill data for up to
+ * thousands of cases. `c.id AS case_id_pk` lets the caller fan rows out
+ * into a per-case map. Essential for MIS export at scale — the sequential
+ * for-of loop was the single biggest bottleneck (1 query per case).
+ */
+const PREFILL_QUERY_BATCH = PREFILL_QUERY.replace(
+  'WHERE c.id = $1\n  LIMIT 1',
+  'WHERE c.id = ANY($1::uuid[])'
+).replace(
+  'SELECT\n    -- Case-level',
+  'SELECT\n    c.id                            AS case_id_pk,\n    -- Case-level'
+);
+
+/**
  * Fetch the prefill context for a case. Uses the supplied PoolClient
  * when called from inside a transaction; falls back to the default
  * pool otherwise.
  */
 const snakeToCamel = (s: string): string => s.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
 
-export const loadPrefillContext = async (
-  caseId: string,
-  client?: PoolClient
-): Promise<PrefillContext> => {
-  const res = client
-    ? await client.query(PREFILL_QUERY, [caseId])
-    : await query(PREFILL_QUERY, [caseId]);
-  const row = (res.rows[0] ?? {}) as Record<string, unknown>;
-
+const rowToContext = (row: Record<string, unknown>): PrefillContext => {
   // The backend auto-camelizes result rows, so the row uses camelCase
   // keys (e.g. customerName). Map them back to the catalog keys
   // (snake_case) so callers can look up values by the same string
@@ -118,6 +125,51 @@ export const loadPrefillContext = async (
     ctx[key] = camelKey in row ? row[camelKey] : (row[key] ?? null);
   }
   return ctx;
+};
+
+export const loadPrefillContext = async (
+  caseId: string,
+  client?: PoolClient
+): Promise<PrefillContext> => {
+  const res = client
+    ? await client.query(PREFILL_QUERY, [caseId])
+    : await query(PREFILL_QUERY, [caseId]);
+  const row = (res.rows[0] ?? {}) as Record<string, unknown>;
+  return rowToContext(row);
+};
+
+/**
+ * Batch version of loadPrefillContext. Returns a Map keyed by case UUID.
+ * A single SQL round-trip handles up to thousands of cases — replaces
+ * the sequential for-of loop in the MIS controller. Any case id not
+ * found in the DB is absent from the returned map; callers should fall
+ * back to an empty PrefillContext in that case.
+ *
+ * Empty input returns an empty map without hitting the DB.
+ */
+export const loadPrefillContextBatch = async (
+  caseIds: string[],
+  client?: PoolClient
+): Promise<Map<string, PrefillContext>> => {
+  const out = new Map<string, PrefillContext>();
+  if (caseIds.length === 0) {
+    return out;
+  }
+  // De-duplicate the input — the MIS rows can have multiple instances per
+  // case and we only need one prefill resolution per case.
+  const uniqueIds = Array.from(new Set(caseIds));
+  const res = client
+    ? await client.query(PREFILL_QUERY_BATCH, [uniqueIds])
+    : await query(PREFILL_QUERY_BATCH, [uniqueIds]);
+  for (const raw of res.rows) {
+    const row = raw as Record<string, unknown>;
+    // case_id_pk gets camelized to caseIdPk by the pool boundary.
+    const caseId = (row.caseIdPk ?? row.case_id_pk) as string | undefined;
+    if (typeof caseId === 'string') {
+      out.set(caseId, rowToContext(row));
+    }
+  }
+  return out;
 };
 
 /**

@@ -58,13 +58,13 @@ import rateTypeAssignmentsRoutes from '@/routes/rate-type-assignments';
 import ratesRoutes from '@/routes/rates';
 import serviceZoneRulesRoutes from '@/routes/service-zone-rules';
 import healthRoutes from '@/routes/health';
-import aiReportsRoutes from '@/routes/aiReports';
 import verificationTasksRoutes from '@/routes/verificationTasks';
 import templateReportsRoutes from '@/routes/templateReports';
 import fieldMonitoringRoutes from '@/routes/fieldMonitoring';
 import kycRoutes from '@/routes/kyc';
 import caseDataTemplatesRoutes from '@/routes/caseDataTemplates';
 import caseDataEntriesRoutes from '@/routes/caseDataEntries';
+import reportTemplatesRoutes from '@/routes/reportTemplates';
 
 const app = express();
 
@@ -262,12 +262,12 @@ apiRouter.use('/rate-types', rateTypesRoutes);
 apiRouter.use('/rate-type-assignments', rateTypeAssignmentsRoutes);
 apiRouter.use('/rates', ratesRoutes);
 apiRouter.use('/service-zone-rules', serviceZoneRulesRoutes);
-apiRouter.use('/ai-reports', extendedTimeout, aiReportsRoutes);
 apiRouter.use('/template-reports', extendedTimeout, templateReportsRoutes);
 apiRouter.use('/field-monitoring', fieldMonitoringRoutes);
 apiRouter.use('/kyc', kycRoutes);
 apiRouter.use('/case-data-templates', caseDataTemplatesRoutes);
 apiRouter.use('/case-data-entries', caseDataEntriesRoutes);
+apiRouter.use('/report-templates', reportTemplatesRoutes);
 
 // Multi-verification task routes
 apiRouter.use('/', verificationTasksRoutes);

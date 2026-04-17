@@ -4,7 +4,7 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
 import {
-  loadPrefillContext,
+  loadPrefillContextBatch,
   getPrefillValue,
   type PrefillContext,
 } from '@/services/templateFieldPrefillResolver';
@@ -139,7 +139,13 @@ const getTemplateFields = async (templateId: number): Promise<TemplateFieldRow[]
   return res.rows as TemplateFieldRow[];
 };
 
-/** Resolve prefill values for a batch of unique case IDs. */
+/**
+ * Resolve prefill values for a batch of unique case IDs in ONE SQL round-
+ * trip. Replaces the previous sequential for-of loop which issued one
+ * query per case (O(n) round-trips, ~80 seconds for 10k cases, guaranteed
+ * gateway timeout at scale). The new path uses a single WHERE c.id =
+ * ANY($1::uuid[]) query and fans results out into a map.
+ */
 const batchResolvePrefill = async (
   caseIds: string[],
   fields: TemplateFieldRow[]
@@ -148,11 +154,7 @@ const batchResolvePrefill = async (
   if (!hasMapped || caseIds.length === 0) {
     return new Map();
   }
-  const map = new Map<string, PrefillContext>();
-  for (const cid of caseIds) {
-    map.set(cid, await loadPrefillContext(cid));
-  }
-  return map;
+  return loadPrefillContextBatch(caseIds);
 };
 
 const buildFieldValues = (
@@ -316,7 +318,33 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       scopedUserIds,
     });
 
-    // No pagination on export — fetch all matching rows.
+    // Scale guard: count matching rows BEFORE loading them so we can reject
+    // monster exports cleanly instead of OOM-crashing the process. 50k rows
+    // × 37 columns keeps ExcelJS heap around ~50 MB and the xlsx output
+    // below ~20 MB. Tighter filters or a background-job queue are the
+    // right escape hatch for bigger requests.
+    const MAX_EXPORT_ROWS = Math.max(
+      1,
+      Number.parseInt(process.env.MIS_EXPORT_MAX_ROWS ?? '', 10) || 50_000
+    );
+    const countRes = await query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count FROM (${ENTRIES_SQL} ${where}) AS sub`,
+      params
+    );
+    const totalMatching = Number(countRes.rows[0]?.count ?? 0);
+    if (totalMatching > MAX_EXPORT_ROWS) {
+      return res.status(413).json({
+        success: false,
+        message: `Export too large: ${totalMatching.toLocaleString('en-IN')} rows matched; please narrow the filters (max ${MAX_EXPORT_ROWS.toLocaleString('en-IN')}).`,
+        error: {
+          code: 'EXPORT_TOO_LARGE',
+          matchedRows: totalMatching,
+          maxRows: MAX_EXPORT_ROWS,
+        },
+      });
+    }
+
+    // Fetch all matching rows up to the cap.
     const dataRes = await query(
       `${ENTRIES_SQL} ${where} ORDER BY c.created_at DESC, e.instance_index ASC`,
       params
@@ -399,9 +427,8 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       };
     }
 
-    // Write to buffer and send.
-    const buffer = await wb.xlsx.writeBuffer();
-
+    // Fetch client + product names for the filename before we commit to
+    // streaming headers — once headers go out we can't change status code.
     const clientRes = await query('SELECT name FROM clients WHERE id = $1', [clientId]);
     const productRes = await query('SELECT name FROM products WHERE id = $1', [productId]);
     const cName = ((clientRes.rows[0] as { name?: string })?.name ?? 'Client').replace(
@@ -420,7 +447,12 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    return res.send(Buffer.from(buffer as ArrayBuffer));
+    // Pipe directly to the HTTP response stream. Avoids materialising the
+    // entire xlsx as a Buffer in Node heap before send — at the 50k-row
+    // cap this saves ~20-40 MB of peak RSS compared to the old
+    // writeBuffer() + res.send() path.
+    await wb.xlsx.write(res);
+    return res.end();
   } catch (error) {
     logger.error('Error exporting data entry MIS:', error);
     return res.status(500).json({
