@@ -3048,10 +3048,23 @@ export class MobileFormController {
         // f. STAGE-2D: Strict Task Completion - Populate taskFormSubmissions.
         //    Any failure here now rolls back the whole submission (Finding #3).
         await client.query(
-          `INSERT INTO task_form_submissions (
-            id, verification_task_id, case_id, form_submission_id, form_type,
-            submitted_by, submitted_at, validation_status
-          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          // Insert the form-submission row AND back-link any pre-uploaded
+          // verification_attachments for the same task that landed with
+          // submission_id=NULL (captured live during form entry before this
+          // form_submission_id existed). Single statement keeps it in the
+          // same transaction: the back-link commits iff the insert does.
+          `WITH ins AS (
+             INSERT INTO task_form_submissions (
+               id, verification_task_id, case_id, form_submission_id, form_type,
+               submitted_by, submitted_at, validation_status
+             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
+             RETURNING verification_task_id, form_submission_id
+           )
+           UPDATE verification_attachments va
+              SET submission_id = ins.form_submission_id
+             FROM ins
+            WHERE va.verification_task_id = ins.verification_task_id
+              AND va.submission_id IS NULL`,
           [
             uuidv4(), // taskFormSubmission record ID
             targetTaskId,
@@ -3452,10 +3465,23 @@ export class MobileFormController {
 
         // f. Populate taskFormSubmissions (no swallow — Finding #3).
         await client.query(
-          `INSERT INTO task_form_submissions (
-            id, verification_task_id, case_id, form_submission_id, form_type,
-            submitted_by, submitted_at, validation_status
-          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          // Insert the form-submission row AND back-link any pre-uploaded
+          // verification_attachments for the same task that landed with
+          // submission_id=NULL (captured live during form entry before this
+          // form_submission_id existed). Single statement keeps it in the
+          // same transaction: the back-link commits iff the insert does.
+          `WITH ins AS (
+             INSERT INTO task_form_submissions (
+               id, verification_task_id, case_id, form_submission_id, form_type,
+               submitted_by, submitted_at, validation_status
+             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
+             RETURNING verification_task_id, form_submission_id
+           )
+           UPDATE verification_attachments va
+              SET submission_id = ins.form_submission_id
+             FROM ins
+            WHERE va.verification_task_id = ins.verification_task_id
+              AND va.submission_id IS NULL`,
           [uuidv4(), targetTaskId, caseId, uuidv4(), 'OFFICE_VERIFICATION', userId]
         );
         logger.info(`✅ Linked office form submission to task ${targetTaskId}`);
@@ -3880,10 +3906,23 @@ export class MobileFormController {
 
         // f. Populate taskFormSubmissions (no swallow — Finding #3).
         await client.query(
-          `INSERT INTO task_form_submissions (
-            id, verification_task_id, case_id, form_submission_id, form_type,
-            submitted_by, submitted_at, validation_status
-          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          // Insert the form-submission row AND back-link any pre-uploaded
+          // verification_attachments for the same task that landed with
+          // submission_id=NULL (captured live during form entry before this
+          // form_submission_id existed). Single statement keeps it in the
+          // same transaction: the back-link commits iff the insert does.
+          `WITH ins AS (
+             INSERT INTO task_form_submissions (
+               id, verification_task_id, case_id, form_submission_id, form_type,
+               submitted_by, submitted_at, validation_status
+             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
+             RETURNING verification_task_id, form_submission_id
+           )
+           UPDATE verification_attachments va
+              SET submission_id = ins.form_submission_id
+             FROM ins
+            WHERE va.verification_task_id = ins.verification_task_id
+              AND va.submission_id IS NULL`,
           [uuidv4(), targetTaskId, caseId, uuidv4(), 'BUSINESS_VERIFICATION', userId]
         );
         logger.info(`✅ Linked business form submission to task ${targetTaskId}`);
@@ -4248,10 +4287,23 @@ export class MobileFormController {
 
         // f. Populate taskFormSubmissions (no swallow — Finding #3).
         await client.query(
-          `INSERT INTO task_form_submissions (
-            id, verification_task_id, case_id, form_submission_id, form_type,
-            submitted_by, submitted_at, validation_status
-          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          // Insert the form-submission row AND back-link any pre-uploaded
+          // verification_attachments for the same task that landed with
+          // submission_id=NULL (captured live during form entry before this
+          // form_submission_id existed). Single statement keeps it in the
+          // same transaction: the back-link commits iff the insert does.
+          `WITH ins AS (
+             INSERT INTO task_form_submissions (
+               id, verification_task_id, case_id, form_submission_id, form_type,
+               submitted_by, submitted_at, validation_status
+             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
+             RETURNING verification_task_id, form_submission_id
+           )
+           UPDATE verification_attachments va
+              SET submission_id = ins.form_submission_id
+             FROM ins
+            WHERE va.verification_task_id = ins.verification_task_id
+              AND va.submission_id IS NULL`,
           [uuidv4(), taskId || verificationTaskId, caseId, uuidv4(), 'BUILDER_VERIFICATION', userId]
         );
         logger.info(`✅ Linked builder form submission to task ${verificationTaskId}`);
@@ -4491,10 +4543,23 @@ export class MobileFormController {
 
         // f. Populate taskFormSubmissions (no swallow — Finding #3).
         await client.query(
-          `INSERT INTO task_form_submissions (
-            id, verification_task_id, case_id, form_submission_id, form_type,
-            submitted_by, submitted_at, validation_status
-          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          // Insert the form-submission row AND back-link any pre-uploaded
+          // verification_attachments for the same task that landed with
+          // submission_id=NULL (captured live during form entry before this
+          // form_submission_id existed). Single statement keeps it in the
+          // same transaction: the back-link commits iff the insert does.
+          `WITH ins AS (
+             INSERT INTO task_form_submissions (
+               id, verification_task_id, case_id, form_submission_id, form_type,
+               submitted_by, submitted_at, validation_status
+             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
+             RETURNING verification_task_id, form_submission_id
+           )
+           UPDATE verification_attachments va
+              SET submission_id = ins.form_submission_id
+             FROM ins
+            WHERE va.verification_task_id = ins.verification_task_id
+              AND va.submission_id IS NULL`,
           [uuidv4(), taskId, caseId, uuidv4(), 'RESIDENCE_CUM_OFFICE_VERIFICATION', userId]
         );
         logger.info(`✅ Linked residence-cum-office form submission to task ${taskId}`);
@@ -4872,10 +4937,23 @@ export class MobileFormController {
 
         // f. Populate taskFormSubmissions (no swallow — Finding #3).
         await client.query(
-          `INSERT INTO task_form_submissions (
-            id, verification_task_id, case_id, form_submission_id, form_type,
-            submitted_by, submitted_at, validation_status
-          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          // Insert the form-submission row AND back-link any pre-uploaded
+          // verification_attachments for the same task that landed with
+          // submission_id=NULL (captured live during form entry before this
+          // form_submission_id existed). Single statement keeps it in the
+          // same transaction: the back-link commits iff the insert does.
+          `WITH ins AS (
+             INSERT INTO task_form_submissions (
+               id, verification_task_id, case_id, form_submission_id, form_type,
+               submitted_by, submitted_at, validation_status
+             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
+             RETURNING verification_task_id, form_submission_id
+           )
+           UPDATE verification_attachments va
+              SET submission_id = ins.form_submission_id
+             FROM ins
+            WHERE va.verification_task_id = ins.verification_task_id
+              AND va.submission_id IS NULL`,
           [
             uuidv4(),
             taskId || verificationTaskId,
@@ -5122,10 +5200,23 @@ export class MobileFormController {
 
         // f. Populate taskFormSubmissions (no swallow — Finding #3).
         await client.query(
-          `INSERT INTO task_form_submissions (
-            id, verification_task_id, case_id, form_submission_id, form_type,
-            submitted_by, submitted_at, validation_status
-          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          // Insert the form-submission row AND back-link any pre-uploaded
+          // verification_attachments for the same task that landed with
+          // submission_id=NULL (captured live during form entry before this
+          // form_submission_id existed). Single statement keeps it in the
+          // same transaction: the back-link commits iff the insert does.
+          `WITH ins AS (
+             INSERT INTO task_form_submissions (
+               id, verification_task_id, case_id, form_submission_id, form_type,
+               submitted_by, submitted_at, validation_status
+             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
+             RETURNING verification_task_id, form_submission_id
+           )
+           UPDATE verification_attachments va
+              SET submission_id = ins.form_submission_id
+             FROM ins
+            WHERE va.verification_task_id = ins.verification_task_id
+              AND va.submission_id IS NULL`,
           [uuidv4(), taskId, caseId, uuidv4(), 'PROPERTY_INDIVIDUAL_VERIFICATION', userId]
         );
         logger.info(`✅ Linked Property Individual form submission to task ${taskId}`);
@@ -5544,10 +5635,23 @@ export class MobileFormController {
 
         // f. Populate taskFormSubmissions (no swallow — Finding #3).
         await client.query(
-          `INSERT INTO task_form_submissions (
-            id, verification_task_id, case_id, form_submission_id, form_type,
-            submitted_by, submitted_at, validation_status
-          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          // Insert the form-submission row AND back-link any pre-uploaded
+          // verification_attachments for the same task that landed with
+          // submission_id=NULL (captured live during form entry before this
+          // form_submission_id existed). Single statement keeps it in the
+          // same transaction: the back-link commits iff the insert does.
+          `WITH ins AS (
+             INSERT INTO task_form_submissions (
+               id, verification_task_id, case_id, form_submission_id, form_type,
+               submitted_by, submitted_at, validation_status
+             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
+             RETURNING verification_task_id, form_submission_id
+           )
+           UPDATE verification_attachments va
+              SET submission_id = ins.form_submission_id
+             FROM ins
+            WHERE va.verification_task_id = ins.verification_task_id
+              AND va.submission_id IS NULL`,
           [
             uuidv4(),
             taskId || verificationTaskId,
@@ -5924,10 +6028,23 @@ export class MobileFormController {
 
         // f. Populate taskFormSubmissions (no swallow — Finding #3).
         await client.query(
-          `INSERT INTO task_form_submissions (
-            id, verification_task_id, case_id, form_submission_id, form_type,
-            submitted_by, submitted_at, validation_status
-          ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')`,
+          // Insert the form-submission row AND back-link any pre-uploaded
+          // verification_attachments for the same task that landed with
+          // submission_id=NULL (captured live during form entry before this
+          // form_submission_id existed). Single statement keeps it in the
+          // same transaction: the back-link commits iff the insert does.
+          `WITH ins AS (
+             INSERT INTO task_form_submissions (
+               id, verification_task_id, case_id, form_submission_id, form_type,
+               submitted_by, submitted_at, validation_status
+             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
+             RETURNING verification_task_id, form_submission_id
+           )
+           UPDATE verification_attachments va
+              SET submission_id = ins.form_submission_id
+             FROM ins
+            WHERE va.verification_task_id = ins.verification_task_id
+              AND va.submission_id IS NULL`,
           [uuidv4(), taskId || verificationTaskId, caseId, uuidv4(), 'NOC_VERIFICATION', userId]
         );
         logger.info(`✅ Linked NOC form submission to task ${verificationTaskId}`);
