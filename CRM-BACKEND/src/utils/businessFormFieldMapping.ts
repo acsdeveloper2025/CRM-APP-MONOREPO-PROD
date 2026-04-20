@@ -119,7 +119,6 @@ export const BUSINESS_FIELD_MAPPING: DatabaseFieldMapping = {
   feedbackFromNeighbour: 'feedback_from_neighbour',
   otherObservation: 'other_observation',
   otherExtraRemark: 'other_extra_remark',
-  holdReason: 'hold_reason',
   recommendationStatus: 'recommendation_status',
 
   // Legacy/alternative field names
@@ -326,9 +325,7 @@ export function validateBusinessRequiredFields(
       'designation',
       'locality',
       'addressStructure',
-      'politicalConnection',
       'dominatedArea',
-      'feedbackFromNeighbour',
       'otherObservation',
       'finalStatus',
     ],
@@ -470,7 +467,6 @@ export function ensureAllBusinessFieldsPopulated(
     'dominated_area',
     'feedback_from_neighbour',
     'other_observation',
-    'hold_reason',
     'recommendation_status',
 
     // Final status

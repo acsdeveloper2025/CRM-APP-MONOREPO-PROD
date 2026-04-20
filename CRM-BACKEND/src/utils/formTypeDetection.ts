@@ -462,13 +462,13 @@ export function detectFormTypeEnhanced(
     const result = { ...UNIVERSAL_OUTCOME_MAPPING[outcome] };
 
     // Refine verificationOutcome based on door/status fields
-    // When houseStatus/officeStatus/businessStatus/propertyStatus is "Opened", use non-locked variant
+    // When houseStatus/officeStatus/businessStatus/propertyStatus is "Open", use non-locked variant
     const statusField =
       formData.houseStatus ||
       formData.officeStatus ||
       formData.businessStatus ||
       formData.propertyStatus;
-    const isOpened = typeof statusField === 'string' && statusField.toLowerCase() === 'opened';
+    const isOpened = typeof statusField === 'string' && statusField.toLowerCase() === 'open';
 
     if (isOpened) {
       if (result.formType === 'POSITIVE') {
@@ -522,8 +522,7 @@ export function detectFormTypeEnhanced(
     formData.officeStatus ||
     formData.businessStatus ||
     formData.propertyStatus;
-  const isOpenedFallback =
-    typeof statusField === 'string' && statusField.toLowerCase() === 'opened';
+  const isOpenedFallback = typeof statusField === 'string' && statusField.toLowerCase() === 'open';
   const fallbackOutcome = isOpenedFallback ? 'Positive & Door Open' : 'Positive & Door Locked';
 
   logger.info(`⚠️ No specific indicators found, defaulting to POSITIVE form (confidence: 50%)`);

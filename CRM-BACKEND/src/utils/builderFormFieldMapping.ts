@@ -103,7 +103,6 @@ export const BUILDER_FIELD_MAPPING: DatabaseFieldMapping = {
   feedbackFromNeighbour: 'feedback_from_neighbour',
   otherObservation: 'other_observation',
   otherExtraRemark: 'other_extra_remark',
-  holdReason: 'hold_reason',
   recommendationStatus: 'recommendation_status',
 
   // Legacy/alternative field names
@@ -303,9 +302,7 @@ export function validateBuilderRequiredFields(
       'designation',
       'locality',
       'addressStructure',
-      'politicalConnection',
       'dominatedArea',
-      'feedbackFromNeighbour',
       'otherObservation',
       'finalStatus',
     ],
@@ -412,36 +409,29 @@ export function ensureAllBuilderFieldsPopulated(
     'applicant_designation',
     'working_period',
     'working_status',
-    'applicant_working_premises',
     'current_company_name',
     'old_office_shifted_period',
+    // Removed 2026-04-19: applicant_working_premises — not a column on
+    // builder_verification_reports; caused INSERT 42703 failures.
 
     // Project specific fields
-    'project_name',
-    'project_type',
-    'project_status',
-    'project_approval_status',
-    'project_completion_status',
-    'project_area',
-    'total_units',
-    'sold_units',
-    'construction_stage',
-    'approval_authority',
-    'rera_registration',
-    'rera_number',
+    // Removed 2026-04-19: project_name, project_type, project_status,
+    // project_approval_status, project_completion_status, project_area,
+    // total_units, sold_units, construction_stage, approval_authority,
+    // rera_registration, rera_number — speculative columns never added to
+    // builder_verification_reports schema; blocked every Builder submit.
 
     // Document verification
     'document_shown',
-    'document_type',
-    'license_status',
-    'license_number',
+    // Removed: document_type, license_status, license_number (not in DB schema).
 
     // Third Party Confirmation
+    // Column names in DB are tpc_name1/tpc_name2, NOT name_of_tpc1/name_of_tpc2.
     'tpc_met_person1',
-    'name_of_tpc1',
+    'tpc_name1',
     'tpc_confirmation1',
     'tpc_met_person2',
-    'name_of_tpc2',
+    'tpc_name2',
     'tpc_confirmation2',
 
     // Entry restricted specific fields
@@ -459,7 +449,6 @@ export function ensureAllBuilderFieldsPopulated(
     'dominated_area',
     'feedback_from_neighbour',
     'other_observation',
-    'hold_reason',
     'recommendation_status',
 
     // Final status

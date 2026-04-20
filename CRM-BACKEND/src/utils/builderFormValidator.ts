@@ -103,69 +103,90 @@ export function validateAndPrepareBuilderForm(
 function getRequiredFieldsByFormType(formType: string): string[] {
   const requiredFieldsByType: Record<string, string[]> = {
     POSITIVE: [
+      // Aligned with legacyPositiveBuilderFields 2026-04-19.
+      // Dropped `workingPeriod`, `applicantDesignation`, `workingStatus`, `builderType`
+      // (not in Builder Positive mobile). Conditional-on-Open fields (metPerson,
+      // designation, businessType, nameOfCompanyOwners, ownershipType, addressStatus,
+      // officeApproxArea, staffStrength, staffSeen) moved out of unconditional list.
       'addressLocatable',
       'addressRating',
       'officeStatus',
-      'metPerson',
-      'designation',
-      'workingPeriod',
-      'applicantDesignation',
-      'workingStatus',
-      'builderType',
       'companyNatureOfBusiness',
-      'staffStrength',
+      'businessPeriod',
+      'companyNamePlateStatus',
+      'documentShown',
       'locality',
       'addressStructure',
+      'addressStructureColor',
+      'doorColor',
+      'landmark1',
+      'landmark2',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
-      'otherObservation',
       'finalStatus',
     ],
     SHIFTED: [
+      // Aligned with legacyShiftedBuilderFields 2026-04-19. Conditional-on-Open
+      // fields (metPerson/designation) and conditional-on-!Vacant (currentCompanyName)
+      // dropped from unconditional list.
       'addressLocatable',
       'addressRating',
       'officeStatus',
-      'metPerson',
-      'designation',
-      'currentCompanyName',
+      'premisesStatus',
+      'currentCompanyPeriod',
       'oldOfficeShiftedPeriod',
+      'approxArea',
       'locality',
       'addressStructure',
+      'addressStructureColor',
+      'doorColor',
+      'companyNamePlateStatus',
+      'landmark1',
+      'landmark2',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
-      'otherObservation',
       'finalStatus',
     ],
     NSP: [
+      // Aligned with legacyNspBuilderFields 2026-04-19. Mobile uses
+      // businessExistance (typo preserved) and applicantExistance (typo).
+      // Per NSP rule — no politicalConnection / feedbackFromNeighbour.
       'addressLocatable',
       'addressRating',
       'officeStatus',
-      'officeExistence',
-      'metPerson',
-      'designation',
+      'businessExistance',
+      'applicantExistance',
+      'premisesStatus',
       'locality',
       'addressStructure',
-      'politicalConnection',
+      'addressStructureColor',
+      'doorColor',
+      'companyNamePlateStatus',
+      'landmark1',
+      'landmark2',
       'dominatedArea',
-      'feedbackFromNeighbour',
-      'otherObservation',
       'finalStatus',
     ],
     ENTRY_RESTRICTED: [
+      // Aligned with legacyEntryRestrictedBuilderFields 2026-04-19.
+      // Added businessExistStatus (Builder ERT-specific).
       'addressLocatable',
       'addressRating',
       'nameOfMetPerson',
       'metPersonType',
       'metPersonConfirmation',
       'applicantWorkingStatus',
+      'businessExistStatus',
       'locality',
       'addressStructure',
+      'addressStructureColor',
+      'landmark1',
+      'landmark2',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
-      'otherObservation',
       'finalStatus',
     ],
     UNTRACEABLE: [
@@ -245,9 +266,6 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
   }
 
   // Common validations for all forms
-  if (formData.finalStatus === 'Hold' && !formData.holdReason) {
-    warnings.push('holdReason should be specified when finalStatus is Hold');
-  }
 
   // Company nameplate conditional validation
   if (formData.companyNamePlateStatus === 'Sighted' && !formData.nameOnCompanyBoard) {

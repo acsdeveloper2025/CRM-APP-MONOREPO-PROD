@@ -222,9 +222,6 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
   }
 
   // Common validations for all forms
-  if (formData.finalStatus === 'Hold' && !formData.holdReason) {
-    warnings.push('holdReason should be specified when finalStatus is Hold');
-  }
 
   // Company nameplate conditional validation
   if (formData.companyNamePlateStatus === 'Sighted' && !formData.nameOnCompanyBoard) {

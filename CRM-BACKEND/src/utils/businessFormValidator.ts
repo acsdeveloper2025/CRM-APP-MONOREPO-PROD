@@ -106,70 +106,94 @@ export function validateAndPrepareBusinessForm(
 function getRequiredFieldsByFormType(formType: string): string[] {
   const requiredFieldsByType: Record<string, string[]> = {
     POSITIVE: [
+      // Aligned with legacyPositiveBusinessFields 2026-04-19.
+      // Mobile uses `officeStatus` (aliased to business_status DB column via mapping).
+      // Conditional-on-Open fields (metPerson/designation/businessType/nameOfCompanyOwners/
+      // ownershipType/addressStatus/officeApproxArea/staffStrength/staffSeen) removed from
+      // the unconditional list — they belong in a conditional warning block.
+      // `workingPeriod/applicantDesignation/workingStatus` dropped: they're Office fields,
+      // not Business Positive fields.
       'addressLocatable',
       'addressRating',
-      'businessStatus',
-      'metPerson',
-      'designation',
-      'workingPeriod',
-      'applicantDesignation',
-      'workingStatus',
-      'businessType',
-      'ownershipType',
+      'officeStatus', // mobile name; maps to business_status
       'companyNatureOfBusiness',
-      'staffStrength',
+      'businessPeriod',
+      'companyNamePlateStatus',
+      'documentShown',
       'locality',
       'addressStructure',
+      'addressStructureColor',
+      'doorColor',
+      'landmark1',
+      'landmark2',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
-      'otherObservation',
       'finalStatus',
     ],
     SHIFTED: [
+      // Aligned with legacyShiftedBusinessFields 2026-04-19.
+      // Mobile uses officeStatus (aliases to business_status), premisesStatus,
+      // currentCompanyPeriod+oldOfficeShiftedPeriod (not oldBusinessShiftedPeriod).
+      // Conditional-on-Open fields (metPerson/designation) and
+      // conditional-on-!Vacant (currentCompanyName) removed from unconditional.
       'addressLocatable',
       'addressRating',
-      'businessStatus',
-      'metPerson',
-      'designation',
-      'currentCompanyName',
-      'oldBusinessShiftedPeriod',
+      'officeStatus',
+      'premisesStatus',
+      'currentCompanyPeriod',
+      'oldOfficeShiftedPeriod',
+      'approxArea',
       'locality',
       'addressStructure',
+      'addressStructureColor',
+      'doorColor',
+      'companyNamePlateStatus',
+      'landmark1',
+      'landmark2',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
-      'otherObservation',
       'finalStatus',
     ],
     NSP: [
+      // Aligned with legacyNspBusinessFields 2026-04-19. Mobile uses
+      // businessExistance (typo preserved for compat) and applicantExistance.
+      // Per NSP rule — no politicalConnection / feedbackFromNeighbour.
       'addressLocatable',
       'addressRating',
-      'businessStatus',
-      'businessExistence',
-      'metPerson',
-      'designation',
+      'officeStatus',
+      'businessExistance',
+      'applicantExistance',
+      'premisesStatus',
       'locality',
       'addressStructure',
-      'politicalConnection',
+      'addressStructureColor',
+      'doorColor',
+      'companyNamePlateStatus',
+      'landmark1',
+      'landmark2',
       'dominatedArea',
-      'feedbackFromNeighbour',
-      'otherObservation',
       'finalStatus',
     ],
     ENTRY_RESTRICTED: [
+      // Aligned with legacyEntryRestrictedBusinessFields 2026-04-19.
+      // Added businessExistStatus (Business ERT-specific mobile field).
       'addressLocatable',
       'addressRating',
       'nameOfMetPerson',
       'metPersonType',
       'metPersonConfirmation',
       'applicantWorkingStatus',
+      'businessExistStatus',
       'locality',
       'addressStructure',
+      'addressStructureColor',
+      'landmark1',
+      'landmark2',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
-      'otherObservation',
       'finalStatus',
     ],
     UNTRACEABLE: [
@@ -236,9 +260,6 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
   }
 
   // Common validations for all forms
-  if (formData.finalStatus === 'Hold' && !formData.holdReason) {
-    warnings.push('holdReason should be specified when finalStatus is Hold');
-  }
 
   // Company nameplate conditional validation
   if (formData.companyNamePlateStatus === 'Sighted' && !formData.nameOnCompanyBoard) {

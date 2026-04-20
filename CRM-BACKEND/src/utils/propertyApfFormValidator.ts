@@ -106,39 +106,32 @@ export function validateAndPreparePropertyApfForm(
 function getRequiredFieldsByFormType(formType: string): string[] {
   const requiredFieldsByType: Record<string, string[]> = {
     POSITIVE: [
+      // Aligned with legacyPositivePropertyApfFields unconditional required.
+      // Conditional fields (metPerson/designation on SEEN, buildingStatus/
+      // activityStopReason on STOP, nameOnBoard on SIGHTED AS) are validated
+      // in mobile UI via requiredWhen, not here.
       'addressLocatable',
       'addressRating',
-      'propertyType',
-      'propertyStatus',
-      'propertyOwnership',
-      'propertyCondition',
-      'propertyArea',
-      'propertyValue',
-      'apfStatus',
-      'apfNumber',
-      'metPersonName',
-      'metPersonDesignation',
+      'constructionActivity',
       'locality',
-      'addressStructure',
+      'landmark1',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
-      'otherObservation',
       'finalStatus',
     ],
     NEGATIVE: [
+      // Property APF NEGATIVE uses the SAME mobile form as POSITIVE —
+      // only finalStatus='Negative' switches the routing. Required list
+      // matches POSITIVE.
       'addressLocatable',
       'addressRating',
-      'propertyType',
-      'propertyStatus',
-      'apfStatus',
-      'apfNumber',
+      'constructionActivity',
       'locality',
-      'addressStructure',
+      'landmark1',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
-      'otherObservation',
       'finalStatus',
     ],
     SHIFTED: [
@@ -172,25 +165,30 @@ function getRequiredFieldsByFormType(formType: string): string[] {
       'finalStatus',
     ],
     ENTRY_RESTRICTED: [
+      // Aligned with legacyEntryRestrictedPropertyApfFields.
       'addressLocatable',
       'addressRating',
-      'nameOfMetPerson',
+      'buildingStatus',
       'metPersonType',
+      'nameOfMetPerson',
       'metPersonConfirmation',
       'locality',
-      'addressStructure',
+      'companyNameBoard',
+      'landmark1',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
-      'otherObservation',
       'finalStatus',
     ],
     UNTRACEABLE: [
+      // Aligned with legacyUntraceablePropertyApfFields — all 4 landmarks required.
       'callRemark',
       'contactPerson',
       'locality',
       'landmark1',
       'landmark2',
+      'landmark3',
+      'landmark4',
       'dominatedArea',
       'otherObservation',
       'finalStatus',
@@ -205,6 +203,28 @@ function getRequiredFieldsByFormType(formType: string): string[] {
  */
 function validateConditionalFields(formData: Record<string, unknown>, formType: string): string[] {
   const warnings: string[] = [];
+
+  // Property APF activity↔finalStatus consistency (2026-04-19 rule).
+  // The controller already auto-corrects; we emit a warning for audit trails
+  // when the agent's initial pick was inconsistent with the activity.
+  const activity =
+    typeof formData.constructionActivity === 'string'
+      ? formData.constructionActivity.toUpperCase()
+      : '';
+  const finalStatusStr = typeof formData.finalStatus === 'string' ? formData.finalStatus : '';
+  if (activity === 'SEEN') {
+    if (finalStatusStr && !['Positive', 'Refer'].includes(finalStatusStr)) {
+      warnings.push(
+        `finalStatus='${finalStatusStr}' is not allowed for constructionActivity=SEEN (expected Positive or Refer)`
+      );
+    }
+  } else if (activity === 'CONSTRUCTION IS STOP' || activity === 'PLOT IS VACANT') {
+    if (finalStatusStr && !['Negative', 'Refer'].includes(finalStatusStr)) {
+      warnings.push(
+        `finalStatus='${finalStatusStr}' is not allowed for constructionActivity=${activity} (expected Negative or Refer)`
+      );
+    }
+  }
 
   if (formType === 'POSITIVE') {
     // APF validity conditional validation
@@ -292,9 +312,6 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
   }
 
   // Common validations for all forms
-  if (formData.finalStatus === 'Hold' && !formData.holdReason) {
-    warnings.push('holdReason should be specified when finalStatus is Hold');
-  }
 
   return warnings;
 }

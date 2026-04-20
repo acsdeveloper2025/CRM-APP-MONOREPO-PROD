@@ -50,14 +50,28 @@ export const DSA_CONNECTOR_FIELD_MAPPING: DatabaseFieldMapping = {
 
   // Mobile field aliases (mobile sends these for DSA forms)
   designation: 'met_person_designation',
+  metPersonType: 'met_person_designation',
+  businessExistStatus: 'business_exist_status',
+  applicantStayingFloor: 'applicant_staying_floor',
   approxArea: 'office_area',
   officeApproxArea: 'office_area',
   staffStrength: 'total_staff',
-  staffSeen: 'team_size',
+  staffSeen: 'staff_seen',
   nameOfMetPerson: 'security_person_name',
   metPersonConfirmation: 'security_confirmation',
   businessExistance: 'business_operational',
+  applicantExistance: 'applicant_existence',
   oldOfficeShiftedPeriod: 'shifted_period',
+
+  // DSA Positive form fields (per xlsx spec)
+  ownershipType: 'ownership_type',
+  nameOfCompanyOwners: 'name_of_company_owners',
+  addressStatus: 'address_status',
+  companyNatureOfBusiness: 'company_nature_of_business',
+  businessPeriod: 'business_period',
+  activeClient: 'active_client',
+  companyNamePlateStatus: 'company_nameplate_status',
+  nameOnBoard: 'name_on_board',
 
   // Business/Office details (Form specific)
   businessName: 'business_name', // Used in POSITIVE forms
@@ -123,6 +137,8 @@ export const DSA_CONNECTOR_FIELD_MAPPING: DatabaseFieldMapping = {
   currentLocation: 'current_location',
   premisesStatus: 'premises_status',
   previousBusinessName: 'previous_business_name',
+  currentCompanyName: 'current_company_name',
+  currentCompanyPeriod: 'current_company_period',
 
   // Entry restricted specific fields
   entryRestrictionReason: 'entry_restriction_reason',
@@ -151,7 +167,6 @@ export const DSA_CONNECTOR_FIELD_MAPPING: DatabaseFieldMapping = {
   businessConcerns: 'business_concerns',
   operationalChallenges: 'operational_challenges',
   growthPotential: 'growth_potential',
-  holdReason: 'hold_reason',
   recommendationStatus: 'recommendation_status',
   riskAssessment: 'risk_assessment',
 
@@ -385,9 +400,7 @@ export function validateDsaConnectorRequiredFields(
       'businessName',
       'locality',
       'addressStructure',
-      'politicalConnection',
       'dominatedArea',
-      'feedbackFromNeighbour',
       'otherObservation',
       'finalStatus',
     ],
@@ -467,6 +480,19 @@ export function ensureAllDsaConnectorFieldsPopulated(
   const completeData = { ...mappedData };
 
   // Define all possible database fields for DSA Connector verification
+  // Curated to match actual dsa_connector_verification_reports schema (2026-04-19).
+  // Removed 65 speculative columns that never existed (connector_category,
+  // connector_level, connector_territory, connector_target, connector_achievement,
+  // connector_rating, connector_training_status, connector_certification,
+  // connector_license_number, office_ownership, office_facilities, office_staff_count,
+  // office_equipment, incentive_details, outstanding_dues, security_deposit,
+  // pan_number, gst_number, tax_compliance_status, sub_agents_count, network_coverage,
+  // territory_details, renewal_rate, training_completed, skill_assessment,
+  // product_knowledge, technology_adoption, email_address, response_time,
+  // met_person_status, identity_verification, internet_connectivity, mobile_app_usage,
+  // pos_machine_availability, printer_availability, scanner_availability,
+  // regulatory_compliance, ethical_practices, and 28 more).
+  // Corrected name_of_tpc1/2 → tpc_name1/2 (wrong naming).
   const allDatabaseFields = [
     // Address and location fields
     'address_locatable',
@@ -483,22 +509,13 @@ export function ensureAllDsaConnectorFieldsPopulated(
     'landmark3',
     'landmark4',
 
-    // DSA/DST Connector specific fields
+    // DSA/DST Connector core columns (only those present in schema)
     'connector_type',
     'connector_code',
     'connector_name',
     'connector_designation',
     'connector_experience',
     'connector_status',
-    'connector_category',
-    'connector_level',
-    'connector_territory',
-    'connector_target',
-    'connector_achievement',
-    'connector_rating',
-    'connector_training_status',
-    'connector_certification',
-    'connector_license_number',
 
     // Business/Office details
     'business_name',
@@ -508,106 +525,98 @@ export function ensureAllDsaConnectorFieldsPopulated(
     'office_type',
     'office_area',
     'office_status',
-    'office_ownership',
     'office_rent',
-    'office_facilities',
-    'office_staff_count',
-    'office_equipment',
 
-    // Financial and performance details
+    // Financial / performance
     'monthly_business_volume',
+    'average_monthly_sales',
     'annual_turnover',
+    'monthly_income',
     'commission_structure',
-    'incentive_details',
     'payment_terms',
-    'outstanding_dues',
-    'credit_limit',
-    'security_deposit',
     'bank_account_details',
-    'pan_number',
-    'gst_number',
-    'tax_compliance_status',
+    'active_client',
 
-    // Team and network details
+    // Technology/infrastructure (present in schema)
+    'computer_systems',
+    'internet_connection',
+    'software_systems',
+    'pos_terminals',
+    'printer_scanner',
+
+    // License + compliance
+    'license_status',
+    'license_number',
+    'license_expiry_date',
+    'compliance_status',
+    'audit_status',
+    'training_status',
+
+    // Team
+    'total_staff',
+    'sales_staff',
+    'support_staff',
     'team_size',
-    'sub_agents_count',
-    'network_coverage',
-    'territory_details',
-    'customer_base',
-    'active_policies',
-    'renewal_rate',
-    'claim_ratio',
 
-    // Training and development
-    'training_completed',
-    'certification_status',
-    'skill_assessment',
-    'product_knowledge',
-    'compliance_training',
-    'technology_adoption',
-    'digital_literacy',
-
-    // Contact and communication
-    'contact_number',
-    'alternate_number',
-    'email_address',
-    'communication_preference',
-    'availability_hours',
-    'response_time',
-    'customer_feedback_score',
-
-    // Verification details
+    // Person details
     'met_person_name',
+    'met_person_designation',
     'met_person_relation',
-    'designation',
-    'met_person_status',
-    'document_shown',
-    'document_type',
-    'document_verification_status',
-    'identity_verification',
-    'address_verification',
-    'business_verification',
+    'met_person_contact',
 
-    // Technology and infrastructure
-    'computer_literacy',
-    'internet_connectivity',
-    'mobile_app_usage',
-    'digital_tools',
-    'pos_machine_availability',
-    'printer_availability',
-    'scanner_availability',
+    // Business operational
+    'business_operational',
+    'customer_footfall',
+    'business_hours',
+    'weekend_operations',
 
-    // Compliance and regulatory
-    'regulatory_compliance',
-    'code_of_conduct_adherence',
-    'ethical_practices',
-    'customer_grievance_handling',
-    'data_protection_compliance',
-    'anti_fraud_measures',
+    // Address/nameplate (DSA-specific)
+    'address_status',
+    'name_of_company_owners',
+    'ownership_type',
+    'company_nature_of_business',
+    'business_period',
+    'company_nameplate_status',
+    'name_on_board',
+    // DSA table has `staff_seen` but NOT `staff_strength` (uses `total_staff` instead).
+    'staff_seen',
 
-    // Third Party Confirmation
+    // Third Party Confirmation (correct names)
     'tpc_met_person1',
-    'name_of_tpc1',
+    'tpc_name1',
     'tpc_confirmation1',
     'tpc_met_person2',
-    'name_of_tpc2',
+    'tpc_name2',
     'tpc_confirmation2',
 
-    // Form specific fields
+    // Form-specific fields
     'shifted_period',
     'current_location',
-    'name_of_met_person',
-    'met_person_type',
-    'met_person_confirmation',
-    'call_remark',
+    'premises_status',
+    'previous_business_name',
+    'entry_restriction_reason',
+    'security_person_name',
+    'security_confirmation',
     'contact_person',
+    'call_remark',
+
+    // Market presence
+    'market_presence',
+    'competitor_analysis',
+    'market_reputation',
+    'customer_feedback',
+
+    // ERT — DSA table only has business_exist_status. The other ERT fields
+    // (nameOfMetPerson, metPersonType, metPersonConfirmation, applicantWorkingStatus)
+    // are aliased via mapping to security_person_name / met_person_designation
+    // / security_confirmation / applicant_working_status (which also doesn't exist).
+    'business_exist_status',
 
     // Environment and area details
     'political_connection',
     'dominated_area',
     'feedback_from_neighbour',
     'other_observation',
-    'hold_reason',
     'recommendation_status',
 
     // Final status

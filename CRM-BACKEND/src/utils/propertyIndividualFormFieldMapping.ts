@@ -157,7 +157,6 @@ export const PROPERTY_INDIVIDUAL_FIELD_MAPPING: DatabaseFieldMapping = {
   otherObservation: 'other_observation',
   propertyConcerns: 'property_concerns',
   verificationChallenges: 'verification_challenges',
-  holdReason: 'hold_reason',
   recommendationStatus: 'recommendation_status',
 
   // Legacy/alternative field names and mobile app specific fields
@@ -173,14 +172,14 @@ export const PROPERTY_INDIVIDUAL_FIELD_MAPPING: DatabaseFieldMapping = {
   // Mobile app specific fields mapped to DB equivalents
   ownershipStatus: 'property_ownership', // Maps to property_ownership
   metPersonStatus: null, // No direct DB column, ignore
-  metPersonType: null, // Entry restricted met person type (not stored separately)
+  metPersonType: 'met_person_designation', // ERT met person role (Security/Receptionist)
 
-  // Mobile app specific fields that don't have database equivalents
-  addressExistAt: null, // No database equivalent, ignore
-  doorNamePlateStatus: null, // No database equivalent, ignore
-  nameOnDoorPlate: null, // No database equivalent, ignore
-  societyNamePlateStatus: null, // No database equivalent, ignore
-  nameOnSocietyBoard: null, // No database equivalent, ignore
+  // Property Individual Positive xlsx fields
+  addressExistAt: 'address_exist_at',
+  doorNamePlateStatus: 'door_name_plate',
+  nameOnDoorPlate: 'name_on_door_plate',
+  societyNamePlateStatus: 'society_name_plate',
+  nameOnSocietyBoard: 'name_on_society_board',
   companyNamePlateStatus: null, // No database equivalent, ignore
   nameOnBoard: null, // No database equivalent, ignore
 
@@ -400,9 +399,7 @@ export function validatePropertyIndividualRequiredFields(
       'propertyType',
       'locality',
       'addressStructure',
-      'politicalConnection',
       'dominatedArea',
-      'feedbackFromNeighbour',
       'otherObservation',
       'finalStatus',
     ],
@@ -573,7 +570,6 @@ export function ensureAllPropertyIndividualFieldsPopulated(
     'dominated_area',
     'feedback_from_neighbour',
     'other_observation',
-    'hold_reason',
     'recommendation_status',
 
     // Owner details

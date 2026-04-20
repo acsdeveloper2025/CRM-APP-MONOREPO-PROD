@@ -45,13 +45,24 @@ export const NOC_FIELD_MAPPING: DatabaseFieldMapping = {
   nameOnNoc: 'name_on_noc',
   flatNo: 'flat_no',
   designation: 'met_person_designation',
+  // NOC ERT mobile field `metPersonType` should map to its own column, not
+  // to met_person_designation (which is for POSITIVE's designation field).
+  metPersonType: 'met_person_type',
   companyNamePlateStatus: 'company_nameplate_status',
   nameOnBoard: 'name_on_company_board',
   currentCompanyName: 'current_company_name',
+  // Period-composite merged destinations (added 2026-04-19 — mobile sends
+  // currentCompanyPeriodValue/Unit which preprocessCompositeFields merges into
+  // currentCompanyPeriod; without this mapping entry the merged value was dropped).
+  currentCompanyPeriod: 'current_company_period',
+  oldOfficeShiftedPeriod: 'old_office_shifted_period',
   officeApproxArea: 'office_approx_area',
   otherExtraRemark: 'other_extra_remark',
-  nameOfMetPerson: 'security_person_name',
-  metPersonConfirmation: 'security_confirmation',
+  // NOC ERT uses dedicated name_of_met_person / met_person_confirmation columns.
+  // Prior aliases mapped these to security_person_name / security_confirmation
+  // which are LEGACY ERT columns — causing ERT data loss (fixed 2026-04-19).
+  nameOfMetPerson: 'name_of_met_person',
+  metPersonConfirmation: 'met_person_confirmation',
   applicantExistance: 'applicant_existence',
   businessExistance: 'business_existence',
 
@@ -132,7 +143,6 @@ export const NOC_FIELD_MAPPING: DatabaseFieldMapping = {
   otherObservation: 'other_observation',
   complianceIssues: 'compliance_issues',
   regulatoryConcerns: 'regulatory_concerns',
-  holdReason: 'hold_reason',
   recommendationStatus: 'recommendation_status',
 
   // Legacy/alternative field names
@@ -341,9 +351,7 @@ export function validateNocRequiredFields(
       'builderName',
       'locality',
       'addressStructure',
-      'politicalConnection',
       'dominatedArea',
-      'feedbackFromNeighbour',
       'otherObservation',
       'finalStatus',
     ],
@@ -420,6 +428,16 @@ export function ensureAllNocFieldsPopulated(
   const completeData = { ...mappedData };
 
   // Define all possible database fields for NOC verification
+  // Curated to match actual noc_verification_reports schema (2026-04-19).
+  // Removed 24 "speculative" columns that never existed: noc_purpose, noc_category,
+  // project_area, project_location, project_phase, completion_date,
+  // builder_license_number, developer_registration, contact_number, contact_email,
+  // structural_safety_clearance, water_connection_noc, sewage_connection_noc,
+  // electricity_connection_noc, pollution_control_noc, municipal_approval,
+  // gram_panchayat_approval, designation (DB uses met_person_designation),
+  // met_person_status, met_person_type, met_person_confirmation, name_of_met_person,
+  // document_shown (DB uses document_shown_status). Also corrected
+  // name_of_tpc1/2 → tpc_name1/tpc_name2 (wrong naming bug).
   const allDatabaseFields = [
     // Address and location fields
     'address_locatable',
@@ -436,7 +454,8 @@ export function ensureAllNocFieldsPopulated(
     'landmark3',
     'landmark4',
 
-    // NOC-specific fields
+    // Office status + NOC-specific fields
+    'office_status',
     'noc_status',
     'noc_type',
     'noc_number',
@@ -444,8 +463,9 @@ export function ensureAllNocFieldsPopulated(
     'noc_expiry_date',
     'noc_issuing_authority',
     'noc_validity_status',
-    'noc_purpose',
-    'noc_category',
+    'authorised_signature',
+    'name_on_noc',
+    'flat_no',
 
     // Property/Project details
     'property_type',
@@ -453,58 +473,52 @@ export function ensureAllNocFieldsPopulated(
     'project_status',
     'construction_status',
     'project_approval_status',
-    'project_area',
     'total_units',
     'completed_units',
-    'project_location',
-    'project_phase',
-    'completion_date',
+    'sold_units',
+    'possession_status',
 
     // Builder/Developer details
     'builder_name',
+    'builder_contact',
     'developer_name',
-    'builder_license_number',
-    'developer_registration',
+    'developer_contact',
+    'builder_registration_number',
     'contact_person',
-    'contact_number',
-    'contact_email',
 
-    // Regulatory and compliance
+    // Regulatory and compliance (actual DB columns)
     'environmental_clearance',
     'fire_safety_clearance',
-    'structural_safety_clearance',
-    'water_connection_noc',
-    'sewage_connection_noc',
-    'electricity_connection_noc',
-    'pollution_control_noc',
-    'municipal_approval',
-    'gram_panchayat_approval',
+    'pollution_clearance',
+    'water_connection_status',
+    'electricity_connection_status',
 
     // Document verification
-    'document_shown',
+    'document_shown_status',
     'document_type',
     'document_verification_status',
 
     // Person details
     'met_person_name',
-    'designation',
+    'met_person_designation',
     'met_person_relation',
-    'met_person_status',
+    'met_person_contact',
 
-    // Third Party Confirmation
+    // Third Party Confirmation (correct DB column names)
     'tpc_met_person1',
-    'name_of_tpc1',
+    'tpc_name1',
     'tpc_confirmation1',
     'tpc_met_person2',
-    'name_of_tpc2',
+    'tpc_name2',
     'tpc_confirmation2',
 
-    // Form specific fields
+    // Form-specific fields
     'shifted_period',
     'current_location',
-    'name_of_met_person',
-    'met_person_type',
-    'met_person_confirmation',
+    'premises_status',
+    'entry_restriction_reason',
+    'security_person_name',
+    'security_confirmation',
     'call_remark',
 
     // Environment and area details
@@ -512,7 +526,6 @@ export function ensureAllNocFieldsPopulated(
     'dominated_area',
     'feedback_from_neighbour',
     'other_observation',
-    'hold_reason',
     'recommendation_status',
 
     // Final status

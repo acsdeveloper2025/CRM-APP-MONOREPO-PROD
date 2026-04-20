@@ -58,6 +58,17 @@ export function validateAndPrepareResidenceCumOfficeForm(
 
   // Map form data to database fields
   const mappedData: Record<string, unknown> = {};
+
+  // Mirror resiCumOfficeStatus to both house_status AND office_status columns so
+  // the template selection logic (which checks either field) works correctly.
+  // The shared mapper function `mapFormDataToDatabase` has this same mirroring, but
+  // the RCO submit path uses inline mapping here — this block keeps the mirror alive.
+  const rcoStatus = formData.resiCumOfficeStatus;
+  if (rcoStatus !== undefined && rcoStatus !== null && rcoStatus !== '') {
+    mappedData.house_status = String(rcoStatus as string | number);
+    mappedData.office_status = String(rcoStatus as string | number);
+  }
+
   for (const [mobileField, value] of Object.entries(formData)) {
     const dbColumn = RESIDENCE_CUM_OFFICE_FIELD_MAPPING[mobileField];
 
@@ -106,24 +117,33 @@ export function validateAndPrepareResidenceCumOfficeForm(
 function getRequiredFieldsByFormType(formType: string): string[] {
   const requiredFieldsByType: Record<string, string[]> = {
     POSITIVE: [
+      // Required unconditionally by the RCO mobile form (legacyPositiveResiCumOfficeFields).
+      // Prior audit (see project_form_audit_status.md) dropped 11 Office-form fields that
+      // mobile never captures: houseStatus, officeStatus, metPersonName, metPersonRelation,
+      // designation, applicantDesignation, totalFamilyMembers, workingPeriod, workingStatus,
+      // officeType, staffStrength. That trim was applied to residenceCumOfficeFormFieldMapping
+      // but this validator file was missed — aligned 2026-04-19.
       'addressLocatable',
       'addressRating',
-      'houseStatus',
-      'officeStatus',
-      'metPersonName',
-      'metPersonRelation',
-      'totalFamilyMembers',
-      'workingStatus',
+      'resiCumOfficeStatus',
+      'residenceSetup',
+      'businessSetup',
       'stayingPeriod',
       'stayingStatus',
-      'designation',
-      'applicantDesignation',
-      'workingPeriod',
-      'officeType',
       'companyNatureOfBusiness',
-      'staffStrength',
+      'businessPeriod',
+      'businessStatus',
+      'businessLocation',
       'locality',
       'addressStructure',
+      'applicantStayingFloor',
+      'addressStructureColor',
+      'doorColor',
+      'doorNamePlateStatus',
+      'societyNamePlateStatus',
+      'companyNamePlateStatus',
+      'landmark1',
+      'landmark2',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
@@ -131,15 +151,23 @@ function getRequiredFieldsByFormType(formType: string): string[] {
       'finalStatus',
     ],
     SHIFTED: [
+      // Aligned with legacyShiftedResiCumOfficeFields. 2026-04-19: dropped
+      // metPersonName/premisesStatus/currentCompanyName/oldOfficeShiftedPeriod
+      // (not captured by RCO SHIFTED mobile). resiCumOfficeStatus is always
+      // required; metPerson/metPersonStatus are conditional on status=Open.
       'addressLocatable',
       'addressRating',
-      'metPersonName',
+      'resiCumOfficeStatus',
       'shiftedPeriod',
-      'premisesStatus',
-      'currentCompanyName',
-      'oldOfficeShiftedPeriod',
       'locality',
       'addressStructure',
+      'addressFloor',
+      'addressStructureColor',
+      'doorColor',
+      'doorNamePlateStatus',
+      'societyNamePlateStatus',
+      'landmark1',
+      'landmark2',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
@@ -147,17 +175,25 @@ function getRequiredFieldsByFormType(formType: string): string[] {
       'finalStatus',
     ],
     NSP: [
+      // Aligned with legacyNspResiCumOfficeFields. 2026-04-19: dropped
+      // houseStatus/officeStatus (mobile uses resiCumOfficeStatus), officeExistence
+      // (not in RCO NSP), metPersonName (mobile uses metPerson). Per standing rule
+      // feedback_nsp_no_political_feedback.md: NSP has no politicalConnection or
+      // feedbackFromNeighbour.
+      'addressTraceable',
       'addressLocatable',
       'addressRating',
-      'houseStatus',
-      'officeStatus',
-      'officeExistence',
-      'metPersonName',
+      'resiCumOfficeStatus',
       'locality',
       'addressStructure',
-      'politicalConnection',
+      'applicantStayingFloor',
+      'addressStructureColor',
+      'doorColor',
+      'doorNamePlateStatus',
+      'societyNamePlateStatus',
+      'landmark1',
+      'landmark2',
       'dominatedArea',
-      'feedbackFromNeighbour',
       'otherObservation',
       'finalStatus',
     ],
@@ -248,9 +284,6 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
   }
 
   // Common validations for all forms
-  if (formData.finalStatus === 'Hold' && !formData.holdReason) {
-    warnings.push('holdReason should be specified when finalStatus is Hold');
-  }
 
   // Nameplate conditional validations
   if (formData.companyNamePlateStatus === 'Sighted' && !formData.nameOnCompanyBoard) {

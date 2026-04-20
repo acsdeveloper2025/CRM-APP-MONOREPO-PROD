@@ -103,21 +103,21 @@ export function validateAndPrepareNocForm(
 function getRequiredFieldsByFormType(formType: string): string[] {
   const requiredFieldsByType: Record<string, string[]> = {
     POSITIVE: [
+      // Aligned with legacyPositiveNocFields 2026-04-19. Dropped 11 legacy
+      // fields that the mobile NOC Positive form doesn't capture (nocStatus,
+      // nocType, nocNumber, nocIssuingAuthority, nocValidityStatus, propertyType,
+      // projectName, projectStatus, builderName, metPersonName, metPersonDesignation).
+      // Mobile uses `metPerson` (conditional on officeStatus=Open), not metPersonName.
+      // Added NOC-specific captured fields: authorisedSignature, nameOnNoc, flatNo
+      // are conditional-on-Open — not unconditional.
       'addressLocatable',
       'addressRating',
-      'nocStatus',
-      'nocType',
-      'nocNumber',
-      'nocIssuingAuthority',
-      'nocValidityStatus',
-      'propertyType',
-      'projectName',
-      'projectStatus',
-      'builderName',
-      'metPersonName',
-      'metPersonDesignation',
+      'officeStatus',
       'locality',
       'addressStructure',
+      'addressStructureColor',
+      'landmark1',
+      'landmark2',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
@@ -125,53 +125,78 @@ function getRequiredFieldsByFormType(formType: string): string[] {
       'finalStatus',
     ],
     SHIFTED: [
+      // Aligned with legacyShiftedNocFields 2026-04-19. Dropped metPersonName,
+      // metPersonDesignation (mobile uses metPerson conditional on Open), shiftedPeriod,
+      // currentLocation (mobile uses currentCompanyName + currentCompanyPeriod/oldOfficeShiftedPeriod).
       'addressLocatable',
       'addressRating',
-      'metPersonName',
-      'metPersonDesignation',
-      'shiftedPeriod',
-      'currentLocation',
+      'officeStatus',
+      'currentCompanyName',
+      'currentCompanyPeriod',
+      'oldOfficeShiftedPeriod',
+      'officeApproxArea',
+      'companyNamePlateStatus',
       'locality',
       'addressStructure',
+      'addressStructureColor',
+      'doorColor',
+      'landmark1',
+      'landmark2',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
-      'otherObservation',
       'finalStatus',
     ],
     NSP: [
+      // Aligned with legacyNspNocFields 2026-04-19. Mobile uses officeStatus,
+      // businessExistance (typo preserved), applicantExistance, premisesStatus.
+      // No nocStatus/metPersonName/metPersonDesignation in mobile.
+      // Per NSP rule — no politicalConnection / feedbackFromNeighbour.
       'addressLocatable',
       'addressRating',
-      'nocStatus',
-      'metPersonName',
-      'metPersonDesignation',
+      'officeStatus',
+      'businessExistance',
+      'applicantExistance',
+      'premisesStatus',
       'locality',
       'addressStructure',
-      'politicalConnection',
+      'addressStructureColor',
+      'doorColor',
+      'companyNamePlateStatus',
+      'landmark1',
+      'landmark2',
       'dominatedArea',
-      'feedbackFromNeighbour',
-      'otherObservation',
       'finalStatus',
     ],
     ENTRY_RESTRICTED: [
+      // Aligned with legacyEntryRestrictedNocFields 2026-04-19. Mobile uses
+      // metPersonType/nameOfMetPerson/metPersonConfirmation — NOT entryRestrictionReason/
+      // securityPersonName/securityConfirmation (those are legacy fields not in UI).
       'addressLocatable',
       'addressRating',
-      'entryRestrictionReason',
-      'securityPersonName',
-      'securityConfirmation',
+      'metPersonType',
+      'nameOfMetPerson',
+      'metPersonConfirmation',
+      'officeStatus',
       'locality',
       'addressStructure',
+      'addressStructureColor',
+      'landmark1',
+      'landmark2',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
-      'otherObservation',
       'finalStatus',
     ],
     UNTRACEABLE: [
+      // Added contactPerson (mobile required but was missing from validator list).
+      'contactPerson',
       'callRemark',
       'locality',
       'landmark1',
       'landmark2',
+      'landmark3',
+      'landmark4',
       'dominatedArea',
       'otherObservation',
       'finalStatus',
@@ -257,9 +282,6 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
   }
 
   // Common validations for all forms
-  if (formData.finalStatus === 'Hold' && !formData.holdReason) {
-    warnings.push('holdReason should be specified when finalStatus is Hold');
-  }
 
   return warnings;
 }

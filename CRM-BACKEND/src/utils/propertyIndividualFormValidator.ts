@@ -106,20 +106,29 @@ export function validateAndPreparePropertyIndividualForm(
 function getRequiredFieldsByFormType(formType: string): string[] {
   const requiredFieldsByType: Record<string, string[]> = {
     POSITIVE: [
+      // Aligned with legacyPositivePropertyIndividualFields. TPC ×2 is always
+      // required regardless of flatStatus. Conditional-on-Open fields
+      // (metPerson, relationship, propertyOwnerName, approxArea) are
+      // validated via requiredWhen in mobile UI, not here.
       'addressLocatable',
       'addressRating',
-      'propertyType',
-      'propertyStatus',
-      'individualName',
-      'individualAge',
-      'individualOccupation',
-      'employmentType',
-      'monthlyIncome',
-      'metPersonName',
-      'metPersonRelation',
-      'metPersonDesignation',
+      'buildingStatus',
+      'flatStatus',
+      'tpcMetPerson1',
+      'nameOfTpc1',
+      'tpcConfirmation1',
+      'tpcMetPerson2',
+      'nameOfTpc2',
+      'tpcConfirmation2',
       'locality',
       'addressStructure',
+      'addressExistAt',
+      'addressStructureColor',
+      'doorColor',
+      'doorNamePlateStatus',
+      'societyNamePlateStatus',
+      'landmark1',
+      'landmark2',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
@@ -143,28 +152,45 @@ function getRequiredFieldsByFormType(formType: string): string[] {
       'finalStatus',
     ],
     NSP: [
+      // Aligned with legacyNspPropertyIndividualFields. TPC ×2 is always
+      // required. NSP rule — no politicalConnection/feedbackFromNeighbour.
       'addressLocatable',
       'addressRating',
-      'propertyStatus',
-      'metPersonName',
-      'metPersonRelation',
-      'metPersonDesignation',
+      'buildingStatus',
+      'flatStatus',
+      'tpcMetPerson1',
+      'nameOfTpc1',
+      'tpcConfirmation1',
+      'tpcMetPerson2',
+      'nameOfTpc2',
+      'tpcConfirmation2',
       'locality',
       'addressStructure',
-      'politicalConnection',
+      'addressStructureColor',
+      'doorColor',
+      'doorNamePlateStatus',
+      'societyNamePlateStatus',
+      'landmark1',
+      'landmark2',
       'dominatedArea',
-      'feedbackFromNeighbour',
       'otherObservation',
       'finalStatus',
     ],
     ENTRY_RESTRICTED: [
       'addressLocatable',
       'addressRating',
-      'entryRestrictionReason',
-      'securityPersonName',
-      'securityConfirmation',
+      'flatStatus',
+      'metPersonType',
+      'nameOfMetPerson',
+      'metPersonConfirmation',
+      'propertyOwnerName',
       'locality',
       'addressStructure',
+      'addressStructureColor',
+      'societyNamePlateStatus',
+      'landmark1',
+      'landmark2',
+      'buildingStatus',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
@@ -172,11 +198,16 @@ function getRequiredFieldsByFormType(formType: string): string[] {
       'finalStatus',
     ],
     UNTRACEABLE: [
+      // Aligned with legacyUntraceablePropertyIndividualFields. All 4 landmarks
+      // are required in mobile (property is harder to trace — needs more
+      // reference points than other types).
       'callRemark',
       'contactPerson',
       'locality',
       'landmark1',
       'landmark2',
+      'landmark3',
+      'landmark4',
       'dominatedArea',
       'otherObservation',
       'finalStatus',
@@ -284,9 +315,6 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
   }
 
   // Common validations for all forms
-  if (formData.finalStatus === 'Hold' && !formData.holdReason) {
-    warnings.push('holdReason should be specified when finalStatus is Hold');
-  }
 
   return warnings;
 }

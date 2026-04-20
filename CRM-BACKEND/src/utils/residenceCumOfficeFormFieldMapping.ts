@@ -21,7 +21,7 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   outcome: null, // Handled separately as verification_outcome
   remarks: 'remarks',
   finalStatus: 'final_status',
-  resiCumOfficeStatus: null, // Ignore this field - it's redundant with finalStatus
+  resiCumOfficeStatus: null, // Handled specially: mirrored to house_status + office_status in mapper
 
   // Address and location fields (Common to all forms)
   addressLocatable: 'address_locatable',
@@ -110,7 +110,6 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   feedbackFromNeighbour: 'feedback_from_neighbour',
   otherObservation: 'other_observation',
   otherExtraRemark: 'other_extra_remark',
-  holdReason: 'hold_reason',
   recommendationStatus: 'recommendation_status',
 
   // Legacy/alternative field names
@@ -119,12 +118,12 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   totalEmployees: 'staff_strength', // Maps to staff strength
 
   // Additional mobile form fields that need mapping or ignoring
-  residenceSetup: null, // Ignore - not a database field
-  businessSetup: null, // Ignore - not a database field
+  residenceSetup: 'residence_setup', // SIGHTED AS / NOT SIGHTED — dedicated column (added 2026-04-18)
+  businessSetup: 'business_setup', // SIGHTED AS / NOT SIGHTED — dedicated column (added 2026-04-18)
   relation: 'met_person_relation', // Maps to met person relation
-  businessStatus: 'office_status', // Maps to office status
-  businessLocation: 'sitting_location', // Maps to sitting location
-  businessOperatingAddress: null, // Ignore - redundant with address
+  businessStatus: 'business_status', // Self Employee - Proprietorship / Partnership Firm / Private Limited — dedicated column (was colliding with office_status before 2026-04-18)
+  businessLocation: 'sitting_location', // Maps to sitting location (At Same Address / From Different Address)
+  businessOperatingAddress: 'business_operating_address', // Conditional text when businessLocation = 'From Different Address' — dedicated column (added 2026-04-18)
   applicantStayingFloor: 'address_floor', // Maps to address floor
   businessNature: 'company_nature_of_business', // Maps to business nature
   verificationMethod: null, // Derived field, ignore
@@ -199,6 +198,14 @@ export function mapResidenceCumOfficeFormDataToDatabase(
   formType?: string
 ): Record<string, unknown> {
   const mappedData: Record<string, unknown> = {};
+
+  // Mirror resiCumOfficeStatus to both house_status and office_status columns
+  // so template selection logic (which checks either field) works correctly.
+  const statusValue = formData.resiCumOfficeStatus;
+  if (statusValue !== undefined && statusValue !== null && statusValue !== '') {
+    mappedData.house_status = String(statusValue as string | number);
+    mappedData.office_status = String(statusValue as string | number);
+  }
 
   // Process each field in the form data
   for (const [mobileField, value] of Object.entries(formData)) {
@@ -388,7 +395,6 @@ export function ensureAllResidenceCumOfficeFieldsPopulated(
     'dominated_area',
     'feedback_from_neighbour',
     'other_observation',
-    'hold_reason',
     'recommendation_status',
 
     // Final status
@@ -630,21 +636,25 @@ export function validateResidenceCumOfficeRequiredFields(
     POSITIVE: [
       'addressLocatable',
       'addressRating',
-      'houseStatus',
-      'officeStatus',
-      'metPersonName',
-      'metPersonRelation',
-      'designation',
-      'applicantDesignation',
-      'totalFamilyMembers',
-      'workingPeriod',
-      'workingStatus',
-      'officeType',
+      'resiCumOfficeStatus',
+      'residenceSetup',
+      'businessSetup',
+      'stayingPeriod',
+      'stayingStatus',
       'companyNatureOfBusiness',
       'businessPeriod',
-      'staffStrength',
+      'businessStatus',
+      'businessLocation',
       'locality',
       'addressStructure',
+      'applicantStayingFloor',
+      'addressStructureColor',
+      'doorColor',
+      'doorNamePlateStatus',
+      'societyNamePlateStatus',
+      'companyNamePlateStatus',
+      'landmark1',
+      'landmark2',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
@@ -654,14 +664,17 @@ export function validateResidenceCumOfficeRequiredFields(
     SHIFTED: [
       'addressLocatable',
       'addressRating',
-      'houseStatus',
-      'officeStatus',
-      'metPersonName',
-      'designation',
-      'currentCompanyName',
-      'oldOfficeShiftedPeriod',
+      'resiCumOfficeStatus',
+      'shiftedPeriod',
       'locality',
       'addressStructure',
+      'addressFloor',
+      'addressStructureColor',
+      'doorColor',
+      'doorNamePlateStatus',
+      'societyNamePlateStatus',
+      'landmark1',
+      'landmark2',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
@@ -678,9 +691,7 @@ export function validateResidenceCumOfficeRequiredFields(
       'designation',
       'locality',
       'addressStructure',
-      'politicalConnection',
       'dominatedArea',
-      'feedbackFromNeighbour',
       'otherObservation',
       'finalStatus',
     ],
@@ -722,16 +733,34 @@ export function validateResidenceCumOfficeRequiredFields(
   }
 
   // Check for conditional fields
-  if (formType === 'POSITIVE') {
-    if (formData.houseStatus === 'Opened' && !formData.totalFamilyMembers) {
-      warnings.push('totalFamilyMembers should be specified when house is opened');
+  if (formType === 'POSITIVE' && formData.resiCumOfficeStatus === 'Open') {
+    if (!formData.metPerson) {
+      warnings.push('metPerson should be specified when resi-cum-office is open');
     }
-    if (formData.officeStatus === 'Opened' && !formData.staffSeen) {
-      warnings.push('staffSeen should be specified when office is opened');
+    if (!formData.relation) {
+      warnings.push('relation should be specified when resi-cum-office is open');
     }
-    if (formData.tpcMetPerson1 === 'Yes' && !formData.nameOfTpc1) {
-      warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is Yes');
+    if (!formData.approxArea) {
+      warnings.push('approxArea should be specified when resi-cum-office is open');
     }
+    if (!formData.documentShownStatus) {
+      warnings.push('documentShownStatus should be specified when resi-cum-office is open');
+    }
+  }
+  if (formType === 'SHIFTED' && formData.resiCumOfficeStatus === 'Open') {
+    if (!formData.metPerson) {
+      warnings.push('metPerson should be specified when resi-cum-office is open');
+    }
+    if (!formData.metPersonStatus) {
+      warnings.push('metPersonStatus should be specified when resi-cum-office is open');
+    }
+  }
+  if (
+    (formType === 'POSITIVE' || formType === 'SHIFTED') &&
+    formData.tpcMetPerson1 &&
+    !formData.tpcName1
+  ) {
+    warnings.push('tpcName1 should be specified when tpcMetPerson1 is selected');
   }
 
   return {
