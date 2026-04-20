@@ -1208,7 +1208,6 @@ export class MobileFormController {
       formData.alternateContact = report.alternateContact;
 
       // Assessment
-      formData.holdReason = report.holdReason;
       formData.recommendationStatus = report.recommendationStatus;
     } else if (normalizedType === 'OFFICE') {
       formData.designation = report.designation;
@@ -1260,7 +1259,6 @@ export class MobileFormController {
 
       // Assessment
       formData.otherExtraRemark = report.otherExtraRemark;
-      formData.holdReason = report.holdReason;
       formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
     } else if (normalizedType === 'BUSINESS') {
@@ -1327,7 +1325,6 @@ export class MobileFormController {
 
       // Area Assessment
       formData.otherExtraRemark = report.otherExtraRemark;
-      formData.holdReason = report.holdReason;
       formData.recommendationStatus = report.recommendationStatus;
     } else if (normalizedType === 'PROPERTY_APF') {
       // Basic Information
@@ -1456,7 +1453,6 @@ export class MobileFormController {
       formData.propertyConcerns = report.propertyConcerns;
       formData.financialConcerns = report.financialConcerns;
       formData.finalStatus = report.finalStatus;
-      formData.holdReason = report.holdReason;
       formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
 
@@ -1590,7 +1586,6 @@ export class MobileFormController {
       formData.propertyConcerns = report.propertyConcerns;
       formData.verificationChallenges = report.verificationChallenges;
       formData.finalStatus = report.finalStatus;
-      formData.holdReason = report.holdReason;
       formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
     } else if (normalizedType === 'NOC') {
@@ -1683,7 +1678,6 @@ export class MobileFormController {
 
       // Final Status & Recommendations
       formData.finalStatus = report.finalStatus;
-      formData.holdReason = report.holdReason;
       formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
     } else if (normalizedType === 'BUILDER') {
@@ -1764,7 +1758,6 @@ export class MobileFormController {
 
       // Final Status & Recommendations
       formData.finalStatus = report.finalStatus;
-      formData.holdReason = report.holdReason;
       formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
     } else if (normalizedType === 'DSA_CONNECTOR') {
@@ -1878,7 +1871,6 @@ export class MobileFormController {
       formData.operationalChallenges = report.operationalChallenges;
       formData.riskAssessment = report.riskAssessment;
       formData.finalStatus = report.finalStatus;
-      formData.holdReason = report.holdReason;
       formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
     } else if (normalizedType === 'RESIDENCE_CUM_OFFICE') {
@@ -1971,7 +1963,6 @@ export class MobileFormController {
       formData.otherObservation = report.otherObservation;
       formData.otherExtraRemark = report.otherExtraRemark;
       formData.finalStatus = report.finalStatus;
-      formData.holdReason = report.holdReason;
       formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
       formData.entryRestrictionReason = report.entryRestrictionReason;
@@ -1982,7 +1973,6 @@ export class MobileFormController {
       formData.applicantStayingStatus = report.applicantStayingStatus;
       formData.contactPerson = report.contactPerson;
       formData.alternateContact = report.alternateContact;
-      formData.holdReason = report.holdReason;
     }
 
     return formData;
@@ -3834,21 +3824,25 @@ export class MobileFormController {
           ...mappedFormData,
         };
 
-        // Ensure finalStatus is always provided (required field)
-        if (!dbInsertData['finalStatus']) {
+        // Ensure finalStatus is always provided (required field).
+        // Guard checks BOTH camelCase and snake_case because mappedFormData from
+        // the validator uses snake_case column keys; forgetting this duplicated
+        // the final_status column after buildInsert's camel→snake conversion and
+        // caused "column final_status specified more than once" (fixed 2026-04-19).
+        if (!dbInsertData['finalStatus'] && !dbInsertData['final_status']) {
           // Map outcome to finalStatus if not provided
           const outcomeToFinalStatusMap: Record<string, string> = {
             VERIFIED: 'Positive',
             NOT_VERIFIED: 'Negative',
             FRAUD: 'Fraud',
             REFER: 'Refer',
-            HOLD: 'Hold',
+            HOLD: 'Refer', // Hold removed globally — legacy HOLD outcome remaps to Refer
             PARTIAL: 'Refer',
           };
 
           const outcome = formData.outcome || 'VERIFIED';
           const resolvedFinalStatus = outcomeToFinalStatusMap[outcome] || 'Positive';
-          dbInsertData.finalStatus = resolvedFinalStatus;
+          dbInsertData.final_status = resolvedFinalStatus; // Use snake_case to match mappedFormData
           logger.info(
             `🔧 Auto-mapped outcome '${String(outcome)}' to finalStatus '${resolvedFinalStatus}'`
           );
@@ -5281,7 +5275,55 @@ export class MobileFormController {
       }
 
       // Determine form type and verification outcome based on form data
-      const { formType, verificationOutcome } = detectBusinessFormType(formData); // Use business detection for Property APF (similar structure)
+      const detected = detectBusinessFormType(formData); // Use business detection for Property APF (similar structure)
+      let formType = detected.formType;
+      let verificationOutcome = detected.verificationOutcome;
+
+      // Property APF rule (2026-04-19): constructionActivity drives the
+      // Positive/Negative split, analogous to how houseStatus drives Door
+      // Open/Closed for Residence.
+      //   SEEN                 → POSITIVE template + finalStatus in {Positive, Refer}
+      //   CONSTRUCTION IS STOP → NEGATIVE template + finalStatus in {Negative, Refer}
+      //   PLOT IS VACANT       → NEGATIVE template + finalStatus in {Negative, Refer}
+      // ERT and UNTRACEABLE outcomes keep their own form_type values; the
+      // rule only applies when neither is present.
+      const activityRaw = formData.constructionActivity;
+      const activity = typeof activityRaw === 'string' ? activityRaw.toUpperCase() : '';
+      const isErtOrUt = formType === 'ENTRY_RESTRICTED' || formType === 'UNTRACEABLE';
+      if (!isErtOrUt && activity) {
+        // Coalesce the two conditional mobile sibling fields into formData.finalStatus
+        // so the validator + buildInsert see a single value.
+        const finalNeg = formData.finalStatusNegative;
+        if (
+          typeof finalNeg === 'string' &&
+          finalNeg.trim() !== '' &&
+          (!formData.finalStatus || formData.finalStatus === '')
+        ) {
+          formData.finalStatus = finalNeg;
+        }
+
+        const derivedType = activity === 'SEEN' ? 'POSITIVE' : 'NEGATIVE';
+        if (formType !== derivedType) {
+          logger.warn(
+            `⚠️ Property APF: overriding form_type ${formType} → ${derivedType} based on constructionActivity=${activity}`
+          );
+          formType = derivedType;
+          verificationOutcome = derivedType === 'POSITIVE' ? 'Positive' : 'Negative';
+        }
+
+        // Enforce the finalStatus allow-list per activity. If the agent's
+        // pick is inconsistent, override to the activity-default.
+        const allowed =
+          activity === 'SEEN' ? new Set(['Positive', 'Refer']) : new Set(['Negative', 'Refer']);
+        const current = typeof formData.finalStatus === 'string' ? formData.finalStatus : '';
+        if (!allowed.has(current)) {
+          const corrected = activity === 'SEEN' ? 'Positive' : 'Negative';
+          logger.warn(
+            `⚠️ Property APF: finalStatus='${current}' not allowed for constructionActivity=${activity}; correcting to '${corrected}'`
+          );
+          formData.finalStatus = corrected;
+        }
+      }
 
       logger.info(
         `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`

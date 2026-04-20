@@ -71,9 +71,9 @@ export class CaseStatusSyncService {
       // (prevents overwriting historical completion dates on re-sync)
       await db.query(
         `UPDATE cases
-         SET status = $1,
+         SET status = $1::varchar,
              completed_at = CASE
-               WHEN $1 = 'COMPLETED' THEN COALESCE(completed_at, $2::timestamp)
+               WHEN $1::text = 'COMPLETED' THEN COALESCE(completed_at, $2::timestamp)
                ELSE NULL
              END,
              updated_at = NOW()

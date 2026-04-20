@@ -95,7 +95,6 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   feedbackFromNeighbour: 'feedback_from_neighbour',
   otherObservation: 'other_observation',
   otherExtraRemark: 'other_extra_remark',
-  holdReason: 'hold_reason',
 
   // Legacy/alternative field names
   companyName: 'company_nature_of_business', // Maps to company nature
@@ -210,7 +209,7 @@ function processOfficeFieldValue(fieldName: string, value: unknown): unknown {
   }
 
   // Handle final_status field - convert case to match database constraint
-  // DB CHECK: final_status IN ('Positive', 'Negative', 'Refer', 'Fraud', 'Hold')
+  // DB CHECK: final_status IN ('Positive', 'Negative', 'Refer', 'Fraud')
   if (fieldName === 'finalStatus') {
     const statusValue = String(value as string | number)
       .trim()
@@ -224,8 +223,6 @@ function processOfficeFieldValue(fieldName: string, value: unknown): unknown {
         return 'Refer';
       case 'FRAUD':
         return 'Fraud';
-      case 'HOLD':
-        return 'Hold';
       default:
         logger.warn(
           `⚠️ Unknown finalStatus value: ${String(value as string | number)}, defaulting to 'Refer'`
@@ -325,8 +322,6 @@ export function validateOfficeRequiredFields(
       'addressLocatable',
       'addressRating',
       'officeStatus',
-      'metPerson',
-      'designation',
       'currentCompanyName',
       'oldOfficeShiftedPeriod',
       'locality',
@@ -342,13 +337,10 @@ export function validateOfficeRequiredFields(
       'addressRating',
       'officeStatus',
       'officeExistence',
-      'metPerson',
-      'designation',
+      'currentCompanyName',
       'locality',
       'addressStructure',
-      'politicalConnection',
       'dominatedArea',
-      'feedbackFromNeighbour',
       'otherObservation',
       'finalStatus',
     ],
@@ -395,6 +387,22 @@ export function validateOfficeRequiredFields(
     }
     if (formData.tpcMetPerson1 === 'Yes' && !formData.nameOfTpc1) {
       warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is Yes');
+    }
+  }
+  if (formType === 'SHIFTED' && formData.officeStatus === 'Open') {
+    if (!formData.metPerson) {
+      warnings.push('metPerson should be specified when office is open');
+    }
+    if (!formData.designation) {
+      warnings.push('designation should be specified when office is open');
+    }
+  }
+  if (formType === 'NSP' && formData.officeStatus === 'Open') {
+    if (!formData.metPerson) {
+      warnings.push('metPerson should be specified when office is open');
+    }
+    if (!formData.designation) {
+      warnings.push('designation should be specified when office is open');
     }
   }
 
@@ -486,7 +494,6 @@ export function ensureAllOfficeFieldsPopulated(
     'dominated_area',
     'feedback_from_neighbour',
     'other_observation',
-    'hold_reason',
     'recommendation_status',
 
     // Final status

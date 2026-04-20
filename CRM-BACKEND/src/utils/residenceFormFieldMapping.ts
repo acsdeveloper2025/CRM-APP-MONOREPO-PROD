@@ -68,9 +68,11 @@ export const RESIDENCE_FIELD_MAPPING: DatabaseFieldMapping = {
   // Third Party Confirmation (TPC) - Used in POSITIVE, SHIFTED, NSP forms
   tpcMetPerson1: 'tpc_met_person1',
   nameOfTpc1: 'tpc_name1',
+  tpcName1: 'tpc_name1', // Mobile emits this field name
   tpcConfirmation1: 'tpc_confirmation1',
   tpcMetPerson2: 'tpc_met_person2',
   nameOfTpc2: 'tpc_name2',
+  tpcName2: 'tpc_name2', // Mobile emits this field name
   tpcConfirmation2: 'tpc_confirmation2',
 
   // Shifted residence specific fields
@@ -94,7 +96,6 @@ export const RESIDENCE_FIELD_MAPPING: DatabaseFieldMapping = {
   dominatedArea: 'dominated_area',
   feedbackFromNeighbour: 'feedback_from_neighbour',
   otherObservation: 'other_observation',
-  holdReason: 'hold_reason',
   recommendationStatus: 'recommendation_status',
 
   // Legacy/alternative field names for backward compatibility
@@ -308,9 +309,7 @@ export function validateRequiredFields(
       'houseStatus',
       'locality',
       'addressStructure',
-      'politicalConnection',
       'dominatedArea',
-      'feedbackFromNeighbour',
       'otherObservation',
       'finalStatus',
     ],
@@ -449,7 +448,6 @@ export function ensureAllFieldsPopulated(
     'dominated_area',
     'feedback_from_neighbour',
     'other_observation',
-    'hold_reason',
     'recommendation_status',
 
     // Final status

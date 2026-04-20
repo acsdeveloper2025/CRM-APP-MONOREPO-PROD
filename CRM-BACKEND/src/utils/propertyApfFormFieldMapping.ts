@@ -21,6 +21,12 @@ export const PROPERTY_APF_FIELD_MAPPING: DatabaseFieldMapping = {
   verificationOutcome: null, // Handled separately as verification_outcome
   remarks: 'remarks',
   finalStatus: 'final_status',
+  // Mobile APF uses two conditional sibling fields for Final Status —
+  // `finalStatus` is shown when constructionActivity=SEEN, and
+  // `finalStatusNegative` is shown when constructionActivity is
+  // STOP/VACANT. Both map to the same DB column. At most one is sent
+  // per submission; the backend controller coalesces them.
+  finalStatusNegative: 'final_status',
 
   // Address and location fields (Common to all forms)
   addressLocatable: 'address_locatable',
@@ -152,11 +158,11 @@ export const PROPERTY_APF_FIELD_MAPPING: DatabaseFieldMapping = {
   otherObservation: 'other_observation',
   propertyConcerns: 'property_concerns',
   financialConcerns: 'financial_concerns',
-  holdReason: 'hold_reason',
   recommendationStatus: 'recommendation_status',
 
   // Legacy/alternative field names
   metPerson: 'met_person_name', // Maps to met person name
+  metPersonType: 'met_person_designation', // ERT: met person role (Security/Receptionist)
   companyName: 'builder_name', // Maps to builder name
   companyNameBoard: 'company_name_board', // Company name board field
   nameOnBoard: 'name_on_board', // Name on board field
@@ -346,16 +352,9 @@ export function validatePropertyApfRequiredFields(
     POSITIVE: [
       'addressLocatable',
       'addressRating',
-      'propertyType',
-      'propertyStatus',
-      'metPersonName',
-      'metPersonDesignation',
-      'projectName',
-      'builderName',
-      'apfStatus',
-      'propertyValue',
+      'constructionActivity',
       'locality',
-      'addressStructure',
+      'landmark1',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
@@ -396,11 +395,13 @@ export function validatePropertyApfRequiredFields(
     ENTRY_RESTRICTED: [
       'addressLocatable',
       'addressRating',
-      'entryRestrictionReason',
-      'securityPersonName',
-      'securityConfirmation',
+      'buildingStatus',
+      'metPersonType',
+      'nameOfMetPerson',
+      'metPersonConfirmation',
       'locality',
-      'addressStructure',
+      'companyNameBoard',
+      'landmark1',
       'politicalConnection',
       'dominatedArea',
       'feedbackFromNeighbour',
@@ -468,9 +469,14 @@ export function ensureAllPropertyApfFieldsPopulated(
 ): Record<string, unknown> {
   const completeData = { ...mappedData };
 
-  // Define all possible database fields for Property APF verification
+  // Rewritten to match actual DB schema (psql \d property_apf_verification_reports).
+  // Previous list referenced 45+ non-existent columns (property_location,
+  // property_usage, apf_premium, owner_name, occupancy_status, title_deed_status,
+  // valuation_date, name_of_tpc1/2, met_person_type, etc.) causing every insert
+  // to fail with "column X of relation ... does not exist". Same class as
+  // Findings #11 (Builder), #14 (NOC), #19 (DSA).
   const allDatabaseFields = [
-    // Address and location fields
+    // Address and location
     'address_locatable',
     'address_rating',
     'locality',
@@ -478,6 +484,7 @@ export function ensureAllPropertyApfFieldsPopulated(
     'address_floor',
     'address_structure_color',
     'door_color',
+    'premises_status',
 
     // Landmarks
     'landmark1',
@@ -485,7 +492,7 @@ export function ensureAllPropertyApfFieldsPopulated(
     'landmark3',
     'landmark4',
 
-    // Property-specific fields
+    // Property-specific
     'property_type',
     'property_status',
     'property_ownership',
@@ -494,101 +501,109 @@ export function ensureAllPropertyApfFieldsPopulated(
     'property_area',
     'property_value',
     'market_value',
-    'property_location',
-    'property_description',
-    'property_usage',
-    'construction_year',
-    'renovation_year',
-    'property_amenities',
 
-    // APF-specific fields
+    // APF-specific
     'apf_status',
     'apf_number',
     'apf_issue_date',
     'apf_expiry_date',
+    'apf_issuing_authority',
+    'apf_validity_status',
     'apf_amount',
-    'apf_premium',
-    'apf_coverage',
-    'apf_policy_type',
-    'apf_insurer',
-    'apf_agent',
-    'apf_renewal_date',
-    'apf_claim_history',
+    'apf_utilized_amount',
+    'apf_balance_amount',
 
-    // Financial details
+    // Project / construction
+    'construction_activity',
+    'activity_stop_reason',
+    'project_name',
+    'project_status',
+    'project_approval_status',
+    'project_completion_percentage',
+    'project_started_date',
+    'project_completion_date',
+    'total_units',
+    'total_wing',
+    'total_flats',
+    'total_buildings_in_project',
+    'total_flats_in_building',
+    'completed_units',
+    'sold_units',
+    'available_units',
+    'possession_status',
+    'staff_strength',
+    'staff_seen',
+    'company_name_board',
+    'name_on_board',
+    'building_status',
+
+    // Builder / developer
+    'builder_name',
+    'builder_contact',
+    'developer_name',
+    'developer_contact',
+    'builder_registration_number',
+    'rera_registration_number',
+
+    // Financial
     'loan_amount',
+    'loan_purpose',
+    'loan_status',
     'bank_name',
     'loan_account_number',
     'emi_amount',
-    'outstanding_amount',
-    'loan_tenure',
-    'interest_rate',
-    'loan_type',
-    'loan_status',
-    'loan_approval_date',
-    'loan_disbursement_date',
 
-    // Owner/Occupant details
-    'owner_name',
-    'owner_contact',
-    'owner_email',
-    'occupant_name',
-    'occupant_relation',
-    'occupancy_status',
-    'tenant_details',
+    // Met person (POSITIVE SEEN path + ERT aliases)
     'met_person_name',
-    'designation',
+    'met_person_designation',
     'met_person_relation',
+    'met_person_contact',
+    'name_of_met_person',
+    'met_person_confirmation',
+    'designation',
 
-    // Legal and documentation
-    'title_deed_status',
-    'registration_number',
-    'survey_number',
-    'khata_number',
-    'property_tax_status',
-    'electricity_connection',
-    'water_connection',
-    'sewage_connection',
-    'legal_issues',
-    'encumbrance_certificate',
-    'building_approval',
-    'occupancy_certificate',
+    // Document verification
+    'document_shown_status',
+    'document_type',
+    'document_verification_status',
 
-    // Valuation details
-    'valuation_date',
-    'valuer_name',
-    'valuation_method',
-    'comparable_properties',
-    'depreciation_factor',
-    'appreciation_potential',
-    'market_trends',
-
-    // Third Party Confirmation
+    // TPC
     'tpc_met_person1',
-    'name_of_tpc1',
+    'tpc_name1',
     'tpc_confirmation1',
     'tpc_met_person2',
-    'name_of_tpc2',
+    'tpc_name2',
     'tpc_confirmation2',
 
-    // Form specific fields
+    // Form-specific
     'shifted_period',
     'current_location',
-    'name_of_met_person',
-    'met_person_type',
-    'met_person_confirmation',
-    'call_remark',
+    'entry_restriction_reason',
+    'security_person_name',
+    'security_confirmation',
     'contact_person',
+    'call_remark',
 
-    // Environment and area details
+    // Legal & compliance
+    'legal_clearance',
+    'title_clearance',
+    'encumbrance_status',
+    'litigation_status',
+    'financial_concerns',
+
+    // Area / infrastructure
     'political_connection',
     'dominated_area',
     'feedback_from_neighbour',
+    'infrastructure_status',
+    'road_connectivity',
+
+    // Observations & remarks
     'other_observation',
-    'hold_reason',
+    'property_concerns',
     'recommendation_status',
 
-    // Final status
+    // Final
     'final_status',
   ];
 

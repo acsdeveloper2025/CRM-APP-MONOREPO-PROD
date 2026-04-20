@@ -203,7 +203,6 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           nameOnCompanyBoard: residenceData.name_on_company_board,
           documentShownStatus: residenceData.document_shown_status,
           // Status fields
-          holdReason: residenceData.hold_reason,
           recommendationStatus: residenceData.recommendation_status,
         };
       }
@@ -289,7 +288,6 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           applicantWorkingStatus: officeData.applicant_working_status,
 
           // Status fields
-          holdReason: officeData.hold_reason,
           recommendationStatus: officeData.recommendation_status,
         };
       }
@@ -378,7 +376,6 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           politicalConnection: businessData.political_connection,
           otherObservation: businessData.other_observation,
           otherExtraRemark: businessData.other_extra_remark,
-          holdReason: businessData.hold_reason,
           recommendationStatus: businessData.recommendation_status,
           finalStatus: businessData.final_status,
         };
@@ -415,6 +412,13 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           workingStatus: rcData.working_status,
           workingPeriod: rcData.working_period,
           approxArea: rcData.approx_area,
+          // Res-cum-Office-specific spec fields (added 2026-04-18)
+          resiCumOfficeStatus: rcData.house_status || rcData.office_status,
+          residenceSetup: rcData.residence_setup,
+          businessSetup: rcData.business_setup,
+          businessStatus: rcData.business_status,
+          businessLocation: rcData.sitting_location,
+          businessOperatingAddress: rcData.business_operating_address,
           companyName: rcData.company_name,
           // Office fields
           officeType: rcData.office_type,
@@ -479,7 +483,6 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           politicalConnection: rcData.political_connection,
           otherObservation: rcData.other_observation,
           otherExtraRemark: rcData.other_extra_remark,
-          holdReason: rcData.hold_reason,
           recommendationStatus: rcData.recommendation_status,
           finalStatus: rcData.final_status,
         };
@@ -562,7 +565,6 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           politicalConnection: builderData.political_connection,
           otherObservation: builderData.other_observation,
           otherExtraRemark: builderData.other_extra_remark,
-          holdReason: builderData.hold_reason,
           recommendationStatus: builderData.recommendation_status,
           finalStatus: builderData.final_status,
         };
@@ -625,6 +627,10 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           metPersonDesignation: nocData.met_person_designation,
           metPersonRelation: nocData.met_person_relation,
           metPersonContact: nocData.met_person_contact,
+          // NOC Positive xlsx fields
+          authorisedSignature: nocData.authorised_signature,
+          nameOnNoc: nocData.name_on_noc,
+          flatNo: nocData.flat_no,
           // Document
           documentShownStatus: nocData.document_shown_status,
           documentType: nocData.document_type,
@@ -660,7 +666,6 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           feedbackFromNeighbour: nocData.feedback_from_neighbour,
           politicalConnection: nocData.political_connection,
           otherObservation: nocData.other_observation,
-          holdReason: nocData.hold_reason,
           recommendationStatus: nocData.recommendation_status,
           finalStatus: nocData.final_status,
         };
@@ -752,11 +757,30 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           tpcMetPerson2: dsaData.tpc_met_person2,
           nameOfTpc2: dsaData.tpc_name2,
           tpcConfirmation2: dsaData.tpc_confirmation2,
+          // DSA Positive xlsx fields
+          ownershipType: dsaData.ownership_type,
+          nameOfCompanyOwners: dsaData.name_of_company_owners,
+          addressStatus: dsaData.address_status,
+          companyNatureOfBusiness: dsaData.company_nature_of_business,
+          businessPeriod: dsaData.business_period,
+          activeClient: dsaData.active_client,
+          companyNamePlateStatus: dsaData.company_nameplate_status,
+          nameOnBoard: dsaData.name_on_board,
+          staffSeen: dsaData.staff_seen,
           // Shifted
           shiftedPeriod: dsaData.shifted_period,
+          oldOfficeShiftedPeriod: dsaData.shifted_period,
           currentLocation: dsaData.current_location,
           premisesStatus: dsaData.premises_status,
           previousBusinessName: dsaData.previous_business_name,
+          currentCompanyName: dsaData.current_company_name,
+          currentCompanyPeriod: dsaData.current_company_period,
+          // NSP
+          applicantExistance: dsaData.applicant_existence,
+          // ERT
+          metPersonType: dsaData.met_person_designation,
+          businessExistStatus: dsaData.business_exist_status,
+          applicantStayingFloor: dsaData.applicant_staying_floor,
           // Entry restricted
           entryRestrictionReason: dsaData.entry_restriction_reason,
           securityPersonName: dsaData.security_person_name,
@@ -780,7 +804,6 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           operationalChallenges: dsaData.operational_challenges,
           growthPotential: dsaData.growth_potential,
           riskAssessment: dsaData.risk_assessment,
-          holdReason: dsaData.hold_reason,
           recommendationStatus: dsaData.recommendation_status,
           finalStatus: dsaData.final_status,
         };
@@ -873,6 +896,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           // Met person
           metPersonName: propertyData.met_person_name,
           metPersonDesignation: propertyData.met_person_designation,
+          metPersonType: propertyData.met_person_designation,
           metPersonRelation: propertyData.met_person_relation,
           metPersonContact: propertyData.met_person_contact,
           designation: propertyData.designation,
@@ -912,7 +936,6 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           otherObservation: propertyData.other_observation,
           propertyConcerns: propertyData.property_concerns,
           financialConcerns: propertyData.financial_concerns,
-          holdReason: propertyData.hold_reason,
           recommendationStatus: propertyData.recommendation_status,
           finalStatus: propertyData.final_status,
         };
@@ -938,6 +961,17 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           addressRating: propertyData.address_rating,
           propertyStatus: propertyData.property_status,
           propertyType: propertyData.property_type,
+          // Property Individual xlsx fields
+          buildingStatus: propertyData.property_status,
+          flatStatus: propertyData.premises_status,
+          propertyOwnerName: propertyData.owner_name,
+          relationship: propertyData.met_person_relation,
+          addressExistAt: propertyData.address_exist_at,
+          doorNamePlateStatus: propertyData.door_name_plate,
+          nameOnDoorPlate: propertyData.name_on_door_plate,
+          societyNamePlateStatus: propertyData.society_name_plate,
+          nameOnSocietyBoard: propertyData.name_on_society_board,
+          metPersonType: propertyData.met_person_designation,
           locality: propertyData.locality,
           addressStructure: propertyData.address_structure,
           addressFloor: propertyData.address_floor,
@@ -1047,7 +1081,6 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           politicalConnection: propertyData.political_connection,
           otherObservation: propertyData.other_observation,
           verificationChallenges: propertyData.verification_challenges,
-          holdReason: propertyData.hold_reason,
           recommendationStatus: propertyData.recommendation_status,
           finalStatus: propertyData.final_status,
         };

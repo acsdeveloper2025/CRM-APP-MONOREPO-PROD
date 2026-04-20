@@ -805,15 +805,6 @@ const BUSINESS_POSITIVE_FIELDS: FormFieldDefinition[] = [
     order: 5,
   },
   {
-    id: 'holdReason',
-    name: 'holdReason',
-    label: 'Hold Reason',
-    type: 'textarea',
-    isRequired: false,
-    section: 'Verification Outcome',
-    order: 3,
-  },
-  {
     id: 'recommendationStatus',
     name: 'recommendationStatus',
     label: 'Recommendation Status',

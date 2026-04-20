@@ -615,15 +615,6 @@ export const RESIDENCE_FORM_FIELDS: FormFieldDefinition[] = [
     formTypes: ['POSITIVE'],
   },
   {
-    id: 'holdReason',
-    name: 'holdReason',
-    label: 'Hold Reason',
-    type: 'textarea',
-    isRequired: false,
-    section: 'Area Assessment',
-    order: 5,
-  },
-  {
     id: 'recommendationStatus',
     name: 'recommendationStatus',
     label: 'Recommendation Status',
@@ -1549,15 +1540,6 @@ export const BUSINESS_FORM_FIELDS: FormFieldDefinition[] = [
     isRequired: true,
     section: 'Area Assessment',
     order: 6,
-  },
-  {
-    id: 'holdReason',
-    name: 'holdReason',
-    label: 'Hold Reason',
-    type: 'textarea',
-    isRequired: false,
-    section: 'Area Assessment',
-    order: 7,
   },
   {
     id: 'recommendationStatus',
@@ -2489,15 +2471,6 @@ const PROPERTY_APF_FORM_FIELDS: FormFieldDefinition[] = [
     isRequired: false,
     section: 'Infrastructure & Area Assessment',
     order: 9,
-  },
-  {
-    id: 'holdReason',
-    name: 'holdReason',
-    label: 'Hold Reason',
-    type: 'textarea',
-    isRequired: false,
-    section: 'Infrastructure & Area Assessment',
-    order: 10,
   },
   {
     id: 'recommendationStatus',
@@ -3456,15 +3429,6 @@ const PROPERTY_INDIVIDUAL_FORM_FIELDS: FormFieldDefinition[] = [
     order: 9,
   },
   {
-    id: 'holdReason',
-    name: 'holdReason',
-    label: 'Hold Reason',
-    type: 'textarea',
-    isRequired: false,
-    section: 'Area Assessment & Reputation',
-    order: 10,
-  },
-  {
     id: 'recommendationStatus',
     name: 'recommendationStatus',
     label: 'Recommendation Status',
@@ -4129,15 +4093,6 @@ const NOC_FORM_FIELDS: FormFieldDefinition[] = [
     order: 1,
   },
   {
-    id: 'holdReason',
-    name: 'holdReason',
-    label: 'Hold Reason',
-    type: 'textarea',
-    isRequired: false,
-    section: 'Final Status & Recommendations',
-    order: 2,
-  },
-  {
     id: 'recommendationStatus',
     name: 'recommendationStatus',
     label: 'Recommendation Status',
@@ -4672,15 +4627,6 @@ const BUILDER_FORM_FIELDS: FormFieldDefinition[] = [
     isRequired: false,
     section: 'Final Status & Recommendations',
     order: 1,
-  },
-  {
-    id: 'holdReason',
-    name: 'holdReason',
-    label: 'Hold Reason',
-    type: 'textarea',
-    isRequired: false,
-    section: 'Final Status & Recommendations',
-    order: 2,
   },
   {
     id: 'recommendationStatus',
@@ -5504,15 +5450,6 @@ const DSA_CONNECTOR_FORM_FIELDS: FormFieldDefinition[] = [
     order: 8,
   },
   {
-    id: 'holdReason',
-    name: 'holdReason',
-    label: 'Hold Reason',
-    type: 'textarea',
-    isRequired: false,
-    section: 'Risk Assessment & Final Status',
-    order: 9,
-  },
-  {
     id: 'recommendationStatus',
     name: 'recommendationStatus',
     label: 'Recommendation Status',
@@ -6166,15 +6103,6 @@ const RESIDENCE_CUM_OFFICE_FORM_FIELDS: FormFieldDefinition[] = [
     order: 6,
   },
   {
-    id: 'holdReason',
-    name: 'holdReason',
-    label: 'Hold Reason',
-    type: 'textarea',
-    isRequired: false,
-    section: 'Area Assessment & Final Status',
-    order: 7,
-  },
-  {
     id: 'recommendationStatus',
     name: 'recommendationStatus',
     label: 'Recommendation Status',
@@ -6269,7 +6197,6 @@ export function createComprehensiveFormSections(
     'callRemark',
     'finalStatus',
     'remarks',
-    'holdReason',
     'recommendationStatus',
   ]);
 
@@ -6386,13 +6313,7 @@ export function createComprehensiveFormSections(
 
   // Add final assessment section with the skipped fields that have values
   const assessmentFields: FormField[] = [];
-  const assessmentKeys = [
-    'finalStatus',
-    'recommendationStatus',
-    'holdReason',
-    'remarks',
-    'callRemark',
-  ];
+  const assessmentKeys = ['finalStatus', 'recommendationStatus', 'remarks', 'callRemark'];
   for (const key of assessmentKeys) {
     const val = formData[key];
     if (val !== null && val !== undefined && val !== '') {

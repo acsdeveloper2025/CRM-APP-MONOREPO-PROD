@@ -124,11 +124,8 @@ function getRequiredFieldsByFormType(formType: string): string[] {
     SHIFTED: [
       'addressLocatable',
       'addressRating',
-      'roomStatus',
-      'metPersonName',
-      'metPersonStatus',
+      'houseStatus',
       'shiftedPeriod',
-      'premisesStatus',
       'locality',
       'addressStructure',
       'politicalConnection',
@@ -143,9 +140,7 @@ function getRequiredFieldsByFormType(formType: string): string[] {
       'houseStatus',
       'locality',
       'addressStructure',
-      'politicalConnection',
       'dominatedArea',
-      'feedbackFromNeighbour',
       'otherObservation',
       'finalStatus',
     ],
@@ -153,7 +148,7 @@ function getRequiredFieldsByFormType(formType: string): string[] {
       'addressLocatable',
       'addressRating',
       'nameOfMetPerson',
-      'metPersonType',
+      'metPerson',
       'metPersonConfirmation',
       'applicantStayingStatus',
       'locality',
@@ -192,17 +187,25 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
       warnings.push('documentType should be specified when documentShownStatus is Showed');
     }
 
-    // TPC conditional validation
-    if (formData.tpcMetPerson1 && !formData.nameOfTpc1) {
-      warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is selected');
+    // TPC conditional validation (accept either tpcName or nameOfTpc)
+    if (formData.tpcMetPerson1 && !formData.nameOfTpc1 && !formData.tpcName1) {
+      warnings.push('tpcName1 should be specified when tpcMetPerson1 is selected');
     }
-    if (formData.tpcMetPerson1 && formData.nameOfTpc1 && !formData.tpcConfirmation1) {
+    if (
+      formData.tpcMetPerson1 &&
+      (formData.nameOfTpc1 || formData.tpcName1) &&
+      !formData.tpcConfirmation1
+    ) {
       warnings.push('tpcConfirmation1 should be specified when TPC person 1 is provided');
     }
-    if (formData.tpcMetPerson2 && !formData.nameOfTpc2) {
-      warnings.push('nameOfTpc2 should be specified when tpcMetPerson2 is selected');
+    if (formData.tpcMetPerson2 && !formData.nameOfTpc2 && !formData.tpcName2) {
+      warnings.push('tpcName2 should be specified when tpcMetPerson2 is selected');
     }
-    if (formData.tpcMetPerson2 && formData.nameOfTpc2 && !formData.tpcConfirmation2) {
+    if (
+      formData.tpcMetPerson2 &&
+      (formData.nameOfTpc2 || formData.tpcName2) &&
+      !formData.tpcConfirmation2
+    ) {
       warnings.push('tpcConfirmation2 should be specified when TPC person 2 is provided');
     }
 
@@ -217,8 +220,8 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
     }
 
     // House status conditional validation for POSITIVE forms
-    if (formData.houseStatus === 'Opened' && !formData.totalFamilyMembers) {
-      warnings.push('totalFamilyMembers should be specified when house status is Opened');
+    if (formData.houseStatus === 'Open' && !formData.totalFamilyMembers) {
+      warnings.push('totalFamilyMembers should be specified when house status is Open');
     }
 
     // Staying status validation
@@ -228,11 +231,26 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
   }
 
   if (formType === 'SHIFTED') {
-    // TPC validation for shifted forms
-    if (formData.tpcMetPerson1 && !formData.nameOfTpc1) {
-      warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is selected');
+    // House-status conditional validation
+    if (formData.houseStatus === 'Open' && !formData.metPersonName) {
+      warnings.push('metPersonName should be specified when house status is Open');
     }
-    if (formData.tpcMetPerson1 && formData.nameOfTpc1 && !formData.tpcConfirmation1) {
+    if (formData.houseStatus === 'Open' && !formData.metPersonStatus) {
+      warnings.push('metPersonStatus should be specified when house status is Open');
+    }
+    if (formData.houseStatus === 'Closed' && !formData.premisesStatus) {
+      warnings.push('premisesStatus should be specified when house status is Closed');
+    }
+
+    // TPC validation for shifted forms (accept either tpcName or nameOfTpc)
+    if (formData.tpcMetPerson1 && !formData.nameOfTpc1 && !formData.tpcName1) {
+      warnings.push('tpcName1 should be specified when tpcMetPerson1 is selected');
+    }
+    if (
+      formData.tpcMetPerson1 &&
+      (formData.nameOfTpc1 || formData.tpcName1) &&
+      !formData.tpcConfirmation1
+    ) {
       warnings.push('tpcConfirmation1 should be specified when TPC person 1 is provided');
     }
   }
@@ -242,8 +260,8 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
     if (formData.houseStatus === 'Closed' && !formData.stayingPersonName) {
       warnings.push('stayingPersonName should be specified when house status is Closed');
     }
-    if (formData.houseStatus === 'Opened' && !formData.metPersonName) {
-      warnings.push('metPersonName should be specified when house status is Opened');
+    if (formData.houseStatus === 'Open' && !formData.metPersonName) {
+      warnings.push('metPersonName should be specified when house status is Open');
     }
   }
 
@@ -257,9 +275,6 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
   }
 
   // Common validations for all forms
-  if (formData.finalStatus === 'Hold' && !formData.holdReason) {
-    warnings.push('holdReason should be specified when finalStatus is Hold');
-  }
 
   // Society nameplate conditional validation
   if (formData.societyNamePlateStatus === 'Sighted' && !formData.nameOnSocietyBoard) {
