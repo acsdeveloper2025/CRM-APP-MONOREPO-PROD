@@ -1744,7 +1744,17 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
       LEFT JOIN areas ar ON vt.area_id = ar.id
       LEFT JOIN users u ON vt.assigned_to = u.id
       LEFT JOIN users bu ON c.created_by_backend_user = bu.id
-      LEFT JOIN task_form_submissions tfs ON vt.id = tfs.verification_task_id
+      -- Collapse to the latest form submission per task. A straight LEFT JOIN
+      -- fans out when a task has multiple submissions (common for re-tests),
+      -- producing duplicate rows with the same task_id — crashed the MIS
+      -- table's React keys.
+      LEFT JOIN LATERAL (
+        SELECT id, form_type, submitted_at, validation_status
+        FROM task_form_submissions
+        WHERE verification_task_id = vt.id
+        ORDER BY submitted_at DESC NULLS LAST, id DESC
+        LIMIT 1
+      ) tfs ON true
 
       ${whereClause}
 
@@ -2008,7 +2018,13 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
       LEFT JOIN users u ON vt.assigned_to = u.id
       LEFT JOIN users bu ON c.created_by_backend_user = bu.id
-      LEFT JOIN task_form_submissions tfs ON vt.id = tfs.verification_task_id
+      LEFT JOIN LATERAL (
+        SELECT id, form_type, submitted_at, validation_status
+        FROM task_form_submissions
+        WHERE verification_task_id = vt.id
+        ORDER BY submitted_at DESC NULLS LAST, id DESC
+        LIMIT 1
+      ) tfs ON true
       ${whereClause}
       ORDER BY vt.created_at DESC
     `;
