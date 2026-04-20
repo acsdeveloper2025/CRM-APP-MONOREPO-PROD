@@ -582,16 +582,37 @@ export class VerificationAttachmentController {
         queryParams.push(submissionId);
       }
 
-      const result = await query(
-        `SELECT
-          id, filename, original_name, mime_type, file_size, file_path,
-          thumbnail_path, uploaded_by, geo_location, photo_type,
-          submission_id, verification_type, created_at
-        FROM verification_attachments
-        ${whereClause}
-        ORDER BY created_at ASC`,
-        queryParams
-      );
+      const runImagesQuery = async (where: string, params: QueryParams) =>
+        query(
+          `SELECT
+            id, filename, original_name, mime_type, file_size, file_path,
+            thumbnail_path, uploaded_by, geo_location, photo_type,
+            submission_id, verification_type, created_at
+          FROM verification_attachments
+          ${where}
+          ORDER BY created_at ASC`,
+          params
+        );
+
+      let result = await runImagesQuery(whereClause, queryParams);
+
+      // Some older attachment rows have NULL submission_id (insert path
+      // didn't populate it). If a submissionId filter was requested and
+      // returned nothing, fall back to the per-case query so the admin
+      // doesn't see an empty page for data that exists.
+      if (result.rows.length === 0 && submissionId) {
+        logger.warn('⚠️  submissionId filter returned 0 rows; re-querying without submissionId', {
+          caseUuid,
+          submissionId,
+        });
+        const fallbackWhere = verificationType
+          ? 'WHERE case_id = $1 AND verification_type = $2'
+          : 'WHERE case_id = $1';
+        const fallbackParams: QueryParams = verificationType
+          ? [caseUuid, verificationType]
+          : [caseUuid];
+        result = await runImagesQuery(fallbackWhere, fallbackParams);
+      }
 
       // Phase B3: camelizeRow now replaces (rather than aliases)
       // snake_case keys, so the result rows have camelCase

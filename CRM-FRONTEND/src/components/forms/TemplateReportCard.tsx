@@ -82,7 +82,10 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
       setGenerating(true);
       setError(null);
 
-      const response = await apiService.post<{
+      // NOTE: this endpoint returns a FLAT body, not the standard
+      // { success, data: { ... } } envelope. Read fields off the top-level
+      // response object. Using postRaw so response.data is the HTTP body.
+      const raw = await apiService.postRaw<{
         success: boolean;
         reportId: string;
         report: string;
@@ -90,15 +93,16 @@ export const TemplateReportCard: React.FC<TemplateReportCardProps> = ({
         error?: string;
       }>(`/template-reports/cases/${caseId}/submissions/${submissionId || 'latest'}/generate`);
 
-      if (response.success && response.data) {
+      const body = raw.data;
+      if (body.success && body.reportId) {
         setReport({
-          id: response.data.reportId,
-          content: response.data.report,
-          metadata: response.data.metadata,
+          id: body.reportId,
+          content: body.report,
+          metadata: body.metadata,
           createdAt: new Date().toISOString(),
         });
       } else {
-        throw new Error(response.message || 'Failed to generate report');
+        throw new Error(body.error || 'Failed to generate report');
       }
     } catch (err: unknown) {
       const error = err as Error;
