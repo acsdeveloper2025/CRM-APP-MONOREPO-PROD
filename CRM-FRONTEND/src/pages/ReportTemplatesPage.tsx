@@ -84,7 +84,7 @@ const EMPTY_FORM: TemplateFormData = {
 
 const PAGE_SIZES: ReportTemplatePageSize[] = ['A4', 'LETTER', 'LEGAL'];
 const PAGE_ORIENTATIONS: ReportTemplatePageOrientation[] = ['portrait', 'landscape'];
-const MAX_HTML_BYTES = 512 * 1024;
+const MAX_HTML_BYTES = 4 * 1024 * 1024;
 
 // ---------------------------------------------------------------------------
 // Page
@@ -251,46 +251,31 @@ export function ReportTemplatesPage() {
         return;
       }
       setForm((f) => ({ ...f, htmlContent: data.htmlContent }));
+      const pages = data.usage.pagesCount ?? 0;
       if (data.validatedOk) {
         setValidationMessage(
-          `✅ Converted by ${data.model} in ${Math.round(data.usage.elapsedMs / 100) / 10}s — ready to review.`
+          `✅ Extracted ${pages} page(s) in ${Math.round(data.usage.elapsedMs / 100) / 10}s — review layout + placeholders.`
         );
         toast.success('PDF converted to template draft');
       } else {
         setValidationMessage(
-          `⚠️ Converted, but the draft did not compile: ${data.validationError ?? 'unknown error'}. Edit and Validate to fix.`
+          `⚠️ Draft did not compile: ${data.validationError ?? 'unknown error'}. Edit and Validate to fix.`
         );
         toast.warning('Draft generated but needs manual fixes');
       }
     } catch (err: unknown) {
-      // The backend returns a structured { success, message, error: { code } }
-      // body on failure. Extract the user-facing message rather than showing
-      // a generic Axios error string. AxiosError carries the parsed body on
-      // err.response.data.
+      // Backend returns { success, message, error: { code } } on failure.
       let msg = 'Failed to convert PDF';
-      let durationMs = 7000;
       if (err && typeof err === 'object' && 'response' in err) {
         const res = (err as { response?: { status?: number; data?: unknown } }).response;
-        const body = res?.data as
-          | { message?: string; error?: { code?: string; detail?: string } }
-          | undefined;
+        const body = res?.data as { message?: string } | undefined;
         if (body?.message) {
           msg = body.message;
-        }
-        // Billing / rate limit / auth errors get a longer toast — they're
-        // operator-actionable, not transient.
-        const code = body?.error?.code;
-        if (
-          code === 'AI_INSUFFICIENT_CREDITS' ||
-          code === 'AI_AUTH_ERROR' ||
-          code === 'AI_RATE_LIMITED'
-        ) {
-          durationMs = 15000;
         }
       } else if (err instanceof Error) {
         msg = err.message;
       }
-      toast.error(msg, { duration: durationMs });
+      toast.error(msg, { duration: 7000 });
     } finally {
       setConverting(false);
     }
@@ -711,7 +696,7 @@ export function ReportTemplatesPage() {
                   <label
                     htmlFor="report-template-pdf-convert"
                     className={`inline-flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-accent ${converting ? 'pointer-events-none opacity-60' : ''}`}
-                    title="Upload a bank's PDF report format — Claude converts it to a Handlebars template draft"
+                    title="Upload a bank's PDF report format — we extract text locally and bind known labels to placeholders"
                   >
                     {converting ? (
                       <Loader2 className="h-3 w-3 animate-spin" />

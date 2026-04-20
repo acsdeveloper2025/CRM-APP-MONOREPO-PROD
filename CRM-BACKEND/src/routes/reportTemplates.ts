@@ -16,6 +16,7 @@ import {
   generateReport,
   getContextPreview,
   convertFromPdf,
+  getContextSchema,
 } from '@/controllers/reportTemplatesController';
 
 // Multer config for the PDF → Handlebars converter. Memory storage because
@@ -152,6 +153,11 @@ router.get(
   handleValidationErrors,
   getTemplateByConfig
 );
+
+// Static catalog of every placeholder the render context exposes.
+// Must be declared BEFORE `GET /:id` so "context-schema" doesn't hit the
+// numeric-id validator.
+router.get('/context-schema', authorize('report_template.manage'), getContextSchema);
 
 router.post(
   '/validate',
