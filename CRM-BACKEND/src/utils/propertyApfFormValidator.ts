@@ -204,27 +204,10 @@ function getRequiredFieldsByFormType(formType: string): string[] {
 function validateConditionalFields(formData: Record<string, unknown>, formType: string): string[] {
   const warnings: string[] = [];
 
-  // Property APF activity↔finalStatus consistency (2026-04-19 rule).
-  // The controller already auto-corrects; we emit a warning for audit trails
-  // when the agent's initial pick was inconsistent with the activity.
-  const activity =
-    typeof formData.constructionActivity === 'string'
-      ? formData.constructionActivity.toUpperCase()
-      : '';
-  const finalStatusStr = typeof formData.finalStatus === 'string' ? formData.finalStatus : '';
-  if (activity === 'SEEN') {
-    if (finalStatusStr && !['Positive', 'Refer'].includes(finalStatusStr)) {
-      warnings.push(
-        `finalStatus='${finalStatusStr}' is not allowed for constructionActivity=SEEN (expected Positive or Refer)`
-      );
-    }
-  } else if (activity === 'CONSTRUCTION IS STOP' || activity === 'PLOT IS VACANT') {
-    if (finalStatusStr && !['Negative', 'Refer'].includes(finalStatusStr)) {
-      warnings.push(
-        `finalStatus='${finalStatusStr}' is not allowed for constructionActivity=${activity} (expected Negative or Refer)`
-      );
-    }
-  }
+  // NOTE (C25, 2026-04-20): activity↔finalStatus consistency warning removed.
+  // All four finalStatus options (Positive/Negative/Refer/Fraud) are now valid
+  // on every Property APF form regardless of constructionActivity. The
+  // form_type derivation in the controller still applies.
 
   if (formType === 'POSITIVE') {
     // APF validity conditional validation
