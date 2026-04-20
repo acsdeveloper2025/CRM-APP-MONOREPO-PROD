@@ -465,25 +465,118 @@ export class MobileLocationController {
     }
   }
 
-  // Helper method for reverse geocoding
-  // eslint-disable-next-line @typescript-eslint/require-await
+  // Helper method for reverse geocoding.
+  //
+  // C8 (mobile audit 2026-04-20, revised 2026-04-21): hits Google
+  // Geocoding API using a server-side-only key stored in
+  // process.env.GOOGLE_GEOCODING_API_KEY. The Google Cloud key is
+  // IP-restricted to this production server and API-restricted to
+  // "Geocoding API" — it never ships in the mobile binary.
+  //
+  // Mobile's LocationService.getAddressFromCoordinates calls
+  // GET /mobile/location/reverse-geocode?latitude=X&longitude=Y and
+  // this helper returns the assembled human-readable address. Nearly
+  // every valid Google response is usable, so we fall back to
+  // formattedAddress if our structured extractor picks up no parts.
   private static async reverseGeocodeHelper(
-    _latitude: number,
-    _longitude: number
+    latitude: number,
+    longitude: number
   ): Promise<string | null> {
-    try {
-      // In production, use Google Maps API or similar service
-      // For now, return a mock address
-      const mockAddresses = [
-        '123 Main Street, Mumbai, Maharashtra 400001',
-        '456 Park Avenue, Delhi, Delhi 110001',
-        '789 Commercial Street, Bangalore, Karnataka 560001',
-      ];
-
-      return mockAddresses[Math.floor(Math.random() * mockAddresses.length)];
-    } catch (error) {
-      logger.error('Reverse geocoding error:', error);
+    const apiKey = process.env.GOOGLE_GEOCODING_API_KEY;
+    if (!apiKey) {
+      logger.warn('GOOGLE_GEOCODING_API_KEY not set — reverse geocoding disabled');
       return null;
+    }
+
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${encodeURIComponent(
+      `${latitude},${longitude}`
+    )}&key=${encodeURIComponent(apiKey)}&language=en`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) {
+        logger.warn(`Google Geocoding HTTP ${response.status} for (${latitude},${longitude})`);
+        return null;
+      }
+
+      const body = (await response.json()) as {
+        status?: string;
+        results?: Array<{
+          formatted_address?: string;
+          address_components?: Array<{
+            long_name?: string;
+            short_name?: string;
+            types?: string[];
+          }>;
+        }>;
+      };
+
+      if (body.status !== 'OK' || !body.results || body.results.length === 0) {
+        logger.warn(`Google Geocoding status=${body.status} for (${latitude},${longitude})`);
+        return null;
+      }
+
+      const best = body.results[0];
+      const components = best.address_components || [];
+      const extract = (type: string): string => {
+        const comp = components.find(c => Array.isArray(c.types) && c.types.includes(type));
+        return comp?.long_name || '';
+      };
+
+      const parts: string[] = [];
+      const streetNum = extract('street_number');
+      const route = extract('route');
+      if (streetNum && route) {
+        parts.push(`${streetNum}, ${route}`);
+      } else if (route) {
+        parts.push(route);
+      }
+
+      const premise = extract('premise') || extract('subpremise');
+      if (premise) {
+        parts.push(premise);
+      }
+
+      const sublocality =
+        extract('sublocality_level_1') || extract('sublocality') || extract('neighborhood');
+      if (sublocality) {
+        parts.push(sublocality);
+      }
+
+      const locality = extract('locality') || extract('administrative_area_level_3');
+      if (locality) {
+        parts.push(locality);
+      }
+
+      const district = extract('administrative_area_level_2');
+      if (district && district !== locality) {
+        parts.push(district);
+      }
+
+      const state = extract('administrative_area_level_1');
+      if (state) {
+        parts.push(state);
+      }
+
+      const pincode = extract('postal_code');
+      if (pincode) {
+        parts.push(pincode);
+      }
+
+      const country = extract('country');
+      if (country) {
+        parts.push(country);
+      }
+
+      return parts.length > 0 ? parts.join(', ') : best.formatted_address || null;
+    } catch (error) {
+      logger.error('Google reverse geocoding error:', error);
+      return null;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
