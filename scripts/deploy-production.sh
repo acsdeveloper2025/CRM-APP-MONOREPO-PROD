@@ -390,24 +390,25 @@ install_dependencies() {
 }
 
 # Build applications
+# NOTE: Builds run unconditionally once we reach this step. The prior
+# per-component skip (gated on BACKEND_CHANGED / FRONTEND_CHANGED) was
+# unreliable — multi-commit pushes and retries of a previously-failed
+# deploy could leave the compiled dist/ stale on disk while the remote
+# source was current. Paying 30-60s to always rebuild is the correct
+# trade-off. The FORCE_REBUILD flag is still read for compatibility but
+# is no longer load-bearing.
 build_applications() {
     print_header "🏗️ Building Applications"
 
-    # Build backend
-    if [ "$BACKEND_CHANGED" = "true" ] || [ "$FORCE_REBUILD" = "true" ]; then
-        print_info "Building backend..."
-        cd "$PROJECT_ROOT/CRM-BACKEND"
-        npm run build
-        print_status "Backend built successfully"
-    fi
+    print_info "Building backend..."
+    cd "$PROJECT_ROOT/CRM-BACKEND"
+    npm run build
+    print_status "Backend built successfully"
 
-    # Build frontend
-    if [ "$FRONTEND_CHANGED" = "true" ] || [ "$FORCE_REBUILD" = "true" ]; then
-        print_info "Building frontend..."
-        cd "$PROJECT_ROOT/CRM-FRONTEND"
-        npm run build
-        print_status "Frontend built successfully"
-    fi
+    print_info "Building frontend..."
+    cd "$PROJECT_ROOT/CRM-FRONTEND"
+    npm run build
+    print_status "Frontend built successfully"
 }
 
 # Run database migrations
