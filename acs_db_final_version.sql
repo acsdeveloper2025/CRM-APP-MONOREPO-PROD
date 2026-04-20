@@ -6442,7 +6442,7 @@ CREATE TABLE public.property_apf_verification_reports (
     is_final boolean DEFAULT false,
     CONSTRAINT chk_property_apf_verification_completed_units CHECK (((completed_units IS NULL) OR ((completed_units >= 0) AND (completed_units <= total_units)))),
     CONSTRAINT chk_property_apf_verification_completion_percentage CHECK (((project_completion_percentage IS NULL) OR ((project_completion_percentage >= 0) AND (project_completion_percentage <= 100)))),
-    CONSTRAINT chk_property_apf_verification_final_status CHECK (((final_status)::text = ANY (ARRAY[('Positive'::character varying)::text, ('Negative'::character varying)::text, ('Refer'::character varying)::text]))),
+    CONSTRAINT chk_property_apf_verification_final_status CHECK (((final_status)::text = ANY (ARRAY[('Positive'::character varying)::text, ('Negative'::character varying)::text, ('Refer'::character varying)::text, ('Fraud'::character varying)::text]))),
     CONSTRAINT chk_property_apf_verification_form_type CHECK (((form_type)::text = ANY (ARRAY[('POSITIVE'::character varying)::text, ('NEGATIVE'::character varying)::text, ('ENTRY_RESTRICTED'::character varying)::text, ('UNTRACEABLE'::character varying)::text]))),
     CONSTRAINT chk_property_apf_verification_property_age CHECK (((property_age IS NULL) OR ((property_age >= 0) AND (property_age <= 100)))),
     CONSTRAINT chk_property_apf_verification_total_units CHECK (((total_units IS NULL) OR ((total_units >= 1) AND (total_units <= 10000))))
