@@ -366,7 +366,7 @@ export class MobileCaseController {
           SELECT case_id, COUNT(*) as attachment_count
           FROM attachments
           GROUP BY case_id
-        ) att_count ON att_count.case_id = c.case_id
+        ) att_count ON att_count.case_id = c.id
         ${whereSql}
         ORDER BY c.priority DESC, c.created_at DESC
         LIMIT $${vals.length + 2} OFFSET $${vals.length + 3}`;

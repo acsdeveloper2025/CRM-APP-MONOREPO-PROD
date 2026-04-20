@@ -504,7 +504,7 @@ export class MobileSyncController {
            SELECT case_id, COUNT(*) as attachment_count
            FROM attachments
            GROUP BY case_id
-         ) att_count ON att_count.case_id = c.case_id
+         ) att_count ON att_count.case_id = c.id
          WHERE vtask.id IS NOT NULL
            AND (
              c.updated_at > $${syncTimestampParamIndex}
