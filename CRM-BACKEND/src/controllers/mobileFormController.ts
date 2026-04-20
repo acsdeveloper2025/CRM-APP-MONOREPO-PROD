@@ -5370,14 +5370,18 @@ export class MobileFormController {
       let formType = detected.formType;
       let verificationOutcome = detected.verificationOutcome;
 
-      // Property APF rule (2026-04-19): constructionActivity drives the
-      // Positive/Negative split, analogous to how houseStatus drives Door
-      // Open/Closed for Residence.
-      //   SEEN                 → POSITIVE template + finalStatus in {Positive, Refer}
-      //   CONSTRUCTION IS STOP → NEGATIVE template + finalStatus in {Negative, Refer}
-      //   PLOT IS VACANT       → NEGATIVE template + finalStatus in {Negative, Refer}
+      // Property APF rule (2026-04-19, revised 2026-04-20): constructionActivity
+      // drives the Positive/Negative form_type split, analogous to how
+      // houseStatus drives Door Open/Closed for Residence.
+      //   SEEN                 → POSITIVE template
+      //   CONSTRUCTION IS STOP → NEGATIVE template
+      //   PLOT IS VACANT       → NEGATIVE template
       // ERT and UNTRACEABLE outcomes keep their own form_type values; the
       // rule only applies when neither is present.
+      //
+      // NOTE (C25, 2026-04-20): finalStatus is no longer constrained by
+      // activity. All four options (Positive/Negative/Refer/Fraud) are valid
+      // on every form; the agent's pick is preserved verbatim.
       const activityRaw = formData.constructionActivity;
       const activity = typeof activityRaw === 'string' ? activityRaw.toUpperCase() : '';
       const isErtOrUt = formType === 'ENTRY_RESTRICTED' || formType === 'UNTRACEABLE';
@@ -5400,19 +5404,6 @@ export class MobileFormController {
           );
           formType = derivedType;
           verificationOutcome = derivedType === 'POSITIVE' ? 'Positive' : 'Negative';
-        }
-
-        // Enforce the finalStatus allow-list per activity. If the agent's
-        // pick is inconsistent, override to the activity-default.
-        const allowed =
-          activity === 'SEEN' ? new Set(['Positive', 'Refer']) : new Set(['Negative', 'Refer']);
-        const current = typeof formData.finalStatus === 'string' ? formData.finalStatus : '';
-        if (!allowed.has(current)) {
-          const corrected = activity === 'SEEN' ? 'Positive' : 'Negative';
-          logger.warn(
-            `⚠️ Property APF: finalStatus='${current}' not allowed for constructionActivity=${activity}; correcting to '${corrected}'`
-          );
-          formData.finalStatus = corrected;
         }
       }
 
