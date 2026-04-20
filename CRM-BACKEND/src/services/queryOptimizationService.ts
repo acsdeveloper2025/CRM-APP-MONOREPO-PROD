@@ -187,7 +187,7 @@ export class QueryOptimizationService {
       LEFT JOIN users u ON c.assigned_to = u.id
       LEFT JOIN products p ON c.product_id = p.id
       LEFT JOIN verification_types vt ON c.verification_type_id = vt.id
-      LEFT JOIN attachments a ON c.case_id = a.case_id
+      LEFT JOIN attachments a ON c.id = a.case_id
       LEFT JOIN audit_logs al ON c.case_id::text = al.entity_id AND al.entity_type = 'case'
       WHERE ($1::text IS NULL OR c.status = $1)
         AND ($2::uuid IS NULL OR c.assigned_to = $2)

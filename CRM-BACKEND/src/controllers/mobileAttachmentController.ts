@@ -249,12 +249,11 @@ export class MobileAttachmentController {
 
           // Save attachment to database with verification_task_id for field agents
           const attRes = await query(
-            `INSERT INTO attachments (case_id, case_id, filename, original_name, mime_type, file_size, file_path, uploaded_by, verification_task_id, created_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+            `INSERT INTO attachments (case_id, filename, original_name, mime_type, file_size, file_path, uploaded_by, verification_task_id, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
              RETURNING id, filename, original_name, mime_type, file_size, file_path, created_at`,
             [
               actualCaseId, // case_id (UUID)
-              existingCase.caseId, // caseId (integer)
               file.filename,
               file.originalname,
               file.mimetype,

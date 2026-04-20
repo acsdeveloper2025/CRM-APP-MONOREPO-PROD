@@ -361,7 +361,7 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
           u.employee_id,
           COUNT(a.id) as "attachmentCount"
         FROM residence_verification_reports r
-        LEFT JOIN cases c ON r.case_id = c.case_id
+        LEFT JOIN cases c ON r.case_id = c.id
         LEFT JOIN users u ON r.created_by = u.id
         LEFT JOIN attachments a ON a.case_id = c.id
         ${whereClause}
@@ -379,7 +379,7 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
           u.employee_id,
           COUNT(a.id) as "attachmentCount"
         FROM office_verification_reports o
-        LEFT JOIN cases c ON o.case_id = c.case_id
+        LEFT JOIN cases c ON o.case_id = c.id
         LEFT JOIN users u ON o.created_by = u.id
         LEFT JOIN attachments a ON a.case_id = c.id
         ${whereClause}
@@ -1126,8 +1126,8 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
         COUNT(DISTINCT o.id) as office_forms,
         COUNT(DISTINCT a.id) as attachments_uploaded
       FROM cases c
-      LEFT JOIN residence_verification_reports r ON c.case_id = r.case_id AND r.created_by = $1
-      LEFT JOIN office_verification_reports o ON c.case_id = o.case_id AND o.created_by = $1
+      LEFT JOIN residence_verification_reports r ON c.id = r.case_id AND r.created_by = $1
+      LEFT JOIN office_verification_reports o ON c.id = o.case_id AND o.created_by = $1
       LEFT JOIN attachments a ON c.id = a.case_id AND a.uploaded_by = $1
       ${whereClause}
       GROUP BY DATE(c.created_at)
