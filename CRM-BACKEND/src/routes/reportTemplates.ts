@@ -17,12 +17,13 @@ import {
   getContextPreview,
   convertFromPdf,
   getContextSchema,
+  previewHtml,
 } from '@/controllers/reportTemplatesController';
 
 // Multer config for the PDF → Handlebars converter. Memory storage because
-// we pass the bytes straight to Claude — no need to land on disk. 10 MB cap
-// comfortably covers real RCU report samples (the provided Shubham reference
-// was ~555 KB) while rejecting accidental giant uploads.
+// we pass the bytes straight to the local extractor — no need to land on
+// disk. 10 MB cap comfortably covers real RCU report samples while
+// rejecting accidental giant uploads.
 const pdfConverterUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -31,6 +32,22 @@ const pdfConverterUpload = multer({
       cb(null, true);
     } else {
       cb(new Error('Only PDF files are supported'));
+    }
+  },
+});
+
+// Multer config for logo/stamp uploads at report-generation time. Both
+// fields are optional; if present they replace the defaults the template
+// would otherwise use. Memory storage + 2 MB cap per file — these are
+// branding assets, not documents.
+const reportBrandingUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024, files: 2 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are supported for logo/stamp'));
     }
   },
 });
@@ -159,6 +176,11 @@ router.get(
 // numeric-id validator.
 router.get('/context-schema', authorize('report_template.manage'), getContextSchema);
 
+// Render a template with sample (or real) case context, return raw HTML.
+// Editor opens the response in a new tab so admins can see the filled-in
+// output before saving. Fast — no Puppeteer; Handlebars only.
+router.post('/preview-html', extendedTimeout, authorize('report_template.manage'), previewHtml);
+
 router.post(
   '/validate',
   authorize('report_template.manage'),
@@ -228,6 +250,10 @@ router.post(
   authorize('report.generate'),
   caseIdParamValidation,
   handleValidationErrors,
+  reportBrandingUpload.fields([
+    { name: 'logo', maxCount: 1 },
+    { name: 'stamp', maxCount: 1 },
+  ]),
   generateReport
 );
 

@@ -143,6 +143,20 @@ class ReportTemplatesService {
   }
 
   /**
+   * Render a template with sample/real context on the backend and return
+   * the rendered HTML string. The caller opens it in a new tab via a
+   * blob URL so admins can visually check layout + placeholder substitution
+   * before saving.
+   */
+  async previewHtml(payload: { htmlContent: string; sampleCaseId?: string }): Promise<string> {
+    const response = await apiService.postRaw<string>('/report-templates/preview-html', payload, {
+      responseType: 'text',
+      transformResponse: (data: string) => data,
+    });
+    return response.data;
+  }
+
+  /**
    * Fetch the authoritative Handlebars placeholder catalog from the backend.
    * Static per-deploy; the editor panel renders this to replace any hand-
    * mirrored field list that could drift from the real render context.
@@ -164,12 +178,35 @@ class ReportTemplatesService {
    * Generate a PDF for the given case. Returns the raw blob plus the
    * filename the server suggested via Content-Disposition. The caller
    * is responsible for triggering the browser download.
+   *
+   * Optional logo/stamp files are uploaded as multipart and override the
+   * template's default branding for this render only. Nothing is persisted.
    */
-  async generate(caseId: string): Promise<{ blob: Blob; filename: string }> {
+  async generate(
+    caseId: string,
+    branding?: { logo?: File | null; stamp?: File | null }
+  ): Promise<{ blob: Blob; filename: string }> {
+    const form = new FormData();
+    if (branding?.logo) {
+      form.append('logo', branding.logo);
+    }
+    if (branding?.stamp) {
+      form.append('stamp', branding.stamp);
+    }
+
+    const hasFiles = form.has('logo') || form.has('stamp');
+    const body = hasFiles ? form : undefined;
+    const config = hasFiles
+      ? {
+          responseType: 'blob' as const,
+          headers: { 'Content-Type': undefined as unknown as string },
+        }
+      : { responseType: 'blob' as const };
+
     const response = await apiService.postRaw<Blob>(
       `/report-templates/generate/${encodeURIComponent(caseId)}`,
-      undefined,
-      { responseType: 'blob' }
+      body,
+      config
     );
 
     const contentDisposition = response.headers['content-disposition'] as string | undefined;

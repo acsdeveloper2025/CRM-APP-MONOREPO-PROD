@@ -10,6 +10,7 @@ import {
   Sparkles,
   Wand2,
   Loader2,
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -226,6 +227,45 @@ export function ReportTemplatesPage() {
       setValidationMessage('✅ Template compiles successfully');
     } else {
       setValidationMessage(`❌ ${result.error ?? 'Compile error'}`);
+    }
+  };
+
+  const [previewing, setPreviewing] = useState(false);
+
+  const handlePreview = async () => {
+    if (!form.htmlContent.trim()) {
+      toast.error('Nothing to preview — HTML is empty');
+      return;
+    }
+    if (new Blob([form.htmlContent]).size > MAX_HTML_BYTES) {
+      toast.error(`HTML exceeds ${Math.round(MAX_HTML_BYTES / 1024)} KB limit`);
+      return;
+    }
+    setPreviewing(true);
+    try {
+      const html = await reportTemplatesService.previewHtml({ htmlContent: form.htmlContent });
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const win = window.open(url, '_blank');
+      if (!win) {
+        toast.error('Preview blocked by popup blocker — allow popups for localhost');
+        URL.revokeObjectURL(url);
+        return;
+      }
+      // Revoke on next tick so the browser has time to load the blob.
+      setTimeout(() => URL.revokeObjectURL(url), 5_000);
+      toast.success('Preview opened in new tab');
+    } catch (err: unknown) {
+      let msg = 'Failed to render preview';
+      if (err && typeof err === 'object' && 'response' in err) {
+        const r = (err as { response?: { data?: { message?: string } } }).response;
+        msg = r?.data?.message ?? msg;
+      } else if (err instanceof Error) {
+        msg = err.message;
+      }
+      toast.error(msg);
+    } finally {
+      setPreviewing(false);
     }
   };
 
@@ -740,6 +780,21 @@ export function ReportTemplatesPage() {
                     disabled={validateMutation.isPending}
                   >
                     <FileText className="mr-1 h-3 w-3" /> Validate
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void handlePreview()}
+                    disabled={previewing}
+                    title="Open the rendered template (with sample data) in a new tab"
+                  >
+                    {previewing ? (
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                    ) : (
+                      <Eye className="mr-1 h-3 w-3" />
+                    )}
+                    {previewing ? 'Rendering...' : 'Preview'}
                   </Button>
                 </div>
               </div>

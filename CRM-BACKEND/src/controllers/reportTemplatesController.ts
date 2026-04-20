@@ -770,6 +770,23 @@ export const generateReport = async (req: AuthenticatedRequest, res: Response) =
       generatedByName: userName,
     });
 
+    // Allow admins to override the client's logo + stamp per-render by
+    // uploading files in the multipart body. Logo/stamp are no longer
+    // stored per-client; they're supplied at generation time and embedded
+    // as base64 data URIs in the same spot the DB columns used to populate.
+    const files = (req as AuthenticatedRequest & { files?: Record<string, Express.Multer.File[]> })
+      .files;
+    if (files) {
+      const logoFile = files.logo?.[0];
+      const stampFile = files.stamp?.[0];
+      if (logoFile && logoFile.buffer) {
+        context.client.logoUrl = `data:${logoFile.mimetype};base64,${logoFile.buffer.toString('base64')}`;
+      }
+      if (stampFile && stampFile.buffer) {
+        context.client.stampUrl = `data:${stampFile.mimetype};base64,${stampFile.buffer.toString('base64')}`;
+      }
+    }
+
     const pageSize =
       resolved.template.pageSize === 'A4' ||
       resolved.template.pageSize === 'LETTER' ||
@@ -1046,4 +1063,222 @@ export const convertFromPdf = async (req: AuthenticatedRequest, res: Response) =
 export const getContextSchema = (_req: AuthenticatedRequest, res: Response) => {
   res.set('Cache-Control', 'public, max-age=600');
   return res.json({ success: true, data: { groups: REPORT_CONTEXT_SCHEMA } });
+};
+
+// ---------------------------------------------------------------------------
+// Sample context for preview when no real case is available. Shape mirrors
+// ReportContext exactly. Deterministic so the preview is reproducible; uses
+// tiny transparent PNG data URIs for logo/stamp so templates that reference
+// them don't blow up with empty <img>.
+// ---------------------------------------------------------------------------
+const TRANSPARENT_PNG_DATA_URI =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lxKUAAAAASUVORK5CYII=';
+
+function buildSampleReportContext(userId: string, userName: string | null) {
+  const now = new Date();
+  return {
+    client: {
+      id: 1,
+      name: 'Sample Client',
+      logoUrl: TRANSPARENT_PNG_DATA_URI,
+      stampUrl: TRANSPARENT_PNG_DATA_URI,
+      primaryColor: '#ff9800',
+      headerColor: '#ffeb3b',
+    },
+    product: { id: 1, name: 'Sample Product' },
+    case: {
+      id: '00000000-0000-0000-0000-000000000000',
+      caseNumber: 1001,
+      customerName: 'Ramesh Kumar',
+      customerPhone: '9876543210',
+      customerCallingCode: '+91',
+      panNumber: 'ABCDE1234F',
+      applicantType: 'APPLICANT',
+      backendContactNumber: '8765432109',
+      trigger: 'New case',
+      priority: 'MEDIUM',
+      status: 'COMPLETED',
+      pincode: '400001',
+      verificationOutcome: 'POSITIVE',
+      receivedDate: new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000),
+      completedDate: now,
+      formCompletionPercentage: 100,
+      totalTasksCount: 2,
+      completedTasksCount: 2,
+    },
+    applicants: [
+      {
+        id: '00000000-0000-0000-0000-000000000001',
+        name: 'Ramesh Kumar',
+        mobile: '9876543210',
+        role: 'APPLICANT',
+        panNumber: 'ABCDE1234F',
+      },
+      {
+        id: '00000000-0000-0000-0000-000000000002',
+        name: 'Sita Kumar',
+        mobile: '9876543211',
+        role: 'CO_APPLICANT',
+        panNumber: 'ABCDE5678G',
+      },
+    ],
+    tasks: [
+      {
+        id: '00000000-0000-0000-0000-000000000010',
+        taskNumber: 'VT-000001',
+        taskTitle: 'Residence Verification',
+        taskDescription: 'Verify applicant residence',
+        applicantType: 'APPLICANT',
+        verificationTypeId: 1,
+        verificationTypeName: 'Residence Verification',
+        status: 'COMPLETED',
+        verificationOutcome: 'POSITIVE',
+        priority: 'MEDIUM',
+        estimatedAmount: 500000,
+        actualAmount: 500000,
+        address: '101, Sample Building, Andheri East, Mumbai',
+        pincode: '400069',
+        assignedToId: '00000000-0000-0000-0000-000000000020',
+        assignedToName: 'Field Agent Sample',
+        assignedByName: 'Backend Sample',
+        assignedAt: new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000),
+        startedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+        completedAt: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000),
+        reviewedAt: now,
+        attachments: [
+          {
+            id: 1,
+            verificationTaskId: '00000000-0000-0000-0000-000000000010',
+            photoType: 'building',
+            filename: 'sample.jpg',
+            originalName: 'sample.jpg',
+            mimeType: 'image/jpeg',
+            fileSize: 0,
+            latitude: 19.1725,
+            longitude: 72.9567,
+            captureTime: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+            createdAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000),
+            url: TRANSPARENT_PNG_DATA_URI,
+          },
+        ],
+      },
+    ],
+    dataEntries: [
+      {
+        id: 1,
+        instanceIndex: 1,
+        instanceLabel: 'Primary',
+        isCompleted: true,
+        completedAt: now,
+        verificationTaskId: '00000000-0000-0000-0000-000000000010',
+        verificationTypeName: 'Residence Verification',
+        templateId: 1,
+        templateVersion: 1,
+        data: {
+          pickup_criteria: 'Mandatory',
+          rcu_status: 'Positive',
+          overall_remarks: 'Sample remarks — applicant verified positively.',
+        },
+      },
+    ],
+    totals: {
+      totalTasks: 2,
+      completedTasks: 2,
+      positiveTasks: 2,
+      negativeTasks: 0,
+      tatDays: 4,
+      photoCount: 6,
+    },
+    generation: {
+      generatedAt: now,
+      generatedByName: userName,
+      generatedById: userId,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/report-templates/preview-html
+// Body: { htmlContent, sampleCaseId? }
+// Compiles the given Handlebars template against either a real case's
+// context (if sampleCaseId provided) or a deterministic sample context, and
+// returns the rendered HTML. Returns text/html so the frontend can open it
+// in a new tab as-is. No PDF rendering — cheap, fast, no Puppeteer.
+// ---------------------------------------------------------------------------
+export const previewHtml = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { htmlContent, sampleCaseId } = req.body as {
+      htmlContent?: unknown;
+      sampleCaseId?: unknown;
+    };
+
+    if (typeof htmlContent !== 'string' || htmlContent.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'htmlContent is required',
+        error: { code: 'HTML_REQUIRED' },
+      });
+    }
+    if (Buffer.byteLength(htmlContent, 'utf8') > MAX_HTML_BYTES) {
+      return res.status(413).json({
+        success: false,
+        message: `htmlContent exceeds max size of ${MAX_HTML_BYTES} bytes`,
+        error: { code: 'HTML_TOO_LARGE' },
+      });
+    }
+
+    const validation = reportTemplateRenderer.validate(htmlContent);
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: `Template did not compile: ${validation.error ?? 'unknown error'}`,
+        error: { code: 'TEMPLATE_INVALID' },
+      });
+    }
+
+    const userRes = await query<{ name: string | null }>(`SELECT name FROM users WHERE id = $1`, [
+      userId,
+    ]);
+    const userName = userRes.rows[0]?.name ?? null;
+
+    let context: Record<string, unknown>;
+    if (typeof sampleCaseId === 'string' && sampleCaseId.trim().length > 0) {
+      try {
+        const real = await buildReportContext(sampleCaseId.trim(), {
+          generatedById: userId,
+          generatedByName: userName,
+        });
+        context = real as unknown as Record<string, unknown>;
+      } catch (err) {
+        if (err instanceof ReportCaseNotFoundError) {
+          return res.status(404).json({
+            success: false,
+            message: err.message,
+            error: { code: 'CASE_NOT_FOUND' },
+          });
+        }
+        throw err;
+      }
+    } else {
+      context = buildSampleReportContext(userId, userName) as unknown as Record<string, unknown>;
+    }
+
+    const compiled = reportTemplateRenderer.compile(htmlContent);
+    const rendered = compiled(context);
+
+    // Return raw HTML so the frontend can open it as a blob in a new tab.
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.set('Cache-Control', 'no-store');
+    res.set('X-Content-Type-Options', 'nosniff');
+    return res.send(rendered);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    logger.error('Template preview failed', { msg });
+    return res.status(500).json({
+      success: false,
+      message: `Failed to render preview: ${msg}`,
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
 };
