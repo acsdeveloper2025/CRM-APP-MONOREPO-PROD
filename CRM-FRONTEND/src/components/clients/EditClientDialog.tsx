@@ -1,7 +1,4 @@
-import { useEffect, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { Upload, Trash2 } from 'lucide-react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -84,9 +81,6 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
       headerColor: '',
     },
   });
-
-  const qc = useQueryClient();
-  const [brandingBusy, setBrandingBusy] = useState(false);
 
   // Fetch products for selection
   const { data: productsData } = useStandardizedQuery({
@@ -175,54 +169,6 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
 
   const onSubmit = (data: EditClientFormData) => {
     updateMutation.mutate(data);
-  };
-
-  // Immediate upload on file pick. Runs its own mutation outside the main
-  // form because the endpoint is multipart and returns the new URL, which
-  // we want to reflect in the preview before the user clicks Save.
-  const handleBrandingUpload = async (file: File, kind: 'logo' | 'stamp') => {
-    if (!client) {
-      return;
-    }
-    setBrandingBusy(true);
-    try {
-      if (kind === 'logo') {
-        await clientsService.uploadClientLogo(client.id, file);
-      } else {
-        await clientsService.uploadClientStamp(client.id, file);
-      }
-      toast.success(`${kind === 'logo' ? 'Logo' : 'Stamp'} uploaded`);
-      // Refresh the client detail query so preview shows the new URL.
-      await qc.invalidateQueries({ queryKey: ['client', client.id] });
-      await qc.invalidateQueries({ queryKey: ['clients'] });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : `Failed to upload ${kind}`;
-      toast.error(msg);
-    } finally {
-      setBrandingBusy(false);
-    }
-  };
-
-  const handleBrandingDelete = async (kind: 'logo' | 'stamp') => {
-    if (!client) {
-      return;
-    }
-    setBrandingBusy(true);
-    try {
-      if (kind === 'logo') {
-        await clientsService.deleteClientLogo(client.id);
-      } else {
-        await clientsService.deleteClientStamp(client.id);
-      }
-      toast.success(`${kind === 'logo' ? 'Logo' : 'Stamp'} removed`);
-      await qc.invalidateQueries({ queryKey: ['client', client.id] });
-      await qc.invalidateQueries({ queryKey: ['clients'] });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : `Failed to remove ${kind}`;
-      toast.error(msg);
-    } finally {
-      setBrandingBusy(false);
-    }
   };
 
   if (!client) {
@@ -585,110 +531,15 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                   />
                 </div>
 
-                <div className="rounded-md border p-4 space-y-4">
-                  <h4 className="text-sm font-medium text-gray-900">Logo</h4>
+                <div className="rounded-md border border-dashed p-4 space-y-2 bg-muted/20">
+                  <h4 className="text-sm font-medium text-gray-900">Logo & Stamp</h4>
                   <p className="text-xs text-gray-600">
-                    PNG / JPEG / WEBP / SVG. Max 2 MB. Uploaded immediately.
+                    Logo and agency stamp are now attached at report-generation time rather than
+                    stored per client. When you click <strong>Download Report</strong> on a case, a
+                    dialog lets you pick the logo and stamp for that specific PDF. Your choices are
+                    remembered for the browser session, so you don&apos;t re-pick across consecutive
+                    reports.
                   </p>
-                  <div className="flex items-start gap-4">
-                    <div className="h-24 w-24 border rounded bg-gray-50 flex items-center justify-center overflow-hidden">
-                      {clientData?.data?.logoUrl ? (
-                        <img
-                          src={clientData.data.logoUrl}
-                          alt="Client logo"
-                          className="max-h-full max-w-full object-contain"
-                        />
-                      ) : (
-                        <span className="text-xs text-gray-400">No logo</span>
-                      )}
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <label
-                        htmlFor="client-logo-upload"
-                        className="inline-flex cursor-pointer items-center gap-1 rounded-md border px-3 py-2 text-sm hover:bg-accent"
-                      >
-                        <Upload className="h-4 w-4" /> Upload Logo
-                      </label>
-                      <input
-                        id="client-logo-upload"
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                        className="hidden"
-                        disabled={brandingBusy}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            void handleBrandingUpload(file, 'logo');
-                          }
-                          e.target.value = '';
-                        }}
-                      />
-                      {clientData?.data?.logoUrl && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={brandingBusy}
-                          onClick={() => void handleBrandingDelete('logo')}
-                        >
-                          <Trash2 className="mr-1 h-4 w-4" /> Remove
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-md border p-4 space-y-4">
-                  <h4 className="text-sm font-medium text-gray-900">Agency Stamp</h4>
-                  <p className="text-xs text-gray-600">
-                    Shown near the verifier signature area on reports. Same file rules as logo.
-                  </p>
-                  <div className="flex items-start gap-4">
-                    <div className="h-24 w-24 border rounded bg-gray-50 flex items-center justify-center overflow-hidden">
-                      {clientData?.data?.stampUrl ? (
-                        <img
-                          src={clientData.data.stampUrl}
-                          alt="Agency stamp"
-                          className="max-h-full max-w-full object-contain"
-                        />
-                      ) : (
-                        <span className="text-xs text-gray-400">No stamp</span>
-                      )}
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <label
-                        htmlFor="client-stamp-upload"
-                        className="inline-flex cursor-pointer items-center gap-1 rounded-md border px-3 py-2 text-sm hover:bg-accent"
-                      >
-                        <Upload className="h-4 w-4" /> Upload Stamp
-                      </label>
-                      <input
-                        id="client-stamp-upload"
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                        className="hidden"
-                        disabled={brandingBusy}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            void handleBrandingUpload(file, 'stamp');
-                          }
-                          e.target.value = '';
-                        }}
-                      />
-                      {clientData?.data?.stampUrl && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={brandingBusy}
-                          onClick={() => void handleBrandingDelete('stamp')}
-                        >
-                          <Trash2 className="mr-1 h-4 w-4" /> Remove
-                        </Button>
-                      )}
-                    </div>
-                  </div>
                 </div>
               </TabsContent>
             </Tabs>
