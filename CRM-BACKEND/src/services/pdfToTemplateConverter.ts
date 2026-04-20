@@ -1,21 +1,22 @@
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
-import { convertPdfToHandlebarsTemplate, type PdfConversionResult } from './claudeAIService';
+import { extractPdfLocally, type LocalExtractionResult } from './pdfLocalExtractor';
 import { reportTemplateRenderer } from './reportTemplateRenderer';
 
 /**
  * PDF → Handlebars Template Converter (orchestration)
  *
- * Ties the Claude service to the CRM's data model. Given a PDF upload + a
- * selected (client, product), this:
- *   1. Loads the client + product names (used in the prompt).
- *   2. Loads the Data Entry Template fields for that pair (so Claude knows
- *      which `{{data.<key>}}` placeholders are valid).
- *   3. Calls Claude to generate the HTML.
+ * Ties the local PDF extractor to the CRM's data model. Given a PDF upload
+ * and a selected (client, product), this:
+ *   1. Loads the client + product names.
+ *   2. Loads the Data Entry Template fields for that pair (so the extractor
+ *      knows which `{{data.<key>}}` placeholders can be auto-bound).
+ *   3. Runs local PDF text extraction + placeholder binding.
  *   4. Runs a Handlebars compile check on the output — fails fast if the
- *      model produced invalid syntax, rather than letting the admin paste
- *      something that'll break on save.
+ *      generator produced invalid syntax.
  *   5. Returns the verified HTML + telemetry.
+ *
+ * No external APIs, no AI, no per-request cost. Fully offline.
  */
 
 export interface PdfConversionRequest {
@@ -24,14 +25,13 @@ export interface PdfConversionRequest {
   productId: number;
 }
 
-export interface PdfConversionOutcome extends PdfConversionResult {
-  // Provenance so the admin UI can display cost/latency info.
+export interface PdfConversionOutcome extends LocalExtractionResult {
+  /** Compile-check outcome on the generated HTML. */
   validatedOk: boolean;
   validationError?: string;
-  /**
-   * The data entry template fields used as context. Handy for debugging if
-   * the admin is surprised Claude didn't use a specific placeholder.
-   */
+  /** Stable identifier for the generator, surfaced in admin UI. */
+  model: string;
+  /** The data entry template fields used as context. */
   dataEntryFieldsUsed: Array<{ fieldKey: string; fieldLabel: string }>;
 }
 
@@ -53,10 +53,12 @@ interface DataEntryFieldRow {
   fieldType: string;
 }
 
+const GENERATOR_ID = 'local-pdf-extractor';
+
 export async function convertPdfToTemplate(
   req: PdfConversionRequest
 ): Promise<PdfConversionOutcome> {
-  // 1. Validate the pair exists and fetch names in a single query.
+  // 1. Validate the pair exists and fetch names.
   const pairRes = await query<ClientProductRow>(
     `SELECT c.name AS client_name, p.name AS product_name
      FROM clients c, products p
@@ -70,9 +72,9 @@ export async function convertPdfToTemplate(
     );
   }
 
-  // 2. Fetch the active Data Entry Template fields so Claude sees which
-  //    {{data.<key>}} placeholders are valid. If no template is configured
-  //    yet, Claude still produces a layout — just without dynamic fields.
+  // 2. Fetch active Data Entry Template fields for placeholder auto-binding.
+  //    If no template is configured, extraction still produces a layout —
+  //    just without dynamic field bindings.
   const fieldsRes = await query<DataEntryFieldRow>(
     `SELECT f.field_key, f.field_label, f.field_type
      FROM case_data_template_fields f
@@ -86,30 +88,30 @@ export async function convertPdfToTemplate(
   );
   const dataEntryFields = fieldsRes.rows;
 
-  // 3. Call Claude — the only AI backend in this codebase.
-  const conversion: PdfConversionResult = await convertPdfToHandlebarsTemplate(req.pdfBuffer, {
+  // 3. Run local extractor.
+  const extraction = await extractPdfLocally(req.pdfBuffer, {
     clientName: pair.clientName,
     productName: pair.productName,
     dataEntryFields,
   });
 
-  // 4. Compile-check the returned template. If Claude's output doesn't
-  //    compile, we still return it to the admin (so they can inspect and
-  //    fix), but flag validatedOk=false with the error for the UI to show.
-  const validation = reportTemplateRenderer.validate(conversion.html);
+  // 4. Compile-check the generated template. We still return the draft on
+  //    failure so the admin can inspect, but flag validatedOk=false.
+  const validation = reportTemplateRenderer.validate(extraction.html);
 
   logger.info('PDF conversion outcome', {
     clientId: req.clientId,
     productId: req.productId,
     validated: validation.valid,
-    htmlBytes: Buffer.byteLength(conversion.html, 'utf8'),
-    elapsedMs: conversion.elapsedMs,
-    cacheReadTokens: conversion.cacheReadTokens,
-    cacheCreationTokens: conversion.cacheCreationTokens,
+    htmlBytes: Buffer.byteLength(extraction.html, 'utf8'),
+    elapsedMs: extraction.elapsedMs,
+    pagesCount: extraction.pagesCount,
+    textItemsCount: extraction.textItemsCount,
   });
 
   return {
-    ...conversion,
+    ...extraction,
+    model: GENERATOR_ID,
     validatedOk: validation.valid,
     validationError: validation.valid ? undefined : validation.error,
     dataEntryFieldsUsed: dataEntryFields.map(f => ({

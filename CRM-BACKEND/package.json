@@ -60,7 +60,6 @@
     "npm": ">=8.0.0"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.90.0",
     "@opentelemetry/auto-instrumentations-node": "^0.72.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.214.0",
     "@opentelemetry/resources": "^2.6.1",

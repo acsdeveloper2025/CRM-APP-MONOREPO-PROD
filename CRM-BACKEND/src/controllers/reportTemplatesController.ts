@@ -6,12 +6,17 @@ import type { QueryParams } from '@/types/database';
 import { reportTemplateRenderer } from '@/services/reportTemplateRenderer';
 import { buildReportContext, ReportCaseNotFoundError } from '@/services/reportContextBuilder';
 import { convertPdfToTemplate, PdfConversionInputError } from '@/services/pdfToTemplateConverter';
+import { REPORT_CONTEXT_SCHEMA } from '@/services/reportContextSchema';
 
 // Hard cap on the raw HTML size a template can hold. A real RCU report
 // template (header + 10 sections + loops + CSS) is usually 20-40 KB. 512 KB
 // is generous for any realistic future expansion and keeps JSON payloads
 // bounded so the admin UI never has to stream the body.
-const MAX_HTML_BYTES = 512 * 1024;
+// Raised from 512 KB → 4 MB to accommodate pixel-perfect PDF extractions
+// which embed per-page PNG backgrounds as base64 data URIs. A typical 4-page
+// RCU report with photos runs ~1.5-2 MB; 4 MB leaves headroom without making
+// the editor sluggish on save.
+const MAX_HTML_BYTES = 4 * 1024 * 1024;
 
 // Mirrors the page_size CHECK constraint in migration 025.
 const ALLOWED_PAGE_SIZES = new Set(['A4', 'LETTER', 'LEGAL']);
@@ -1007,11 +1012,9 @@ export const convertFromPdf = async (req: AuthenticatedRequest, res: Response) =
         model: outcome.model,
         dataEntryFieldsUsed: outcome.dataEntryFieldsUsed,
         usage: {
-          inputTokens: outcome.inputTokens,
-          outputTokens: outcome.outputTokens,
-          cacheReadTokens: outcome.cacheReadTokens,
-          cacheCreationTokens: outcome.cacheCreationTokens,
           elapsedMs: outcome.elapsedMs,
+          pagesCount: outcome.pagesCount,
+          textItemsCount: outcome.textItemsCount,
         },
       },
     });
@@ -1023,67 +1026,6 @@ export const convertFromPdf = async (req: AuthenticatedRequest, res: Response) =
         error: { code: 'INVALID_INPUT' },
       });
     }
-    // Narrow typed Anthropic SDK errors so the admin gets a useful message.
-    const err = error as {
-      status?: number;
-      message?: string;
-      name?: string;
-      error?: { error?: { type?: string; message?: string } };
-    } | null;
-    if (err && typeof err === 'object' && typeof err.status === 'number') {
-      // The SDK's APIError carries the parsed body on `.error`; the nested
-      // `.error.error.message` is what the API actually returned.
-      const apiMsg = err.error?.error?.message ?? err.message ?? '';
-      const lowerMsg = apiMsg.toLowerCase();
-
-      // Billing / credit issues come back as 400 invalid_request_error but
-      // are really operator-actionable (top up credits) — surface them
-      // clearly to the admin instead of a generic 400.
-      if (
-        err.status === 400 &&
-        (lowerMsg.includes('credit balance') || lowerMsg.includes('billing'))
-      ) {
-        logger.error('Claude billing/credits issue', { apiMsg });
-        return res.status(402).json({
-          success: false,
-          message:
-            'AI service has no credits available. An administrator must add credits at https://console.anthropic.com before the PDF converter can be used.',
-          error: { code: 'AI_INSUFFICIENT_CREDITS', detail: apiMsg },
-        });
-      }
-      if (err.status === 401) {
-        logger.error('Claude auth failed — check ANTHROPIC_API_KEY', { apiMsg });
-        return res.status(500).json({
-          success: false,
-          message: 'AI service authentication failed. Please contact an administrator.',
-          error: { code: 'AI_AUTH_ERROR' },
-        });
-      }
-      if (err.status === 429) {
-        return res.status(429).json({
-          success: false,
-          message: 'AI service is rate-limited. Try again in a moment.',
-          error: { code: 'AI_RATE_LIMITED' },
-        });
-      }
-      if (err.status >= 500) {
-        return res.status(502).json({
-          success: false,
-          message: 'AI service is unavailable. Please try again.',
-          error: { code: 'AI_UPSTREAM_ERROR' },
-        });
-      }
-      // Other 4xx — echo the Anthropic-supplied message so admins see the
-      // actual problem (bad request shape, unsupported file, etc.) rather
-      // than a generic 500.
-      if (err.status >= 400 && err.status < 500 && apiMsg) {
-        return res.status(err.status).json({
-          success: false,
-          message: `AI service rejected the request: ${apiMsg}`,
-          error: { code: 'AI_REJECTED' },
-        });
-      }
-    }
     const msg = error instanceof Error ? error.message : String(error);
     const stack = error instanceof Error ? error.stack : undefined;
     logger.error('PDF → template conversion failed', { msg, stack });
@@ -1093,4 +1035,15 @@ export const convertFromPdf = async (req: AuthenticatedRequest, res: Response) =
       error: { code: 'INTERNAL_ERROR' },
     });
   }
+};
+
+// ---------------------------------------------------------------------------
+// GET /api/report-templates/context-schema
+// Returns the authoritative Handlebars placeholder catalog. The editor's
+// "Available placeholders" panel fetches this so it never drifts from the
+// actual render context. Static across deploys — safe to cache aggressively.
+// ---------------------------------------------------------------------------
+export const getContextSchema = (_req: AuthenticatedRequest, res: Response) => {
+  res.set('Cache-Control', 'public, max-age=600');
+  return res.json({ success: true, data: { groups: REPORT_CONTEXT_SCHEMA } });
 };

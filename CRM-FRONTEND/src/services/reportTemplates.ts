@@ -110,9 +110,9 @@ class ReportTemplatesService {
 
   /**
    * Convert a PDF file (bank-provided RCU report format) into a draft
-   * Handlebars template using Claude AI. Returns the generated HTML plus
-   * validation status + token usage — admin reviews in the editor and
-   * saves via the normal create endpoint.
+   * Handlebars template via local text extraction + placeholder binding.
+   * Admin reviews the draft in the editor and saves via the normal
+   * create endpoint.
    */
   async convertFromPdf(
     clientId: number,
@@ -126,11 +126,9 @@ class ReportTemplatesService {
       model: string;
       dataEntryFieldsUsed: Array<{ fieldKey: string; fieldLabel: string }>;
       usage: {
-        inputTokens: number;
-        outputTokens: number;
-        cacheReadTokens: number;
-        cacheCreationTokens: number;
         elapsedMs: number;
+        pagesCount: number;
+        textItemsCount: number;
       };
     }>
   > {
@@ -140,10 +138,26 @@ class ReportTemplatesService {
     form.append('productId', String(productId));
     return apiService.post('/report-templates/convert-from-pdf', form, {
       headers: { 'Content-Type': undefined as unknown as string },
-      // Conversion can take 30-60s on first request (model warms up). Keep
-      // the axios timeout above the backend's expected ceiling.
-      timeout: 120_000,
+      timeout: 60_000,
     });
+  }
+
+  /**
+   * Fetch the authoritative Handlebars placeholder catalog from the backend.
+   * Static per-deploy; the editor panel renders this to replace any hand-
+   * mirrored field list that could drift from the real render context.
+   */
+  async getContextSchema(): Promise<
+    ApiResponse<{
+      groups: Array<{
+        id: string;
+        title: string;
+        note?: string;
+        items: Array<{ placeholder: string; description: string }>;
+      }>;
+    }>
+  > {
+    return apiService.get('/report-templates/context-schema');
   }
 
   /**
