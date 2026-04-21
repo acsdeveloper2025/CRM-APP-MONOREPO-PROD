@@ -83,6 +83,28 @@ router.get(
   NotificationController.getNotifications.bind(NotificationController)
 );
 
+// A2 (audit 2026-04-21 round 2): mobile's NotificationUploader (C29
+// offline queue) calls these three endpoints under `/api/mobile/*`.
+// Previously only `GET /notifications` was mounted on this prefix, so
+// every MARK_READ / MARK_ALL_READ / CLEAR_ALL sync op 404'd and ran
+// straight into the DLQ. Aliases to the same handlers used by the web
+// `/api/notifications/*` routes.
+router.put(
+  '/notifications/mark-all-read',
+  authenticateToken,
+  NotificationController.markAllNotificationsAsRead.bind(NotificationController)
+);
+router.put(
+  '/notifications/:notificationId/read',
+  authenticateToken,
+  NotificationController.markNotificationAsRead.bind(NotificationController)
+);
+router.delete(
+  '/notifications',
+  authenticateToken,
+  NotificationController.clearAllNotifications.bind(NotificationController)
+);
+
 // Mobile Case Management Routes (CACHED)
 router.get(
   '/cases',
