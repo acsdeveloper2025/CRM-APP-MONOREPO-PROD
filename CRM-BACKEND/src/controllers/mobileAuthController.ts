@@ -57,9 +57,13 @@ export class MobileAuthController {
         });
       }
 
-      // Find user
+      // A7 (audit 2026-04-21 round 2): removed dead `as "snake_case"`
+      // aliases — pg `camelizeRow` transform (`config/db.ts`) already
+      // exposes `passwordHash` / `employeeId` / `profilePhotoUrl` on
+      // every row regardless of how we project. Quoted aliases were
+      // misleading since they suggested camelization could be avoided.
       const userRes = await query<UserQueryResult>(
-        `SELECT u.id, u.name, u.username, u.email, u.password_hash as "password_hash", u.employee_id as "employee_id", u.designation, u.department, u.profile_photo_url as "profile_photo_url"
+        `SELECT u.id, u.name, u.username, u.email, u.password_hash, u.employee_id, u.designation, u.department, u.profile_photo_url
          FROM users u
          WHERE u.username = $1`,
         [username]
@@ -158,10 +162,7 @@ export class MobileAuthController {
         }
       );
 
-      const refreshTokenHash = crypto
-        .createHash('sha256')
-        .update(refreshToken)
-        .digest('hex');
+      const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
       // Store refresh token HASH (not the raw JWT).
       await query(
@@ -285,10 +286,7 @@ export class MobileAuthController {
       }
 
       // S2: look up by sha256 hash, not plaintext.
-      const incomingHash = crypto
-        .createHash('sha256')
-        .update(refreshToken)
-        .digest('hex');
+      const incomingHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
       const storedRes = await query(
         `SELECT rt.token, u.id as user_id, u.username
@@ -329,10 +327,7 @@ export class MobileAuthController {
           expiresIn: config.mobile.refreshTokenExpiresIn as unknown as jwt.SignOptions['expiresIn'],
         }
       );
-      const newRefreshHash = crypto
-        .createHash('sha256')
-        .update(newRefreshToken)
-        .digest('hex');
+      const newRefreshHash = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
 
       await query('BEGIN');
       try {
@@ -392,14 +387,8 @@ export class MobileAuthController {
           ? req.body.refreshToken
           : null;
       if (suppliedRefresh) {
-        const hash = crypto
-          .createHash('sha256')
-          .update(suppliedRefresh)
-          .digest('hex');
-        await query(
-          `DELETE FROM refresh_tokens WHERE user_id = $1 AND token = $2`,
-          [userId, hash]
-        );
+        const hash = crypto.createHash('sha256').update(suppliedRefresh).digest('hex');
+        await query(`DELETE FROM refresh_tokens WHERE user_id = $1 AND token = $2`, [userId, hash]);
       } else {
         await query(`DELETE FROM refresh_tokens WHERE user_id = $1`, [userId]);
       }
