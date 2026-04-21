@@ -21,6 +21,119 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { logger } from '@/utils/logger';
+import { apiService } from '@/services/api';
+
+// -----------------------------------------------------------------------
+// Reverse-geocode cache + hook (C8 follow-up 2026-04-21)
+//
+// The CRM web frontend no longer relies on the mobile app baking the
+// address into the photo watermark. Instead, we resolve addresses
+// on-the-fly from the attachment's stored GPS coords by calling the
+// admin-auth backend endpoint `GET /api/geocode/reverse?latitude&longitude`.
+//
+// Addresses are cached in a module-level Map so the same coords are
+// never fetched twice across a session — keyed on lat/lon rounded to
+// 3 decimals (~110 m precision), plenty fine for display. In-flight
+// requests are coalesced to avoid thundering-herd on pages that
+// render many photos at once.
+// -----------------------------------------------------------------------
+
+type AddressCacheEntry = { address: string | null; pending?: Promise<string | null> };
+const reverseGeocodeCache = new Map<string, AddressCacheEntry>();
+
+function coordCacheKey(latitude: number, longitude: number): string {
+  return `${latitude.toFixed(3)},${longitude.toFixed(3)}`;
+}
+
+async function fetchReverseGeocode(latitude: number, longitude: number): Promise<string | null> {
+  const key = coordCacheKey(latitude, longitude);
+  const existing = reverseGeocodeCache.get(key);
+  if (existing?.address !== undefined) {
+    // Already resolved; may be string or null (not-found).
+    return existing.address;
+  }
+  if (existing?.pending) {
+    return existing.pending;
+  }
+
+  const promise = apiService
+    .get<{ address?: string; coordinates?: unknown }>(
+      `/geocode/reverse?latitude=${encodeURIComponent(
+        String(latitude)
+      )}&longitude=${encodeURIComponent(String(longitude))}`
+    )
+    .then((data) => {
+      const address = typeof data?.address === 'string' ? data.address : null;
+      reverseGeocodeCache.set(key, { address });
+      return address;
+    })
+    .catch((err) => {
+      logger.warn('Reverse geocode failed', err);
+      // Negative cache so we don't hammer the backend with known-failing coords.
+      reverseGeocodeCache.set(key, { address: null });
+      return null;
+    });
+
+  reverseGeocodeCache.set(key, {
+    address: undefined as unknown as string | null,
+    pending: promise,
+  });
+  return promise;
+}
+
+function useReverseGeocode(
+  latitude: number | null | undefined,
+  longitude: number | null | undefined
+): { address: string | null; loading: boolean } {
+  const [address, setAddress] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (
+      typeof latitude !== 'number' ||
+      typeof longitude !== 'number' ||
+      Number.isNaN(latitude) ||
+      Number.isNaN(longitude)
+    ) {
+      setAddress(null);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    fetchReverseGeocode(latitude, longitude).then((resolved) => {
+      if (!cancelled) {
+        setAddress(resolved);
+        setLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [latitude, longitude]);
+
+  return { address, loading };
+}
+
+// Small presentational component so the hook can live inside each
+// image card and run on the card's own coords.
+const AddressLine: React.FC<{
+  latitude: number | null | undefined;
+  longitude: number | null | undefined;
+  fallback?: string | null;
+}> = ({ latitude, longitude, fallback }) => {
+  const { address, loading } = useReverseGeocode(latitude, longitude);
+  const display =
+    address ||
+    fallback ||
+    (typeof latitude === 'number' && typeof longitude === 'number'
+      ? `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
+      : 'Location unknown');
+  return (
+    <p className="text-sm font-medium">{loading && !address ? 'Resolving address…' : display}</p>
+  );
+};
 
 // Custom hook to handle async image URL loading
 const useImageUrl = (imageUrl: string, imageId?: number) => {
@@ -227,6 +340,18 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
       // Download the original image
       const blob = await verificationImagesService.downloadVerificationImage(image.id);
 
+      // Pre-resolve the address via the backend Google proxy before we
+      // start drawing the canvas — keeps the onload path synchronous.
+      const rawGeo = image.geoLocation;
+      const hasCoords =
+        rawGeo &&
+        typeof rawGeo === 'object' &&
+        typeof rawGeo.latitude === 'number' &&
+        typeof rawGeo.longitude === 'number';
+      const resolvedAddress = hasCoords
+        ? await fetchReverseGeocode(rawGeo.latitude, rawGeo.longitude)
+        : null;
+
       // Create a canvas to composite the image with metadata
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -303,14 +428,17 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
           }
         }
 
-        // Draw address if available
+        // Draw address if available — resolved from backend proxy (pre-fetched above)
         ctx.fillStyle = '#94a3b8';
         ctx.fillText('🏠 Address:', 20, currentY);
         ctx.fillStyle = '#f8fafc';
         const address =
+          resolvedAddress ||
           image.geoLocation?.address ||
           submissionAddress ||
-          '21, Veer Savarkar Rd, Datar Colony, Bhandup East, Mumbai, Maharashtra 400042, India';
+          (hasCoords
+            ? `${rawGeo.latitude.toFixed(6)}, ${rawGeo.longitude.toFixed(6)}`
+            : 'Location unknown');
         // Wrap long address text
         const maxWidth = canvas.width - 170;
         const words = address.split(' ');
@@ -536,16 +664,16 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                                 </div>
                               )}
 
-                              {/* Address */}
+                              {/* Address — resolved via backend Google proxy on demand */}
                               <div className="flex items-center gap-2">
                                 <Home className="h-4 w-4 text-slate-400" />
                                 <div>
                                   <p className="text-xs text-slate-400">Address</p>
-                                  <p className="text-sm font-medium">
-                                    {location?.address ||
-                                      submissionAddress ||
-                                      '21, Veer Savarkar Rd, Datar Colony, Bhandup East, Mumbai, Maharashtra 400042, India'}
-                                  </p>
+                                  <AddressLine
+                                    latitude={location?.latitude}
+                                    longitude={location?.longitude}
+                                    fallback={location?.address || submissionAddress || null}
+                                  />
                                 </div>
                               </div>
 
@@ -658,16 +786,16 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                                 </div>
                               )}
 
-                              {/* Address */}
+                              {/* Address — resolved via backend Google proxy on demand */}
                               <div className="flex items-center gap-2">
                                 <Home className="h-4 w-4 text-slate-400" />
                                 <div>
                                   <p className="text-xs text-slate-400">Address</p>
-                                  <p className="text-sm font-medium">
-                                    {location?.address ||
-                                      submissionAddress ||
-                                      '21, Veer Savarkar Rd, Datar Colony, Bhandup East, Mumbai, Maharashtra 400042, India'}
-                                  </p>
+                                  <AddressLine
+                                    latitude={location?.latitude}
+                                    longitude={location?.longitude}
+                                    fallback={location?.address || submissionAddress || null}
+                                  />
                                 </div>
                               </div>
 
