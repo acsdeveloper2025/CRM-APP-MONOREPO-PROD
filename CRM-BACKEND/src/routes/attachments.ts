@@ -2,6 +2,7 @@ import express from 'express';
 import { body, query, param } from 'express-validator';
 import { authenticateToken, authenticateTokenFlexible } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
+import { GeocodeController } from '@/controllers/geocodeController';
 import { validate } from '@/middleware/validation';
 import { uploadRateLimit } from '@/middleware/rateLimiter';
 import {
@@ -87,6 +88,22 @@ router.get(
   [param('id').trim().notEmpty().withMessage('Attachment ID is required')],
   validate,
   getAttachmentById
+);
+
+// Attachment-anchored reverse geocode. Address is resolved once via
+// Google + stored on the row (reverse_geocoded_address), frozen for
+// verification integrity (user directive 2026-04-21).
+router.get(
+  '/:attachmentId/address',
+  authenticateToken,
+  authorize('case.view'),
+  [
+    param('attachmentId')
+      .isInt({ gt: 0 })
+      .withMessage('Attachment id must be a positive integer'),
+  ],
+  validate,
+  GeocodeController.attachmentAddress
 );
 
 // File download route
