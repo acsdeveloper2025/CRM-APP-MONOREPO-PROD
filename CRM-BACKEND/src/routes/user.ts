@@ -16,12 +16,12 @@ router.get('/profile', (req, res) => {
   });
 });
 
-router.put('/profile/photo', authorize('user.update'), (req, res) => {
-  res.json({
-    success: true,
-    message: 'Update profile photo - to be implemented',
-  });
-});
+// Profile photo endpoints live on:
+//   POST   /api/users/:userId/profile-photo (admin, `user.update` — see routes/users.ts)
+//   DELETE /api/users/:userId/profile-photo (admin, `user.update`)
+//   POST   /api/mobile/users/me/photo       (field agent, self)
+// The earlier stub at PUT /user/profile/photo was deprecated in favour
+// of multipart upload + sharp normalization (2026-04-21).
 
 router.get('/id-card', (req, res) => {
   res.json({

@@ -11,6 +11,8 @@ import { MobileLocationController } from '../controllers/mobileLocationControlle
 import { MobileSyncController } from '../controllers/mobileSyncController';
 import { MobileTelemetryController } from '../controllers/mobileTelemetryController';
 import { NotificationController } from '../controllers/notificationController';
+import { ProfilePhotoController } from '../controllers/profilePhotoController';
+import { profilePhotoUpload } from '../middleware/profilePhotoUpload';
 import { authenticateToken } from '../middleware/auth';
 import { authorize } from '../middleware/authorize';
 import { validateMobileVersion } from '../middleware/mobileValidation';
@@ -103,6 +105,17 @@ router.delete(
   '/notifications',
   authenticateToken,
   NotificationController.clearAllNotifications.bind(NotificationController)
+);
+
+// Profile photo — mobile self-upload. Field agent captures via the
+// ProfilePhotoCaptureScreen on mobile; the resized JPEG is POSTed here.
+// No delete endpoint on the mobile path: decision 2026-04-21 (Q4=B) —
+// mobile is replace-only; admin can DELETE via /api/users/:userId/profile-photo.
+router.post(
+  '/users/me/photo',
+  authenticateToken,
+  profilePhotoUpload.single('photo'),
+  ProfilePhotoController.uploadForSelf
 );
 
 // Mobile Case Management Routes (CACHED)
