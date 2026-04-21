@@ -9,6 +9,8 @@ import {
   EnterpriseCacheConfigs,
   CacheInvalidationPatterns,
 } from '../middleware/enterpriseCache';
+import { ProfilePhotoController } from '@/controllers/profilePhotoController';
+import { profilePhotoUpload } from '@/middleware/profilePhotoUpload';
 import {
   getUsers,
   getUserById,
@@ -614,6 +616,24 @@ router.post(
   ],
   validate,
   resetPassword
+);
+
+// Profile photo — admin upload / delete (CRM-FRONTEND already calls these
+// paths in `services/users.ts:uploadProfilePhoto` / `deleteProfilePhoto`).
+// Decisions 2026-04-21: Q1=A admin gated by `user.update`; Q5=B backend
+// re-encodes every upload via `sharp` to 512×512 JPEG.
+router.post(
+  '/:userId/profile-photo',
+  authenticateToken,
+  authorize('user.update'),
+  profilePhotoUpload.single('photo'),
+  ProfilePhotoController.uploadForUser
+);
+router.delete(
+  '/:userId/profile-photo',
+  authenticateToken,
+  authorize('user.update'),
+  ProfilePhotoController.deleteForUser
 );
 
 export default router;
