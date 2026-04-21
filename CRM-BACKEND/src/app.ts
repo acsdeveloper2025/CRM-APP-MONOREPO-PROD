@@ -51,6 +51,7 @@ import auditLogsRoutes from '@/routes/audit-logs';
 import formRoutes from '@/routes/forms';
 import notificationRoutes from '@/routes/notifications';
 import mobileRoutes from '@/routes/mobile';
+import geocodeRoutes from '@/routes/geocode';
 import securityRoutes from '@/routes/security';
 import deduplicationRoutes from '@/routes/deduplication';
 import rateTypesRoutes from '@/routes/rate-types';
@@ -271,6 +272,13 @@ apiRouter.use('/report-templates', reportTemplatesRoutes);
 
 // Multi-verification task routes
 apiRouter.use('/', verificationTasksRoutes);
+
+// Admin-side reverse-geocode proxy (C8 follow-up 2026-04-21) — web
+// frontend calls /api/geocode/reverse using admin JWT. Mobile has its
+// own parallel /api/mobile/location/reverse-geocode under the mobile
+// auth stack. Both delegate to the same helper + Google key on the
+// server.
+apiRouter.use('/geocode', geocodeRoutes);
 
 // Mobile API routes — extended timeout for slow networks + larger JSON body for mobile sync
 apiRouter.use('/mobile', extendedTimeout, express.json({ limit: '50mb' }), mobileRoutes);

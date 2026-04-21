@@ -465,7 +465,7 @@ export class MobileLocationController {
     }
   }
 
-  // Helper method for reverse geocoding.
+  // Reverse-geocoding helper.
   //
   // C8 (mobile audit 2026-04-20, revised 2026-04-21): hits Google
   // Geocoding API using a server-side-only key stored in
@@ -473,15 +473,12 @@ export class MobileLocationController {
   // IP-restricted to this production server and API-restricted to
   // "Geocoding API" — it never ships in the mobile binary.
   //
-  // Mobile's LocationService.getAddressFromCoordinates calls
-  // GET /mobile/location/reverse-geocode?latitude=X&longitude=Y and
-  // this helper returns the assembled human-readable address. Nearly
-  // every valid Google response is usable, so we fall back to
-  // formattedAddress if our structured extractor picks up no parts.
-  private static async reverseGeocodeHelper(
-    latitude: number,
-    longitude: number
-  ): Promise<string | null> {
+  // Exposed publicly because the CRM web frontend also needs reverse-
+  // geocoding when rendering attachment photos — it hits a separate
+  // admin-auth route (see `geocodeAddressFromCoords` below) that
+  // reuses this same helper. Both paths end up calling the same
+  // Google key, so the quota and billing stay centralised.
+  static async reverseGeocodeHelper(latitude: number, longitude: number): Promise<string | null> {
     const apiKey = process.env.GOOGLE_GEOCODING_API_KEY;
     if (!apiKey) {
       logger.warn('GOOGLE_GEOCODING_API_KEY not set — reverse geocoding disabled');
