@@ -20,6 +20,7 @@ import {
   Home,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import html2canvas from 'html2canvas';
 import { logger } from '@/utils/logger';
 import { apiService } from '@/services/api';
 
@@ -337,150 +338,60 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
 
   const handleDownloadWithMetadata = async (image: VerificationImage, imageIndex: number) => {
     try {
-      // Download the original image
-      const blob = await verificationImagesService.downloadVerificationImage(image.id);
-
-      // Pre-resolve the address via the backend Google proxy before we
-      // start drawing the canvas — keeps the onload path synchronous.
+      // 2026-04-21: the downloaded PNG must match the card the admin
+      // is looking at on screen exactly — photo (with baked-in mobile
+      // watermark) + metadata strip (capture time, location, accuracy,
+      // resolved address). Easiest way to keep them byte-for-byte
+      // identical is to snapshot the already-rendered card DOM with
+      // html2canvas.
+      //
+      // Make sure the address line has resolved before we snapshot,
+      // otherwise the downloaded image would show "Resolving address…"
+      // instead of the real text.
       const rawGeo = image.geoLocation;
       const hasCoords =
         rawGeo &&
         typeof rawGeo === 'object' &&
         typeof rawGeo.latitude === 'number' &&
         typeof rawGeo.longitude === 'number';
-      const resolvedAddress = hasCoords
-        ? await fetchReverseGeocode(rawGeo.latitude, rawGeo.longitude)
-        : null;
+      if (hasCoords) {
+        await fetchReverseGeocode(rawGeo.latitude, rawGeo.longitude);
+      }
+      // Yield one frame so React re-renders the AddressLine with the
+      // freshly cached value before we snapshot.
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
 
-      // Create a canvas to composite the image with metadata
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        throw new Error('Canvas context not available');
+      const cardEl = document.querySelector<HTMLElement>(`[data-download-card="${image.id}"]`);
+      if (!cardEl) {
+        throw new Error('Unable to locate image card for download');
       }
 
-      // Create an image element to load the blob
-      const img = new Image();
-      const imageUrl = URL.createObjectURL(blob);
+      const snapshot = await html2canvas(cardEl, {
+        useCORS: true,
+        backgroundColor: '#0f172a',
+        scale: 2,
+        logging: false,
+        // Skip the action buttons (Download + Maps) so the PNG is just
+        // photo + metadata — the buttons are interactive-only.
+        ignoreElements: (el) =>
+          el instanceof HTMLElement && el.getAttribute('data-download-exclude') === 'true',
+      });
 
-      img.onload = () => {
-        // Set canvas size - original image height + space for metadata
-        const metadataHeight = 200; // Space for metadata at bottom
-        canvas.width = Math.max(img.width, 600); // Minimum width for metadata
-        canvas.height = img.height + metadataHeight;
-
-        // Fill background with dark theme
-        ctx.fillStyle = '#0f172a'; // slate-900
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Draw the original image
-        const imageX = (canvas.width - img.width) / 2; // Center the image
-        ctx.drawImage(img, imageX, 0, img.width, img.height);
-
-        // Draw metadata section
-        const metadataY = img.height + 20;
-        ctx.fillStyle = '#1e293b'; // slate-800
-        ctx.fillRect(10, metadataY, canvas.width - 20, metadataHeight - 30);
-
-        // Set text styles
-        ctx.fillStyle = '#f8fafc'; // slate-50
-        ctx.font = 'bold 16px Arial';
-
-        // Draw metadata title
-        ctx.fillText('Verification Photo Metadata', 20, metadataY + 25);
-
-        // Set smaller font for details
-        ctx.font = '14px Arial';
-        let currentY = metadataY + 50;
-
-        // Draw capture time
-        if (image.geoLocation?.timestamp) {
-          ctx.fillStyle = '#94a3b8'; // slate-400
-          ctx.fillText('🕒 Capture Time:', 20, currentY);
-          ctx.fillStyle = '#f8fafc';
-          ctx.fillText(
-            format(new Date(image.geoLocation.timestamp), 'MMM dd, yyyy HH:mm:ss'),
-            150,
-            currentY
-          );
-          currentY += 25;
+      snapshot.toBlob((compositeBlob) => {
+        if (!compositeBlob) {
+          logger.error('html2canvas produced no blob');
+          return;
         }
-
-        // Draw location coordinates
-        if (image.geoLocation && typeof image.geoLocation.latitude === 'number') {
-          ctx.fillStyle = '#94a3b8';
-          ctx.fillText('📍 Location:', 20, currentY);
-          ctx.fillStyle = '#f8fafc';
-          ctx.fillText(
-            `${image.geoLocation.latitude.toFixed(6)}, ${image.geoLocation.longitude.toFixed(6)}`,
-            150,
-            currentY
-          );
-          currentY += 25;
-
-          // Draw accuracy
-          if (image.geoLocation.accuracy) {
-            ctx.fillStyle = '#94a3b8';
-            ctx.fillText('🎯 Accuracy:', 20, currentY);
-            ctx.fillStyle = '#f8fafc';
-            ctx.fillText(`±${image.geoLocation.accuracy}m`, 150, currentY);
-            currentY += 25;
-          }
-        }
-
-        // Draw address if available — resolved from backend proxy (pre-fetched above)
-        ctx.fillStyle = '#94a3b8';
-        ctx.fillText('🏠 Address:', 20, currentY);
-        ctx.fillStyle = '#f8fafc';
-        const address =
-          resolvedAddress ||
-          image.geoLocation?.address ||
-          submissionAddress ||
-          (hasCoords
-            ? `${rawGeo.latitude.toFixed(6)}, ${rawGeo.longitude.toFixed(6)}`
-            : 'Location unknown');
-        // Wrap long address text
-        const maxWidth = canvas.width - 170;
-        const words = address.split(' ');
-        let line = '';
-        let lineY = currentY;
-
-        for (let n = 0; n < words.length; n++) {
-          const testLine = `${line + words[n]} `;
-          const metrics = ctx.measureText(testLine);
-          const testWidth = metrics.width;
-
-          if (testWidth > maxWidth && n > 0) {
-            ctx.fillText(line, 150, lineY);
-            line = `${words[n]} `;
-            lineY += 20;
-          } else {
-            line = testLine;
-          }
-        }
-        ctx.fillText(line, 150, lineY);
-
-        // Convert canvas to blob and download
-        canvas.toBlob((compositeBlob) => {
-          if (compositeBlob) {
-            const url = URL.createObjectURL(compositeBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            // Create filename with case ID format: "case-{caseId}-{imageIndex}.png"
-            const filename = `case-${caseId}-${imageIndex}.png`;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-          }
-        }, 'image/png');
-
-        // Clean up
-        URL.revokeObjectURL(imageUrl);
-      };
-
-      img.src = imageUrl;
+        const url = URL.createObjectURL(compositeBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        const filename = `case-${caseId}-${imageIndex}.png`;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 'image/png');
     } catch (error) {
       logger.error('Failed to download image with metadata:', error);
       // Fallback to regular download with case ID format
@@ -605,7 +516,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                         ? rawGeo
                         : null;
                     return (
-                      <div key={image.id} className="group relative">
+                      <div key={image.id} className="group relative" data-download-card={image.id}>
                         {/* Attachment Card Format */}
                         <Card className="border border-border hover:border-border transition-colors">
                           <CardContent className="p-0">
@@ -677,8 +588,8 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                                 </div>
                               </div>
 
-                              {/* Action Buttons */}
-                              <div className="flex gap-2 pt-2">
+                              {/* Action Buttons — excluded from the downloaded snapshot */}
+                              <div className="flex gap-2 pt-2" data-download-exclude="true">
                                 <Button
                                   size="sm"
                                   variant="secondary"
@@ -727,7 +638,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                         ? rawGeo
                         : null;
                     return (
-                      <div key={image.id} className="group relative">
+                      <div key={image.id} className="group relative" data-download-card={image.id}>
                         {/* Attachment Card Format */}
                         <Card className="border border-border hover:border-border transition-colors">
                           <CardContent className="p-0">
@@ -799,8 +710,8 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                                 </div>
                               </div>
 
-                              {/* Action Buttons */}
-                              <div className="flex gap-2 pt-2">
+                              {/* Action Buttons — excluded from the downloaded snapshot */}
+                              <div className="flex gap-2 pt-2" data-download-exclude="true">
                                 <Button
                                   size="sm"
                                   variant="secondary"
