@@ -103,7 +103,19 @@ export const verificationUpload = multer({
 
 export class VerificationAttachmentController {
   private static getOperationId(req: Request): string | null {
-    const bodyValue = typeof req.body?.operation_id === 'string' ? req.body.operationId.trim() : '';
+    // A3 (audit 2026-04-21 round 2): previously the truthy-check read
+    // `operation_id` (snake) and the `.trim()` read `operationId`
+    // (camel). Either the check was always false (mobile sends the
+    // camelCase field name) or the trim crashed with TypeError when a
+    // client sent snake_case. Read the field once, explicitly, and
+    // handle both casings as a defensive read.
+    const bodyOp =
+      typeof req.body?.operationId === 'string'
+        ? req.body.operationId
+        : typeof req.body?.operation_id === 'string'
+          ? req.body.operation_id
+          : '';
+    const bodyValue = bodyOp.trim();
     if (bodyValue) {
       return bodyValue;
     }
