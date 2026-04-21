@@ -97,11 +97,7 @@ router.get(
   '/:attachmentId/address',
   authenticateToken,
   authorize('case.view'),
-  [
-    param('attachmentId')
-      .isInt({ gt: 0 })
-      .withMessage('Attachment id must be a positive integer'),
-  ],
+  [param('attachmentId').isInt({ gt: 0 }).withMessage('Attachment id must be a positive integer')],
   validate,
   GeocodeController.attachmentAddress
 );
