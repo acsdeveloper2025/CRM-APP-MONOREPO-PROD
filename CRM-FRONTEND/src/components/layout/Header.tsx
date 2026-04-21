@@ -6,6 +6,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useCacheClearer } from '@/utils/clearCache';
+import { resolveAssetUrl } from '@/utils/assetUrl';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -339,7 +340,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                 className="relative h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10 rounded-full text-white hover:bg-green-700 dark:hover:bg-green-800 hover:text-white transition-colors duration-200"
               >
                 <Avatar className="h-7 w-7 sm:h-8 sm:w-8 lg:h-9 lg:w-9">
-                  <AvatarImage src={user?.profilePhotoUrl} alt={user?.name} />
+                  <AvatarImage src={resolveAssetUrl(user?.profilePhotoUrl)} alt={user?.name} />
                   <AvatarFallback className="text-xs sm:text-sm bg-green-500 text-white">
                     {user?.name ? getUserInitials(user.name) : 'U'}
                   </AvatarFallback>

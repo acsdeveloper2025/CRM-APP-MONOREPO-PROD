@@ -60,6 +60,7 @@ import {
   isFieldAgentUser,
 } from '@/utils/userPermissionProfiles';
 import { logger } from '@/utils/logger';
+import { resolveAssetUrl } from '@/utils/assetUrl';
 
 interface UsersTableProps {
   data: User[];
@@ -268,7 +269,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                 <TableCell>
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.profilePhotoUrl} alt={user.name} />
+                      <AvatarImage src={resolveAssetUrl(user.profilePhotoUrl)} alt={user.name} />
                       <AvatarFallback>
                         {user.name
                           .split(' ')
@@ -418,7 +419,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                   onCheckedChange={(checked) => handleSelectUser(user.id, checked as boolean)}
                 />
                 <Avatar className="h-10 w-10 shrink-0">
-                  <AvatarImage src={user.profilePhotoUrl} alt={user.name} />
+                  <AvatarImage src={resolveAssetUrl(user.profilePhotoUrl)} alt={user.name} />
                   <AvatarFallback>
                     {user.name
                       .split(' ')

@@ -15,6 +15,7 @@ import { usersService } from '@/services/users';
 import { User as UserType } from '@/types/user';
 import { getRoleBadge } from '@/utils/roleUtils';
 import { getPrimaryRoleLabel } from '@/utils/userPermissionProfiles';
+import { resolveAssetUrl } from '@/utils/assetUrl';
 
 interface UserDetailsDialogProps {
   user: UserType;
@@ -57,7 +58,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
             <CardContent>
               <div className="flex items-start space-x-4">
                 <Avatar className="h-16 w-16">
-                  <AvatarImage src={user.profilePhotoUrl} alt={user.name} />
+                  <AvatarImage src={resolveAssetUrl(user.profilePhotoUrl)} alt={user.name} />
                   <AvatarFallback className="text-lg">
                     {user.name
                       .split(' ')
