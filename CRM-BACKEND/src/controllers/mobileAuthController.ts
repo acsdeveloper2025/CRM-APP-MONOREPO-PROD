@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { query } from '@/config/database';
 import { config } from '../config';
@@ -141,22 +142,32 @@ export class MobileAuthController {
         { expiresIn: config.mobile.jwtExpiresIn as unknown as jwt.SignOptions['expiresIn'] }
       );
 
+      // S1/S2 (audit 2026-04-21 round 2): mobile refresh tokens now
+      // signed with `config.jwtRefreshSecret` (was accidentally sharing
+      // `config.jwtSecret` with the access token) and stored as a
+      // sha256 hash (was plaintext → DB dump = session-hijack kit).
+      // Matches the web auth flow in `authController.ts:241,246`.
       const refreshToken = jwt.sign(
         {
           userId: user.id,
           type: 'refresh',
         },
-        config.jwtSecret,
+        config.jwtRefreshSecret,
         {
           expiresIn: config.mobile.refreshTokenExpiresIn as unknown as jwt.SignOptions['expiresIn'],
         }
       );
 
-      // Store refresh token (simplified - no device ID)
+      const refreshTokenHash = crypto
+        .createHash('sha256')
+        .update(refreshToken)
+        .digest('hex');
+
+      // Store refresh token HASH (not the raw JWT).
       await query(
         `INSERT INTO refresh_tokens (token, user_id, expires_at, created_at, ip_address, user_agent) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)`,
         [
-          refreshToken,
+          refreshTokenHash,
           user.id,
           new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           req.ip,
@@ -253,18 +264,38 @@ export class MobileAuthController {
         });
       }
 
-      // Verify refresh token
-      const decoded = jwt.verify(refreshToken, config.jwtSecret as jwt.Secret) as JwtPayload & {
-        type?: string;
-      };
+      // S1/S3 (audit 2026-04-21 round 2): verify against the dedicated
+      // refresh secret AND assert payload.type === 'refresh'. Previously
+      // any JWT signed with `config.jwtSecret` (including access tokens)
+      // could POST here.
+      const decoded = jwt.verify(
+        refreshToken,
+        config.jwtRefreshSecret as jwt.Secret
+      ) as JwtPayload & { type?: string };
 
-      // Check if refresh token exists in database
+      if (decoded.type !== 'refresh') {
+        return res.status(401).json({
+          success: false,
+          message: 'Token is not a refresh token',
+          error: {
+            code: 'INVALID_REFRESH_TOKEN_TYPE',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      // S2: look up by sha256 hash, not plaintext.
+      const incomingHash = crypto
+        .createHash('sha256')
+        .update(refreshToken)
+        .digest('hex');
+
       const storedRes = await query(
         `SELECT rt.token, u.id as user_id, u.username
          FROM refresh_tokens rt JOIN users u ON u.id = rt.user_id
          WHERE rt.token = $1 AND rt.user_id = $2 AND rt.expires_at > CURRENT_TIMESTAMP
          LIMIT 1`,
-        [refreshToken, decoded.userId]
+        [incomingHash, decoded.userId]
       );
       const storedToken = storedRes.rows[0];
 
@@ -280,7 +311,6 @@ export class MobileAuthController {
       }
 
       // Generate new access token
-      // Generate new access token
       const newAccessToken = jwt.sign(
         {
           userId: storedToken.userId,
@@ -289,12 +319,49 @@ export class MobileAuthController {
         { expiresIn: config.mobile.jwtExpiresIn as unknown as jwt.SignOptions['expiresIn'] }
       );
 
+      // S1 (rotation): issue a new refresh token, insert its hash, and
+      // delete the old one atomically. Without rotation a stolen RT is
+      // good for 30 days with no revocation trail.
+      const newRefreshToken = jwt.sign(
+        { userId: storedToken.userId, type: 'refresh' },
+        config.jwtRefreshSecret,
+        {
+          expiresIn: config.mobile.refreshTokenExpiresIn as unknown as jwt.SignOptions['expiresIn'],
+        }
+      );
+      const newRefreshHash = crypto
+        .createHash('sha256')
+        .update(newRefreshToken)
+        .digest('hex');
+
+      await query('BEGIN');
+      try {
+        await query('DELETE FROM refresh_tokens WHERE token = $1 AND user_id = $2', [
+          incomingHash,
+          decoded.userId,
+        ]);
+        await query(
+          `INSERT INTO refresh_tokens (token, user_id, expires_at, created_at, ip_address, user_agent) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)`,
+          [
+            newRefreshHash,
+            storedToken.userId,
+            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            req.ip,
+            req.get('User-Agent') || null,
+          ]
+        );
+        await query('COMMIT');
+      } catch (rotationErr) {
+        await query('ROLLBACK');
+        throw rotationErr;
+      }
+
       return res.json({
         success: true,
         message: 'Token refreshed successfully',
         data: {
           accessToken: newAccessToken,
-          refreshToken,
+          refreshToken: newRefreshToken,
           expiresIn: 86400,
         },
       });
@@ -316,8 +383,26 @@ export class MobileAuthController {
     try {
       const userId = (req as AuthenticatedRequest).user?.id;
 
-      // Invalidate all refresh tokens for this user
-      await query(`DELETE FROM refresh_tokens WHERE user_id = $1`, [userId]);
+      // S13 (audit 2026-04-21 round 2): if the client sent its refresh
+      // token in the body, invalidate just that one. Otherwise fall back
+      // to the legacy "kill every device" behaviour so older clients
+      // still log out cleanly.
+      const suppliedRefresh =
+        typeof req.body?.refreshToken === 'string' && req.body.refreshToken.length > 0
+          ? req.body.refreshToken
+          : null;
+      if (suppliedRefresh) {
+        const hash = crypto
+          .createHash('sha256')
+          .update(suppliedRefresh)
+          .digest('hex');
+        await query(
+          `DELETE FROM refresh_tokens WHERE user_id = $1 AND token = $2`,
+          [userId, hash]
+        );
+      } else {
+        await query(`DELETE FROM refresh_tokens WHERE user_id = $1`, [userId]);
+      }
 
       await createAuditLog({
         action: 'MOBILE_LOGOUT',
