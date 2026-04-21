@@ -256,10 +256,31 @@ create_backup() {
         print_status "Code backup created"
     fi
     
-    # Backup database
+    # Backup database.
+    #
+    # 2026-04-21: three consecutive deploys failed here with
+    # `pg_dump: error: permission denied for table agent_performance_daily`.
+    # Root cause: a few tables were created by the postgres superuser
+    # and `acs_user` (the app runtime user) lacked SELECT on them.
+    # Fix: granted `pg_read_all_data` (PG14+ predefined role) to
+    # `acs_user` — one-time DB operation, no script-level sudo needed
+    # (the deploy user has no passwordless sudo to postgres). Hardened
+    # error-reporting here so the next failure surfaces the actual
+    # problem immediately instead of corrupting the backup chain.
     print_info "Creating database backup..."
-    PGPASSWORD="$DB_PASSWORD" pg_dump -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" > "$backup_path/database.sql"
-    print_status "Database backup created"
+    local dump_dest="$backup_path/database.sql"
+    if ! PGPASSWORD="$DB_PASSWORD" pg_dump -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" > "$dump_dest" 2>"$backup_path/database.err"; then
+        print_error "pg_dump failed — see $backup_path/database.err"
+        print_error "If this is the permission-denied-on-table error, grant"
+        print_error "pg_read_all_data: sudo -u postgres psql -c 'GRANT pg_read_all_data TO $DB_USER;'"
+        return 1
+    fi
+    if [ ! -s "$dump_dest" ]; then
+        print_error "Database backup is empty"
+        return 1
+    fi
+    rm -f "$backup_path/database.err"
+    print_status "Database backup created ($(du -h "$dump_dest" | awk '{print $1}'))"
     
     # Store backup info
     cat > "$backup_path/backup-info.json" << EOF
