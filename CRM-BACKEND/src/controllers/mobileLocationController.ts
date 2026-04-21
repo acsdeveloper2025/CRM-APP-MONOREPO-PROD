@@ -15,7 +15,15 @@ import { MobileOperationService } from '@/services/mobileOperationService';
 
 export class MobileLocationController {
   private static getOperationId(req: AuthenticatedRequest): string | null {
-    const bodyValue = typeof req.body?.operation_id === 'string' ? req.body.operationId.trim() : '';
+    // A3 (audit 2026-04-21 round 2): fixed mixed-case dead branch — see
+    // `verificationAttachmentController.getOperationId` comment.
+    const bodyOp =
+      typeof req.body?.operationId === 'string'
+        ? req.body.operationId
+        : typeof req.body?.operation_id === 'string'
+          ? req.body.operation_id
+          : '';
+    const bodyValue = bodyOp.trim();
     if (bodyValue) {
       return bodyValue;
     }

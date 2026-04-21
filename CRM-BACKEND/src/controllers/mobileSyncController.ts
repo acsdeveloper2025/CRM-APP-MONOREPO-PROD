@@ -654,6 +654,15 @@ export class MobileSyncController {
         syncStatus: 'SYNCED',
       }));
 
+      // A5 (audit 2026-04-21 round 2): `deletedCases` and
+      // `deletedTaskIds` are both currently placeholder empty arrays.
+      // The backend has no hard-delete on cases/tasks and no
+      // server-wide deletion tombstone table; revocations are surfaced
+      // separately via `revokedAssignmentIds`. Left in the response
+      // envelope for forward compatibility — if a tombstone mechanism
+      // is ever added, populate `deletedCaseIds` (by case_id string)
+      // and mobile will pick them up (SyncDownloadService now iterates
+      // both arrays).
       const deletedCaseIds = deletedCases;
       const deletedTaskIds: string[] = [];
       const revokedAssignmentIds =
