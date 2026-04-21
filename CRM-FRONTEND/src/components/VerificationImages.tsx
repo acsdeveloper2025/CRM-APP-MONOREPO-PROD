@@ -25,32 +25,26 @@ import { logger } from '@/utils/logger';
 import { apiService } from '@/services/api';
 
 // -----------------------------------------------------------------------
-// Reverse-geocode cache + hook (C8 follow-up 2026-04-21)
+// Attachment-anchored address lookup (revised 2026-04-21, integrity fix)
 //
-// The CRM web frontend no longer relies on the mobile app baking the
-// address into the photo watermark. Instead, we resolve addresses
-// on-the-fly from the attachment's stored GPS coords by calling the
-// admin-auth backend endpoint `GET /api/geocode/reverse?latitude&longitude`.
+// For verification evidence we MUST show the same address every time —
+// Google's geocoding data can change (roads rename, buildings re-tag),
+// but the address recorded on a verified attachment must stay frozen.
 //
-// Addresses are cached in a module-level Map so the same coords are
-// never fetched twice across a session — keyed on lat/lon rounded to
-// 3 decimals (~110 m precision), plenty fine for display. In-flight
-// requests are coalesced to avoid thundering-herd on pages that
-// render many photos at once.
+// The backend endpoint GET /api/attachments/:id/address implements a
+// write-through cache: first view does the Google lookup and persists
+// `reverse_geocoded_address` on the attachment row; every subsequent
+// call returns the stored string and never touches Google again. This
+// module-level Map is a session-scoped optimisation on top of that so
+// rendering a page of 20 photos doesn't hammer the backend either.
 // -----------------------------------------------------------------------
 
 type AddressCacheEntry = { address: string | null; pending?: Promise<string | null> };
-const reverseGeocodeCache = new Map<string, AddressCacheEntry>();
+const attachmentAddressCache = new Map<number, AddressCacheEntry>();
 
-function coordCacheKey(latitude: number, longitude: number): string {
-  return `${latitude.toFixed(3)},${longitude.toFixed(3)}`;
-}
-
-async function fetchReverseGeocode(latitude: number, longitude: number): Promise<string | null> {
-  const key = coordCacheKey(latitude, longitude);
-  const existing = reverseGeocodeCache.get(key);
+async function fetchAttachmentAddress(attachmentId: number): Promise<string | null> {
+  const existing = attachmentAddressCache.get(attachmentId);
   if (existing?.address !== undefined) {
-    // Already resolved; may be string or null (not-found).
     return existing.address;
   }
   if (existing?.pending) {
@@ -58,44 +52,37 @@ async function fetchReverseGeocode(latitude: number, longitude: number): Promise
   }
 
   const promise = apiService
-    .get<{ address?: string; coordinates?: unknown }>(
-      `/geocode/reverse?latitude=${encodeURIComponent(
-        String(latitude)
-      )}&longitude=${encodeURIComponent(String(longitude))}`
-    )
+    .get<{ address?: string; cached?: boolean }>(`/attachments/${attachmentId}/address`)
     .then((data) => {
       const address = typeof data?.address === 'string' ? data.address : null;
-      reverseGeocodeCache.set(key, { address });
+      attachmentAddressCache.set(attachmentId, { address });
       return address;
     })
     .catch((err) => {
-      logger.warn('Reverse geocode failed', err);
-      // Negative cache so we don't hammer the backend with known-failing coords.
-      reverseGeocodeCache.set(key, { address: null });
+      logger.warn('Attachment address fetch failed', err);
+      // Negative-cache so we don't retry on every render; cache clears
+      // on a full reload which gives admins an easy "refresh" path for
+      // the rare upstream-unavailable case.
+      attachmentAddressCache.set(attachmentId, { address: null });
       return null;
     });
 
-  reverseGeocodeCache.set(key, {
+  attachmentAddressCache.set(attachmentId, {
     address: undefined as unknown as string | null,
     pending: promise,
   });
   return promise;
 }
 
-function useReverseGeocode(
-  latitude: number | null | undefined,
-  longitude: number | null | undefined
-): { address: string | null; loading: boolean } {
+function useAttachmentAddress(attachmentId: number | null | undefined): {
+  address: string | null;
+  loading: boolean;
+} {
   const [address, setAddress] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    if (
-      typeof latitude !== 'number' ||
-      typeof longitude !== 'number' ||
-      Number.isNaN(latitude) ||
-      Number.isNaN(longitude)
-    ) {
+    if (typeof attachmentId !== 'number' || !Number.isFinite(attachmentId)) {
       setAddress(null);
       setLoading(false);
       return;
@@ -103,7 +90,7 @@ function useReverseGeocode(
 
     let cancelled = false;
     setLoading(true);
-    fetchReverseGeocode(latitude, longitude).then((resolved) => {
+    fetchAttachmentAddress(attachmentId).then((resolved) => {
       if (!cancelled) {
         setAddress(resolved);
         setLoading(false);
@@ -112,19 +99,20 @@ function useReverseGeocode(
     return () => {
       cancelled = true;
     };
-  }, [latitude, longitude]);
+  }, [attachmentId]);
 
   return { address, loading };
 }
 
 // Small presentational component so the hook can live inside each
-// image card and run on the card's own coords.
+// image card and key off the attachment's id.
 const AddressLine: React.FC<{
+  attachmentId: number | null | undefined;
   latitude: number | null | undefined;
   longitude: number | null | undefined;
   fallback?: string | null;
-}> = ({ latitude, longitude, fallback }) => {
-  const { address, loading } = useReverseGeocode(latitude, longitude);
+}> = ({ attachmentId, latitude, longitude, fallback }) => {
+  const { address, loading } = useAttachmentAddress(attachmentId);
   const display =
     address ||
     fallback ||
@@ -348,15 +336,11 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
       // Make sure the address line has resolved before we snapshot,
       // otherwise the downloaded image would show "Resolving address…"
       // instead of the real text.
-      const rawGeo = image.geoLocation;
-      const hasCoords =
-        rawGeo &&
-        typeof rawGeo === 'object' &&
-        typeof rawGeo.latitude === 'number' &&
-        typeof rawGeo.longitude === 'number';
-      if (hasCoords) {
-        await fetchReverseGeocode(rawGeo.latitude, rawGeo.longitude);
-      }
+      // Resolve the attachment's frozen address before snapshotting so
+      // the card shows the real text, not "Resolving address…". The
+      // backend stores the address on the attachment row, so this is a
+      // no-op after the first view of this image.
+      await fetchAttachmentAddress(image.id);
       // Yield one frame so React re-renders the AddressLine with the
       // freshly cached value before we snapshot.
       await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
@@ -581,6 +565,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                                 <div>
                                   <p className="text-xs text-slate-400">Address</p>
                                   <AddressLine
+                                    attachmentId={image.id}
                                     latitude={location?.latitude}
                                     longitude={location?.longitude}
                                     fallback={location?.address || submissionAddress || null}
@@ -703,6 +688,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                                 <div>
                                   <p className="text-xs text-slate-400">Address</p>
                                   <AddressLine
+                                    attachmentId={image.id}
                                     latitude={location?.latitude}
                                     longitude={location?.longitude}
                                     fallback={location?.address || submissionAddress || null}

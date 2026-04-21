@@ -8252,7 +8252,8 @@ CREATE TABLE public.verification_attachments (
     deleted_at timestamp with time zone,
     deleted_by uuid,
     deletion_reason text,
-    operation_id text
+    operation_id text,
+    reverse_geocoded_address text
 );
 
 
