@@ -1258,6 +1258,35 @@ $$;
 ALTER FUNCTION public.assign_rate_types_to_area(p_area_id integer, rate_type_ids integer[], p_user_id uuid) OWNER TO acs_user;
 
 --
+-- Name: verification_attachments_freeze_address(); Type: FUNCTION; Schema: public; Owner: acs_user
+-- 2026-04-21: protects evidence integrity. Once reverse_geocoded_address
+-- has been stored on an attachment row, any subsequent UPDATE that would
+-- change the column (to a different value or back to NULL) is rejected
+-- by this trigger. The only allowed transition is NULL -> value
+-- (the first-view resolve done by the backend geocode endpoint).
+--
+
+CREATE FUNCTION public.verification_attachments_freeze_address() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  IF OLD.reverse_geocoded_address IS NOT NULL
+     AND NEW.reverse_geocoded_address IS DISTINCT FROM OLD.reverse_geocoded_address
+  THEN
+    RAISE EXCEPTION
+      'verification_attachments.reverse_geocoded_address is immutable once set (attachment id=%)',
+      OLD.id
+      USING HINT = 'The reverse-geocoded address is frozen for evidence integrity. Create a separate audited override column if correction is genuinely needed.';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.verification_attachments_freeze_address() OWNER TO acs_user;
+
+
+--
 -- Name: audit_territory_assignment_changes(); Type: FUNCTION; Schema: public; Owner: acs_user
 --
 
@@ -18060,6 +18089,13 @@ CREATE UNIQUE INDEX uq_verification_attachments_operation_id ON public.verificat
 --
 
 CREATE UNIQUE INDEX verification_tasks_active_unique_idx ON public.verification_tasks USING btree (case_id, verification_type_id) WHERE ((status)::text = ANY (ARRAY[('PENDING'::character varying)::text, ('ASSIGNED'::character varying)::text, ('IN_PROGRESS'::character varying)::text, ('ON_HOLD'::character varying)::text, ('SAVED'::character varying)::text]));
+
+
+--
+-- Name: verification_attachments trg_verification_attachments_freeze_address; Type: TRIGGER; Schema: public; Owner: acs_user
+--
+
+CREATE TRIGGER trg_verification_attachments_freeze_address BEFORE UPDATE ON public.verification_attachments FOR EACH ROW EXECUTE FUNCTION public.verification_attachments_freeze_address();
 
 
 --
