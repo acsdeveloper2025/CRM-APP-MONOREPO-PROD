@@ -27,7 +27,12 @@ export interface FormValidationResult {
  * Validates form data and ensures all database fields are properly populated
  *
  * @param formData - Raw form data from mobile app
- * @param formType - Type of Property APF form (POSITIVE, SHIFTED, NSP, ENTRY_RESTRICTED, UNTRACEABLE)
+ * @param formType - Type of Property APF form (POSITIVE, NEGATIVE, ENTRY_RESTRICTED, UNTRACEABLE).
+ *                   Enforced by the `chk_property_apf_verification_form_type`
+ *                   CHECK constraint in the DB; APF does NOT use NSP or SHIFTED
+ *                   (it routes on `constructionActivity` — SEEN → POSITIVE,
+ *                   STOP / VACANT → NEGATIVE — per
+ *                   feedback_apf_construction_activity_rule.md).
  * @returns Validation result with detailed field coverage information
  */
 export function validateAndPreparePropertyApfForm(
@@ -134,41 +139,13 @@ function getRequiredFieldsByFormType(formType: string): string[] {
       'feedbackFromNeighbour',
       'finalStatus',
     ],
-    SHIFTED: [
-      'addressLocatable',
-      'addressRating',
-      'metPersonName',
-      'metPersonDesignation',
-      'shiftedPeriod',
-      'currentLocation',
-      'locality',
-      'addressStructure',
-      'politicalConnection',
-      'dominatedArea',
-      'feedbackFromNeighbour',
-      'otherObservation',
-      'finalStatus',
-    ],
-    NSP: [
-      // 2026-04-22: Property APF NSP is unreachable in production — the
-      // DB `chk_property_apf_verification_form_type` CHECK constraint
-      // permits only POSITIVE, NEGATIVE, ENTRY_RESTRICTED, UNTRACEABLE
-      // (APF routes on `constructionActivity`, not NSP). Keeping this
-      // branch aligned with the 2026-04-18 NSP rule for consistency, even
-      // though it can never execute against the live schema: no
-      // `politicalConnection` / `feedbackFromNeighbour`.
-      'addressLocatable',
-      'addressRating',
-      'propertyStatus',
-      'apfStatus',
-      'metPersonName',
-      'metPersonDesignation',
-      'locality',
-      'addressStructure',
-      'dominatedArea',
-      'otherObservation',
-      'finalStatus',
-    ],
+    // NOTE: SHIFTED and NSP entries were removed here on 2026-04-22.
+    // Property APF's DB `chk_property_apf_verification_form_type` CHECK
+    // constraint permits only POSITIVE / NEGATIVE / ENTRY_RESTRICTED /
+    // UNTRACEABLE, so both were unreachable dead code. Per
+    // `feedback_apf_construction_activity_rule.md`, APF routes on
+    // `constructionActivity` (SEEN → POSITIVE, STOP / VACANT → NEGATIVE),
+    // not the NSP / SHIFTED dichotomy used by other verification types.
     ENTRY_RESTRICTED: [
       // Aligned with legacyEntryRestrictedPropertyApfFields.
       'addressLocatable',
@@ -292,12 +269,9 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
     }
   }
 
-  if (formType === 'NSP') {
-    // Property status conditional validation
-    if (formData.propertyStatus === 'Not Found' && !formData.otherObservation) {
-      warnings.push('otherObservation should be specified when property status is Not Found');
-    }
-  }
+  // NOTE: formType === 'NSP' branch removed on 2026-04-22 — APF's DB
+  // CHECK constraint makes NSP unreachable (see getRequiredFieldsByFormType
+  // comment for the full rationale).
 
   // Common validations for all forms
 
