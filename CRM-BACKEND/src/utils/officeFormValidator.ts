@@ -139,6 +139,13 @@ function getRequiredFieldsByFormType(formType: string): string[] {
       'finalStatus',
     ],
     NSP: [
+      // Aligned with 2026-04-18 standing rule
+      // (feedback_nsp_no_political_feedback.md): mobile Office NSP +
+      // NSP Door Locked forms do not capture `politicalConnection` or
+      // `feedbackFromNeighbour` — the applicant doesn't exist at the
+      // address, so "adverse / no-adverse" feedback is semantically
+      // meaningless. Bringing Office in line with the other 7
+      // already-clean validators.
       'addressLocatable',
       'addressRating',
       'officeStatus',
@@ -147,9 +154,7 @@ function getRequiredFieldsByFormType(formType: string): string[] {
       'designation',
       'locality',
       'addressStructure',
-      'politicalConnection',
       'dominatedArea',
-      'feedbackFromNeighbour',
       'otherObservation',
       'finalStatus',
     ],

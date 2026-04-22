@@ -150,6 +150,13 @@ function getRequiredFieldsByFormType(formType: string): string[] {
       'finalStatus',
     ],
     NSP: [
+      // 2026-04-22: Property APF NSP is unreachable in production — the
+      // DB `chk_property_apf_verification_form_type` CHECK constraint
+      // permits only POSITIVE, NEGATIVE, ENTRY_RESTRICTED, UNTRACEABLE
+      // (APF routes on `constructionActivity`, not NSP). Keeping this
+      // branch aligned with the 2026-04-18 NSP rule for consistency, even
+      // though it can never execute against the live schema: no
+      // `politicalConnection` / `feedbackFromNeighbour`.
       'addressLocatable',
       'addressRating',
       'propertyStatus',
@@ -158,9 +165,7 @@ function getRequiredFieldsByFormType(formType: string): string[] {
       'metPersonDesignation',
       'locality',
       'addressStructure',
-      'politicalConnection',
       'dominatedArea',
-      'feedbackFromNeighbour',
       'otherObservation',
       'finalStatus',
     ],
