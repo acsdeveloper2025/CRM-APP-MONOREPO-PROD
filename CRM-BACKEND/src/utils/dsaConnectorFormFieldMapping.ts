@@ -6,6 +6,7 @@
  */
 
 import { logger } from '@/config/logger';
+import { eqCI } from './caseInsensitiveCompare';
 
 export interface DatabaseFieldMapping {
   [mobileField: string]: string | null; // null means field should be ignored
@@ -444,16 +445,16 @@ export function validateDsaConnectorRequiredFields(
     if (formData.connectorType === 'DSA' && !formData.connectorCode) {
       warnings.push('connectorCode should be specified for DSA connector type');
     }
-    if (formData.businessType === 'Company' && !formData.businessRegistrationNumber) {
+    if (eqCI(formData.businessType, 'Company') && !formData.businessRegistrationNumber) {
       warnings.push('businessRegistrationNumber should be specified for Company business type');
     }
-    if (formData.tpcMetPerson1 === 'Yes' && !formData.nameOfTpc1) {
+    if (eqCI(formData.tpcMetPerson1, 'Yes') && !formData.nameOfTpc1) {
       warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is Yes');
     }
     if (formData.totalStaff && !formData.salesStaff) {
       warnings.push('salesStaff should be specified when totalStaff is provided');
     }
-    if (formData.licenseStatus === 'Valid' && !formData.licenseNumber) {
+    if (eqCI(formData.licenseStatus, 'Valid') && !formData.licenseNumber) {
       warnings.push('licenseNumber should be specified when license status is Valid');
     }
   }

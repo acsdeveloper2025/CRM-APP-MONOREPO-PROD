@@ -6,6 +6,7 @@
  */
 
 import { OFFICE_FIELD_MAPPING, ensureAllOfficeFieldsPopulated } from './officeFormFieldMapping';
+import { eqCI } from './caseInsensitiveCompare';
 
 export interface FormValidationResult {
   isValid: boolean;
@@ -196,7 +197,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
 
   if (formType === 'POSITIVE') {
     // Office status conditional validation
-    if (formData.officeStatus === 'Opened' && !formData.staffSeen) {
+    if (eqCI(formData.officeStatus, 'Open') && !formData.staffSeen) {
       warnings.push('staffSeen should be specified when office status is Opened');
     }
 
@@ -221,7 +222,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
 
   if (formType === 'NSP') {
     // Office existence conditional validation
-    if (formData.officeStatus === 'Closed' && !formData.officeExistence) {
+    if (eqCI(formData.officeStatus, 'Closed') && !formData.officeExistence) {
       warnings.push('officeExistence should be specified when office status is Closed');
     }
   }
@@ -229,7 +230,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
   // Common validations for all forms
 
   // Company nameplate conditional validation
-  if (formData.companyNamePlateStatus === 'Sighted' && !formData.nameOnCompanyBoard) {
+  if (eqCI(formData.companyNamePlateStatus, 'Sighted') && !formData.nameOnCompanyBoard) {
     warnings.push('nameOnCompanyBoard should be specified when companyNamePlateStatus is Sighted');
   }
 

@@ -281,9 +281,9 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                     <div>
                       <div className="font-medium">{user.name}</div>
                       <div className="text-sm text-gray-600">
-                        {user.username} • {user.employeeId}
+                        <span className="case-sensitive">{user.username}</span> • {user.employeeId}
                       </div>
-                      <div className="text-sm text-gray-600">{user.email}</div>
+                      <div className="text-sm text-gray-600 case-sensitive">{user.email}</div>
                     </div>
                   </div>
                 </TableCell>
@@ -431,9 +431,9 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">{user.name}</div>
                   <div className="text-sm text-gray-600 truncate">
-                    {user.username} • {user.employeeId}
+                    <span className="case-sensitive">{user.username}</span> • {user.employeeId}
                   </div>
-                  <div className="text-sm text-gray-600 truncate">{user.email}</div>
+                  <div className="text-sm text-gray-600 truncate case-sensitive">{user.email}</div>
                 </div>
               </div>
               <DropdownMenu>

@@ -6,6 +6,7 @@
  */
 
 import { NOC_FIELD_MAPPING, ensureAllNocFieldsPopulated } from './nocFormFieldMapping';
+import { eqCI } from './caseInsensitiveCompare';
 
 export interface FormValidationResult {
   isValid: boolean;
@@ -214,17 +215,17 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
 
   if (formType === 'POSITIVE') {
     // NOC validity conditional validation
-    if (formData.nocValidityStatus === 'Valid' && !formData.nocExpiryDate) {
+    if (eqCI(formData.nocValidityStatus, 'Valid') && !formData.nocExpiryDate) {
       warnings.push('nocExpiryDate should be specified when NOC validity status is Valid');
     }
 
     // NOC number conditional validation
-    if (formData.nocStatus === 'Available' && !formData.nocNumber) {
+    if (eqCI(formData.nocStatus, 'Available') && !formData.nocNumber) {
       warnings.push('nocNumber should be specified when NOC status is Available');
     }
 
     // Project validation
-    if (formData.projectStatus === 'Completed' && !formData.completedUnits) {
+    if (eqCI(formData.projectStatus, 'Completed') && !formData.completedUnits) {
       warnings.push('completedUnits should be specified when project status is Completed');
     }
 
@@ -234,7 +235,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
     }
 
     // Environmental clearance validation
-    if (formData.environmentalClearance === 'Required' && !formData.projectApprovalStatus) {
+    if (eqCI(formData.environmentalClearance, 'Required') && !formData.projectApprovalStatus) {
       warnings.push(
         'projectApprovalStatus should be specified when environmental clearance is required'
       );
@@ -276,7 +277,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
 
   if (formType === 'NSP') {
     // NOC status conditional validation
-    if (formData.nocStatus === 'Not Available' && !formData.otherObservation) {
+    if (eqCI(formData.nocStatus, 'Not Available') && !formData.otherObservation) {
       warnings.push('otherObservation should be specified when NOC status is Not Available');
     }
   }

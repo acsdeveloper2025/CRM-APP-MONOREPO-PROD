@@ -6,6 +6,7 @@
  */
 
 import { logger } from '@/config/logger';
+import { eqCI } from './caseInsensitiveCompare';
 
 export interface DatabaseFieldMapping {
   [mobileField: string]: string | null; // null means field should be ignored
@@ -733,7 +734,7 @@ export function validateResidenceCumOfficeRequiredFields(
   }
 
   // Check for conditional fields
-  if (formType === 'POSITIVE' && formData.resiCumOfficeStatus === 'Open') {
+  if (formType === 'POSITIVE' && eqCI(formData.resiCumOfficeStatus, 'Open')) {
     if (!formData.metPerson) {
       warnings.push('metPerson should be specified when resi-cum-office is open');
     }
@@ -747,7 +748,7 @@ export function validateResidenceCumOfficeRequiredFields(
       warnings.push('documentShownStatus should be specified when resi-cum-office is open');
     }
   }
-  if (formType === 'SHIFTED' && formData.resiCumOfficeStatus === 'Open') {
+  if (formType === 'SHIFTED' && eqCI(formData.resiCumOfficeStatus, 'Open')) {
     if (!formData.metPerson) {
       warnings.push('metPerson should be specified when resi-cum-office is open');
     }

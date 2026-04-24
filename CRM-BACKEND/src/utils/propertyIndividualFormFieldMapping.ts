@@ -6,6 +6,7 @@
  */
 
 import { logger } from '@/config/logger';
+import { eqCI } from './caseInsensitiveCompare';
 
 export interface DatabaseFieldMapping {
   [mobileField: string]: string | null; // null means field should be ignored
@@ -440,13 +441,13 @@ export function validatePropertyIndividualRequiredFields(
 
   // Check for conditional fields
   if (formType === 'POSITIVE') {
-    if (formData.propertyOwnership === 'Self Owned' && !formData.propertyDocuments) {
+    if (eqCI(formData.propertyOwnership, 'Self Owned') && !formData.propertyDocuments) {
       warnings.push('propertyDocuments should be specified for self-owned property');
     }
-    if (formData.loanAgainstProperty === 'Yes' && !formData.bankName) {
+    if (eqCI(formData.loanAgainstProperty, 'Yes') && !formData.bankName) {
       warnings.push('bank_name should be specified when loan against property exists');
     }
-    if (formData.tpcMetPerson1 === 'Yes' && !formData.nameOfTpc1) {
+    if (eqCI(formData.tpcMetPerson1, 'Yes') && !formData.nameOfTpc1) {
       warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is Yes');
     }
     if (formData.familyMembers && !formData.earningMembers) {

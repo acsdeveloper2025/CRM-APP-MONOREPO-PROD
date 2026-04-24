@@ -6,6 +6,7 @@
  */
 
 import { RESIDENCE_FIELD_MAPPING, ensureAllFieldsPopulated } from './residenceFormFieldMapping';
+import { eqCI } from './caseInsensitiveCompare';
 
 export interface FormValidationResult {
   isValid: boolean;
@@ -183,7 +184,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
 
   if (formType === 'POSITIVE') {
     // Document verification conditional validation
-    if (formData.documentShownStatus === 'Showed' && !formData.documentType) {
+    if (eqCI(formData.documentShownStatus, 'Showed') && !formData.documentType) {
       warnings.push('documentType should be specified when documentShownStatus is Showed');
     }
 
@@ -220,25 +221,25 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
     }
 
     // House status conditional validation for POSITIVE forms
-    if (formData.houseStatus === 'Open' && !formData.totalFamilyMembers) {
+    if (eqCI(formData.houseStatus, 'Open') && !formData.totalFamilyMembers) {
       warnings.push('totalFamilyMembers should be specified when house status is Open');
     }
 
     // Staying status validation
-    if (formData.stayingStatus === 'On Rental Basis' && !formData.rentAmount) {
+    if (eqCI(formData.stayingStatus, 'On Rental Basis') && !formData.rentAmount) {
       warnings.push('rentAmount should be specified when staying status is On Rental Basis');
     }
   }
 
   if (formType === 'SHIFTED') {
     // House-status conditional validation
-    if (formData.houseStatus === 'Open' && !formData.metPersonName) {
+    if (eqCI(formData.houseStatus, 'Open') && !formData.metPersonName) {
       warnings.push('metPersonName should be specified when house status is Open');
     }
-    if (formData.houseStatus === 'Open' && !formData.metPersonStatus) {
+    if (eqCI(formData.houseStatus, 'Open') && !formData.metPersonStatus) {
       warnings.push('metPersonStatus should be specified when house status is Open');
     }
-    if (formData.houseStatus === 'Closed' && !formData.premisesStatus) {
+    if (eqCI(formData.houseStatus, 'Closed') && !formData.premisesStatus) {
       warnings.push('premisesStatus should be specified when house status is Closed');
     }
 
@@ -257,17 +258,17 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
 
   if (formType === 'NSP') {
     // House status conditional validation
-    if (formData.houseStatus === 'Closed' && !formData.stayingPersonName) {
+    if (eqCI(formData.houseStatus, 'Closed') && !formData.stayingPersonName) {
       warnings.push('stayingPersonName should be specified when house status is Closed');
     }
-    if (formData.houseStatus === 'Open' && !formData.metPersonName) {
+    if (eqCI(formData.houseStatus, 'Open') && !formData.metPersonName) {
       warnings.push('metPersonName should be specified when house status is Open');
     }
   }
 
   if (formType === 'ENTRY_RESTRICTED') {
     // Entry restricted specific validations
-    if (formData.metPersonConfirmation === 'Not Confirmed' && !formData.reasonForNonConfirmation) {
+    if (eqCI(formData.metPersonConfirmation, 'Not Confirmed') && !formData.reasonForNonConfirmation) {
       warnings.push(
         'reasonForNonConfirmation should be specified when met person confirmation is Not Confirmed'
       );
@@ -277,12 +278,12 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
   // Common validations for all forms
 
   // Society nameplate conditional validation
-  if (formData.societyNamePlateStatus === 'Sighted' && !formData.nameOnSocietyBoard) {
+  if (eqCI(formData.societyNamePlateStatus, 'Sighted') && !formData.nameOnSocietyBoard) {
     warnings.push('nameOnSocietyBoard should be specified when societyNamePlateStatus is Sighted');
   }
 
   // Door nameplate conditional validation
-  if (formData.doorNamePlateStatus === 'Sighted' && !formData.nameOnDoorPlate) {
+  if (eqCI(formData.doorNamePlateStatus, 'Sighted') && !formData.nameOnDoorPlate) {
     warnings.push('nameOnDoorPlate should be specified when doorNamePlateStatus is Sighted');
   }
 

@@ -164,7 +164,9 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
                             <User className="h-4 w-4" />
                             <div>
                               <div className="font-medium">{user.name}</div>
-                              <div className="text-xs text-gray-500">{user.email}</div>
+                              <div className="text-xs text-gray-500 case-sensitive">
+                                {user.email}
+                              </div>
                             </div>
                           </div>
                         </SelectItem>

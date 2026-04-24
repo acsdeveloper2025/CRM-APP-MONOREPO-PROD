@@ -206,22 +206,37 @@ export const createServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
       });
     }
 
-    const duplicateRes = await query(
+    const { clientId, productId, pincodeId, areaId, rateTypeId } = payload;
+
+    // Upsert on (clientId, productId, pincodeId, areaId). One rule per combo
+    // is the data model; the rate_type_id IS the editable value. If the user
+    // submits a combo that already has a rule, update its rate type rather
+    // than reject — that matches intent and avoids the "create a new rule"
+    // vs "click Edit on the old one" UX trap. Rare accidental overwrite is
+    // acceptable vs the common "duplicate, try again" friction.
+    const existingRes = await query(
       `SELECT id FROM service_zone_rules
        WHERE client_id = $1 AND product_id = $2 AND pincode_id = $3 AND area_id = $4
        LIMIT 1`,
-      [payload.clientId, payload.productId, payload.pincodeId, payload.areaId]
+      [clientId, productId, pincodeId, areaId]
     );
-    if (duplicateRes.rows[0]) {
-      const dupMsg = 'A rule already exists for this client/product/pincode/area combination';
-      return res.status(400).json({
-        success: false,
-        message: dupMsg,
-        error: { code: 'DUPLICATE_RULE' },
+    if (existingRes.rows[0]) {
+      const existingId = existingRes.rows[0].id;
+      await query(
+        `UPDATE service_zone_rules
+         SET rate_type_id = $1,
+             is_active = true,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $2`,
+        [rateTypeId, existingId]
+      );
+      return res.status(200).json({
+        success: true,
+        data: { id: existingId, updated: true },
+        message: 'Rate type rule updated successfully',
       });
     }
 
-    const { clientId, productId, pincodeId, areaId, rateTypeId } = payload;
     const insertRes = await query(
       `INSERT INTO service_zone_rules
         (client_id, product_id, pincode_id, area_id, rate_type_id, is_active, created_at, updated_at)

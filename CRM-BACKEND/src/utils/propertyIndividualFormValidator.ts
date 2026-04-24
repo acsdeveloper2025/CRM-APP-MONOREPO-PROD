@@ -9,6 +9,7 @@ import {
   PROPERTY_INDIVIDUAL_FIELD_MAPPING,
   ensureAllPropertyIndividualFieldsPopulated,
 } from './propertyIndividualFormFieldMapping';
+import { eqCI } from './caseInsensitiveCompare';
 
 export interface FormValidationResult {
   isValid: boolean;
@@ -257,11 +258,11 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
     }
 
     // Employment validation
-    if (formData.employmentType === 'Salaried' && !formData.employerName) {
+    if (eqCI(formData.employmentType, 'Salaried') && !formData.employerName) {
       warnings.push('employerName should be specified for salaried individuals');
     }
 
-    if (formData.employmentType === 'Business' && !formData.businessName) {
+    if (eqCI(formData.employmentType, 'Business') && !formData.businessName) {
       warnings.push('businessName should be specified for business individuals');
     }
 
@@ -309,7 +310,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
 
   if (formType === 'NSP') {
     // Property status conditional validation
-    if (formData.propertyStatus === 'Not Found' && !formData.otherObservation) {
+    if (eqCI(formData.propertyStatus, 'Not Found') && !formData.otherObservation) {
       warnings.push('otherObservation should be specified when property status is Not Found');
     }
   }

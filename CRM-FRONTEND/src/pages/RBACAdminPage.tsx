@@ -210,6 +210,9 @@ export function RBACAdminPage() {
       setEditingRole(null);
       await refreshRoleData(selectedRoleId);
     },
+    onError: (error: unknown) => {
+      toast.error((error as { message?: string }).message || 'Failed to update role');
+    },
   });
 
   const deleteRoleMutation = useMutation({

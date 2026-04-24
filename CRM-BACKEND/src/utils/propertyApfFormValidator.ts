@@ -9,6 +9,7 @@ import {
   PROPERTY_APF_FIELD_MAPPING,
   ensureAllPropertyApfFieldsPopulated,
 } from './propertyApfFormFieldMapping';
+import { eqCI } from './caseInsensitiveCompare';
 
 export interface FormValidationResult {
   isValid: boolean;
@@ -193,7 +194,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
 
   if (formType === 'POSITIVE') {
     // APF validity conditional validation
-    if (formData.apfStatus === 'Active' && !formData.apfExpiryDate) {
+    if (eqCI(formData.apfStatus, 'Active') && !formData.apfExpiryDate) {
       warnings.push('apfExpiryDate should be specified when APF status is Active');
     }
 
@@ -264,7 +265,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
     }
 
     // Occupancy validation
-    if (formData.occupancyStatus === 'Tenant' && !formData.tenantDetails) {
+    if (eqCI(formData.occupancyStatus, 'Tenant') && !formData.tenantDetails) {
       warnings.push('tenantDetails should be specified when occupancy status is Tenant');
     }
   }

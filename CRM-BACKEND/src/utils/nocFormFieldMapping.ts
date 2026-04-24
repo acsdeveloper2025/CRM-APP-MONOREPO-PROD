@@ -6,6 +6,7 @@
  */
 
 import { logger } from '@/config/logger';
+import { eqCI } from './caseInsensitiveCompare';
 
 export interface DatabaseFieldMapping {
   [mobileField: string]: string | null; // null means field should be ignored
@@ -392,13 +393,13 @@ export function validateNocRequiredFields(
 
   // Check for conditional fields
   if (formType === 'POSITIVE') {
-    if (formData.nocStatus === 'Available' && !formData.nocNumber) {
+    if (eqCI(formData.nocStatus, 'Available') && !formData.nocNumber) {
       warnings.push('nocNumber should be specified when NOC is available');
     }
-    if (formData.nocStatus === 'Available' && !formData.nocValidityStatus) {
+    if (eqCI(formData.nocStatus, 'Available') && !formData.nocValidityStatus) {
       warnings.push('nocValidityStatus should be specified when NOC is available');
     }
-    if (formData.tpcMetPerson1 === 'Yes' && !formData.nameOfTpc1) {
+    if (eqCI(formData.tpcMetPerson1, 'Yes') && !formData.nameOfTpc1) {
       warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is Yes');
     }
     if (formData.totalUnits && !formData.completedUnits) {

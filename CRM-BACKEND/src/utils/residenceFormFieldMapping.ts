@@ -6,6 +6,7 @@
  */
 
 import { logger } from '@/config/logger';
+import { eqCI } from './caseInsensitiveCompare';
 
 export interface DatabaseFieldMapping {
   [mobileField: string]: string | null; // null means field should be ignored
@@ -350,10 +351,10 @@ export function validateRequiredFields(
 
   // Check for conditional fields
   if (formType === 'POSITIVE') {
-    if (formData.documentShownStatus === 'Showed' && !formData.documentType) {
+    if (eqCI(formData.documentShownStatus, 'Showed') && !formData.documentType) {
       warnings.push('documentType should be specified when documentShownStatus is Showed');
     }
-    if (formData.tpcMetPerson1 === 'Yes' && !formData.nameOfTpc1) {
+    if (eqCI(formData.tpcMetPerson1, 'Yes') && !formData.nameOfTpc1) {
       warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is Yes');
     }
   }

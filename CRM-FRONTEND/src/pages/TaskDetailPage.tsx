@@ -183,7 +183,10 @@ export const TaskDetailPage: React.FC = () => {
       }
     } catch (error) {
       logger.error('Failed to update task:', error);
-      toast.error('An error occurred while updating the task');
+      const errorMessage =
+        (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
+        'Failed to update task';
+      toast.error(errorMessage);
     }
   };
 

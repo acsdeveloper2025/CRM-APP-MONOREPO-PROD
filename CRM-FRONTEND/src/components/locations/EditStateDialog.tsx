@@ -85,6 +85,7 @@ export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogPr
     queryKey: ['states'],
     resourceName: 'State',
     operation: 'update',
+    additionalInvalidateKeys: [['dashboard']],
     onSuccess: () => {
       onOpenChange(false);
     },

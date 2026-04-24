@@ -90,9 +90,12 @@ export function ServiceZoneRulesTab() {
         rateTypeId: Number(formState.rateTypeId),
       }),
     invalidateKeys: [['service-zone-rules']],
-    successMessage: 'Service zone rule created successfully',
+    // Backend POST upserts on (client, product, pincode, area) — may create
+    // or update the rule's rate type depending on whether the combo exists.
+    // Toast phrasing stays neutral to cover both outcomes.
+    successMessage: 'Rate type rule saved successfully',
     errorContext: 'Rate Type Rules',
-    errorFallbackMessage: 'Failed to create rate type rule',
+    errorFallbackMessage: 'Failed to save rate type rule',
     onSuccess: () => {
       setFormState(EMPTY_FORM);
       setEditingRule(null);
