@@ -70,7 +70,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
                 <div className="flex-1 space-y-2">
                   <div>
                     <h3 className="text-lg font-semibold">{user.name}</h3>
-                    <p className="text-gray-600">{user.username}</p>
+                    <p className="text-gray-600 case-sensitive">{user.username}</p>
                   </div>
                   <div className="flex items-center space-x-2">
                     {getRoleBadge(getPrimaryRoleLabel(user))}
@@ -85,7 +85,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
                 <div>
                   <h4 className="font-medium text-sm text-gray-600">Contact Information</h4>
                   <div className="mt-2 space-y-1">
-                    <p className="text-sm">{user.email}</p>
+                    <p className="text-sm case-sensitive">{user.email}</p>
                     <p className="text-sm">Employee ID: {user.employeeId}</p>
                   </div>
                 </div>

@@ -102,7 +102,9 @@ export function InvoiceDetailsDialog({ invoice, open, onOpenChange }: InvoiceDet
                   <div className="font-semibold">{invoice.client.name}</div>
                   <div className="text-sm text-gray-600">{invoice.client.code}</div>
                 </div>
-                {invoice.client.email && <div className="text-sm">{invoice.client.email}</div>}
+                {invoice.client.email && (
+                  <div className="text-sm case-sensitive">{invoice.client.email}</div>
+                )}
                 {invoice.client.phone && <div className="text-sm">{invoice.client.phone}</div>}
               </CardContent>
             </Card>

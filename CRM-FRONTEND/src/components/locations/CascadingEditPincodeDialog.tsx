@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,12 +14,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
-import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
 import { Pincode, City, State, Country } from '@/types/location';
 import { ApiResponse } from '@/types/api';
 import { CascadingLocationSelector } from './CascadingLocationSelector';
-import { logger } from '@/utils/logger';
 
 const cascadingEditPincodeSchema = z.object({
   countryId: z.string().min(1, 'Country selection is required'),
@@ -48,8 +47,6 @@ export function CascadingEditPincodeDialog({
   open,
   onOpenChange,
 }: CascadingEditPincodeDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<CascadingEditPincodeFormData>({
     resolver: zodResolver(cascadingEditPincodeSchema),
     defaultValues: {
@@ -106,41 +103,19 @@ export function CascadingEditPincodeDialog({
     }
   }, [pincode, cityData, statesData, countriesData, form]);
 
-  const updateMutation = useMutation({
-    mutationFn: async (data: CascadingEditPincodeFormData) => {
-      // Transform cascading data to backend format
-      const updateData = {
+  const updateMutation = useMutationWithInvalidation({
+    mutationFn: (data: CascadingEditPincodeFormData) =>
+      locationsService.updatePincode(pincode.id, {
         code: data.pincodeCode,
         cityId: data.cityId,
-        // Note: Areas are managed separately through the areas API
-      };
-
-      // First update the pincode
-      const response = await locationsService.updatePincode(pincode.id, updateData);
-
-      // Then update areas if they changed
-      const currentAreaIds = pincode.areas?.map((area) => String(area.id)) || [];
-      const newAreaIds = data.areas;
-
-      if (JSON.stringify(currentAreaIds.sort()) !== JSON.stringify(newAreaIds.sort())) {
-        // Areas have changed, update them
-        // Note: This would require additional API endpoints for managing pincode-area relationships
-        // For now, we'll just update the basic pincode info
-      }
-
-      return response;
-    },
+        // Note: Area-pincode relationships require a dedicated API endpoint (not yet available)
+      }),
+    invalidateKeys: [['pincodes'], ['cities']],
+    successMessage: 'Pincode updated successfully',
+    errorContext: 'Pincode Update',
+    errorFallbackMessage: 'Failed to update pincode',
     onSuccess: () => {
-      toast.success('Pincode updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['pincodes'] });
-      queryClient.invalidateQueries({ queryKey: ['cities'] });
       onOpenChange(false);
-    },
-    onError: (error: unknown) => {
-      logger.error('Update pincode error:', error);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const errorMessage = (error as any)?.response?.data?.message || 'Failed to update pincode';
-      toast.error(errorMessage);
     },
   });
 

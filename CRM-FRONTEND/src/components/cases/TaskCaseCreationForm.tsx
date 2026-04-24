@@ -1064,7 +1064,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 ) : (
                   availableFieldUsers.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
-                      {user.name} ({user.email})
+                      {user.name} (<span className="case-sensitive">{user.email}</span>)
                     </SelectItem>
                   ))
                 )}

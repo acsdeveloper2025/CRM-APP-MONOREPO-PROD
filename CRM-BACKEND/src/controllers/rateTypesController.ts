@@ -140,13 +140,37 @@ export const createRateType = async (req: AuthenticatedRequest, res: Response) =
       });
     }
 
-    // Check if rate type name already exists
-    const dupRes = await query(`SELECT 1 FROM rate_types WHERE name = $1`, [name]);
-    if (dupRes.rowCount && dupRes.rowCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Rate type name already exists',
-        error: { code: 'DUPLICATE_NAME' },
+    // Upsert on (name). Name is the natural key; description + is_active
+    // are the editable non-key fields. If the name exists, update those
+    // instead of rejecting with 400 — resubmitting the same name with an
+    // updated description is the intuitive way to change a rate type.
+    const existingRes = await query(
+      `SELECT id FROM rate_types WHERE name = $1 LIMIT 1`,
+      [name]
+    );
+    if (existingRes.rows[0]) {
+      const existingId = existingRes.rows[0].id;
+      const updateRes = await query(
+        `UPDATE rate_types
+         SET description = $1,
+             is_active = $2,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $3
+         RETURNING id, name, description, is_active, created_at, updated_at`,
+        [description || null, isActive, existingId]
+      );
+      const updatedRateType = updateRes.rows[0];
+
+      logger.info(`Upserted rate type (updated existing): ${existingId}`, {
+        userId: req.user?.id,
+        rateTypeName: name,
+        description: description || '',
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: { ...updatedRateType, updated: true },
+        message: 'Rate type updated successfully',
       });
     }
 

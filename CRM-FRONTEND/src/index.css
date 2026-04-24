@@ -298,6 +298,51 @@ body {
   margin: 0;
   padding: 0;
   overflow-x: hidden;
+  /* Global UPPERCASE policy — user-visible text. See
+     src/lib/uppercase.ts for the matching input-value policy. */
+  text-transform: uppercase;
+}
+
+/* Form controls don't inherit text-transform from body by default in
+   most browsers (UA stylesheet). Force them to inherit so buttons,
+   selects, inputs, and textareas follow the body policy. Specific
+   exclusions below still win via higher specificity / later order. */
+button,
+select,
+input,
+textarea {
+  text-transform: inherit;
+}
+
+/* Preserve original case for anything that would break or become
+   unreadable if uppercased. Stored values are unaffected — this is
+   render-only. Covers: case-sensitive input types, technical strings
+   (code/pre/kbd/font-mono), external/mail/tel links, and any element
+   explicitly marked with the .case-sensitive class. */
+input[type='email'],
+input[type='password'],
+input[type='url'],
+input[type='tel'],
+input[type='number'],
+input[type='date'],
+input[type='time'],
+input[type='datetime-local'],
+input[type='month'],
+input[type='week'],
+input[type='file'],
+input[type='hidden'],
+input[type='color'],
+input[type='range'],
+code,
+pre,
+kbd,
+samp,
+.font-mono,
+.case-sensitive,
+a[href^='http'],
+a[href^='mailto:'],
+a[href^='tel:'] {
+  text-transform: none;
 }
 
 /* Layout improvements */

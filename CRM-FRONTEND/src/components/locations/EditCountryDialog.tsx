@@ -89,6 +89,7 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
     queryKey: ['countries'],
     resourceName: 'Country',
     operation: 'update',
+    additionalInvalidateKeys: [['dashboard']],
     onSuccess: () => {
       onOpenChange(false);
     },

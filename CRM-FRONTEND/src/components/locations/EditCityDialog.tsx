@@ -87,6 +87,7 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
     queryKey: ['cities'],
     resourceName: 'City',
     operation: 'update',
+    additionalInvalidateKeys: [['dashboard']],
     onSuccess: () => {
       onOpenChange(false);
     },

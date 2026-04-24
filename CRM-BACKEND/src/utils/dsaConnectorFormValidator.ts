@@ -9,6 +9,7 @@ import {
   DSA_CONNECTOR_FIELD_MAPPING,
   ensureAllDsaConnectorFieldsPopulated,
 } from './dsaConnectorFormFieldMapping';
+import { eqCI } from './caseInsensitiveCompare';
 
 export interface FormValidationResult {
   isValid: boolean;
@@ -247,7 +248,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
     }
 
     // Business registration validation
-    if (formData.businessType === 'Registered' && !formData.businessRegistrationNumber) {
+    if (eqCI(formData.businessType, 'Registered') && !formData.businessRegistrationNumber) {
       warnings.push('businessRegistrationNumber should be specified for registered business');
     }
 
@@ -267,7 +268,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
     }
 
     // Training validation
-    if (formData.certificationStatus === 'Certified' && !formData.trainingCompleted) {
+    if (eqCI(formData.certificationStatus, 'Certified') && !formData.trainingCompleted) {
       warnings.push('trainingCompleted should be specified when certification status is Certified');
     }
 
@@ -285,7 +286,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
 
   if (formType === 'NSP') {
     // Connector status conditional validation
-    if (formData.connectorStatus === 'Inactive' && !formData.otherObservation) {
+    if (eqCI(formData.connectorStatus, 'Inactive') && !formData.otherObservation) {
       warnings.push('otherObservation should be specified when connector status is Inactive');
     }
   }

@@ -115,7 +115,7 @@ export const ReassignCaseModal: React.FC<ReassignCaseModalProps> = ({
                         <div className="flex items-center space-x-2">
                           <User className="h-4 w-4" />
                           <span>
-                            {user.name} ({user.email})
+                            {user.name} (<span className="case-sensitive">{user.email}</span>)
                           </span>
                         </div>
                       </SelectItem>
@@ -145,7 +145,9 @@ export const ReassignCaseModal: React.FC<ReassignCaseModalProps> = ({
                 <span className="font-medium">Will be assigned to:</span>{' '}
                 <span className="text-green-600">{selectedUser.name}</span>
               </div>
-              <div className="text-sm text-gray-600 mt-1">Email: {selectedUser.email}</div>
+              <div className="text-sm text-gray-600 mt-1">
+                Email: <span className="case-sensitive">{selectedUser.email}</span>
+              </div>
             </div>
           )}
         </div>

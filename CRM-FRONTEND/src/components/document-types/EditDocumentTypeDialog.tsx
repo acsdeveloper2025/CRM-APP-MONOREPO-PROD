@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,7 +23,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { documentTypesService } from '@/services/documentTypes';
 import type { DocumentType } from '@/types/documentType';
-import { logger } from '@/utils/logger';
 
 const editDocumentTypeSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255, 'Name too long'),
@@ -47,8 +46,6 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
   open,
   onOpenChange,
 }) => {
-  const queryClient = useQueryClient();
-
   const form = useForm<EditDocumentTypeData>({
     resolver: zodResolver(editDocumentTypeSchema),
     defaultValues: { name: '', code: '' },
@@ -63,29 +60,27 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
     }
   }, [documentType, form]);
 
-  const updateDocumentTypeMutation = useMutation({
+  const updateDocumentTypeMutation = useMutationWithInvalidation({
     mutationFn: (data: EditDocumentTypeData) => {
       if (!documentType) {
         throw new Error('Document Type is missing');
       }
       return documentTypesService.updateDocumentType(documentType.id, data);
     },
+    invalidateKeys: [['document-types'], ['document-types-stats']],
+    successMessage: 'Document type updated successfully',
+    errorContext: 'Document Type Update',
+    errorFallbackMessage: 'Failed to update document type',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['document-types'] });
-      queryClient.invalidateQueries({ queryKey: ['document-types-stats'] });
       onOpenChange(false);
     },
   });
 
-  const onSubmit = async (data: EditDocumentTypeData) => {
+  const onSubmit = (data: EditDocumentTypeData) => {
     if (!documentType) {
       return;
     }
-    try {
-      await updateDocumentTypeMutation.mutateAsync(data);
-    } catch (error) {
-      logger.error('Failed to update document type:', error);
-    }
+    updateDocumentTypeMutation.mutate(data);
   };
 
   const handleClose = () => {

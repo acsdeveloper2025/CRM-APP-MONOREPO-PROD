@@ -6,6 +6,7 @@
  */
 
 import { logger } from '@/config/logger';
+import { eqCI } from './caseInsensitiveCompare';
 
 export interface DatabaseFieldMapping {
   [mobileField: string]: string | null; // null means field should be ignored
@@ -382,14 +383,14 @@ export function validateOfficeRequiredFields(
 
   // Check for conditional fields
   if (formType === 'POSITIVE') {
-    if (formData.officeStatus === 'Opened' && !formData.staffSeen) {
+    if (eqCI(formData.officeStatus, 'Open') && !formData.staffSeen) {
       warnings.push('staffSeen should be specified when office is opened');
     }
-    if (formData.tpcMetPerson1 === 'Yes' && !formData.nameOfTpc1) {
+    if (eqCI(formData.tpcMetPerson1, 'Yes') && !formData.nameOfTpc1) {
       warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is Yes');
     }
   }
-  if (formType === 'SHIFTED' && formData.officeStatus === 'Open') {
+  if (formType === 'SHIFTED' && eqCI(formData.officeStatus, 'Open')) {
     if (!formData.metPerson) {
       warnings.push('metPerson should be specified when office is open');
     }
@@ -397,7 +398,7 @@ export function validateOfficeRequiredFields(
       warnings.push('designation should be specified when office is open');
     }
   }
-  if (formType === 'NSP' && formData.officeStatus === 'Open') {
+  if (formType === 'NSP' && eqCI(formData.officeStatus, 'Open')) {
     if (!formData.metPerson) {
       warnings.push('metPerson should be specified when office is open');
     }

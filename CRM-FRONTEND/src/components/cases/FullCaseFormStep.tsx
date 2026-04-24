@@ -891,7 +891,7 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                           ) : (
                             availableFieldUsers.map((user) => (
                               <SelectItem key={user.id} value={String(user.id)}>
-                                {user.name} ({user.email})
+                                {user.name} (<span className="case-sensitive">{user.email}</span>)
                               </SelectItem>
                             ))
                           )}

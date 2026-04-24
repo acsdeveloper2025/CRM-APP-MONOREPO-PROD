@@ -9,6 +9,7 @@ import {
   BUSINESS_FIELD_MAPPING,
   ensureAllBusinessFieldsPopulated,
 } from './businessFormFieldMapping';
+import { eqCI } from './caseInsensitiveCompare';
 
 export interface FormValidationResult {
   isValid: boolean;
@@ -219,7 +220,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
 
   if (formType === 'POSITIVE') {
     // Business status conditional validation
-    if (formData.businessStatus === 'Opened' && !formData.staffSeen) {
+    if (eqCI(formData.businessStatus, 'Open') && !formData.staffSeen) {
       warnings.push('staffSeen should be specified when business status is Opened');
     }
 
@@ -254,7 +255,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
 
   if (formType === 'NSP') {
     // Business existence conditional validation
-    if (formData.businessStatus === 'Closed' && !formData.businessExistence) {
+    if (eqCI(formData.businessStatus, 'Closed') && !formData.businessExistence) {
       warnings.push('businessExistence should be specified when business status is Closed');
     }
   }
@@ -262,7 +263,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
   // Common validations for all forms
 
   // Company nameplate conditional validation
-  if (formData.companyNamePlateStatus === 'Sighted' && !formData.nameOnCompanyBoard) {
+  if (eqCI(formData.companyNamePlateStatus, 'Sighted') && !formData.nameOnCompanyBoard) {
     warnings.push('nameOnCompanyBoard should be specified when companyNamePlateStatus is Sighted');
   }
 

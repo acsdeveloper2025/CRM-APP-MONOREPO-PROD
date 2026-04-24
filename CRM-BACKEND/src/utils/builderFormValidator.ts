@@ -6,6 +6,7 @@
  */
 
 import { BUILDER_FIELD_MAPPING, ensureAllBuilderFieldsPopulated } from './builderFormFieldMapping';
+import { eqCI } from './caseInsensitiveCompare';
 
 export interface FormValidationResult {
   isValid: boolean;
@@ -212,22 +213,22 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
 
   if (formType === 'POSITIVE') {
     // Office status conditional validation
-    if (formData.officeStatus === 'Opened' && !formData.staffSeen) {
+    if (eqCI(formData.officeStatus, 'Open') && !formData.staffSeen) {
       warnings.push('staffSeen should be specified when office status is Opened');
     }
 
     // Project validation
-    if (formData.projectStatus === 'Completed' && !formData.projectCompletionStatus) {
+    if (eqCI(formData.projectStatus, 'Completed') && !formData.projectCompletionStatus) {
       warnings.push('projectCompletionStatus should be specified when project status is Completed');
     }
 
     // RERA validation
-    if (formData.reraRegistration === 'Yes' && !formData.reraNumber) {
+    if (eqCI(formData.reraRegistration, 'Yes') && !formData.reraNumber) {
       warnings.push('reraNumber should be specified when RERA registration is Yes');
     }
 
     // License validation
-    if (formData.licenseStatus === 'Valid' && !formData.licenseNumber) {
+    if (eqCI(formData.licenseStatus, 'Valid') && !formData.licenseNumber) {
       warnings.push('licenseNumber should be specified when license status is Valid');
     }
 
@@ -260,7 +261,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
 
   if (formType === 'NSP') {
     // Office existence conditional validation
-    if (formData.officeStatus === 'Closed' && !formData.officeExistence) {
+    if (eqCI(formData.officeStatus, 'Closed') && !formData.officeExistence) {
       warnings.push('officeExistence should be specified when office status is Closed');
     }
   }
@@ -268,7 +269,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
   // Common validations for all forms
 
   // Company nameplate conditional validation
-  if (formData.companyNamePlateStatus === 'Sighted' && !formData.nameOnCompanyBoard) {
+  if (eqCI(formData.companyNamePlateStatus, 'Sighted') && !formData.nameOnCompanyBoard) {
     warnings.push('nameOnCompanyBoard should be specified when companyNamePlateStatus is Sighted');
   }
 

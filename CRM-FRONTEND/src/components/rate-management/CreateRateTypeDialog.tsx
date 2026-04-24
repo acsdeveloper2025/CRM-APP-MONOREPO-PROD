@@ -1,7 +1,7 @@
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import {
   Dialog,
   DialogContent,
@@ -51,12 +51,14 @@ export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialo
     },
   });
 
-  const createMutation = useCRUDMutation({
+  const createMutation = useMutationWithInvalidation({
     mutationFn: (data: CreateRateTypeData) => rateTypesService.createRateType(data),
-    queryKey: ['rate-types'],
-    resourceName: 'Rate Type',
-    operation: 'create',
-    additionalInvalidateKeys: [['rate-management-stats']],
+    invalidateKeys: [['rate-types'], ['rate-management-stats']],
+    // Backend POST upserts on (name) — may create or update depending on
+    // whether the name exists. Toast phrasing stays neutral for both.
+    successMessage: 'Rate type saved successfully',
+    errorContext: 'Rate Type Creation',
+    errorFallbackMessage: 'Failed to save rate type',
     onSuccess: () => {
       form.reset();
       onOpenChange(false);

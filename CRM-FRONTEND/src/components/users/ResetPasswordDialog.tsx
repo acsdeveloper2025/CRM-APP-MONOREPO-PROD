@@ -120,8 +120,12 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                 <h4 className="font-medium">User Information:</h4>
                 <div className="text-sm text-gray-600">
                   <p>Name: {user.name}</p>
-                  <p>Username: {user.username}</p>
-                  <p>Email: {user.email}</p>
+                  <p>
+                    Username: <span className="case-sensitive">{user.username}</span>
+                  </p>
+                  <p>
+                    Email: <span className="case-sensitive">{user.email}</span>
+                  </p>
                   <p>Employee ID: {user.employeeId}</p>
                 </div>
               </div>

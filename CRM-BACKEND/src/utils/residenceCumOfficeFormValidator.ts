@@ -9,6 +9,7 @@ import {
   RESIDENCE_CUM_OFFICE_FIELD_MAPPING,
   ensureAllResidenceCumOfficeFieldsPopulated,
 } from './residenceCumOfficeFormFieldMapping';
+import { eqCI } from './caseInsensitiveCompare';
 
 export interface FormValidationResult {
   isValid: boolean;
@@ -236,17 +237,17 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
 
   if (formType === 'POSITIVE') {
     // House status conditional validation
-    if (formData.houseStatus === 'Opened' && !formData.totalFamilyMembers) {
+    if (eqCI(formData.houseStatus, 'Open') && !formData.totalFamilyMembers) {
       warnings.push('totalFamilyMembers should be specified when house status is Opened');
     }
 
     // Office status conditional validation
-    if (formData.officeStatus === 'Opened' && !formData.staffSeen) {
+    if (eqCI(formData.officeStatus, 'Open') && !formData.staffSeen) {
       warnings.push('staffSeen should be specified when office status is Opened');
     }
 
     // Document verification conditional validation
-    if (formData.documentShownStatus === 'Showed' && !formData.documentType) {
+    if (eqCI(formData.documentShownStatus, 'Showed') && !formData.documentType) {
       warnings.push('documentType should be specified when documentShownStatus is Showed');
     }
 
@@ -278,7 +279,7 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
 
   if (formType === 'NSP') {
     // Office existence conditional validation
-    if (formData.officeStatus === 'Closed' && !formData.officeExistence) {
+    if (eqCI(formData.officeStatus, 'Closed') && !formData.officeExistence) {
       warnings.push('officeExistence should be specified when office status is Closed');
     }
   }
@@ -286,15 +287,15 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
   // Common validations for all forms
 
   // Nameplate conditional validations
-  if (formData.companyNamePlateStatus === 'Sighted' && !formData.nameOnCompanyBoard) {
+  if (eqCI(formData.companyNamePlateStatus, 'Sighted') && !formData.nameOnCompanyBoard) {
     warnings.push('nameOnCompanyBoard should be specified when companyNamePlateStatus is Sighted');
   }
 
-  if (formData.doorNamePlateStatus === 'Sighted' && !formData.nameOnDoorPlate) {
+  if (eqCI(formData.doorNamePlateStatus, 'Sighted') && !formData.nameOnDoorPlate) {
     warnings.push('nameOnDoorPlate should be specified when doorNamePlateStatus is Sighted');
   }
 
-  if (formData.societyNamePlateStatus === 'Sighted' && !formData.nameOnSocietyBoard) {
+  if (eqCI(formData.societyNamePlateStatus, 'Sighted') && !formData.nameOnSocietyBoard) {
     warnings.push('nameOnSocietyBoard should be specified when societyNamePlateStatus is Sighted');
   }
 
