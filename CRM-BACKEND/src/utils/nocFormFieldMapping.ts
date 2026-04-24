@@ -62,7 +62,7 @@ export const NOC_FIELD_MAPPING: DatabaseFieldMapping = {
   // NOC ERT uses dedicated name_of_met_person / met_person_confirmation columns.
   // Prior aliases mapped these to security_person_name / security_confirmation
   // which are LEGACY ERT columns — causing ERT data loss (fixed 2026-04-19).
-  nameOfMetPerson: 'name_of_met_person',
+  nameOfMetPerson: 'met_person_name',
   metPersonConfirmation: 'met_person_confirmation',
   applicantExistance: 'applicant_existence',
   businessExistance: 'business_existence',

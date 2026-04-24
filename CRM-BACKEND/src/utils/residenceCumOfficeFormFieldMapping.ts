@@ -95,7 +95,7 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   premisesStatus: 'premises_status',
 
   // Entry restricted specific fields
-  nameOfMetPerson: 'name_of_met_person',
+  nameOfMetPerson: 'met_person_name',
   metPersonType: 'met_person_type',
   metPersonConfirmation: 'met_person_confirmation',
   applicantWorkingStatus: 'applicant_working_status',

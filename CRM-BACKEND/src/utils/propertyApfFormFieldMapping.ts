@@ -111,7 +111,7 @@ export const PROPERTY_APF_FIELD_MAPPING: DatabaseFieldMapping = {
   metPersonDesignation: 'met_person_designation',
   metPersonRelation: 'met_person_relation',
   metPersonContact: 'met_person_contact',
-  nameOfMetPerson: 'name_of_met_person', // Entry Restricted form field
+  nameOfMetPerson: 'met_person_name', // Entry Restricted form field
   metPersonConfirmation: 'met_person_confirmation', // Entry Restricted form field
   designation: 'designation', // Alternative field name
 
