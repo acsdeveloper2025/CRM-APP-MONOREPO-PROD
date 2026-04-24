@@ -268,7 +268,10 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
 
   if (formType === 'ENTRY_RESTRICTED') {
     // Entry restricted specific validations
-    if (eqCI(formData.metPersonConfirmation, 'Not Confirmed') && !formData.reasonForNonConfirmation) {
+    if (
+      eqCI(formData.metPersonConfirmation, 'Not Confirmed') &&
+      !formData.reasonForNonConfirmation
+    ) {
       warnings.push(
         'reasonForNonConfirmation should be specified when met person confirmation is Not Confirmed'
       );
