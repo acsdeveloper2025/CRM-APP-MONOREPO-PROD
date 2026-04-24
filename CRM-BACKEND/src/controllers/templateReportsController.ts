@@ -193,7 +193,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           stayingPersonName: residenceData.stayingPersonName,
           roomStatus: residenceData.roomStatus,
           // ERT-specific
-          nameOfMetPerson: residenceData.nameOfMetPerson,
+          nameOfMetPerson: residenceData.metPersonName,
           metPersonType: residenceData.metPersonType,
           metPersonConfirmation: residenceData.metPersonConfirmation,
           applicantStayingStatus: residenceData.applicantStayingStatus,
@@ -264,7 +264,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
 
           // ERT-specific fields
           metPersonType: officeData.metPersonType,
-          nameOfMetPerson: officeData.nameOfMetPerson,
+          nameOfMetPerson: officeData.metPersonName,
           metPersonConfirmation: officeData.metPersonConfirmation,
           officeExistFloor: officeData.addressFloor,
 
@@ -368,7 +368,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           currentCompanyPeriod: businessData.currentCompanyPeriod,
           premisesStatus: businessData.premisesStatus,
           // Entry restricted
-          nameOfMetPerson: businessData.nameOfMetPerson,
+          nameOfMetPerson: businessData.metPersonName,
           metPersonType: businessData.metPersonType,
           metPersonConfirmation: businessData.metPersonConfirmation,
           applicantWorkingStatus: businessData.applicantWorkingStatus,
@@ -462,7 +462,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           nameOfTpc2: rcData.tpcName2,
           tpcConfirmation2: rcData.tpcConfirmation2,
           // Entry restricted
-          nameOfMetPerson: rcData.nameOfMetPerson,
+          nameOfMetPerson: rcData.metPersonName,
           metPersonType: rcData.metPersonType,
           metPersonConfirmation: rcData.metPersonConfirmation,
           applicantStayingStatus: rcData.applicantStayingStatus,
@@ -551,7 +551,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           nameOfTpc2: builderData.tpcName2,
           tpcConfirmation2: builderData.tpcConfirmation2,
           // Entry restricted
-          nameOfMetPerson: builderData.nameOfMetPerson,
+          nameOfMetPerson: builderData.metPersonName,
           metPersonType: builderData.metPersonType,
           metPersonConfirmation: builderData.metPersonConfirmation,
           applicantWorkingStatus: builderData.applicantWorkingStatus,
@@ -905,7 +905,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           metPersonRelation: propertyData.metPersonRelation,
           metPersonContact: propertyData.metPersonContact,
           designation: propertyData.designation,
-          nameOfMetPerson: propertyData.nameOfMetPerson,
+          nameOfMetPerson: propertyData.metPersonName,
           metPersonConfirmation: propertyData.metPersonConfirmation,
           // Document
           documentShownStatus: propertyData.documentShownStatus,

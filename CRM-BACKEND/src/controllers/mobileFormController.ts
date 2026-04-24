@@ -191,12 +191,6 @@ export class MobileFormController {
       }
     }
 
-    // Also handle totalEarning → totalEarningMember alias
-    if (processed.totalEarning !== undefined && processed.totalEarningMember === undefined) {
-      processed.totalEarningMember = processed.totalEarning;
-    }
-    delete processed.totalEarning;
-
     return processed;
   }
 

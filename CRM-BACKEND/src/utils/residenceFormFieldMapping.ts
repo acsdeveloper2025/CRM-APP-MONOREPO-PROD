@@ -82,7 +82,7 @@ export const RESIDENCE_FIELD_MAPPING: DatabaseFieldMapping = {
   premisesStatus: 'premises_status',
 
   // Entry restricted specific fields
-  nameOfMetPerson: 'name_of_met_person',
+  nameOfMetPerson: 'met_person_name',
   metPerson: 'met_person_type', // Alternative field name for entry restricted
   metPersonType: 'met_person_type',
   metPersonConfirmation: 'met_person_confirmation',
