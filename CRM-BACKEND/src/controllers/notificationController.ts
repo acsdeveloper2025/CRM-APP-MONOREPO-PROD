@@ -970,18 +970,18 @@ export class NotificationController {
         byDeliveryMethod: deliveryResult.rows,
         summary: {
           totalNotifications: analyticsResult.rows.reduce(
-            (sum, row) => sum + parseInt(row.total_sent),
+            (sum, row) => sum + parseInt(row.totalSent),
             0
           ),
-          totalRead: analyticsResult.rows.reduce((sum, row) => sum + parseInt(row.total_read), 0),
+          totalRead: analyticsResult.rows.reduce((sum, row) => sum + parseInt(row.totalRead), 0),
           totalUnread: analyticsResult.rows.reduce(
-            (sum, row) => sum + parseInt(row.total_unread),
+            (sum, row) => sum + parseInt(row.totalUnread),
             0
           ),
           overallReadRate:
             analyticsResult.rows.length > 0
               ? (
-                  analyticsResult.rows.reduce((sum, row) => sum + parseFloat(row.read_rate), 0) /
+                  analyticsResult.rows.reduce((sum, row) => sum + parseFloat(row.readRate), 0) /
                   analyticsResult.rows.length
                 ).toFixed(2)
               : '0.00',

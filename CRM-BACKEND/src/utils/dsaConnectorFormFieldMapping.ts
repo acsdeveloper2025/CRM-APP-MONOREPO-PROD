@@ -71,7 +71,7 @@ export const DSA_CONNECTOR_FIELD_MAPPING: DatabaseFieldMapping = {
   companyNatureOfBusiness: 'company_nature_of_business',
   businessPeriod: 'business_period',
   activeClient: 'active_client',
-  companyNamePlateStatus: 'company_nameplate_status',
+  companyNamePlateStatus: 'company_name_plate_status',
   nameOnBoard: 'name_on_board',
 
   // Business/Office details (Form specific)
@@ -577,7 +577,7 @@ export function ensureAllDsaConnectorFieldsPopulated(
     'ownership_type',
     'company_nature_of_business',
     'business_period',
-    'company_nameplate_status',
+    'company_name_plate_status',
     'name_on_board',
     // DSA table has `staff_seen` but NOT `staff_strength` (uses `total_staff` instead).
     'staff_seen',

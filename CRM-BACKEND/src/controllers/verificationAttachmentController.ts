@@ -739,7 +739,7 @@ export class VerificationAttachmentController {
 
       const access = await VerificationAttachmentController.verifyCaseLevelAccess(
         req,
-        image.case_id
+        image.caseId
       );
       if (!access.ok) {
         return res.status(access.status || 403).json(access.body || { success: false });
@@ -749,7 +749,7 @@ export class VerificationAttachmentController {
       const dbFilePath = image.filePath || '';
       const filePath = dbFilePath.startsWith('/')
         ? path.join(process.cwd(), dbFilePath)
-        : path.join(process.cwd(), 'uploads', 'verification', image.case_id, image.filename);
+        : path.join(process.cwd(), 'uploads', 'verification', image.caseId, image.filename);
 
       // Check if file exists
       if (!fsSync.existsSync(filePath)) {
@@ -767,7 +767,7 @@ export class VerificationAttachmentController {
 
       if (String(image.mimeType || '').startsWith('image/')) {
         try {
-          const watermarkText = `ACS CRM | Case ${image.case_id} | Verification`;
+          const watermarkText = `ACS CRM | Case ${image.caseId} | Verification`;
           const escapedText = watermarkText
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -835,7 +835,7 @@ export class VerificationAttachmentController {
 
       const access = await VerificationAttachmentController.verifyCaseLevelAccess(
         req,
-        image.case_id
+        image.caseId
       );
       if (!access.ok) {
         return res.status(access.status || 403).json(access.body || { success: false });
@@ -851,8 +851,8 @@ export class VerificationAttachmentController {
         process.cwd(),
         'uploads',
         'verification',
-        image.verification_type.toLowerCase(),
-        image.case_id,
+        image.verificationType.toLowerCase(),
+        image.caseId,
         'thumbnails',
         `thumb_${image.filename}`
       );

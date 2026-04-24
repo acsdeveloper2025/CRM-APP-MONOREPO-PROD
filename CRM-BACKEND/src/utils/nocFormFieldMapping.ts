@@ -49,7 +49,7 @@ export const NOC_FIELD_MAPPING: DatabaseFieldMapping = {
   // NOC ERT mobile field `metPersonType` should map to its own column, not
   // to met_person_designation (which is for POSITIVE's designation field).
   metPersonType: 'met_person_type',
-  companyNamePlateStatus: 'company_nameplate_status',
+  companyNamePlateStatus: 'company_name_plate_status',
   nameOnBoard: 'name_on_company_board',
   currentCompanyName: 'current_company_name',
   // Period-composite merged destinations (added 2026-04-19 — mobile sends
