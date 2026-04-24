@@ -111,8 +111,13 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
     }
 
     const taskData = taskResult.rows[0];
-    const verificationTaskId = taskData.task_id;
-    const verificationType = taskData.verification_type_name || caseData.verificationType;
+    // Camelize transform (Phase B3, REPLACING) deletes snake keys —
+    // SQL aliases `task_id` and `verification_type_name` become camelCase
+    // properties on the row object. Reading snake here returns undefined
+    // → verificationTaskId is null → office query returns 0 rows →
+    // formData stays empty → every field renders blank in the report.
+    const verificationTaskId = taskData.taskId;
+    const verificationType = taskData.verificationTypeName || caseData.verificationType;
 
     let outcome = caseData.verificationOutcome;
     let formData: Record<string, unknown> = {};
