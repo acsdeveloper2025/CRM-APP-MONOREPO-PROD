@@ -144,10 +144,7 @@ export const createRateType = async (req: AuthenticatedRequest, res: Response) =
     // are the editable non-key fields. If the name exists, update those
     // instead of rejecting with 400 — resubmitting the same name with an
     // updated description is the intuitive way to change a rate type.
-    const existingRes = await query(
-      `SELECT id FROM rate_types WHERE name = $1 LIMIT 1`,
-      [name]
-    );
+    const existingRes = await query(`SELECT id FROM rate_types WHERE name = $1 LIMIT 1`, [name]);
     if (existingRes.rows[0]) {
       const existingId = existingRes.rows[0].id;
       const updateRes = await query(
