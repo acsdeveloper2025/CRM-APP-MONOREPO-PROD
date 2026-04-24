@@ -1168,16 +1168,16 @@ export class MobileFormController {
       formData.documentShownStatus = report.documentShownStatus;
       formData.documentType = report.documentType;
       formData.doorColor = report.doorColor;
-      formData.doorNamePlateStatus = report.doorNameplateStatus;
+      formData.doorNamePlateStatus = report.doorNamePlateStatus;
       formData.nameOnDoorPlate = report.nameOnDoorPlate;
-      formData.societyNamePlateStatus = report.societyNameplateStatus;
+      formData.societyNamePlateStatus = report.societyNamePlateStatus;
       formData.nameOnSocietyBoard = report.nameOnSocietyBoard;
       formData.addressStructureColor = report.addressStructureColor;
       formData.applicantStayingFloor = report.applicantStayingFloor;
       formData.addressFloor = report.addressFloor;
 
       // Nameplate fields
-      formData.companyNamePlateStatus = report.companyNameplateStatus;
+      formData.companyNamePlateStatus = report.companyNamePlateStatus;
       formData.nameOnCompanyBoard = report.nameOnCompanyBoard;
 
       // Area and accommodation
@@ -1226,7 +1226,7 @@ export class MobileFormController {
       formData.documentShown = report.documentShown;
       formData.documentType = report.documentType;
       formData.addressFloor = report.addressFloor;
-      formData.companyNamePlateStatus = report.companyNameplateStatus;
+      formData.companyNamePlateStatus = report.companyNamePlateStatus;
       formData.nameOnBoard = report.nameOnCompanyBoard;
       formData.tpcMetPerson1 = report.tpcMetPerson1;
       formData.nameOfTpc1 = report.tpcName1;
@@ -1297,7 +1297,7 @@ export class MobileFormController {
       formData.addressFloor = report.addressFloor;
       formData.addressStatus = report.addressStatus;
       formData.premisesStatus = report.premisesStatus;
-      formData.companyNamePlateStatus = report.companyNameplateStatus;
+      formData.companyNamePlateStatus = report.companyNamePlateStatus;
       formData.nameOnBoard = report.nameOnCompanyBoard;
       formData.addressStructureColor = report.addressStructureColor;
       formData.doorColor = report.doorColor;
@@ -1715,7 +1715,7 @@ export class MobileFormController {
       formData.officeStatus = report.officeStatus;
       formData.officeExistence = report.officeExistence;
       formData.officeApproxArea = report.officeApproxArea;
-      formData.companyNamePlateStatus = report.companyNameplateStatus;
+      formData.companyNamePlateStatus = report.companyNamePlateStatus;
       formData.nameOnBoard = report.nameOnCompanyBoard;
       formData.addressStructureColor = report.addressStructureColor;
       formData.doorColor = report.doorColor;
@@ -1901,9 +1901,9 @@ export class MobileFormController {
       formData.stayingPeriod = report.stayingPeriod;
       formData.stayingStatus = report.stayingStatus;
       formData.stayingPersonName = report.stayingPersonName;
-      formData.doorNamePlateStatus = report.doorNameplateStatus;
+      formData.doorNamePlateStatus = report.doorNamePlateStatus;
       formData.nameOnDoorPlate = report.nameOnDoorPlate;
-      formData.societyNamePlateStatus = report.societyNameplateStatus;
+      formData.societyNamePlateStatus = report.societyNamePlateStatus;
       formData.nameOnSocietyBoard = report.nameOnSocietyBoard;
 
       // Applicant Information
@@ -1923,7 +1923,7 @@ export class MobileFormController {
       formData.approxArea = report.approxArea;
       formData.sittingLocation = report.sittingLocation;
       formData.currentCompanyName = report.currentCompanyName;
-      formData.companyNamePlateStatus = report.companyNameplateStatus;
+      formData.companyNamePlateStatus = report.companyNamePlateStatus;
       formData.nameOnBoard = report.nameOnCompanyBoard;
 
       // Staff Information
