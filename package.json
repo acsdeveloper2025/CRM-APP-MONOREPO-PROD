@@ -23,7 +23,8 @@
       "cd CRM-FRONTEND && npx prettier --write"
     ],
     "CRM-BACKEND/src/**/*.ts": [
-      "cd CRM-BACKEND && npm run lint:fix"
+      "cd CRM-BACKEND && npm run lint:fix",
+      "cd CRM-BACKEND && npx prettier --write"
     ]
   }
 }
