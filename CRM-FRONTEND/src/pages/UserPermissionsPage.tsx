@@ -233,8 +233,16 @@ export function UserPermissionsPage() {
                 <p className="text-sm text-gray-600">Full/elevated access to products</p>
               ) : backendScoped ? (
                 <div className="space-y-2">
-                  {productAssignmentsLoading ? (
+                  {productAssignmentsLoading || clientAssignmentsLoading ? (
                     <p className="text-sm text-gray-600">Loading assignments...</p>
+                  ) : !clientAssignments?.data || clientAssignments.data.length === 0 ? (
+                    // Effective access requires at least one client. Direct product
+                    // assignments without clients have no effect under the new
+                    // client+product mapping model — show that explicitly.
+                    <p className="text-sm text-amber-600">
+                      No effective product access — user must be assigned to at least one client
+                      first.
+                    </p>
                   ) : productAssignments?.data && productAssignments.data.length > 0 ? (
                     <div className="space-y-1">
                       <p className="text-sm text-gray-600">
