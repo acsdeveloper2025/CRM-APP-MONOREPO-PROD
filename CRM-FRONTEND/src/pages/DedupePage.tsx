@@ -124,7 +124,7 @@ export const DedupePage: React.FC = () => {
   };
 
   const handleViewCase = (caseId: number) => {
-    navigate(`/cases/${caseId}`);
+    navigate(`/case-management/${caseId}`);
   };
 
   const formatDate = (dateString: string) => {
