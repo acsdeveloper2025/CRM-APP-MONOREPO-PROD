@@ -205,7 +205,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           landmark4: residenceData.landmark4,
           // Nameplates & documents
           companyNamePlateStatus: residenceData.companyNamePlateStatus,
-          nameOnCompanyBoard: residenceData.nameOnCompanyBoard,
+          nameOnBoard: residenceData.nameOnBoard,
           documentShownStatus: residenceData.documentShownStatus,
           // Status fields
           recommendationStatus: residenceData.recommendationStatus,
@@ -243,7 +243,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           staffSeen: officeData.staffSeen,
           officeApproxArea: officeData.officeApproxArea,
           companyNamePlateStatus: officeData.companyNamePlateStatus,
-          nameOnBoard: officeData.nameOnCompanyBoard,
+          nameOnBoard: officeData.nameOnBoard,
           locality: officeData.locality,
           addressStructure: officeData.addressStructure,
           addressStructureColor: officeData.addressStructureColor,
@@ -266,7 +266,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           metPersonType: officeData.metPersonType,
           nameOfMetPerson: officeData.metPersonName,
           metPersonConfirmation: officeData.metPersonConfirmation,
-          officeExistFloor: officeData.addressFloor,
+          addressFloor: officeData.addressFloor,
 
           // SHIFTED-specific fields
           oldOfficeShiftedPeriod: officeData.oldOfficeShiftedPeriod,
@@ -350,7 +350,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           businessSetup: businessData.businessSetup,
           // Nameplate
           companyNamePlateStatus: businessData.companyNamePlateStatus,
-          nameOnBoard: businessData.nameOnCompanyBoard,
+          nameOnBoard: businessData.nameOnBoard,
           // Document
           documentShown: businessData.documentShown,
           documentType: businessData.documentType,
@@ -444,7 +444,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           societyNamePlateStatus: rcData.societyNamePlateStatus,
           nameOnSocietyBoard: rcData.nameOnSocietyBoard,
           companyNamePlateStatus: rcData.companyNamePlateStatus,
-          nameOnBoard: rcData.nameOnCompanyBoard,
+          nameOnBoard: rcData.nameOnBoard,
           // Location
           locality: rcData.locality,
           addressStructure: rcData.addressStructure,
@@ -540,7 +540,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           workingStatus: builderData.workingStatus,
           // Nameplate
           companyNamePlateStatus: builderData.companyNamePlateStatus,
-          nameOnBoard: builderData.nameOnCompanyBoard,
+          nameOnBoard: builderData.nameOnBoard,
           // Document
           documentShown: builderData.documentShown,
           // TPC

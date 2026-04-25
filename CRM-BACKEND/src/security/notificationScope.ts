@@ -339,12 +339,12 @@ export const filterNotificationsByCurrentScope = async (
     if (notification.taskId) {
       allowed = canAccessTask(taskRows.get(notification.taskId), viewerContext);
       if (allowed) {
-        actionTarget = `/tasks/${notification.taskId}`;
+        actionTarget = `/task-management/${notification.taskId}`;
       }
     } else if (notification.caseId) {
       allowed = canAccessCase(caseRows.get(notification.caseId), viewerContext);
       if (allowed) {
-        actionTarget = `/cases/${notification.caseId}`;
+        actionTarget = `/case-management/${notification.caseId}`;
       }
     }
 

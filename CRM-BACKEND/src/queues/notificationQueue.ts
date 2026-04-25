@@ -259,7 +259,7 @@ notificationQueue
           completionStatus: data.completionStatus,
           outcome: data.outcome,
         },
-        actionUrl: `/cases/${data.caseId}`,
+        actionUrl: `/case-management/${data.caseId}`,
         actionType: 'OPEN_CASE',
         priority: 'MEDIUM',
       };
@@ -313,7 +313,7 @@ notificationQueue
           fieldUserName: data.fieldUserName,
           revocationReason: data.revocationReason,
         },
-        actionUrl: `/cases/${data.caseId}`,
+        actionUrl: `/case-management/${data.caseId}`,
         actionType: 'OPEN_CASE',
         priority: 'HIGH',
       };
@@ -371,7 +371,7 @@ notificationQueue
           fieldUserName: data.fieldUserName,
           revocationReason: data.revocationReason,
         },
-        actionUrl: `/cases/${data.caseId}`,
+        actionUrl: `/case-management/${data.caseId}`,
         actionType: 'OPEN_CASE',
         priority: 'HIGH',
       };

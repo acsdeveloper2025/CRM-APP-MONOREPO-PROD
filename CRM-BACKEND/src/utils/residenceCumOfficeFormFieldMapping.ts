@@ -33,8 +33,7 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   addressStructureColor: 'address_structure_color',
   doorColor: 'door_color',
   companyNamePlateStatus: 'company_name_plate_status',
-  nameOnBoard: 'name_on_company_board',
-  nameOnCompanyBoard: 'name_on_company_board',
+  nameOnBoard: 'name_on_board',
   doorNamePlateStatus: 'door_name_plate_status',
   nameOnDoorPlate: 'name_on_door_plate',
   societyNamePlateStatus: 'society_name_plate_status',
@@ -162,7 +161,7 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   officeConfirmed: null, // Ignore - derived field
   nameOnNamePlate: 'name_on_door_plate', // Maps to name on door plate
   nameOnSocietyNamePlate: 'name_on_society_board', // Maps to society board name
-  nameOnCompanyNamePlate: 'name_on_company_board', // Maps to company board name
+  nameOnCompanyNamePlate: 'name_on_board', // Maps to company board name
   shiftedFrom: 'shifted_period', // Maps to shifted period
   oldOfficeAddress: null, // Ignore - not in database
   newOfficeAddress: null, // Ignore - not in database
@@ -331,7 +330,7 @@ export function ensureAllResidenceCumOfficeFieldsPopulated(
     'address_structure_color',
     'door_color',
     'company_name_plate_status',
-    'name_on_company_board',
+    'name_on_board',
     'door_name_plate_status',
     'name_on_door_plate',
     'society_name_plate_status',
@@ -441,7 +440,7 @@ function getRelevantResidenceCumOfficeFieldsForFormType(formType: string): strin
       'address_structure_color',
       'door_color',
       'company_name_plate_status',
-      'name_on_company_board',
+      'name_on_board',
       'door_name_plate_status',
       'name_on_door_plate',
       'society_name_plate_status',
@@ -490,7 +489,7 @@ function getRelevantResidenceCumOfficeFieldsForFormType(formType: string): strin
       'address_structure_color',
       'door_color',
       'company_name_plate_status',
-      'name_on_company_board',
+      'name_on_board',
       'door_name_plate_status',
       'name_on_door_plate',
       'society_name_plate_status',
@@ -517,7 +516,7 @@ function getRelevantResidenceCumOfficeFieldsForFormType(formType: string): strin
       'address_structure_color',
       'door_color',
       'company_name_plate_status',
-      'name_on_company_board',
+      'name_on_board',
       'door_name_plate_status',
       'name_on_door_plate',
       'society_name_plate_status',
@@ -542,7 +541,7 @@ function getRelevantResidenceCumOfficeFieldsForFormType(formType: string): strin
       'address_floor',
       'address_structure_color',
       'company_name_plate_status',
-      'name_on_company_board',
+      'name_on_board',
       'society_name_plate_status',
       'name_on_society_board',
       'landmark1',

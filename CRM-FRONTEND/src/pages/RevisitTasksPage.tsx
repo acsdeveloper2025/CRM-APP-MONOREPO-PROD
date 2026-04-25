@@ -84,7 +84,7 @@ export const RevisitTasksPage: React.FC = () => {
     useAllVerificationTasks(queryFilters);
 
   const handleViewTask = (taskId: string) => {
-    navigate(`/tasks/${taskId}`);
+    navigate(`/task-management/${taskId}`);
   };
 
   const handleViewCase = (caseId: string) => {
@@ -97,8 +97,8 @@ export const RevisitTasksPage: React.FC = () => {
     if (caseId) {
       // Pass both case ID and task ID so we know which specific task to update
       const url = taskId
-        ? `/cases/new?edit=${caseId}&taskId=${taskId}`
-        : `/cases/new?edit=${caseId}`;
+        ? `/case-management/create-new-case?edit=${caseId}&taskId=${taskId}`
+        : `/case-management/create-new-case?edit=${caseId}`;
       navigate(url);
     }
   };

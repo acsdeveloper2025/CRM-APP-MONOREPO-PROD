@@ -2637,7 +2637,7 @@ CREATE TABLE public.builder_verification_reports (
     address_structure_color character varying(50),
     door_color character varying(50),
     company_name_plate_status character varying(50),
-    name_on_company_board character varying(255),
+    name_on_board character varying(255),
     landmark1 character varying(255),
     landmark2 character varying(255),
     office_status character varying(50),
@@ -2809,7 +2809,7 @@ CREATE TABLE public.business_verification_reports (
     address_structure_color character varying(50),
     door_color character varying(50),
     company_name_plate_status character varying(50),
-    name_on_company_board character varying(255),
+    name_on_board character varying(255),
     landmark1 character varying(255),
     landmark2 character varying(255),
     business_status character varying(50),
@@ -5933,7 +5933,7 @@ CREATE TABLE public.office_verification_reports (
     address_structure_color character varying(50),
     door_color character varying(50),
     company_name_plate_status character varying(50),
-    name_on_company_board character varying(255),
+    name_on_board character varying(255),
     landmark1 character varying(255),
     landmark2 character varying(255),
     office_status character varying(50),
@@ -7175,7 +7175,7 @@ CREATE TABLE public.residence_cum_office_verification_reports (
     address_structure_color character varying(50),
     door_color character varying(50),
     company_name_plate_status character varying(50),
-    name_on_company_board character varying(255),
+    name_on_board character varying(255),
     door_name_plate_status character varying(50),
     name_on_door_plate character varying(255),
     society_name_plate_status character varying(50),
@@ -7358,7 +7358,7 @@ CREATE TABLE public.residence_verification_reports (
     society_name_plate_status character varying(50),
     name_on_society_board character varying(255),
     company_name_plate_status character varying(50),
-    name_on_company_board character varying(255),
+    name_on_board character varying(255),
     landmark1 character varying(255),
     landmark2 character varying(255),
     landmark3 character varying(255),
@@ -10086,7 +10086,7 @@ COPY public.auto_saves (user_id, form_data, created_at, id, case_id) FROM stdin;
 -- Data for Name: builder_verification_reports; Type: TABLE DATA; Schema: public; Owner: acs_user
 --
 
-COPY public.builder_verification_reports (id, case_id, form_type, verification_outcome, customer_name, customer_phone, customer_email, address_locatable, address_rating, locality, address_structure, address_floor, address_structure_color, door_color, company_name_plate_status, name_on_company_board, landmark1, landmark2, office_status, office_existence, builder_type, company_nature_of_business, business_period, establishment_period, office_approx_area, staff_strength, staff_seen, met_person_name, designation, builder_name, builder_owner_name, working_period, working_status, document_shown, tpc_met_person1, tpc_name1, tpc_confirmation1, tpc_met_person2, tpc_name2, tpc_confirmation2, shifted_period, old_office_shifted_period, current_company_name, current_company_period, premises_status, met_person_type, met_person_confirmation, applicant_working_status, contact_person, call_remark, political_connection, dominated_area, feedback_from_neighbour, other_observation, other_extra_remark, final_status, recommendation_status, verification_date, verification_time, verified_by, remarks, total_images, total_selfies, created_at, updated_at, landmark3, landmark4, applicant_designation, verification_task_id, report_sha256_hash, report_server_signature, report_generated_at, is_final) FROM stdin;
+COPY public.builder_verification_reports (id, case_id, form_type, verification_outcome, customer_name, customer_phone, customer_email, address_locatable, address_rating, locality, address_structure, address_floor, address_structure_color, door_color, company_name_plate_status, name_on_board, landmark1, landmark2, office_status, office_existence, builder_type, company_nature_of_business, business_period, establishment_period, office_approx_area, staff_strength, staff_seen, met_person_name, designation, builder_name, builder_owner_name, working_period, working_status, document_shown, tpc_met_person1, tpc_name1, tpc_confirmation1, tpc_met_person2, tpc_name2, tpc_confirmation2, shifted_period, old_office_shifted_period, current_company_name, current_company_period, premises_status, met_person_type, met_person_confirmation, applicant_working_status, contact_person, call_remark, political_connection, dominated_area, feedback_from_neighbour, other_observation, other_extra_remark, final_status, recommendation_status, verification_date, verification_time, verified_by, remarks, total_images, total_selfies, created_at, updated_at, landmark3, landmark4, applicant_designation, verification_task_id, report_sha256_hash, report_server_signature, report_generated_at, is_final) FROM stdin;
 \.
 
 
@@ -10094,7 +10094,7 @@ COPY public.builder_verification_reports (id, case_id, form_type, verification_o
 -- Data for Name: business_verification_reports; Type: TABLE DATA; Schema: public; Owner: acs_user
 --
 
-COPY public.business_verification_reports (id, case_id, form_type, verification_outcome, customer_name, customer_phone, customer_email, address_locatable, address_rating, locality, address_structure, address_floor, address_structure_color, door_color, company_name_plate_status, name_on_company_board, landmark1, landmark2, business_status, business_existence, business_type, ownership_type, address_status, company_nature_of_business, business_period, establishment_period, business_approx_area, staff_strength, staff_seen, met_person_name, designation, name_of_company_owners, owner_name, business_owner_name, document_shown, tpc_met_person1, tpc_name1, tpc_confirmation1, tpc_met_person2, tpc_name2, tpc_confirmation2, shifted_period, old_business_shifted_period, current_company_name, current_company_period, premises_status, met_person_type, met_person_confirmation, applicant_working_status, contact_person, call_remark, political_connection, dominated_area, feedback_from_neighbour, other_observation, other_extra_remark, final_status, recommendation_status, verification_date, verification_time, verified_by, remarks, total_images, total_selfies, created_at, updated_at, business_activity, business_setup, applicant_designation, working_period, working_status, applicant_working_premises, document_type, name_of_tpc1, name_of_tpc2, verification_task_id, landmark3, landmark4, report_sha256_hash, report_server_signature, report_generated_at, is_final) FROM stdin;
+COPY public.business_verification_reports (id, case_id, form_type, verification_outcome, customer_name, customer_phone, customer_email, address_locatable, address_rating, locality, address_structure, address_floor, address_structure_color, door_color, company_name_plate_status, name_on_board, landmark1, landmark2, business_status, business_existence, business_type, ownership_type, address_status, company_nature_of_business, business_period, establishment_period, business_approx_area, staff_strength, staff_seen, met_person_name, designation, name_of_company_owners, owner_name, business_owner_name, document_shown, tpc_met_person1, tpc_name1, tpc_confirmation1, tpc_met_person2, tpc_name2, tpc_confirmation2, shifted_period, old_business_shifted_period, current_company_name, current_company_period, premises_status, met_person_type, met_person_confirmation, applicant_working_status, contact_person, call_remark, political_connection, dominated_area, feedback_from_neighbour, other_observation, other_extra_remark, final_status, recommendation_status, verification_date, verification_time, verified_by, remarks, total_images, total_selfies, created_at, updated_at, business_activity, business_setup, applicant_designation, working_period, working_status, applicant_working_premises, document_type, name_of_tpc1, name_of_tpc2, verification_task_id, landmark3, landmark4, report_sha256_hash, report_server_signature, report_generated_at, is_final) FROM stdin;
 \.
 
 
@@ -10696,7 +10696,7 @@ COPY public.notifications (id, user_id, title, message, type, case_id, case_numb
 -- Data for Name: office_verification_reports; Type: TABLE DATA; Schema: public; Owner: acs_user
 --
 
-COPY public.office_verification_reports (id, case_id, form_type, verification_outcome, customer_name, customer_phone, customer_email, address_locatable, address_rating, locality, address_structure, address_floor, address_structure_color, door_color, company_name_plate_status, name_on_company_board, landmark1, landmark2, office_status, office_existence, office_type, company_nature_of_business, business_period, establishment_period, office_approx_area, staff_strength, staff_seen, met_person_name, designation, applicant_designation, working_period, working_status, applicant_working_premises, sitting_location, current_company_name, document_shown, tpc_met_person1, tpc_name1, tpc_confirmation1, tpc_met_person2, tpc_name2, tpc_confirmation2, shifted_period, old_office_shifted_period, current_company_period, premises_status, met_person_type, met_person_confirmation, applicant_working_status, contact_person, call_remark, political_connection, dominated_area, feedback_from_neighbour, other_observation, other_extra_remark, final_status, recommendation_status, verification_date, verification_time, verified_by, remarks, total_images, total_selfies, created_at, updated_at, landmark3, landmark4, document_type, name_of_tpc1, name_of_tpc2, verification_task_id, report_sha256_hash, report_server_signature, report_generated_at, is_final) FROM stdin;
+COPY public.office_verification_reports (id, case_id, form_type, verification_outcome, customer_name, customer_phone, customer_email, address_locatable, address_rating, locality, address_structure, address_floor, address_structure_color, door_color, company_name_plate_status, name_on_board, landmark1, landmark2, office_status, office_existence, office_type, company_nature_of_business, business_period, establishment_period, office_approx_area, staff_strength, staff_seen, met_person_name, designation, applicant_designation, working_period, working_status, applicant_working_premises, sitting_location, current_company_name, document_shown, tpc_met_person1, tpc_name1, tpc_confirmation1, tpc_met_person2, tpc_name2, tpc_confirmation2, shifted_period, old_office_shifted_period, current_company_period, premises_status, met_person_type, met_person_confirmation, applicant_working_status, contact_person, call_remark, political_connection, dominated_area, feedback_from_neighbour, other_observation, other_extra_remark, final_status, recommendation_status, verification_date, verification_time, verified_by, remarks, total_images, total_selfies, created_at, updated_at, landmark3, landmark4, document_type, name_of_tpc1, name_of_tpc2, verification_task_id, report_sha256_hash, report_server_signature, report_generated_at, is_final) FROM stdin;
 \.
 
 
@@ -12845,7 +12845,7 @@ COPY public.report_templates (id, client_id, product_id, name, version, is_activ
 -- Data for Name: residence_cum_office_verification_reports; Type: TABLE DATA; Schema: public; Owner: acs_user
 --
 
-COPY public.residence_cum_office_verification_reports (id, case_id, form_type, verification_outcome, customer_name, customer_phone, customer_email, address_locatable, address_rating, locality, address_structure, address_floor, address_structure_color, door_color, company_name_plate_status, name_on_company_board, door_name_plate_status, name_on_door_plate, society_name_plate_status, name_on_society_board, landmark1, landmark2, landmark3, landmark4, house_status, met_person_name, met_person_relation, total_family_members, staying_period, staying_status, approx_area, document_shown_status, document_type, office_status, office_existence, office_type, designation, applicant_designation, working_period, working_status, applicant_working_premises, sitting_location, current_company_name, company_nature_of_business, business_period, establishment_period, staff_strength, staff_seen, tpc_met_person1, tpc_name1, tpc_confirmation1, tpc_met_person2, tpc_name2, tpc_confirmation2, shifted_period, old_office_shifted_period, current_company_period, premises_status, met_person_type, met_person_confirmation, applicant_working_status, applicant_staying_status, contact_person, call_remark, political_connection, dominated_area, feedback_from_neighbour, other_observation, other_extra_remark, final_status, recommendation_status, verification_date, verification_time, verified_by, remarks, total_images, total_selfies, created_at, updated_at, staying_person_name, verification_task_id, report_sha256_hash, report_server_signature, report_generated_at, is_final, total_earning_member, current_location, met_person_status, company_name) FROM stdin;
+COPY public.residence_cum_office_verification_reports (id, case_id, form_type, verification_outcome, customer_name, customer_phone, customer_email, address_locatable, address_rating, locality, address_structure, address_floor, address_structure_color, door_color, company_name_plate_status, name_on_board, door_name_plate_status, name_on_door_plate, society_name_plate_status, name_on_society_board, landmark1, landmark2, landmark3, landmark4, house_status, met_person_name, met_person_relation, total_family_members, staying_period, staying_status, approx_area, document_shown_status, document_type, office_status, office_existence, office_type, designation, applicant_designation, working_period, working_status, applicant_working_premises, sitting_location, current_company_name, company_nature_of_business, business_period, establishment_period, staff_strength, staff_seen, tpc_met_person1, tpc_name1, tpc_confirmation1, tpc_met_person2, tpc_name2, tpc_confirmation2, shifted_period, old_office_shifted_period, current_company_period, premises_status, met_person_type, met_person_confirmation, applicant_working_status, applicant_staying_status, contact_person, call_remark, political_connection, dominated_area, feedback_from_neighbour, other_observation, other_extra_remark, final_status, recommendation_status, verification_date, verification_time, verified_by, remarks, total_images, total_selfies, created_at, updated_at, staying_person_name, verification_task_id, report_sha256_hash, report_server_signature, report_generated_at, is_final, total_earning_member, current_location, met_person_status, company_name) FROM stdin;
 \.
 
 
@@ -12853,7 +12853,7 @@ COPY public.residence_cum_office_verification_reports (id, case_id, form_type, v
 -- Data for Name: residence_verification_reports; Type: TABLE DATA; Schema: public; Owner: acs_user
 --
 
-COPY public.residence_verification_reports (id, case_id, form_type, verification_outcome, customer_name, customer_phone, customer_email, address_locatable, address_rating, locality, address_structure, address_floor, address_structure_color, door_color, door_name_plate_status, name_on_door_plate, society_name_plate_status, name_on_society_board, company_name_plate_status, name_on_company_board, landmark1, landmark2, landmark3, landmark4, house_status, room_status, met_person_name, met_person_relation, met_person_status, staying_person_name, total_family_members, working_status, company_name, staying_period, staying_status, approx_area, document_shown_status, document_type, tpc_met_person1, tpc_name1, tpc_confirmation1, tpc_met_person2, tpc_name2, tpc_confirmation2, shifted_period, premises_status, met_person_type, met_person_confirmation, applicant_staying_status, call_remark, political_connection, dominated_area, feedback_from_neighbour, other_observation, final_status, recommendation_status, verification_date, verification_time, verified_by, remarks, total_images, total_selfies, created_at, updated_at, verification_task_id, report_sha256_hash, report_server_signature, report_generated_at, is_final, current_location, contact_person, applicant_staying_floor, total_earning_member) FROM stdin;
+COPY public.residence_verification_reports (id, case_id, form_type, verification_outcome, customer_name, customer_phone, customer_email, address_locatable, address_rating, locality, address_structure, address_floor, address_structure_color, door_color, door_name_plate_status, name_on_door_plate, society_name_plate_status, name_on_society_board, company_name_plate_status, name_on_board, landmark1, landmark2, landmark3, landmark4, house_status, room_status, met_person_name, met_person_relation, met_person_status, staying_person_name, total_family_members, working_status, company_name, staying_period, staying_status, approx_area, document_shown_status, document_type, tpc_met_person1, tpc_name1, tpc_confirmation1, tpc_met_person2, tpc_name2, tpc_confirmation2, shifted_period, premises_status, met_person_type, met_person_confirmation, applicant_staying_status, call_remark, political_connection, dominated_area, feedback_from_neighbour, other_observation, final_status, recommendation_status, verification_date, verification_time, verified_by, remarks, total_images, total_selfies, created_at, updated_at, verification_task_id, report_sha256_hash, report_server_signature, report_generated_at, is_final, current_location, contact_person, applicant_staying_floor, total_earning_member) FROM stdin;
 \.
 
 

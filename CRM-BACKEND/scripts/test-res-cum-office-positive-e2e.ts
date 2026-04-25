@@ -139,7 +139,7 @@ async function insertReport(
     society_nameplate_status: form.societyNamePlateStatus,
     name_on_society_board: form.nameOnSocietyBoard,
     company_nameplate_status: form.companyNamePlateStatus,
-    name_on_company_board: form.nameOnBoard,
+    name_on_board: form.nameOnBoard,
     landmark1: form.landmark1,
     landmark2: form.landmark2,
     political_connection: form.politicalConnection,

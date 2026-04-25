@@ -100,7 +100,7 @@ async function insertReport(
     current_company_period: form.currentCompanyPeriod,
     old_office_shifted_period: form.oldOfficeShiftedPeriod,
     company_nameplate_status: form.companyNamePlateStatus,
-    name_on_company_board: form.nameOnBoard,
+    name_on_board: form.nameOnBoard,
     tpc_met_person1: form.tpcMetPerson1,
     tpc_name1: form.tpcName1,
     name_of_tpc1: form.nameOfTpc1,

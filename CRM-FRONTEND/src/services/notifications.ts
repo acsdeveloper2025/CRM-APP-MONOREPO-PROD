@@ -108,7 +108,7 @@ export const notificationService = {
             useCache: false,
           }
         );
-        return response.success ? `/tasks/${notification.taskId}` : null;
+        return response.success ? `/task-management/${notification.taskId}` : null;
       }
 
       if (notification.caseId) {

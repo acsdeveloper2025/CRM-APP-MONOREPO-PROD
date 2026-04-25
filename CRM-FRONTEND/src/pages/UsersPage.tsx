@@ -43,6 +43,22 @@ interface UserFilters extends Record<string, unknown> {
   status?: string;
 }
 
+// URL segment mapping — keep in module scope so hooks can depend on it safely.
+type UserTab = 'users' | 'activities' | 'sessions';
+const TAB_TO_SEGMENT: Record<UserTab, string> = {
+  users: 'users',
+  activities: 'user-activity',
+  sessions: 'user-sessions',
+};
+const segmentToTab = (seg: string | null | undefined): UserTab | null => {
+  if (!seg) {
+    return null;
+  }
+  const entry = (Object.entries(TAB_TO_SEGMENT) as [UserTab, string][]).find(([, s]) => s === seg);
+  return entry ? entry[0] : null;
+};
+const pathForTab = (tab: UserTab) => `/user-management/${TAB_TO_SEGMENT[tab]}`;
+
 export function UsersPage() {
   const navigate = useNavigate();
   const { tab: tabParam } = useParams<{ tab?: string }>();
@@ -57,30 +73,22 @@ export function UsersPage() {
   const adminTabs = ['users', 'activities', 'sessions'] as const;
   const standardTabs = ['users'] as const;
   const validTabs = canManageRbac ? adminTabs : standardTabs;
-  type UserTab = (typeof adminTabs)[number];
 
   const queryTab = searchParams.get('tab');
-  const rawTab = tabParam || queryTab || 'users';
-  const activeTab: UserTab = validTabs.includes(rawTab as (typeof validTabs)[number])
-    ? (rawTab as UserTab)
+  const derivedTab = segmentToTab(tabParam) ?? (queryTab as UserTab | null) ?? 'users';
+  const activeTab: UserTab = validTabs.includes(derivedTab as (typeof validTabs)[number])
+    ? derivedTab
     : 'users';
 
   useEffect(() => {
-    if (!tabParam) {
-      if (activeTab !== 'users') {
-        navigate(`/users/${activeTab}`, { replace: true });
-      }
-      return;
-    }
-
-    const canonicalPath = activeTab === 'users' ? '/users' : `/users/${activeTab}`;
-    if (tabParam !== activeTab) {
-      navigate(canonicalPath, { replace: true });
+    const matched = segmentToTab(tabParam);
+    if (!tabParam || matched !== activeTab) {
+      navigate(pathForTab(activeTab), { replace: true });
     }
   }, [tabParam, activeTab, navigate]);
 
   const handleTabChange = (nextTab: string) => {
-    navigate(nextTab === 'users' ? '/users' : `/users/${nextTab}`);
+    navigate(pathForTab(nextTab as UserTab));
   };
 
   // 1. Users Tab State

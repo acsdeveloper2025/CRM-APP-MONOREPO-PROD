@@ -154,16 +154,16 @@ const KYCVerificationPage = React.lazy(() =>
 const resolveFirstAccessibleRoute = (permissionSet: Set<string>): string => {
   const candidates: Array<{ permission: string; path: string }> = [
     { permission: 'page.dashboard', path: '/dashboard' },
-    { permission: 'page.cases', path: '/cases' },
-    { permission: 'page.tasks', path: '/tasks' },
-    { permission: 'page.reports', path: '/reports' },
-    { permission: 'page.analytics', path: '/analytics' },
-    { permission: 'page.billing', path: '/billing' },
-    { permission: 'page.masterdata', path: '/clients' },
-    { permission: 'page.users', path: '/users' },
-    { permission: 'page.kyc', path: '/kyc' },
-    { permission: 'page.field_monitoring', path: '/operations/field-monitoring' },
-    { permission: 'page.rbac', path: '/admin/rbac' },
+    { permission: 'page.cases', path: '/case-management/all-cases' },
+    { permission: 'page.tasks', path: '/task-management/all-tasks' },
+    { permission: 'page.reports', path: '/reports-and-mis' },
+    { permission: 'page.analytics', path: '/reports-and-mis/analytics-dashboard' },
+    { permission: 'page.billing', path: '/billing-and-commission' },
+    { permission: 'page.masterdata', path: '/client-management/clients' },
+    { permission: 'page.users', path: '/user-management/users' },
+    { permission: 'page.kyc', path: '/kyc-verification/all-kyc' },
+    { permission: 'page.field_monitoring', path: '/user-management/field-monitoring' },
+    { permission: 'page.rbac', path: '/user-management/rbac-administration' },
     { permission: 'page.settings', path: '/settings' },
   ];
 
@@ -213,7 +213,9 @@ const AuthenticatedLayout = () => {
 
 const LegacyCaseEditRedirect: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const target = id ? `/cases/new?edit=${encodeURIComponent(id)}` : '/cases/new';
+  const target = id
+    ? `/case-management/create-new-case?edit=${encodeURIComponent(id)}`
+    : '/case-management/create-new-case';
   return <Navigate to={target} replace />;
 };
 
@@ -254,7 +256,7 @@ export const AppRoutes: React.FC = () => {
 
           {/* Page access routes (page.* permissions only) */}
           <Route
-            path="/cases"
+            path="/case-management/all-cases"
             element={
               <ProtectedRoute permission="page.cases">
                 <CasesPage />
@@ -262,7 +264,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/cases/:id"
+            path="/case-management/:id"
             element={
               <ProtectedRoute permission="page.cases">
                 <CaseDetailPage />
@@ -270,7 +272,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/cases/:id/edit"
+            path="/case-management/:id/edit"
             element={
               <ProtectedRoute permission="page.cases">
                 <LegacyCaseEditRedirect />
@@ -278,7 +280,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/cases/completed"
+            path="/case-management/completed"
             element={
               <ProtectedRoute permission="page.cases">
                 <CompletedCasesPage />
@@ -286,7 +288,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/cases/new"
+            path="/case-management/create-new-case"
             element={
               <ProtectedRoute permission="page.cases">
                 <NewCasePage />
@@ -303,7 +305,7 @@ export const AppRoutes: React.FC = () => {
           />
 
           <Route
-            path="/tasks"
+            path="/task-management/all-tasks"
             element={
               <ProtectedRoute permission="page.tasks">
                 <AllTasksPage />
@@ -311,7 +313,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/tasks/:taskId"
+            path="/task-management/:taskId"
             element={
               <ProtectedRoute permission="page.tasks">
                 <TaskDetailPage />
@@ -327,7 +329,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/tasks/pending"
+            path="/task-management/pending-tasks"
             element={
               <ProtectedRoute permission="page.tasks">
                 <PendingTasksPage />
@@ -335,7 +337,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/tasks/revoked"
+            path="/task-management/revoke-tasks"
             element={
               <ProtectedRoute permission="page.tasks">
                 <RevokedTasksPage />
@@ -343,7 +345,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/tasks/in-progress"
+            path="/task-management/in-progress-tasks"
             element={
               <ProtectedRoute permission="page.tasks">
                 <InProgressTasksPage />
@@ -351,7 +353,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/tasks/completed"
+            path="/task-management/completed-tasks"
             element={
               <ProtectedRoute permission="page.tasks">
                 <CompletedTasksPage />
@@ -359,7 +361,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/tasks/revisit"
+            path="/task-management/revisit-tasks"
             element={
               <ProtectedRoute permission="page.tasks">
                 <RevisitTasksPage />
@@ -367,7 +369,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/tasks/tat-monitoring"
+            path="/task-management/tat-monitoring"
             element={
               <ProtectedRoute permission="page.tasks">
                 <TATMonitoringPage />
@@ -377,7 +379,7 @@ export const AppRoutes: React.FC = () => {
           {/* /forms route removed — FormViewerPage was unused (RBAC audit 2026-04-16) */}
 
           <Route
-            path="/clients"
+            path="/client-management/clients"
             element={
               <ProtectedRoute permission="page.masterdata">
                 <ClientsPage />
@@ -385,7 +387,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/products"
+            path="/client-management/products"
             element={
               <ProtectedRoute permission="page.masterdata">
                 <ProductsPage />
@@ -393,7 +395,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/verification-types"
+            path="/client-management/verification-types"
             element={
               <ProtectedRoute permission="page.masterdata">
                 <VerificationTypesPage />
@@ -401,7 +403,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/document-types"
+            path="/client-management/document-types"
             element={
               <ProtectedRoute permission="page.masterdata">
                 <DocumentTypesPage />
@@ -426,7 +428,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/rate-management/service-zones"
+            path="/rate-management/service-zone-rules"
             element={
               <ProtectedRoute permission="page.masterdata">
                 <RateManagementPage defaultTab="service-zone-rules" />
@@ -434,7 +436,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/rate-management/assignments"
+            path="/rate-management/rate-type-assignment"
             element={
               <ProtectedRoute permission="page.masterdata">
                 <RateManagementPage defaultTab="rate-type-assignment" />
@@ -442,7 +444,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/rate-management/rates"
+            path="/rate-management/rate-amounts"
             element={
               <ProtectedRoute permission="page.masterdata">
                 <RateManagementPage defaultTab="rate-assignment" />
@@ -450,7 +452,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/rate-management/report"
+            path="/rate-management/rate-report"
             element={
               <ProtectedRoute permission="page.masterdata">
                 <RateManagementPage defaultTab="rate-view-report" />
@@ -458,7 +460,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/rate-management/document-rates"
+            path="/rate-management/kyc-rates"
             element={
               <ProtectedRoute permission="page.masterdata">
                 <RateManagementPage defaultTab="document-type-rates" />
@@ -466,7 +468,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/locations"
+            path="/location-management"
             element={
               <ProtectedRoute permission="page.masterdata">
                 <LocationsPage />
@@ -474,7 +476,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/locations/:tab"
+            path="/location-management/:tab"
             element={
               <ProtectedRoute permission="page.masterdata">
                 <LocationsPage />
@@ -483,7 +485,7 @@ export const AppRoutes: React.FC = () => {
           />
 
           <Route
-            path="/reports"
+            path="/reports-and-mis"
             element={
               <ProtectedRoute permission="page.reports">
                 <ReportsPage />
@@ -491,7 +493,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/analytics"
+            path="/reports-and-mis/analytics-dashboard"
             element={
               <ProtectedRoute permission="page.analytics">
                 <AnalyticsPage />
@@ -499,7 +501,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/reports/mis"
+            path="/reports-and-mis/mis-dashboard"
             element={
               <ProtectedRoute permission="page.analytics">
                 <MISDashboardPage />
@@ -508,7 +510,7 @@ export const AppRoutes: React.FC = () => {
           />
 
           <Route
-            path="/billing"
+            path="/billing-and-commission"
             element={
               <ProtectedRoute permission="page.billing">
                 <BillingPage />
@@ -516,7 +518,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/invoices"
+            path="/billing-and-commission/invoices"
             element={
               <ProtectedRoute permission="page.billing">
                 <BillingPage />
@@ -524,7 +526,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/commissions"
+            path="/billing-and-commission/commissions"
             element={
               <ProtectedRoute permission="page.billing">
                 <CommissionsPage />
@@ -532,7 +534,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/commission-management"
+            path="/billing-and-commission/commission-management"
             element={
               <ProtectedRoute permission="page.billing">
                 <CommissionManagementPage />
@@ -541,7 +543,7 @@ export const AppRoutes: React.FC = () => {
           />
 
           <Route
-            path="/users"
+            path="/user-management/users"
             element={
               <ProtectedRoute permission="page.users">
                 <UsersPage />
@@ -549,7 +551,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/users/:tab"
+            path="/user-management/:tab"
             element={
               <ProtectedRoute permission="page.users">
                 <UsersPage />
@@ -557,7 +559,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/users/:userId/permissions"
+            path="/user-management/:userId/permissions"
             element={
               <ProtectedRoute permission="page.users">
                 <UserPermissionsPage />
@@ -565,7 +567,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/operations/field-monitoring"
+            path="/user-management/field-monitoring"
             element={
               <ProtectedRoute permission="page.field_monitoring">
                 <FieldMonitoringPage />
@@ -573,7 +575,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/operations/field-monitoring/:userId"
+            path="/user-management/field-monitoring/:userId"
             element={
               <ProtectedRoute permission="page.field_monitoring">
                 <FieldMonitoringPage />
@@ -581,7 +583,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/admin/rbac"
+            path="/user-management/rbac-administration"
             element={
               <ProtectedRoute permission="page.rbac">
                 <RBACAdminPage />
@@ -591,7 +593,7 @@ export const AppRoutes: React.FC = () => {
 
           {/* KYC Verification routes — sidebar sub-pages */}
           <Route
-            path="/kyc"
+            path="/kyc-verification/all-kyc"
             element={
               <ProtectedRoute permission="page.kyc">
                 <KYCDashboardPage />
@@ -599,7 +601,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/kyc/pending"
+            path="/kyc-verification/pending-kyc"
             element={
               <ProtectedRoute permission="page.kyc">
                 <KYCDashboardPage
@@ -611,7 +613,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/kyc/completed"
+            path="/kyc-verification/completed-kyc"
             element={
               <ProtectedRoute permission="page.kyc">
                 <KYCDashboardPage
@@ -623,7 +625,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/kyc/verify/:taskId"
+            path="/kyc-verification/verify/:taskId"
             element={
               <ProtectedRoute permission="page.kyc">
                 <KYCVerificationPage />
@@ -648,7 +650,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/settings/case-data-templates"
+            path="/client-management/data-entry-templates"
             element={
               <ProtectedRoute permission="page.settings">
                 <CaseDataTemplatesPage />
@@ -656,7 +658,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/settings/report-templates"
+            path="/client-management/report-templates"
             element={
               <ProtectedRoute permission="report_template.manage">
                 <ReportTemplatesPage />
@@ -664,7 +666,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/data-entry-dashboard"
+            path="/case-management/data-entry"
             element={
               <ProtectedRoute permission="page.cases">
                 <DataEntryDashboardPage />
@@ -672,7 +674,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/data-entry-mis"
+            path="/case-management/data-entry-mis"
             element={
               <ProtectedRoute permission="page.cases">
                 <DataEntryMISPage />

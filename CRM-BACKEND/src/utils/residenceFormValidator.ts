@@ -148,8 +148,8 @@ function getRequiredFieldsByFormType(formType: string): string[] {
     ENTRY_RESTRICTED: [
       'addressLocatable',
       'addressRating',
-      'nameOfMetPerson',
-      'metPerson',
+      'metPersonName',
+      'metPersonType',
       'metPersonConfirmation',
       'applicantStayingStatus',
       'locality',

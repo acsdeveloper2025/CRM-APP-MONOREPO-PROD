@@ -107,7 +107,7 @@ function getRequiredFieldsByFormType(formType: string): string[] {
       'addressLocatable',
       'addressRating',
       'officeStatus',
-      'metPerson',
+      'metPersonName',
       'designation',
       'workingPeriod',
       'applicantDesignation',
@@ -127,7 +127,7 @@ function getRequiredFieldsByFormType(formType: string): string[] {
       'addressLocatable',
       'addressRating',
       'officeStatus',
-      'metPerson',
+      'metPersonName',
       'designation',
       'currentCompanyName',
       'oldOfficeShiftedPeriod',
@@ -151,7 +151,7 @@ function getRequiredFieldsByFormType(formType: string): string[] {
       'addressRating',
       'officeStatus',
       'officeExistence',
-      'metPerson',
+      'metPersonName',
       'designation',
       'locality',
       'addressStructure',
@@ -162,7 +162,7 @@ function getRequiredFieldsByFormType(formType: string): string[] {
     ENTRY_RESTRICTED: [
       'addressLocatable',
       'addressRating',
-      'nameOfMetPerson',
+      'metPersonName',
       'metPersonType',
       'metPersonConfirmation',
       'applicantWorkingStatus',
@@ -202,10 +202,14 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
     }
 
     // TPC conditional validation
-    if (formData.tpcMetPerson1 && !formData.nameOfTpc1) {
-      warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is selected');
+    if (formData.tpcMetPerson1 && !formData.tpcName1 && !formData.nameOfTpc1) {
+      warnings.push('tpcName1 should be specified when tpcMetPerson1 is selected');
     }
-    if (formData.tpcMetPerson1 && formData.nameOfTpc1 && !formData.tpcConfirmation1) {
+    if (
+      formData.tpcMetPerson1 &&
+      (formData.tpcName1 || formData.nameOfTpc1) &&
+      !formData.tpcConfirmation1
+    ) {
       warnings.push('tpcConfirmation1 should be specified when TPC person 1 is provided');
     }
 
@@ -230,8 +234,8 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
   // Common validations for all forms
 
   // Company nameplate conditional validation
-  if (eqCI(formData.companyNamePlateStatus, 'Sighted') && !formData.nameOnCompanyBoard) {
-    warnings.push('nameOnCompanyBoard should be specified when companyNamePlateStatus is Sighted');
+  if (eqCI(formData.companyNamePlateStatus, 'Sighted') && !formData.nameOnBoard) {
+    warnings.push('nameOnBoard should be specified when companyNamePlateStatus is Sighted');
   }
 
   return warnings;

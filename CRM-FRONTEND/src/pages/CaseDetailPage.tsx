@@ -69,7 +69,7 @@ export const CaseDetailPage: React.FC = () => {
 
   // Handler functions
   const handleEditCase = () => {
-    navigate(`/cases/new?edit=${safeId}`);
+    navigate(`/case-management/create-new-case?edit=${safeId}`);
   };
 
   const handleReassignCase = async (assignedToId: string, reason: string) => {
@@ -95,7 +95,7 @@ export const CaseDetailPage: React.FC = () => {
       <div className="text-center py-12">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Case not found</h2>
         <p className="mt-2 text-gray-600">The case you&apos;re looking for doesn&apos;t exist.</p>
-        <Link to="/cases">
+        <Link to="/case-management/all-cases">
           <Button className="mt-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Cases
@@ -179,7 +179,7 @@ export const CaseDetailPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Link to="/cases">
+          <Link to="/case-management/all-cases">
             <Button variant="outline" size="icon">
               <ArrowLeft className="h-4 w-4" />
             </Button>

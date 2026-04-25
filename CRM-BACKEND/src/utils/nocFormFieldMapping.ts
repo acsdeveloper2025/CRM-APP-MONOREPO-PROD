@@ -50,7 +50,7 @@ export const NOC_FIELD_MAPPING: DatabaseFieldMapping = {
   // to met_person_designation (which is for POSITIVE's designation field).
   metPersonType: 'met_person_type',
   companyNamePlateStatus: 'company_name_plate_status',
-  nameOnBoard: 'name_on_company_board',
+  nameOnBoard: 'name_on_board',
   currentCompanyName: 'current_company_name',
   // Period-composite merged destinations (added 2026-04-19 — mobile sends
   // currentCompanyPeriodValue/Unit which preprocessCompositeFields merges into

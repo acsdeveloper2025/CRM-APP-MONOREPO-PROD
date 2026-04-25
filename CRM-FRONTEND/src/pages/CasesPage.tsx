@@ -138,7 +138,7 @@ export const CasesPage: React.FC = () => {
   };
 
   const handleNewCase = () => {
-    navigate('/cases/new');
+    navigate('/case-management/create-new-case');
   };
 
   // Count active filters

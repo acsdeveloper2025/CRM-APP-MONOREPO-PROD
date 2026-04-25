@@ -50,7 +50,7 @@ export function UserPermissionsPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/users')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/user-management/users')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Users
           </Button>
@@ -75,7 +75,7 @@ export function UserPermissionsPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/users')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/user-management/users')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Users
           </Button>
@@ -101,7 +101,7 @@ export function UserPermissionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/users')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/user-management/users')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Users
           </Button>

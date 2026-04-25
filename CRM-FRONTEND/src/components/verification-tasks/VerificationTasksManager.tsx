@@ -128,7 +128,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
 
   const handleViewTask = useCallback(
     (taskId: string) => {
-      navigate(`/tasks/${taskId}`);
+      navigate(`/task-management/${taskId}`);
     },
     [navigate]
   );
