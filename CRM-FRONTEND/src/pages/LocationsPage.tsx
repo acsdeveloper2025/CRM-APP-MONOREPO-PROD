@@ -55,17 +55,17 @@ export function LocationsPage() {
 
   React.useEffect(() => {
     if (!tabParam) {
-      navigate(`/locations/${activeTab}`, { replace: true });
+      navigate(`/location-management/${activeTab}`, { replace: true });
       return;
     }
     if (tabParam !== activeTab) {
-      navigate(`/locations/${activeTab}`, { replace: true });
+      navigate(`/location-management/${activeTab}`, { replace: true });
     }
   }, [tabParam, activeTab, navigate]);
 
   // Handle tab change and update URL
   const handleTabChange = (newTab: string) => {
-    navigate(`/locations/${newTab}`);
+    navigate(`/location-management/${newTab}`);
     setCurrentPage(1); // Reset to page 1 when changing tabs
   };
 
@@ -202,7 +202,17 @@ export function LocationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Location Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            {(
+              {
+                countries: 'Countries',
+                states: 'States',
+                cities: 'Cities',
+                pincodes: 'Pincodes',
+                areas: 'Areas',
+              } as Record<string, string>
+            )[tabParam || ''] || 'Location Management'}
+          </h1>
           <p className="text-gray-600">Manage cities, states, pincodes, and geographical data</p>
         </div>
       </div>

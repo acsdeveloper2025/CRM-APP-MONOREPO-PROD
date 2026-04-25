@@ -114,9 +114,7 @@ export const AllTasksPage: React.FC = () => {
       {/* Page Header — matches CasesPage */}
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
-            All Verification Tasks
-          </h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">All Tasks</h1>
           <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
             Manage and track all verification tasks
           </p>

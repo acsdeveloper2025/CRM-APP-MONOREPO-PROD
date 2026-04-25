@@ -160,9 +160,7 @@ export const createOrUpdateDocumentTypeRate = async (req: AuthenticatedRequest, 
     }
 
     // Check if document type exists
-    const docTypeRes = await query('SELECT id FROM kyc_document_types WHERE id = $1', [
-      documentTypeId,
-    ]);
+    const docTypeRes = await query('SELECT id FROM document_types WHERE id = $1', [documentTypeId]);
     if (docTypeRes.rows.length === 0) {
       return res.status(404).json({
         success: false,

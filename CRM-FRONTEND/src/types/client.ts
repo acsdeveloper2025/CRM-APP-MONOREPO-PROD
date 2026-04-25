@@ -31,21 +31,30 @@ export interface VerificationType extends Omit<BaseEntity, 'id'> {
   hasRates?: boolean;
 }
 
+export interface ProductMappingPayload {
+  productId: number;
+  verificationTypeIds: number[];
+  documentTypeIds: number[];
+}
+
 export interface CreateClientData {
   name: string;
   code: string;
-  productIds?: number[]; // Changed from string[] to number[]
-  verificationTypeIds?: number[]; // Changed from string[] to number[]
+  productIds?: number[];
+  verificationTypeIds?: number[];
   documentTypeIds?: number[];
+  /** Per-(client,product) mapping. New canonical shape; flat lists kept for backward compat. */
+  productMappings?: ProductMappingPayload[];
 }
 
 export interface UpdateClientData {
   name?: string;
   code?: string;
-  productIds?: number[]; // Changed from string[] to number[]
-  verificationTypeIds?: number[]; // Changed from string[] to number[]
+  productIds?: number[];
+  verificationTypeIds?: number[];
   documentTypeIds?: number[];
-  // Branding colors (hex like #FF9800). null or '' clears the column.
+  /** Per-(client,product) mapping. New canonical shape; flat lists kept for backward compat. */
+  productMappings?: ProductMappingPayload[];
   primaryColor?: string | null;
   headerColor?: string | null;
 }

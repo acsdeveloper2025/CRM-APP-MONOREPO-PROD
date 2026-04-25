@@ -18,6 +18,8 @@ import {
   deleteClient,
   getClientProducts,
   getClientVerificationTypes,
+  getVerificationTypesForClientProduct,
+  getDocumentTypesForClientProduct,
   uploadClientLogo,
   uploadClientStamp,
   deleteClientLogo,
@@ -201,6 +203,22 @@ router.get(
   ]),
   validateClientAccess(),
   getClientProducts
+);
+
+// GET /api/clients/:clientId/products/:productId/verification-types
+router.get(
+  '/:clientId/products/:productId/verification-types',
+  authenticateToken,
+  validate([param('clientId').isInt({ min: 1 }), param('productId').isInt({ min: 1 })]),
+  getVerificationTypesForClientProduct
+);
+
+// GET /api/clients/:clientId/products/:productId/document-types
+router.get(
+  '/:clientId/products/:productId/document-types',
+  authenticateToken,
+  validate([param('clientId').isInt({ min: 1 }), param('productId').isInt({ min: 1 })]),
+  getDocumentTypesForClientProduct
 );
 
 // -----------------------------------------------------------------------

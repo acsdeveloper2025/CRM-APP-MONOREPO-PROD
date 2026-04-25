@@ -119,9 +119,7 @@ export function ClientsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Client & Product Management
-          </h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Clients</h1>
           <p className="text-gray-600">
             Manage clients, products, verification types, and their relationships
           </p>

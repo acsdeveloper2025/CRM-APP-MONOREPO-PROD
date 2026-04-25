@@ -58,14 +58,16 @@ export const getDocumentTypes = async (req: AuthenticatedRequest, res: Response)
         COALESCE(pdt_count.product_count, 0) as "productCount"
       FROM document_types dt
       LEFT JOIN (
-        SELECT document_type_id, COUNT(*) as client_count
-        FROM client_document_types
-        GROUP BY document_type_id
+        SELECT cpd.document_type_id, COUNT(DISTINCT cp.client_id) as client_count
+        FROM client_product_documents cpd
+        JOIN client_products cp ON cp.id = cpd.client_product_id
+        GROUP BY cpd.document_type_id
       ) cdt_count ON dt.id = cdt_count.document_type_id
       LEFT JOIN (
-        SELECT document_type_id, COUNT(*) as product_count
-        FROM product_document_types
-        GROUP BY document_type_id
+        SELECT cpd.document_type_id, COUNT(DISTINCT cp.product_id) as product_count
+        FROM client_product_documents cpd
+        JOIN client_products cp ON cp.id = cpd.client_product_id
+        GROUP BY cpd.document_type_id
       ) pdt_count ON dt.id = pdt_count.document_type_id
       ${whereClause}
       ORDER BY dt.${sortField} ${sortDirection}
@@ -120,14 +122,16 @@ export const getDocumentTypeById = async (req: AuthenticatedRequest, res: Respon
         COALESCE(pdt_count.product_count, 0) as "product_count"
       FROM document_types dt
       LEFT JOIN (
-        SELECT document_type_id, COUNT(*) as client_count
-        FROM client_document_types
-        GROUP BY document_type_id
+        SELECT cpd.document_type_id, COUNT(DISTINCT cp.client_id) as client_count
+        FROM client_product_documents cpd
+        JOIN client_products cp ON cp.id = cpd.client_product_id
+        GROUP BY cpd.document_type_id
       ) cdt_count ON dt.id = cdt_count.document_type_id
       LEFT JOIN (
-        SELECT document_type_id, COUNT(*) as product_count
-        FROM product_document_types
-        GROUP BY document_type_id
+        SELECT cpd.document_type_id, COUNT(DISTINCT cp.product_id) as product_count
+        FROM client_product_documents cpd
+        JOIN client_products cp ON cp.id = cpd.client_product_id
+        GROUP BY cpd.document_type_id
       ) pdt_count ON dt.id = pdt_count.document_type_id
       WHERE dt.id = $1
     `;
@@ -365,8 +369,7 @@ export const deleteDocumentType = async (req: AuthenticatedRequest, res: Respons
 
     // Check if document type is being used
     const usageCheckQueries = [
-      `SELECT COUNT(*) as count FROM client_document_types WHERE document_type_id = $1`,
-      `SELECT COUNT(*) as count FROM product_document_types WHERE document_type_id = $1`,
+      `SELECT COUNT(*) as count FROM client_product_documents WHERE document_type_id = $1`,
       `SELECT COUNT(*) as count FROM verification_tasks WHERE document_type_id = $1`,
       `SELECT COUNT(*) as count FROM cases WHERE document_type_id = $1`,
     ];

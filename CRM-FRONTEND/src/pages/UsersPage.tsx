@@ -274,7 +274,14 @@ export function UsersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">User Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            {(
+              { users: 'Users', activities: 'User Activity', sessions: 'User Sessions' } as Record<
+                string,
+                string
+              >
+            )[activeTab] || 'User Management'}
+          </h1>
           <p className="text-gray-600">
             Manage users, roles, permissions, and monitor user activities
           </p>
@@ -321,8 +328,8 @@ export function UsersPage() {
                       value="activities"
                       className="text-xs sm:text-sm whitespace-nowrap"
                     >
-                      <span className="hidden sm:inline">Activities</span>
-                      <span className="sm:hidden">Activity</span>
+                      <span className="hidden sm:inline">User Activity</span>
+                      <span className="sm:hidden">User Activity</span>
                       {stats.activities.total > 0 && (
                         <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
                           {stats.activities.total}
@@ -330,8 +337,8 @@ export function UsersPage() {
                       )}
                     </TabsTrigger>
                     <TabsTrigger value="sessions" className="text-xs sm:text-sm whitespace-nowrap">
-                      <span className="hidden sm:inline">Sessions</span>
-                      <span className="sm:hidden">Sessions</span>
+                      <span className="hidden sm:inline">User Sessions</span>
+                      <span className="sm:hidden">User Sessions</span>
                       {stats.sessions.total > 0 && (
                         <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
                           {stats.sessions.total}

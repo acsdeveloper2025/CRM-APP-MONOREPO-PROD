@@ -55,9 +55,7 @@ export const DocumentTypesPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Document Types Management
-          </h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Document Types</h1>
           <p className="text-gray-600">Manage document types with only name and code.</p>
         </div>
       </div>

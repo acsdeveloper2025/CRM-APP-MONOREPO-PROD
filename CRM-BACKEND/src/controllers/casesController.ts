@@ -3194,10 +3194,9 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
 
         // Look up KYC rate from documentTypeRates (client + product + kycDocumentType)
         let rateAmount: number | null = null;
-        const kycDocTypeRes = await client.query(
-          `SELECT id FROM kyc_document_types WHERE code = $1 AND is_active = true`,
-          [doc.documentType]
-        );
+        const kycDocTypeRes = await client.query(`SELECT id FROM document_types WHERE code = $1`, [
+          doc.documentType,
+        ]);
         if (kycDocTypeRes.rows.length === 0) {
           logger.warn(`KYC document type not found or inactive: ${doc.documentType}`, {
             caseId: newCase.id,

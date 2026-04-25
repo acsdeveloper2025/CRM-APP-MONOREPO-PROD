@@ -159,6 +159,23 @@ export class VerificationTypesService {
     }
     return response;
   }
+
+  /** VTs scoped to one (client, product) tuple — uses client_product_verifications. */
+  async getVerificationTypesForClientProduct(
+    clientId: number | string,
+    productId: number | string
+  ): Promise<ApiResponse<VerificationType[]>> {
+    const response = await apiService.get<VerificationType[]>(
+      `/clients/${Number(clientId)}/products/${Number(productId)}/verification-types`
+    );
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'verificationTypes',
+        endpoint: 'GET /clients/:clientId/products/:productId/verification-types',
+      });
+    }
+    return response;
+  }
 }
 
 export const verificationTypesService = new VerificationTypesService();

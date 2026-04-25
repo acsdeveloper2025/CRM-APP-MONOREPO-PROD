@@ -67,7 +67,7 @@ interface KYCDashboardPageProps {
 
 export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   defaultStatus,
-  pageTitle = 'KYC Document Verification',
+  pageTitle = 'KYC Verification',
   pageSubtitle = 'Verify identity, financial, and address documents',
 }) => {
   const navigate = useNavigate();

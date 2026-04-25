@@ -132,12 +132,12 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
         productsByClient.set(r.clientId, arr);
       });
 
-      // Load verification types through product relationships
+      // Load verification types via client+product junction
       const vtMapRes = await query(
         `SELECT DISTINCT cp.client_id, vt.id, vt.name, vt.code
-         FROM client_products cp
-         JOIN product_verification_types pvt ON cp.product_id = pvt.product_id
-         JOIN verification_types vt ON pvt.verification_type_id = vt.id
+         FROM client_product_verifications cpv
+         JOIN client_products cp ON cp.id = cpv.client_product_id
+         JOIN verification_types vt ON cpv.verification_type_id = vt.id
          WHERE cp.client_id = ANY($1::integer[])`,
         [dbClientIds.map(Number)]
       );
@@ -147,12 +147,13 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
         vtsByClient.set(r.clientId, arr);
       });
 
-      // Load document types through client relationships
+      // Load document types via client+product junction (DISTINCT across products)
       const dtMapRes = await query(
-        `SELECT cdt.client_id, dt.id, dt.name, dt.code
-         FROM client_document_types cdt
-         JOIN document_types dt ON cdt.document_type_id = dt.id
-         WHERE cdt.client_id = ANY($1::integer[])`,
+        `SELECT DISTINCT cp.client_id, dt.id, dt.name, dt.code
+         FROM client_product_documents cpd
+         JOIN client_products cp ON cp.id = cpd.client_product_id
+         JOIN document_types dt ON cpd.document_type_id = dt.id
+         WHERE cp.client_id = ANY($1::integer[])`,
         [dbClientIds.map(Number)]
       );
       dtMapRes.rows.forEach(r => {
@@ -234,22 +235,23 @@ export const getClientById = async (req: AuthenticatedRequest, res: Response) =>
       [Number(id)]
     );
 
-    // Load verification types through product relationships
+    // Load verification types via client+product junction
     const vtRes = await query(
       `SELECT DISTINCT vt.id, vt.name, vt.code
-       FROM client_products cp
-       JOIN product_verification_types pvt ON cp.product_id = pvt.product_id
-       JOIN verification_types vt ON pvt.verification_type_id = vt.id
+       FROM client_product_verifications cpv
+       JOIN client_products cp ON cp.id = cpv.client_product_id
+       JOIN verification_types vt ON cpv.verification_type_id = vt.id
        WHERE cp.client_id = $1`,
       [Number(id)]
     );
 
-    // Load document types through client relationships
+    // Load document types via client+product junction (DISTINCT across products)
     const dtRes = await query(
-      `SELECT dt.id, dt.name, dt.code
-       FROM client_document_types cdt
-       JOIN document_types dt ON cdt.document_type_id = dt.id
-       WHERE cdt.client_id = $1`,
+      `SELECT DISTINCT dt.id, dt.name, dt.code
+       FROM client_product_documents cpd
+       JOIN client_products cp ON cp.id = cpd.client_product_id
+       JOIN document_types dt ON cpd.document_type_id = dt.id
+       WHERE cp.client_id = $1`,
       [Number(id)]
     );
 
@@ -282,6 +284,65 @@ export const getClientById = async (req: AuthenticatedRequest, res: Response) =>
   }
 };
 
+// GET /api/clients/:clientId/products/:productId/verification-types
+// Returns only the VTs mapped to this exact (client, product) tuple.
+export const getVerificationTypesForClientProduct = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const clientId = Number(req.params.clientId);
+    const productId = Number(req.params.productId);
+    const r = await query(
+      `SELECT vt.id, vt.name, vt.code, vt.description, vt.is_active
+         FROM client_product_verifications cpv
+         JOIN client_products cp ON cp.id = cpv.client_product_id
+         JOIN verification_types vt ON cpv.verification_type_id = vt.id
+        WHERE cp.client_id = $1 AND cp.product_id = $2 AND cpv.is_active = true
+        ORDER BY vt.name`,
+      [clientId, productId]
+    );
+    res.json({ success: true, data: r.rows });
+  } catch (error) {
+    logger.error('Error retrieving VTs for client+product:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve verification types',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+// GET /api/clients/:clientId/products/:productId/document-types
+// Returns only the DocTypes mapped to this exact (client, product) tuple.
+export const getDocumentTypesForClientProduct = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const clientId = Number(req.params.clientId);
+    const productId = Number(req.params.productId);
+    const r = await query(
+      `SELECT dt.id, dt.name, dt.code, dt.category, dt.sort_order, dt.custom_fields,
+              cpd.is_mandatory, cpd.display_order
+         FROM client_product_documents cpd
+         JOIN client_products cp ON cp.id = cpd.client_product_id
+         JOIN document_types dt ON cpd.document_type_id = dt.id
+        WHERE cp.client_id = $1 AND cp.product_id = $2 AND cpd.is_active = true
+        ORDER BY cpd.display_order ASC, dt.name ASC`,
+      [clientId, productId]
+    );
+    res.json({ success: true, data: r.rows });
+  } catch (error) {
+    logger.error('Error retrieving DocTypes for client+product:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve document types',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
 // POST /api/clients - Create new client
 export const createClient = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -291,7 +352,19 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
       productIds = [],
       verificationTypeIds = [],
       documentTypeIds = [],
-    } = req.body;
+      productMappings,
+    } = req.body as {
+      name: string;
+      code: string;
+      productIds?: (number | string)[];
+      verificationTypeIds?: (number | string)[];
+      documentTypeIds?: (number | string)[];
+      productMappings?: Array<{
+        productId: number;
+        verificationTypeIds: number[];
+        documentTypeIds: number[];
+      }>;
+    };
 
     // Check if client code already exists
     const dupRes = await query(`SELECT 1 FROM clients WHERE code = $1`, [code]);
@@ -355,9 +428,10 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
       );
       const created = clientIns.rows[0];
 
+      // Insert client_products and capture client_product_id per product for downstream VT/DocType
+      const clientProductIdByProduct = new Map<number, number>();
       if (productIds.length > 0) {
         const uniqueProductIds = Array.from(new Set(productIds.map(Number)));
-        // Verify products
         const prodCheck = await cx.query(`SELECT id FROM products WHERE id = ANY($1::integer[])`, [
           uniqueProductIds,
         ]);
@@ -367,79 +441,101 @@ export const createClient = async (req: AuthenticatedRequest, res: Response) => 
           });
         }
         for (const pid of uniqueProductIds) {
-          await cx.query(
-            `INSERT INTO client_products (client_id, product_id, is_active, created_at, updated_at) VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+          const cpInsert = await cx.query(
+            `INSERT INTO client_products (client_id, product_id, is_active, created_at, updated_at)
+             VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id`,
             [created.id, Number(pid)]
           );
+          clientProductIdByProduct.set(Number(pid), cpInsert.rows[0].id);
         }
       }
 
-      // Create product-verification type relationships if both are provided
-      if (productIds.length > 0 && verificationTypeIds.length > 0) {
-        const uniqueProductIds = Array.from(new Set(productIds));
-        const uniqueVerificationTypeIds = Array.from(new Set(verificationTypeIds));
+      // If productMappings provided (canonical shape), use per-product VTs/DocTypes;
+      // otherwise fall back to spreading flat lists across every client_product.
+      const useGranularMappings = Array.isArray(productMappings) && productMappings.length > 0;
 
-        for (const productId of uniqueProductIds) {
-          for (const verificationTypeId of uniqueVerificationTypeIds) {
-            // Check if relationship already exists
-            const existingRel = await cx.query(
-              `SELECT id FROM product_verification_types WHERE product_id = $1 AND verification_type_id = $2`,
-              [productId, verificationTypeId]
+      if (useGranularMappings) {
+        for (const mapping of productMappings) {
+          const cpId = clientProductIdByProduct.get(Number(mapping.productId));
+          if (!cpId) {
+            continue;
+          }
+          for (const vtId of mapping.verificationTypeIds) {
+            await cx.query(
+              `INSERT INTO client_product_verifications (client_product_id, verification_type_id, is_active, created_at, updated_at)
+               VALUES ($1, $2, true, NOW(), NOW())
+               ON CONFLICT (client_product_id, verification_type_id) DO NOTHING`,
+              [cpId, Number(vtId)]
             );
-            if (existingRel.rowCount === 0) {
+          }
+          for (const dtId of mapping.documentTypeIds) {
+            await cx.query(
+              `INSERT INTO client_product_documents (client_product_id, document_type_id, is_active, created_at, updated_at)
+               VALUES ($1, $2, true, NOW(), NOW())
+               ON CONFLICT (client_product_id, document_type_id) DO NOTHING`,
+              [cpId, Number(dtId)]
+            );
+          }
+        }
+      } else {
+        // Backward-compat: spread flat lists across every client_product
+        if (clientProductIdByProduct.size > 0 && verificationTypeIds.length > 0) {
+          const uniqueVtIds = Array.from(new Set(verificationTypeIds.map(Number)));
+          for (const cpId of clientProductIdByProduct.values()) {
+            for (const vtId of uniqueVtIds) {
               await cx.query(
-                `INSERT INTO product_verification_types (product_id, verification_type_id, is_active, created_at, updated_at)
-                 VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-                [productId, verificationTypeId]
+                `INSERT INTO client_product_verifications (client_product_id, verification_type_id, is_active, created_at, updated_at)
+                 VALUES ($1, $2, true, NOW(), NOW())
+                 ON CONFLICT (client_product_id, verification_type_id) DO NOTHING`,
+                [cpId, vtId]
+              );
+            }
+          }
+        }
+        if (clientProductIdByProduct.size > 0 && documentTypeIds.length > 0) {
+          const uniqueDtIds = Array.from(new Set(documentTypeIds.map(Number)));
+          const dtCheck = await cx.query(
+            `SELECT id FROM document_types WHERE id = ANY($1::integer[])`,
+            [uniqueDtIds]
+          );
+          if (dtCheck.rowCount !== uniqueDtIds.length) {
+            throw Object.assign(new Error('One or more document types not found'), {
+              code: 'DOCUMENT_TYPES_NOT_FOUND',
+            });
+          }
+          for (const cpId of clientProductIdByProduct.values()) {
+            for (const dtId of uniqueDtIds) {
+              await cx.query(
+                `INSERT INTO client_product_documents (client_product_id, document_type_id, is_active, created_at, updated_at)
+                 VALUES ($1, $2, true, NOW(), NOW())
+                 ON CONFLICT (client_product_id, document_type_id) DO NOTHING`,
+                [cpId, dtId]
               );
             }
           }
         }
       }
 
-      // Create client-document type relationships if provided
-      if (documentTypeIds.length > 0) {
-        const uniqueDocumentTypeIds = Array.from(new Set(documentTypeIds.map(Number)));
-        // Verify document types
-        const dtCheck = await cx.query(
-          `SELECT id FROM document_types WHERE id = ANY($1::integer[])`,
-          [uniqueDocumentTypeIds]
-        );
-        if (dtCheck.rowCount !== uniqueDocumentTypeIds.length) {
-          throw Object.assign(new Error('One or more document types not found'), {
-            code: 'DOCUMENT_TYPES_NOT_FOUND',
-          });
-        }
-        for (const dtId of uniqueDocumentTypeIds) {
-          await cx.query(
-            `INSERT INTO client_document_types (client_id, document_type_id, "is_active", created_at, updated_at) VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-            [created.id, Number(dtId)]
-          );
-        }
-      }
-
-      // Load includes
       const prodRes2 = await cx.query(
         `SELECT p.id, p.name, p.code FROM client_products cp JOIN products p ON p.id = cp.product_id WHERE cp.client_id = $1`,
         [created.id]
       );
 
-      // Load verification types through product relationships
       const vtRes2 = await cx.query(
         `SELECT DISTINCT vt.id, vt.name, vt.code
-         FROM client_products cp
-         JOIN product_verification_types pvt ON cp.product_id = pvt.product_id
-         JOIN verification_types vt ON pvt.verification_type_id = vt.id
+         FROM client_product_verifications cpv
+         JOIN client_products cp ON cp.id = cpv.client_product_id
+         JOIN verification_types vt ON cpv.verification_type_id = vt.id
          WHERE cp.client_id = $1`,
         [created.id]
       );
 
-      // Load document types through client relationships
       const dtRes2 = await cx.query(
-        `SELECT dt.id, dt.name, dt.code
-         FROM client_document_types cdt
-         JOIN document_types dt ON cdt.document_type_id = dt.id
-         WHERE cdt.client_id = $1`,
+        `SELECT DISTINCT dt.id, dt.name, dt.code
+         FROM client_product_documents cpd
+         JOIN client_products cp ON cp.id = cpd.client_product_id
+         JOIN document_types dt ON cpd.document_type_id = dt.id
+         WHERE cp.client_id = $1`,
         [created.id]
       );
 
@@ -707,35 +803,31 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
           }
         }
 
-        // Get current products for this client
+        // Get current client_products with their ids
         const clientProductsRes = await cx.query(
-          `SELECT product_id FROM client_products WHERE client_id = $1`,
+          `SELECT id, product_id FROM client_products WHERE client_id = $1`,
           [Number(id)]
         );
-        const productIds = clientProductsRes.rows.map(row => row.productId);
+        const clientProductIds = clientProductsRes.rows.map(row => row.id);
 
-        if (productIds.length > 0) {
-          // Remove existing product-verification type relationships for this client's products
+        if (clientProductIds.length > 0) {
+          // Remove VT links not in new set across all of this client's products
           await cx.query(
-            `DELETE FROM product_verification_types WHERE product_id = ANY($1::integer[]) AND verification_type_id NOT IN (SELECT UNNEST($2::integer[]))`,
-            [productIds, vtIds]
+            `DELETE FROM client_product_verifications
+              WHERE client_product_id = ANY($1::integer[])
+                AND verification_type_id NOT IN (SELECT UNNEST($2::integer[]))`,
+            [clientProductIds, vtIds]
           );
 
-          // Add new product-verification type relationships
-          for (const productId of productIds) {
+          // Add new VT links per (client_product, vt)
+          for (const cpId of clientProductIds) {
             for (const vtId of vtIds) {
-              // Check if relationship already exists
-              const existingRel = await cx.query(
-                `SELECT id FROM product_verification_types WHERE product_id = $1 AND verification_type_id = $2`,
-                [productId, vtId]
+              await cx.query(
+                `INSERT INTO client_product_verifications (client_product_id, verification_type_id, is_active, created_at, updated_at)
+                 VALUES ($1, $2, true, NOW(), NOW())
+                 ON CONFLICT (client_product_id, verification_type_id) DO NOTHING`,
+                [cpId, vtId]
               );
-              if (existingRel.rowCount === 0) {
-                await cx.query(
-                  `INSERT INTO product_verification_types (product_id, verification_type_id, is_active, created_at, updated_at)
-                   VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-                  [productId, vtId]
-                );
-              }
             }
           }
         }
@@ -755,42 +847,51 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
             });
           }
         }
-        await cx.query(
-          `DELETE FROM client_document_types WHERE client_id = $1 AND document_type_id <> ALL($2::integer[])`,
-          [Number(id), dtIds]
-        );
-        for (const dtId of dtIds) {
+        // Resolve all client_products for this client
+        const cpRowsRes = await cx.query(`SELECT id FROM client_products WHERE client_id = $1`, [
+          Number(id),
+        ]);
+        const clientProductIds = cpRowsRes.rows.map(r => r.id);
+        if (clientProductIds.length > 0) {
           await cx.query(
-            `INSERT INTO client_document_types (client_id, document_type_id, "is_active", created_at)
-             VALUES ($1, $2, true, CURRENT_TIMESTAMP)
-             ON CONFLICT (client_id, document_type_id) DO NOTHING`,
-            [Number(id), dtId]
+            `DELETE FROM client_product_documents
+              WHERE client_product_id = ANY($1::integer[])
+                AND document_type_id <> ALL($2::integer[])`,
+            [clientProductIds, dtIds]
           );
+          for (const cpId of clientProductIds) {
+            for (const dtId of dtIds) {
+              await cx.query(
+                `INSERT INTO client_product_documents (client_product_id, document_type_id, is_active, created_at, updated_at)
+                 VALUES ($1, $2, true, NOW(), NOW())
+                 ON CONFLICT (client_product_id, document_type_id) DO NOTHING`,
+                [cpId, dtId]
+              );
+            }
+          }
         }
       }
 
-      // Load includes
       const prodRes3 = await cx.query(
         `SELECT p.id, p.name, p.code FROM client_products cp JOIN products p ON p.id = cp.product_id WHERE cp.client_id = $1`,
         [Number(id)]
       );
 
-      // Load verification types through product relationships
       const vtRes3 = await cx.query(
         `SELECT DISTINCT vt.id, vt.name, vt.code
-         FROM client_products cp
-         JOIN product_verification_types pvt ON cp.product_id = pvt.product_id
-         JOIN verification_types vt ON pvt.verification_type_id = vt.id
+         FROM client_product_verifications cpv
+         JOIN client_products cp ON cp.id = cpv.client_product_id
+         JOIN verification_types vt ON cpv.verification_type_id = vt.id
          WHERE cp.client_id = $1`,
         [Number(id)]
       );
 
-      // Load document types through client relationships
       const dtRes3 = await cx.query(
-        `SELECT dt.id, dt.name, dt.code
-         FROM client_document_types cdt
-         JOIN document_types dt ON cdt.document_type_id = dt.id
-         WHERE cdt.client_id = $1`,
+        `SELECT DISTINCT dt.id, dt.name, dt.code
+         FROM client_product_documents cpd
+         JOIN client_products cp ON cp.id = cpd.client_product_id
+         JOIN document_types dt ON cpd.document_type_id = dt.id
+         WHERE cp.client_id = $1`,
         [Number(id)]
       );
 
@@ -924,8 +1025,7 @@ export const deleteClient = async (req: AuthenticatedRequest, res: Response) => 
       await cx.query(`DELETE FROM rate_type_assignments WHERE client_id = $1`, [id]);
       await cx.query(`DELETE FROM client_products WHERE client_id = $1`, [id]);
 
-      // These have CASCADE but we delete them explicitly for clarity
-      await cx.query(`DELETE FROM client_document_types WHERE client_id = $1`, [id]);
+      // (client_product_documents + client_product_verifications cascade-delete via client_products FK)
       await cx.query(`DELETE FROM user_client_assignments WHERE client_id = $1`, [id]);
       await cx.query(`DELETE FROM commission_calculations WHERE client_id = $1`, [id]);
       await cx.query(`DELETE FROM field_user_commission_assignments WHERE client_id = $1`, [id]);
@@ -1059,9 +1159,9 @@ export const getClientVerificationTypes = async (req: AuthenticatedRequest, res:
 
     const vtRes = await query(
       `SELECT DISTINCT vt.id, vt.name, vt.code, vt.description, vt.is_active
-       FROM client_products cp
-       JOIN product_verification_types pvt ON cp.product_id = pvt.product_id
-       JOIN verification_types vt ON pvt.verification_type_id = vt.id
+       FROM client_product_verifications cpv
+       JOIN client_products cp ON cp.id = cpv.client_product_id
+       JOIN verification_types vt ON cpv.verification_type_id = vt.id
        WHERE cp.client_id = $1 ${whereClause}
        ORDER BY vt.name`,
       params

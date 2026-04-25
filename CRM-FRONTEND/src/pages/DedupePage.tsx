@@ -153,7 +153,7 @@ export const DedupePage: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Dedupe Search</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Dedupe</h1>
           <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
             Search for cases across all clients and products
           </p>

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Plus,
@@ -21,11 +22,36 @@ import { CommissionSummaryCard } from '@/components/billing/CommissionSummaryCar
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import { logger } from '@/utils/logger';
 
+// URL segment under /billing-and-commission/ ↔ tab value
+const URL_TO_TAB: Record<string, string> = {
+  invoices: 'invoices',
+  commissions: 'commissions',
+  'commission-management': 'commission-management',
+};
+
 export function BillingPage() {
-  const [activeTab, setActiveTab] = useState('invoices');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const seg = location.pathname.split('/').pop() || '';
+  const initialTab = URL_TO_TAB[seg] || 'invoices';
+
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [showCreateInvoice, setShowCreateInvoice] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
+
+  // Sync activeTab when the URL changes (sidebar navigation)
+  useEffect(() => {
+    const newTab = URL_TO_TAB[seg];
+    if (newTab && newTab !== activeTab) {
+      setActiveTab(newTab);
+    }
+  }, [seg, activeTab]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    navigate(`/billing-and-commission/${value}`);
+  };
 
   // Unified search with 800ms debounce
   const { debouncedSearchValue } = useUnifiedSearch({
@@ -119,7 +145,15 @@ export function BillingPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Billing & Commission</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            {(
+              {
+                invoices: 'Invoices',
+                commissions: 'Commissions',
+                'commission-management': 'Commission Management',
+              } as Record<string, string>
+            )[activeTab] || 'Billing & Commission'}
+          </h1>
           <p className="text-gray-600">
             Manage invoices, track payments, and monitor commission payouts
           </p>
@@ -203,7 +237,7 @@ export function BillingPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
             <div className="flex items-center justify-between">
               <TabsList>
                 <TabsTrigger value="invoices">
