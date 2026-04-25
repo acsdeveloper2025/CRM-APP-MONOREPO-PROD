@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,8 +17,27 @@ interface RateManagementPageProps {
   defaultTab?: string;
 }
 
+// Tab value → URL segment under /rate-management.
+const TAB_TO_SEGMENT: Record<string, string> = {
+  'rate-types': 'rate-types',
+  'service-zone-rules': 'service-zone-rules',
+  'rate-type-assignment': 'rate-type-assignment',
+  'rate-assignment': 'rate-amounts',
+  'rate-view-report': 'rate-report',
+  'document-type-rates': 'kyc-rates',
+};
+
 export function RateManagementPage({ defaultTab }: RateManagementPageProps = {}) {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(defaultTab || 'rate-types');
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    const segment = TAB_TO_SEGMENT[value];
+    if (segment) {
+      navigate(`/rate-management/${segment}`);
+    }
+  };
 
   // Sync activeTab when navigating between sidebar sub-pages.
   // useState only sets the initial value on mount — when React
@@ -57,7 +77,18 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Rate Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            {(
+              {
+                'rate-types': 'Rate Types',
+                'service-zone-rules': 'Service Zone Rules',
+                'rate-type-assignment': 'Rate Type Assignment',
+                'rate-assignment': 'Rate Amounts',
+                'rate-view-report': 'Rate Report',
+                'document-type-rates': 'KYC Rates',
+              } as Record<string, string>
+            )[activeTab] || 'Rate Management'}
+          </h1>
           <p className="text-gray-600">
             Manage rate types, assignments, and pricing for verification services
           </p>
@@ -151,25 +182,25 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="rate-types" className="text-sm">
-                1. Create Rate Types
+                Rate Types
               </TabsTrigger>
               <TabsTrigger value="service-zone-rules" className="text-sm">
-                2. Rate Type Rules
+                Service Zone Rules
               </TabsTrigger>
               <TabsTrigger value="rate-type-assignment" className="text-sm">
-                3. Rate Type Assignment
+                Rate Type Assignment
               </TabsTrigger>
               <TabsTrigger value="rate-assignment" className="text-sm">
-                4. Rate Assignment
+                Rate Amounts
               </TabsTrigger>
               <TabsTrigger value="rate-view-report" className="text-sm">
-                5. Rate View/Report
+                Rate Report
               </TabsTrigger>
               <TabsTrigger value="document-type-rates" className="text-sm">
-                6. KYC Rates
+                KYC Rates
               </TabsTrigger>
             </TabsList>
 

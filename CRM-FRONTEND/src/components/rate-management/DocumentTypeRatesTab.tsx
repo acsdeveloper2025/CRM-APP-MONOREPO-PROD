@@ -24,8 +24,8 @@ import {
 } from '@/components/ui/table';
 import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
+import { documentTypesService } from '@/services/documentTypes';
 import { documentTypeRatesService } from '@/services/documentTypeRates';
-import { apiService } from '@/services/api';
 import { Trash2, Edit, Plus, IndianRupee } from 'lucide-react';
 import type { DocumentType, DocumentTypeRate } from '@/types/documentTypeRates';
 
@@ -57,13 +57,16 @@ export function DocumentTypeRatesTab() {
     enabled: !!selectedClientId,
   });
 
-  // Fetch KYC document types
+  // Fetch document types scoped to (client, product) — only the docs the
+  // client+product mapping authorizes are shown.
   const { data: documentTypesData } = useQuery({
-    queryKey: ['kyc-document-types'],
-    queryFn: async () => {
-      const response = await apiService.get<DocumentType[]>('/kyc/document-types');
-      return response;
-    },
+    queryKey: ['client-product-document-types', selectedClientId, selectedProductId],
+    queryFn: () =>
+      documentTypesService.getDocumentTypesForClientProduct(
+        selectedClientId ?? 0,
+        selectedProductId ?? 0
+      ) as Promise<{ success: boolean; data: DocumentType[] }>,
+    enabled: !!(selectedClientId && selectedProductId),
   });
 
   // Fetch configured document type rates

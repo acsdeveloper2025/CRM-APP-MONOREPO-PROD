@@ -80,7 +80,7 @@ export const KYCVerificationPage: React.FC = () => {
           <ArrowLeft className="h-4 w-4 mr-1" /> Back
         </Button>
         <div>
-          <h1 className="text-xl font-bold">KYC Document Verification</h1>
+          <h1 className="text-xl font-bold">KYC Verification</h1>
           <p className="text-sm text-gray-500">
             Case #{task.caseNumber} — {task.taskNumber}
           </p>

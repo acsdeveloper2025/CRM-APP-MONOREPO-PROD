@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,12 +52,16 @@ export function RateAssignmentTab() {
     enabled: !!selectedClientId,
   });
 
-  // Fetch verification types for selected product
+  // Fetch verification types scoped to (client, product) — only VTs the
+  // client+product mapping authorizes are shown.
   const { data: verificationTypesData } = useQuery({
-    queryKey: ['product-verification-types', selectedProductId],
+    queryKey: ['client-product-verification-types', selectedClientId, selectedProductId],
     queryFn: () =>
-      verificationTypesService.getVerificationTypesByProduct(String(selectedProductId || '')),
-    enabled: !!selectedProductId,
+      verificationTypesService.getVerificationTypesForClientProduct(
+        selectedClientId ?? 0,
+        selectedProductId ?? 0
+      ),
+    enabled: !!(selectedClientId && selectedProductId),
   });
 
   // Fetch available rate types for selected combination

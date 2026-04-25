@@ -32,6 +32,23 @@ class DocumentTypesService {
     return response;
   }
 
+  /** DocTypes scoped to one (client, product) tuple — uses client_product_documents. */
+  async getDocumentTypesForClientProduct(
+    clientId: number | string,
+    productId: number | string
+  ): Promise<ApiResponse<DocumentType[]>> {
+    const response = await apiService.get<DocumentType[]>(
+      `/clients/${Number(clientId)}/products/${Number(productId)}/document-types`
+    );
+    if (response?.success && Array.isArray(response.data)) {
+      validateResponse(GenericEntityListSchema, response.data, {
+        service: 'documentTypes',
+        endpoint: 'GET /clients/:clientId/products/:productId/document-types',
+      });
+    }
+    return response;
+  }
+
   async getDocumentTypeById(id: number): Promise<ApiResponse<DocumentType>> {
     const response = await apiService.get<DocumentType>(`/document-types/${id}`);
     if (response?.success && response.data) {

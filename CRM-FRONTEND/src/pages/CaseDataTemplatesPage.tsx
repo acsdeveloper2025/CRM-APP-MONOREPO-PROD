@@ -684,7 +684,7 @@ export const CaseDataTemplatesPage: React.FC = () => {
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Case Data Templates</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Data Entry Templates</h1>
         <p className="text-muted-foreground text-sm">
           Define data entry templates for client-product combinations
         </p>

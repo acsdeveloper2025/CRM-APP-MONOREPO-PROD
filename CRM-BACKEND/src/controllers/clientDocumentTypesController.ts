@@ -3,31 +3,31 @@ import type { AuthenticatedRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import { query, withTransaction } from '../config/database';
 import { createAuditLog } from '../utils/auditLogger';
-import type { QueryParams } from '../types/database';
 
-// GET /api/clients/:id/document-types - Get document types mapped to a client
+// GET /api/clients/:id/document-types - Aggregate doc types across all client's products
+// (post-migration: doc types are scoped to client+product tuple)
 export const getDocumentTypesByClient = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const clientId = String(req.params.id || '');
     const { isActive } = req.query as { isActive?: string };
 
-    // Build where clause for active filter
-    const whereClause = isActive !== undefined ? 'AND cdt.is_active = $2' : '';
+    const whereClause = isActive !== undefined ? 'AND cpd.is_active = $2' : '';
     const params =
       isActive !== undefined ? [Number(clientId), String(isActive) === 'true'] : [Number(clientId)];
 
     const documentTypesQuery = `
-      SELECT DISTINCT 
+      SELECT DISTINCT
         dt.id,
         dt.name,
         dt.code,
-        cdt.is_required as "isRequired",
-        cdt.priority,
-        cdt.client_specific_rules as "clientSpecificRules"
-      FROM client_document_types cdt
-      JOIN document_types dt ON cdt.document_type_id = dt.id
-      WHERE cdt.client_id = $1 ${whereClause}
-      ORDER BY cdt.priority ASC, dt.name ASC
+        BOOL_OR(cpd.is_mandatory) as "isRequired",
+        MIN(cpd.display_order) as priority
+      FROM client_product_documents cpd
+      JOIN client_products cp ON cp.id = cpd.client_product_id
+      JOIN document_types dt ON cpd.document_type_id = dt.id
+      WHERE cp.client_id = $1 ${whereClause}
+      GROUP BY dt.id, dt.name, dt.code
+      ORDER BY priority ASC, dt.name ASC
     `;
 
     const result = await query(documentTypesQuery, params);
@@ -37,10 +37,7 @@ export const getDocumentTypesByClient = async (req: AuthenticatedRequest, res: R
       clientId,
     });
 
-    res.json({
-      success: true,
-      data: result.rows,
-    });
+    res.json({ success: true, data: result.rows });
   } catch (error) {
     logger.error('Error retrieving document types by client:', error);
     res.status(500).json({
@@ -51,12 +48,20 @@ export const getDocumentTypesByClient = async (req: AuthenticatedRequest, res: R
   }
 };
 
-// POST /api/clients/:id/document-types - Assign document types to a client
+// POST /api/clients/:id/document-types - Assign document types under a (client, product)
+// Body: { productId, documentTypeIds[], isRequired? }
 export const assignDocumentTypesToClient = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const clientId = String(req.params.id || '');
-    const { documentTypeIds, isRequired = false } = req.body;
+    const { productId, documentTypeIds, isRequired = false } = req.body;
 
+    if (!productId) {
+      return res.status(400).json({
+        success: false,
+        message: 'productId is required (document types are scoped to client+product)',
+        error: { code: 'PRODUCT_ID_REQUIRED' },
+      });
+    }
     if (!Array.isArray(documentTypeIds) || documentTypeIds.length === 0) {
       return res.status(400).json({
         success: false,
@@ -65,23 +70,25 @@ export const assignDocumentTypesToClient = async (req: AuthenticatedRequest, res
       });
     }
 
-    // Verify client exists
-    const clientCheck = await query(`SELECT id FROM clients WHERE id = $1`, [Number(clientId)]);
-    if (clientCheck.rows.length === 0) {
+    // Resolve client_product_id
+    const cpRes = await query(
+      `SELECT id FROM client_products WHERE client_id = $1 AND product_id = $2`,
+      [Number(clientId), Number(productId)]
+    );
+    if (cpRes.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Client not found',
-        error: { code: 'CLIENT_NOT_FOUND' },
+        message: 'Client+product mapping not found — assign the product to client first',
+        error: { code: 'CLIENT_PRODUCT_NOT_FOUND' },
       });
     }
+    const clientProductId = cpRes.rows[0].id;
 
-    // Verify all document types exist
     const uniqueDocumentTypeIds = Array.from(new Set(documentTypeIds.map(Number)));
     const documentTypeCheck = await query(
       `SELECT id FROM document_types WHERE id = ANY($1::integer[])`,
       [uniqueDocumentTypeIds]
     );
-
     if (documentTypeCheck.rows.length !== uniqueDocumentTypeIds.length) {
       return res.status(400).json({
         success: false,
@@ -92,53 +99,35 @@ export const assignDocumentTypesToClient = async (req: AuthenticatedRequest, res
 
     const result = await withTransaction(async client => {
       const insertedMappings = [];
-
       for (let i = 0; i < uniqueDocumentTypeIds.length; i++) {
         const documentTypeId = uniqueDocumentTypeIds[i];
-
-        try {
-          const insertResult = await client.query(
-            `INSERT INTO client_document_types (
-              client_id, document_type_id, is_required, priority, created_by
-            ) VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT (client_id, document_type_id) 
-            DO UPDATE SET 
-              is_required = EXCLUDED.is_required,
-              priority = EXCLUDED.priority,
-              is_active = true,
-              updated_by = EXCLUDED.created_by,
-              updated_at = CURRENT_TIMESTAMP
-            RETURNING *`,
-            [Number(clientId), documentTypeId, isRequired, i + 1, req.user?.id]
-          );
-
-          insertedMappings.push(insertResult.rows[0]);
-        } catch (error: unknown) {
-          logger.error(`Error inserting client-document type mapping:`, error);
-          throw error;
-        }
+        const insertResult = await client.query(
+          `INSERT INTO client_product_documents (client_product_id, document_type_id, is_mandatory, display_order, is_active, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, true, NOW(), NOW())
+           ON CONFLICT (client_product_id, document_type_id)
+           DO UPDATE SET is_mandatory = EXCLUDED.is_mandatory,
+                         display_order = EXCLUDED.display_order,
+                         is_active = true,
+                         updated_at = NOW()
+           RETURNING *`,
+          [clientProductId, documentTypeId, isRequired, i + 1]
+        );
+        insertedMappings.push(insertResult.rows[0]);
       }
-
       return insertedMappings;
     });
 
-    // Create audit log
     await createAuditLog({
       userId: req.user?.id,
       action: 'ASSIGN',
-      entityType: 'CLIENT_DOCUMENT_TYPES',
+      entityType: 'CLIENT_PRODUCT_DOCUMENTS',
       entityId: clientId,
       details: {
+        productId: Number(productId),
         documentTypeIds: uniqueDocumentTypeIds,
         isRequired,
         mappingCount: result.length,
       },
-    });
-
-    logger.info(`Assigned ${result.length} document types to client ${clientId}`, {
-      userId: req.user?.id,
-      clientId,
-      documentTypeIds: uniqueDocumentTypeIds,
     });
 
     res.status(201).json({
@@ -156,54 +145,60 @@ export const assignDocumentTypesToClient = async (req: AuthenticatedRequest, res
   }
 };
 
-// DELETE /api/clients/:clientId/document-types/:documentTypeId - Remove document type from client
+// DELETE /api/clients/:clientId/products/:productId/document-types/:documentTypeId
 export const removeDocumentTypeFromClient = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const clientId = String(req.params.clientId || '');
     const documentTypeId = String(req.params.documentTypeId || '');
+    const queryProductId = typeof req.query.productId === 'string' ? req.query.productId : '';
+    const productId = String(req.params.productId || queryProductId || '');
 
-    // Check if mapping exists
-    const existingMapping = await query(
-      `SELECT id, client_id, document_type_id, is_active, created_at FROM client_document_types WHERE client_id = $1 AND document_type_id = $2`,
-      [Number(clientId), Number(documentTypeId)]
+    if (!productId) {
+      return res.status(400).json({
+        success: false,
+        message: 'productId is required',
+        error: { code: 'PRODUCT_ID_REQUIRED' },
+      });
+    }
+
+    const cpRes = await query(
+      `SELECT id FROM client_products WHERE client_id = $1 AND product_id = $2`,
+      [Number(clientId), Number(productId)]
     );
-
-    if (existingMapping.rows.length === 0) {
+    if (cpRes.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Document type mapping not found for this client',
+        message: 'Client+product mapping not found',
+        error: { code: 'CLIENT_PRODUCT_NOT_FOUND' },
+      });
+    }
+    const clientProductId = cpRes.rows[0].id;
+
+    const deleteRes = await query(
+      `DELETE FROM client_product_documents WHERE client_product_id = $1 AND document_type_id = $2 RETURNING *`,
+      [clientProductId, Number(documentTypeId)]
+    );
+
+    if (deleteRes.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document type mapping not found',
         error: { code: 'MAPPING_NOT_FOUND' },
       });
     }
 
-    // Remove the mapping
-    await query(
-      `DELETE FROM client_document_types WHERE client_id = $1 AND document_type_id = $2`,
-      [Number(clientId), Number(documentTypeId)]
-    );
-
-    // Create audit log
     await createAuditLog({
       userId: req.user?.id,
       action: 'UNASSIGN',
-      entityType: 'CLIENT_DOCUMENT_TYPES',
+      entityType: 'CLIENT_PRODUCT_DOCUMENTS',
       entityId: clientId,
       details: {
+        productId: Number(productId),
         documentTypeId: Number(documentTypeId),
-        removedMapping: existingMapping.rows[0],
       },
     });
 
-    logger.info(`Removed document type ${documentTypeId} from client ${clientId}`, {
-      userId: req.user?.id,
-      clientId,
-      documentTypeId,
-    });
-
-    res.json({
-      success: true,
-      message: 'Document type removed from client successfully',
-    });
+    res.json({ success: true, message: 'Document type removed successfully' });
   } catch (error) {
     logger.error('Error removing document type from client:', error);
     res.status(500).json({
@@ -214,50 +209,46 @@ export const removeDocumentTypeFromClient = async (req: AuthenticatedRequest, re
   }
 };
 
-// PUT /api/clients/:clientId/document-types/:documentTypeId - Update client document type mapping
+// PUT /api/clients/:clientId/products/:productId/document-types/:documentTypeId
 export const updateClientDocumentTypeMapping = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const clientId = String(req.params.clientId || '');
     const documentTypeId = String(req.params.documentTypeId || '');
-    const { isRequired, priority, clientSpecificRules } = req.body;
+    const productId = String(req.params.productId || req.body.productId || '');
+    const { isRequired, priority } = req.body;
 
-    // Check if mapping exists
-    const existingMapping = await query(
-      `SELECT id, client_id, document_type_id, is_active, created_at FROM client_document_types WHERE client_id = $1 AND document_type_id = $2`,
-      [Number(clientId), Number(documentTypeId)]
-    );
-
-    if (existingMapping.rows.length === 0) {
-      return res.status(404).json({
+    if (!productId) {
+      return res.status(400).json({
         success: false,
-        message: 'Document type mapping not found for this client',
-        error: { code: 'MAPPING_NOT_FOUND' },
+        message: 'productId is required',
+        error: { code: 'PRODUCT_ID_REQUIRED' },
       });
     }
 
-    // Build update query
+    const cpRes = await query(
+      `SELECT id FROM client_products WHERE client_id = $1 AND product_id = $2`,
+      [Number(clientId), Number(productId)]
+    );
+    if (cpRes.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client+product mapping not found',
+        error: { code: 'CLIENT_PRODUCT_NOT_FOUND' },
+      });
+    }
+    const clientProductId = cpRes.rows[0].id;
+
     const updateFields: string[] = [];
-    const updateValues: QueryParams = [];
-    let paramIndex = 1;
-
+    const values: (string | number | boolean)[] = [];
+    let idx = 1;
     if (isRequired !== undefined) {
-      updateFields.push(`is_required = $${paramIndex}`);
-      updateValues.push(isRequired);
-      paramIndex++;
+      updateFields.push(`is_mandatory = $${idx++}`);
+      values.push(Boolean(isRequired));
     }
-
     if (priority !== undefined) {
-      updateFields.push(`priority = $${paramIndex}`);
-      updateValues.push(priority);
-      paramIndex++;
+      updateFields.push(`display_order = $${idx++}`);
+      values.push(Number(priority));
     }
-
-    if (clientSpecificRules !== undefined) {
-      updateFields.push(`client_specific_rules = $${paramIndex}`);
-      updateValues.push(JSON.stringify(clientSpecificRules));
-      paramIndex++;
-    }
-
     if (updateFields.length === 0) {
       return res.status(400).json({
         success: false,
@@ -265,67 +256,56 @@ export const updateClientDocumentTypeMapping = async (req: AuthenticatedRequest,
         error: { code: 'NO_UPDATE_FIELDS' },
       });
     }
-
-    // Add updated_by and updated_at
-    updateFields.push(`updated_by = $${paramIndex}`);
-    updateValues.push(req.user?.id);
-    paramIndex++;
-
-    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
-
-    // Add WHERE clause parameters
-    updateValues.push(Number(clientId), Number(documentTypeId));
+    updateFields.push(`updated_at = NOW()`);
+    values.push(clientProductId, Number(documentTypeId));
 
     const updateQuery = `
-      UPDATE client_document_types
+      UPDATE client_product_documents
       SET ${updateFields.join(', ')}
-      WHERE client_id = $${paramIndex} AND document_type_id = $${paramIndex + 1}
+      WHERE client_product_id = $${idx++} AND document_type_id = $${idx}
       RETURNING *
     `;
+    const result = await query(updateQuery, values);
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Document type mapping not found',
+        error: { code: 'MAPPING_NOT_FOUND' },
+      });
+    }
+    const m = result.rows[0];
 
-    const result = await query(updateQuery, updateValues);
-    const updatedMapping = result.rows[0];
-
-    // Create audit log
     await createAuditLog({
       userId: req.user?.id,
       action: 'UPDATE',
-      entityType: 'CLIENT_DOCUMENT_TYPES',
+      entityType: 'CLIENT_PRODUCT_DOCUMENTS',
       entityId: clientId,
       details: {
+        productId: Number(productId),
         documentTypeId: Number(documentTypeId),
         updatedFields: Object.keys(req.body),
-        previousMapping: existingMapping.rows[0],
       },
-    });
-
-    logger.info(`Updated client document type mapping: ${clientId}-${documentTypeId}`, {
-      userId: req.user?.id,
-      clientId,
-      documentTypeId,
-      updatedFields: Object.keys(req.body),
     });
 
     res.json({
       success: true,
       data: {
-        id: updatedMapping.id,
-        clientId: updatedMapping.client_id,
-        documentTypeId: updatedMapping.document_type_id,
-        isRequired: updatedMapping.is_required,
-        priority: updatedMapping.priority,
-        clientSpecificRules: updatedMapping.client_specific_rules,
-        isActive: updatedMapping.is_active,
-        createdAt: updatedMapping.created_at,
-        updatedAt: updatedMapping.updated_at,
+        id: m.id,
+        clientProductId: m.client_product_id,
+        documentTypeId: m.document_type_id,
+        isRequired: m.is_mandatory,
+        priority: m.display_order,
+        isActive: m.is_active,
+        createdAt: m.created_at,
+        updatedAt: m.updated_at,
       },
-      message: 'Client document type mapping updated successfully',
+      message: 'Mapping updated successfully',
     });
   } catch (error) {
     logger.error('Error updating client document type mapping:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to update client document type mapping',
+      message: 'Failed to update mapping',
       error: { code: 'INTERNAL_ERROR' },
     });
   }

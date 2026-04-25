@@ -93,7 +93,7 @@ export function ReportsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">MIS Reports</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
           <p className="text-gray-600">
             Generate MIS reports and analyze operational performance metrics
           </p>

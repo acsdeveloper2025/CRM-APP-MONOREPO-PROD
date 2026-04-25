@@ -15,7 +15,7 @@ export const listDocumentTypes = async (_req: AuthenticatedRequest, res: Respons
   try {
     const result = await query(
       `SELECT id, code, name, category, is_active, sort_order, COALESCE(custom_fields, '[]'::jsonb) as custom_fields
-       FROM kyc_document_types
+       FROM document_types
        WHERE is_active = true
        ORDER BY sort_order, name`
     );
@@ -144,7 +144,7 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
        LEFT JOIN users u_verified ON u_verified.id = kdv.verified_by
        LEFT JOIN users u_assigned ON u_assigned.id = kdv.assigned_to
        LEFT JOIN users u_created ON u_created.id = kdv.assigned_by
-       LEFT JOIN kyc_document_types kdt ON kdt.code = kdv.document_type
+       LEFT JOIN document_types kdt ON kdt.code = kdv.document_type
        ${whereClause}
        ORDER BY ${sortCol} ${sortDir}
        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
@@ -205,7 +205,7 @@ export const getKYCTaskDetail = async (req: AuthenticatedRequest, res: Response)
        JOIN verification_tasks vt ON vt.id = kdv.verification_task_id
        LEFT JOIN users u_verified ON u_verified.id = kdv.verified_by
        LEFT JOIN users u_assigned ON u_assigned.id = kdv.assigned_to
-       LEFT JOIN kyc_document_types kdt ON kdt.code = kdv.document_type
+       LEFT JOIN document_types kdt ON kdt.code = kdv.document_type
        WHERE kdv.id = $1`,
       [taskId]
     );
@@ -450,7 +450,7 @@ export const getKYCTasksForCase = async (req: AuthenticatedRequest, res: Respons
         u_verified.name as verified_by_name,
         u_assigned.name as assigned_to_name
        FROM kyc_document_verifications kdv
-       LEFT JOIN kyc_document_types kdt ON kdt.code = kdv.document_type
+       LEFT JOIN document_types kdt ON kdt.code = kdv.document_type
        LEFT JOIN users u_verified ON u_verified.id = kdv.verified_by
        LEFT JOIN users u_assigned ON u_assigned.id = kdv.assigned_to
        WHERE kdv.case_id = $1
@@ -517,7 +517,7 @@ export const exportKYCToExcel = async (req: AuthenticatedRequest, res: Response)
         u_assigned.name as "Assigned To"
        FROM kyc_document_verifications kdv
        JOIN cases c ON c.id = kdv.case_id
-       LEFT JOIN kyc_document_types kdt ON kdt.code = kdv.document_type
+       LEFT JOIN document_types kdt ON kdt.code = kdv.document_type
        LEFT JOIN users u_verified ON u_verified.id = kdv.verified_by
        LEFT JOIN users u_assigned ON u_assigned.id = kdv.assigned_to
        ${whereClause}

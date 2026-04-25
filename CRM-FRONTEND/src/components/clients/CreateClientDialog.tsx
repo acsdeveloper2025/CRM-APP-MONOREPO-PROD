@@ -2,7 +2,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
-import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,14 +21,9 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { clientsService } from '@/services/clients';
-import { productsService } from '@/services/products';
-import { verificationTypesService } from '@/services/verificationTypes';
-import { documentTypesService } from '@/services/documentTypes';
+import { ProductMappingsEditor } from './ProductMappingsEditor';
 import type { CreateClientData } from '@/types/client';
 
 const createClientSchema = z.object({
@@ -42,9 +36,15 @@ const createClientSchema = z.object({
       /^[A-Z0-9_]+$/,
       'Client code must contain only uppercase letters, numbers, and underscores'
     ),
-  productIds: z.array(z.string()).optional(),
-  verificationTypeIds: z.array(z.number()).optional(),
-  documentTypeIds: z.array(z.number()).optional(),
+  productMappings: z
+    .array(
+      z.object({
+        productId: z.number(),
+        verificationTypeIds: z.array(z.number()),
+        documentTypeIds: z.array(z.number()),
+      })
+    )
+    .optional(),
 });
 
 type CreateClientFormData = z.infer<typeof createClientSchema>;
@@ -60,45 +60,25 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
     defaultValues: {
       name: '',
       code: '',
-      productIds: [],
-      verificationTypeIds: [],
-      documentTypeIds: [],
+      productMappings: [],
     },
-  });
-
-  // Fetch products for selection
-  const { data: productsData } = useStandardizedQuery({
-    queryKey: ['products'],
-    queryFn: () => productsService.getProducts(),
-    enabled: open,
-    errorContext: 'Loading Products',
-    errorFallbackMessage: 'Failed to load products',
-  });
-
-  // Fetch verification types for selection
-  const { data: verificationTypesData } = useStandardizedQuery({
-    queryKey: ['verification-types'],
-    queryFn: () => verificationTypesService.getVerificationTypes(),
-    enabled: open,
-    errorContext: 'Loading Verification Types',
-    errorFallbackMessage: 'Failed to load verification types',
-  });
-
-  // Fetch document types for selection
-  const { data: documentTypesData } = useStandardizedQuery({
-    queryKey: ['document-types'],
-    queryFn: () => documentTypesService.getDocumentTypes(),
-    enabled: open,
-    errorContext: 'Loading Document Types',
-    errorFallbackMessage: 'Failed to load document types',
   });
 
   const createMutation = useCRUDMutation({
     mutationFn: (data: CreateClientFormData) => {
-      // Convert productIds from string[] to number[]
+      const mappings = data.productMappings || [];
+      const productIds = mappings.map((m) => m.productId);
+      const verificationTypeIds = Array.from(
+        new Set(mappings.flatMap((m) => m.verificationTypeIds))
+      );
+      const documentTypeIds = Array.from(new Set(mappings.flatMap((m) => m.documentTypeIds)));
       const cleanData: CreateClientData = {
-        ...data,
-        productIds: data.productIds?.map((id) => parseInt(id, 10)),
+        name: data.name,
+        code: data.code,
+        productIds,
+        verificationTypeIds,
+        documentTypeIds,
+        productMappings: mappings,
       };
       return clientsService.createClient(cleanData);
     },
@@ -117,7 +97,6 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
   };
 
   const handleCodeChange = (value: string) => {
-    // Auto-format code to uppercase and replace spaces with underscores
     const formattedCode = value.toUpperCase().replace(/\s+/g, '_');
     form.setValue('code', formattedCode);
   };
@@ -133,18 +112,12 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
+              <TabsList className="grid w-full grid-cols-2 gap-1">
                 <TabsTrigger value="basic" className="text-xs sm:text-sm">
                   Basic Info
                 </TabsTrigger>
-                <TabsTrigger value="products" className="text-xs sm:text-sm">
-                  Products
-                </TabsTrigger>
-                <TabsTrigger value="verification-types" className="text-xs sm:text-sm">
-                  Verification
-                </TabsTrigger>
-                <TabsTrigger value="document-types" className="text-xs sm:text-sm">
-                  Documents
+                <TabsTrigger value="mappings" className="text-xs sm:text-sm">
+                  Products & Mappings
                 </TabsTrigger>
               </TabsList>
 
@@ -161,7 +134,6 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                           {...field}
                           onChange={(e) => {
                             field.onChange(e);
-                            // Auto-generate code from name if code is empty
                             if (!form.getValues('code')) {
                               const autoCode = e.target.value
                                 .toUpperCase()
@@ -203,163 +175,22 @@ export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogPro
                 />
               </TabsContent>
 
-              <TabsContent value="products" className="space-y-4">
+              <TabsContent value="mappings" className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="productIds"
+                  name="productMappings"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Available Products</FormLabel>
-                      <FormDescription>Select products to assign to this client</FormDescription>
-                      <ScrollArea className="h-48 w-full border rounded-md p-3">
-                        {productsData?.data?.length ? (
-                          <div className="space-y-2">
-                            {productsData.data.map((product) => (
-                              <div key={product.id} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`product-${product.id}`}
-                                  checked={field.value?.includes(String(product.id)) || false}
-                                  onCheckedChange={(checked) => {
-                                    const currentIds = field.value || [];
-                                    const productIdStr = String(product.id);
-                                    if (checked) {
-                                      field.onChange([...currentIds, productIdStr]);
-                                    } else {
-                                      field.onChange(
-                                        currentIds.filter((id) => id !== productIdStr)
-                                      );
-                                    }
-                                  }}
-                                />
-                                <label
-                                  htmlFor={`product-${product.id}`}
-                                  className="text-sm font-medium leading-none text-gray-900 peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                >
-                                  {product.name}
-                                  <Badge variant="outline" className="ml-2 text-xs">
-                                    {product.code}
-                                  </Badge>
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-gray-600">
-                            No products available. Create products first.
-                          </div>
-                        )}
-                      </ScrollArea>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </TabsContent>
-
-              <TabsContent value="verification-types" className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="verificationTypeIds"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Available Verification Types</FormLabel>
+                      <FormLabel>Products with Verification & Document Types</FormLabel>
                       <FormDescription>
-                        Select verification types to assign to this client
+                        Pick products this client will use, then assign verification and document
+                        types for each (client, product) combination.
                       </FormDescription>
-                      <ScrollArea className="h-48 w-full border rounded-md p-3">
-                        {verificationTypesData?.data?.length ? (
-                          <div className="space-y-2">
-                            {verificationTypesData.data.map((verificationType) => (
-                              <div
-                                key={verificationType.id}
-                                className="flex items-center space-x-2"
-                              >
-                                <Checkbox
-                                  id={`vtype-${verificationType.id}`}
-                                  checked={field.value?.includes(verificationType.id) || false}
-                                  onCheckedChange={(checked) => {
-                                    const currentIds = field.value || [];
-                                    if (checked) {
-                                      field.onChange([...currentIds, verificationType.id]);
-                                    } else {
-                                      field.onChange(
-                                        currentIds.filter((id) => id !== verificationType.id)
-                                      );
-                                    }
-                                  }}
-                                />
-                                <label
-                                  htmlFor={`vtype-${verificationType.id}`}
-                                  className="text-sm font-medium leading-none text-gray-900 peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                >
-                                  {verificationType.name}
-                                  {verificationType.code && (
-                                    <Badge variant="outline" className="ml-2 text-xs">
-                                      {verificationType.code}
-                                    </Badge>
-                                  )}
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-gray-600">
-                            No verification types available. Create verification types first.
-                          </div>
-                        )}
-                      </ScrollArea>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </TabsContent>
-
-              <TabsContent value="document-types" className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="documentTypeIds"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Available Document Types</FormLabel>
-                      <FormDescription>
-                        Select document types to assign to this client
-                      </FormDescription>
-                      <ScrollArea className="h-48 w-full border rounded-md p-3">
-                        {documentTypesData?.data?.length ? (
-                          <div className="space-y-2">
-                            {documentTypesData.data.map((documentType) => (
-                              <div key={documentType.id} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`dtype-${documentType.id}`}
-                                  checked={field.value?.includes(documentType.id) || false}
-                                  onCheckedChange={(checked) => {
-                                    const currentIds = field.value || [];
-                                    if (checked) {
-                                      field.onChange([...currentIds, documentType.id]);
-                                    } else {
-                                      field.onChange(
-                                        currentIds.filter((id) => id !== documentType.id)
-                                      );
-                                    }
-                                  }}
-                                />
-                                <label
-                                  htmlFor={`dtype-${documentType.id}`}
-                                  className="text-sm font-medium leading-none text-gray-900 peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                >
-                                  {documentType.name}
-                                  <Badge variant="outline" className="ml-2 text-xs">
-                                    {documentType.code}
-                                  </Badge>
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-gray-600">
-                            No document types available. Create document types first.
-                          </div>
-                        )}
-                      </ScrollArea>
+                      <ProductMappingsEditor
+                        value={field.value || []}
+                        onChange={field.onChange}
+                        enabled={open}
+                      />
                       <FormMessage />
                     </FormItem>
                   )}

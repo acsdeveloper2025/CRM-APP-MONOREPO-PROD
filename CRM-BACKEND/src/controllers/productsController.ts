@@ -442,10 +442,12 @@ export const getProductVerificationTypes = async (req: AuthenticatedRequest, res
         : [id];
 
     const vtRes = await query(
-      `SELECT vt.id, vt.name, vt.code, vt.description, vt.is_active, pvt.created_at as assigned_at
-       FROM product_verification_types pvt
-       JOIN verification_types vt ON pvt.verification_type_id = vt.id
-       WHERE pvt.product_id = $1 ${whereClause}
+      `SELECT DISTINCT vt.id, vt.name, vt.code, vt.description, vt.is_active, MIN(cpv.created_at) as assigned_at
+       FROM client_product_verifications cpv
+       JOIN client_products cp ON cp.id = cpv.client_product_id
+       JOIN verification_types vt ON cpv.verification_type_id = vt.id
+       WHERE cp.product_id = $1 ${whereClause}
+       GROUP BY vt.id, vt.name, vt.code, vt.description, vt.is_active
        ORDER BY vt.name`,
       params
     );

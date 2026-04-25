@@ -81,16 +81,24 @@ export function RateViewReportTab() {
     errorFallbackMessage: 'Failed to load clients',
   });
 
+  // Products cascade: filtered by selected client (or empty until a client is picked)
   const { data: productsData } = useStandardizedQuery({
-    queryKey: ['products'],
-    queryFn: () => productsService.getProducts({ limit: 100 }),
+    queryKey: ['client-products', selectedClientId],
+    queryFn: () => productsService.getProductsByClient(selectedClientId),
+    enabled: selectedClientId !== 'all',
     errorContext: 'Loading Products',
     errorFallbackMessage: 'Failed to load products',
   });
 
+  // VTs cascade: filtered by selected client+product
   const { data: verificationTypesData } = useStandardizedQuery({
-    queryKey: ['verification-types'],
-    queryFn: () => verificationTypesService.getVerificationTypes({ limit: 100 }),
+    queryKey: ['client-product-verification-types', selectedClientId, selectedProductId],
+    queryFn: () =>
+      verificationTypesService.getVerificationTypesForClientProduct(
+        Number(selectedClientId),
+        Number(selectedProductId)
+      ),
+    enabled: selectedClientId !== 'all' && selectedProductId !== 'all',
     errorContext: 'Loading Verification Types',
     errorFallbackMessage: 'Failed to load verification types',
   });
@@ -217,7 +225,14 @@ export function RateViewReportTab() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Client</label>
-              <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+              <Select
+                value={selectedClientId}
+                onValueChange={(v) => {
+                  setSelectedClientId(v);
+                  setSelectedProductId('all');
+                  setSelectedVerificationTypeId('all');
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="All clients" />
                 </SelectTrigger>
@@ -234,7 +249,13 @@ export function RateViewReportTab() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Product</label>
-              <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+              <Select
+                value={selectedProductId}
+                onValueChange={(v) => {
+                  setSelectedProductId(v);
+                  setSelectedVerificationTypeId('all');
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="All products" />
                 </SelectTrigger>

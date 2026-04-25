@@ -118,7 +118,7 @@ export function DataEntryDashboardPage() {
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Data Entry Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Data Entry</h1>
         <p className="text-muted-foreground text-sm">Track data entry progress across all cases</p>
       </div>
 

@@ -41,11 +41,17 @@ export function RateTypeAssignmentTab() {
     errorFallbackMessage: 'Failed to load products',
   });
 
-  // Fetch all active verification types (not filtered by product — product ↔ VT
-  // linkage is not part of this project's data model).
+  // Fetch verification types scoped to the selected (client, product) tuple.
+  // Reads from client_product_verifications — only VTs the client+product mapping
+  // explicitly authorizes are shown.
   const { data: verificationTypesData } = useStandardizedQuery({
-    queryKey: ['verification-types-active'],
-    queryFn: () => verificationTypesService.getVerificationTypes({ isActive: true, limit: 100 }),
+    queryKey: ['client-product-verification-types', selectedClientId, selectedProductId],
+    queryFn: () =>
+      verificationTypesService.getVerificationTypesForClientProduct(
+        selectedClientId,
+        selectedProductId
+      ),
+    enabled: !!(selectedClientId && selectedProductId),
     errorContext: 'Loading Verification Types',
     errorFallbackMessage: 'Failed to load verification types',
   });

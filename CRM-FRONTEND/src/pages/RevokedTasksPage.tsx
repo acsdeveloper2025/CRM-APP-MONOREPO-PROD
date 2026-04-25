@@ -103,7 +103,7 @@ export const RevokedTasksPage: React.FC = () => {
             className="text-2xl sm:text-3xl font-bold tracking-tight"
             style={{ color: '#000000' }}
           >
-            Revoked Tasks
+            Revoke Tasks
           </h1>
           <p className="mt-1" style={{ color: '#1F2937' }}>
             Verification tasks that have been revoked by field agents
