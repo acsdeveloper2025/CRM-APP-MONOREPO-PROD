@@ -241,7 +241,13 @@ export function idempotencyMiddleware(options: IdempotencyOptions = {}) {
           return;
         }
 
-        if (res.statusCode >= 500) {
+        // Only persist successful responses. Caching 4xx/5xx as if they
+        // were "completed" outcomes turns transient failures (auth race,
+        // validation gap, server hiccup) into 72-hour lockouts because
+        // every retry replays the same Idempotency-Key. Failed requests
+        // by definition committed no side effect, so re-executing them
+        // on retry is safe and is what the client actually wants.
+        if (res.statusCode < 200 || res.statusCode >= 300) {
           return;
         }
 
