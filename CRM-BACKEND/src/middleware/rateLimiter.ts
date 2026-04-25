@@ -82,6 +82,22 @@ export const authRateLimit = createRateLimiter(
 );
 
 /**
+ * Tier 1b: Refresh Token Endpoint - Looser
+ * Refresh-token can't be brute-forced (attacker needs the refresh token cookie),
+ * but it's hit frequently by the browser (multi-tab, page refreshes, 401 retries).
+ * Sharing authRateLimit with /login caused users to hit the cap and be force-logged
+ * out after a handful of refreshes. 100 per 5 min per IP is generous enough for
+ * normal multi-tab use and still bounds abuse.
+ */
+export const refreshRateLimit = createRateLimiter(
+  5 * 60 * 1000, // 5 minutes
+  100, // 100 attempts
+  'Too many refresh attempts, please try again later',
+  'IP',
+  'refresh'
+);
+
+/**
  * Tier 2: General API Usage
  * Provides a generous ceiling for normal user activity
  */
