@@ -128,7 +128,7 @@ function baseline(s: 'V1' | 'V2'): Record<string, unknown> {
     staffStrength: v1 ? '45' : '90',
     staffSeen: v1 ? '30' : '70',
     companyNamePlateStatus: 'SIGHTED AS',
-    // Sentinel doubles as "builder_name" via Path-2 remap (name_on_company_board
+    // Sentinel doubles as "builder_name" via Path-2 remap (name_on_board
     // aliased + builder_name populated from the same source).
     nameOnBoard: v1 ? 'BLD-V1-NAME' : 'BLD-V2-NAME',
     documentShown: 'GST + RERA Certificate',
@@ -166,7 +166,7 @@ function mapDbToFormData(r: Record<string, unknown>): Record<string, unknown> {
     businessType: r.builder_type,
     builderType: r.builder_type,
     builderOwnerName: r.builder_owner_name,
-    builderName: r.builder_name || r.name_on_company_board,
+    builderName: r.builder_name || r.name_on_board,
     ownershipType: r.ownership_type,
     companyNatureOfBusiness: r.company_nature_of_business,
     businessPeriod: r.business_period,
@@ -174,8 +174,8 @@ function mapDbToFormData(r: Record<string, unknown>): Record<string, unknown> {
     staffStrength: r.staff_strength,
     staffSeen: r.staff_seen,
     companyNamePlateStatus: r.company_nameplate_status,
-    nameOnBoard: r.name_on_company_board,
-    nameOnCompanyBoard: r.name_on_company_board,
+    nameOnBoard: r.name_on_board,
+    nameOnBoard: r.name_on_board,
     documentShown: r.document_shown,
     tpcMetPerson1: r.tpc_met_person1,
     nameOfTpc1: r.tpc_name1,
@@ -272,7 +272,7 @@ async function main() {
     'office_approx_area=2500': row1.office_approx_area === 2500,
     'company_nameplate_status=SIGHTED AS':
       row1.company_nameplate_status === 'SIGHTED AS',
-    'name_on_company_board=BLD-V1-NAME': row1.name_on_company_board === 'BLD-V1-NAME',
+    'name_on_board=BLD-V1-NAME': row1.name_on_board === 'BLD-V1-NAME',
     'document_shown=GST + RERA Certificate':
       row1.document_shown === 'GST + RERA Certificate',
     'address_rating=Good': row1.address_rating === 'Good',
@@ -331,7 +331,7 @@ async function main() {
     'V2 designation=Director': row2.designation === 'Director',
     'V2 company_nature_of_business=BLD-V2-PROJECT':
       row2.company_nature_of_business === 'BLD-V2-PROJECT',
-    'V2 name_on_company_board=BLD-V2-NAME': row2.name_on_company_board === 'BLD-V2-NAME',
+    'V2 name_on_board=BLD-V2-NAME': row2.name_on_board === 'BLD-V2-NAME',
     'V2 business_period=12 Year': row2.business_period === '12 Year',
     'V2 staff_strength=90': row2.staff_strength === 90,
     'V2 office_approx_area=4000': row2.office_approx_area === 4000,
@@ -363,10 +363,10 @@ async function main() {
     'V1 other_observation absent': !report.includes('BLD-V1-OBS'),
     'V2 company_nature_of_business in report': report.includes('BLD-V2-PROJECT'),
     'V1 company_nature_of_business absent': !report.includes('BLD-V1-PROJECT'),
-    'V2 name_on_company_board in report': report.includes('BLD-V2-NAME'),
-    'V1 name_on_company_board absent': !report.includes('BLD-V1-NAME'),
+    'V2 name_on_board in report': report.includes('BLD-V2-NAME'),
+    'V1 name_on_board absent': !report.includes('BLD-V1-NAME'),
     // Builder POSITIVE_DOOR_OPEN template doesn't render {Builder_Owner_Name};
-    // {Builder_Name} is driven by name_on_company_board alias. Owner name is
+    // {Builder_Name} is driven by name_on_board alias. Owner name is
     // still persisted in DB (checked above) — no render assertion needed.
     'V1 builder_owner_name absent': !report.includes('BLD-V1-OWNER'),
     'V2 address_rating in report': report.includes('rated as Average'),

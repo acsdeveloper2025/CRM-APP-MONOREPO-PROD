@@ -165,7 +165,7 @@ function mapDbToFormData(r: Record<string, unknown>): Record<string, unknown> {
     activeClient: r.active_client,
     companyNamePlateStatus: r.company_nameplate_status,
     nameOnBoard: r.name_on_board,
-    nameOnCompanyBoard: r.name_on_board,
+    nameOnBoard: r.name_on_board,
     tpcMetPerson1: r.tpc_met_person1,
     nameOfTpc1: r.tpc_name1,
     tpcConfirmation1: r.tpc_confirmation1,

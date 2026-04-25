@@ -37,7 +37,7 @@ export const RESIDENCE_FIELD_MAPPING: DatabaseFieldMapping = {
   societyNamePlateStatus: 'society_name_plate_status',
   nameOnSocietyBoard: 'name_on_society_board',
   companyNamePlateStatus: 'company_name_plate_status',
-  nameOnCompanyBoard: 'name_on_company_board',
+  nameOnBoard: 'name_on_board',
 
   // Landmarks (Common to all forms, untraceable has 4)
   landmark1: 'landmark1',
@@ -317,7 +317,7 @@ export function validateRequiredFields(
     ENTRY_RESTRICTED: [
       'addressLocatable',
       'addressRating',
-      'nameOfMetPerson',
+      'metPersonName',
       'metPersonType',
       'metPersonConfirmation',
       'applicantStayingStatus',
@@ -396,7 +396,7 @@ export function ensureAllFieldsPopulated(
     'society_name_plate_status',
     'name_on_society_board',
     'company_name_plate_status',
-    'name_on_company_board',
+    'name_on_board',
 
     // Landmarks
     'landmark1',

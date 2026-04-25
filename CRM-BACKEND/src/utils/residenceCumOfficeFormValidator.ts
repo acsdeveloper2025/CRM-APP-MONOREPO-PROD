@@ -287,8 +287,8 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
   // Common validations for all forms
 
   // Nameplate conditional validations
-  if (eqCI(formData.companyNamePlateStatus, 'Sighted') && !formData.nameOnCompanyBoard) {
-    warnings.push('nameOnCompanyBoard should be specified when companyNamePlateStatus is Sighted');
+  if (eqCI(formData.companyNamePlateStatus, 'Sighted') && !formData.nameOnBoard) {
+    warnings.push('nameOnBoard should be specified when companyNamePlateStatus is Sighted');
   }
 
   if (eqCI(formData.doorNamePlateStatus, 'Sighted') && !formData.nameOnDoorPlate) {

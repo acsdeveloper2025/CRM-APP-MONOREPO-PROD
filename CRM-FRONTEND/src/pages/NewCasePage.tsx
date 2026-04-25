@@ -301,15 +301,15 @@ export const NewCasePage: React.FC = () => {
 
   const handleSuccess = (caseId: string) => {
     if (caseId && caseId.trim() !== '') {
-      navigate(`/cases/${caseId}`);
+      navigate(`/case-management/${caseId}`);
     } else {
       // No id returned — route to the list so the user sees the new case at the top.
-      navigate('/cases');
+      navigate('/case-management/all-cases');
     }
   };
 
   const handleCancel = () => {
-    navigate('/cases');
+    navigate('/case-management/all-cases');
   };
 
   if (isEditMode && loadingCase) {
@@ -343,7 +343,7 @@ export const NewCasePage: React.FC = () => {
               </pre>
             </div>
           </div>
-          <Button onClick={() => navigate('/cases')} className="mt-4">
+          <Button onClick={() => navigate('/case-management/all-cases')} className="mt-4">
             Back to Cases
           </Button>
         </div>

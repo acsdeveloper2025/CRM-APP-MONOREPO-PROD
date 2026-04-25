@@ -170,7 +170,7 @@ export const CommissionsPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => (window.location.href = '/commission-management')}
+          onClick={() => (window.location.href = '/billing-and-commission/commission-management')}
         >
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
@@ -187,7 +187,7 @@ export const CommissionsPage: React.FC = () => {
 
         <Card
           className="cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => (window.location.href = '/billing')}
+          onClick={() => (window.location.href = '/billing-and-commission')}
         >
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">

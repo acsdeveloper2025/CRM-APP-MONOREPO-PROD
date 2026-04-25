@@ -91,7 +91,7 @@ export const AllTasksPage: React.FC = () => {
   };
 
   const handleViewTask = (taskId: string) => {
-    navigate(`/tasks/${taskId}`);
+    navigate(`/task-management/${taskId}`);
   };
 
   const handleViewCase = (caseId: string) => {
@@ -103,8 +103,8 @@ export const AllTasksPage: React.FC = () => {
   const handleEditCase = (caseId: string, taskId?: string) => {
     if (caseId) {
       const url = taskId
-        ? `/cases/new?edit=${caseId}&taskId=${taskId}`
-        : `/cases/new?edit=${caseId}`;
+        ? `/case-management/create-new-case?edit=${caseId}&taskId=${taskId}`
+        : `/case-management/create-new-case?edit=${caseId}`;
       navigate(url);
     }
   };

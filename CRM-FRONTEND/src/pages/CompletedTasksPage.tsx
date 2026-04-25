@@ -79,7 +79,7 @@ export const CompletedTasksPage: React.FC = () => {
   } = statistics || {};
 
   const handleViewTask = (taskId: string) => {
-    navigate(`/tasks/${taskId}`);
+    navigate(`/task-management/${taskId}`);
   };
 
   const handleViewCase = (caseId: string) => {
@@ -91,8 +91,8 @@ export const CompletedTasksPage: React.FC = () => {
   const handleEditCase = (caseId: string, taskId?: string) => {
     if (caseId) {
       const url = taskId
-        ? `/cases/new?edit=${caseId}&taskId=${taskId}`
-        : `/cases/new?edit=${caseId}`;
+        ? `/case-management/create-new-case?edit=${caseId}&taskId=${taskId}`
+        : `/case-management/create-new-case?edit=${caseId}`;
       navigate(url);
     }
   };
@@ -115,7 +115,7 @@ export const CompletedTasksPage: React.FC = () => {
 
       // Optionally navigate to revisit tasks page after a short delay
       setTimeout(() => {
-        navigate('/tasks/revisit');
+        navigate('/task-management/revisit-tasks');
       }, 1500);
     } catch (error) {
       logger.error('Error creating revisit task:', error);

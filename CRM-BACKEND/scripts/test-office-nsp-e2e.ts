@@ -95,7 +95,7 @@ async function insertReport(
     office_existence: form.officeExistence,
     current_company_name: form.currentCompanyName,
     company_nameplate_status: form.companyNamePlateStatus,
-    name_on_company_board: form.nameOnBoard,
+    name_on_board: form.nameOnBoard,
     tpc_met_person1: form.tpcMetPerson1,
     tpc_name1: form.tpcName1,
     name_of_tpc1: form.nameOfTpc1,

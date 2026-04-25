@@ -57,7 +57,7 @@ export const KYCVerificationPage: React.FC = () => {
         },
       });
       toast.success(`Document marked as ${status}`);
-      navigate('/kyc');
+      navigate('/kyc-verification/all-kyc');
     } catch {
       toast.error('Failed to verify document');
     }
@@ -76,7 +76,7 @@ export const KYCVerificationPage: React.FC = () => {
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="outline" size="sm" onClick={() => navigate('/kyc')}>
+        <Button variant="outline" size="sm" onClick={() => navigate('/kyc-verification/all-kyc')}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Back
         </Button>
         <div>

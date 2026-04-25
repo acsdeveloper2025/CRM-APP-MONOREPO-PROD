@@ -115,7 +115,7 @@ export const DashboardPage: React.FC = () => {
           {
             title: 'Create New Case',
             description: 'Assign new case to field user',
-            href: '/cases/new',
+            href: '/case-management/create-new-case',
             icon: Plus,
             count: null as number | null,
             color: 'bg-green-500',
@@ -123,7 +123,7 @@ export const DashboardPage: React.FC = () => {
           {
             title: 'All Cases',
             description: 'View all case statuses',
-            href: '/cases',
+            href: '/case-management/all-cases',
             icon: FileText,
             count: stats.totalCases,
             color: 'bg-green-500',
@@ -135,7 +135,7 @@ export const DashboardPage: React.FC = () => {
           {
             title: 'Pending Reviews',
             description: 'Cases waiting for approval',
-            href: '/tasks/pending',
+            href: '/task-management/pending-tasks',
             icon: CheckSquare,
             count: stats.pendingReviewCases,
             color: 'bg-yellow-500',
@@ -143,7 +143,7 @@ export const DashboardPage: React.FC = () => {
           {
             title: 'Completed Tasks',
             description: 'View finished verifications',
-            href: '/tasks/completed',
+            href: '/task-management/completed-tasks',
             icon: CheckCircle,
             count: stats.completedCases,
             color: 'bg-green-500',
@@ -155,7 +155,7 @@ export const DashboardPage: React.FC = () => {
           {
             title: 'KYC Dashboard',
             description: 'View all KYC verifications',
-            href: '/kyc',
+            href: '/kyc-verification/all-kyc',
             icon: FileCheck,
             count: kycStats.total,
             color: 'bg-blue-500',
@@ -163,7 +163,7 @@ export const DashboardPage: React.FC = () => {
           {
             title: 'Pending KYC',
             description: 'Documents awaiting verification',
-            href: '/kyc',
+            href: '/kyc-verification/all-kyc',
             icon: Clock,
             count: kycStats.pending,
             color: 'bg-amber-500',
@@ -201,7 +201,7 @@ export const DashboardPage: React.FC = () => {
           icon={FileText}
           trend={cardTrends?.totalCases}
           color="text-blue-600"
-          onClick={() => navigate('/tasks/pending')}
+          onClick={() => navigate('/task-management/pending-tasks')}
           className="cursor-pointer"
         />
         <StatsCard
@@ -211,7 +211,7 @@ export const DashboardPage: React.FC = () => {
           icon={CheckSquare}
           trend={cardTrends?.inProgress}
           color="text-yellow-600"
-          onClick={() => navigate('/tasks/in-progress')}
+          onClick={() => navigate('/task-management/in-progress-tasks')}
           className="cursor-pointer"
         />
         <StatsCard
@@ -220,7 +220,7 @@ export const DashboardPage: React.FC = () => {
           description={`${tatStats.totalOverdue} total overdue`}
           icon={AlertTriangle}
           color="text-red-600"
-          onClick={() => navigate('/tasks/tat-monitoring')}
+          onClick={() => navigate('/task-management/tat-monitoring')}
           className="cursor-pointer"
         />
         <StatsCard
@@ -230,7 +230,7 @@ export const DashboardPage: React.FC = () => {
           icon={XCircle}
           trend={cardTrends?.revokedTasks}
           color="text-red-600"
-          onClick={() => navigate('/tasks/revoked')}
+          onClick={() => navigate('/task-management/revoke-tasks')}
           className="cursor-pointer"
         />
         <StatsCard
@@ -240,7 +240,7 @@ export const DashboardPage: React.FC = () => {
           icon={CheckSquare}
           trend={cardTrends?.completed}
           color="text-green-600"
-          onClick={() => navigate('/tasks/completed')}
+          onClick={() => navigate('/task-management/completed-tasks')}
           className="cursor-pointer"
         />
       </div>
@@ -256,7 +256,7 @@ export const DashboardPage: React.FC = () => {
               description="All documents"
               icon={FileCheck}
               color="text-blue-600"
-              onClick={() => navigate('/kyc')}
+              onClick={() => navigate('/kyc-verification/all-kyc')}
               className="cursor-pointer"
             />
             <StatsCard
@@ -265,7 +265,7 @@ export const DashboardPage: React.FC = () => {
               description="Awaiting verification"
               icon={Clock}
               color="text-amber-600"
-              onClick={() => navigate('/kyc')}
+              onClick={() => navigate('/kyc-verification/all-kyc')}
               className="cursor-pointer"
             />
             <StatsCard
@@ -274,7 +274,7 @@ export const DashboardPage: React.FC = () => {
               description="Verified successfully"
               icon={ShieldCheck}
               color="text-green-600"
-              onClick={() => navigate('/kyc')}
+              onClick={() => navigate('/kyc-verification/all-kyc')}
               className="cursor-pointer"
             />
             <StatsCard
@@ -283,7 +283,7 @@ export const DashboardPage: React.FC = () => {
               description="Verification failed"
               icon={ShieldX}
               color="text-red-600"
-              onClick={() => navigate('/kyc')}
+              onClick={() => navigate('/kyc-verification/all-kyc')}
               className="cursor-pointer"
             />
             <StatsCard
@@ -292,7 +292,7 @@ export const DashboardPage: React.FC = () => {
               description="Needs further review"
               icon={AlertCircle}
               color="text-purple-600"
-              onClick={() => navigate('/kyc')}
+              onClick={() => navigate('/kyc-verification/all-kyc')}
               className="cursor-pointer"
             />
           </div>

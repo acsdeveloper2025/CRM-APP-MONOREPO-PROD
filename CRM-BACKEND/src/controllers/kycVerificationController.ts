@@ -410,7 +410,7 @@ export const getKYCTasksForCase = async (req: AuthenticatedRequest, res: Respons
   try {
     const rawCaseId = String(req.params.caseId || '');
 
-    // The frontend navigates to /cases/:caseId where caseId may be
+    // The frontend navigates to /case-management/:caseId where caseId may be
     // the integer case_id (e.g. "32") or the UUID id. The
     // kyc_document_verifications.case_id column is UUID, so we must
     // resolve integer → UUID first. Same pattern as getCaseById.

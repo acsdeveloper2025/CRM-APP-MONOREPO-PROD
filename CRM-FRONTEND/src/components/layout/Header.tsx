@@ -63,25 +63,25 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     if (path === '/dashboard') {
       return 'Dashboard';
     }
-    if (path === '/cases') {
+    if (path === '/case-management/all-cases') {
       return 'Cases';
     }
-    if (path === '/tasks/pending') {
+    if (path === '/task-management/pending-tasks') {
       return 'Pending Tasks';
     }
-    if (path === '/clients') {
+    if (path === '/client-management/clients') {
       return 'Clients';
     }
-    if (path === '/users') {
+    if (path === '/user-management/users') {
       return 'Users';
     }
-    if (path === '/reports') {
+    if (path === '/reports-and-mis') {
       return 'Reports';
     }
-    if (path === '/billing') {
+    if (path === '/billing-and-commission') {
       return 'Billing';
     }
-    if (path === '/locations') {
+    if (path === '/location-management') {
       return 'Locations';
     }
     if (path === '/forms') {

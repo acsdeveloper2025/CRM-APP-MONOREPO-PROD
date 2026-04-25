@@ -300,7 +300,7 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => navigate(`/kyc/verify/${task.id}`)}
+                          onClick={() => navigate(`/kyc-verification/verify/${task.id}`)}
                         >
                           <Eye className="h-4 w-4 mr-1" />
                           {task.verificationStatus === 'PENDING' ? 'Verify' : 'View'}

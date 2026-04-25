@@ -262,7 +262,7 @@ export class MobileWebSocketEvents {
       caseNumber: caseData.caseNumber,
       customerName: caseData.customerName,
       timestamp,
-      actionUrl: `/cases/${caseData.id}`,
+      actionUrl: `/case-management/${caseData.id}`,
       actionType: 'OPEN_CASE',
       data: {
         fieldUserId: fieldUserData.id,
@@ -311,7 +311,7 @@ export class MobileWebSocketEvents {
       caseNumber: caseData.caseNumber,
       customerName: caseData.customerName,
       timestamp,
-      actionUrl: `/cases/${caseData.id}`,
+      actionUrl: `/case-management/${caseData.id}`,
       actionType: 'OPEN_CASE',
       priority: 'HIGH',
       data: {

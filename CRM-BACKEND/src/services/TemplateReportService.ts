@@ -2257,9 +2257,9 @@ Hence the profile is marked as {Final_Status}.`,
       Company_Name_Plate_Text: /^sighted/i.test(
         safeGet(formData, 'companyNamePlateStatus') || safeGet(formData, 'companyNameBoard') || ''
       )
-        ? `displays "${safeGet(formData, 'nameOnBoard') || safeGet(formData, 'nameOnCompanyBoard') || 'N/A'}"`
+        ? `displays "${safeGet(formData, 'nameOnBoard') || safeGet(formData, 'nameOnBoard') || 'N/A'}"`
         : 'is not sighted',
-      Name_On_Board: safeGet(formData, 'nameOnBoard') || safeGet(formData, 'nameOnCompanyBoard'),
+      Name_On_Board: safeGet(formData, 'nameOnBoard') || safeGet(formData, 'nameOnBoard'),
 
       Society_Name_Plate: /^sighted/i.test(safeGet(formData, 'societyNamePlateStatus') || '')
         ? 'Available'
@@ -2475,11 +2475,6 @@ Hence the profile is marked as {Final_Status}.`,
         safeGet(formData, 'authorisedSignature') || safeGet(formData, 'authorised_signature'),
       Name_on_NOC: safeGet(formData, 'nameOnNoc') || safeGet(formData, 'name_on_noc'),
       Flat_No: safeGet(formData, 'flatNo') || safeGet(formData, 'flat_no'),
-      Office_Exist_Floor:
-        safeGet(formData, 'officeExistFloor') ||
-        safeGet(formData, 'office_exist_floor') ||
-        safeGet(formData, 'addressFloor') ||
-        safeGet(formData, 'floor'),
 
       // Office NSP-specific variables
       Third_Party_Confirmation:

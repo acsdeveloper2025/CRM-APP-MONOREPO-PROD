@@ -194,8 +194,8 @@ function mapDbToFormData(r: Record<string, unknown>): Record<string, unknown> {
     companyNatureOfBusiness: r.company_nature_of_business,
     businessPeriod: r.business_period,
     companyNamePlateStatus: r.company_nameplate_status,
-    nameOnCompanyBoard: r.name_on_company_board,
-    nameOnBoard: r.name_on_company_board,
+    nameOnBoard: r.name_on_board,
+    nameOnBoard: r.name_on_board,
     doorNamePlateStatus: r.door_nameplate_status,
     nameOnDoorPlate: r.name_on_door_plate,
     societyNamePlateStatus: r.society_nameplate_status,
@@ -306,8 +306,8 @@ async function main() {
     'company_nature_of_business = RCO-V1-BUSINESS':
       row1.company_nature_of_business === 'RCO-V1-BUSINESS',
     'business_period composite (3 Year)': row1.business_period === '3 Year',
-    'name_on_company_board = RCO-V1-COMPANY':
-      row1.name_on_company_board === 'RCO-V1-COMPANY',
+    'name_on_board = RCO-V1-COMPANY':
+      row1.name_on_board === 'RCO-V1-COMPANY',
     'tpc_name1 = Mr. Shah': row1.tpc_name1 === 'Mr. Shah',
     'tpc_met_person1 = Neighbour': row1.tpc_met_person1 === 'Neighbour',
     'other_observation = RCO-V1-OBS': row1.other_observation === 'RCO-V1-OBS',
@@ -371,8 +371,8 @@ async function main() {
     'met_person_name mutated to RCO-V2-PERSON': row2.met_person_name === 'RCO-V2-PERSON',
     'name_on_door_plate mutated to RCO-V2-DOOR':
       row2.name_on_door_plate === 'RCO-V2-DOOR',
-    'name_on_company_board mutated to RCO-V2-COMPANY':
-      row2.name_on_company_board === 'RCO-V2-COMPANY',
+    'name_on_board mutated to RCO-V2-COMPANY':
+      row2.name_on_board === 'RCO-V2-COMPANY',
     'other_observation mutated to RCO-V2-OBS': row2.other_observation === 'RCO-V2-OBS',
     'address_rating mutated to Average': row2.address_rating === 'Average',
     'Latest row NOT V1 values': row2.other_observation !== 'RCO-V1-OBS',

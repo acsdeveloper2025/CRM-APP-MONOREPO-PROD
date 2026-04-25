@@ -76,7 +76,7 @@ export const CONDITIONAL_FIELD_RULES: Record<string, ConditionalRule[]> = {
       parentField: 'companyNamePlateStatus',
       operator: 'in',
       value: ['Present', 'Visible', 'Yes'],
-      showFields: ['nameOnCompanyBoard'],
+      showFields: ['nameOnBoard'],
     },
   ],
 
@@ -659,8 +659,8 @@ const BUSINESS_POSITIVE_FIELDS: FormFieldDefinition[] = [
     order: 2,
   },
   {
-    id: 'nameOnCompanyBoard',
-    name: 'nameOnCompanyBoard',
+    id: 'nameOnBoard',
+    name: 'nameOnBoard',
     label: 'Name on Company Board',
     type: 'text',
     isRequired: false,

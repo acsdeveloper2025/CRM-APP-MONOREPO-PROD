@@ -49,7 +49,7 @@ export const navigationItems: NavigationItem[] = [
   {
     id: 'cases',
     label: 'Case Management',
-    href: '/cases',
+    href: '/case-management',
     icon: FileText,
     permissionCode: 'page.cases',
     permission: { resource: 'cases', action: 'read' },
@@ -57,7 +57,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'cases-new',
         label: 'Create New Case',
-        href: '/cases/new',
+        href: '/case-management/create-new-case',
         icon: Plus,
         permissionCode: 'page.cases',
         permission: { resource: 'cases', action: 'create' },
@@ -65,7 +65,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'cases-list',
         label: 'All Cases',
-        href: '/cases',
+        href: '/case-management/all-cases',
         icon: FileText,
         permissionCode: 'page.cases',
         permission: { resource: 'cases', action: 'read' },
@@ -81,7 +81,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'data-entry-dashboard',
         label: 'Data Entry',
-        href: '/data-entry-dashboard',
+        href: '/case-management/data-entry',
         icon: ClipboardList,
         permissionCode: 'page.cases',
         permission: { resource: 'cases', action: 'read' },
@@ -89,7 +89,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'data-entry-mis',
         label: 'Data Entry MIS',
-        href: '/data-entry-mis',
+        href: '/case-management/data-entry-mis',
         icon: BarChart3,
         permissionCode: 'page.cases',
         permission: { resource: 'cases', action: 'read' },
@@ -99,7 +99,7 @@ export const navigationItems: NavigationItem[] = [
   {
     id: 'tasks',
     label: 'Task Management',
-    href: '/tasks',
+    href: '/task-management/all-tasks',
     icon: CheckSquare,
     permissionCode: 'page.tasks',
     permission: { resource: 'tasks', action: 'read' },
@@ -107,7 +107,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'tasks-pending',
         label: 'Pending Tasks',
-        href: '/tasks/pending',
+        href: '/task-management/pending-tasks',
         icon: Clock,
         permissionCode: 'page.tasks',
         permission: { resource: 'tasks', action: 'read' },
@@ -115,7 +115,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'tasks-revoked',
         label: 'Revoke Tasks',
-        href: '/tasks/revoked',
+        href: '/task-management/revoke-tasks',
         icon: XCircle,
         permissionCode: 'page.tasks',
         permission: { resource: 'tasks', action: 'read' },
@@ -123,7 +123,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'tasks-in-progress',
         label: 'In Progress Tasks',
-        href: '/tasks/in-progress',
+        href: '/task-management/in-progress-tasks',
         icon: PlayCircle,
         permissionCode: 'page.tasks',
         permission: { resource: 'tasks', action: 'read' },
@@ -131,7 +131,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'tasks-revisit',
         label: 'Revisit Tasks',
-        href: '/tasks/revisit',
+        href: '/task-management/revisit-tasks',
         icon: Copy,
         permissionCode: 'page.tasks',
         permission: { resource: 'tasks', action: 'read' },
@@ -139,7 +139,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'tasks-completed',
         label: 'Completed Tasks',
-        href: '/tasks/completed',
+        href: '/task-management/completed-tasks',
         icon: CheckSquare,
         permissionCode: 'page.tasks',
         permission: { resource: 'tasks', action: 'read' },
@@ -147,7 +147,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'tat-monitoring',
         label: 'TAT Monitoring',
-        href: '/tasks/tat-monitoring',
+        href: '/task-management/tat-monitoring',
         icon: Clock,
         permissionCode: 'page.tasks',
         permission: { resource: 'tasks', action: 'read' },
@@ -155,7 +155,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'tasks-all',
         label: 'All Tasks',
-        href: '/tasks',
+        href: '/task-management/all-tasks',
         icon: List,
         permissionCode: 'page.tasks',
         permission: { resource: 'tasks', action: 'read' },
@@ -165,7 +165,7 @@ export const navigationItems: NavigationItem[] = [
   {
     id: 'kyc-verification',
     label: 'KYC Verification',
-    href: '/kyc',
+    href: '/kyc-verification/all-kyc',
     icon: FileCheck,
     permissionCode: 'page.kyc',
     permission: { resource: 'kyc', action: 'read' },
@@ -173,7 +173,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'kyc-pending',
         label: 'Pending KYC',
-        href: '/kyc/pending',
+        href: '/kyc-verification/pending-kyc',
         icon: Clock,
         permissionCode: 'page.kyc',
         permission: { resource: 'kyc', action: 'read' },
@@ -181,7 +181,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'kyc-completed',
         label: 'Completed KYC',
-        href: '/kyc/completed',
+        href: '/kyc-verification/completed-kyc',
         icon: CheckSquare,
         permissionCode: 'page.kyc',
         permission: { resource: 'kyc', action: 'read' },
@@ -189,7 +189,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'kyc-all',
         label: 'All KYC',
-        href: '/kyc',
+        href: '/kyc-verification/all-kyc',
         icon: List,
         permissionCode: 'page.kyc',
         permission: { resource: 'kyc', action: 'read' },
@@ -199,7 +199,7 @@ export const navigationItems: NavigationItem[] = [
   {
     id: 'clients',
     label: 'Client Management',
-    href: '/clients',
+    href: '/client-management',
     icon: Building2,
     permissionCode: 'page.masterdata',
     permission: { resource: 'clients', action: 'read' },
@@ -207,7 +207,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'clients-list',
         label: 'Clients',
-        href: '/clients',
+        href: '/client-management/clients',
         icon: Building2,
         permissionCode: 'page.masterdata',
         permission: { resource: 'clients', action: 'read' },
@@ -215,7 +215,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'products',
         label: 'Products',
-        href: '/products',
+        href: '/client-management/products',
         icon: Settings,
         permissionCode: 'page.masterdata',
         permission: { resource: 'products', action: 'read' },
@@ -223,7 +223,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'verification-types',
         label: 'Verification Types',
-        href: '/verification-types',
+        href: '/client-management/verification-types',
         icon: CheckSquare,
         permissionCode: 'page.masterdata',
         permission: { resource: 'verificationTypes', action: 'read' },
@@ -231,7 +231,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'document-types',
         label: 'Document Types',
-        href: '/document-types',
+        href: '/client-management/document-types',
         icon: FileText,
         permissionCode: 'page.masterdata',
         permission: { resource: 'documentTypes', action: 'read' },
@@ -239,7 +239,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'data-entry-templates',
         label: 'Data Entry Templates',
-        href: '/settings/case-data-templates',
+        href: '/client-management/data-entry-templates',
         icon: FileText,
         permissionCode: 'page.settings',
         permission: { resource: 'settings', action: 'read' },
@@ -247,7 +247,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'report-templates',
         label: 'Report Templates',
-        href: '/settings/report-templates',
+        href: '/client-management/report-templates',
         icon: FileText,
         // Gated on the manage permission so roles holding this perm (SUPER_ADMIN
         // + MANAGER today) see the menu item without also needing page.settings.
@@ -276,7 +276,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'service-zones',
         label: 'Service Zone Rules',
-        href: '/rate-management/service-zones',
+        href: '/rate-management/service-zone-rules',
         icon: MapPin,
         permissionCode: 'page.masterdata',
         permission: { resource: 'rateManagement', action: 'read' },
@@ -284,7 +284,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'rate-type-assignments',
         label: 'Rate Type Assignment',
-        href: '/rate-management/assignments',
+        href: '/rate-management/rate-type-assignment',
         icon: Settings,
         permissionCode: 'page.masterdata',
         permission: { resource: 'rateManagement', action: 'read' },
@@ -292,7 +292,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'rate-amounts',
         label: 'Rate Amounts',
-        href: '/rate-management/rates',
+        href: '/rate-management/rate-amounts',
         icon: DollarSign,
         permissionCode: 'page.masterdata',
         permission: { resource: 'rateManagement', action: 'read' },
@@ -300,7 +300,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'rate-report',
         label: 'Rate Report',
-        href: '/rate-management/report',
+        href: '/rate-management/rate-report',
         icon: BarChart3,
         permissionCode: 'page.masterdata',
         permission: { resource: 'rateManagement', action: 'read' },
@@ -308,7 +308,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'document-type-rates',
         label: 'KYC Rates',
-        href: '/rate-management/document-rates',
+        href: '/rate-management/kyc-rates',
         icon: FileText,
         permissionCode: 'page.masterdata',
         permission: { resource: 'rateManagement', action: 'read' },
@@ -318,7 +318,7 @@ export const navigationItems: NavigationItem[] = [
   {
     id: 'locations',
     label: 'Location Management',
-    href: '/locations',
+    href: '/location-management',
     icon: MapPin,
     permissionCode: 'page.masterdata',
     permission: { resource: 'locations', action: 'read' },
@@ -326,7 +326,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'countries',
         label: 'Countries',
-        href: '/locations/countries',
+        href: '/location-management/countries',
         icon: MapPin,
         permissionCode: 'page.masterdata',
         permission: { resource: 'locations', action: 'read' },
@@ -334,7 +334,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'states',
         label: 'States',
-        href: '/locations/states',
+        href: '/location-management/states',
         icon: MapPin,
         permissionCode: 'page.masterdata',
         permission: { resource: 'locations', action: 'read' },
@@ -342,7 +342,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'cities',
         label: 'Cities',
-        href: '/locations/cities',
+        href: '/location-management/cities',
         icon: MapPin,
         permissionCode: 'page.masterdata',
         permission: { resource: 'locations', action: 'read' },
@@ -350,7 +350,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'pincodes',
         label: 'Pincodes',
-        href: '/locations/pincodes',
+        href: '/location-management/pincodes',
         icon: MapPin,
         permissionCode: 'page.masterdata',
         permission: { resource: 'locations', action: 'read' },
@@ -358,7 +358,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'areas',
         label: 'Areas',
-        href: '/locations/areas',
+        href: '/location-management/areas',
         icon: MapPin,
         permissionCode: 'page.masterdata',
         permission: { resource: 'locations', action: 'read' },
@@ -368,7 +368,7 @@ export const navigationItems: NavigationItem[] = [
   {
     id: 'billing',
     label: 'Billing & Commission',
-    href: '/billing',
+    href: '/billing-and-commission',
     icon: Receipt,
     permissionCode: 'page.billing',
     permission: { resource: 'billing', action: 'read' },
@@ -376,7 +376,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'invoices',
         label: 'Invoices',
-        href: '/invoices',
+        href: '/billing-and-commission/invoices',
         icon: Receipt,
         permissionCode: 'page.billing',
         permission: { resource: 'billing', action: 'read' },
@@ -384,7 +384,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'commissions',
         label: 'Commissions',
-        href: '/commissions',
+        href: '/billing-and-commission/commissions',
         icon: BarChart3,
         permissionCode: 'page.billing',
         permission: { resource: 'commissions', action: 'read' },
@@ -392,7 +392,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'commission-management',
         label: 'Commission Management',
-        href: '/commission-management',
+        href: '/billing-and-commission/commission-management',
         icon: DollarSign,
         permissionCode: 'page.billing',
         permission: { resource: 'commissions', action: 'read' },
@@ -402,7 +402,7 @@ export const navigationItems: NavigationItem[] = [
   {
     id: 'reports',
     label: 'Reports & MIS',
-    href: '/reports',
+    href: '/reports-and-mis',
     icon: BarChart3,
     permissionCode: 'page.reports',
     permission: { resource: 'reports', action: 'read' },
@@ -410,7 +410,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'analytics',
         label: 'Analytics Dashboard',
-        href: '/analytics',
+        href: '/reports-and-mis/analytics-dashboard',
         icon: BarChart3,
         permissionCode: 'page.analytics',
         permission: { resource: 'analytics', action: 'read' },
@@ -418,7 +418,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'mis-dashboard',
         label: 'MIS Dashboard',
-        href: '/reports/mis',
+        href: '/reports-and-mis/mis-dashboard',
         icon: BarChart3,
         permissionCode: 'page.analytics',
         permission: { resource: 'analytics', action: 'read' },
@@ -436,7 +436,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'users',
         label: 'Users',
-        href: '/users',
+        href: '/user-management/users',
         icon: Users,
         permissionCode: 'page.users',
         permission: { resource: 'users', action: 'read' },
@@ -444,7 +444,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'users-activities',
         label: 'User Activity',
-        href: '/users/activities',
+        href: '/user-management/user-activity',
         icon: List,
         permissionCode: 'page.users',
         permission: { resource: 'users', action: 'read' },
@@ -452,7 +452,7 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'users-sessions',
         label: 'User Sessions',
-        href: '/users/sessions',
+        href: '/user-management/user-sessions',
         icon: Clock,
         permissionCode: 'page.users',
         permission: { resource: 'users', action: 'read' },
@@ -460,14 +460,14 @@ export const navigationItems: NavigationItem[] = [
       {
         id: 'rbac-admin',
         label: 'RBAC Administration',
-        href: '/admin/rbac',
+        href: '/user-management/rbac-administration',
         icon: Shield,
         permissionCode: 'page.rbac',
       },
       {
         id: 'field-monitoring',
         label: 'Field Monitoring',
-        href: '/operations/field-monitoring',
+        href: '/user-management/field-monitoring',
         icon: MapPin,
         permissionCode: 'page.field_monitoring',
       },

@@ -1172,7 +1172,7 @@ export class MobileFormController {
 
       // Nameplate fields
       formData.companyNamePlateStatus = report.companyNamePlateStatus;
-      formData.nameOnCompanyBoard = report.nameOnCompanyBoard;
+      formData.nameOnBoard = report.nameOnBoard;
 
       // Area and accommodation
       formData.approxArea = report.approxArea;
@@ -1221,7 +1221,7 @@ export class MobileFormController {
       formData.documentType = report.documentType;
       formData.addressFloor = report.addressFloor;
       formData.companyNamePlateStatus = report.companyNamePlateStatus;
-      formData.nameOnBoard = report.nameOnCompanyBoard;
+      formData.nameOnBoard = report.nameOnBoard;
       formData.tpcMetPerson1 = report.tpcMetPerson1;
       formData.nameOfTpc1 = report.tpcName1;
       formData.tpcConfirmation1 = report.tpcConfirmation1;
@@ -1292,7 +1292,7 @@ export class MobileFormController {
       formData.addressStatus = report.addressStatus;
       formData.premisesStatus = report.premisesStatus;
       formData.companyNamePlateStatus = report.companyNamePlateStatus;
-      formData.nameOnBoard = report.nameOnCompanyBoard;
+      formData.nameOnBoard = report.nameOnBoard;
       formData.addressStructureColor = report.addressStructureColor;
       formData.doorColor = report.doorColor;
 
@@ -1710,7 +1710,7 @@ export class MobileFormController {
       formData.officeExistence = report.officeExistence;
       formData.officeApproxArea = report.officeApproxArea;
       formData.companyNamePlateStatus = report.companyNamePlateStatus;
-      formData.nameOnBoard = report.nameOnCompanyBoard;
+      formData.nameOnBoard = report.nameOnBoard;
       formData.addressStructureColor = report.addressStructureColor;
       formData.doorColor = report.doorColor;
 
@@ -1918,7 +1918,7 @@ export class MobileFormController {
       formData.sittingLocation = report.sittingLocation;
       formData.currentCompanyName = report.currentCompanyName;
       formData.companyNamePlateStatus = report.companyNamePlateStatus;
-      formData.nameOnBoard = report.nameOnCompanyBoard;
+      formData.nameOnBoard = report.nameOnBoard;
 
       // Staff Information
       formData.staffStrength = report.staffStrength;

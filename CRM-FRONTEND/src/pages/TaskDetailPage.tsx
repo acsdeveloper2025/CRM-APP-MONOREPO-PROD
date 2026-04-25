@@ -249,7 +249,7 @@ export const TaskDetailPage: React.FC = () => {
         <Card className="border-red-200 bg-red-50">
           <CardContent className="py-6">
             <p className="text-red-600">{error || 'Task not found'}</p>
-            <Button onClick={() => navigate('/tasks')} className="mt-4">
+            <Button onClick={() => navigate('/task-management/all-tasks')} className="mt-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Tasks
             </Button>
@@ -264,7 +264,7 @@ export const TaskDetailPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/tasks')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/task-management/all-tasks')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Tasks
           </Button>

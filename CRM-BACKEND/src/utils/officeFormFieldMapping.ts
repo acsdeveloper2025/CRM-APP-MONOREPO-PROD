@@ -32,8 +32,7 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   addressStructureColor: 'address_structure_color',
   doorColor: 'door_color',
   companyNamePlateStatus: 'company_name_plate_status',
-  nameOnBoard: 'name_on_company_board',
-  nameOnCompanyBoard: 'name_on_company_board',
+  nameOnBoard: 'name_on_board',
 
   // Landmarks (Common to all forms, untraceable may have more)
   landmark1: 'landmark1',
@@ -69,9 +68,11 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   // Third Party Confirmation (TPC)
   tpcMetPerson1: 'tpc_met_person1',
   nameOfTpc1: 'tpc_name1',
+  tpcName1: 'tpc_name1', // Mobile emits this field name
   tpcConfirmation1: 'tpc_confirmation1',
   tpcMetPerson2: 'tpc_met_person2',
   nameOfTpc2: 'tpc_name2',
+  tpcName2: 'tpc_name2', // Mobile emits this field name
   tpcConfirmation2: 'tpc_confirmation2',
 
   // Shifted office specific fields
@@ -119,7 +120,6 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   // Document fields
   documentType: 'document_type',
   documentShownStatus: 'document_shown',
-  officeExistFloor: null,
   metPersonStatus: null,
   applicantStayingFloor: null,
   doorNamePlateStatus: null,
@@ -303,7 +303,7 @@ export function validateOfficeRequiredFields(
       'addressLocatable',
       'addressRating',
       'officeStatus',
-      'metPerson',
+      'metPersonName',
       'designation',
       'workingPeriod',
       'applicantDesignation',
@@ -348,7 +348,7 @@ export function validateOfficeRequiredFields(
     ENTRY_RESTRICTED: [
       'addressLocatable',
       'addressRating',
-      'nameOfMetPerson',
+      'metPersonName',
       'metPersonType',
       'metPersonConfirmation',
       'applicantWorkingStatus',
@@ -386,21 +386,21 @@ export function validateOfficeRequiredFields(
     if (eqCI(formData.officeStatus, 'Open') && !formData.staffSeen) {
       warnings.push('staffSeen should be specified when office is opened');
     }
-    if (eqCI(formData.tpcMetPerson1, 'Yes') && !formData.nameOfTpc1) {
-      warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is Yes');
+    if (eqCI(formData.tpcMetPerson1, 'Yes') && !formData.tpcName1 && !formData.nameOfTpc1) {
+      warnings.push('tpcName1 should be specified when tpcMetPerson1 is Yes');
     }
   }
   if (formType === 'SHIFTED' && eqCI(formData.officeStatus, 'Open')) {
-    if (!formData.metPerson) {
-      warnings.push('metPerson should be specified when office is open');
+    if (!formData.metPersonName) {
+      warnings.push('metPersonName should be specified when office is open');
     }
     if (!formData.designation) {
       warnings.push('designation should be specified when office is open');
     }
   }
   if (formType === 'NSP' && eqCI(formData.officeStatus, 'Open')) {
-    if (!formData.metPerson) {
-      warnings.push('metPerson should be specified when office is open');
+    if (!formData.metPersonName) {
+      warnings.push('metPersonName should be specified when office is open');
     }
     if (!formData.designation) {
       warnings.push('designation should be specified when office is open');
@@ -439,7 +439,7 @@ export function ensureAllOfficeFieldsPopulated(
     'address_structure_color',
     'door_color',
     'company_name_plate_status',
-    'name_on_company_board',
+    'name_on_board',
 
     // Landmarks
     'landmark1',
@@ -474,14 +474,13 @@ export function ensureAllOfficeFieldsPopulated(
 
     // Third Party Confirmation
     'tpc_met_person1',
-    'name_of_tpc1',
+    'tpc_name1',
     'tpc_confirmation1',
     'tpc_met_person2',
-    'name_of_tpc2',
+    'tpc_name2',
     'tpc_confirmation2',
 
     // Entry restricted specific fields
-    'name_of_met_person',
     'met_person_type',
     'met_person_confirmation',
     'applicant_working_status',
@@ -554,13 +553,13 @@ function getRelevantOfficeFieldsForFormType(formType: string): string[] {
       'document_shown',
       'document_type',
       'tpc_met_person1',
-      'name_of_tpc1',
+      'tpc_name1',
       'tpc_confirmation1',
       'address_floor',
       'address_structure_color',
       'door_color',
       'company_name_plate_status',
-      'name_on_company_board',
+      'name_on_board',
       'landmark1',
       'landmark2',
     ],
@@ -583,7 +582,7 @@ function getRelevantOfficeFieldsForFormType(formType: string): string[] {
       'address_structure_color',
       'door_color',
       'company_name_plate_status',
-      'name_on_company_board',
+      'name_on_board',
       'landmark1',
       'landmark2',
     ],
@@ -605,7 +604,7 @@ function getRelevantOfficeFieldsForFormType(formType: string): string[] {
       'address_structure_color',
       'door_color',
       'company_name_plate_status',
-      'name_on_company_board',
+      'name_on_board',
       'landmark1',
       'landmark2',
     ],
@@ -626,7 +625,7 @@ function getRelevantOfficeFieldsForFormType(formType: string): string[] {
       'address_floor',
       'address_structure_color',
       'company_name_plate_status',
-      'name_on_company_board',
+      'name_on_board',
       'landmark1',
       'landmark2',
     ],

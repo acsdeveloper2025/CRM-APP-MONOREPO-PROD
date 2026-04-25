@@ -568,7 +568,9 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         if (onSuccess) {
           onSuccess(navigateId ?? '');
         } else {
-          window.location.href = navigateId ? `/cases/${navigateId}` : '/cases';
+          window.location.href = navigateId
+            ? `/case-management/${navigateId}`
+            : '/case-management/all-cases';
         }
       } else {
         toast.error(response.message || 'Failed to create case');
