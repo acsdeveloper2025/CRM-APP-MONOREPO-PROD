@@ -89,6 +89,7 @@ export const useDashboardKPI = () => {
       return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: true, // KPIs change with case/task activity — refresh on tab return
   });
 
   const kpi = query.data;

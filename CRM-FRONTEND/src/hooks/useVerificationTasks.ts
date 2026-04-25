@@ -95,6 +95,7 @@ const normalizeTaskForUi = (task: Record<string, unknown>): VerificationTask => 
 export const useVerificationTasks = (caseId: string) => {
   return useQuery({
     queryKey: ['verification-tasks', caseId],
+    refetchOnWindowFocus: true, // task statuses change frequently — refresh on tab return
     queryFn: async () => {
       // Exclude KYC tasks — they are shown in a separate "KYC Tasks"
       // tab on the case detail page via useKYCTasksForCase.

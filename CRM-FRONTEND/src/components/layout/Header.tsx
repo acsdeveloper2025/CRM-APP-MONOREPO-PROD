@@ -36,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     enabled: Boolean(user),
     refetchInterval: 60000,
     staleTime: 15000,
+    refetchOnWindowFocus: true, // notification badge should refresh when user returns to tab
   });
 
   const handleLogout = async () => {
