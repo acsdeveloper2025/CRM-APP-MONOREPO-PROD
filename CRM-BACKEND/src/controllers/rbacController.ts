@@ -6,7 +6,7 @@ import {
   isCanonicalRbacRoleName,
   normalizeRbacRoleName,
 } from '@/constants/rbacRoles';
-import type { AuthenticatedRequest } from '@/middleware/auth';
+import { invalidateAuthContextCache, type AuthenticatedRequest } from '@/middleware/auth';
 import { emitPermissionsUpdated, getSocketIO } from '@/websocket/server';
 
 const ROUTE_KEYS = [
@@ -348,6 +348,12 @@ export const updateRolePermissions = async (req: AuthenticatedRequest, res: Resp
       }
     });
 
+    // Wipe each affected user's auth-context cache so the new role
+    // permissions take effect immediately (instead of waiting for TTL).
+    for (const row of affectedUsersRes.rows) {
+      invalidateAuthContextCache(row.userId);
+    }
+
     const io = getSocketIO();
     if (io) {
       emitPermissionsUpdated(
@@ -422,6 +428,10 @@ export const updateRoleRoutes = async (req: AuthenticatedRequest, res: Response)
         );
       }
     });
+
+    for (const row of affectedUsersRes.rows) {
+      invalidateAuthContextCache(row.userId);
+    }
 
     const io = getSocketIO();
     if (io) {
