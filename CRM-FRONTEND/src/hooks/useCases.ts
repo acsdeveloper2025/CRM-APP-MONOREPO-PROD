@@ -23,6 +23,7 @@ export const useCases = (query: CaseListQuery = {}) => {
   return useQuery({
     queryKey: caseKeys.list(query),
     queryFn: () => casesService.getCases(query),
+    refetchOnWindowFocus: true, // case status changes frequently — refresh on tab return
   });
 };
 
@@ -61,6 +62,7 @@ export const usePendingCases = () => {
   return useQuery({
     queryKey: [...caseKeys.all, 'pending'] as const,
     queryFn: () => casesService.getPendingCases(),
+    refetchOnWindowFocus: true,
   });
 };
 
