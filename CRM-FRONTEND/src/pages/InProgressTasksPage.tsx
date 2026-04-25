@@ -98,7 +98,7 @@ export const InProgressTasksPage: React.FC = () => {
 
   const handleViewCase = (caseId: string) => {
     if (caseId) {
-      navigate(`/cases/${caseId}`);
+      navigate(`/case-management/${caseId}`);
     }
   };
 

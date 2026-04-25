@@ -325,7 +325,7 @@ export const TaskDetailPage: React.FC = () => {
                   <Button
                     variant="link"
                     className="p-0 h-auto"
-                    onClick={() => navigate(`/cases/${task.caseId}`)}
+                    onClick={() => navigate(`/case-management/${task.caseId}`)}
                   >
                     {task.caseNumber}
                   </Button>

@@ -264,7 +264,7 @@ export const TATMonitoringPage: React.FC = () => {
                     <Button
                       variant="link"
                       className="p-0 h-auto font-normal"
-                      onClick={() => navigate(`/cases/${task.caseId}`)}
+                      onClick={() => navigate(`/case-management/${task.caseId}`)}
                     >
                       {task.caseNumber}
                     </Button>
