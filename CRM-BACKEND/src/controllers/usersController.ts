@@ -1819,8 +1819,8 @@ export const assignClientsToUser = async (req: AuthenticatedRequest, res: Respon
 
       // Invalidate user's auth + client-scope cache so the new assignments
       // take effect immediately on next request.
-      invalidateAuthContextCache(userId);
-      invalidateClientScopeCache(userId);
+      invalidateAuthContextCache(String(userId));
+      invalidateClientScopeCache(String(userId));
 
       res.status(200).json({
         success: true,
@@ -1894,8 +1894,8 @@ export const removeClientAssignment = async (req: AuthenticatedRequest, res: Res
       removedClientId: clientId,
     });
 
-    invalidateAuthContextCache(userId);
-    invalidateClientScopeCache(userId);
+    invalidateAuthContextCache(String(userId));
+    invalidateClientScopeCache(String(userId));
 
     res.json({
       success: true,
@@ -2048,8 +2048,8 @@ export const assignProductsToUser = async (req: AuthenticatedRequest, res: Respo
         insertedCount,
       });
 
-      invalidateAuthContextCache(userId);
-      invalidateProductScopeCache(userId);
+      invalidateAuthContextCache(String(userId));
+      invalidateProductScopeCache(String(userId));
 
       res.status(200).json({
         success: true,
@@ -2112,8 +2112,8 @@ export const removeProductAssignment = async (req: AuthenticatedRequest, res: Re
       productId,
     ]);
 
-    invalidateAuthContextCache(userId);
-    invalidateProductScopeCache(userId);
+    invalidateAuthContextCache(String(userId));
+    invalidateProductScopeCache(String(userId));
 
     res.json({
       success: true,
