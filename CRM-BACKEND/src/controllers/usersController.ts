@@ -4,7 +4,9 @@ import { query, withTransaction } from '@/config/database';
 import { logger } from '@/config/logger';
 import { config } from '@/config';
 import { redact } from '@/utils/logRedact';
-import type { AuthenticatedRequest } from '@/middleware/auth';
+import { invalidateAuthContextCache, type AuthenticatedRequest } from '@/middleware/auth';
+import { invalidateClientScopeCache } from '@/middleware/clientAccess';
+import { invalidateProductScopeCache } from '@/middleware/productAccess';
 import { EmailDeliveryService } from '@/services/EmailDeliveryService';
 import ExcelJS from 'exceljs';
 import { CANONICAL_RBAC_ROLE_NAMES } from '@/constants/rbacRoles';
@@ -1067,6 +1069,12 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
       userAgent: req.get('User-Agent'),
     });
 
+    // Wipe per-user auth + scope caches so role/permission changes take
+    // effect immediately (instead of waiting for the 5s TTL to expire).
+    invalidateAuthContextCache(id);
+    invalidateClientScopeCache(id);
+    invalidateProductScopeCache(id);
+
     res.json({
       success: true,
       data: updatedUser,
@@ -1152,6 +1160,12 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
       ipAddress: req.ip,
       userAgent: req.get('User-Agent'),
     });
+
+    // Wipe per-user auth + scope caches so soft-deleted user is locked out
+    // immediately (token validation will reject the now-inactive account).
+    invalidateAuthContextCache(id);
+    invalidateClientScopeCache(id);
+    invalidateProductScopeCache(id);
 
     res.json({
       success: true,
@@ -1803,6 +1817,11 @@ export const assignClientsToUser = async (req: AuthenticatedRequest, res: Respon
         insertedCount,
       });
 
+      // Invalidate user's auth + client-scope cache so the new assignments
+      // take effect immediately on next request.
+      invalidateAuthContextCache(userId);
+      invalidateClientScopeCache(userId);
+
       res.status(200).json({
         success: true,
         data: {
@@ -1874,6 +1893,9 @@ export const removeClientAssignment = async (req: AuthenticatedRequest, res: Res
       targetUserId: userId,
       removedClientId: clientId,
     });
+
+    invalidateAuthContextCache(userId);
+    invalidateClientScopeCache(userId);
 
     res.json({
       success: true,
@@ -2026,6 +2048,9 @@ export const assignProductsToUser = async (req: AuthenticatedRequest, res: Respo
         insertedCount,
       });
 
+      invalidateAuthContextCache(userId);
+      invalidateProductScopeCache(userId);
+
       res.status(200).json({
         success: true,
         data: {
@@ -2086,6 +2111,9 @@ export const removeProductAssignment = async (req: AuthenticatedRequest, res: Re
       userId,
       productId,
     ]);
+
+    invalidateAuthContextCache(userId);
+    invalidateProductScopeCache(userId);
 
     res.json({
       success: true,

@@ -2,7 +2,8 @@ import type { Response } from 'express';
 import path from 'path';
 import fs from 'fs/promises';
 import { logger } from '@/config/logger';
-import type { AuthenticatedRequest } from '@/middleware/auth';
+import { invalidateAuthContextCache, type AuthenticatedRequest } from '@/middleware/auth';
+import { invalidateClientScopeCache } from '@/middleware/clientAccess';
 import { query, withTransaction } from '@/config/database';
 import type { QueryParams } from '@/types/database';
 import { config } from '@/config';
@@ -1016,6 +1017,13 @@ export const deleteClient = async (req: AuthenticatedRequest, res: Response) => 
       });
     }
 
+    // Capture users currently assigned to this client BEFORE the delete
+    // so we can invalidate their auth+scope caches after the transaction.
+    const affectedUsersRes = await query<{ userId: string }>(
+      `SELECT DISTINCT user_id FROM user_client_assignments WHERE client_id = $1`,
+      [id]
+    );
+
     // Delete client and related records in a transaction
     await withTransaction(async cx => {
       // Delete related records first (foreign keys with NO ACTION or RESTRICT need manual deletion)
@@ -1033,6 +1041,12 @@ export const deleteClient = async (req: AuthenticatedRequest, res: Response) => 
       // Finally delete the client
       await cx.query(`DELETE FROM clients WHERE id = $1`, [id]);
     });
+
+    // Invalidate scope caches for every user that lost this assignment.
+    for (const row of affectedUsersRes.rows) {
+      invalidateAuthContextCache(row.userId);
+      invalidateClientScopeCache(row.userId);
+    }
 
     logger.info(`Deleted client: ${id}`, {
       userId: req.user?.id,
