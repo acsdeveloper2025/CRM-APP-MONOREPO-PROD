@@ -282,8 +282,12 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
 
   try {
     const page = Number(Array.isArray(req.query.page) ? req.query.page[0] : req.query.page || 1);
-    const limit = Number(
-      Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit || 50
+    const limit = Math.min(
+      500,
+      Math.max(
+        1,
+        Number(Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit || 50)
+      )
     );
     const sortBy = (
       Array.isArray(req.query.sortBy) ? req.query.sortBy[0] : req.query.sortBy || 'updatedAt'

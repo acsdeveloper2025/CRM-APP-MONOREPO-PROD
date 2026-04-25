@@ -182,8 +182,8 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   }, [initialData, form]);
 
   // Fetch data
-  const { data: clientsResponse } = useClients();
-  const { data: verificationTypesResponse } = useVerificationTypes();
+  const { data: clientsResponse } = useClients({ limit: 500 });
+  const { data: verificationTypesResponse } = useVerificationTypes({ limit: 500 });
   // Server-side pincode search (replaces bulk client-side load)
   const { pincodes, setSearchTerm: setPincodeSearch } = usePincodeSearch();
 

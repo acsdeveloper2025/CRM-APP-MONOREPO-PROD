@@ -76,12 +76,13 @@ export const getDocumentTypeRates = async (req: AuthenticatedRequest, res: Respo
     const sortDir =
       typeof sortOrder === 'string' && sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
+    const cappedLimit = Math.min(500, Math.max(1, Number(limit) || 20));
     const listRes = await query<Record<string, unknown>>(
       `SELECT * FROM document_type_rates_view
        ${whereClause}
        ORDER BY ${sortCol} ${sortDir}
        LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
-      [...values, Number(limit), offset]
+      [...values, cappedLimit, offset]
     );
     const rates = listRes.rows;
 

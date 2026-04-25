@@ -3,6 +3,7 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '../middleware/auth';
 import { authorize } from '../middleware/authorize';
 import { handleValidationErrors } from '../middleware/validation';
+import { EnterpriseCache, CacheInvalidationPatterns } from '../middleware/enterpriseCache';
 import {
   getDocumentTypes,
   getDocumentTypeById,
@@ -73,6 +74,7 @@ router.get('/categories', getDocumentTypeCategories);
 router.post(
   '/',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.documentTypeUpdate),
   createDocumentTypeValidation,
   handleValidationErrors,
   createDocumentType
@@ -88,6 +90,7 @@ router.get(
 router.put(
   '/:id',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.documentTypeUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Document type ID must be a positive integer')],
   updateDocumentTypeValidation,
   handleValidationErrors,
@@ -97,6 +100,7 @@ router.put(
 router.delete(
   '/:id',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.documentTypeUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Document type ID must be a positive integer')],
   handleValidationErrors,
   deleteDocumentType

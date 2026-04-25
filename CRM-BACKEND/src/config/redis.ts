@@ -59,7 +59,7 @@ export const connectRedis = async (): Promise<void> => {
     logger.info('Redis connected successfully');
 
     // Configure memory limits and eviction policy for enterprise workloads
-    const maxMemory = process.env.REDIS_MAX_MEMORY || '256mb';
+    const maxMemory = process.env.REDIS_MAX_MEMORY || '512mb';
     try {
       await redisClient.configSet('maxmemory', maxMemory);
       // Use 'noeviction' policy — required by BullMQ job queues.

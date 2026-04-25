@@ -3,6 +3,7 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { handleValidationErrors } from '@/middleware/validation';
+import { EnterpriseCache, CacheInvalidationPatterns } from '@/middleware/enterpriseCache';
 import {
   getDocumentTypeRates,
   createOrUpdateDocumentTypeRate,
@@ -82,6 +83,7 @@ router.get(
 router.post(
   '/',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.documentTypeRateUpdate),
   createOrUpdateDocumentTypeRateValidation,
   handleValidationErrors,
   createOrUpdateDocumentTypeRate
@@ -91,6 +93,7 @@ router.post(
 router.delete(
   '/:id',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.documentTypeRateUpdate),
   deleteDocumentTypeRateValidation,
   handleValidationErrors,
   deleteDocumentTypeRate

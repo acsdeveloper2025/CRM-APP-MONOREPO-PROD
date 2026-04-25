@@ -147,7 +147,10 @@ export function createScopeAccess(config: ScopeAccessConfig): ScopeAccessHelpers
   //    admin mutation paths can invalidate immediately on assignment
   //    changes if desired.
   const assignedIdsCache = new Map<string, { ids: number[]; expiresAt: number }>();
-  const CACHE_TTL_MS = 30_000;
+  // Lowered from 30_000 → 5_000 to shrink the stale-scope window across PM2
+  // workers. Mutation handlers that touch user_*_assignments SHOULD also call
+  // `invalidate(userId)` directly; the lowered TTL is defense-in-depth.
+  const CACHE_TTL_MS = 5_000;
   let cacheHits = 0;
   let cacheMisses = 0;
 

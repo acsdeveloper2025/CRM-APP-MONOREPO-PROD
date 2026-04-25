@@ -146,31 +146,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
   }, [normalizeUserPermissions]);
 
-  const logout = useCallback(async (customMessage?: string): Promise<void> => {
-    setState((prev) => ({ ...prev, isLoading: true }));
+  const logout = useCallback(
+    async (customMessage?: string): Promise<void> => {
+      setState((prev) => ({ ...prev, isLoading: true }));
 
-    try {
-      await authService.logout();
-      setState({
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
-      toast.success(customMessage || 'Logged out successfully');
-    } catch (error) {
-      logger.error('Logout error:', error);
-      setState({
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
-      if (customMessage) {
-        toast.info(customMessage);
+      try {
+        await authService.logout();
+        // Wipe React Query cache so the next user (or login session) does not
+        // see any cached data from the previous user. Critical when multiple
+        // users share a kiosk / browser, or when permissions change between
+        // sessions.
+        queryClient.clear();
+        setState({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+        toast.success(customMessage || 'Logged out successfully');
+      } catch (error) {
+        logger.error('Logout error:', error);
+        queryClient.clear();
+        setState({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+        if (customMessage) {
+          toast.info(customMessage);
+        }
       }
-    }
-  }, []);
+    },
+    [queryClient]
+  );
 
   // Logout event listener (separate effect — logout must be defined first)
   useEffect(() => {

@@ -89,6 +89,7 @@ router.post(
   '/verification-tasks/revisit/:taskId',
   authenticateToken,
   authorize('visit.revisit', { ownership: 'task' }),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
   VerificationTasksController.revisitTask.bind(VerificationTasksController)
 );
 
@@ -100,6 +101,7 @@ router.put(
   '/verification-tasks/:taskId',
   authenticateToken,
   authorize('case.update'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate),
   validateTaskRecordAccess,
   validateTaskUpdate,
   VerificationTasksController.updateTask.bind(VerificationTasksController)
@@ -141,6 +143,7 @@ router.post(
   '/verification-tasks/:taskId/complete',
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
   VerificationTasksController.completeTask.bind(VerificationTasksController)
 );
 

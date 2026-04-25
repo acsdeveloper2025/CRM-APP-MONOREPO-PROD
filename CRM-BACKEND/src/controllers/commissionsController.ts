@@ -114,7 +114,7 @@ export const getCommissions = async (req: AuthenticatedRequest, res: Response) =
     const safeSortBy: string = sortColumnMap[sortBy as string] || 'created_at';
     const safeSortOrder: 'ASC' | 'DESC' = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
-    const limitNum = Math.max(1, Number(limit) || 20);
+    const limitNum = Math.min(500, Math.max(1, Number(limit) || 20));
     const pageNum = Math.max(1, Number(page) || 1);
     const offset = (pageNum - 1) * limitNum;
 

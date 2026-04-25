@@ -109,7 +109,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const { data: verificationTypesData } = useVerificationTypes();
+  const { data: verificationTypesData } = useVerificationTypes({ limit: 500 });
   const { data: fieldUsers = [] } = useFieldUsers();
 
   // Fetch case details to get client, product, and verification type for rate lookup

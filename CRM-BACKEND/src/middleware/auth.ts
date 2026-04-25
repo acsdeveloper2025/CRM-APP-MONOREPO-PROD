@@ -35,7 +35,12 @@ import {
 //    middleware chain never leaks into the next request.
 //  - Phase F4: hit/miss counters are exposed via getAuthContextCacheStats()
 //    so the /health/deep endpoint can surface the hit rate.
-const AUTH_CONTEXT_CACHE_TTL_MS = 30_000;
+// Lowered from 30_000 → 5_000 to shrink the stale-permission window across
+// PM2 workers. Mutation handlers that change user roles/permissions still
+// SHOULD call `invalidateAuthContextCache(userId)` directly (TODO: wire
+// these calls in usersController + rbacController + territoryAssignmentsController);
+// the lowered TTL is a defense-in-depth fallback.
+const AUTH_CONTEXT_CACHE_TTL_MS = 5_000;
 const authContextCache = new Map<string, { context: DbUserAuthContext; expiresAt: number }>();
 let authContextCacheHits = 0;
 let authContextCacheMisses = 0;

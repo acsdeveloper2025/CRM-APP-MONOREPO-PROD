@@ -3,6 +3,7 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '../middleware/auth';
 import { authorize } from '../middleware/authorize';
 import { handleValidationErrors } from '../middleware/validation';
+import { EnterpriseCache, CacheInvalidationPatterns } from '../middleware/enterpriseCache';
 import {
   getDocumentTypesByClient,
   assignDocumentTypesToClient,
@@ -66,6 +67,7 @@ router.get(
 // POST /api/clients/:id/document-types - Assign document types to a client
 router.post(
   '/:id/document-types',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.clientDocumentTypeUpdate),
   assignDocumentTypesValidation,
   handleValidationErrors,
   assignDocumentTypesToClient
@@ -74,6 +76,7 @@ router.post(
 // PUT /api/clients/:clientId/document-types/:documentTypeId - Update client document type mapping
 router.put(
   '/:clientId/document-types/:documentTypeId',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.clientDocumentTypeUpdate),
   updateMappingValidation,
   handleValidationErrors,
   updateClientDocumentTypeMapping
@@ -82,6 +85,7 @@ router.put(
 // DELETE /api/clients/:clientId/document-types/:documentTypeId - Remove document type from client
 router.delete(
   '/:clientId/document-types/:documentTypeId',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.clientDocumentTypeUpdate),
   removeDocumentTypeValidation,
   handleValidationErrors,
   removeDocumentTypeFromClient

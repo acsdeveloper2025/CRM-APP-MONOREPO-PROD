@@ -103,7 +103,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
   const pincodes = pincodesResponse?.data || [];
 
   // Fetch verification types for ID lookup
-  const { data: verificationTypesResponse } = useVerificationTypes();
+  const { data: verificationTypesResponse } = useVerificationTypes({ limit: 500 });
   const verificationTypes = verificationTypesResponse?.data || [];
 
   // Update state when initialData changes (for edit mode)

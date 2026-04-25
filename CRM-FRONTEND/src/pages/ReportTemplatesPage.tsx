@@ -95,6 +95,8 @@ export function ReportTemplatesPage() {
   const [filterClientId, setFilterClientId] = useState<string>('');
   const [filterProductId, setFilterProductId] = useState<string>('');
   const [filterActiveOnly, setFilterActiveOnly] = useState<boolean>(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
   // Standard debounced + URL-synced search, same hook used across the app.
   const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
     useUnifiedSearch({ syncWithUrl: true });
@@ -135,10 +137,16 @@ export function ReportTemplatesPage() {
       ...(filterProductId ? { productId: Number(filterProductId) } : {}),
       ...(filterActiveOnly ? { isActive: true } : {}),
       ...(debouncedSearchValue.trim() ? { search: debouncedSearchValue.trim() } : {}),
-      limit: 50,
+      page: currentPage,
+      limit: pageSize,
     }),
-    [filterClientId, filterProductId, filterActiveOnly, debouncedSearchValue]
+    [filterClientId, filterProductId, filterActiveOnly, debouncedSearchValue, currentPage]
   );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterClientId, filterProductId, filterActiveOnly, debouncedSearchValue]);
 
   const { data: listRes, isLoading, refetch } = useReportTemplates(listParams);
   const templates = useMemo(() => {
@@ -593,6 +601,33 @@ export function ReportTemplatesPage() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+
+          {listRes?.pagination && listRes.pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <span className="text-sm text-muted-foreground">
+                Page {listRes.pagination.page} of {listRes.pagination.totalPages} (
+                {listRes.pagination.total} total)
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={listRes.pagination.page <= 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  disabled={listRes.pagination.page >= listRes.pagination.totalPages}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

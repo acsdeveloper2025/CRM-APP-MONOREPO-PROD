@@ -28,6 +28,15 @@ Install the Andrej Karpathy skills plugin:
 /plugin install andrej-karpathy-skills@karpathy-skills
 ```
 
+Install the Caveman skill (cave-mode terse output, minimal tokens):
+
+```
+/plugin install caveman
+```
+
+Use `/caveman` to enable cave mode for the current session, or rely on the
+standing rule in `feedback_cave_mode.md` (always-on minimal-token output).
+
 # CLAUDE.md
 
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.

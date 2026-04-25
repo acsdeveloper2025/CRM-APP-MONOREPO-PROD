@@ -40,7 +40,7 @@ export const CommissionRateTypeForm: React.FC<CommissionRateTypeFormProps> = ({
   // Fetch available rate types
   const { data: rateTypesData } = useQuery({
     queryKey: ['rate-types'],
-    queryFn: () => rateTypesService.getRateTypes({ isActive: true }),
+    queryFn: () => rateTypesService.getRateTypes({ isActive: true, limit: 500 }),
   });
 
   const isEditing = !!rateType;
