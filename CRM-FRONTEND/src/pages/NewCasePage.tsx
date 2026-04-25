@@ -389,7 +389,9 @@ export const NewCasePage: React.FC = () => {
               <Button onClick={() => navigate(-1)} variant="outline">
                 Go Back
               </Button>
-              <Button onClick={() => navigate(`/case-management/${editCaseId}`)}>View Case Details</Button>
+              <Button onClick={() => navigate(`/case-management/${editCaseId}`)}>
+                View Case Details
+              </Button>
             </div>
           </div>
         </div>
