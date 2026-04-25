@@ -374,7 +374,9 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                         <RefreshCw className="mr-2 h-4 w-4" />
                         Clear Rate Limit
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate(`/user-management/${user.id}/permissions`)}>
+                      <DropdownMenuItem
+                        onClick={() => navigate(`/user-management/${user.id}/permissions`)}
+                      >
                         <Shield className="mr-2 h-4 w-4" />
                         Manage Permissions
                       </DropdownMenuItem>
@@ -461,7 +463,9 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Clear Rate Limit
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate(`/user-management/${user.id}/permissions`)}>
+                  <DropdownMenuItem
+                    onClick={() => navigate(`/user-management/${user.id}/permissions`)}
+                  >
                     <Shield className="mr-2 h-4 w-4" />
                     Manage Permissions
                   </DropdownMenuItem>
