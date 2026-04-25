@@ -3,7 +3,7 @@ import type { AuthenticatedRequest } from './auth';
 import type { Response } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { RedisStore } from 'rate-limit-redis';
-import { redisClient } from '@/config/redis';
+import { redisClient, isRedisHealthy } from '@/config/redis';
 import { logger } from '@/config/logger';
 import {
   hasSystemScopeBypass,
@@ -17,7 +17,7 @@ import {
  */
 const getStore = (prefix: string) => {
   try {
-    if (redisClient.isReady) {
+    if (isRedisHealthy()) {
       return new RedisStore({
         sendCommand: (...args: string[]) => redisClient.sendCommand(args),
         prefix: `rl:${prefix}:`,

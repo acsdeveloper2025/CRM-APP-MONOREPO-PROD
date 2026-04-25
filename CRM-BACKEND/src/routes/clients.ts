@@ -233,6 +233,7 @@ const brandingParamValidation = [
 router.post(
   '/:id/logo',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.clientUpdate),
   brandingUpload.single('file'),
   validate(brandingParamValidation),
   uploadClientLogo
@@ -241,6 +242,7 @@ router.post(
 router.delete(
   '/:id/logo',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.clientUpdate),
   validate(brandingParamValidation),
   deleteClientLogo
 );
@@ -248,6 +250,7 @@ router.delete(
 router.post(
   '/:id/stamp',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.clientUpdate),
   brandingUpload.single('file'),
   validate(brandingParamValidation),
   uploadClientStamp
@@ -256,6 +259,7 @@ router.post(
 router.delete(
   '/:id/stamp',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.clientUpdate),
   validate(brandingParamValidation),
   deleteClientStamp
 );

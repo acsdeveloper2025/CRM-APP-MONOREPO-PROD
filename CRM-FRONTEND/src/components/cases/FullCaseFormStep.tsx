@@ -86,8 +86,8 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
   editMode = false,
 }) => {
   const { user } = useAuth();
-  const { data: clientsResponse, isLoading: loadingClients } = useClients();
-  const { data: verificationTypesResponse } = useVerificationTypes();
+  const { data: clientsResponse, isLoading: loadingClients } = useClients({ limit: 500 });
+  const { data: verificationTypesResponse } = useVerificationTypes({ limit: 500 });
 
   // Helper function to get user display name
   const getUserDisplayName = (user: unknown) => {

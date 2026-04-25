@@ -43,13 +43,10 @@ export const clearBrowserStorage = () => {
 
 export const clearReactQueryCache = (queryClient: QueryClient) => {
   try {
-    // Clear all queries
+    // Clear all queries (this also removes them from cache;
+    // a follow-up invalidateQueries() would be a no-op).
     queryClient.clear();
     logger.warn('✅ React Query cache cleared');
-
-    // Invalidate all queries to force refetch
-    queryClient.invalidateQueries();
-    logger.warn('✅ All queries invalidated');
 
     return true;
   } catch (error) {

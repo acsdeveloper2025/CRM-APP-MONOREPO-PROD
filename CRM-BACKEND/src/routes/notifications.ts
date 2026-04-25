@@ -4,6 +4,7 @@ import { body, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
+import { EnterpriseCache, CacheInvalidationPatterns } from '@/middleware/enterpriseCache';
 import { NotificationController } from '@/controllers/notificationController';
 
 const router = Router();
@@ -136,6 +137,7 @@ router.get('/', NotificationController.getNotifications.bind(NotificationControl
  */
 router.put(
   '/:notificationId/read',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.notificationUpdate),
   notificationIdValidation,
   validate,
   NotificationController.markNotificationAsRead.bind(NotificationController)
@@ -143,6 +145,7 @@ router.put(
 
 router.put(
   '/:notificationId/unread',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.notificationUpdate),
   notificationIdValidation,
   validate,
   NotificationController.markNotificationAsUnread.bind(NotificationController)
@@ -155,6 +158,7 @@ router.put(
  */
 router.put(
   '/mark-all-read',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.notificationUpdate),
   NotificationController.markAllNotificationsAsRead.bind(NotificationController)
 );
 
@@ -165,6 +169,7 @@ router.put(
  */
 router.delete(
   '/:notificationId',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.notificationUpdate),
   notificationIdValidation,
   validate,
   NotificationController.deleteNotification.bind(NotificationController)
@@ -175,7 +180,11 @@ router.delete(
  * @desc Clear all notifications
  * @access Private
  */
-router.delete('/', NotificationController.clearAllNotifications.bind(NotificationController));
+router.delete(
+  '/',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.notificationUpdate),
+  NotificationController.clearAllNotifications.bind(NotificationController)
+);
 
 /**
  * @route GET /api/notifications/preferences

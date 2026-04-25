@@ -3,6 +3,7 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { handleValidationErrors } from '@/middleware/validation';
+import { EnterpriseCache, CacheInvalidationPatterns } from '@/middleware/enterpriseCache';
 import {
   getRateTypeAssignments,
   getAssignmentsByCombination,
@@ -83,6 +84,7 @@ router.get(
 router.post(
   '/bulk-assign',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.rateTypeAssignmentUpdate),
   bulkAssignValidation,
   handleValidationErrors,
   bulkAssignRateTypes
@@ -91,6 +93,7 @@ router.post(
 router.post(
   '/',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.rateTypeAssignmentUpdate),
   createAssignmentValidation,
   handleValidationErrors,
   createRateTypeAssignment
@@ -99,6 +102,7 @@ router.post(
 router.delete(
   '/:id',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.rateTypeAssignmentUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Assignment ID must be a valid integer')],
   handleValidationErrors,
   deleteRateTypeAssignment

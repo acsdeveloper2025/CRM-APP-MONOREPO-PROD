@@ -99,6 +99,15 @@ export class EnterpriseMobileSyncService {
           syncDuration: `${syncDuration}ms`,
         });
 
+        // Hard-cap surfaced to the client: when either bucket hits its query
+        // ceiling, signal `hasMoreData=true` so the mobile client knows to
+        // bump `lastSyncTimestamp` (next sync will pull the older overflow).
+        const NEW_ASSIGNMENTS_LIMIT = 500;
+        const UPDATED_CASES_LIMIT = 200;
+        const hasMoreData =
+          newAssignments.length >= NEW_ASSIGNMENTS_LIMIT ||
+          updatedCases.length >= UPDATED_CASES_LIMIT;
+
         return {
           success: true,
           data: {
@@ -106,7 +115,7 @@ export class EnterpriseMobileSyncService {
             updatedCases,
             notifications,
             syncTimestamp,
-            hasMoreData: false, // Implement pagination if needed
+            hasMoreData,
           },
           metadata: {
             totalNewAssignments: newAssignments.length,

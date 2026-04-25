@@ -368,6 +368,11 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
       [req.user.id, JSON.stringify({}), req.ip, req.get('User-Agent')]
     );
 
+    // Invalidate ALL refresh tokens for this user — match mobile logout behavior.
+    // Without this, an attacker holding a leaked refresh token could continue
+    // exchanging it for new access tokens after the user "logged out".
+    await query(`DELETE FROM refresh_tokens WHERE user_id = $1`, [req.user.id]);
+
     const response: ApiResponse = {
       success: true,
       message: 'Logout successful',

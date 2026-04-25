@@ -3,6 +3,7 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize, authorizeAny } from '@/middleware/authorize';
 import { handleValidationErrors } from '@/middleware/validation';
+import { EnterpriseCache, CacheInvalidationPatterns } from '@/middleware/enterpriseCache';
 import {
   getRateTypes,
   getRateTypeById,
@@ -105,6 +106,7 @@ router.get(
 router.post(
   '/',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.rateTypeUpdate),
   createRateTypeValidation,
   handleValidationErrors,
   createRateType
@@ -121,6 +123,7 @@ router.get(
 router.put(
   '/:id',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.rateTypeUpdate),
   [param('id').trim().notEmpty().withMessage('Rate type ID is required')],
   updateRateTypeValidation,
   handleValidationErrors,
@@ -130,6 +133,7 @@ router.put(
 router.delete(
   '/:id',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.rateTypeUpdate),
   [param('id').trim().notEmpty().withMessage('Rate type ID is required')],
   handleValidationErrors,
   deleteRateType

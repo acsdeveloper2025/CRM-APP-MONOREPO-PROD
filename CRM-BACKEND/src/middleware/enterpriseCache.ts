@@ -378,9 +378,11 @@ export const EnterpriseCacheConfigs = {
     keyGenerator: () => CacheKeys.fieldAgentWorkload(),
   },
 
-  // Mobile sync data caching - INCREASED TTL
+  // Mobile sync data caching - balanced TTL
   mobileSync: {
-    ttl: 120, // 2 minutes (was 30 seconds - too aggressive)
+    ttl: 60, // 1 min (was 2 min). Halves the stale window for offline-first
+    // mobile clients. Mutation routes invalidate via assignmentUpdate
+    // pattern which includes `mobile:sync:*`.
     keyGenerator: (req: Request) => {
       const userId = (req as AuthenticatedRequest).user?.id || 'anon';
       const queryHash = crypto.createHash('md5').update(JSON.stringify(req.query)).digest('hex');
@@ -402,7 +404,9 @@ export const EnterpriseCacheConfigs = {
 
   // Client list caching - NEW
   clientList: {
-    ttl: 3600, // 1 hour (clients rarely change)
+    ttl: 300, // 5 min (was 1 hour). Lowered to bound permission-bypass risk
+    // if a client is disabled mid-session. Short enough that a
+    // disabled client stops appearing within 5 minutes.
     keyGenerator: (req: Request) => {
       const userId = (req as AuthenticatedRequest).user?.id || 'anon';
       const query = JSON.stringify(req.query);
@@ -456,9 +460,11 @@ export const EnterpriseCacheConfigs = {
     varyBy: ['X-User-Role'],
   },
 
-  // User dashboard/stats cards caching - short TTL with explicit invalidation
+  // User dashboard/stats cards caching - balanced TTL with explicit invalidation
   userStats: {
-    ttl: 30, // Keep fresh because cards are highly visible and include recent logins
+    ttl: 300, // 5 min (was 30s). Stats cards thrash at 30s; counters don't
+    // change that fast. Mutation routes invalidate explicitly via
+    // userUpdate / assignmentUpdate / notificationUpdate patterns.
     keyGenerator: (req: Request) => {
       const userId = (req as AuthenticatedRequest).user?.id || 'anon';
       const query = JSON.stringify(req.query);
@@ -546,5 +552,30 @@ export const CacheInvalidationPatterns = {
 
   rateTypeUpdate: ['rate-types:*', 'api_cache:*:*rate-types*'],
 
+  rateUpdate: ['rates:*', 'api_cache:*:*rates*', 'rate-management-stats:*'],
+
+  rateTypeAssignmentUpdate: [
+    'rate-type-assignments:*',
+    'api_cache:*:*rate-type-assignments*',
+    'rate-management-stats:*',
+  ],
+
+  documentTypeUpdate: ['document-types:*', 'api_cache:*:*document-types*'],
+
+  documentTypeRateUpdate: [
+    'document-type-rates:*',
+    'api_cache:*:*document-type-rates*',
+    'rate-management-stats:*',
+  ],
+
+  clientDocumentTypeUpdate: [
+    'client-document-types:*',
+    'client-product-documents:*',
+    'api_cache:*:*client-document-types*',
+    'clients:*',
+  ],
+
   fieldMonitoringUpdate: ['field-monitoring:*'],
+
+  notificationUpdate: ['notifications:*', 'api_cache:*:*notifications*', 'users:stats:*'],
 };
