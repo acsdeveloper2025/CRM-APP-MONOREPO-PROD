@@ -107,7 +107,15 @@ export const useDashboardKPI = () => {
           completedCases: lc.tasks?.completed?.value ?? 0,
           totalClients: lc.clients?.total?.value ?? 0,
           activeUsers: lc.fieldAgents?.activeToday?.value ?? 0,
-          pendingCases: kpi.workload?.openTasks?.value ?? 0,
+          // `openTasks` from the KPI Engine = COUNT(status IN ('PENDING','ASSIGNED','IN_PROGRESS')).
+          // The "Pending Tasks" card on the dashboard is labeled "Pending & Assigned tasks", so we
+          // must exclude IN_PROGRESS — otherwise an IN_PROGRESS task counts on both the Pending and
+          // the In Progress cards. Mirrors the same derivation in the backend's /dashboard endpoint
+          // (dashboardController.ts: `derivedPending = Math.max(0, openTasksVal - inProgressVal)`).
+          pendingCases: Math.max(
+            0,
+            (kpi.workload?.openTasks?.value ?? 0) - (kpi.workload?.inProgressTasks?.value ?? 0)
+          ),
 
           // Financials
           monthlyRevenue: kpi.financial?.actualAmount?.value ?? 0,
