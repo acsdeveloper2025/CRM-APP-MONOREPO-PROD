@@ -1083,6 +1083,7 @@ export class MobileFormController {
     const normalizedType = MobileFormController.normalizeVerificationType(verificationType);
 
     // Map common fields
+    formData.customerName = report.customerName;
     formData.outcome = report.verificationOutcome;
     formData.finalStatus = report.finalStatus;
     formData.metPersonName = report.metPersonName;
@@ -1092,6 +1093,7 @@ export class MobileFormController {
     formData.addressLocatable = report.addressLocatable;
     formData.addressRating = report.addressRating;
     formData.locality = report.locality;
+    formData.addressStructure = report.addressStructure;
     formData.landmark1 = report.landmark1;
     formData.landmark2 = report.landmark2;
     formData.landmark3 = report.landmark3;
@@ -1105,14 +1107,25 @@ export class MobileFormController {
 
     // Map verification type specific fields
     if (normalizedType === 'RESIDENCE') {
+      formData.houseStatus = report.houseStatus;
+      formData.metPersonRelation = report.metPersonRelation;
       formData.metPersonStatus = report.metPersonStatus;
+      formData.totalFamilyMembers = report.totalFamilyMembers;
+      formData.totalEarningMember = report.totalEarningMember;
+      formData.workingStatus = report.workingStatus;
+      formData.companyName = report.companyName;
       formData.stayingPeriod = report.stayingPeriod;
       formData.stayingStatus = report.stayingStatus;
+      formData.documentShownStatus = report.documentShownStatus;
+      formData.documentType = report.documentType;
+      formData.doorColor = report.doorColor;
       formData.doorNamePlateStatus = report.doorNamePlateStatus;
       formData.nameOnDoorPlate = report.nameOnDoorPlate;
       formData.societyNamePlateStatus = report.societyNamePlateStatus;
       formData.nameOnSocietyBoard = report.nameOnSocietyBoard;
+      formData.addressStructureColor = report.addressStructureColor;
       formData.applicantStayingFloor = report.applicantStayingFloor;
+      formData.addressFloor = report.addressFloor;
 
       // Nameplate fields
 
@@ -1128,6 +1141,8 @@ export class MobileFormController {
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Form type specific fields
+      formData.shiftedPeriod = report.shiftedPeriod;
+      formData.premisesStatus = report.premisesStatus;
       formData.stayingPersonName = report.stayingPersonName;
       formData.metPersonConfirmation = report.metPersonConfirmation;
       formData.accessDenied = report.accessDenied;
@@ -1139,10 +1154,24 @@ export class MobileFormController {
 
       // Assessment
     } else if (normalizedType === 'OFFICE') {
+      formData.designation = report.designation;
+      formData.applicantDesignation = report.applicantDesignation;
+      formData.officeStatus = report.officeStatus;
+      formData.officeExistence = report.officeExistence;
+      formData.officeType = report.officeType;
       formData.companyNatureOfBusiness = report.companyNatureOfBusiness;
       formData.businessPeriod = report.businessPeriod;
+      formData.establishmentPeriod = report.establishmentPeriod;
+      formData.staffStrength = report.staffStrength;
+      formData.staffSeen = report.staffSeen;
+      formData.workingPeriod = report.workingPeriod;
+      formData.workingStatus = report.workingStatus;
       formData.officeApproxArea = report.officeApproxArea;
       formData.documentShown = report.documentShown;
+      formData.documentType = report.documentType;
+      formData.addressFloor = report.addressFloor;
+      formData.companyNamePlateStatus = report.companyNamePlateStatus;
+      formData.nameOnBoard = report.nameOnBoard;
       formData.tpcMetPerson1 = report.tpcMetPerson1;
       formData.nameOfTpc1 = report.tpcName1;
       formData.tpcConfirmation1 = report.tpcConfirmation1;
@@ -1151,9 +1180,16 @@ export class MobileFormController {
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Visual details
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.doorColor = report.doorColor;
+      formData.applicantWorkingPremises = report.applicantWorkingPremises;
       formData.sittingLocation = report.sittingLocation;
+      formData.currentCompanyName = report.currentCompanyName;
 
       // Shifted fields
+      formData.shiftedPeriod = report.shiftedPeriod;
+      formData.oldOfficeShiftedPeriod = report.oldOfficeShiftedPeriod;
+      formData.currentCompanyPeriod = report.currentCompanyPeriod;
 
       // Entry restricted fields
       formData.nameOfMetPerson = report.nameOfMetPerson;
@@ -1168,13 +1204,17 @@ export class MobileFormController {
       formData.remarks = report.remarks;
     } else if (normalizedType === 'BUSINESS') {
       // Basic Information
+      formData.designation = report.designation;
 
       // Business Details
       formData.businessStatus = report.businessStatus;
+      formData.businessType = report.businessType;
       formData.companyNatureOfBusiness = report.companyNatureOfBusiness;
       formData.businessPeriod = report.businessPeriod;
       formData.businessExistence = report.businessExistence;
       formData.businessApproxArea = report.businessApproxArea;
+      formData.staffStrength = report.staffStrength;
+      formData.staffSeen = report.staffSeen;
       formData.ownershipType = report.ownershipType;
       formData.nameOfCompanyOwners = report.nameOfCompanyOwners;
 
@@ -1186,6 +1226,11 @@ export class MobileFormController {
 
       // Location Details
       formData.addressStatus = report.addressStatus;
+      formData.premisesStatus = report.premisesStatus;
+      formData.companyNamePlateStatus = report.companyNamePlateStatus;
+      formData.nameOnBoard = report.nameOnBoard;
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.doorColor = report.doorColor;
 
       // TPC Details
       formData.tpcMetPerson1 = report.tpcMetPerson1;
@@ -1197,6 +1242,8 @@ export class MobileFormController {
 
       // Shifting Details
       formData.oldBusinessShiftedPeriod = report.oldBusinessShiftedPeriod;
+      formData.currentCompanyName = report.currentCompanyName;
+      formData.currentCompanyPeriod = report.currentCompanyPeriod;
 
       // Contact & Communication
       formData.contactPerson = report.contactPerson;
@@ -1208,6 +1255,7 @@ export class MobileFormController {
       // Area Assessment
     } else if (normalizedType === 'PROPERTY_APF') {
       // Basic Information
+      formData.customerName = report.customerName;
       formData.metPersonName = report.metPersonName;
       formData.metPersonDesignation = report.metPersonDesignation;
 
@@ -1228,6 +1276,7 @@ export class MobileFormController {
       // APF Details
 
       // Project Information
+      formData.projectName = report.projectName;
       formData.projectCompletionPercentage = report.projectCompletionPercentage;
       formData.projectStartDate = report.projectStartedDate;
       formData.projectEndDate = report.projectCompletionDate;
@@ -1237,8 +1286,12 @@ export class MobileFormController {
       formData.totalWing = report.totalWing;
 
       // Staff Information
+      formData.staffSeen = report.staffSeen;
+      formData.staffStrength = report.staffStrength;
 
       // Name Plates & Boards
+      formData.companyNamePlateStatus = report.companyNamePlateStatus;
+      formData.nameOnBoard = report.nameOnBoard;
 
       // Document Verification
 
@@ -1271,23 +1324,32 @@ export class MobileFormController {
       // Entry restricted fields (additional)
       formData.nameOfMetPerson = report.nameOfMetPerson;
       formData.metPersonConfirmation = report.metPersonConfirmation;
+      formData.designation = report.designation;
     } else if (normalizedType === 'PROPERTY_INDIVIDUAL') {
       // Basic Information
+      formData.customerName = report.customerName;
       formData.metPersonName = report.metPersonName;
       formData.metPersonDesignation = report.metPersonDesignation;
+      formData.metPersonRelation = report.metPersonRelation;
 
       // Address Information
       formData.locality = report.locality;
       formData.addressLocatable = report.addressLocatable;
       formData.addressRating = report.addressRating;
+      formData.addressStructure = report.addressStructure;
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.doorColor = report.doorColor;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
       formData.landmark4 = report.landmark4;
 
       // Property Details
+      formData.propertyStatus = report.propertyStatus;
+      formData.propertyArea = report.propertyArea;
 
       // Owner Information
+      formData.ownerName = report.ownerName;
 
       // Individual Information
 
@@ -1310,6 +1372,8 @@ export class MobileFormController {
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Shifting & Contact Details
+      formData.premisesStatus = report.premisesStatus;
+      formData.securityConfirmation = report.securityConfirmation;
       formData.contactPerson = report.contactPerson;
       formData.callRemark = report.callRemark;
 
@@ -1322,6 +1386,7 @@ export class MobileFormController {
       formData.remarks = report.remarks;
     } else if (normalizedType === 'NOC') {
       // Basic Information
+      formData.customerName = report.customerName;
       formData.metPersonName = report.metPersonName;
       formData.metPersonDesignation = report.metPersonDesignation;
 
@@ -1329,6 +1394,9 @@ export class MobileFormController {
       formData.locality = report.locality;
       formData.addressLocatable = report.addressLocatable;
       formData.addressRating = report.addressRating;
+      formData.addressStructure = report.addressStructure;
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.doorColor = report.doorColor;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
@@ -1351,6 +1419,7 @@ export class MobileFormController {
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Shifting & Contact Details
+      formData.premisesStatus = report.premisesStatus;
       formData.contactPerson = report.contactPerson;
       formData.callRemark = report.callRemark;
 
@@ -1367,12 +1436,17 @@ export class MobileFormController {
       formData.remarks = report.remarks;
     } else if (normalizedType === 'BUILDER') {
       // Basic Information
+      formData.customerName = report.customerName;
       formData.metPersonName = report.metPersonName;
+      formData.designation = report.designation;
 
       // Address Information
       formData.locality = report.locality;
       formData.addressLocatable = report.addressLocatable;
       formData.addressRating = report.addressRating;
+      formData.addressStructure = report.addressStructure;
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.doorColor = report.doorColor;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
@@ -1386,9 +1460,17 @@ export class MobileFormController {
       formData.applicantWorkingStatus = report.applicantWorkingStatus;
 
       // Office Information
+      formData.officeStatus = report.officeStatus;
+      formData.officeExistence = report.officeExistence;
       formData.officeApproxArea = report.officeApproxArea;
+      formData.companyNamePlateStatus = report.companyNamePlateStatus;
+      formData.nameOnBoard = report.nameOnBoard;
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.doorColor = report.doorColor;
 
       // Staff Information
+      formData.staffStrength = report.staffStrength;
+      formData.staffSeen = report.staffSeen;
 
       // Document Verification
       formData.documentShown = report.documentShown;
@@ -1407,6 +1489,10 @@ export class MobileFormController {
       formData.metPersonConfirmation = report.metPersonConfirmation;
 
       // Shifting & Contact Details
+      formData.oldOfficeShiftedPeriod = report.oldOfficeShiftedPeriod;
+      formData.currentCompanyName = report.currentCompanyName;
+      formData.currentCompanyPeriod = report.currentCompanyPeriod;
+      formData.premisesStatus = report.premisesStatus;
       formData.contactPerson = report.contactPerson;
       formData.callRemark = report.callRemark;
 
@@ -1421,6 +1507,7 @@ export class MobileFormController {
       formData.remarks = report.remarks;
     } else if (normalizedType === 'DSA_CONNECTOR') {
       // Basic Information
+      formData.customerName = report.customerName;
       formData.metPersonName = report.metPersonName;
       formData.metPersonDesignation = report.metPersonDesignation;
 
@@ -1428,6 +1515,9 @@ export class MobileFormController {
       formData.locality = report.locality;
       formData.addressLocatable = report.addressLocatable;
       formData.addressRating = report.addressRating;
+      formData.addressStructure = report.addressStructure;
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.doorColor = report.doorColor;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
@@ -1436,6 +1526,7 @@ export class MobileFormController {
       // Connector Information
 
       // Business Information
+      formData.businessType = report.businessType;
       formData.businessOperational = report.businessOperational;
 
       // Office Information
@@ -1459,6 +1550,9 @@ export class MobileFormController {
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Shifting & Contact Details
+      formData.shiftedPeriod = report.shiftedPeriod;
+      formData.premisesStatus = report.premisesStatus;
+      formData.securityConfirmation = report.securityConfirmation;
       formData.contactPerson = report.contactPerson;
       formData.callRemark = report.callRemark;
 
@@ -1474,11 +1568,16 @@ export class MobileFormController {
     } else if (normalizedType === 'RESIDENCE_CUM_OFFICE') {
       // Basic Information
       formData.metPersonName = report.metPersonName;
+      formData.metPersonRelation = report.metPersonRelation;
 
       // Address Information
       formData.locality = report.locality;
       formData.addressLocatable = report.addressLocatable;
       formData.addressRating = report.addressRating;
+      formData.addressStructure = report.addressStructure;
+      formData.addressStructureColor = report.addressStructureColor;
+      formData.addressFloor = report.addressFloor;
+      formData.doorColor = report.doorColor;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
@@ -1502,10 +1601,14 @@ export class MobileFormController {
       formData.businessPeriod = report.businessPeriod;
       formData.approxArea = report.approxArea;
       formData.sittingLocation = report.sittingLocation;
+      formData.companyNamePlateStatus = report.companyNamePlateStatus;
+      formData.nameOnBoard = report.nameOnBoard;
 
       // Staff Information
 
       // Document Verification
+      formData.documentShownStatus = report.documentShownStatus;
+      formData.documentType = report.documentType;
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpcMetPerson1;
@@ -1521,6 +1624,7 @@ export class MobileFormController {
       formData.metPersonConfirmation = report.metPersonConfirmation;
 
       // Shifting & Contact Details
+      formData.shiftedPeriod = report.shiftedPeriod;
       formData.contactPerson = report.contactPerson;
       formData.callRemark = report.callRemark;
 
