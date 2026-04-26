@@ -7,6 +7,7 @@
 
 import { logger } from '@/config/logger';
 import { eqCI } from './caseInsensitiveCompare';
+import { pickRelevantFieldsForFormType, MISSING_FIELD_DEFAULT } from './formFieldRelevance';
 
 export interface DatabaseFieldMapping {
   [mobileField: string]: string | null; // null means field should be ignored
@@ -28,7 +29,6 @@ export const BUSINESS_FIELD_MAPPING: DatabaseFieldMapping = {
   addressRating: 'address_rating',
   locality: 'locality',
   addressStructure: 'address_structure',
-  addressFloor: 'address_floor',
   addressStructureColor: 'address_structure_color',
   doorColor: 'door_color',
   companyNamePlateStatus: 'company_name_plate_status',
@@ -49,12 +49,8 @@ export const BUSINESS_FIELD_MAPPING: DatabaseFieldMapping = {
   addressStatus: 'address_status', // Used in POSITIVE forms
   companyNatureOfBusiness: 'company_nature_of_business', // Used in POSITIVE forms
   businessPeriod: 'business_period', // Used in POSITIVE forms
-  establishmentPeriod: 'establishment_period', // Used in POSITIVE forms
   businessApproxArea: 'business_approx_area', // Used in POSITIVE forms
   officeApproxArea: 'business_approx_area', // Alternative field name
-  businessActivity: 'business_activity', // Used in POSITIVE forms
-  businessSetup: 'business_setup', // Used in POSITIVE forms
-  documentType: 'document_type',
   documentShownStatus: 'document_shown',
   staffStrength: 'staff_strength', // Used in POSITIVE forms
   staffSeen: 'staff_seen', // Used in POSITIVE forms
@@ -68,13 +64,7 @@ export const BUSINESS_FIELD_MAPPING: DatabaseFieldMapping = {
   metPerson: 'met_person_name',
   metPersonName: 'met_person_name',
   designation: 'designation',
-  applicantDesignation: 'applicant_designation',
-  workingPeriod: 'working_period',
-  workingStatus: 'working_status',
-  applicantWorkingPremises: 'applicant_working_premises',
   nameOfCompanyOwners: 'name_of_company_owners',
-  ownerName: 'owner_name',
-  businessOwnerName: 'business_owner_name',
 
   // Document verification
   documentShown: 'document_shown',
@@ -97,7 +87,6 @@ export const BUSINESS_FIELD_MAPPING: DatabaseFieldMapping = {
   oldOfficeShiftedPeriod: 'old_business_shifted_period',
 
   // Shifted business specific fields
-  shiftedPeriod: 'shifted_period',
   oldBusinessShiftedPeriod: 'old_business_shifted_period',
   currentCompanyName: 'current_company_name',
   currentCompanyPeriod: 'current_company_period',
@@ -118,8 +107,6 @@ export const BUSINESS_FIELD_MAPPING: DatabaseFieldMapping = {
   dominatedArea: 'dominated_area',
   feedbackFromNeighbour: 'feedback_from_neighbour',
   otherObservation: 'other_observation',
-  otherExtraRemark: 'other_extra_remark',
-  recommendationStatus: 'recommendation_status',
 
   // Legacy/alternative field names
   businessName: 'company_nature_of_business', // Maps to company nature
@@ -138,126 +125,15 @@ export const BUSINESS_FIELD_MAPPING: DatabaseFieldMapping = {
   errors: null,
 };
 
-/**
- * Maps mobile business form data to database field values with comprehensive field coverage
- * Ensures all database fields are populated with appropriate values or NULL defaults
- *
- * @param formData - Raw form data from mobile app
- * @param formType - The type of business form (POSITIVE, SHIFTED, NSP, ENTRY_RESTRICTED, UNTRACEABLE)
- * @returns Object with database column names as keys
- */
-export function mapBusinessFormDataToDatabase(
-  formData: Record<string, unknown>,
-  formType?: string
-): Record<string, unknown> {
-  const mappedData: Record<string, unknown> = {};
-
-  // Process each field in the form data
-  for (const [mobileField, value] of Object.entries(formData)) {
-    const dbColumn = BUSINESS_FIELD_MAPPING[mobileField];
-
-    // Skip fields that should be ignored
-    if (dbColumn === null) {
-      continue;
-    }
-
-    // Skip fields that have no DB mapping (undefined = not in mapping)
-    if (dbColumn === undefined) {
-      continue;
-    }
-    const columnName = dbColumn;
-
-    // Process the value based on type
-    mappedData[columnName] = processBusinessFieldValue(mobileField, value);
-  }
-
-  // Ensure all database fields have values based on form type
-  const completeData = ensureAllBusinessFieldsPopulated(mappedData, formType || 'POSITIVE');
-
-  return completeData;
-}
-
-/**
- * Processes business field values to ensure they're in the correct format for database storage
- *
- * @param fieldName - The mobile field name
- * @param value - The field value
- * @returns Processed value suitable for database storage
- */
-function processBusinessFieldValue(fieldName: string, value: unknown): unknown {
-  // Handle null/undefined values
-  if (value === null || value === undefined || value === '') {
-    return null;
-  }
-
-  // Handle boolean fields
-  if (typeof value === 'boolean') {
-    return value;
-  }
-
-  // Handle numeric fields FIRST (before composite string conversion)
-  const numericFields = [
-    'staffStrength',
-    'staffSeen',
-    'businessApproxArea',
-    'officeApproxArea',
-    'totalEmployees',
-  ];
-
-  if (numericFields.includes(fieldName)) {
-    const raw =
-      typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>)
-        ? (value as Record<string, unknown>).value
-        : value;
-    const num = Number(raw);
-    return isNaN(num) ? null : num;
-  }
-
-  // Handle composite objects (e.g., { value: 3, unit: 'Years' } from mobile dropdowns)
-  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    const obj = value as Record<string, unknown>;
-    if ('value' in obj && 'unit' in obj) {
-      return `${String(obj.value as string | number)} ${String(obj.unit as string | number)}`.trim();
-    }
-    return JSON.stringify(value);
-  }
-
-  // Default: convert to string and trim
-  return (
-    (typeof value === 'object' && value !== null
-      ? JSON.stringify(value)
-      : String(value as string | number | boolean | null | undefined)
-    ).trim() || null
-  );
-}
-
-/**
- * Gets all database columns that can be populated from business form data
- *
- * @returns Array of database column names
- */
-export function getBusinessAvailableDbColumns(): string[] {
-  const columns = new Set<string>();
-
-  for (const dbColumn of Object.values(BUSINESS_FIELD_MAPPING)) {
-    if (dbColumn !== null) {
-      columns.add(dbColumn);
-    }
-  }
-
-  return Array.from(columns).sort();
-}
-
-/**
- * Gets all mobile business form fields that are mapped to database columns
- *
- * @returns Array of mobile field names
- */
-export function getBusinessMappedMobileFields(): string[] {
-  return Object.keys(BUSINESS_FIELD_MAPPING)
-    .filter(field => BUSINESS_FIELD_MAPPING[field] !== null)
-    .sort();
-}
+// 2026-04-26 P3 dead-code prune (per project_form_field_mapping_drift_audit.md):
+// Removed 4 dead exports + 1 dead private helper from this file:
+//   - mapBusinessFormDataToDatabase(): zero call sites in any codebase. The submit
+//     path uses validateAndPrepareBusinessForm() from businessFormValidator.ts;
+//     this old camelCase→snake_case mapper was never wired up post-migration.
+//   - processBusinessFieldValue() (private): only caller was the dead mapper above.
+//   - getBusinessAvailableDbColumns(): zero call sites; only `_`-aliased import.
+//   - getBusinessMappedMobileFields(): zero call sites anywhere.
+// BUSINESS_FIELD_MAPPING and ensureAllBusinessFieldsPopulated() stay alive (used by validator).
 
 /**
  * Validates that all required fields are present in business form data
@@ -390,6 +266,119 @@ export function validateBusinessRequiredFields(
  * @param formType - Type of business form
  * @returns Complete data object with all fields populated
  */
+// 2026-04-26 Phase 4 dedup (formFieldRelevance.ts shared util).
+// Per-type DATA stays here; logic moved to shared `pickRelevantFieldsForFormType`.
+const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
+  POSITIVE: [
+    'address_locatable',
+    'address_rating',
+    'business_status',
+    'met_person_name',
+    'designation',
+    'business_type',
+    'ownership_type',
+    'company_nature_of_business',
+    'staff_strength',
+    'locality',
+    'address_structure',
+    'political_connection',
+    'dominated_area',
+    'feedback_from_neighbour',
+    'other_observation',
+    'final_status',
+    'business_period',
+    'business_approx_area',
+    'staff_seen',
+    'document_shown',
+    'tpc_met_person1',
+    // 2026-04-26: column renamed; was 'name_of_tpc1'
+    'tpc_name1',
+    'tpc_confirmation1',
+    'address_structure_color',
+    'door_color',
+    'company_name_plate_status',
+    'name_on_board',
+    'landmark1',
+    'landmark2',
+  ],
+  SHIFTED: [
+    'address_locatable',
+    'address_rating',
+    'business_status',
+    'met_person_name',
+    'designation',
+    'current_company_name',
+    'old_business_shifted_period',
+    'locality',
+    'address_structure',
+    'political_connection',
+    'dominated_area',
+    'feedback_from_neighbour',
+    'other_observation',
+    'final_status',
+    'address_structure_color',
+    'door_color',
+    'company_name_plate_status',
+    'name_on_board',
+    'landmark1',
+    'landmark2',
+  ],
+  NSP: [
+    'address_locatable',
+    'address_rating',
+    'business_status',
+    'business_existence',
+    'met_person_name',
+    'designation',
+    'locality',
+    'address_structure',
+    'political_connection',
+    'dominated_area',
+    'feedback_from_neighbour',
+    'other_observation',
+    'final_status',
+    'address_structure_color',
+    'door_color',
+    'company_name_plate_status',
+    'name_on_board',
+    'landmark1',
+    'landmark2',
+  ],
+  ENTRY_RESTRICTED: [
+    'address_locatable',
+    'address_rating',
+    // 2026-04-26: column renamed; was 'name_of_met_person'
+    'met_person_name',
+    'met_person_type',
+    'met_person_confirmation',
+    'applicant_working_status',
+    'locality',
+    'address_structure',
+    'political_connection',
+    'dominated_area',
+    'feedback_from_neighbour',
+    'other_observation',
+    'final_status',
+    'address_structure_color',
+    'company_name_plate_status',
+    'name_on_board',
+    'landmark1',
+    'landmark2',
+  ],
+  UNTRACEABLE: [
+    'contact_person',
+    'call_remark',
+    'locality',
+    'landmark1',
+    'landmark2',
+    'landmark3',
+    'landmark4',
+    'dominated_area',
+    'other_observation',
+    'final_status',
+  ],
+};
+
 export function ensureAllBusinessFieldsPopulated(
   mappedData: Record<string, unknown>,
   formType: string
@@ -403,7 +392,6 @@ export function ensureAllBusinessFieldsPopulated(
     'address_rating',
     'locality',
     'address_structure',
-    'address_floor',
     'address_structure_color',
     'door_color',
     'company_name_plate_status',
@@ -423,37 +411,31 @@ export function ensureAllBusinessFieldsPopulated(
     'address_status',
     'company_nature_of_business',
     'business_period',
-    'establishment_period',
     'business_approx_area',
     'staff_strength',
     'staff_seen',
-    'business_activity',
-    'business_setup',
 
     // Person details
     'met_person_name',
     'designation',
-    'applicant_designation',
-    'working_period',
-    'working_status',
-    'applicant_working_premises',
     'current_company_name',
     'old_business_shifted_period',
 
     // Document verification
     'document_shown',
-    'document_type',
 
     // Third Party Confirmation
     'tpc_met_person1',
-    'name_of_tpc1',
+    'tpc_name1',
     'tpc_confirmation1',
     'tpc_met_person2',
-    'name_of_tpc2',
+    'tpc_name2',
     'tpc_confirmation2',
 
     // Entry restricted specific fields
-    'name_of_met_person',
+    // 2026-04-26: dropped duplicate 'name_of_met_person' — column was
+    // renamed to met_person_name (already in this array on line ~434);
+    // pre-fix every business INSERT failed 42703.
     'met_person_type',
     'met_person_confirmation',
     'applicant_working_status',
@@ -467,14 +449,13 @@ export function ensureAllBusinessFieldsPopulated(
     'dominated_area',
     'feedback_from_neighbour',
     'other_observation',
-    'recommendation_status',
 
     // Final status
     'final_status',
   ];
 
   // Get fields that are relevant for this form type
-  const relevantFields = getRelevantBusinessFieldsForFormType(formType);
+  const relevantFields = pickRelevantFieldsForFormType(formType, RELEVANT_FIELDS_BY_TYPE);
 
   // Populate missing fields with appropriate defaults
   for (const field of allDatabaseFields) {
@@ -485,147 +466,9 @@ export function ensureAllBusinessFieldsPopulated(
       }
 
       // Set default value (NULL for all missing fields)
-      completeData[field] = getDefaultBusinessValueForField(field);
+      completeData[field] = MISSING_FIELD_DEFAULT;
     }
   }
 
   return completeData;
-}
-
-/**
- * Gets relevant database fields for a specific business form type
- *
- * @param formType - Type of business form
- * @returns Array of relevant database field names
- */
-function getRelevantBusinessFieldsForFormType(formType: string): string[] {
-  const fieldsByType: Record<string, string[]> = {
-    POSITIVE: [
-      'address_locatable',
-      'address_rating',
-      'business_status',
-      'met_person_name',
-      'designation',
-      'business_type',
-      'ownership_type',
-      'company_nature_of_business',
-      'staff_strength',
-      'locality',
-      'address_structure',
-      'political_connection',
-      'dominated_area',
-      'feedback_from_neighbour',
-      'other_observation',
-      'final_status',
-      'business_period',
-      'establishment_period',
-      'business_approx_area',
-      'staff_seen',
-      'document_shown',
-      'document_type',
-      'tpc_met_person1',
-      'name_of_tpc1',
-      'tpc_confirmation1',
-      'address_floor',
-      'address_structure_color',
-      'door_color',
-      'company_name_plate_status',
-      'name_on_board',
-      'landmark1',
-      'landmark2',
-      'business_activity',
-      'business_setup',
-    ],
-    SHIFTED: [
-      'address_locatable',
-      'address_rating',
-      'business_status',
-      'met_person_name',
-      'designation',
-      'current_company_name',
-      'old_business_shifted_period',
-      'locality',
-      'address_structure',
-      'political_connection',
-      'dominated_area',
-      'feedback_from_neighbour',
-      'other_observation',
-      'final_status',
-      'address_floor',
-      'address_structure_color',
-      'door_color',
-      'company_name_plate_status',
-      'name_on_board',
-      'landmark1',
-      'landmark2',
-    ],
-    NSP: [
-      'address_locatable',
-      'address_rating',
-      'business_status',
-      'business_existence',
-      'met_person_name',
-      'designation',
-      'locality',
-      'address_structure',
-      'political_connection',
-      'dominated_area',
-      'feedback_from_neighbour',
-      'other_observation',
-      'final_status',
-      'address_floor',
-      'address_structure_color',
-      'door_color',
-      'company_name_plate_status',
-      'name_on_board',
-      'landmark1',
-      'landmark2',
-    ],
-    ENTRY_RESTRICTED: [
-      'address_locatable',
-      'address_rating',
-      'name_of_met_person',
-      'met_person_type',
-      'met_person_confirmation',
-      'applicant_working_status',
-      'locality',
-      'address_structure',
-      'political_connection',
-      'dominated_area',
-      'feedback_from_neighbour',
-      'other_observation',
-      'final_status',
-      'address_floor',
-      'address_structure_color',
-      'company_name_plate_status',
-      'name_on_board',
-      'landmark1',
-      'landmark2',
-    ],
-    UNTRACEABLE: [
-      'contact_person',
-      'call_remark',
-      'locality',
-      'landmark1',
-      'landmark2',
-      'landmark3',
-      'landmark4',
-      'dominated_area',
-      'other_observation',
-      'final_status',
-    ],
-  };
-
-  return fieldsByType[formType] || fieldsByType['POSITIVE'];
-}
-
-/**
- * Gets appropriate default value for a business database field
- *
- * @param _fieldName - Database field name
- * @returns Default value for the field
- */
-function getDefaultBusinessValueForField(_fieldName: string): unknown {
-  // All fields default to null for missing/irrelevant data
-  return null;
 }

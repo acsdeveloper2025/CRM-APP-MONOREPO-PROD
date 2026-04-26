@@ -2254,9 +2254,7 @@ Hence the profile is marked as {Final_Status}.`,
       Company_Name_Plate: /^sighted/i.test(safeGet(formData, 'companyNamePlateStatus') || '')
         ? 'Available'
         : 'Not Available',
-      Company_Name_Plate_Text: /^sighted/i.test(
-        safeGet(formData, 'companyNamePlateStatus') || safeGet(formData, 'companyNameBoard') || ''
-      )
+      Company_Name_Plate_Text: /^sighted/i.test(safeGet(formData, 'companyNamePlateStatus') || '')
         ? `displays "${safeGet(formData, 'nameOnBoard') || safeGet(formData, 'nameOnBoard') || 'N/A'}"`
         : 'is not sighted',
       Name_On_Board: safeGet(formData, 'nameOnBoard') || safeGet(formData, 'nameOnBoard'),
@@ -2362,8 +2360,10 @@ Hence the profile is marked as {Final_Status}.`,
       Locality_Type: safeGet(formData, 'localityType') || safeGet(formData, 'locality'),
       Address_Structure: safeGet(formData, 'addressStructure'),
       Address_Floor: safeGet(formData, 'addressFloor') || safeGet(formData, 'floor'),
-      Feedback_From_Neighbour:
-        safeGet(formData, 'feedbackFromNeighbour') || safeGet(formData, 'neighborFeedback'),
+      // 2026-04-26: removed `Feedback_From_Neighbour` (uppercase variant).
+      // Canonical key is `Feedback_from_Neighbour` (defined elsewhere in
+      // this resolver, used by every template). This case-variant was
+      // dead — no template referenced it.
       Premises_Status: lc(
         safeGet(formData, 'premisesStatus') || safeGet(formData, 'currentPremisesStatus')
       ),
@@ -2452,10 +2452,8 @@ Hence the profile is marked as {Final_Status}.`,
         safeGet(formData, 'metPersonDesignation') ||
         safeGet(formData, 'met_person_designation') ||
         'Security',
-      Name_Of_Met_Person:
-        safeGet(formData, 'nameOfMetPerson') ||
-        safeGet(formData, 'name_of_met_person') ||
-        safeGet(formData, 'metPersonName'),
+      // 2026-04-26: removed `Name_Of_Met_Person` (uppercase variant).
+      // Canonical is `Name_of_Met_Person` below.
       Name_of_Met_Person:
         safeGet(formData, 'nameOfMetPerson') ||
         safeGet(formData, 'name_of_met_person') ||
@@ -2647,9 +2645,9 @@ Hence the profile is marked as {Final_Status}.`,
         safeGet(formData, 'apfBalanceAmount') || safeGet(formData, 'apf_balance_amount'),
       Project_Approval_Status:
         safeGet(formData, 'projectApprovalStatus') || safeGet(formData, 'project_approval_status'),
-      Project_Completion_Percentage:
-        safeGet(formData, 'projectCompletionPercentage') ||
-        safeGet(formData, 'project_completion_percentage'),
+      // 2026-04-26: removed `Project_Completion_Percentage` (long variant).
+      // Canonical is `Project_Completion_Percent` defined elsewhere in
+      // this resolver, used by APF templates.
       Available_Units: safeGet(formData, 'availableUnits') || safeGet(formData, 'available_units'),
       Possession_Status:
         safeGet(formData, 'possessionStatus') || safeGet(formData, 'possession_status'),

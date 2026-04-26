@@ -10,6 +10,19 @@ import {
   ensureAllBusinessFieldsPopulated,
 } from './businessFormFieldMapping';
 import { eqCI } from './caseInsensitiveCompare';
+import { processFormFieldValue } from './formFieldValueProcessor';
+
+// Type-specific numeric fields — coerced to Number when sent by mobile.
+// Per-type values per audit-finding-#5 dedup (project_form_field_mapping_drift_audit.md).
+const NUMERIC_FIELDS: readonly string[] = [
+  'staffStrength',
+  'staffSeen',
+  'businessApproxArea',
+  'totalEmployees',
+  'addressFloor',
+  'addressStructure',
+];
+const DATE_FIELDS: readonly string[] = [];
 
 export interface FormValidationResult {
   isValid: boolean;
@@ -72,7 +85,10 @@ export function validateAndPrepareBusinessForm(
       continue;
     } // Skip unmapped fields
     const columnName = dbColumn;
-    mappedData[columnName] = processFieldValue(mobileField, value);
+    mappedData[columnName] = processFormFieldValue(mobileField, value, {
+      numericFields: NUMERIC_FIELDS,
+      dateFields: DATE_FIELDS,
+    });
   }
 
   // Ensure all database fields are populated with appropriate defaults
@@ -268,69 +284,6 @@ function validateConditionalFields(formData: Record<string, unknown>, formType: 
   }
 
   return warnings;
-}
-
-/**
- * Processes field values based on field type and validation rules
- */
-function processFieldValue(fieldName: string, value: unknown): unknown {
-  // Handle null/undefined values
-  if (value === null || value === undefined) {
-    return null;
-  }
-
-  // Handle empty strings
-  if (typeof value === 'string' && value.trim() === '') {
-    return null;
-  }
-
-  // Handle numeric fields
-  const numericFields = [
-    'staffStrength',
-    'staffSeen',
-    'businessApproxArea',
-    'totalEmployees',
-    'addressFloor',
-    'addressStructure',
-  ];
-
-  if (numericFields.includes(fieldName)) {
-    const raw =
-      typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>)
-        ? (value as Record<string, unknown>).value
-        : value;
-    const num = Number(raw);
-    return isNaN(num) ? null : num;
-  }
-
-  // Handle date fields (NOT period/duration fields like businessPeriod)
-  const dateFields: string[] = [];
-  if (dateFields.includes(fieldName)) {
-    if (typeof value === 'string' && value.trim() !== '') {
-      const date = new Date(value);
-      return isNaN(date.getTime()) ? null : value;
-    }
-    return null;
-  }
-
-  // Handle composite objects (e.g., { value: 3, unit: 'Years' } from mobile dropdowns)
-  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    const obj = value as Record<string, unknown>;
-    if ('value' in obj && 'unit' in obj) {
-      return (
-        `${String(obj.value as string | number)} ${String(obj.unit as string | number)}`.trim() ||
-        null
-      );
-    }
-  }
-
-  // Default: convert to string and trim, return null if empty
-  const trimmedValue = (
-    typeof value === 'object' && value !== null
-      ? JSON.stringify(value)
-      : String(value as string | number | boolean | null | undefined)
-  ).trim();
-  return trimmedValue === '' ? null : trimmedValue;
 }
 
 /**

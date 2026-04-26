@@ -2063,8 +2063,8 @@ const PROPERTY_APF_FORM_FIELDS: FormFieldDefinition[] = [
 
   // Name Plates & Boards
   {
-    id: 'companyNameBoard',
-    name: 'companyNameBoard',
+    id: 'companyNamePlateStatus',
+    name: 'companyNamePlateStatus',
     label: 'Company Name Board',
     type: 'text',
     isRequired: false,

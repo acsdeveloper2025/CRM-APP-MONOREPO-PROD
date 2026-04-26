@@ -882,7 +882,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           totalBuildingsInProject: propertyData.totalBuildingsInProject,
           totalFlatsInBuilding: propertyData.totalFlatsInBuilding,
           activityStopReason: propertyData.activityStopReason,
-          companyNameBoard: propertyData.companyNameBoard,
+          companyNamePlateStatus: propertyData.companyNamePlateStatus,
           nameOnBoard: propertyData.nameOnBoard,
           // Builder
           builderName: propertyData.builderName,

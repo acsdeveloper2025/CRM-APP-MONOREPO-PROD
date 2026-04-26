@@ -46,11 +46,6 @@ import {
   detectPropertyIndividualFormType,
   detectResidenceCumOfficeFormType,
 } from '../utils/formTypeDetection';
-// import {
-//   mapFormDataToDatabase,
-//   validateRequiredFields,
-//   getAvailableDbColumns,
-// } from '../utils/residenceFormFieldMapping';
 import {
   validateAndPrepareResidenceForm,
   generateFieldCoverageReport,
@@ -81,52 +76,14 @@ import {
   validateAndPrepareDsaConnectorForm,
   generateDsaConnectorFieldCoverageReport,
 } from '../utils/dsaConnectorFormValidator';
-import {
-  mapOfficeFormDataToDatabase as _mapOfficeFormDataToDatabase,
-  validateOfficeRequiredFields,
-  getOfficeAvailableDbColumns as _getOfficeAvailableDbColumns,
-} from '../utils/officeFormFieldMapping';
-import {
-  mapBusinessFormDataToDatabase as _mapBusinessFormDataToDatabase,
-  validateBusinessRequiredFields,
-  getBusinessAvailableDbColumns as _getBusinessAvailableDbColumns,
-} from '../utils/businessFormFieldMapping';
+import { validateOfficeRequiredFields } from '../utils/officeFormFieldMapping';
+import { validateBusinessRequiredFields } from '../utils/businessFormFieldMapping';
 import {
   createComprehensiveFormSections,
   getFormFieldDefinitions,
   // getFormTypeLabel,
   // getVerificationTableName,
 } from '../utils/comprehensiveFormFieldMapping';
-import {
-  mapBuilderFormDataToDatabase as _mapBuilderFormDataToDatabase,
-  validateBuilderRequiredFields as _validateBuilderRequiredFields,
-  getBuilderAvailableDbColumns as _getBuilderAvailableDbColumns,
-} from '../utils/builderFormFieldMapping';
-import {
-  mapResidenceCumOfficeFormDataToDatabase as _mapResidenceCumOfficeFormDataToDatabase,
-  validateResidenceCumOfficeRequiredFields as _validateResidenceCumOfficeRequiredFields,
-  getResidenceCumOfficeAvailableDbColumns as _getResidenceCumOfficeAvailableDbColumns,
-} from '../utils/residenceCumOfficeFormFieldMapping';
-import {
-  mapNocFormDataToDatabase as _mapNocFormDataToDatabase,
-  validateNocRequiredFields as _validateNocRequiredFields,
-  getNocAvailableDbColumns as _getNocAvailableDbColumns,
-} from '../utils/nocFormFieldMapping';
-import {
-  mapPropertyApfFormDataToDatabase as _mapPropertyApfFormDataToDatabase,
-  validatePropertyApfRequiredFields as _validatePropertyApfRequiredFields,
-  getPropertyApfAvailableDbColumns as _getPropertyApfAvailableDbColumns,
-} from '../utils/propertyApfFormFieldMapping';
-import {
-  mapPropertyIndividualFormDataToDatabase as _mapPropertyIndividualFormDataToDatabase,
-  validatePropertyIndividualRequiredFields as _validatePropertyIndividualRequiredFields,
-  getPropertyIndividualAvailableDbColumns as _getPropertyIndividualAvailableDbColumns,
-} from '../utils/propertyIndividualFormFieldMapping';
-import {
-  mapDsaConnectorFormDataToDatabase as _mapDsaConnectorFormDataToDatabase,
-  validateDsaConnectorRequiredFields as _validateDsaConnectorRequiredFields,
-  getDsaConnectorAvailableDbColumns as _getDsaConnectorAvailableDbColumns,
-} from '../utils/dsaConnectorFormFieldMapping';
 import { query, withTransaction } from '@/config/database';
 import path from 'path';
 import fs from 'fs/promises';
@@ -1389,7 +1346,7 @@ export class MobileFormController {
       formData.staffStrength = report.staffStrength;
 
       // Name Plates & Boards
-      formData.companyNameBoard = report.companyNameBoard;
+      formData.companyNamePlateStatus = report.companyNamePlateStatus;
       formData.nameOnBoard = report.nameOnBoard;
 
       // Document Verification
@@ -2993,7 +2950,6 @@ export class MobileFormController {
 
           // Verification metadata
           verificationDate: new Date().toISOString().split('T')[0],
-          verificationTime: new Date().toTimeString().split(' ')[0],
           verifiedBy: userId,
           totalImages:
             (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
@@ -3411,7 +3367,6 @@ export class MobileFormController {
 
           // Verification metadata
           verificationDate: new Date().toISOString().split('T')[0],
-          verificationTime: new Date().toTimeString().split(' ')[0],
           verifiedBy: userId,
           totalImages:
             (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
@@ -3828,7 +3783,6 @@ export class MobileFormController {
 
           // Verification metadata
           verificationDate: new Date().toISOString().split('T')[0],
-          verificationTime: new Date().toTimeString().split(' ')[0],
           verifiedBy: userId,
           totalImages:
             (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
@@ -4233,7 +4187,6 @@ export class MobileFormController {
 
           // Verification metadata
           verificationDate: new Date().toISOString().split('T')[0],
-          verificationTime: new Date().toTimeString().split(' ')[0],
           verifiedBy: userId,
           totalImages:
             (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
@@ -4503,7 +4456,6 @@ export class MobileFormController {
           customerPhone: updated.backendContactNumber || null,
           customerEmail: null,
           verificationDate: new Date().toISOString().split('T')[0],
-          verificationTime: new Date().toTimeString().split(' ')[0],
           verifiedBy: userId,
           totalImages:
             (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
@@ -4880,7 +4832,6 @@ export class MobileFormController {
 
           // Verification metadata
           verificationDate: new Date().toISOString().split('T')[0],
-          verificationTime: new Date().toTimeString().split(' ')[0],
           verifiedBy: userId,
           totalImages:
             (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
@@ -5160,7 +5111,6 @@ export class MobileFormController {
           customerPhone: updated.backendContactNumber || null,
           customerEmail: null,
           verificationDate: new Date().toISOString().split('T')[0],
-          verificationTime: new Date().toTimeString().split(' ')[0],
           verifiedBy: userId,
           totalImages:
             (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
@@ -5569,7 +5519,6 @@ export class MobileFormController {
 
           // Verification metadata
           verificationDate: new Date().toISOString().split('T')[0],
-          verificationTime: new Date().toTimeString().split(' ')[0],
           verifiedBy: userId,
           totalImages:
             (await MobileFormController.countTaskAttachments(taskId)).totalImages ||
@@ -5965,7 +5914,6 @@ export class MobileFormController {
 
           // Verification metadata
           verificationDate: new Date().toISOString().split('T')[0],
-          verificationTime: new Date().toTimeString().split(' ')[0],
           verifiedBy: userId,
           totalImages:
             (await MobileFormController.countTaskAttachments(taskId)).totalImages ||

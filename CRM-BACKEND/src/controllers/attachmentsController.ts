@@ -15,6 +15,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import sharp from 'sharp';
+import { generateRendition, requiresRendition } from '@/services/attachmentRenditionService';
 
 // In-memory attachment index for update/delete operations (upload uses database)
 const attachments: Record<string, unknown>[] = [
@@ -48,10 +49,41 @@ const attachments: Record<string, unknown>[] = [
   },
 ];
 
-// Supported file types - ONLY images, PDF, and Word documents
+// Supported file types — every extension the mobile client can preview
+// after the rendition pipeline runs. Office docs are converted to PDF
+// (LibreOffice) and TIFF/HEIC are converted to JPEG (sharp); everything
+// here is therefore guaranteed to land in a viewable form on mobile —
+// either directly or via its server-side rendition. See
+// `attachmentRenditionService.ts`.
 const SUPPORTED_FILE_TYPES = {
-  images: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'],
-  documents: ['.pdf', '.doc', '.docx'], // Removed .txt, .rtf
+  images: [
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.bmp',
+    '.webp',
+    '.svg',
+    // Below are sharp-only inputs; rendered to JPEG before mobile delivery.
+    '.tif',
+    '.tiff',
+    '.heic',
+    '.heif',
+  ],
+  documents: [
+    '.pdf',
+    // Below are LibreOffice-only inputs; rendered to PDF before mobile delivery.
+    '.doc',
+    '.docx',
+    '.xls',
+    '.xlsx',
+    '.ppt',
+    '.pptx',
+    '.odt',
+    '.ods',
+    '.odp',
+    '.rtf',
+  ],
 };
 
 const ALL_SUPPORTED_EXTENSIONS = [
@@ -315,6 +347,52 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
           );
 
           const newAttachment = insertResult.rows[0];
+
+          // Generate a preview rendition for files that mobile can't view
+          // directly (Office docs → PDF via LibreOffice, TIFF/HEIC → JPEG
+          // via sharp). Synchronous so the upload only returns once the
+          // rendition is on disk and the row is updated; on environments
+          // missing LibreOffice (local dev), the generator catches and
+          // records a 'failed' status without aborting the upload.
+          const renditionKind = requiresRendition(file.mimetype, file.originalname);
+          if (renditionKind) {
+            const rendition = await generateRendition({
+              sourcePath: finalPath,
+              filename: file.originalname,
+              mimeType: file.mimetype,
+              attachmentId: newAttachment.id,
+              caseUploadDir,
+            });
+            await query(
+              `UPDATE attachments
+               SET preview_rendition_path = $1,
+                   preview_rendition_kind = $2,
+                   rendition_status = $3,
+                   rendition_error = $4,
+                   rendition_generated_at = NOW()
+               WHERE id = $5`,
+              [
+                rendition.relativePath,
+                rendition.kind,
+                rendition.status,
+                rendition.error || null,
+                newAttachment.id,
+              ]
+            );
+            newAttachment.previewRenditionPath = rendition.relativePath;
+            newAttachment.previewRenditionKind = rendition.kind;
+            newAttachment.renditionStatus = rendition.status;
+          } else {
+            await query(
+              `UPDATE attachments
+               SET rendition_status = 'not_required',
+                   rendition_generated_at = NOW()
+               WHERE id = $1`,
+              [newAttachment.id]
+            );
+            newAttachment.renditionStatus = 'not_required';
+          }
+
           uploadedAttachments.push(newAttachment);
         }
 
