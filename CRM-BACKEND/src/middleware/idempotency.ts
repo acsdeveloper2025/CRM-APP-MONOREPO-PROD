@@ -21,6 +21,7 @@ type ReplayRow = {
   responseStatus: number | null;
   responseBody: unknown;
   requestHash: string;
+  createdAt: Date;
 };
 
 type IdempotencyLocals = {
@@ -69,7 +70,7 @@ async function getReplayRow(
   scope: string
 ): Promise<ReplayRow | null> {
   const replayRes = await client.query<ReplayRow>(
-    `SELECT request_hash, response_status, response_body
+    `SELECT request_hash, response_status, response_body, created_at
      FROM mobile_idempotency_keys
      WHERE idempotency_key = $1
        AND user_id IS NOT DISTINCT FROM $2::uuid
@@ -147,6 +148,39 @@ async function persistResponse(
   }
 }
 
+/**
+ * Drop a reservation row when the request failed (4xx/5xx).
+ *
+ * Without this, a 5xx left the reservation in `response_status=NULL`
+ * limbo, and the next retry's `reserveKey` lost the `ON CONFLICT DO
+ * NOTHING` race, fetched the orphan row, and returned 409
+ * `IDEMPOTENCY_KEY_IN_PROGRESS` forever (the row stays for 72h). Mobile's
+ * FormUploader silently swallowed that 409 as success and the user's
+ * data was lost (case 1 / 2026-04-25 incident). Deleting the reservation
+ * lets the next retry execute against the controller fresh, exactly as
+ * if the failed attempt had never happened. The client gains a real
+ * second chance instead of being permanently locked out.
+ */
+async function deleteReservation(ctx: IdempotencyRequestContext): Promise<void> {
+  try {
+    await query(
+      `DELETE FROM mobile_idempotency_keys
+       WHERE idempotency_key = $1
+         AND user_id IS NOT DISTINCT FROM $2::uuid
+         AND scope = $3`,
+      [ctx.key, ctx.userId, ctx.scope]
+    );
+  } catch {
+    // Defensive — never block the primary API response on cleanup failure.
+  }
+}
+
+// Reservation rows in `response_status=NULL` state older than this are
+// treated as orphaned (server crashed / process restarted mid-request).
+// Younger rows might still be a legitimate concurrent retry; we let
+// IDEMPOTENCY_KEY_IN_PROGRESS surface so the client backs off briefly.
+const STALE_RESERVATION_MS = 5 * 60 * 1000;
+
 export function idempotencyMiddleware(options: IdempotencyOptions = {}) {
   const { required = false, scope = 'global', ttlHours = 72 } = options;
 
@@ -201,14 +235,47 @@ export function idempotencyMiddleware(options: IdempotencyOptions = {}) {
           return res.status(replay.responseStatus).json(replay.responseBody);
         }
 
-        return res.status(409).json({
-          success: false,
-          message: 'Operation with this Idempotency-Key is in progress',
-          error: {
-            code: 'IDEMPOTENCY_KEY_IN_PROGRESS',
-            timestamp: new Date().toISOString(),
-          },
-        });
+        // Reservation row exists with response_status=NULL — either the
+        // original request is still in-flight, or a 5xx left it orphaned
+        // (pre-2026-04-26 fix). New code DELETEs reservations on 5xx
+        // finish, so fresh orphans shouldn't accumulate. To recover from
+        // historical orphans + crash-induced ones, treat reservations
+        // older than STALE_RESERVATION_MS as stale: drop them and let
+        // this request execute fresh against the controller. Younger
+        // reservations are returned as IDEMPOTENCY_KEY_IN_PROGRESS so a
+        // legitimate concurrent retry backs off briefly.
+        const reservationAgeMs = Date.now() - new Date(replay.createdAt).getTime();
+        if (reservationAgeMs >= STALE_RESERVATION_MS) {
+          await deleteReservation({ key, userId, scope, requestHash });
+          // Re-reserve with our own request hash so the new attempt owns
+          // the key going forward. If this re-reserve loses (very tight
+          // race with another stale-recovery), fall through to the
+          // in-progress 409.
+          const reReserved = await withTransaction(async client =>
+            reserveKey(client, key, userId, scope, requestHash, ttlHours)
+          );
+          if (reReserved) {
+            // Continue to the handler below as if no reservation existed.
+          } else {
+            return res.status(409).json({
+              success: false,
+              message: 'Operation with this Idempotency-Key is in progress',
+              error: {
+                code: 'IDEMPOTENCY_KEY_IN_PROGRESS',
+                timestamp: new Date().toISOString(),
+              },
+            });
+          }
+        } else {
+          return res.status(409).json({
+            success: false,
+            message: 'Operation with this Idempotency-Key is in progress',
+            error: {
+              code: 'IDEMPOTENCY_KEY_IN_PROGRESS',
+              timestamp: new Date().toISOString(),
+            },
+          });
+        }
       }
 
       const locals = res.locals as IdempotencyLocals;
@@ -247,7 +314,16 @@ export function idempotencyMiddleware(options: IdempotencyOptions = {}) {
         // every retry replays the same Idempotency-Key. Failed requests
         // by definition committed no side effect, so re-executing them
         // on retry is safe and is what the client actually wants.
+        //
+        // Crucially: don't just *skip* persistence on non-2xx — also
+        // DELETE the reservation row we already inserted. Otherwise the
+        // row sits with response_status=NULL and the next retry hits
+        // the IDEMPOTENCY_KEY_IN_PROGRESS branch above, which mobile's
+        // FormUploader (pre-2026-04-26 fix) silently swallowed as
+        // success. This is exactly how case 1 lost a residence
+        // verification on 2026-04-25 — see project_form_field_mapping_drift_audit.md.
         if (res.statusCode < 200 || res.statusCode >= 300) {
+          void deleteReservation(state);
           return;
         }
 

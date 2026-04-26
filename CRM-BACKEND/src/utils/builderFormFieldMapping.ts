@@ -6,7 +6,7 @@
  */
 
 import { logger } from '@/config/logger';
-import { eqCI } from './caseInsensitiveCompare';
+import { pickRelevantFieldsForFormType, MISSING_FIELD_DEFAULT } from './formFieldRelevance';
 
 export interface DatabaseFieldMapping {
   [mobileField: string]: string | null; // null means field should be ignored
@@ -28,7 +28,6 @@ export const BUILDER_FIELD_MAPPING: DatabaseFieldMapping = {
   addressRating: 'address_rating',
   locality: 'locality',
   addressStructure: 'address_structure',
-  addressFloor: 'address_floor',
   addressStructureColor: 'address_structure_color',
   doorColor: 'door_color',
   companyNamePlateStatus: 'company_name_plate_status',
@@ -54,7 +53,6 @@ export const BUILDER_FIELD_MAPPING: DatabaseFieldMapping = {
   applicantExistance: 'applicant_working_status', // Mobile variant
   companyNatureOfBusiness: 'company_nature_of_business', // Used in POSITIVE forms
   businessPeriod: 'business_period', // Used in POSITIVE forms
-  establishmentPeriod: 'establishment_period', // Used in POSITIVE forms
   officeApproxArea: 'office_approx_area', // Used in POSITIVE forms
   staffStrength: 'staff_strength', // Used in POSITIVE forms
   staffSeen: 'staff_seen', // Used in POSITIVE forms
@@ -63,11 +61,7 @@ export const BUILDER_FIELD_MAPPING: DatabaseFieldMapping = {
   metPerson: 'met_person_name', // Used in POSITIVE, SHIFTED, NSP forms
   metPersonName: 'met_person_name', // Alternative field name
   designation: 'designation',
-  applicantDesignation: 'applicant_designation',
-  builderName: 'builder_name',
   builderOwnerName: 'builder_owner_name',
-  workingPeriod: 'working_period',
-  workingStatus: 'working_status',
 
   // Document verification
   documentShown: 'document_shown',
@@ -81,7 +75,6 @@ export const BUILDER_FIELD_MAPPING: DatabaseFieldMapping = {
   tpcConfirmation2: 'tpc_confirmation2',
 
   // Shifted builder specific fields
-  shiftedPeriod: 'shifted_period',
   oldOfficeShiftedPeriod: 'old_office_shifted_period',
   currentCompanyName: 'current_company_name',
   currentCompanyPeriod: 'current_company_period',
@@ -102,8 +95,6 @@ export const BUILDER_FIELD_MAPPING: DatabaseFieldMapping = {
   dominatedArea: 'dominated_area',
   feedbackFromNeighbour: 'feedback_from_neighbour',
   otherObservation: 'other_observation',
-  otherExtraRemark: 'other_extra_remark',
-  recommendationStatus: 'recommendation_status',
 
   // Legacy/alternative field names
   companyName: 'company_nature_of_business', // Maps to company nature
@@ -121,243 +112,22 @@ export const BUILDER_FIELD_MAPPING: DatabaseFieldMapping = {
   errors: null,
 };
 
-/**
- * Maps mobile builder form data to database field values with comprehensive field coverage
- * Ensures all database fields are populated with appropriate values or NULL defaults
- *
- * @param formData - Raw form data from mobile app
- * @param formType - The type of builder form (POSITIVE, SHIFTED, NSP, ENTRY_RESTRICTED, UNTRACEABLE)
- * @returns Object with database column names as keys
- */
-export function mapBuilderFormDataToDatabase(
-  formData: Record<string, unknown>,
-  formType?: string
-): Record<string, unknown> {
-  const mappedData: Record<string, unknown> = {};
+// 2026-04-26 P3 dead-code prune (per project_form_field_mapping_drift_audit.md):
+// Removed 4 dead exports + 1 dead private helper from this file:
+//   - mapBuilderFormDataToDatabase(): zero call sites in any codebase. The submit
+//     path uses validateAndPrepareBuilderForm() from builderFormValidator.ts;
+//     this old camelCase→snake_case mapper was never wired up post-migration.
+//   - processBuilderFieldValue() (private): only caller was the dead mapper above.
+//   - getBuilderAvailableDbColumns(): zero call sites; only `_`-aliased import.
+//   - getBuilderMappedMobileFields(): zero call sites anywhere.
+// BUILDER_FIELD_MAPPING and ensureAllBuilderFieldsPopulated() stay alive (used by validator).
 
-  // Process each field in the form data
-  for (const [mobileField, value] of Object.entries(formData)) {
-    const dbColumn = BUILDER_FIELD_MAPPING[mobileField];
-
-    // Skip fields that should be ignored
-    if (dbColumn === null) {
-      continue;
-    }
-
-    // Skip fields that have no DB mapping (undefined = not in mapping)
-    if (dbColumn === undefined) {
-      continue;
-    }
-    const columnName = dbColumn;
-
-    // Process the value based on type
-    mappedData[columnName] = processBuilderFieldValue(mobileField, value);
-  }
-
-  // Ensure all database fields have values based on form type
-  const completeData = ensureAllBuilderFieldsPopulated(mappedData, formType || 'POSITIVE');
-
-  return completeData;
-}
-
-/**
- * Processes builder field values to ensure they're in the correct format for database storage
- *
- * @param fieldName - The mobile field name
- * @param value - The field value
- * @returns Processed value suitable for database storage
- */
-function processBuilderFieldValue(fieldName: string, value: unknown): unknown {
-  // Handle null/undefined values
-  if (value === null || value === undefined || value === '') {
-    return null;
-  }
-
-  // Handle boolean fields
-  if (typeof value === 'boolean') {
-    return value;
-  }
-
-  // Handle numeric fields FIRST (before composite string conversion)
-  const numericFields = ['staffStrength', 'staffSeen', 'officeApproxArea', 'totalEmployees'];
-
-  if (numericFields.includes(fieldName)) {
-    const raw =
-      typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>)
-        ? (value as Record<string, unknown>).value
-        : value;
-    const num = Number(raw);
-    return isNaN(num) ? null : num;
-  }
-
-  // Handle composite objects (e.g., { value: 3, unit: 'Years' } from mobile dropdowns)
-  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    const obj = value as Record<string, unknown>;
-    if ('value' in obj && 'unit' in obj) {
-      return `${String(obj.value as string | number)} ${String(obj.unit as string | number)}`.trim();
-    }
-    return JSON.stringify(value);
-  }
-
-  // Default: convert to string and trim
-  return (
-    (typeof value === 'object' && value !== null
-      ? JSON.stringify(value)
-      : String(value as string | number | boolean | null | undefined)
-    ).trim() || null
-  );
-}
-
-/**
- * Gets all database columns that can be populated from builder form data
- *
- * @returns Array of database column names
- */
-export function getBuilderAvailableDbColumns(): string[] {
-  const columns = new Set<string>();
-
-  for (const dbColumn of Object.values(BUILDER_FIELD_MAPPING)) {
-    if (dbColumn !== null) {
-      columns.add(dbColumn);
-    }
-  }
-
-  return Array.from(columns).sort();
-}
-
-/**
- * Gets all mobile builder form fields that are mapped to database columns
- *
- * @returns Array of mobile field names
- */
-export function getBuilderMappedMobileFields(): string[] {
-  return Object.keys(BUILDER_FIELD_MAPPING)
-    .filter(field => BUILDER_FIELD_MAPPING[field] !== null)
-    .sort();
-}
-
-/**
- * Validates that all required fields are present in builder form data
- *
- * @param formData - Form data to validate
- * @param formType - Type of form (POSITIVE, SHIFTED, NSP, etc.)
- * @returns Object with validation result and missing fields
- */
-export function validateBuilderRequiredFields(
-  formData: Record<string, unknown>,
-  formType: string
-): {
-  isValid: boolean;
-  missingFields: string[];
-  warnings: string[];
-} {
-  const missingFields: string[] = [];
-  const warnings: string[] = [];
-
-  // Define required fields by builder form type
-  const requiredFieldsByType: Record<string, string[]> = {
-    POSITIVE: [
-      'addressLocatable',
-      'addressRating',
-      'officeStatus',
-      'metPerson',
-      'designation',
-      'builderType',
-      'builderName',
-      'workingPeriod',
-      'workingStatus',
-      'companyNatureOfBusiness',
-      'businessPeriod',
-      'staffStrength',
-      'locality',
-      'addressStructure',
-      'politicalConnection',
-      'dominatedArea',
-      'feedbackFromNeighbour',
-      'otherObservation',
-      'finalStatus',
-    ],
-    SHIFTED: [
-      'addressLocatable',
-      'addressRating',
-      'officeStatus',
-      'metPerson',
-      'designation',
-      'currentCompanyName',
-      'oldOfficeShiftedPeriod',
-      'locality',
-      'addressStructure',
-      'politicalConnection',
-      'dominatedArea',
-      'feedbackFromNeighbour',
-      'otherObservation',
-      'finalStatus',
-    ],
-    NSP: [
-      'addressLocatable',
-      'addressRating',
-      'officeStatus',
-      'officeExistence',
-      'metPerson',
-      'designation',
-      'locality',
-      'addressStructure',
-      'dominatedArea',
-      'otherObservation',
-      'finalStatus',
-    ],
-    ENTRY_RESTRICTED: [
-      'addressLocatable',
-      'addressRating',
-      'nameOfMetPerson',
-      'metPersonType',
-      'metPersonConfirmation',
-      'applicantWorkingStatus',
-      'locality',
-      'addressStructure',
-      'politicalConnection',
-      'dominatedArea',
-      'feedbackFromNeighbour',
-      'otherObservation',
-      'finalStatus',
-    ],
-    UNTRACEABLE: [
-      'contactPerson',
-      'callRemark',
-      'locality',
-      'landmark1',
-      'landmark2',
-      'dominatedArea',
-      'otherObservation',
-      'finalStatus',
-    ],
-  };
-
-  const requiredFields = requiredFieldsByType[formType] || [];
-
-  // Check for missing required fields
-  for (const field of requiredFields) {
-    if (!formData[field] || formData[field] === null || formData[field] === '') {
-      missingFields.push(field);
-    }
-  }
-
-  // Check for conditional fields
-  if (formType === 'POSITIVE') {
-    if (eqCI(formData.officeStatus, 'Open') && !formData.staffSeen) {
-      warnings.push('staffSeen should be specified when office is opened');
-    }
-    if (eqCI(formData.tpcMetPerson1, 'Yes') && !formData.nameOfTpc1) {
-      warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is Yes');
-    }
-  }
-
-  return {
-    isValid: missingFields.length === 0,
-    missingFields,
-    warnings,
-  };
-}
+// 2026-04-26 P3 dead-code prune (per project_form_field_mapping_drift_audit.md):
+// Removed validateBuilderRequiredFields() — zero call sites in any codebase
+// after the prior session removed its _`-aliased import in
+// mobileFormController.ts. The validator file (builderFormValidator.ts)
+// calls validateAndPrepareBuilderForm() which has its own internal required-
+// field check. The mapping-file required-list was dormant from day one.
 
 /**
  * Ensures all database fields are populated with appropriate values or NULL defaults
@@ -367,6 +137,124 @@ export function validateBuilderRequiredFields(
  * @param formType - Type of builder form
  * @returns Complete data object with all fields populated
  */
+// 2026-04-26 Phase 4 dedup (formFieldRelevance.ts shared util).
+// Per-type DATA stays here; logic moved to shared `pickRelevantFieldsForFormType`.
+const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
+  POSITIVE: [
+    'address_locatable',
+    'address_rating',
+    'office_status',
+    'met_person_name',
+    'designation',
+    'builder_type',
+    'company_nature_of_business',
+    'staff_strength',
+    'locality',
+    'address_structure',
+    'political_connection',
+    'dominated_area',
+    'feedback_from_neighbour',
+    'other_observation',
+    'final_status',
+    'business_period',
+    'office_approx_area',
+    'staff_seen',
+    'document_shown',
+    // 2026-04-26: dropped 'document_type', 'project_name', 'project_type',
+    //   'project_status', 'project_approval_status', 'project_completion_status' —
+    //   not columns on builder_verification_reports.
+    // 2026-04-26: dropped speculative columns not on builder_verification_reports schema:
+    //   project_area, total_units, sold_units, construction_stage, approval_authority,
+    //   rera_registration, rera_number, license_status, license_number
+    'tpc_met_person1',
+    // 2026-04-26: column renamed; was 'name_of_tpc1'
+    'tpc_name1',
+    'tpc_confirmation1',
+    'address_structure_color',
+    'door_color',
+    'company_name_plate_status',
+    'name_on_board',
+    'landmark1',
+    'landmark2',
+  ],
+  SHIFTED: [
+    'address_locatable',
+    'address_rating',
+    'office_status',
+    'met_person_name',
+    'designation',
+    'current_company_name',
+    'old_office_shifted_period',
+    'locality',
+    'address_structure',
+    'political_connection',
+    'dominated_area',
+    'feedback_from_neighbour',
+    'other_observation',
+    'final_status',
+    'address_structure_color',
+    'door_color',
+    'company_name_plate_status',
+    'name_on_board',
+    'landmark1',
+    'landmark2',
+  ],
+  NSP: [
+    'address_locatable',
+    'address_rating',
+    'office_status',
+    'office_existence',
+    'met_person_name',
+    'designation',
+    'locality',
+    'address_structure',
+    'political_connection',
+    'dominated_area',
+    'feedback_from_neighbour',
+    'other_observation',
+    'final_status',
+    'address_structure_color',
+    'door_color',
+    'company_name_plate_status',
+    'name_on_board',
+    'landmark1',
+    'landmark2',
+  ],
+  ENTRY_RESTRICTED: [
+    'address_locatable',
+    'address_rating',
+    // 2026-04-26: column renamed; was 'name_of_met_person'
+    'met_person_name',
+    'met_person_type',
+    'met_person_confirmation',
+    'applicant_working_status',
+    'locality',
+    'address_structure',
+    'political_connection',
+    'dominated_area',
+    'feedback_from_neighbour',
+    'other_observation',
+    'final_status',
+    'address_structure_color',
+    'company_name_plate_status',
+    'name_on_board',
+    'landmark1',
+    'landmark2',
+  ],
+  UNTRACEABLE: [
+    'contact_person',
+    'call_remark',
+    'locality',
+    'landmark1',
+    'landmark2',
+    'landmark3',
+    'landmark4',
+    'dominated_area',
+    'other_observation',
+    'final_status',
+  ],
+};
+
 export function ensureAllBuilderFieldsPopulated(
   mappedData: Record<string, unknown>,
   formType: string
@@ -380,7 +268,6 @@ export function ensureAllBuilderFieldsPopulated(
     'address_rating',
     'locality',
     'address_structure',
-    'address_floor',
     'address_structure_color',
     'door_color',
     'company_name_plate_status',
@@ -398,7 +285,6 @@ export function ensureAllBuilderFieldsPopulated(
     'builder_type',
     'company_nature_of_business',
     'business_period',
-    'establishment_period',
     'office_approx_area',
     'staff_strength',
     'staff_seen',
@@ -406,9 +292,6 @@ export function ensureAllBuilderFieldsPopulated(
     // Person details
     'met_person_name',
     'designation',
-    'applicant_designation',
-    'working_period',
-    'working_status',
     'current_company_name',
     'old_office_shifted_period',
     // Removed 2026-04-19: applicant_working_premises — not a column on
@@ -435,7 +318,7 @@ export function ensureAllBuilderFieldsPopulated(
     'tpc_confirmation2',
 
     // Entry restricted specific fields
-    'name_of_met_person',
+    // 2026-04-26: dropped 'name_of_met_person' — DB column is met_person_name (already listed above).
     'met_person_type',
     'met_person_confirmation',
     'applicant_working_status',
@@ -449,14 +332,13 @@ export function ensureAllBuilderFieldsPopulated(
     'dominated_area',
     'feedback_from_neighbour',
     'other_observation',
-    'recommendation_status',
 
     // Final status
     'final_status',
   ];
 
   // Get fields that are relevant for this form type
-  const relevantFields = getRelevantBuilderFieldsForFormType(formType);
+  const relevantFields = pickRelevantFieldsForFormType(formType, RELEVANT_FIELDS_BY_TYPE);
 
   // Populate missing fields with appropriate defaults
   for (const field of allDatabaseFields) {
@@ -467,161 +349,9 @@ export function ensureAllBuilderFieldsPopulated(
       }
 
       // Set default value (NULL for all missing fields)
-      completeData[field] = getDefaultBuilderValueForField(field);
+      completeData[field] = MISSING_FIELD_DEFAULT;
     }
   }
 
   return completeData;
-}
-
-/**
- * Gets relevant database fields for a specific builder form type
- *
- * @param formType - Type of builder form
- * @returns Array of relevant database field names
- */
-function getRelevantBuilderFieldsForFormType(formType: string): string[] {
-  const fieldsByType: Record<string, string[]> = {
-    POSITIVE: [
-      'address_locatable',
-      'address_rating',
-      'office_status',
-      'met_person_name',
-      'designation',
-      'working_period',
-      'applicant_designation',
-      'working_status',
-      'builder_type',
-      'company_nature_of_business',
-      'staff_strength',
-      'locality',
-      'address_structure',
-      'political_connection',
-      'dominated_area',
-      'feedback_from_neighbour',
-      'other_observation',
-      'final_status',
-      'business_period',
-      'establishment_period',
-      'office_approx_area',
-      'staff_seen',
-      'document_shown',
-      'document_type',
-      'project_name',
-      'project_type',
-      'project_status',
-      'project_approval_status',
-      'project_completion_status',
-      'project_area',
-      'total_units',
-      'sold_units',
-      'construction_stage',
-      'approval_authority',
-      'rera_registration',
-      'rera_number',
-      'license_status',
-      'license_number',
-      'tpc_met_person1',
-      'name_of_tpc1',
-      'tpc_confirmation1',
-      'address_floor',
-      'address_structure_color',
-      'door_color',
-      'company_name_plate_status',
-      'name_on_board',
-      'landmark1',
-      'landmark2',
-    ],
-    SHIFTED: [
-      'address_locatable',
-      'address_rating',
-      'office_status',
-      'met_person_name',
-      'designation',
-      'current_company_name',
-      'old_office_shifted_period',
-      'locality',
-      'address_structure',
-      'political_connection',
-      'dominated_area',
-      'feedback_from_neighbour',
-      'other_observation',
-      'final_status',
-      'address_floor',
-      'address_structure_color',
-      'door_color',
-      'company_name_plate_status',
-      'name_on_board',
-      'landmark1',
-      'landmark2',
-    ],
-    NSP: [
-      'address_locatable',
-      'address_rating',
-      'office_status',
-      'office_existence',
-      'met_person_name',
-      'designation',
-      'locality',
-      'address_structure',
-      'political_connection',
-      'dominated_area',
-      'feedback_from_neighbour',
-      'other_observation',
-      'final_status',
-      'address_floor',
-      'address_structure_color',
-      'door_color',
-      'company_name_plate_status',
-      'name_on_board',
-      'landmark1',
-      'landmark2',
-    ],
-    ENTRY_RESTRICTED: [
-      'address_locatable',
-      'address_rating',
-      'name_of_met_person',
-      'met_person_type',
-      'met_person_confirmation',
-      'applicant_working_status',
-      'locality',
-      'address_structure',
-      'political_connection',
-      'dominated_area',
-      'feedback_from_neighbour',
-      'other_observation',
-      'final_status',
-      'address_floor',
-      'address_structure_color',
-      'company_name_plate_status',
-      'name_on_board',
-      'landmark1',
-      'landmark2',
-    ],
-    UNTRACEABLE: [
-      'contact_person',
-      'call_remark',
-      'locality',
-      'landmark1',
-      'landmark2',
-      'landmark3',
-      'landmark4',
-      'dominated_area',
-      'other_observation',
-      'final_status',
-    ],
-  };
-
-  return fieldsByType[formType] || fieldsByType['POSITIVE'];
-}
-
-/**
- * Gets appropriate default value for a builder database field
- *
- * @param _fieldName - Database field name
- * @returns Default value for the field
- */
-function getDefaultBuilderValueForField(_fieldName: string): unknown {
-  // All fields default to null for missing/irrelevant data
-  return null;
 }

@@ -6,7 +6,7 @@
  */
 
 import { logger } from '@/config/logger';
-import { eqCI } from './caseInsensitiveCompare';
+import { pickRelevantFieldsForFormType, MISSING_FIELD_DEFAULT } from './formFieldRelevance';
 
 export interface DatabaseFieldMapping {
   [mobileField: string]: string | null; // null means field should be ignored
@@ -36,8 +36,6 @@ export const RESIDENCE_FIELD_MAPPING: DatabaseFieldMapping = {
   nameOnDoorPlate: 'name_on_door_plate',
   societyNamePlateStatus: 'society_name_plate_status',
   nameOnSocietyBoard: 'name_on_society_board',
-  companyNamePlateStatus: 'company_name_plate_status',
-  nameOnBoard: 'name_on_board',
 
   // Landmarks (Common to all forms, untraceable has 4)
   landmark1: 'landmark1',
@@ -47,7 +45,6 @@ export const RESIDENCE_FIELD_MAPPING: DatabaseFieldMapping = {
 
   // House and room status (Form specific)
   houseStatus: 'house_status', // Used in POSITIVE and NSP forms
-  roomStatus: 'room_status', // Used in SHIFTED forms
 
   // Person details (Form specific)
   metPersonName: 'met_person_name', // Used in POSITIVE, SHIFTED, NSP forms
@@ -78,12 +75,20 @@ export const RESIDENCE_FIELD_MAPPING: DatabaseFieldMapping = {
 
   // Shifted residence specific fields
   shiftedPeriod: 'shifted_period',
-  currentLocation: 'current_location',
   premisesStatus: 'premises_status',
 
   // Entry restricted specific fields
   nameOfMetPerson: 'met_person_name',
-  metPerson: 'met_person_type', // Alternative field name for entry restricted
+  // 2026-04-26 (P0-4 audit fix): `metPerson` LHS now routes to
+  // `met_person_name` (the NAME column) — NOT `met_person_type` (the
+  // role/type column). Office/Business/Builder/NOC/DSA/Property*/RCO
+  // mappings already routed `metPerson` → `met_person_name`; residence
+  // was the lone outlier. Mobile residence schema never emits
+  // `metPerson` (it uses `metPersonName` for non-ERT and `metPersonType`
+  // for ERT), but the legacy alias is kept per the office-naming-
+  // unification grace-period rule. Now routed correctly so any client
+  // that does send it has the value land in the name column.
+  metPerson: 'met_person_name',
   metPersonType: 'met_person_type',
   metPersonConfirmation: 'met_person_confirmation',
   applicantStayingStatus: 'applicant_staying_status',
@@ -97,7 +102,6 @@ export const RESIDENCE_FIELD_MAPPING: DatabaseFieldMapping = {
   dominatedArea: 'dominated_area',
   feedbackFromNeighbour: 'feedback_from_neighbour',
   otherObservation: 'other_observation',
-  recommendationStatus: 'recommendation_status',
 
   // Legacy/alternative field names for backward compatibility
   applicantName: 'met_person_name', // Maps to met_person_name
@@ -116,255 +120,22 @@ export const RESIDENCE_FIELD_MAPPING: DatabaseFieldMapping = {
   errors: null,
 };
 
-/**
- * Maps mobile form data to database field values with comprehensive field coverage
- * Ensures all database fields are populated with appropriate values or 'na' defaults
- *
- * @param formData - Raw form data from mobile app
- * @param formType - The type of residence form (POSITIVE, SHIFTED, NSP, ENTRY_RESTRICTED, UNTRACEABLE)
- * @returns Object with database column names as keys
- */
-export function mapFormDataToDatabase(
-  formData: Record<string, unknown>,
-  formType?: string
-): Record<string, unknown> {
-  const mappedData: Record<string, unknown> = {};
-
-  // Process each field in the form data
-  for (const [mobileField, value] of Object.entries(formData)) {
-    const dbColumn = RESIDENCE_FIELD_MAPPING[mobileField];
-
-    // Skip fields that should be ignored
-    if (dbColumn === null) {
-      continue;
-    }
-
-    // Skip fields that have no DB mapping (undefined = not in mapping)
-    if (dbColumn === undefined) {
-      continue;
-    }
-    const columnName = dbColumn;
-
-    // Process the value based on type
-    mappedData[columnName] = processFieldValue(mobileField, value);
-  }
-
-  // Ensure all database fields have values based on form type
-  const completeData = ensureAllFieldsPopulated(mappedData, formType || 'POSITIVE');
-
-  return completeData;
-}
-
-/**
- * Processes field values to ensure they're in the correct format for database storage
- *
- * @param fieldName - The mobile field name
- * @param value - The field value
- * @returns Processed value suitable for database storage
- */
-function processFieldValue(fieldName: string, value: unknown): unknown {
-  // Handle null/undefined values
-  if (value === null || value === undefined || value === '') {
-    return null;
-  }
-
-  // Handle boolean fields
-  if (typeof value === 'boolean') {
-    return value;
-  }
-
-  // Handle numeric fields FIRST (before composite string conversion)
-  const numericFields = [
-    'totalFamilyMembers',
-    'totalEarningMember',
-    'approxArea',
-    'addressFloor',
-    'familyMembers',
-  ];
-
-  if (numericFields.includes(fieldName)) {
-    const raw =
-      typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>)
-        ? (value as Record<string, unknown>).value
-        : value;
-    const num = Number(raw);
-    return isNaN(num) ? null : num;
-  }
-
-  // Handle composite objects (e.g., { value: 3, unit: 'Years' } from mobile dropdowns)
-  // For non-numeric fields like stayingPeriod, shiftedPeriod → stored as "3 Years"
-  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    const obj = value as Record<string, unknown>;
-    if ('value' in obj && 'unit' in obj) {
-      return `${String(obj.value as string | number)} ${String(obj.unit as string | number)}`.trim();
-    }
-    return JSON.stringify(value);
-  }
-
-  // Handle date fields
-  const dateFields: string[] = [];
-  if (dateFields.includes(fieldName)) {
-    if (typeof value === 'string' && value.trim() !== '') {
-      return value;
-    }
-    return null;
-  }
-
-  // Default: convert to string and trim
-  return (
-    (typeof value === 'object' && value !== null
-      ? JSON.stringify(value)
-      : String(value as string | number | boolean | null | undefined)
-    ).trim() || null
-  );
-}
-
-/**
- * Gets all database columns that can be populated from form data
- *
- * @returns Array of database column names
- */
-export function getAvailableDbColumns(): string[] {
-  const columns = new Set<string>();
-
-  for (const dbColumn of Object.values(RESIDENCE_FIELD_MAPPING)) {
-    if (dbColumn !== null) {
-      columns.add(dbColumn);
-    }
-  }
-
-  return Array.from(columns).sort();
-}
-
-/**
- * Gets all mobile form fields that are mapped to database columns
- *
- * @returns Array of mobile field names
- */
-export function getMappedMobileFields(): string[] {
-  return Object.keys(RESIDENCE_FIELD_MAPPING)
-    .filter(field => RESIDENCE_FIELD_MAPPING[field] !== null)
-    .sort();
-}
-
-/**
- * Validates that all required fields are present in form data
- *
- * @param formData - Form data to validate
- * @param formType - Type of form (POSITIVE, SHIFTED, NSP, etc.)
- * @returns Object with validation result and missing fields
- */
-export function validateRequiredFields(
-  formData: Record<string, unknown>,
-  formType: string
-): {
-  isValid: boolean;
-  missingFields: string[];
-  warnings: string[];
-} {
-  const missingFields: string[] = [];
-  const warnings: string[] = [];
-
-  // Define required fields by form type
-  const requiredFieldsByType: Record<string, string[]> = {
-    POSITIVE: [
-      'addressLocatable',
-      'addressRating',
-      'houseStatus',
-      'metPersonName',
-      'metPersonRelation',
-      'totalFamilyMembers',
-      'workingStatus',
-      'stayingPeriod',
-      'stayingStatus',
-      'documentShownStatus',
-      'tpcMetPerson1',
-      'locality',
-      'addressStructure',
-      'politicalConnection',
-      'dominatedArea',
-      'feedbackFromNeighbour',
-      'otherObservation',
-      'finalStatus',
-    ],
-    SHIFTED: [
-      'addressLocatable',
-      'addressRating',
-      'roomStatus',
-      'metPersonName',
-      'metPersonStatus',
-      'shiftedPeriod',
-      'tpcMetPerson1',
-      'premisesStatus',
-      'locality',
-      'addressStructure',
-      'politicalConnection',
-      'dominatedArea',
-      'feedbackFromNeighbour',
-      'otherObservation',
-      'finalStatus',
-    ],
-    NSP: [
-      'addressLocatable',
-      'addressRating',
-      'houseStatus',
-      'locality',
-      'addressStructure',
-      'dominatedArea',
-      'otherObservation',
-      'finalStatus',
-    ],
-    ENTRY_RESTRICTED: [
-      'addressLocatable',
-      'addressRating',
-      'metPersonName',
-      'metPersonType',
-      'metPersonConfirmation',
-      'applicantStayingStatus',
-      'locality',
-      'addressStructure',
-      'politicalConnection',
-      'dominatedArea',
-      'feedbackFromNeighbour',
-      'otherObservation',
-      'finalStatus',
-    ],
-    UNTRACEABLE: [
-      'callRemark',
-      'locality',
-      'landmark1',
-      'landmark2',
-      'dominatedArea',
-      'otherObservation',
-      'finalStatus',
-    ],
-  };
-
-  const requiredFields = requiredFieldsByType[formType] || [];
-
-  // Check for missing required fields
-  for (const field of requiredFields) {
-    if (!formData[field] || formData[field] === null || formData[field] === '') {
-      missingFields.push(field);
-    }
-  }
-
-  // Check for conditional fields
-  if (formType === 'POSITIVE') {
-    if (eqCI(formData.documentShownStatus, 'Showed') && !formData.documentType) {
-      warnings.push('documentType should be specified when documentShownStatus is Showed');
-    }
-    if (eqCI(formData.tpcMetPerson1, 'Yes') && !formData.nameOfTpc1) {
-      warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is Yes');
-    }
-  }
-
-  return {
-    isValid: missingFields.length === 0,
-    missingFields,
-    warnings,
-  };
-}
+// 2026-04-26 P3 dead-code prune (per project_form_field_mapping_drift_audit.md):
+// Removed 4 dead exports + 1 dead private helper:
+//   - mapFormDataToDatabase(): zero call sites in any codebase. The submit
+//     path uses validateAndPrepareResidenceForm() from residenceFormValidator.ts;
+//     this old camelCase→snake_case mapper was never wired up post-migration.
+//   - processFieldValue() (private): only caller was the dead mapper above.
+//   - getAvailableDbColumns(): zero call sites; only commented-out import.
+//   - getMappedMobileFields(): zero call sites anywhere.
+// Cross-checked against CRM-FRONTEND, crm-mobile-native, scripts/, tests:
+// the form-submission-display path uses convertReportToFormData() in
+// mobileFormController.ts (manually-mapped, hardcoded snake→camel) and
+// createComprehensiveFormSections() from comprehensiveFormFieldMapping.ts —
+// neither touches the deleted exports. RESIDENCE_FIELD_MAPPING and
+// ensureAllFieldsPopulated() stay alive (used by validator file).
+//
+// Also previously removed dormant validateRequiredFields() (P4 fix).
 
 /**
  * Ensures all database fields are populated with appropriate values or 'na' defaults
@@ -374,6 +145,130 @@ export function validateRequiredFields(
  * @param formType - Type of residence form
  * @returns Complete data object with all fields populated
  */
+// 2026-04-26 Phase 4 dedup (formFieldRelevance.ts shared util).
+// Per-type DATA stays here; logic moved to shared `pickRelevantFieldsForFormType`.
+const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
+  POSITIVE: [
+    'address_locatable',
+    'address_rating',
+    'house_status',
+    'met_person_name',
+    'met_person_relation',
+    'total_family_members',
+    'working_status',
+    'staying_period',
+    'staying_status',
+    'document_shown_status',
+    'tpc_met_person1',
+    'locality',
+    'address_structure',
+    'political_connection',
+    'dominated_area',
+    'feedback_from_neighbour',
+    'other_observation',
+    'final_status',
+    'total_earning_member',
+    'company_name',
+    'approx_area',
+    'document_type',
+    'tpc_name1',
+    'tpc_confirmation1',
+    'applicant_staying_floor',
+    'address_structure_color',
+    'door_color',
+    'door_name_plate_status',
+    'name_on_door_plate',
+    'society_name_plate_status',
+    'name_on_society_board',
+    'landmark1',
+    'landmark2',
+  ],
+  SHIFTED: [
+    'address_locatable',
+    'address_rating',
+    'met_person_name',
+    'met_person_status',
+    'shifted_period',
+    'tpc_met_person1',
+    'premises_status',
+    'locality',
+    'address_structure',
+    'political_connection',
+    'dominated_area',
+    'feedback_from_neighbour',
+    'other_observation',
+    'final_status',
+    'tpc_name1',
+    'address_floor',
+    'address_structure_color',
+    'door_color',
+    'door_name_plate_status',
+    'name_on_door_plate',
+    'society_name_plate_status',
+    'name_on_society_board',
+    'landmark1',
+    'landmark2',
+  ],
+  NSP: [
+    'address_locatable',
+    'address_rating',
+    'house_status',
+    'locality',
+    'address_structure',
+    'political_connection',
+    'dominated_area',
+    'feedback_from_neighbour',
+    'other_observation',
+    'final_status',
+    'met_person_name',
+    'met_person_status',
+    'staying_person_name',
+    'staying_period',
+    'address_floor',
+    'address_structure_color',
+    'door_color',
+    'door_name_plate_status',
+    'name_on_door_plate',
+    'society_name_plate_status',
+    'name_on_society_board',
+    'landmark1',
+    'landmark2',
+  ],
+  ENTRY_RESTRICTED: [
+    'address_locatable',
+    'address_rating',
+    'met_person_name',
+    'met_person_type',
+    'met_person_confirmation',
+    'applicant_staying_status',
+    'locality',
+    'address_structure',
+    'political_connection',
+    'dominated_area',
+    'feedback_from_neighbour',
+    'other_observation',
+    'final_status',
+    'address_floor',
+    'address_structure_color',
+    'society_name_plate_status',
+    'name_on_society_board',
+    'landmark1',
+    'landmark2',
+  ],
+  UNTRACEABLE: [
+    'contact_person',
+    'call_remark',
+    'locality',
+    'landmark1',
+    'landmark2',
+    'landmark3',
+    'landmark4',
+    'dominated_area',
+    'other_observation',
+    'final_status',
+  ],
+};
+
 export function ensureAllFieldsPopulated(
   mappedData: Record<string, unknown>,
   formType: string
@@ -395,8 +290,6 @@ export function ensureAllFieldsPopulated(
     'name_on_door_plate',
     'society_name_plate_status',
     'name_on_society_board',
-    'company_name_plate_status',
-    'name_on_board',
 
     // Landmarks
     'landmark1',
@@ -406,7 +299,6 @@ export function ensureAllFieldsPopulated(
 
     // House and room status
     'house_status',
-    'room_status',
 
     // Person details
     'met_person_name',
@@ -435,9 +327,11 @@ export function ensureAllFieldsPopulated(
 
     // Form specific fields
     'shifted_period',
-    'current_location',
     'premises_status',
-    'name_of_met_person',
+    // 2026-04-26: dropped duplicate 'name_of_met_person' — column was
+    // renamed to met_person_name (already on line 412); pre-fix every
+    // residence INSERT failed 42703 "column name_of_met_person does not
+    // exist". See project_form_field_mapping_drift_audit.md.
     'met_person_type',
     'met_person_confirmation',
     'applicant_staying_status',
@@ -449,14 +343,13 @@ export function ensureAllFieldsPopulated(
     'dominated_area',
     'feedback_from_neighbour',
     'other_observation',
-    'recommendation_status',
 
     // Final status
     'final_status',
   ];
 
   // Get fields that are relevant for this form type
-  const relevantFields = getRelevantFieldsForFormType(formType);
+  const relevantFields = pickRelevantFieldsForFormType(formType, RELEVANT_FIELDS_BY_TYPE);
 
   // Populate missing fields with appropriate defaults
   for (const field of allDatabaseFields) {
@@ -467,154 +360,9 @@ export function ensureAllFieldsPopulated(
       }
 
       // Set default value based on field type
-      completeData[field] = getDefaultValueForField(field);
+      completeData[field] = MISSING_FIELD_DEFAULT;
     }
   }
 
   return completeData;
-}
-
-/**
- * Gets relevant database fields for a specific form type
- *
- * @param formType - Type of residence form
- * @returns Array of relevant database field names
- */
-function getRelevantFieldsForFormType(formType: string): string[] {
-  const fieldsByType: Record<string, string[]> = {
-    POSITIVE: [
-      'address_locatable',
-      'address_rating',
-      'house_status',
-      'met_person_name',
-      'met_person_relation',
-      'total_family_members',
-      'working_status',
-      'staying_period',
-      'staying_status',
-      'document_shown_status',
-      'tpc_met_person1',
-      'locality',
-      'address_structure',
-      'political_connection',
-      'dominated_area',
-      'feedback_from_neighbour',
-      'other_observation',
-      'final_status',
-      'total_earning_member',
-      'company_name',
-      'approx_area',
-      'document_type',
-      'tpc_name1',
-      'tpc_confirmation1',
-      'applicant_staying_floor',
-      'address_structure_color',
-      'door_color',
-      'door_name_plate_status',
-      'name_on_door_plate',
-      'society_name_plate_status',
-      'name_on_society_board',
-      'landmark1',
-      'landmark2',
-    ],
-    SHIFTED: [
-      'address_locatable',
-      'address_rating',
-      'room_status',
-      'met_person_name',
-      'met_person_status',
-      'shifted_period',
-      'current_location',
-      'tpc_met_person1',
-      'premises_status',
-      'locality',
-      'address_structure',
-      'political_connection',
-      'dominated_area',
-      'feedback_from_neighbour',
-      'other_observation',
-      'final_status',
-      'tpc_name1',
-      'address_floor',
-      'address_structure_color',
-      'door_color',
-      'door_name_plate_status',
-      'name_on_door_plate',
-      'society_name_plate_status',
-      'name_on_society_board',
-      'landmark1',
-      'landmark2',
-    ],
-    NSP: [
-      'address_locatable',
-      'address_rating',
-      'house_status',
-      'locality',
-      'address_structure',
-      'political_connection',
-      'dominated_area',
-      'feedback_from_neighbour',
-      'other_observation',
-      'final_status',
-      'met_person_name',
-      'met_person_status',
-      'staying_person_name',
-      'staying_period',
-      'address_floor',
-      'address_structure_color',
-      'door_color',
-      'door_name_plate_status',
-      'name_on_door_plate',
-      'society_name_plate_status',
-      'name_on_society_board',
-      'landmark1',
-      'landmark2',
-    ],
-    ENTRY_RESTRICTED: [
-      'address_locatable',
-      'address_rating',
-      'name_of_met_person',
-      'met_person_type',
-      'met_person_confirmation',
-      'applicant_staying_status',
-      'locality',
-      'address_structure',
-      'political_connection',
-      'dominated_area',
-      'feedback_from_neighbour',
-      'other_observation',
-      'final_status',
-      'address_floor',
-      'address_structure_color',
-      'society_name_plate_status',
-      'name_on_society_board',
-      'landmark1',
-      'landmark2',
-    ],
-    UNTRACEABLE: [
-      'contact_person',
-      'call_remark',
-      'locality',
-      'landmark1',
-      'landmark2',
-      'landmark3',
-      'landmark4',
-      'dominated_area',
-      'other_observation',
-      'final_status',
-    ],
-  };
-
-  return fieldsByType[formType] || fieldsByType['POSITIVE'];
-}
-
-/**
- * Gets appropriate default value for a database field
- *
- * @param _fieldName - Database field name
- * @returns Default value for the field
- */
-function getDefaultValueForField(_fieldName: string): unknown {
-  // All fields default to null for missing/irrelevant data
-  return null;
 }

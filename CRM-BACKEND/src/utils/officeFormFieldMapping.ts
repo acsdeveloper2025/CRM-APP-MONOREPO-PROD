@@ -7,6 +7,7 @@
 
 import { logger } from '@/config/logger';
 import { eqCI } from './caseInsensitiveCompare';
+import { pickRelevantFieldsForFormType, MISSING_FIELD_DEFAULT } from './formFieldRelevance';
 
 export interface DatabaseFieldMapping {
   [mobileField: string]: string | null; // null means field should be ignored
@@ -79,7 +80,6 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   shiftedPeriod: 'shifted_period',
   oldOfficeShiftedPeriod: 'old_office_shifted_period',
   currentCompanyPeriod: 'current_company_period',
-  premisesStatus: 'premises_status',
 
   // Entry restricted specific fields
   nameOfMetPerson: 'met_person_name',
@@ -96,7 +96,6 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   dominatedArea: 'dominated_area',
   feedbackFromNeighbour: 'feedback_from_neighbour',
   otherObservation: 'other_observation',
-  otherExtraRemark: 'other_extra_remark',
 
   // Legacy/alternative field names
   companyName: 'company_nature_of_business', // Maps to company nature
@@ -115,7 +114,6 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   verificationMethod: null, // Derived field, ignore
   documentsSeen: 'document_shown', // Maps to document shown
   verificationNotes: 'other_observation', // Maps to other observation
-  recommendationStatus: 'recommendation_status', // Maps to recommendation_status column
 
   // Document fields
   documentType: 'document_type',
@@ -140,144 +138,21 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   errors: null,
 };
 
-/**
- * Maps mobile office form data to database field values with comprehensive field coverage
- * Ensures all database fields are populated with appropriate values or NULL defaults
- *
- * @param formData - Raw form data from mobile app
- * @param formType - The type of office form (POSITIVE, SHIFTED, NSP, ENTRY_RESTRICTED, UNTRACEABLE)
- * @returns Object with database column names as keys
- */
-export function mapOfficeFormDataToDatabase(
-  formData: Record<string, unknown>,
-  formType?: string
-): Record<string, unknown> {
-  const mappedData: Record<string, unknown> = {};
-
-  // Process each field in the form data
-  for (const [mobileField, value] of Object.entries(formData)) {
-    const dbColumn = OFFICE_FIELD_MAPPING[mobileField];
-
-    // Skip fields that should be ignored
-    if (dbColumn === null) {
-      continue;
-    }
-
-    // Skip fields that have no DB mapping (undefined = not in mapping)
-    if (dbColumn === undefined) {
-      continue;
-    }
-    const columnName = dbColumn;
-
-    // Process the value based on type
-    mappedData[columnName] = processOfficeFieldValue(mobileField, value);
-  }
-
-  // Ensure all database fields have values based on form type
-  const completeData = ensureAllOfficeFieldsPopulated(mappedData, formType || 'POSITIVE');
-
-  return completeData;
-}
-
-/**
- * Processes office field values to ensure they're in the correct format for database storage
- *
- * @param fieldName - The mobile field name
- * @param value - The field value
- * @returns Processed value suitable for database storage
- */
-function processOfficeFieldValue(fieldName: string, value: unknown): unknown {
-  // Handle null/undefined values
-  if (value === null || value === undefined || value === '') {
-    return null;
-  }
-
-  // Handle boolean fields
-  if (typeof value === 'boolean') {
-    return value;
-  }
-
-  // Handle numeric fields FIRST (before composite string conversion)
-  const numericFields = ['staffStrength', 'staffSeen', 'officeApproxArea', 'totalEmployees'];
-
-  if (numericFields.includes(fieldName)) {
-    const raw =
-      typeof value === 'object' && value !== null && 'value' in (value as Record<string, unknown>)
-        ? (value as Record<string, unknown>).value
-        : value;
-    const num = Number(raw);
-    return isNaN(num) ? null : num;
-  }
-
-  // Handle final_status field - convert case to match database constraint
-  // DB CHECK: final_status IN ('Positive', 'Negative', 'Refer', 'Fraud')
-  if (fieldName === 'finalStatus') {
-    const statusValue = String(value as string | number)
-      .trim()
-      .toUpperCase();
-    switch (statusValue) {
-      case 'POSITIVE':
-        return 'Positive';
-      case 'NEGATIVE':
-        return 'Negative';
-      case 'REFER':
-        return 'Refer';
-      case 'FRAUD':
-        return 'Fraud';
-      default:
-        logger.warn(
-          `⚠️ Unknown finalStatus value: ${String(value as string | number)}, defaulting to 'Refer'`
-        );
-        return 'Refer';
-    }
-  }
-
-  // Handle composite objects (e.g., { value: 3, unit: 'Years' } from mobile dropdowns)
-  // For non-numeric fields like workingPeriod, businessPeriod → stored as "3 Years"
-  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    const obj = value as Record<string, unknown>;
-    if ('value' in obj && 'unit' in obj) {
-      return `${String(obj.value as string | number)} ${String(obj.unit as string | number)}`.trim();
-    }
-    return JSON.stringify(value);
-  }
-
-  // Default: convert to string and trim
-  return (
-    (typeof value === 'object' && value !== null
-      ? JSON.stringify(value)
-      : String(value as string | number | boolean | null | undefined)
-    ).trim() || null
-  );
-}
-
-/**
- * Gets all database columns that can be populated from office form data
- *
- * @returns Array of database column names
- */
-export function getOfficeAvailableDbColumns(): string[] {
-  const columns = new Set<string>();
-
-  for (const dbColumn of Object.values(OFFICE_FIELD_MAPPING)) {
-    if (dbColumn !== null) {
-      columns.add(dbColumn);
-    }
-  }
-
-  return Array.from(columns).sort();
-}
-
-/**
- * Gets all mobile office form fields that are mapped to database columns
- *
- * @returns Array of mobile field names
- */
-export function getOfficeMappedMobileFields(): string[] {
-  return Object.keys(OFFICE_FIELD_MAPPING)
-    .filter(field => OFFICE_FIELD_MAPPING[field] !== null)
-    .sort();
-}
+// 2026-04-26 P3 dead-code prune (per project_form_field_mapping_drift_audit.md):
+// Removed 4 dead exports + 1 dead private helper from this file:
+//   - mapOfficeFormDataToDatabase(): zero call sites in any codebase. The submit
+//     path uses validateAndPrepareOfficeForm() from officeFormValidator.ts;
+//     this old camelCase→snake_case mapper was never wired up post-migration.
+//   - processOfficeFieldValue() (private): only caller was the dead mapper above.
+//   - getOfficeAvailableDbColumns(): zero call sites; only `_`-aliased import
+//     in mobileFormController.ts (intentional eslint-quiet for unused).
+//   - getOfficeMappedMobileFields(): zero call sites anywhere.
+// validateOfficeRequiredFields() and ensureAllOfficeFieldsPopulated() stay
+// alive — the controller and validator file call them respectively.
+//
+// `logger` import on this file is now orphaned (was only referenced by the
+// deleted processOfficeFieldValue's finalStatus warning). Will be cleaned up
+// by the gates run.
 
 /**
  * Validates that all required fields are present in office form data
@@ -422,6 +297,125 @@ export function validateOfficeRequiredFields(
  * @param formType - Type of office form
  * @returns Complete data object with all fields populated
  */
+// 2026-04-26 Phase 4 dedup (formFieldRelevance.ts shared util).
+// Per-type DATA stays here; logic moved to shared `pickRelevantFieldsForFormType`.
+const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
+  POSITIVE: [
+    'address_locatable',
+    'address_rating',
+    'office_status',
+    'met_person_name',
+    'designation',
+    'working_period',
+    'applicant_designation',
+    'working_status',
+    'office_type',
+    'company_nature_of_business',
+    'staff_strength',
+    'locality',
+    'address_structure',
+    'political_connection',
+    'dominated_area',
+    'feedback_from_neighbour',
+    'other_observation',
+    'final_status',
+    'business_period',
+    'establishment_period',
+    'office_approx_area',
+    'staff_seen',
+    'document_shown',
+    'document_type',
+    'tpc_met_person1',
+    'tpc_name1',
+    'tpc_confirmation1',
+    'address_floor',
+    'address_structure_color',
+    'door_color',
+    'company_name_plate_status',
+    'name_on_board',
+    'landmark1',
+    'landmark2',
+  ],
+  SHIFTED: [
+    'address_locatable',
+    'address_rating',
+    'office_status',
+    'met_person_name',
+    'designation',
+    'current_company_name',
+    'old_office_shifted_period',
+    'locality',
+    'address_structure',
+    'political_connection',
+    'dominated_area',
+    'feedback_from_neighbour',
+    'other_observation',
+    'final_status',
+    'address_floor',
+    'address_structure_color',
+    'door_color',
+    'company_name_plate_status',
+    'name_on_board',
+    'landmark1',
+    'landmark2',
+  ],
+  NSP: [
+    'address_locatable',
+    'address_rating',
+    'office_status',
+    'office_existence',
+    'met_person_name',
+    'designation',
+    'locality',
+    'address_structure',
+    'political_connection',
+    'dominated_area',
+    'feedback_from_neighbour',
+    'other_observation',
+    'final_status',
+    'address_floor',
+    'address_structure_color',
+    'door_color',
+    'company_name_plate_status',
+    'name_on_board',
+    'landmark1',
+    'landmark2',
+  ],
+  ENTRY_RESTRICTED: [
+    'address_locatable',
+    'address_rating',
+    'met_person_name',
+    'met_person_type',
+    'met_person_confirmation',
+    'applicant_working_status',
+    'locality',
+    'address_structure',
+    'political_connection',
+    'dominated_area',
+    'feedback_from_neighbour',
+    'other_observation',
+    'final_status',
+    'address_floor',
+    'address_structure_color',
+    'company_name_plate_status',
+    'name_on_board',
+    'landmark1',
+    'landmark2',
+  ],
+  UNTRACEABLE: [
+    'contact_person',
+    'call_remark',
+    'locality',
+    'landmark1',
+    'landmark2',
+    'landmark3',
+    'landmark4',
+    'dominated_area',
+    'other_observation',
+    'final_status',
+  ],
+};
+
 export function ensureAllOfficeFieldsPopulated(
   mappedData: Record<string, unknown>,
   formType: string
@@ -494,14 +488,13 @@ export function ensureAllOfficeFieldsPopulated(
     'dominated_area',
     'feedback_from_neighbour',
     'other_observation',
-    'recommendation_status',
 
     // Final status
     'final_status',
   ];
 
   // Get fields that are relevant for this form type
-  const relevantFields = getRelevantOfficeFieldsForFormType(formType);
+  const relevantFields = pickRelevantFieldsForFormType(formType, RELEVANT_FIELDS_BY_TYPE);
 
   // Populate missing fields with appropriate defaults
   for (const field of allDatabaseFields) {
@@ -512,147 +505,9 @@ export function ensureAllOfficeFieldsPopulated(
       }
 
       // Set default value (NULL for all missing fields)
-      completeData[field] = getDefaultOfficeValueForField(field);
+      completeData[field] = MISSING_FIELD_DEFAULT;
     }
   }
 
   return completeData;
-}
-
-/**
- * Gets relevant database fields for a specific office form type
- *
- * @param formType - Type of office form
- * @returns Array of relevant database field names
- */
-function getRelevantOfficeFieldsForFormType(formType: string): string[] {
-  const fieldsByType: Record<string, string[]> = {
-    POSITIVE: [
-      'address_locatable',
-      'address_rating',
-      'office_status',
-      'met_person_name',
-      'designation',
-      'working_period',
-      'applicant_designation',
-      'working_status',
-      'office_type',
-      'company_nature_of_business',
-      'staff_strength',
-      'locality',
-      'address_structure',
-      'political_connection',
-      'dominated_area',
-      'feedback_from_neighbour',
-      'other_observation',
-      'final_status',
-      'business_period',
-      'establishment_period',
-      'office_approx_area',
-      'staff_seen',
-      'document_shown',
-      'document_type',
-      'tpc_met_person1',
-      'tpc_name1',
-      'tpc_confirmation1',
-      'address_floor',
-      'address_structure_color',
-      'door_color',
-      'company_name_plate_status',
-      'name_on_board',
-      'landmark1',
-      'landmark2',
-    ],
-    SHIFTED: [
-      'address_locatable',
-      'address_rating',
-      'office_status',
-      'met_person_name',
-      'designation',
-      'current_company_name',
-      'old_office_shifted_period',
-      'locality',
-      'address_structure',
-      'political_connection',
-      'dominated_area',
-      'feedback_from_neighbour',
-      'other_observation',
-      'final_status',
-      'address_floor',
-      'address_structure_color',
-      'door_color',
-      'company_name_plate_status',
-      'name_on_board',
-      'landmark1',
-      'landmark2',
-    ],
-    NSP: [
-      'address_locatable',
-      'address_rating',
-      'office_status',
-      'office_existence',
-      'met_person_name',
-      'designation',
-      'locality',
-      'address_structure',
-      'political_connection',
-      'dominated_area',
-      'feedback_from_neighbour',
-      'other_observation',
-      'final_status',
-      'address_floor',
-      'address_structure_color',
-      'door_color',
-      'company_name_plate_status',
-      'name_on_board',
-      'landmark1',
-      'landmark2',
-    ],
-    ENTRY_RESTRICTED: [
-      'address_locatable',
-      'address_rating',
-      'name_of_met_person',
-      'met_person_type',
-      'met_person_confirmation',
-      'applicant_working_status',
-      'locality',
-      'address_structure',
-      'political_connection',
-      'dominated_area',
-      'feedback_from_neighbour',
-      'other_observation',
-      'final_status',
-      'address_floor',
-      'address_structure_color',
-      'company_name_plate_status',
-      'name_on_board',
-      'landmark1',
-      'landmark2',
-    ],
-    UNTRACEABLE: [
-      'contact_person',
-      'call_remark',
-      'locality',
-      'landmark1',
-      'landmark2',
-      'landmark3',
-      'landmark4',
-      'dominated_area',
-      'other_observation',
-      'final_status',
-    ],
-  };
-
-  return fieldsByType[formType] || fieldsByType['POSITIVE'];
-}
-
-/**
- * Gets appropriate default value for an office database field
- *
- * @param _fieldName - Database field name
- * @returns Default value for the field
- */
-function getDefaultOfficeValueForField(_fieldName: string): unknown {
-  // All fields default to null for missing/irrelevant data
-  return null;
 }

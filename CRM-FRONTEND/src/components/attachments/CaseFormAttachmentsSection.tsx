@@ -278,7 +278,7 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
             ref={fileInputRef}
             type="file"
             multiple
-            accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx"
+            accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp,.svg,.tif,.tiff,.heic,.heif,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,.rtf"
             onChange={(e) => handleFileSelect(e.target.files)}
             className="hidden"
             disabled={attachments.length >= maxFiles}

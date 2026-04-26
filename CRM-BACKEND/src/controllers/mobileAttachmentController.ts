@@ -16,6 +16,7 @@ import { query } from '@/config/database';
 import { isFieldExecutionActor } from '@/security/rbacAccess';
 import { getApiBaseUrl } from '@/utils/publicUrl';
 import { errorMessage } from '@/utils/errorMessage';
+import { generateRendition, requiresRendition } from '@/services/attachmentRenditionService';
 
 /**
  * Generate base64-encoded attachment data with checksum for offline sync
@@ -517,7 +518,8 @@ export class MobileAttachmentController {
         // Field agents can only access attachments for their assigned task OR attachments with NULL task_id
         attachmentQuery = `
           SELECT a.id, a.filename, a.original_name, a.mime_type, a.file_size, a.file_path,
-                 a.uploaded_by, a.created_at, a.case_id, a.case_id
+                 a.uploaded_by, a.created_at, a.case_id, a.case_id,
+                 a.preview_rendition_path, a.preview_rendition_kind, a.rendition_status
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
           LEFT JOIN verification_tasks vt ON vt.id = a.verification_task_id
@@ -534,7 +536,8 @@ export class MobileAttachmentController {
         // Admin/Manager can access any attachment
         attachmentQuery = `
           SELECT a.id, a.filename, a.original_name, a.mime_type, a.file_size, a.file_path,
-                 a.uploaded_by, a.created_at, a.case_id, a.case_id
+                 a.uploaded_by, a.created_at, a.case_id, a.case_id,
+                 a.preview_rendition_path, a.preview_rendition_kind, a.rendition_status
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
           WHERE a.id = $1
@@ -560,14 +563,29 @@ export class MobileAttachmentController {
         });
       }
 
-      // Use the filePath from database, removing leading slash if present
-      const dbFilePath = attachment.filePath.startsWith('/')
+      // Resolve which file we actually serve. Mobile only renders PDF
+      // (via react-native-pdf) and standard images (via the WebView
+      // ZoomableImage). For Office docs and TIFF/HEIC sources we serve
+      // the cached rendition (PDF or JPEG) generated at upload time —
+      // see attachmentRenditionService.ts.
+      //
+      // If a row predates the rendition pipeline (or its previous attempt
+      // failed) and its source mime needs one, we lazily generate it now
+      // and persist for next time. This is on-demand backfill; no batch
+      // job needed.
+      const renditionRow = attachment as VerificationAttachmentRow & {
+        previewRenditionPath?: string | null;
+        previewRenditionKind?: string | null;
+        renditionStatus?: string | null;
+      };
+
+      const sourceRelative = attachment.filePath.startsWith('/')
         ? attachment.filePath.substring(1)
         : attachment.filePath;
-      const filePath = path.join(process.cwd(), dbFilePath);
+      const sourceAbsolute = path.join(process.cwd(), sourceRelative);
 
       try {
-        await fs.access(filePath);
+        await fs.access(sourceAbsolute);
       } catch {
         return res.status(404).json({
           success: false,
@@ -575,16 +593,91 @@ export class MobileAttachmentController {
           error: {
             code: 'FILE_NOT_FOUND',
             timestamp: new Date().toISOString(),
-            filePath: dbFilePath, // Include path for debugging
+            filePath: sourceRelative,
           },
         });
       }
 
-      // Set appropriate headers
-      res.setHeader('Content-Type', attachment.mimeType);
-      res.setHeader('Content-Disposition', `inline; filename="${attachment.originalName}"`);
+      // Decide what to serve.
+      let serveAbsolute = sourceAbsolute;
+      let serveMime = attachment.mimeType;
+      let serveFilenameForDisposition = attachment.originalName;
 
-      if (String(attachment.mimeType || '').startsWith('image/')) {
+      const requiredKind = requiresRendition(attachment.mimeType, attachment.originalName);
+      const haveRendition =
+        renditionRow.previewRenditionPath && renditionRow.renditionStatus === 'success';
+
+      if (requiredKind) {
+        if (haveRendition && renditionRow.previewRenditionPath) {
+          const renditionRel = renditionRow.previewRenditionPath.startsWith('/')
+            ? renditionRow.previewRenditionPath.substring(1)
+            : renditionRow.previewRenditionPath;
+          const renditionAbs = path.join(process.cwd(), renditionRel);
+          try {
+            await fs.access(renditionAbs);
+            serveAbsolute = renditionAbs;
+            serveMime =
+              renditionRow.previewRenditionKind === 'jpeg' ? 'image/jpeg' : 'application/pdf';
+            serveFilenameForDisposition = attachment.originalName.replace(
+              /\.[^./]+$/,
+              renditionRow.previewRenditionKind === 'jpeg' ? '.jpg' : '.pdf'
+            );
+          } catch {
+            // Stored path is gone — fall through to regenerate.
+          }
+        }
+
+        if (serveAbsolute === sourceAbsolute) {
+          // No usable rendition yet. Generate one on the fly so this
+          // request — and all future requests for this attachment — can
+          // serve the rendition.
+          const caseUploadDir = path.dirname(sourceAbsolute);
+          const rendition = await generateRendition({
+            sourcePath: sourceAbsolute,
+            filename: attachment.originalName,
+            mimeType: attachment.mimeType,
+            attachmentId: String(attachment.id),
+            caseUploadDir,
+          });
+          await query(
+            `UPDATE attachments
+             SET preview_rendition_path = $1,
+                 preview_rendition_kind = $2,
+                 rendition_status = $3,
+                 rendition_error = $4,
+                 rendition_generated_at = NOW()
+             WHERE id = $5`,
+            [
+              rendition.relativePath,
+              rendition.kind,
+              rendition.status,
+              rendition.error || null,
+              attachment.id,
+            ]
+          );
+          if (rendition.status === 'success' && rendition.absolutePath) {
+            serveAbsolute = rendition.absolutePath;
+            serveMime = rendition.kind === 'jpeg' ? 'image/jpeg' : 'application/pdf';
+            serveFilenameForDisposition = attachment.originalName.replace(
+              /\.[^./]+$/,
+              rendition.kind === 'jpeg' ? '.jpg' : '.pdf'
+            );
+          }
+          // If rendition failed, fall back to serving the original. The
+          // mobile client will show its existing "Preview unavailable"
+          // placeholder for unsupported types — better than a hard 5xx.
+        }
+      }
+
+      // Set appropriate headers
+      res.setHeader('Content-Type', serveMime);
+      res.setHeader('Content-Disposition', `inline; filename="${serveFilenameForDisposition}"`);
+
+      // Watermarking applies to the file we actually serve, not the
+      // original. If we converted TIFF/HEIC → JPEG, watermark the JPEG.
+      const filePath = serveAbsolute;
+
+      if (String(serveMime || '').startsWith('image/')) {
         try {
           const createdAt = attachment.createdAt ? new Date(attachment.createdAt) : new Date();
           const dateLabel = Number.isNaN(createdAt.getTime())
@@ -619,7 +712,17 @@ export class MobileAttachmentController {
           fileStream.pipe(res);
         }
       } else {
-        res.setHeader('Content-Length', (attachment.fileSize || 0).toString());
+        // Non-image: stream as-is. Use the actual on-disk size so
+        // Content-Length stays correct when serving a rendition (whose
+        // size differs from attachment.file_size from the original).
+        try {
+          const stat = await fs.stat(filePath);
+          res.setHeader('Content-Length', String(stat.size));
+        } catch {
+          // Fall back to original file_size; the client can still consume
+          // chunked transfer if Content-Length is wrong for the rendition.
+          res.setHeader('Content-Length', (attachment.fileSize || 0).toString());
+        }
         const fileStream = createReadStream(filePath);
         fileStream.pipe(res);
       }
