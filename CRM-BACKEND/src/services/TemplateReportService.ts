@@ -2238,7 +2238,7 @@ Hence the profile is marked as {Final_Status}.`,
         safeGet(formData, 'totalEarningMember') || safeGet(formData, 'earningMembers'),
 
       // Work details
-      Working_Status: lc(safeGet(formData, 'workingStatus')),
+      Working_Status: lc(safeGet(formData, 'workingStatus') || ''),
       Company_Name: safeGet(formData, 'companyName') || safeGet(formData, 'employerName'),
 
       // Name plates and boards
@@ -2281,10 +2281,10 @@ Hence the profile is marked as {Final_Status}.`,
       ),
       Address_Structure_Color:
         safeGet(formData, 'addressStructureColor') || safeGet(formData, 'buildingColor'),
-      Door_Color: safeGet(formData, 'doorColor'),
+      Door_Color: safeGet(formData, 'doorColor') || '',
 
       // Documents
-      Document_Type: safeGet(formData, 'documentType'),
+      Document_Type: safeGet(formData, 'documentType') || '',
 
       // TPC details — use direct field access so `||` fallback chains can reach
       // alias keys. `safeGet` returns 'Not provided' on miss, which would
@@ -2358,7 +2358,7 @@ Hence the profile is marked as {Final_Status}.`,
       Door_Name_Plate_Status: safeGet(formData, 'doorNamePlateStatus'),
       Society_Name_Plate_Status: safeGet(formData, 'societyNamePlateStatus'),
       Locality_Type: safeGet(formData, 'localityType') || safeGet(formData, 'locality'),
-      Address_Structure: safeGet(formData, 'addressStructure'),
+      Address_Structure: safeGet(formData, 'addressStructure') || '',
       Address_Floor: safeGet(formData, 'addressFloor') || safeGet(formData, 'floor'),
       // 2026-04-26: removed `Feedback_From_Neighbour` (uppercase variant).
       // Canonical key is `Feedback_from_Neighbour` (defined elsewhere in
