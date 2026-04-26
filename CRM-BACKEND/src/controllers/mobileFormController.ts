@@ -1083,7 +1083,6 @@ export class MobileFormController {
     const normalizedType = MobileFormController.normalizeVerificationType(verificationType);
 
     // Map common fields
-    formData.customerName = report.customerName;
     formData.outcome = report.verificationOutcome;
     formData.finalStatus = report.finalStatus;
     formData.metPersonName = report.metPersonName;
@@ -1093,7 +1092,6 @@ export class MobileFormController {
     formData.addressLocatable = report.addressLocatable;
     formData.addressRating = report.addressRating;
     formData.locality = report.locality;
-    formData.addressStructure = report.addressStructure;
     formData.landmark1 = report.landmark1;
     formData.landmark2 = report.landmark2;
     formData.landmark3 = report.landmark3;
@@ -1107,29 +1105,16 @@ export class MobileFormController {
 
     // Map verification type specific fields
     if (normalizedType === 'RESIDENCE') {
-      formData.houseStatus = report.houseStatus;
-      formData.metPersonRelation = report.metPersonRelation;
       formData.metPersonStatus = report.metPersonStatus;
-      formData.totalFamilyMembers = report.totalFamilyMembers;
-      formData.totalEarningMember = report.totalEarningMember;
-      formData.workingStatus = report.workingStatus;
-      formData.companyName = report.companyName;
       formData.stayingPeriod = report.stayingPeriod;
       formData.stayingStatus = report.stayingStatus;
-      formData.documentShownStatus = report.documentShownStatus;
-      formData.documentType = report.documentType;
-      formData.doorColor = report.doorColor;
       formData.doorNamePlateStatus = report.doorNamePlateStatus;
       formData.nameOnDoorPlate = report.nameOnDoorPlate;
       formData.societyNamePlateStatus = report.societyNamePlateStatus;
       formData.nameOnSocietyBoard = report.nameOnSocietyBoard;
-      formData.addressStructureColor = report.addressStructureColor;
       formData.applicantStayingFloor = report.applicantStayingFloor;
-      formData.addressFloor = report.addressFloor;
 
       // Nameplate fields
-      formData.companyNamePlateStatus = report.companyNamePlateStatus;
-      formData.nameOnBoard = report.nameOnBoard;
 
       // Area and accommodation
       formData.approxArea = report.approxArea;
@@ -1143,13 +1128,7 @@ export class MobileFormController {
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Form type specific fields
-      formData.shiftedPeriod = report.shiftedPeriod;
-      formData.currentLocation = report.currentLocation;
-      formData.premisesStatus = report.premisesStatus;
-      formData.roomStatus = report.roomStatus;
       formData.stayingPersonName = report.stayingPersonName;
-      formData.entryRestrictionReason = report.entryRestrictionReason;
-      formData.securityPersonName = report.securityPersonName;
       formData.metPersonConfirmation = report.metPersonConfirmation;
       formData.accessDenied = report.accessDenied;
       formData.nameOfMetPerson = report.nameOfMetPerson;
@@ -1159,26 +1138,11 @@ export class MobileFormController {
       formData.alternateContact = report.alternateContact;
 
       // Assessment
-      formData.recommendationStatus = report.recommendationStatus;
     } else if (normalizedType === 'OFFICE') {
-      formData.designation = report.designation;
-      formData.applicantDesignation = report.applicantDesignation;
-      formData.officeStatus = report.officeStatus;
-      formData.officeExistence = report.officeExistence;
-      formData.officeType = report.officeType;
       formData.companyNatureOfBusiness = report.companyNatureOfBusiness;
       formData.businessPeriod = report.businessPeriod;
-      formData.establishmentPeriod = report.establishmentPeriod;
-      formData.staffStrength = report.staffStrength;
-      formData.staffSeen = report.staffSeen;
-      formData.workingPeriod = report.workingPeriod;
-      formData.workingStatus = report.workingStatus;
       formData.officeApproxArea = report.officeApproxArea;
       formData.documentShown = report.documentShown;
-      formData.documentType = report.documentType;
-      formData.addressFloor = report.addressFloor;
-      formData.companyNamePlateStatus = report.companyNamePlateStatus;
-      formData.nameOnBoard = report.nameOnBoard;
       formData.tpcMetPerson1 = report.tpcMetPerson1;
       formData.nameOfTpc1 = report.tpcName1;
       formData.tpcConfirmation1 = report.tpcConfirmation1;
@@ -1187,17 +1151,9 @@ export class MobileFormController {
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Visual details
-      formData.addressStructureColor = report.addressStructureColor;
-      formData.doorColor = report.doorColor;
-      formData.applicantWorkingPremises = report.applicantWorkingPremises;
       formData.sittingLocation = report.sittingLocation;
-      formData.currentCompanyName = report.currentCompanyName;
 
       // Shifted fields
-      formData.shiftedPeriod = report.shiftedPeriod;
-      formData.oldOfficeShiftedPeriod = report.oldOfficeShiftedPeriod;
-      formData.currentCompanyPeriod = report.currentCompanyPeriod;
-      formData.premisesStatus = report.premisesStatus;
 
       // Entry restricted fields
       formData.nameOfMetPerson = report.nameOfMetPerson;
@@ -1209,49 +1165,27 @@ export class MobileFormController {
       formData.contactPerson = report.contactPerson;
 
       // Assessment
-      formData.otherExtraRemark = report.otherExtraRemark;
-      formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
     } else if (normalizedType === 'BUSINESS') {
       // Basic Information
-      formData.designation = report.designation;
-      formData.applicantDesignation = report.applicantDesignation;
 
       // Business Details
       formData.businessStatus = report.businessStatus;
-      formData.businessType = report.businessType;
       formData.companyNatureOfBusiness = report.companyNatureOfBusiness;
       formData.businessPeriod = report.businessPeriod;
-      formData.establishmentPeriod = report.establishmentPeriod;
       formData.businessExistence = report.businessExistence;
-      formData.businessActivity = report.businessActivity;
-      formData.businessSetup = report.businessSetup;
       formData.businessApproxArea = report.businessApproxArea;
-      formData.staffStrength = report.staffStrength;
-      formData.staffSeen = report.staffSeen;
       formData.ownershipType = report.ownershipType;
-      formData.ownerName = report.ownerName;
-      formData.businessOwnerName = report.businessOwnerName;
       formData.nameOfCompanyOwners = report.nameOfCompanyOwners;
 
       // Working Details
-      formData.workingPeriod = report.workingPeriod;
-      formData.workingStatus = report.workingStatus;
-      formData.applicantWorkingPremises = report.applicantWorkingPremises;
       formData.applicantWorkingStatus = report.applicantWorkingStatus;
 
       // Document Verification
       formData.documentShown = report.documentShown;
-      formData.documentType = report.documentType;
 
       // Location Details
-      formData.addressFloor = report.addressFloor;
       formData.addressStatus = report.addressStatus;
-      formData.premisesStatus = report.premisesStatus;
-      formData.companyNamePlateStatus = report.companyNamePlateStatus;
-      formData.nameOnBoard = report.nameOnBoard;
-      formData.addressStructureColor = report.addressStructureColor;
-      formData.doorColor = report.doorColor;
 
       // TPC Details
       formData.tpcMetPerson1 = report.tpcMetPerson1;
@@ -1262,10 +1196,7 @@ export class MobileFormController {
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Shifting Details
-      formData.shiftedPeriod = report.shiftedPeriod;
       formData.oldBusinessShiftedPeriod = report.oldBusinessShiftedPeriod;
-      formData.currentCompanyName = report.currentCompanyName;
-      formData.currentCompanyPeriod = report.currentCompanyPeriod;
 
       // Contact & Communication
       formData.contactPerson = report.contactPerson;
@@ -1275,84 +1206,41 @@ export class MobileFormController {
       formData.metPersonConfirmation = report.metPersonConfirmation;
 
       // Area Assessment
-      formData.otherExtraRemark = report.otherExtraRemark;
-      formData.recommendationStatus = report.recommendationStatus;
     } else if (normalizedType === 'PROPERTY_APF') {
       // Basic Information
-      formData.customerName = report.customerName;
       formData.metPersonName = report.metPersonName;
       formData.metPersonDesignation = report.metPersonDesignation;
-      formData.metPersonRelation = report.metPersonRelation;
-      formData.metPersonContact = report.metPersonContact;
 
       // Address Information
       formData.locality = report.locality;
       formData.addressLocatable = report.addressLocatable;
       formData.addressRating = report.addressRating;
-      formData.addressStructure = report.addressStructure;
-      formData.addressStructureColor = report.addressStructureColor;
-      formData.addressFloor = report.addressFloor;
-      formData.doorColor = report.doorColor;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
       formData.landmark4 = report.landmark4;
 
       // Property Details
-      formData.propertyType = report.propertyType;
-      formData.propertyStatus = report.propertyStatus;
-      formData.propertyOwnership = report.propertyOwnership;
-      formData.propertyAge = report.propertyAge;
-      formData.propertyCondition = report.propertyCondition;
-      formData.propertyArea = report.propertyArea;
-      formData.propertyValue = report.propertyValue;
-      formData.marketValue = report.marketValue;
       formData.buildingStatus = report.buildingStatus;
       formData.constructionActivity = report.constructionActivity;
       formData.activityStopReason = report.activityStopReason;
 
       // APF Details
-      formData.apfStatus = report.apfStatus;
-      formData.apfNumber = report.apfNumber;
-      formData.apfIssueDate = report.apfIssueDate;
-      formData.apfExpiryDate = report.apfExpiryDate;
-      formData.apfIssuingAuthority = report.apfIssuingAuthority;
-      formData.apfValidityStatus = report.apfValidityStatus;
-      formData.apfAmount = report.apfAmount;
-      formData.apfUtilizedAmount = report.apfUtilizedAmount;
-      formData.apfBalanceAmount = report.apfBalanceAmount;
 
       // Project Information
-      formData.projectName = report.projectName;
-      formData.projectStatus = report.projectStatus;
-      formData.projectApprovalStatus = report.projectApprovalStatus;
       formData.projectCompletionPercentage = report.projectCompletionPercentage;
       formData.projectStartDate = report.projectStartedDate;
       formData.projectEndDate = report.projectCompletionDate;
       formData.projectStartedDate = report.projectStartedDate;
       formData.projectCompletionDate = report.projectCompletionDate;
-      formData.totalUnits = report.totalUnits;
-      formData.completedUnits = report.completedUnits;
-      formData.soldUnits = report.soldUnits;
-      formData.availableUnits = report.availableUnits;
-      formData.possessionStatus = report.possessionStatus;
-      formData.totalBuildingsInProject = report.totalBuildingsInProject;
       formData.totalFlats = report.totalFlats;
-      formData.totalFlatsInBuilding = report.totalFlatsInBuilding;
       formData.totalWing = report.totalWing;
 
       // Staff Information
-      formData.staffSeen = report.staffSeen;
-      formData.staffStrength = report.staffStrength;
 
       // Name Plates & Boards
-      formData.companyNamePlateStatus = report.companyNamePlateStatus;
-      formData.nameOnBoard = report.nameOnBoard;
 
       // Document Verification
-      formData.documentShownStatus = report.documentShownStatus;
-      formData.documentType = report.documentType;
-      formData.documentVerificationStatus = report.documentVerificationStatus;
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpcMetPerson1;
@@ -1363,147 +1251,55 @@ export class MobileFormController {
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Builder Information
-      formData.builderName = report.builderName;
-      formData.builderContact = report.builderContact;
-      formData.developerName = report.developerName;
-      formData.developerContact = report.developerContact;
-      formData.builderRegistrationNumber = report.builderRegistrationNumber;
-      formData.reraRegistrationNumber = report.reraRegistrationNumber;
 
       // Loan Information
-      formData.loanAmount = report.loanAmount;
-      formData.loanPurpose = report.loanPurpose;
-      formData.loanStatus = report.loanStatus;
-      formData.bankName = report.bankName;
-      formData.loanAccountNumber = report.loanAccountNumber;
-      formData.emiAmount = report.emiAmount;
 
       // Legal & Clearance
-      formData.legalClearance = report.legalClearance;
-      formData.titleClearance = report.titleClearance;
-      formData.encumbranceStatus = report.encumbranceStatus;
-      formData.litigationStatus = report.litigationStatus;
 
       // Shifting & Contact Details
-      formData.shiftedPeriod = report.shiftedPeriod;
-      formData.currentLocation = report.currentLocation;
-      formData.premisesStatus = report.premisesStatus;
-      formData.entryRestrictionReason = report.entryRestrictionReason;
-      formData.securityPersonName = report.securityPersonName;
-      formData.securityConfirmation = report.securityConfirmation;
       formData.contactPerson = report.contactPerson;
       formData.callRemark = report.callRemark;
 
       // Infrastructure & Area Assessment
-      formData.infrastructureStatus = report.infrastructureStatus;
-      formData.roadConnectivity = report.roadConnectivity;
       formData.politicalConnection = report.politicalConnection;
       formData.dominatedArea = report.dominatedArea;
       formData.feedbackFromNeighbour = report.feedbackFromNeighbour;
       formData.otherObservation = report.otherObservation;
-      formData.propertyConcerns = report.propertyConcerns;
-      formData.financialConcerns = report.financialConcerns;
       formData.finalStatus = report.finalStatus;
-      formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
 
       // Entry restricted fields (additional)
       formData.nameOfMetPerson = report.nameOfMetPerson;
       formData.metPersonConfirmation = report.metPersonConfirmation;
-      formData.designation = report.designation;
     } else if (normalizedType === 'PROPERTY_INDIVIDUAL') {
       // Basic Information
-      formData.customerName = report.customerName;
       formData.metPersonName = report.metPersonName;
       formData.metPersonDesignation = report.metPersonDesignation;
-      formData.metPersonRelation = report.metPersonRelation;
-      formData.metPersonContact = report.metPersonContact;
 
       // Address Information
       formData.locality = report.locality;
       formData.addressLocatable = report.addressLocatable;
       formData.addressRating = report.addressRating;
-      formData.addressStructure = report.addressStructure;
-      formData.addressStructureColor = report.addressStructureColor;
-      formData.addressFloor = report.addressFloor;
-      formData.doorColor = report.doorColor;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
       formData.landmark4 = report.landmark4;
 
       // Property Details
-      formData.propertyType = report.propertyType;
-      formData.propertyStatus = report.propertyStatus;
-      formData.propertyOwnership = report.propertyOwnership;
-      formData.propertyAge = report.propertyAge;
-      formData.propertyCondition = report.propertyCondition;
-      formData.propertyArea = report.propertyArea;
-      formData.propertyValue = report.propertyValue;
-      formData.marketValue = report.marketValue;
-      formData.propertyLocation = report.propertyLocation;
-      formData.propertyDescription = report.propertyDescription;
-      formData.propertyAmenities = report.propertyAmenities;
-      formData.constructionType = report.constructionType;
-      formData.constructionYear = report.constructionYear;
-      formData.renovationYear = report.renovationYear;
 
       // Owner Information
-      formData.ownerName = report.ownerName;
-      formData.ownerAge = report.ownerAge;
-      formData.ownerOccupation = report.ownerOccupation;
-      formData.ownerIncome = report.ownerIncome;
-      formData.ownerRelation = report.ownerRelation;
-      formData.previousOwnerName = report.previousOwnerName;
 
       // Individual Information
-      formData.individualName = report.individualName;
-      formData.individualAge = report.individualAge;
-      formData.individualOccupation = report.individualOccupation;
-      formData.individualEducation = report.individualEducation;
-      formData.individualMaritalStatus = report.individualMaritalStatus;
-      formData.individualExperience = report.individualExperience;
-      formData.individualIncome = report.individualIncome;
-      formData.yearsOfResidence = report.yearsOfResidence;
 
       // Family & Employment
-      formData.familyMembers = report.familyMembers;
-      formData.earningMembers = report.earningMembers;
-      formData.employmentType = report.employmentType;
-      formData.employerName = report.employerName;
-      formData.employmentDuration = report.employmentDuration;
-      formData.incomeSource = report.incomeSource;
-      formData.monthlyIncome = report.monthlyIncome;
-      formData.annualIncome = report.annualIncome;
 
       // Business Information
-      formData.businessName = report.businessName;
-      formData.businessType = report.businessType;
-      formData.businessIncome = report.businessIncome;
-      formData.businessExperience = report.businessExperience;
 
       // Financial Information
-      formData.loanAmount = report.loanAmount;
-      formData.emiAmount = report.emiAmount;
-      formData.bankName = report.bankName;
-      formData.loanAgainstProperty = report.loanAgainstProperty;
 
       // Legal & Documentation
-      formData.propertyDocuments = report.propertyDocuments;
-      formData.documentVerificationStatus = report.documentVerificationStatus;
-      formData.titleClearStatus = report.titleClearStatus;
-      formData.mutationStatus = report.mutationStatus;
-      formData.taxPaymentStatus = report.taxPaymentStatus;
-      formData.legalIssues = report.legalIssues;
 
       // Utilities & Amenities
-      formData.electricityConnection = report.electricityConnection;
-      formData.waterConnection = report.waterConnection;
-      formData.gasConnection = report.gasConnection;
-      formData.internetConnection = report.internetConnection;
-      formData.publicTransport = report.publicTransport;
-      formData.roadConnectivity = report.roadConnectivity;
-      formData.safetySecurity = report.safetySecurity;
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpcMetPerson1;
@@ -1512,85 +1308,39 @@ export class MobileFormController {
       formData.tpcMetPerson2 = report.tpcMetPerson2;
       formData.nameOfTpc2 = report.tpcName2;
       formData.tpcConfirmation2 = report.tpcConfirmation2;
-      formData.neighbor1Name = report.neighbor1Name;
-      formData.neighbor1Confirmation = report.neighbor1Confirmation;
-      formData.neighbor2Name = report.neighbor2Name;
-      formData.neighbor2Confirmation = report.neighbor2Confirmation;
 
       // Shifting & Contact Details
-      formData.shiftedPeriod = report.shiftedPeriod;
-      formData.currentLocation = report.currentLocation;
-      formData.premisesStatus = report.premisesStatus;
-      formData.entryRestrictionReason = report.entryRestrictionReason;
-      formData.securityPersonName = report.securityPersonName;
-      formData.securityConfirmation = report.securityConfirmation;
       formData.contactPerson = report.contactPerson;
       formData.callRemark = report.callRemark;
 
       // Area Assessment & Reputation
-      formData.localityReputation = report.localityReputation;
-      formData.infrastructureStatus = report.infrastructureStatus;
       formData.politicalConnection = report.politicalConnection;
       formData.dominatedArea = report.dominatedArea;
       formData.feedbackFromNeighbour = report.feedbackFromNeighbour;
       formData.otherObservation = report.otherObservation;
-      formData.propertyConcerns = report.propertyConcerns;
-      formData.verificationChallenges = report.verificationChallenges;
       formData.finalStatus = report.finalStatus;
-      formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
     } else if (normalizedType === 'NOC') {
       // Basic Information
-      formData.customerName = report.customerName;
       formData.metPersonName = report.metPersonName;
       formData.metPersonDesignation = report.metPersonDesignation;
-      formData.metPersonRelation = report.metPersonRelation;
-      formData.metPersonContact = report.metPersonContact;
 
       // Address Information
       formData.locality = report.locality;
       formData.addressLocatable = report.addressLocatable;
       formData.addressRating = report.addressRating;
-      formData.addressStructure = report.addressStructure;
-      formData.addressStructureColor = report.addressStructureColor;
-      formData.addressFloor = report.addressFloor;
-      formData.doorColor = report.doorColor;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
       formData.landmark4 = report.landmark4;
 
       // NOC Information
-      formData.nocType = report.nocType;
-      formData.nocStatus = report.nocStatus;
-      formData.nocNumber = report.nocNumber;
-      formData.nocIssueDate = report.nocIssueDate;
-      formData.nocExpiryDate = report.nocExpiryDate;
-      formData.nocIssuingAuthority = report.nocIssuingAuthority;
-      formData.nocValidityStatus = report.nocValidityStatus;
 
       // Property & Project Information
-      formData.propertyType = report.propertyType;
-      formData.projectName = report.projectName;
-      formData.projectStatus = report.projectStatus;
-      formData.constructionStatus = report.constructionStatus;
-      formData.projectApprovalStatus = report.projectApprovalStatus;
-      formData.totalUnits = report.totalUnits;
-      formData.completedUnits = report.completedUnits;
-      formData.soldUnits = report.soldUnits;
-      formData.possessionStatus = report.possessionStatus;
 
       // Builder & Developer Information
-      formData.builderName = report.builderName;
-      formData.builderContact = report.builderContact;
-      formData.developerName = report.developerName;
-      formData.developerContact = report.developerContact;
-      formData.builderRegistrationNumber = report.builderRegistrationNumber;
 
       // Document Verification
-      formData.documentShownStatus = report.documentShownStatus;
-      formData.documentType = report.documentType;
-      formData.documentVerificationStatus = report.documentVerificationStatus;
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpcMetPerson1;
@@ -1601,27 +1351,12 @@ export class MobileFormController {
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Shifting & Contact Details
-      formData.shiftedPeriod = report.shiftedPeriod;
-      formData.currentLocation = report.currentLocation;
-      formData.premisesStatus = report.premisesStatus;
-      formData.entryRestrictionReason = report.entryRestrictionReason;
-      formData.securityPersonName = report.securityPersonName;
-      formData.securityConfirmation = report.securityConfirmation;
       formData.contactPerson = report.contactPerson;
       formData.callRemark = report.callRemark;
 
       // Clearances & Compliance
-      formData.environmentalClearance = report.environmentalClearance;
-      formData.fireSafetyClearance = report.fireSafetyClearance;
-      formData.pollutionClearance = report.pollutionClearance;
-      formData.waterConnectionStatus = report.waterConnectionStatus;
-      formData.electricityConnectionStatus = report.electricityConnectionStatus;
-      formData.complianceIssues = report.complianceIssues;
-      formData.regulatoryConcerns = report.regulatoryConcerns;
 
       // Infrastructure & Assessment
-      formData.infrastructureStatus = report.infrastructureStatus;
-      formData.roadConnectivity = report.roadConnectivity;
       formData.politicalConnection = report.politicalConnection;
       formData.dominatedArea = report.dominatedArea;
       formData.feedbackFromNeighbour = report.feedbackFromNeighbour;
@@ -1629,51 +1364,31 @@ export class MobileFormController {
 
       // Final Status & Recommendations
       formData.finalStatus = report.finalStatus;
-      formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
     } else if (normalizedType === 'BUILDER') {
       // Basic Information
-      formData.customerName = report.customerName;
       formData.metPersonName = report.metPersonName;
-      formData.designation = report.designation;
-      formData.applicantDesignation = report.applicantDesignation;
 
       // Address Information
       formData.locality = report.locality;
       formData.addressLocatable = report.addressLocatable;
       formData.addressRating = report.addressRating;
-      formData.addressStructure = report.addressStructure;
-      formData.addressStructureColor = report.addressStructureColor;
-      formData.addressFloor = report.addressFloor;
-      formData.doorColor = report.doorColor;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
       formData.landmark4 = report.landmark4;
 
       // Builder Information
-      formData.builderName = report.builderName;
       formData.builderOwnerName = report.builderOwnerName;
       formData.builderType = report.builderType;
       formData.companyNatureOfBusiness = report.companyNatureOfBusiness;
       formData.businessPeriod = report.businessPeriod;
-      formData.establishmentPeriod = report.establishmentPeriod;
-      formData.workingPeriod = report.workingPeriod;
-      formData.workingStatus = report.workingStatus;
       formData.applicantWorkingStatus = report.applicantWorkingStatus;
 
       // Office Information
-      formData.officeStatus = report.officeStatus;
-      formData.officeExistence = report.officeExistence;
       formData.officeApproxArea = report.officeApproxArea;
-      formData.companyNamePlateStatus = report.companyNamePlateStatus;
-      formData.nameOnBoard = report.nameOnBoard;
-      formData.addressStructureColor = report.addressStructureColor;
-      formData.doorColor = report.doorColor;
 
       // Staff Information
-      formData.staffStrength = report.staffStrength;
-      formData.staffSeen = report.staffSeen;
 
       // Document Verification
       formData.documentShown = report.documentShown;
@@ -1692,11 +1407,6 @@ export class MobileFormController {
       formData.metPersonConfirmation = report.metPersonConfirmation;
 
       // Shifting & Contact Details
-      formData.shiftedPeriod = report.shiftedPeriod;
-      formData.oldOfficeShiftedPeriod = report.oldOfficeShiftedPeriod;
-      formData.currentCompanyName = report.currentCompanyName;
-      formData.currentCompanyPeriod = report.currentCompanyPeriod;
-      formData.premisesStatus = report.premisesStatus;
       formData.contactPerson = report.contactPerson;
       formData.callRemark = report.callRemark;
 
@@ -1705,87 +1415,40 @@ export class MobileFormController {
       formData.dominatedArea = report.dominatedArea;
       formData.feedbackFromNeighbour = report.feedbackFromNeighbour;
       formData.otherObservation = report.otherObservation;
-      formData.otherExtraRemark = report.otherExtraRemark;
 
       // Final Status & Recommendations
       formData.finalStatus = report.finalStatus;
-      formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
     } else if (normalizedType === 'DSA_CONNECTOR') {
       // Basic Information
-      formData.customerName = report.customerName;
       formData.metPersonName = report.metPersonName;
       formData.metPersonDesignation = report.metPersonDesignation;
-      formData.metPersonRelation = report.metPersonRelation;
-      formData.metPersonContact = report.metPersonContact;
 
       // Address Information
       formData.locality = report.locality;
       formData.addressLocatable = report.addressLocatable;
       formData.addressRating = report.addressRating;
-      formData.addressStructure = report.addressStructure;
-      formData.addressStructureColor = report.addressStructureColor;
-      formData.addressFloor = report.addressFloor;
-      formData.doorColor = report.doorColor;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
       formData.landmark4 = report.landmark4;
 
       // Connector Information
-      formData.connectorType = report.connectorType;
-      formData.connectorCode = report.connectorCode;
-      formData.connectorName = report.connectorName;
-      formData.connectorDesignation = report.connectorDesignation;
-      formData.connectorExperience = report.connectorExperience;
-      formData.connectorStatus = report.connectorStatus;
 
       // Business Information
-      formData.businessName = report.businessName;
-      formData.businessType = report.businessType;
-      formData.businessRegistrationNumber = report.businessRegistrationNumber;
-      formData.businessEstablishmentYear = report.businessEstablishmentYear;
       formData.businessOperational = report.businessOperational;
-      formData.businessHours = report.businessHours;
-      formData.weekendOperations = report.weekendOperations;
-      formData.customerFootfall = report.customerFootfall;
-      formData.previousBusinessName = report.previousBusinessName;
 
       // Office Information
-      formData.officeType = report.officeType;
       formData.officeArea = report.officeArea;
-      formData.officeRent = report.officeRent;
 
       // Staff Information
       formData.totalStaff = report.totalStaff;
-      formData.salesStaff = report.salesStaff;
-      formData.supportStaff = report.supportStaff;
-      formData.teamSize = report.teamSize;
 
       // Financial Information
-      formData.monthlyBusinessVolume = report.monthlyBusinessVolume;
-      formData.averageMonthlySales = report.averageMonthlySales;
-      formData.annualTurnover = report.annualTurnover;
-      formData.monthlyIncome = report.monthlyIncome;
-      formData.commissionStructure = report.commissionStructure;
-      formData.paymentTerms = report.paymentTerms;
-      formData.bankAccountDetails = report.bankAccountDetails;
 
       // Technology & Infrastructure
-      formData.computerSystems = report.computerSystems;
-      formData.internetConnection = report.internetConnection;
-      formData.softwareSystems = report.softwareSystems;
-      formData.posTerminals = report.posTerminals;
-      formData.printerScanner = report.printerScanner;
-      formData.infrastructureStatus = report.infrastructureStatus;
 
       // Compliance & Licensing
-      formData.licenseStatus = report.licenseStatus;
-      formData.licenseNumber = report.licenseNumber;
-      formData.licenseExpiryDate = report.licenseExpiryDate;
-      formData.complianceStatus = report.complianceStatus;
-      formData.auditStatus = report.auditStatus;
-      formData.trainingStatus = report.trainingStatus;
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpcMetPerson1;
@@ -1796,59 +1459,32 @@ export class MobileFormController {
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Shifting & Contact Details
-      formData.shiftedPeriod = report.shiftedPeriod;
-      formData.currentLocation = report.currentLocation;
-      formData.premisesStatus = report.premisesStatus;
-      formData.entryRestrictionReason = report.entryRestrictionReason;
-      formData.securityPersonName = report.securityPersonName;
-      formData.securityConfirmation = report.securityConfirmation;
       formData.contactPerson = report.contactPerson;
       formData.callRemark = report.callRemark;
 
       // Market Analysis & Assessment
-      formData.marketPresence = report.marketPresence;
-      formData.competitorAnalysis = report.competitorAnalysis;
-      formData.marketReputation = report.marketReputation;
-      formData.customerFeedback = report.customerFeedback;
-      formData.commercialViability = report.commercialViability;
-      formData.growthPotential = report.growthPotential;
 
       // Risk Assessment & Final Status
       formData.politicalConnection = report.politicalConnection;
       formData.dominatedArea = report.dominatedArea;
       formData.feedbackFromNeighbour = report.feedbackFromNeighbour;
       formData.otherObservation = report.otherObservation;
-      formData.businessConcerns = report.businessConcerns;
-      formData.operationalChallenges = report.operationalChallenges;
-      formData.riskAssessment = report.riskAssessment;
       formData.finalStatus = report.finalStatus;
-      formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
     } else if (normalizedType === 'RESIDENCE_CUM_OFFICE') {
       // Basic Information
-      formData.customerName = report.customerName;
       formData.metPersonName = report.metPersonName;
-      formData.metPersonRelation = report.metPersonRelation;
-      formData.designation = report.designation;
-      formData.applicantDesignation = report.applicantDesignation;
 
       // Address Information
       formData.locality = report.locality;
       formData.addressLocatable = report.addressLocatable;
       formData.addressRating = report.addressRating;
-      formData.addressStructure = report.addressStructure;
-      formData.addressStructureColor = report.addressStructureColor;
-      formData.addressFloor = report.addressFloor;
-      formData.doorColor = report.doorColor;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
       formData.landmark4 = report.landmark4;
 
       // Residence Information
-      formData.houseStatus = report.houseStatus;
-      formData.totalFamilyMembers = report.totalFamilyMembers;
-      formData.totalEarningMember = report.totalEarningMember;
       formData.stayingPeriod = report.stayingPeriod;
       formData.stayingStatus = report.stayingStatus;
       formData.stayingPersonName = report.stayingPersonName;
@@ -1860,30 +1496,16 @@ export class MobileFormController {
       // Applicant Information
       formData.applicantStayingStatus = report.applicantStayingStatus;
       formData.applicantWorkingStatus = report.applicantWorkingStatus;
-      formData.applicantWorkingPremises = report.applicantWorkingPremises;
 
       // Office Information
-      formData.officeStatus = report.officeStatus;
-      formData.officeExistence = report.officeExistence;
-      formData.officeType = report.officeType;
       formData.companyNatureOfBusiness = report.companyNatureOfBusiness;
       formData.businessPeriod = report.businessPeriod;
-      formData.establishmentPeriod = report.establishmentPeriod;
-      formData.workingPeriod = report.workingPeriod;
-      formData.workingStatus = report.workingStatus;
       formData.approxArea = report.approxArea;
       formData.sittingLocation = report.sittingLocation;
-      formData.currentCompanyName = report.currentCompanyName;
-      formData.companyNamePlateStatus = report.companyNamePlateStatus;
-      formData.nameOnBoard = report.nameOnBoard;
 
       // Staff Information
-      formData.staffStrength = report.staffStrength;
-      formData.staffSeen = report.staffSeen;
 
       // Document Verification
-      formData.documentShownStatus = report.documentShownStatus;
-      formData.documentType = report.documentType;
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpcMetPerson1;
@@ -1899,11 +1521,6 @@ export class MobileFormController {
       formData.metPersonConfirmation = report.metPersonConfirmation;
 
       // Shifting & Contact Details
-      formData.shiftedPeriod = report.shiftedPeriod;
-      formData.oldOfficeShiftedPeriod = report.oldOfficeShiftedPeriod;
-      formData.currentCompanyName = report.currentCompanyName;
-      formData.currentCompanyPeriod = report.currentCompanyPeriod;
-      formData.premisesStatus = report.premisesStatus;
       formData.contactPerson = report.contactPerson;
       formData.callRemark = report.callRemark;
 
@@ -1912,12 +1529,8 @@ export class MobileFormController {
       formData.dominatedArea = report.dominatedArea;
       formData.feedbackFromNeighbour = report.feedbackFromNeighbour;
       formData.otherObservation = report.otherObservation;
-      formData.otherExtraRemark = report.otherExtraRemark;
       formData.finalStatus = report.finalStatus;
-      formData.recommendationStatus = report.recommendationStatus;
       formData.remarks = report.remarks;
-      formData.entryRestrictionReason = report.entryRestrictionReason;
-      formData.securityPersonName = report.securityPersonName;
       formData.accessDenied = report.accessDenied;
       formData.nameOfMetPerson = report.nameOfMetPerson;
       formData.metPersonType = report.metPersonType;
