@@ -28,7 +28,7 @@ export interface ResidenceVerificationData extends BaseFormData {
   companyName?: string;
   stayingPeriod?: string;
   stayingStatus?: string;
-  documentShownStatus?: string;
+  documentShown?: string;
   documentType?: string;
   locality?: string;
   addressStructure?: string;
@@ -50,6 +50,7 @@ export interface OfficeVerificationData extends BaseFormData {
   officeArea?: string;
   addressLocatable?: string;
   addressRating?: string;
+  officeExistsStatus?: string; // ERT outcome: 'Office Exist At' / 'Office Does Not Exist At' / 'Office Shifted From'
   locality?: string;
   addressStructure?: string;
   landmark1?: string;
@@ -157,7 +158,7 @@ export interface DsaConnectorVerificationData extends BaseFormData {
   metPersonDesignation?: string;
   metPersonRelation?: string;
   metPersonContact?: string;
-  businessOperational?: string;
+  businessExistence?: string;
   customerFootfall?: string;
   businessHours?: string;
   weekendOperations?: string;
@@ -339,6 +340,7 @@ export interface PropertyIndividualVerificationData extends BaseFormData {
 
 // Residence Cum Office Verification
 export interface ResidenceCumOfficeVerificationData extends BaseFormData {
+  resiCumOfficeStatus?: string;
   houseStatus?: string;
   metPersonName?: string;
   metPersonRelation?: string;
@@ -347,7 +349,7 @@ export interface ResidenceCumOfficeVerificationData extends BaseFormData {
   stayingPeriod?: string;
   stayingStatus?: string;
   approxArea?: number;
-  documentShownStatus?: string;
+  documentShown?: string;
   documentType?: string;
   officeStatus?: string;
   officeExistence?: string;
@@ -363,6 +365,8 @@ export interface ResidenceCumOfficeVerificationData extends BaseFormData {
   staffStrength?: number;
   staffSeen?: number;
   addressLocatable?: string;
+  addressTraceable?: string; // NSP outcome only: TRACEABLE / UNTRACEABLE (separate from addressLocatable Easy/Difficult)
+  businessExistsStatus?: string; // ERT outcome only: 'Office Exist At' / 'Office Does Not Exist At' / 'Office Shifted From'
   addressRating?: string;
   locality?: string;
   addressStructure?: string;

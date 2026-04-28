@@ -60,16 +60,14 @@ export const RESIDENCE_FIELD_MAPPING: DatabaseFieldMapping = {
   approxArea: 'approx_area', // Used in POSITIVE forms
 
   // Document verification (POSITIVE forms only)
-  documentShownStatus: 'document_shown_status',
+  documentShown: 'document_shown',
   documentType: 'document_type',
 
   // Third Party Confirmation (TPC) - Used in POSITIVE, SHIFTED, NSP forms
   tpcMetPerson1: 'tpc_met_person1',
-  nameOfTpc1: 'tpc_name1',
   tpcName1: 'tpc_name1', // Mobile emits this field name
   tpcConfirmation1: 'tpc_confirmation1',
   tpcMetPerson2: 'tpc_met_person2',
-  nameOfTpc2: 'tpc_name2',
   tpcName2: 'tpc_name2', // Mobile emits this field name
   tpcConfirmation2: 'tpc_confirmation2',
 
@@ -158,7 +156,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     'working_status',
     'staying_period',
     'staying_status',
-    'document_shown_status',
+    'document_shown',
     'tpc_met_person1',
     'locality',
     'address_structure',
@@ -314,7 +312,7 @@ export function ensureAllFieldsPopulated(
     'approx_area',
 
     // Document verification
-    'document_shown_status',
+    'document_shown',
     'document_type',
 
     // Third Party Confirmation

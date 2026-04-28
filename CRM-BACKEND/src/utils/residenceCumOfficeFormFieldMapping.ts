@@ -22,7 +22,7 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   outcome: null, // Handled separately as verification_outcome
   remarks: 'remarks',
   finalStatus: 'final_status',
-  resiCumOfficeStatus: null, // Handled specially: mirrored to house_status + office_status in mapper
+  resiCumOfficeStatus: 'resi_cum_office_status', // Dedicated column (Open/Closed) — single source of truth, no mirror
 
   // Address and location fields (Common to all forms)
   addressLocatable: 'address_locatable',
@@ -52,7 +52,7 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   stayingPersonName: 'staying_person_name', // Maps to staying_person_name column
   stayingStatus: 'staying_status',
   approxArea: 'approx_area',
-  documentShownStatus: 'document_shown_status',
+  documentShown: 'document_shown',
   documentType: 'document_type',
 
   // Office-specific fields
@@ -63,11 +63,9 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
 
   // Third Party Confirmation (TPC)
   tpcMetPerson1: 'tpc_met_person1',
-  nameOfTpc1: 'tpc_name1',
   tpcName1: 'tpc_name1', // Alternative field name for TPC name 1
   tpcConfirmation1: 'tpc_confirmation1',
   tpcMetPerson2: 'tpc_met_person2',
-  nameOfTpc2: 'tpc_name2',
   tpcName2: 'tpc_name2', // Alternative field name for TPC name 2
   tpcConfirmation2: 'tpc_confirmation2',
 
@@ -98,7 +96,8 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   residenceSetup: 'residence_setup', // SIGHTED AS / NOT SIGHTED — dedicated column (added 2026-04-18)
   businessSetup: 'business_setup', // SIGHTED AS / NOT SIGHTED — dedicated column (added 2026-04-18)
   relation: 'met_person_relation', // Maps to met person relation
-  businessStatus: 'business_status', // Self Employee - Proprietorship / Partnership Firm / Private Limited — dedicated column (was colliding with office_status before 2026-04-18)
+  businessStatus: 'business_status', // POSITIVE/SHIFTED outcomes — Self Employee - Proprietorship / Partnership Firm / Private Limited
+  businessExistsStatus: 'business_exists_status', // ENTRY_RESTRICTED outcome — Office Exist At / Does Not Exist At / Shifted From
   businessLocation: 'sitting_location', // Maps to sitting location (At Same Address / From Different Address)
   businessOperatingAddress: 'business_operating_address', // Conditional text when businessLocation = 'From Different Address' — dedicated column (added 2026-04-18)
   applicantStayingFloor: 'address_floor', // Maps to address floor
@@ -107,7 +106,7 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
 
   // Additional form-specific fields from mobile components (avoiding duplicates)
   metPersonStatus: 'met_person_status', // Maps to met person status
-  addressTraceable: 'address_locatable', // Alternative name for address locatable
+  addressTraceable: 'address_traceable', // NSP-specific: TRACEABLE/UNTRACEABLE (separate from address_locatable EASY/DIFFICULT)
   fullAddress: null, // No full_address column — address is on verification_tasks
 
   // Business/Office related fields (avoiding duplicates)
@@ -116,10 +115,9 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   // Residence related fields
   ownershipStatus: 'staying_status', // Maps to staying status
 
-  // Document related fields
-  documentShown: 'document_shown_status', // Maps to document shown status
+  // Document related fields (canonical 'documentShown' is at line 55; aliases below for legacy clients)
   documentTypes: 'document_type', // Maps to document type
-  idProofShown: 'document_shown_status', // Alternative for document shown
+  idProofShown: 'document_shown', // Alternative for document shown
 
   // Additional comprehensive field mappings from all form types
   residenceConfirmed: null, // Ignore - derived field
@@ -201,7 +199,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     'staying_period',
     'staying_status',
     'approx_area',
-    'document_shown_status',
+    'document_shown',
     'document_type',
     // Office fields
     'company_nature_of_business',
@@ -337,7 +335,7 @@ export function ensureAllResidenceCumOfficeFieldsPopulated(
     'staying_period',
     'staying_status',
     'approx_area',
-    'document_shown_status',
+    'document_shown',
     'document_type',
 
     // Office-specific fields

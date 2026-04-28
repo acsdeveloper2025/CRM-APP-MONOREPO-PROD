@@ -1,15 +1,16 @@
 /**
- * Comprehensive Property Individual Form Validation and Default Handling
+ * Property Individual Form Data Preparation
  *
- * This module provides validation and default value handling for all Property Individual verification form types.
- * Ensures that every database field has an appropriate value, preventing null/undefined issues.
+ * Maps mobile form payload → DB columns and ensures every column is populated
+ * (with null defaults via ensureAllPropertyIndividualFieldsPopulated).
+ * Required-field gating lives in the mobile FormValidationEngine; backend is
+ * permissive observability.
  */
 
 import {
   PROPERTY_INDIVIDUAL_FIELD_MAPPING,
   ensureAllPropertyIndividualFieldsPopulated,
 } from './propertyIndividualFormFieldMapping';
-import { eqCI } from './caseInsensitiveCompare';
 import { processFormFieldValue } from './formFieldValueProcessor';
 
 // Type-specific numeric fields — coerced to Number when sent by mobile.
@@ -44,303 +45,46 @@ export interface FormValidationResult {
 }
 
 /**
- * Comprehensive validation for Property Individual verification forms
- * Validates form data and ensures all database fields are properly populated
+ * Maps mobile Property Individual form data to database columns and fills defaults.
  *
  * @param formData - Raw form data from mobile app
  * @param formType - Type of Property Individual form (POSITIVE, SHIFTED, NSP, ENTRY_RESTRICTED, UNTRACEABLE)
- * @returns Validation result with detailed field coverage information
+ * @returns Prepared DB-shaped data + field-coverage stats
  */
 export function validateAndPreparePropertyIndividualForm(
   formData: Record<string, unknown>,
   formType: string
 ): { validationResult: FormValidationResult; preparedData: Record<string, unknown> } {
-  const warnings: string[] = [];
-  const missingFields: string[] = [];
-
-  // Get required fields for this form type
-  const requiredFields = getRequiredFieldsByFormType(formType);
-
-  // Check for missing required fields
-  for (const field of requiredFields) {
-    if (
-      !formData[field] ||
-      formData[field] === null ||
-      formData[field] === '' ||
-      formData[field] === undefined
-    ) {
-      missingFields.push(field);
-    }
-  }
-
-  // Check for form-specific conditional validations
-  const conditionalWarnings = validateConditionalFields(formData, formType);
-  warnings.push(...conditionalWarnings);
-
-  // Map form data to database fields
   const mappedData: Record<string, unknown> = {};
   for (const [mobileField, value] of Object.entries(formData)) {
     const dbColumn = PROPERTY_INDIVIDUAL_FIELD_MAPPING[mobileField];
-
-    // Skip fields that should be ignored
-    if (dbColumn === null) {
+    if (dbColumn === null || dbColumn === undefined) {
       continue;
     }
-
-    // Use the mapped column name or the original field name if no mapping exists
-    if (dbColumn === undefined) {
-      continue;
-    } // Skip unmapped fields
-    const columnName = dbColumn;
-    mappedData[columnName] = processFormFieldValue(mobileField, value, {
+    mappedData[dbColumn] = processFormFieldValue(mobileField, value, {
       numericFields: NUMERIC_FIELDS,
       dateFields: DATE_FIELDS,
     });
   }
 
-  // Ensure all database fields are populated with appropriate defaults
   const preparedData = ensureAllPropertyIndividualFieldsPopulated(mappedData, formType);
 
-  // Calculate field coverage statistics
   const totalFields = Object.keys(preparedData).length;
   const populatedFields = Object.values(preparedData).filter(
-    value => value !== null && value !== undefined
+    v => v !== null && v !== undefined
   ).length;
-  const defaultedFields = Object.values(preparedData).filter(value => value === null).length;
-  const coveragePercentage = Math.round((populatedFields / totalFields) * 100);
+  const defaultedFields = Object.values(preparedData).filter(v => v === null).length;
+  const coveragePercentage = totalFields ? Math.round((populatedFields / totalFields) * 100) : 0;
 
-  const validationResult: FormValidationResult = {
-    isValid: missingFields.length === 0,
-    missingFields,
-    warnings,
-    fieldCoverage: {
-      totalFields,
-      populatedFields,
-      defaultedFields,
-      coveragePercentage,
+  return {
+    validationResult: {
+      isValid: true,
+      missingFields: [],
+      warnings: [],
+      fieldCoverage: { totalFields, populatedFields, defaultedFields, coveragePercentage },
     },
+    preparedData,
   };
-
-  return { validationResult, preparedData };
-}
-
-/**
- * Gets required fields for a specific Property Individual form type
- */
-function getRequiredFieldsByFormType(formType: string): string[] {
-  const requiredFieldsByType: Record<string, string[]> = {
-    POSITIVE: [
-      // Aligned with legacyPositivePropertyIndividualFields. TPC ×2 is always
-      // required regardless of flatStatus. Conditional-on-Open fields
-      // (metPerson, relationship, propertyOwnerName, approxArea) are
-      // validated via requiredWhen in mobile UI, not here.
-      'addressLocatable',
-      'addressRating',
-      'buildingStatus',
-      'flatStatus',
-      'tpcMetPerson1',
-      'nameOfTpc1',
-      'tpcConfirmation1',
-      'tpcMetPerson2',
-      'nameOfTpc2',
-      'tpcConfirmation2',
-      'locality',
-      'addressStructure',
-      'addressExistAt',
-      'addressStructureColor',
-      'doorColor',
-      'doorNamePlateStatus',
-      'societyNamePlateStatus',
-      'landmark1',
-      'landmark2',
-      'politicalConnection',
-      'dominatedArea',
-      'feedbackFromNeighbour',
-      'otherObservation',
-      'finalStatus',
-    ],
-    SHIFTED: [
-      'addressLocatable',
-      'addressRating',
-      'metPersonName',
-      'metPersonRelation',
-      'metPersonDesignation',
-      'shiftedPeriod',
-      'currentLocation',
-      'locality',
-      'addressStructure',
-      'politicalConnection',
-      'dominatedArea',
-      'feedbackFromNeighbour',
-      'otherObservation',
-      'finalStatus',
-    ],
-    NSP: [
-      // Aligned with legacyNspPropertyIndividualFields. TPC ×2 is always
-      // required. NSP rule — no politicalConnection/feedbackFromNeighbour.
-      'addressLocatable',
-      'addressRating',
-      'buildingStatus',
-      'flatStatus',
-      'tpcMetPerson1',
-      'nameOfTpc1',
-      'tpcConfirmation1',
-      'tpcMetPerson2',
-      'nameOfTpc2',
-      'tpcConfirmation2',
-      'locality',
-      'addressStructure',
-      'addressStructureColor',
-      'doorColor',
-      'doorNamePlateStatus',
-      'societyNamePlateStatus',
-      'landmark1',
-      'landmark2',
-      'dominatedArea',
-      'otherObservation',
-      'finalStatus',
-    ],
-    ENTRY_RESTRICTED: [
-      'addressLocatable',
-      'addressRating',
-      'flatStatus',
-      'metPersonType',
-      'nameOfMetPerson',
-      'metPersonConfirmation',
-      'propertyOwnerName',
-      'locality',
-      'addressStructure',
-      'addressStructureColor',
-      'societyNamePlateStatus',
-      'landmark1',
-      'landmark2',
-      'buildingStatus',
-      'politicalConnection',
-      'dominatedArea',
-      'feedbackFromNeighbour',
-      'otherObservation',
-      'finalStatus',
-    ],
-    UNTRACEABLE: [
-      // Aligned with legacyUntraceablePropertyIndividualFields. All 4 landmarks
-      // are required in mobile (property is harder to trace — needs more
-      // reference points than other types).
-      'callRemark',
-      'contactPerson',
-      'locality',
-      'landmark1',
-      'landmark2',
-      'landmark3',
-      'landmark4',
-      'dominatedArea',
-      'otherObservation',
-      'finalStatus',
-    ],
-  };
-
-  return requiredFieldsByType[formType] || requiredFieldsByType['POSITIVE'];
-}
-
-/**
- * Validates conditional fields based on form type and field values
- */
-function validateConditionalFields(formData: Record<string, unknown>, formType: string): string[] {
-  const warnings: string[] = [];
-
-  if (formType === 'POSITIVE') {
-    // Age validation
-    if (
-      formData.individualAge !== undefined &&
-      formData.individualAge !== null &&
-      typeof formData.individualAge === 'number' &&
-      (formData.individualAge < 18 || formData.individualAge > 100)
-    ) {
-      warnings.push('individualAge should be between 18 and 100 years');
-    }
-
-    // Income validation
-    if (
-      formData.monthlyIncome !== undefined &&
-      formData.annualIncome !== undefined &&
-      typeof formData.monthlyIncome === 'number' &&
-      typeof formData.annualIncome === 'number' &&
-      formData.monthlyIncome * 12 !== formData.annualIncome
-    ) {
-      warnings.push('annualIncome should be 12 times monthlyIncome');
-    }
-
-    // Family members validation
-    if (
-      formData.familyMembers !== undefined &&
-      formData.earningMembers !== undefined &&
-      typeof formData.familyMembers === 'number' &&
-      typeof formData.earningMembers === 'number' &&
-      formData.earningMembers > formData.familyMembers
-    ) {
-      warnings.push('earningMembers should not exceed familyMembers');
-    }
-
-    // Employment validation
-    if (eqCI(formData.employmentType, 'Salaried') && !formData.employerName) {
-      warnings.push('employerName should be specified for salaried individuals');
-    }
-
-    if (eqCI(formData.employmentType, 'Business') && !formData.businessName) {
-      warnings.push('businessName should be specified for business individuals');
-    }
-
-    // Property value validation
-    if (
-      formData.propertyValue !== undefined &&
-      formData.marketValue !== undefined &&
-      typeof formData.propertyValue === 'number' &&
-      typeof formData.marketValue === 'number' &&
-      formData.propertyValue > formData.marketValue * 1.5
-    ) {
-      warnings.push('propertyValue seems significantly higher than marketValue');
-    }
-
-    // Loan validation
-    if (formData.loanAmount && !formData.loanPurpose) {
-      warnings.push('loanPurpose should be specified when loan amount is provided');
-    }
-
-    // Contact validation
-    if (typeof formData.contactNumber === 'string' && formData.contactNumber.length !== 10) {
-      warnings.push('contactNumber should be 10 digits');
-    }
-
-    // TPC conditional validation
-    if (formData.tpcMetPerson1 && !formData.nameOfTpc1) {
-      warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is selected');
-    }
-
-    // Reference validation
-    if (formData.reference1Name && !formData.reference1Contact) {
-      warnings.push('reference1Contact should be specified when reference1Name is provided');
-    }
-
-    // Property area validation
-    if (
-      formData.propertyArea !== undefined &&
-      formData.propertyArea !== null &&
-      typeof formData.propertyArea === 'number' &&
-      (formData.propertyArea < 1 || formData.propertyArea > 100000)
-    ) {
-      warnings.push('propertyArea should be between 1 and 100000 sq ft');
-    }
-  }
-
-  if (formType === 'NSP') {
-    // Property status conditional validation
-    if (eqCI(formData.propertyStatus, 'Not Found') && !formData.otherObservation) {
-      warnings.push('otherObservation should be specified when property status is Not Found');
-    }
-  }
-
-  // Common validations for all forms
-
-  return warnings;
 }
 
 /**

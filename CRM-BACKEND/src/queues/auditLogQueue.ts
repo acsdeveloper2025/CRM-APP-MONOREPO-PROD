@@ -11,13 +11,22 @@
 //   3. Pg failures on the audit path could never be observed by Ops
 //      because the caller was instructed to NOT propagate the error.
 //
-// This module replaces the direct INSERT with a durable bull-backed
+// This module replaces the direct INSERT with a durable bullmq-backed
 // queue. Every audit event is enqueued synchronously with a
 // fire-and-forget call from the request path. A worker attached to
 // the same queue then drains events onto the audit_logs table with
-// bull's retry + dead-letter semantics.
+// bullmq's retry + dead-letter semantics.
 //
-// Public API:
+// 2026-04-28 Medium Fix 7: migrated bull v4 → bullmq v5.
+// - bullmq separates Queue (producer) from Worker (consumer); previous
+//   single Bull object handled both via `.process()`.
+// - bullmq requires every job to have a name string at `add()` time.
+// - `removeOnComplete: <number>` is now `removeOnComplete: { count: <number> }`.
+// - Worker reuses the same Redis connection config; events are exposed
+//   on the Worker instance directly (no separate QueueEvents needed for
+//   the failed/completed handlers we use).
+//
+// Public API (unchanged shape — callers don't notice the migration):
 //   - enqueueAuditLog(data): fast synchronous-looking enqueue used
 //     by src/utils/auditLogger.ts
 //   - startAuditLogProcessor(): attach the worker; called once at
@@ -25,7 +34,7 @@
 //   - stopAuditLogProcessor(): best-effort shutdown used by graceful
 //     shutdown in src/index.ts
 
-import Bull from 'bull';
+import { Queue, Worker, type Job } from 'bullmq';
 import { config } from '@/config';
 import { logger } from '@/config/logger';
 import { query } from '@/config/database';
@@ -34,9 +43,21 @@ import { errorMessage } from '@/utils/errorMessage';
 import { writeAuditDeadLetter, recoverAuditDeadLetter } from './auditLogDeadLetter';
 
 const QUEUE_NAME = 'audit-log-processing';
+const JOB_NAME = 'audit-log';
 
-export const auditLogQueue = new Bull<AuditLogData>(QUEUE_NAME, {
-  redis: config.redisUrl,
+// Parse Redis URL once — bullmq takes a structured connection config
+// rather than a URL string. Mirror the pattern used in config/queue.ts
+// so all bullmq queues across the codebase share the same connection
+// shape (and the same Ops behaviour around hostname/port/password).
+const redisUrl = new URL(config.redisUrl);
+const connection = {
+  host: redisUrl.hostname,
+  port: parseInt(redisUrl.port) || 6379,
+  password: config.redisPassword || undefined,
+};
+
+export const auditLogQueue = new Queue<AuditLogData>(QUEUE_NAME, {
+  connection,
   defaultJobOptions: {
     // Retry with exponential backoff. 5 attempts × 2s base backoff
     // spreads retries across ~30s which is long enough to ride out a
@@ -47,14 +68,15 @@ export const auditLogQueue = new Bull<AuditLogData>(QUEUE_NAME, {
       delay: 2000,
     },
     // Keep a rolling window of completed/failed jobs for Ops inspection.
-    removeOnComplete: 500,
-    removeOnFail: 200,
+    // bullmq syntax requires the object form: `{ count: N }`.
+    removeOnComplete: { count: 500 },
+    removeOnFail: { count: 200 },
   },
 });
 
 /**
  * Enqueue a single audit event. Returns a promise that resolves once
- * the job is accepted by Bull — NOT once it's been persisted. Callers
+ * the job is accepted by bullmq — NOT once it's been persisted. Callers
  * that already don't block on audit writes keep their semantics.
  *
  * If the enqueue itself fails (Redis down, queue paused, etc.) we log
@@ -65,7 +87,10 @@ export const auditLogQueue = new Bull<AuditLogData>(QUEUE_NAME, {
  */
 export const enqueueAuditLog = async (data: AuditLogData): Promise<void> => {
   try {
-    await auditLogQueue.add(data, { jobId: undefined });
+    // bullmq requires a job name as the first argument to `.add()`.
+    // We use a single job name (JOB_NAME) since the worker treats all
+    // audit events identically.
+    await auditLogQueue.add(JOB_NAME, data);
   } catch (error) {
     logger.error('Failed to enqueue audit log, falling back to direct insert', {
       error: errorMessage(error),
@@ -98,16 +123,18 @@ export const enqueueAuditLog = async (data: AuditLogData): Promise<void> => {
   }
 };
 
-let processorStarted = false;
+let worker: Worker<AuditLogData> | null = null;
 
 export const startAuditLogProcessor = (): void => {
-  if (processorStarted) {
+  if (worker) {
     return;
   }
-  processorStarted = true;
 
-  auditLogQueue
-    .process(10, async job => {
+  // bullmq Worker is the consumer side. Concurrency is set on the
+  // Worker constructor (was the first arg to bull's `.process()`).
+  worker = new Worker<AuditLogData>(
+    QUEUE_NAME,
+    async (job: Job<AuditLogData>) => {
       const data = job.data;
       await query(
         `INSERT INTO audit_logs (action, entity_type, entity_id, user_id, details, ip_address, user_agent, created_at)
@@ -122,12 +149,20 @@ export const startAuditLogProcessor = (): void => {
           data.userAgent ?? null,
         ]
       );
-    })
-    .catch(err => {
-      logger.error('Audit log processor setup error:', err);
-    });
+    },
+    {
+      connection,
+      concurrency: 10,
+    }
+  );
 
-  auditLogQueue.on('failed', (job, err) => {
+  worker.on('failed', (job, err) => {
+    if (!job) {
+      logger.warn('Audit log worker failure with no job context', {
+        error: err.message,
+      });
+      return;
+    }
     const opts = job.opts ?? {};
     const maxAttempts = typeof opts.attempts === 'number' ? opts.attempts : 1;
     logger.warn('Audit log job failed', {
@@ -138,13 +173,18 @@ export const startAuditLogProcessor = (): void => {
       entityType: job.data.entityType,
       error: err.message,
     });
-    // After Bull has exhausted all retries the job is removed by
+    // After bullmq has exhausted all retries the job is removed by the
     // removeOnFail policy and the event would otherwise be lost.
     // Persist the payload to the file-based DLQ so the next process
-    // start can replay it.
+    // start can replay it. (`attemptsMade` increments before the
+    // failed event fires, so >= maxAttempts means terminal failure.)
     if (job.attemptsMade >= maxAttempts) {
       void writeAuditDeadLetter(job.data);
     }
+  });
+
+  worker.on('error', err => {
+    logger.error('Audit log worker error', { error: errorMessage(err) });
   });
 
   // Best-effort replay of any events parked in the DLQ during a
@@ -159,8 +199,11 @@ export const startAuditLogProcessor = (): void => {
 
 export const stopAuditLogProcessor = async (): Promise<void> => {
   try {
+    if (worker) {
+      await worker.close();
+      worker = null;
+    }
     await auditLogQueue.close();
-    processorStarted = false;
   } catch (error) {
     logger.error('Failed to close audit log queue:', error);
   }

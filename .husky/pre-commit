@@ -1,1 +1,38 @@
+# 2026-04-28 Medium Fix 9: pre-commit gate for the monorepo.
+#
+# Lint-staged handles eslint --fix + prettier --write per-file (config
+# in root package.json). After that we run `tsc --noEmit` per package,
+# but only if that package has staged TypeScript changes — keeps
+# unrelated commits (markdown-only, asset-only, etc.) fast.
+#
+# To bypass in a genuine emergency: `git commit --no-verify`.
+
 npx lint-staged
+
+# Detect which packages have staged TS/TSX changes. We use ACM filter
+# (Added/Copied/Modified) so deletes don't trigger a tsc run.
+staged_files=$(git diff --cached --name-only --diff-filter=ACM)
+
+if echo "$staged_files" | grep -qE '^CRM-BACKEND/src/.*\.ts$'; then
+  echo "→ tsc gate: CRM-BACKEND"
+  ( cd CRM-BACKEND && npx tsc --noEmit ) || {
+    echo "✗ CRM-BACKEND tsc failed — commit aborted"
+    exit 1
+  }
+fi
+
+if echo "$staged_files" | grep -qE '^CRM-FRONTEND/src/.*\.(ts|tsx)$'; then
+  echo "→ tsc gate: CRM-FRONTEND"
+  ( cd CRM-FRONTEND && npx tsc --noEmit ) || {
+    echo "✗ CRM-FRONTEND tsc failed — commit aborted"
+    exit 1
+  }
+fi
+
+if echo "$staged_files" | grep -qE '^crm-mobile-native/src/.*\.(ts|tsx)$'; then
+  echo "→ tsc gate: crm-mobile-native"
+  ( cd crm-mobile-native && npx tsc --noEmit ) || {
+    echo "✗ crm-mobile-native tsc failed — commit aborted"
+    exit 1
+  }
+fi

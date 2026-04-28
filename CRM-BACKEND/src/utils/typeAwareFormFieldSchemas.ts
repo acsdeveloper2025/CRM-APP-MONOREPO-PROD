@@ -733,8 +733,8 @@ const BUSINESS_POSITIVE_FIELDS: FormFieldDefinition[] = [
     order: 6,
   },
   {
-    id: 'nameOfTpc1',
-    name: 'nameOfTpc1',
+    id: 'tpcName1',
+    name: 'tpcName1',
     label: 'Name of TPC 1',
     type: 'text',
     isRequired: false,
@@ -742,8 +742,8 @@ const BUSINESS_POSITIVE_FIELDS: FormFieldDefinition[] = [
     order: 7,
   },
   {
-    id: 'nameOfTpc2',
-    name: 'nameOfTpc2',
+    id: 'tpcName2',
+    name: 'tpcName2',
     label: 'Name of TPC 2',
     type: 'text',
     isRequired: false,

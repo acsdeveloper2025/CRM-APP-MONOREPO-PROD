@@ -38,7 +38,8 @@ export const NOC_FIELD_MAPPING: DatabaseFieldMapping = {
   landmark4: 'landmark4', // Used in untraceable forms
 
   // Office/premises status
-  officeStatus: 'office_status', // Used to determine door open/locked
+  officeStatus: 'office_status', // Used to determine door open/locked (POSITIVE/SHIFTED/NSP)
+  officeExistsStatus: 'office_exists_status', // NOC ERT — dedicated column (3-value enum: Office Exist At/Does Not Exist At/Shifted From)
 
   // NOC-specific fields (mobile sends these)
   authorisedSignature: 'authorised_signature',
@@ -79,10 +80,10 @@ export const NOC_FIELD_MAPPING: DatabaseFieldMapping = {
 
   // Third Party Confirmation (TPC)
   tpcMetPerson1: 'tpc_met_person1',
-  nameOfTpc1: 'tpc_name1',
+  tpcName1: 'tpc_name1',
   tpcConfirmation1: 'tpc_confirmation1',
   tpcMetPerson2: 'tpc_met_person2',
-  nameOfTpc2: 'tpc_name2',
+  tpcName2: 'tpc_name2',
   tpcConfirmation2: 'tpc_confirmation2',
 
   // Shifted specific fields

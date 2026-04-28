@@ -245,6 +245,16 @@ export class VerificationAttachmentController {
     try {
       const taskId = String(req.params.taskId || '');
       const { verificationType, submissionId, geoLocation, photoType = 'verification' } = req.body;
+      // 2026-04-28 deep-audit fix (D6/D17): mobile-supplied SHA-256 of the
+      // file bytes at capture time. Validated below before persistence:
+      // must be 64 lowercase hex chars or null. Anything else is rejected
+      // (drop-on-floor — null persisted) so a malformed/typo'd field
+      // can't poison the audit trail.
+      const rawClientSha256 = req.body?.clientSha256;
+      const clientSha256: string | null =
+        typeof rawClientSha256 === 'string' && /^[0-9a-f]{64}$/.test(rawClientSha256)
+          ? rawClientSha256
+          : null;
 
       const userId = (req as AuthenticatedRequest).user?.id;
       const files = req.files as Express.Multer.File[];
@@ -421,8 +431,9 @@ export class VerificationAttachmentController {
             `INSERT INTO verification_attachments (
               case_id, verification_type, filename, original_name,
               mime_type, file_size, file_path, thumbnail_path, uploaded_by,
-              geo_location, photo_type, submission_id, verification_task_id, operation_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+              geo_location, photo_type, submission_id, verification_task_id, operation_id,
+              sha256_hash
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
             ON CONFLICT (operation_id) WHERE operation_id IS NOT NULL
             DO UPDATE SET operation_id = EXCLUDED.operation_id
             RETURNING id, filename, original_name, mime_type, file_size, file_path,
@@ -444,6 +455,12 @@ export class VerificationAttachmentController {
               submissionId,
               targetTaskId, // Dual-write: Task ID or NULL
               fileOperationId,
+              // 2026-04-28 deep-audit fix (D6/D17): client-side SHA-256 of
+              // file bytes from mobile capture. Wires the previously-dead
+              // `sha256_hash` column. Companion `server_sha256_hash` and
+              // `hash_verified` are not yet populated (server-side re-hash
+              // is a follow-up — adds compare-on-receive + boolean flag).
+              clientSha256,
             ]
           );
 

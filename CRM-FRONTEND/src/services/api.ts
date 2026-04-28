@@ -503,7 +503,8 @@ class ApiService {
     throw lastError;
   }
 
-  // Raw methods that return full AxiosResponse (for compatibility with enterpriseApiClient)
+  // Raw methods that return full AxiosResponse (callers needing headers/status,
+  // not just the body). 2026-04-27: enterpriseApiClient.ts deleted as dead code.
   async getRaw<T>(
     url: string,
     params?: unknown,

@@ -174,10 +174,10 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           doorColor: residenceData.doorColor,
           documentType: residenceData.documentType,
           tpcMetPerson1: residenceData.tpcMetPerson1,
-          nameOfTpc1: residenceData.tpcName1,
+          tpcName1: residenceData.tpcName1,
           tpcConfirmation1: residenceData.tpcConfirmation1,
           tpcMetPerson2: residenceData.tpcMetPerson2,
-          nameOfTpc2: residenceData.tpcName2,
+          tpcName2: residenceData.tpcName2,
           tpcConfirmation2: residenceData.tpcConfirmation2,
           landmark1: residenceData.landmark1,
           landmark2: residenceData.landmark2,
@@ -206,7 +206,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           // Nameplates & documents
           companyNamePlateStatus: residenceData.companyNamePlateStatus,
           nameOnBoard: residenceData.nameOnBoard,
-          documentShownStatus: residenceData.documentShownStatus,
+          documentShown: residenceData.documentShown,
           // Status fields
           recommendationStatus: residenceData.recommendationStatus,
         };
@@ -232,7 +232,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           addressRating: officeData.addressRating,
           officeStatus: officeData.officeStatus,
           metPersonName: officeData.metPersonName,
-          designation: officeData.designation,
+          metPersonDesignation: officeData.metPersonDesignation,
           workingPeriod: officeData.workingPeriod,
           applicantDesignation: officeData.applicantDesignation,
           applicantWorkingPremises: officeData.applicantWorkingPremises,
@@ -249,10 +249,10 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           addressStructureColor: officeData.addressStructureColor,
           doorColor: officeData.doorColor,
           tpcMetPerson1: officeData.tpcMetPerson1,
-          nameOfTpc1: officeData.tpcName1,
+          tpcName1: officeData.tpcName1,
           tpcConfirmation1: officeData.tpcConfirmation1,
           tpcMetPerson2: officeData.tpcMetPerson2,
-          nameOfTpc2: officeData.tpcName2,
+          tpcName2: officeData.tpcName2,
           tpcConfirmation2: officeData.tpcConfirmation2,
           landmark1: officeData.landmark1,
           landmark2: officeData.landmark2,
@@ -338,7 +338,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           staffSeen: businessData.staffSeen,
           // Person details
           metPersonName: businessData.metPersonName,
-          designation: businessData.designation,
+          metPersonDesignation: businessData.metPersonDesignation,
           applicantDesignation: businessData.applicantDesignation,
           workingPeriod: businessData.workingPeriod,
           workingStatus: businessData.workingStatus,
@@ -356,10 +356,10 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           documentType: businessData.documentType,
           // TPC
           tpcMetPerson1: businessData.tpcMetPerson1,
-          nameOfTpc1: businessData.tpcName1,
+          tpcName1: businessData.tpcName1,
           tpcConfirmation1: businessData.tpcConfirmation1,
           tpcMetPerson2: businessData.tpcMetPerson2,
-          nameOfTpc2: businessData.tpcName2,
+          tpcName2: businessData.tpcName2,
           tpcConfirmation2: businessData.tpcConfirmation2,
           // Shifted
           shiftedPeriod: businessData.shiftedPeriod,
@@ -418,7 +418,8 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           workingPeriod: rcData.workingPeriod,
           approxArea: rcData.approxArea,
           // Res-cum-Office-specific spec fields (added 2026-04-18)
-          resiCumOfficeStatus: rcData.houseStatus || rcData.officeStatus,
+          resiCumOfficeStatus:
+            rcData.resiCumOfficeStatus || rcData.houseStatus || rcData.officeStatus,
           residenceSetup: rcData.residenceSetup,
           businessSetup: rcData.businessSetup,
           businessStatus: rcData.businessStatus,
@@ -427,7 +428,10 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           companyName: rcData.companyName,
           // Office fields
           officeType: rcData.officeType,
-          designation: rcData.designation,
+          // 2026-04-28: dropped `designation: rcData.designation` — RCO never
+          // captured designation (mobile form has metPersonRelation, not
+          // metPersonDesignation). Live DB has no `designation` column. Read
+          // was always undefined.
           applicantDesignation: rcData.applicantDesignation,
           companyNatureOfBusiness: rcData.companyNatureOfBusiness,
           businessPeriod: rcData.businessPeriod,
@@ -452,14 +456,14 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           addressStructureColor: rcData.addressStructureColor,
           doorColor: rcData.doorColor,
           // Document
-          documentShownStatus: rcData.documentShownStatus,
+          documentShown: rcData.documentShown,
           documentType: rcData.documentType,
           // TPC
           tpcMetPerson1: rcData.tpcMetPerson1,
-          nameOfTpc1: rcData.tpcName1,
+          tpcName1: rcData.tpcName1,
           tpcConfirmation1: rcData.tpcConfirmation1,
           tpcMetPerson2: rcData.tpcMetPerson2,
-          nameOfTpc2: rcData.tpcName2,
+          tpcName2: rcData.tpcName2,
           tpcConfirmation2: rcData.tpcConfirmation2,
           // Entry restricted
           nameOfMetPerson: rcData.metPersonName,
@@ -534,7 +538,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           staffSeen: builderData.staffSeen,
           // Person details
           metPersonName: builderData.metPersonName,
-          designation: builderData.designation,
+          metPersonDesignation: builderData.metPersonDesignation,
           applicantDesignation: builderData.applicantDesignation,
           workingPeriod: builderData.workingPeriod,
           workingStatus: builderData.workingStatus,
@@ -545,10 +549,10 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           documentShown: builderData.documentShown,
           // TPC
           tpcMetPerson1: builderData.tpcMetPerson1,
-          nameOfTpc1: builderData.tpcName1,
+          tpcName1: builderData.tpcName1,
           tpcConfirmation1: builderData.tpcConfirmation1,
           tpcMetPerson2: builderData.tpcMetPerson2,
-          nameOfTpc2: builderData.tpcName2,
+          tpcName2: builderData.tpcName2,
           tpcConfirmation2: builderData.tpcConfirmation2,
           // Entry restricted
           nameOfMetPerson: builderData.metPersonName,
@@ -642,10 +646,10 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           documentVerificationStatus: nocData.documentVerificationStatus,
           // TPC
           tpcMetPerson1: nocData.tpcMetPerson1,
-          nameOfTpc1: nocData.tpcName1,
+          tpcName1: nocData.tpcName1,
           tpcConfirmation1: nocData.tpcConfirmation1,
           tpcMetPerson2: nocData.tpcMetPerson2,
-          nameOfTpc2: nocData.tpcName2,
+          tpcName2: nocData.tpcName2,
           tpcConfirmation2: nocData.tpcConfirmation2,
           // Shifted/Contact
           shiftedPeriod: nocData.shiftedPeriod,
@@ -716,7 +720,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           businessType: dsaData.businessType,
           businessRegistrationNumber: dsaData.businessRegistrationNumber,
           businessEstablishmentYear: dsaData.businessEstablishmentYear,
-          businessOperational: dsaData.businessOperational,
+          businessExistence: dsaData.businessExistence,
           businessHours: dsaData.businessHours,
           weekendOperations: dsaData.weekendOperations,
           customerFootfall: dsaData.customerFootfall,
@@ -757,10 +761,10 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           metPersonContact: dsaData.metPersonContact,
           // TPC
           tpcMetPerson1: dsaData.tpcMetPerson1,
-          nameOfTpc1: dsaData.tpcName1,
+          tpcName1: dsaData.tpcName1,
           tpcConfirmation1: dsaData.tpcConfirmation1,
           tpcMetPerson2: dsaData.tpcMetPerson2,
-          nameOfTpc2: dsaData.tpcName2,
+          tpcName2: dsaData.tpcName2,
           tpcConfirmation2: dsaData.tpcConfirmation2,
           // DSA Positive xlsx fields
           ownershipType: dsaData.ownershipType,
@@ -904,7 +908,8 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           metPersonType: propertyData.metPersonDesignation,
           metPersonRelation: propertyData.metPersonRelation,
           metPersonContact: propertyData.metPersonContact,
-          designation: propertyData.designation,
+          // 2026-04-27: Property APF `designation` column dropped (Path A unification);
+          // canonical key is metPersonDesignation above.
           nameOfMetPerson: propertyData.metPersonName,
           metPersonConfirmation: propertyData.metPersonConfirmation,
           // Document
@@ -913,10 +918,10 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           documentVerificationStatus: propertyData.documentVerificationStatus,
           // TPC
           tpcMetPerson1: propertyData.tpcMetPerson1,
-          nameOfTpc1: propertyData.tpcName1,
+          tpcName1: propertyData.tpcName1,
           tpcConfirmation1: propertyData.tpcConfirmation1,
           tpcMetPerson2: propertyData.tpcMetPerson2,
-          nameOfTpc2: propertyData.tpcName2,
+          tpcName2: propertyData.tpcName2,
           tpcConfirmation2: propertyData.tpcConfirmation2,
           // Legal
           legalClearance: propertyData.legalClearance,
@@ -1040,10 +1045,10 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           localityReputation: propertyData.localityReputation,
           // TPC
           tpcMetPerson1: propertyData.tpcMetPerson1,
-          nameOfTpc1: propertyData.tpcName1,
+          tpcName1: propertyData.tpcName1,
           tpcConfirmation1: propertyData.tpcConfirmation1,
           tpcMetPerson2: propertyData.tpcMetPerson2,
-          nameOfTpc2: propertyData.tpcName2,
+          tpcName2: propertyData.tpcName2,
           tpcConfirmation2: propertyData.tpcConfirmation2,
           // Landmarks
           landmark1: propertyData.landmark1,

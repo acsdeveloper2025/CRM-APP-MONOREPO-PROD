@@ -33,7 +33,10 @@ export const PROPERTY_INDIVIDUAL_FIELD_MAPPING: DatabaseFieldMapping = {
 
   // Building and property status fields (from mobile form)
   buildingStatus: 'property_status', // Map building status to property status
-  flatStatus: 'premises_status', // Map flat status to premises status
+  // 2026-04-27 PI POSITIVE correction: flatStatus is its OWN column (matches
+  // residence house_status / office office_status pattern). Was incorrectly
+  // overloaded onto premises_status — fixed to dedicated flat_status column.
+  flatStatus: 'flat_status',
 
   // Landmarks (Common to all forms, untraceable may have more)
   landmark1: 'landmark1',
@@ -42,11 +45,8 @@ export const PROPERTY_INDIVIDUAL_FIELD_MAPPING: DatabaseFieldMapping = {
   landmark4: 'landmark4', // Used in untraceable forms
 
   // Property-specific fields (Form specific)
-  propertyStatus: 'property_status', // Used in POSITIVE, NSP forms
-  propertyArea: 'property_area', // Used in POSITIVE forms
-
-  // Individual owner details
-  ownerName: 'owner_name',
+  // 2026-04-27 F1 dead-alias prune: dropped propertyStatus/propertyArea/ownerName
+  // — mobile sends canonical buildingStatus/approxArea/propertyOwnerName covered below.
 
   // Property documents
 
@@ -55,16 +55,20 @@ export const PROPERTY_INDIVIDUAL_FIELD_MAPPING: DatabaseFieldMapping = {
   metPersonDesignation: 'met_person_designation',
   metPersonRelation: 'met_person_relation',
   nameOfMetPerson: 'met_person_name', // Entry Restricted form field
-  metPersonConfirmation: 'security_confirmation', // Entry Restricted form field
+  // 2026-04-27 ERT correction: metPersonConfirmation is its OWN column
+  // (matches residence/rco/office/business/builder/noc/property_apf pattern).
+  // Was incorrectly overloaded onto security_confirmation — fixed to dedicated
+  // met_person_confirmation column.
+  metPersonConfirmation: 'met_person_confirmation',
 
   // Neighbors and locality
 
   // Third Party Confirmation (TPC)
   tpcMetPerson1: 'tpc_met_person1',
-  nameOfTpc1: 'tpc_name1',
+  tpcName1: 'tpc_name1',
   tpcConfirmation1: 'tpc_confirmation1',
   tpcMetPerson2: 'tpc_met_person2',
-  nameOfTpc2: 'tpc_name2',
+  tpcName2: 'tpc_name2',
   tpcConfirmation2: 'tpc_confirmation2',
 
   // Shifted specific fields
@@ -92,17 +96,20 @@ export const PROPERTY_INDIVIDUAL_FIELD_MAPPING: DatabaseFieldMapping = {
   otherObservation: 'other_observation',
 
   // Legacy/alternative field names and mobile app specific fields
-  metPerson: 'met_person_name', // Maps to met person name
-  propertyOwner: 'owner_name', // Maps to owner name
-  propertyOwnerName: 'owner_name', // Maps property owner name to owner name
-  neighborFeedback: 'feedback_from_neighbour', // Maps to neighbor feedback
+  // 2026-04-27 F1 dead-alias prune: dropped `metPerson` (use canonical metPersonName),
+  // `propertyOwner` (use canonical propertyOwnerName), `neighborFeedback` (use
+  // canonical feedbackFromNeighbour). Not in mobile SSOT.
+  propertyOwnerName: 'owner_name', // Mobile canonical → DB owner_name column
   verificationMethod: null, // Derived field, ignore
-  relationship: 'met_person_relation', // Maps to met person relation
-  approxArea: 'property_area', // Maps to property area
+  relationship: 'met_person_relation', // Mobile canonical → DB met_person_relation
+  approxArea: 'property_area', // Mobile canonical → DB property_area
 
   // Mobile app specific fields mapped to DB equivalents
   metPersonStatus: null, // No direct DB column, ignore
-  metPersonType: 'met_person_designation', // ERT met person role (Security/Receptionist)
+  // 2026-04-27 ERT correction: metPersonType is its OWN column (matches
+  // residence/rco/office/business/builder/noc pattern). Previously overloaded
+  // onto met_person_designation — fixed to dedicated met_person_type column.
+  metPersonType: 'met_person_type',
 
   // Property Individual Positive xlsx fields
   addressExistAt: 'address_exist_at',
@@ -161,32 +168,34 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
   POSITIVE: [
     'address_locatable',
     'address_rating',
-    'property_status',
+    'property_status', // building_status overload
     'property_area',
-    // 2026-04-26: dropped 'contact_number', 'document_shown', 'document_type' —
-    //   not columns on property_individual_verification_reports.
+    'flat_status', // 2026-04-27: flatStatus moved off premises_status overload
+    'owner_name',
     'met_person_name',
     'met_person_relation',
-    // 2026-04-26: column renamed; was 'designation'
-    'met_person_designation',
     'locality',
     'address_structure',
+    'address_exist_at',
+    'address_structure_color',
+    'door_color',
+    'door_name_plate_status',
+    'name_on_door_plate',
+    'society_name_plate',
+    'name_on_society_board',
     'political_connection',
     'dominated_area',
     'feedback_from_neighbour',
     'other_observation',
     'final_status',
-    'address_structure_color',
-    'door_color',
     'landmark1',
     'landmark2',
     'tpc_met_person1',
-    // 2026-04-26: column renamed; was 'name_of_tpc1'
     'tpc_name1',
     'tpc_confirmation1',
-    // 2026-04-26: dropped 'reference1_name', 'reference1_contact' —
-    //   not columns on property_individual_verification_reports.
-    'premises_status',
+    'tpc_met_person2',
+    'tpc_name2',
+    'tpc_confirmation2',
   ],
   SHIFTED: [
     'address_locatable',
@@ -232,8 +241,11 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     'address_rating',
     // 2026-04-26: column renamed; was 'name_of_met_person'
     'met_person_name',
-    // 2026-04-26: dropped 'met_person_type', 'met_person_confirmation' —
-    //   not columns on property_individual_verification_reports.
+    // 2026-04-27 ERT correction: met_person_type column added (was missing).
+    //   Mobile sends `metPersonType` (Security/Receptionist).
+    'met_person_type',
+    // 2026-04-27 ERT correction: met_person_confirmation column added.
+    'met_person_confirmation',
     'locality',
     'address_structure',
     'political_connection',
@@ -272,9 +284,15 @@ export function ensureAllPropertyIndividualFieldsPopulated(
     'address_rating',
     'locality',
     'address_structure',
+    'address_exist_at',
     'address_structure_color',
     'door_color',
     'premises_status',
+    'flat_status', // 2026-04-27: flatStatus dedicated column (was premises_status overload)
+    'door_name_plate_status',
+    'name_on_door_plate',
+    'society_name_plate',
+    'name_on_society_board',
 
     // Landmarks
     'landmark1',
@@ -285,6 +303,7 @@ export function ensureAllPropertyIndividualFieldsPopulated(
     // Property-specific fields
     'property_status',
     'property_area',
+    'owner_name',
 
     // Individual/Personal details
 
@@ -296,6 +315,10 @@ export function ensureAllPropertyIndividualFieldsPopulated(
     'met_person_name',
     'met_person_relation',
     'met_person_designation',
+    // 2026-04-27 ERT correction: met_person_type column added (was missing).
+    'met_person_type',
+    // 2026-04-27 ERT correction: met_person_confirmation column added.
+    'met_person_confirmation',
 
     // Third Party Confirmation
     'tpc_met_person1',

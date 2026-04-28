@@ -48,9 +48,9 @@ export const BUILDER_FIELD_MAPPING: DatabaseFieldMapping = {
   addressStatus: 'address_status', // Used in POSITIVE forms
   nameOfCompanyOwners: 'builder_owner_name', // Maps to builder_owner_name
   approxArea: 'office_approx_area', // Alias for officeApproxArea
-  businessExistance: 'office_existence', // Mobile variant (maps to office_existence)
-  businessExistStatus: 'office_existence', // ERT variant (maps to office_existence)
-  applicantExistance: 'applicant_working_status', // Mobile variant
+  businessExistance: 'office_existence', // NSP variant (Exist/Does Not Exist)
+  businessExistsStatus: 'business_exists_status', // Builder ERT — dedicated column (split from office_existence)
+  applicantExistance: 'applicant_existence', // Builder NSP — dedicated column (split from applicant_working_status)
   companyNatureOfBusiness: 'company_nature_of_business', // Used in POSITIVE forms
   businessPeriod: 'business_period', // Used in POSITIVE forms
   officeApproxArea: 'office_approx_area', // Used in POSITIVE forms
@@ -60,7 +60,11 @@ export const BUILDER_FIELD_MAPPING: DatabaseFieldMapping = {
   // Builder/Person details (Form specific)
   metPerson: 'met_person_name', // Used in POSITIVE, SHIFTED, NSP forms
   metPersonName: 'met_person_name', // Alternative field name
-  designation: 'designation',
+  // 2026-04-27: Builder mobile field renamed `designation` → `metPersonDesignation`,
+  // DB column renamed `designation` → `met_person_designation` (Path A unification).
+  // Legacy `designation` LHS kept for grace period.
+  designation: 'met_person_designation',
+  metPersonDesignation: 'met_person_designation',
   builderOwnerName: 'builder_owner_name',
 
   // Document verification
@@ -68,10 +72,10 @@ export const BUILDER_FIELD_MAPPING: DatabaseFieldMapping = {
 
   // Third Party Confirmation (TPC)
   tpcMetPerson1: 'tpc_met_person1',
-  nameOfTpc1: 'tpc_name1',
+  tpcName1: 'tpc_name1',
   tpcConfirmation1: 'tpc_confirmation1',
   tpcMetPerson2: 'tpc_met_person2',
-  nameOfTpc2: 'tpc_name2',
+  tpcName2: 'tpc_name2',
   tpcConfirmation2: 'tpc_confirmation2',
 
   // Shifted builder specific fields
@@ -145,7 +149,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     'address_rating',
     'office_status',
     'met_person_name',
-    'designation',
+    'met_person_designation',
     'builder_type',
     'company_nature_of_business',
     'staff_strength',
@@ -182,7 +186,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     'address_rating',
     'office_status',
     'met_person_name',
-    'designation',
+    'met_person_designation',
     'current_company_name',
     'old_office_shifted_period',
     'locality',
@@ -204,8 +208,9 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     'address_rating',
     'office_status',
     'office_existence',
+    'applicant_existence',
     'met_person_name',
-    'designation',
+    'met_person_designation',
     'locality',
     'address_structure',
     'political_connection',
@@ -291,7 +296,7 @@ export function ensureAllBuilderFieldsPopulated(
 
     // Person details
     'met_person_name',
-    'designation',
+    'met_person_designation',
     'current_company_name',
     'old_office_shifted_period',
     // Removed 2026-04-19: applicant_working_premises — not a column on
@@ -322,6 +327,8 @@ export function ensureAllBuilderFieldsPopulated(
     'met_person_type',
     'met_person_confirmation',
     'applicant_working_status',
+    'applicant_existence',
+    'business_exists_status',
 
     // Untraceable specific fields
     'contact_person',

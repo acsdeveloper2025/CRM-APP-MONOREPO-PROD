@@ -289,7 +289,7 @@ export const FORM_TYPE_INDICATORS: Record<string, FormTypeIndicators> = {
       'totalFamilyMembers',
       'workingStatus',
       'stayingStatus',
-      'documentShownStatus',
+      'documentShown',
     ],
     shiftedIndicators: [
       'shiftedPeriod',
@@ -346,7 +346,7 @@ export const FORM_TYPE_INDICATORS: Record<string, FormTypeIndicators> = {
       'premisesStatus',
       'previousBusinessAddress',
     ],
-    nspIndicators: ['businessOperational', 'temporaryBusiness', 'seasonalBusiness'],
+    nspIndicators: ['businessExistance', 'temporaryBusiness', 'seasonalBusiness'],
     entryRestrictedIndicators: ['entryRestrictionReason', 'securityPersonName', 'restrictedAccess'],
     untraceableIndicators: ['callRemark', 'contactPerson', 'businessClosed', 'phoneNotReachable'],
   },
@@ -425,7 +425,7 @@ export const FORM_TYPE_INDICATORS: Record<string, FormTypeIndicators> = {
       'monthlyBusinessVolume',
     ],
     shiftedIndicators: ['shiftedPeriod', 'currentLocation', 'premisesStatus', 'businessShifted'],
-    nspIndicators: ['businessOperational', 'temporaryBusiness', 'connectorStatus'],
+    nspIndicators: ['businessExistance', 'temporaryBusiness', 'connectorStatus'],
     entryRestrictedIndicators: ['entryRestrictionReason', 'securityPersonName', 'officeRestricted'],
     untraceableIndicators: [
       'callRemark',

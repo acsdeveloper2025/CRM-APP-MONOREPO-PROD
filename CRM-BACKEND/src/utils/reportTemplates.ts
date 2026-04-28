@@ -163,7 +163,7 @@ export const VERIFICATION_TYPES: Record<string, VerificationTypeConfig> = {
       'negativeNeighborFeedback',
     ],
     successCriteria: [
-      'businessOperational',
+      'businessExistance',
       'applicantPresent',
       'documentVerified',
       'positiveNeighborFeedback',
