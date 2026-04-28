@@ -44,15 +44,18 @@ export const DSA_CONNECTOR_FIELD_MAPPING: DatabaseFieldMapping = {
 
   // Mobile field aliases (mobile sends these for DSA forms)
   designation: 'met_person_designation',
-  metPersonType: 'met_person_designation',
-  businessExistStatus: 'business_exist_status',
+  // 2026-04-27 ERT correction: metPersonType is its OWN column (matches
+  // residence/rco/office/business/builder/noc pattern). Previously overloaded
+  // onto met_person_designation — fixed to dedicated met_person_type column.
+  metPersonType: 'met_person_type',
+  businessExistsStatus: 'business_exists_status',
   applicantStayingFloor: 'applicant_staying_floor',
   approxArea: 'office_area',
   officeApproxArea: 'office_area',
   staffStrength: 'total_staff',
   staffSeen: 'staff_seen',
   metPersonConfirmation: 'security_confirmation',
-  businessExistance: 'business_operational',
+  businessExistance: 'business_existence',
   applicantExistance: 'applicant_existence',
   oldOfficeShiftedPeriod: 'shifted_period',
 
@@ -83,15 +86,12 @@ export const DSA_CONNECTOR_FIELD_MAPPING: DatabaseFieldMapping = {
   metPersonName: 'met_person_name',
   metPersonDesignation: 'met_person_designation',
 
-  // Business verification
-  businessOperational: 'business_operational',
-
   // Third Party Confirmation (TPC)
   tpcMetPerson1: 'tpc_met_person1',
-  nameOfTpc1: 'tpc_name1',
+  tpcName1: 'tpc_name1',
   tpcConfirmation1: 'tpc_confirmation1',
   tpcMetPerson2: 'tpc_met_person2',
-  nameOfTpc2: 'tpc_name2',
+  tpcName2: 'tpc_name2',
   tpcConfirmation2: 'tpc_confirmation2',
 
   // Shifted specific fields
@@ -231,8 +231,9 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     'address_rating',
     // 2026-04-26: column renamed; was 'name_of_met_person'
     'met_person_name',
-    // 2026-04-26: dropped 'met_person_type', 'met_person_confirmation' —
-    //   not columns on dsa_connector_verification_reports.
+    // 2026-04-27 ERT correction: met_person_type column added to dsa_connector
+    //   table (was missing). Mobile sends `metPersonType` (Security/Receptionist).
+    'met_person_type',
     'locality',
     'address_structure',
     'political_connection',
@@ -314,8 +315,8 @@ export function ensureAllDsaConnectorFieldsPopulated(
     'met_person_name',
     'met_person_designation',
 
-    // Business operational
-    'business_operational',
+    // Business existence
+    'business_existence',
 
     // Address/nameplate (DSA-specific)
     'address_status',
@@ -345,10 +346,10 @@ export function ensureAllDsaConnectorFieldsPopulated(
 
     // Market presence
 
-    // ERT — DSA table only has business_exist_status. The other ERT fields
-    // (nameOfMetPerson, metPersonType, metPersonConfirmation, applicantWorkingStatus)
-    // are aliased via mapping to security_person_name / met_person_designation
-    // / security_confirmation / applicant_working_status (which also doesn't exist).
+    // ERT
+    // 2026-04-27: met_person_type column added (was the same overload bug as
+    // Property APF). DSA ERT mobile sends `metPersonType` (Security/Receptionist).
+    'met_person_type',
     'business_exist_status',
 
     // Environment and area details

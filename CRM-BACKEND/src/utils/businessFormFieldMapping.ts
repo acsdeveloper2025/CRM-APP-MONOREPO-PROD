@@ -63,7 +63,11 @@ export const BUSINESS_FIELD_MAPPING: DatabaseFieldMapping = {
   // Owner/Person details
   metPerson: 'met_person_name',
   metPersonName: 'met_person_name',
-  designation: 'designation',
+  // 2026-04-27: Business mobile field renamed `designation` → `metPersonDesignation`,
+  // DB column renamed `designation` → `met_person_designation` (Path A unification).
+  // Legacy `designation` LHS kept for grace period.
+  designation: 'met_person_designation',
+  metPersonDesignation: 'met_person_designation',
   nameOfCompanyOwners: 'name_of_company_owners',
 
   // Document verification
@@ -71,19 +75,17 @@ export const BUSINESS_FIELD_MAPPING: DatabaseFieldMapping = {
 
   // Third Party Confirmation (TPC)
   tpcMetPerson1: 'tpc_met_person1',
-  nameOfTpc1: 'tpc_name1',
+  tpcName1: 'tpc_name1',
   tpcConfirmation1: 'tpc_confirmation1',
   tpcMetPerson2: 'tpc_met_person2',
-  nameOfTpc2: 'tpc_name2',
+  tpcName2: 'tpc_name2',
   tpcConfirmation2: 'tpc_confirmation2',
 
-  // Mobile sends officeStatus for Business forms (maps to business_status)
-  officeStatus: 'business_status',
   // Alias: mobile sends approxArea for Business (maps to business_approx_area)
   approxArea: 'business_approx_area',
   // Mobile field variants
-  applicantExistance: 'applicant_working_status',
-  businessExistStatus: 'business_existence',
+  applicantExistance: 'applicant_existence',
+  businessExistsStatus: 'business_exists_status',
   oldOfficeShiftedPeriod: 'old_business_shifted_period',
 
   // Shifted business specific fields
@@ -160,7 +162,7 @@ export function validateBusinessRequiredFields(
       'addressRating',
       'businessStatus',
       'metPerson',
-      'designation',
+      'metPersonDesignation',
       'businessType',
       'nameOfCompanyOwners',
       'ownershipType',
@@ -181,7 +183,7 @@ export function validateBusinessRequiredFields(
       'addressRating',
       'businessStatus',
       'metPerson',
-      'designation',
+      'metPersonDesignation',
       'currentCompanyName',
       'oldBusinessShiftedPeriod',
       'locality',
@@ -198,7 +200,7 @@ export function validateBusinessRequiredFields(
       'businessStatus',
       'businessExistence',
       'metPerson',
-      'designation',
+      'metPersonDesignation',
       'locality',
       'addressStructure',
       'dominatedArea',
@@ -246,8 +248,8 @@ export function validateBusinessRequiredFields(
     if (eqCI(formData.businessStatus, 'Open') && !formData.staffSeen) {
       warnings.push('staffSeen should be specified when business is opened');
     }
-    if (eqCI(formData.tpcMetPerson1, 'Yes') && !formData.nameOfTpc1) {
-      warnings.push('nameOfTpc1 should be specified when tpcMetPerson1 is Yes');
+    if (eqCI(formData.tpcMetPerson1, 'Yes') && !formData.tpcName1) {
+      warnings.push('tpcName1 should be specified when tpcMetPerson1 is Yes');
     }
   }
 
@@ -274,7 +276,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     'address_rating',
     'business_status',
     'met_person_name',
-    'designation',
+    'met_person_designation',
     'business_type',
     'ownership_type',
     'company_nature_of_business',
@@ -306,7 +308,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     'address_rating',
     'business_status',
     'met_person_name',
-    'designation',
+    'met_person_designation',
     'current_company_name',
     'old_business_shifted_period',
     'locality',
@@ -328,8 +330,9 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     'address_rating',
     'business_status',
     'business_existence',
+    'applicant_existence',
     'met_person_name',
-    'designation',
+    'met_person_designation',
     'locality',
     'address_structure',
     'political_connection',
@@ -352,6 +355,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     'met_person_type',
     'met_person_confirmation',
     'applicant_working_status',
+    'business_exists_status',
     'locality',
     'address_structure',
     'political_connection',
@@ -417,7 +421,7 @@ export function ensureAllBusinessFieldsPopulated(
 
     // Person details
     'met_person_name',
-    'designation',
+    'met_person_designation',
     'current_company_name',
     'old_business_shifted_period',
 
@@ -439,6 +443,8 @@ export function ensureAllBusinessFieldsPopulated(
     'met_person_type',
     'met_person_confirmation',
     'applicant_working_status',
+    'applicant_existence',
+    'business_exists_status',
 
     // Untraceable specific fields
     'contact_person',

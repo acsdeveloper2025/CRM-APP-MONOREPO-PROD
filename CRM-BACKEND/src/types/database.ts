@@ -216,7 +216,7 @@ export interface ResidenceVerificationRow {
   companyName?: string;
   stayingPeriod?: string;
   stayingStatus?: string;
-  documentShownStatus?: string;
+  documentShown?: string;
   documentType?: string;
   locality?: string;
   addressStructure?: string;

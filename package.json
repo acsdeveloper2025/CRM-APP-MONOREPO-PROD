@@ -25,6 +25,10 @@
     "CRM-BACKEND/src/**/*.ts": [
       "cd CRM-BACKEND && npm run lint:fix",
       "cd CRM-BACKEND && npx prettier --write"
+    ],
+    "crm-mobile-native/src/**/*.{ts,tsx}": [
+      "cd crm-mobile-native && npm run lint:fix",
+      "cd crm-mobile-native && npx prettier --write"
     ]
   }
 }

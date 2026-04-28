@@ -1116,7 +1116,7 @@ export class MobileFormController {
       formData.companyName = report.companyName;
       formData.stayingPeriod = report.stayingPeriod;
       formData.stayingStatus = report.stayingStatus;
-      formData.documentShownStatus = report.documentShownStatus;
+      formData.documentShown = report.documentShown;
       formData.documentType = report.documentType;
       formData.doorColor = report.doorColor;
       formData.doorNamePlateStatus = report.doorNamePlateStatus;
@@ -1134,10 +1134,10 @@ export class MobileFormController {
 
       // TPC (Third Party Confirmation) fields
       formData.tpcMetPerson1 = report.tpcMetPerson1;
-      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcName1 = report.tpcName1;
       formData.tpcConfirmation1 = report.tpcConfirmation1;
       formData.tpcMetPerson2 = report.tpcMetPerson2;
-      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcName2 = report.tpcName2;
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Form type specific fields
@@ -1154,9 +1154,11 @@ export class MobileFormController {
 
       // Assessment
     } else if (normalizedType === 'OFFICE') {
-      formData.designation = report.designation;
+      // 2026-04-27: column unified to met_person_designation; mobile field renamed.
+      formData.metPersonDesignation = report.metPersonDesignation;
       formData.applicantDesignation = report.applicantDesignation;
       formData.officeStatus = report.officeStatus;
+      formData.officeExistsStatus = report.officeExistsStatus;
       formData.officeExistence = report.officeExistence;
       formData.officeType = report.officeType;
       formData.companyNatureOfBusiness = report.companyNatureOfBusiness;
@@ -1173,10 +1175,10 @@ export class MobileFormController {
       formData.companyNamePlateStatus = report.companyNamePlateStatus;
       formData.nameOnBoard = report.nameOnBoard;
       formData.tpcMetPerson1 = report.tpcMetPerson1;
-      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcName1 = report.tpcName1;
       formData.tpcConfirmation1 = report.tpcConfirmation1;
       formData.tpcMetPerson2 = report.tpcMetPerson2;
-      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcName2 = report.tpcName2;
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Visual details
@@ -1204,7 +1206,8 @@ export class MobileFormController {
       formData.remarks = report.remarks;
     } else if (normalizedType === 'BUSINESS') {
       // Basic Information
-      formData.designation = report.designation;
+      // 2026-04-27: column unified to met_person_designation; mobile field renamed.
+      formData.metPersonDesignation = report.metPersonDesignation;
 
       // Business Details
       formData.businessStatus = report.businessStatus;
@@ -1212,6 +1215,9 @@ export class MobileFormController {
       formData.companyNatureOfBusiness = report.companyNatureOfBusiness;
       formData.businessPeriod = report.businessPeriod;
       formData.businessExistence = report.businessExistence;
+      formData.businessExistance = report.businessExistence;
+      formData.businessExistsStatus = report.businessExistsStatus;
+      formData.applicantExistance = report.applicantExistence;
       formData.businessApproxArea = report.businessApproxArea;
       formData.staffStrength = report.staffStrength;
       formData.staffSeen = report.staffSeen;
@@ -1234,10 +1240,10 @@ export class MobileFormController {
 
       // TPC Details
       formData.tpcMetPerson1 = report.tpcMetPerson1;
-      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcName1 = report.tpcName1;
       formData.tpcConfirmation1 = report.tpcConfirmation1;
       formData.tpcMetPerson2 = report.tpcMetPerson2;
-      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcName2 = report.tpcName2;
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Shifting Details
@@ -1276,10 +1282,11 @@ export class MobileFormController {
       // APF Details
 
       // Project Information
+      // 2026-04-27 F5 dead-alias hydration prune: dropped projectCompletionPercentage,
+      // projectStartDate, projectEndDate (legacy aliases not in mobile SSOT). Mobile
+      // SSOT keys: projectCompletionPercent, projectStartedDate, projectCompletionDate.
       formData.projectName = report.projectName;
-      formData.projectCompletionPercentage = report.projectCompletionPercentage;
-      formData.projectStartDate = report.projectStartedDate;
-      formData.projectEndDate = report.projectCompletionDate;
+      formData.projectCompletionPercent = report.projectCompletionPercentage;
       formData.projectStartedDate = report.projectStartedDate;
       formData.projectCompletionDate = report.projectCompletionDate;
       formData.totalFlats = report.totalFlats;
@@ -1297,10 +1304,10 @@ export class MobileFormController {
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpcMetPerson1;
-      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcName1 = report.tpcName1;
       formData.tpcConfirmation1 = report.tpcConfirmation1;
       formData.tpcMetPerson2 = report.tpcMetPerson2;
-      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcName2 = report.tpcName2;
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Builder Information
@@ -1322,23 +1329,38 @@ export class MobileFormController {
       formData.remarks = report.remarks;
 
       // Entry restricted fields (additional)
-      formData.nameOfMetPerson = report.nameOfMetPerson;
+      // 2026-04-27 F5 dead-alias hydration prune: `nameOfMetPerson` column was
+      // renamed to met_person_name (already hydrated above as metPersonName).
+      // ERT canonical key is metPersonName; round-trip alias hydrated below.
+      formData.nameOfMetPerson = report.metPersonName; // ERT round-trip alias
+      formData.metPersonType = report.metPersonType; // ERT — met_person_type is its own column
       formData.metPersonConfirmation = report.metPersonConfirmation;
-      formData.designation = report.designation;
+      // 2026-04-27: dropped `formData.designation = report.designation` —
+      // Property APF mobile field renamed to metPersonDesignation; data lives
+      // in met_person_designation column (hydrated above at line ~1266).
     } else if (normalizedType === 'PROPERTY_INDIVIDUAL') {
       // Basic Information
       formData.customerName = report.customerName;
       formData.metPersonName = report.metPersonName;
       formData.metPersonDesignation = report.metPersonDesignation;
       formData.metPersonRelation = report.metPersonRelation;
+      // 2026-04-27 PI POSITIVE round-trip alias: mobile sends `relationship`
+      // (not `metPersonRelation`); both populated for client redraw.
+      formData.relationship = report.metPersonRelation;
 
       // Address Information
       formData.locality = report.locality;
       formData.addressLocatable = report.addressLocatable;
       formData.addressRating = report.addressRating;
       formData.addressStructure = report.addressStructure;
+      formData.addressExistAt = report.addressExistAt;
       formData.addressStructureColor = report.addressStructureColor;
       formData.doorColor = report.doorColor;
+      formData.doorNamePlateStatus = report.doorNamePlateStatus;
+      formData.nameOnDoorPlate = report.nameOnDoorPlate;
+      // DB column is `society_name_plate` (no `_status` suffix); camelizes to societyNamePlate
+      formData.societyNamePlateStatus = report.societyNamePlate;
+      formData.nameOnSocietyBoard = report.nameOnSocietyBoard;
       formData.landmark1 = report.landmark1;
       formData.landmark2 = report.landmark2;
       formData.landmark3 = report.landmark3;
@@ -1347,9 +1369,14 @@ export class MobileFormController {
       // Property Details
       formData.propertyStatus = report.propertyStatus;
       formData.propertyArea = report.propertyArea;
+      // 2026-04-27 PI POSITIVE round-trip aliases (canonical mobile keys).
+      formData.buildingStatus = report.propertyStatus;
+      formData.flatStatus = report.flatStatus;
+      formData.approxArea = report.propertyArea;
 
       // Owner Information
       formData.ownerName = report.ownerName;
+      formData.propertyOwnerName = report.ownerName; // Mobile canonical alias
 
       // Individual Information
 
@@ -1365,10 +1392,10 @@ export class MobileFormController {
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpcMetPerson1;
-      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcName1 = report.tpcName1;
       formData.tpcConfirmation1 = report.tpcConfirmation1;
       formData.tpcMetPerson2 = report.tpcMetPerson2;
-      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcName2 = report.tpcName2;
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Shifting & Contact Details
@@ -1376,6 +1403,14 @@ export class MobileFormController {
       formData.securityConfirmation = report.securityConfirmation;
       formData.contactPerson = report.contactPerson;
       formData.callRemark = report.callRemark;
+
+      // Entry Restricted (ERT) round-trip aliases
+      // 2026-04-27: PI ERT mobile sends metPersonType (Security/Receptionist) +
+      // metPersonConfirmation (Confirmed/Not Confirmed). Both columns added to
+      // PI table same date (was overload bug onto met_person_designation /
+      // security_confirmation).
+      formData.metPersonType = report.metPersonType;
+      formData.metPersonConfirmation = report.metPersonConfirmation;
 
       // Area Assessment & Reputation
       formData.politicalConnection = report.politicalConnection;
@@ -1389,6 +1424,11 @@ export class MobileFormController {
       formData.customerName = report.customerName;
       formData.metPersonName = report.metPersonName;
       formData.metPersonDesignation = report.metPersonDesignation;
+      formData.designation = report.metPersonDesignation;
+      formData.officeStatus = report.officeStatus;
+      formData.authorisedSignature = report.authorisedSignature;
+      formData.nameOnNoc = report.nameOnNoc;
+      formData.flatNo = report.flatNo;
 
       // Address Information
       formData.locality = report.locality;
@@ -1412,16 +1452,25 @@ export class MobileFormController {
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpcMetPerson1;
-      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcName1 = report.tpcName1;
       formData.tpcConfirmation1 = report.tpcConfirmation1;
       formData.tpcMetPerson2 = report.tpcMetPerson2;
-      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcName2 = report.tpcName2;
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Shifting & Contact Details
       formData.premisesStatus = report.premisesStatus;
       formData.contactPerson = report.contactPerson;
       formData.callRemark = report.callRemark;
+      formData.currentCompanyName = report.currentCompanyName;
+      formData.currentCompanyPeriod = report.currentCompanyPeriod;
+      formData.oldOfficeShiftedPeriod = report.oldOfficeShiftedPeriod;
+      formData.officeApproxArea = report.officeApproxArea;
+      formData.companyNamePlateStatus = report.companyNamePlateStatus;
+      formData.nameOnBoard = report.nameOnBoard;
+      formData.applicantExistance = report.applicantExistence;
+      formData.businessExistance = report.businessExistence;
+      formData.officeExistsStatus = report.officeExistsStatus;
 
       // Clearances & Compliance
 
@@ -1438,7 +1487,8 @@ export class MobileFormController {
       // Basic Information
       formData.customerName = report.customerName;
       formData.metPersonName = report.metPersonName;
-      formData.designation = report.designation;
+      // 2026-04-27: column unified to met_person_designation; mobile field renamed.
+      formData.metPersonDesignation = report.metPersonDesignation;
 
       // Address Information
       formData.locality = report.locality;
@@ -1454,15 +1504,23 @@ export class MobileFormController {
 
       // Builder Information
       formData.builderOwnerName = report.builderOwnerName;
+      formData.nameOfCompanyOwners = report.builderOwnerName;
       formData.builderType = report.builderType;
+      formData.businessType = report.builderType;
       formData.companyNatureOfBusiness = report.companyNatureOfBusiness;
       formData.businessPeriod = report.businessPeriod;
       formData.applicantWorkingStatus = report.applicantWorkingStatus;
+      formData.addressStatus = report.addressStatus;
+      formData.ownershipType = report.ownershipType;
+      formData.applicantExistance = report.applicantExistence;
 
       // Office Information
       formData.officeStatus = report.officeStatus;
       formData.officeExistence = report.officeExistence;
+      formData.businessExistance = report.officeExistence;
+      formData.businessExistsStatus = report.businessExistsStatus;
       formData.officeApproxArea = report.officeApproxArea;
+      formData.approxArea = report.officeApproxArea;
       formData.companyNamePlateStatus = report.companyNamePlateStatus;
       formData.nameOnBoard = report.nameOnBoard;
       formData.addressStructureColor = report.addressStructureColor;
@@ -1477,10 +1535,10 @@ export class MobileFormController {
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpcMetPerson1;
-      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcName1 = report.tpcName1;
       formData.tpcConfirmation1 = report.tpcConfirmation1;
       formData.tpcMetPerson2 = report.tpcMetPerson2;
-      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcName2 = report.tpcName2;
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Entry restricted fields
@@ -1510,6 +1568,8 @@ export class MobileFormController {
       formData.customerName = report.customerName;
       formData.metPersonName = report.metPersonName;
       formData.metPersonDesignation = report.metPersonDesignation;
+      formData.designation = report.metPersonDesignation;
+      formData.officeStatus = report.officeStatus;
 
       // Address Information
       formData.locality = report.locality;
@@ -1527,13 +1587,27 @@ export class MobileFormController {
 
       // Business Information
       formData.businessType = report.businessType;
-      formData.businessOperational = report.businessOperational;
+      formData.businessExistance = report.businessExistence;
+      formData.applicantExistance = report.applicantExistence;
+      formData.businessExistsStatus = report.businessExistsStatus;
+      formData.applicantStayingFloor = report.applicantStayingFloor;
+      formData.businessPeriod = report.businessPeriod;
+      formData.ownershipType = report.ownershipType;
+      formData.nameOfCompanyOwners = report.nameOfCompanyOwners;
+      formData.addressStatus = report.addressStatus;
+      formData.companyNatureOfBusiness = report.companyNatureOfBusiness;
+      formData.activeClient = report.activeClient;
+      formData.companyNamePlateStatus = report.companyNamePlateStatus;
+      formData.nameOnBoard = report.nameOnBoard;
 
       // Office Information
       formData.officeArea = report.officeArea;
+      formData.officeApproxArea = report.officeArea;
 
       // Staff Information
       formData.totalStaff = report.totalStaff;
+      formData.staffStrength = report.totalStaff;
+      formData.staffSeen = report.staffSeen;
 
       // Financial Information
 
@@ -1543,15 +1617,19 @@ export class MobileFormController {
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpcMetPerson1;
-      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcName1 = report.tpcName1;
       formData.tpcConfirmation1 = report.tpcConfirmation1;
       formData.tpcMetPerson2 = report.tpcMetPerson2;
-      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcName2 = report.tpcName2;
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Shifting & Contact Details
       formData.shiftedPeriod = report.shiftedPeriod;
+      formData.oldOfficeShiftedPeriod = report.shiftedPeriod;
       formData.premisesStatus = report.premisesStatus;
+      formData.currentCompanyName = report.currentCompanyName;
+      formData.currentCompanyPeriod = report.currentCompanyPeriod;
+      formData.approxArea = report.officeArea;
       formData.securityConfirmation = report.securityConfirmation;
       formData.contactPerson = report.contactPerson;
       formData.callRemark = report.callRemark;
@@ -1566,6 +1644,9 @@ export class MobileFormController {
       formData.finalStatus = report.finalStatus;
       formData.remarks = report.remarks;
     } else if (normalizedType === 'RESIDENCE_CUM_OFFICE') {
+      // Status (dedicated column, single source of truth)
+      formData.resiCumOfficeStatus = report.resiCumOfficeStatus;
+
       // Basic Information
       formData.metPersonName = report.metPersonName;
       formData.metPersonRelation = report.metPersonRelation;
@@ -1596,9 +1677,23 @@ export class MobileFormController {
       formData.applicantStayingStatus = report.applicantStayingStatus;
       formData.applicantWorkingStatus = report.applicantWorkingStatus;
 
+      // NSP-specific
+      formData.addressTraceable = report.addressTraceable;
+
+      // Setup (Residence + Business)
+      formData.residenceSetup = report.residenceSetup;
+      formData.businessSetup = report.businessSetup;
+
+      // Met Person relation (mobile field 'relation' stored in met_person_relation column)
+      formData.relation = report.metPersonRelation;
+
       // Office Information
       formData.companyNatureOfBusiness = report.companyNatureOfBusiness;
       formData.businessPeriod = report.businessPeriod;
+      formData.businessStatus = report.businessStatus;
+      formData.businessExistsStatus = report.businessExistsStatus;
+      formData.businessLocation = report.sittingLocation;
+      formData.businessOperatingAddress = report.businessOperatingAddress;
       formData.approxArea = report.approxArea;
       formData.sittingLocation = report.sittingLocation;
       formData.companyNamePlateStatus = report.companyNamePlateStatus;
@@ -1607,15 +1702,15 @@ export class MobileFormController {
       // Staff Information
 
       // Document Verification
-      formData.documentShownStatus = report.documentShownStatus;
+      formData.documentShown = report.documentShown;
       formData.documentType = report.documentType;
 
       // Third Party Confirmation
       formData.tpcMetPerson1 = report.tpcMetPerson1;
-      formData.nameOfTpc1 = report.tpcName1;
+      formData.tpcName1 = report.tpcName1;
       formData.tpcConfirmation1 = report.tpcConfirmation1;
       formData.tpcMetPerson2 = report.tpcMetPerson2;
-      formData.nameOfTpc2 = report.tpcName2;
+      formData.tpcName2 = report.tpcName2;
       formData.tpcConfirmation2 = report.tpcConfirmation2;
 
       // Entry restricted fields
@@ -4083,21 +4178,10 @@ export class MobileFormController {
         submissionData.formData
       );
 
-      const { validationResult, preparedData } = validateAndPrepareResidenceCumOfficeForm(
+      const { preparedData } = validateAndPrepareResidenceCumOfficeForm(
         submissionData.formData,
         formType
       );
-
-      if (!validationResult.isValid) {
-        return res.status(400).json({
-          success: false,
-          message: 'Form validation failed',
-          error: {
-            code: 'VALIDATION_FAILED',
-            details: validationResult.missingFields,
-          },
-        });
-      }
 
       const submissionId = `residence_cum_office_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
@@ -4738,21 +4822,10 @@ export class MobileFormController {
         submissionData.formData
       );
 
-      const { validationResult, preparedData } = validateAndPreparePropertyIndividualForm(
+      const { preparedData } = validateAndPreparePropertyIndividualForm(
         submissionData.formData,
         formType
       );
-
-      if (!validationResult.isValid) {
-        return res.status(400).json({
-          success: false,
-          message: 'Form validation failed',
-          error: {
-            code: 'VALIDATION_FAILED',
-            details: validationResult.missingFields,
-          },
-        });
-      }
 
       const submissionId = `property_individual_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
@@ -5888,7 +5961,7 @@ export class MobileFormController {
         metPersonStatus: ['CONFIRMED', 'DENIED', 'UNKNOWN'],
         workingStatus: ['EMPLOYED', 'SELF_EMPLOYED', 'HOUSE_WIFE', 'STUDENT', 'UNEMPLOYED'],
         stayingStatus: ['STAYING', 'SHIFTED', 'TEMPORARY'],
-        documentShownStatus: ['SHOWN', 'NOT_SHOWN'],
+        documentShown: ['SHOWN', 'NOT_SHOWN'],
         documentType: [
           'AADHAAR',
           'PAN',

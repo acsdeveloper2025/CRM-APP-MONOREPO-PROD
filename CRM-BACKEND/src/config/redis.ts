@@ -6,6 +6,12 @@ const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 /** Tracks whether Redis is currently healthy and available */
 let redisHealthy = false;
 
+// 2026-04-28 Medium Fix 8: this is now THE backend's single non-pub/sub
+// Redis client. EnterpriseCacheService imports it instead of creating
+// its own. Socket settings below take the more conservative values
+// previously set inside EnterpriseCacheService (connectTimeout 10s,
+// IPv4 family pin) so the merged client preserves availability bias
+// and dodges IPv6 routing edge cases on managed Redis instances.
 export const redisClient = createClient({
   url: redisUrl,
   password: process.env.REDIS_PASSWORD || undefined,
@@ -19,9 +25,15 @@ export const redisClient = createClient({
       }
       return Math.min(retries * 100, 2000); // Faster reconnection
     },
-    // High-performance socket settings for 2000+ users
-    connectTimeout: 5000, // 5 seconds connection timeout
-    keepAlive: true, // Enable keep-alive
+    // High-performance socket settings for 2000+ users.
+    // 10s timeout favours availability over fast-fail — matches the
+    // value the merged EnterpriseCacheService used.
+    connectTimeout: 10000,
+    keepAlive: true,
+    // Pin IPv4. Some managed Redis providers expose dual-stack DNS
+    // where the AAAA record routes to a path with higher latency or
+    // restricted ACLs; family:4 makes connection deterministic.
+    family: 4,
   },
   // Enhanced performance settings for high concurrency
   commandsQueueMaxLength: 10000, // Increased queue size

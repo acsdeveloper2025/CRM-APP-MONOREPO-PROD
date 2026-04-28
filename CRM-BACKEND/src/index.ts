@@ -25,6 +25,7 @@ import {
   stopMonitoringIntervals,
 } from '@/middleware/performanceMonitoring';
 import { startAuditLogProcessor, stopAuditLogProcessor } from '@/queues/auditLogQueue';
+import { startNotificationProcessor, stopNotificationProcessor } from '@/queues/notificationQueue';
 // Migrations removed for production - use database import instead
 
 const server = createServer(app);
@@ -111,10 +112,17 @@ const startServer = async (): Promise<void> => {
       // per-request hot path.
       startMetricsBatchFlush();
 
-      // Phase D3: attach the bull worker that drains the audit log
-      // queue onto the audit_logs table. Writers enqueue via
+      // Phase D3 (2026-04-28: migrated bull→bullmq, see Medium Fix 7).
+      // Attach the bullmq worker that drains the audit log queue onto
+      // the audit_logs table. Writers enqueue via
       // createAuditLog()/enqueueAuditLog(); this worker persists.
       startAuditLogProcessor();
+
+      // 2026-04-28 Medium Fix 7: notification workers were previously
+      // auto-attached at module-load time inside notificationQueue.ts.
+      // Migrating to bullmq we made the worker lifecycle explicit so
+      // graceful shutdown can drain in-flight jobs deterministically.
+      startNotificationProcessor();
 
       // Schedule periodic cache refresh (every 10 minutes)
       cacheRefreshInterval = setInterval(
@@ -182,9 +190,12 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
       logger.info('WebSocket server closed');
     });
 
-    // Close the audit log bull queue — drains in-flight jobs before
-    // shutting the worker down (Phase D3).
+    // Close the audit log bullmq queue — drains in-flight jobs before
+    // shutting the worker down (Phase D3 + Medium Fix 7).
     await stopAuditLogProcessor();
+
+    // Close the notification bullmq queue + worker.
+    await stopNotificationProcessor();
 
     // Close job queues (allow in-flight jobs to finish)
     await closeQueues();

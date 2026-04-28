@@ -1,6 +1,14 @@
-import { createClient, createCluster, type RedisClientType, type RedisClusterType } from 'redis';
+import { createCluster, type RedisClientType, type RedisClusterType } from 'redis';
 import { config } from '../config';
 import { logger } from '../config/logger';
+import { redisClient } from '../config/redis';
+
+// 2026-04-28 Medium Fix 8: single-instance mode now reuses the singleton
+// `redisClient` from config/redis.ts. Cluster mode (REDIS_CLUSTER_ENABLED)
+// continues to build its own client because RedisClusterType is a
+// structurally different shape (rootNodes, defaults). The boot order
+// guarantees connectRedis() runs before EnterpriseCacheService.initialize()
+// in src/index.ts.
 
 // Enterprise Redis configuration for high-performance caching
 const redisUrl = new URL(config.redisUrl);
@@ -55,22 +63,19 @@ export class EnterpriseCacheService {
         this.redis = this.clusterRedis as unknown as RedisClientType;
         logger.info('Redis Cluster initialized for enterprise scale');
       } else {
-        // Single Redis instance with enterprise optimizations
-        this.redis = createClient({
-          url: config.redisUrl,
-          password: config.redisPassword,
-          socket: {
-            connectTimeout: 10000,
-            family: 4,
-            keepAlive: true,
-          },
-        });
-
-        await this.redis.connect();
-        logger.info('Redis single instance initialized for enterprise scale');
+        // 2026-04-28 Medium Fix 8: reuse the singleton redis client
+        // from config/redis.ts instead of creating a duplicate. The
+        // singleton is already connected by the time this runs (boot
+        // order in src/index.ts: connectRedis() before
+        // EnterpriseCacheService.initialize()), and uses the same
+        // connect timeout / IPv4 family / keep-alive settings.
+        this.redis = redisClient as unknown as RedisClientType;
+        logger.info('Redis single instance initialized for enterprise scale (reusing singleton)');
       }
 
-      // Test connection
+      // Test connection. For the cluster path this is the first ping
+      // on the cluster client; for the singleton path it's a re-ping
+      // confirming the shared client is still live.
       await this.redis.ping();
       this.available = true;
       logger.info('Enterprise cache service initialized successfully');
@@ -364,17 +369,22 @@ export class EnterpriseCacheService {
   }
 
   /**
-   * Close Redis connections
+   * Close Redis connections.
+   *
+   * 2026-04-28 Medium Fix 8: in single-instance mode, `this.redis` is
+   * the shared singleton from config/redis.ts whose lifecycle is owned
+   * by `disconnectRedis()` in src/index.ts graceful shutdown — we MUST
+   * NOT disconnect it here or the rate limiter / health probes / mobile
+   * telemetry would lose their client. Cluster mode still owns its
+   * dedicated client and gets disconnected here.
    */
   static async close(): Promise<void> {
     try {
-      if (this.redis) {
-        await this.redis.disconnect();
-        logger.info('Enterprise cache service closed');
-      }
       if (this.clusterRedis) {
         await this.clusterRedis.disconnect();
         logger.info('Enterprise cache cluster service closed');
+      } else {
+        logger.info('Enterprise cache service closed (singleton client owned by disconnectRedis)');
       }
       this.available = false;
     } catch (error) {

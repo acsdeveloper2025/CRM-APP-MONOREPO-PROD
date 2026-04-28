@@ -42,7 +42,8 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   landmark4: 'landmark4', // Used in untraceable forms
 
   // Office status and details (Form specific)
-  officeStatus: 'office_status', // Used in POSITIVE, SHIFTED, NSP forms
+  officeStatus: 'office_status', // Used in POSITIVE, SHIFTED, NSP forms (values: Open/Closed/Shifted)
+  officeExistsStatus: 'office_exists_status', // Used in ENTRY_RESTRICTED forms (values: Office Exist At / Does Not Exist At / Shifted From)
   officeExistence: 'office_existence', // Used in NSP forms
   officeType: 'office_type', // Used in POSITIVE forms
   companyNatureOfBusiness: 'company_nature_of_business', // Used in POSITIVE forms
@@ -55,7 +56,11 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   // Person details (Form specific)
   metPerson: 'met_person_name', // Used in POSITIVE, SHIFTED, NSP forms
   metPersonName: 'met_person_name', // Alternative field name
-  designation: 'designation',
+  // 2026-04-27: Office mobile field renamed `designation` → `metPersonDesignation`,
+  // DB column renamed `designation` → `met_person_designation` (Path A unification).
+  // Legacy `designation` LHS kept for grace period (old client submissions).
+  designation: 'met_person_designation',
+  metPersonDesignation: 'met_person_designation',
   applicantDesignation: 'applicant_designation',
   workingPeriod: 'working_period',
   workingStatus: 'working_status',
@@ -68,11 +73,9 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
 
   // Third Party Confirmation (TPC)
   tpcMetPerson1: 'tpc_met_person1',
-  nameOfTpc1: 'tpc_name1',
   tpcName1: 'tpc_name1', // Mobile emits this field name
   tpcConfirmation1: 'tpc_confirmation1',
   tpcMetPerson2: 'tpc_met_person2',
-  nameOfTpc2: 'tpc_name2',
   tpcName2: 'tpc_name2', // Mobile emits this field name
   tpcConfirmation2: 'tpc_confirmation2',
 
@@ -179,7 +182,7 @@ export function validateOfficeRequiredFields(
       'addressRating',
       'officeStatus',
       'metPersonName',
-      'designation',
+      'metPersonDesignation',
       'workingPeriod',
       'applicantDesignation',
       'workingStatus',
@@ -261,7 +264,7 @@ export function validateOfficeRequiredFields(
     if (eqCI(formData.officeStatus, 'Open') && !formData.staffSeen) {
       warnings.push('staffSeen should be specified when office is opened');
     }
-    if (eqCI(formData.tpcMetPerson1, 'Yes') && !formData.tpcName1 && !formData.nameOfTpc1) {
+    if (eqCI(formData.tpcMetPerson1, 'Yes') && !formData.tpcName1) {
       warnings.push('tpcName1 should be specified when tpcMetPerson1 is Yes');
     }
   }
@@ -269,16 +272,16 @@ export function validateOfficeRequiredFields(
     if (!formData.metPersonName) {
       warnings.push('metPersonName should be specified when office is open');
     }
-    if (!formData.designation) {
-      warnings.push('designation should be specified when office is open');
+    if (!formData.metPersonDesignation && !formData.designation) {
+      warnings.push('metPersonDesignation should be specified when office is open');
     }
   }
   if (formType === 'NSP' && eqCI(formData.officeStatus, 'Open')) {
     if (!formData.metPersonName) {
       warnings.push('metPersonName should be specified when office is open');
     }
-    if (!formData.designation) {
-      warnings.push('designation should be specified when office is open');
+    if (!formData.metPersonDesignation && !formData.designation) {
+      warnings.push('metPersonDesignation should be specified when office is open');
     }
   }
 
@@ -305,7 +308,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     'address_rating',
     'office_status',
     'met_person_name',
-    'designation',
+    'met_person_designation',
     'working_period',
     'applicant_designation',
     'working_status',
@@ -341,7 +344,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     'address_rating',
     'office_status',
     'met_person_name',
-    'designation',
+    'met_person_designation',
     'current_company_name',
     'old_office_shifted_period',
     'locality',
@@ -454,7 +457,7 @@ export function ensureAllOfficeFieldsPopulated(
 
     // Person details
     'met_person_name',
-    'designation',
+    'met_person_designation',
     'applicant_designation',
     'working_period',
     'working_status',

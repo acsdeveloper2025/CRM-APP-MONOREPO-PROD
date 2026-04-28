@@ -48,13 +48,13 @@ export const PROPERTY_APF_FIELD_MAPPING: DatabaseFieldMapping = {
   // APF-specific fields (Form specific)
 
   // Project details
+  // 2026-04-27 F2 dead-alias prune: dropped projectCompletionPercentage, projectStartDate,
+  // projectEndDate — not in mobile SSOT (legacyPositivePropertyApfFields). Mobile sends
+  // canonical `projectCompletionPercent`/`projectStartedDate`/`projectCompletionDate`.
   projectName: 'project_name',
-  projectCompletionPercentage: 'project_completion_percentage',
-  projectCompletionPercent: 'project_completion_percentage', // Alternative field name
+  projectCompletionPercent: 'project_completion_percentage',
   projectStartedDate: 'project_started_date',
-  projectStartDate: 'project_started_date', // Alternative field name
   projectCompletionDate: 'project_completion_date',
-  projectEndDate: 'project_completion_date', // Alternative field name
   totalWing: 'total_wing',
   totalFlats: 'total_flats',
   staffStrength: 'staff_strength',
@@ -69,16 +69,17 @@ export const PROPERTY_APF_FIELD_MAPPING: DatabaseFieldMapping = {
   metPersonDesignation: 'met_person_designation',
   nameOfMetPerson: 'met_person_name', // Entry Restricted form field
   metPersonConfirmation: 'met_person_confirmation', // Entry Restricted form field
-  designation: 'designation', // Alternative field name
+  // 2026-04-27: Property APF mobile field renamed `designation` → `metPersonDesignation`
+  // (mapping at line 69 covers it). Dead `designation` DB column dropped same date.
 
   // Document verification
 
   // Third Party Confirmation (TPC)
   tpcMetPerson1: 'tpc_met_person1',
-  nameOfTpc1: 'tpc_name1',
+  tpcName1: 'tpc_name1',
   tpcConfirmation1: 'tpc_confirmation1',
   tpcMetPerson2: 'tpc_met_person2',
-  nameOfTpc2: 'tpc_name2',
+  tpcName2: 'tpc_name2',
   tpcConfirmation2: 'tpc_confirmation2',
 
   // Shifted specific fields
@@ -100,11 +101,14 @@ export const PROPERTY_APF_FIELD_MAPPING: DatabaseFieldMapping = {
   otherObservation: 'other_observation',
 
   // Legacy/alternative field names
-  metPerson: 'met_person_name', // Maps to met person name
-  metPersonType: 'met_person_designation', // ERT: met person role (Security/Receptionist)
+  // 2026-04-27 F2 dead-alias prune: dropped `metPerson` (use canonical metPersonName)
+  // and `projectDetails` (use canonical projectName). Not in mobile SSOT.
+  // 2026-04-27 F2 ERT correction: metPersonType is its OWN column (matches
+  // residence/rco/office/business/builder/noc pattern). Was incorrectly
+  // overloaded onto met_person_designation — fixed below.
+  metPersonType: 'met_person_type',
   companyNamePlateStatus: 'company_name_plate_status', // Company name plate status (unified naming with peer forms)
   nameOnBoard: 'name_on_board', // Name on board field
-  projectDetails: 'project_name', // Maps to project name
   verificationMethod: null, // Derived field, ignore
 
   // Fields to ignore (UI state, images, etc.)
@@ -155,7 +159,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     //   'property_tax_status', 'valuation_date', 'valuer_name' —
     //   not columns on property_apf_verification_reports.
     'met_person_name',
-    'designation',
+    'met_person_designation',
     'locality',
     'political_connection',
     'dominated_area',
@@ -175,7 +179,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     'address_locatable',
     'address_rating',
     'met_person_name',
-    'designation',
+    'met_person_designation',
     'locality',
     'political_connection',
     'dominated_area',
@@ -189,7 +193,7 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     'address_locatable',
     'address_rating',
     'met_person_name',
-    'designation',
+    'met_person_designation',
     'locality',
     'political_connection',
     'dominated_area',
@@ -279,10 +283,14 @@ export function ensureAllPropertyApfFieldsPopulated(
     // Met person (POSITIVE SEEN path + ERT aliases)
     'met_person_name',
     'met_person_designation',
+    'met_person_type',
     // 2026-04-26: dropped duplicate 'name_of_met_person' — column was renamed
     //   to met_person_name (already listed above).
+    // 2026-04-27: dropped 'designation' — Property APF mobile field renamed
+    //   to metPersonDesignation; data now lives in met_person_designation column.
+    // 2026-04-27 F2 ERT correction: met_person_type added (was missing). It's
+    //   its own column, matching peer forms (residence/rco/office/business/builder/noc).
     'met_person_confirmation',
-    'designation',
 
     // Document verification
 
