@@ -38,8 +38,6 @@
     "nodejs",
     "typescript",
     "express",
-    "prisma",
-    "mysql",
     "redis",
     "bullmq",
     "acs",
@@ -60,6 +58,8 @@
     "npm": ">=8.0.0"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1039.0",
+    "@aws-sdk/s3-request-presigner": "^3.1039.0",
     "@opentelemetry/auto-instrumentations-node": "^0.72.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.214.0",
     "@opentelemetry/resources": "^2.6.1",
@@ -75,7 +75,6 @@
     "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "csrf-csrf": "^4.0.3",
     "csv-parser": "^3.2.0",
     "dotenv": "^17.2.2",
     "exceljs": "^4.4.0",

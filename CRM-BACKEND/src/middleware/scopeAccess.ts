@@ -13,7 +13,7 @@
 import type { Response, NextFunction } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
-import type { AuthenticatedRequest } from './auth';
+import type { AuthenticatedRequest, AuthenticatedRequestUser } from './auth';
 import { hasSystemScopeBypass, isScopedOperationsUser } from '@/security/rbacAccess';
 import { resolveCaseByIdentifier, type ResolvedCase } from '@/utils/caseLookup';
 
@@ -75,6 +75,13 @@ export interface ScopeAccessConfig {
    * clientAccess read `clientId` while productAccess reads `productId`.
    */
   getCaseEntityId: (row: ResolvedCase) => number | null;
+  /**
+   * F-B4.3: function that pulls the already-loaded assigned ids off
+   * `req.user`. The auth middleware (`loadUserAuthContext`) populates
+   * these at request entry, so the middleware factory can read them
+   * for free instead of issuing a duplicate DB query.
+   */
+  getAssignedIdsFromUser: (user: AuthenticatedRequestUser) => readonly number[] | undefined;
   /**
    * Error code prefix used when access is denied (e.g. `CLIENT`, `PRODUCT`).
    * Response codes become `${prefix}_ACCESS_DENIED`,
@@ -253,7 +260,12 @@ export function createScopeAccess(config: ScopeAccessConfig): ScopeAccessHelpers
           return next();
         }
 
-        const assignedIds = await getAssignedIds(userId);
+        // F-B4.3: prefer the assigned ids already loaded on req.user
+        // (populated by loadUserAuthContext) so we avoid a duplicate
+        // DB hit per scoped request. Fall back to the DB query only
+        // if the field is somehow missing.
+        const fromUser = config.getAssignedIdsFromUser(user);
+        const assignedIds = fromUser !== undefined ? [...fromUser] : await getAssignedIds(userId);
         if (assignedIds.length === 0) {
           return res.status(403).json({
             success: false,
@@ -344,7 +356,9 @@ export function createScopeAccess(config: ScopeAccessConfig): ScopeAccessHelpers
         });
       }
 
-      const assignedIds = await getAssignedIds(userId);
+      // F-B4.3: prefer assigned ids from req.user (auth-context cache).
+      const fromUser = config.getAssignedIdsFromUser(user);
+      const assignedIds = fromUser !== undefined ? [...fromUser] : await getAssignedIds(userId);
       if (assignedIds.length === 0) {
         return res.status(403).json({
           success: false,

@@ -179,25 +179,6 @@ export interface FormValidationResponse {
   generatedBy: string;
 }
 
-// Case Timeline Types
-export interface CaseTimelineEvent {
-  eventType: string;
-  eventDate: string;
-  performedBy: string;
-  description: string;
-  metadata: Record<string, unknown>;
-}
-
-export interface CaseTimelineResponse {
-  case: CaseAnalytics;
-  timeline: CaseTimelineEvent[];
-  summary: {
-    totalEvents: number;
-    formsSubmitted: number;
-    attachmentsUploaded: number;
-  };
-}
-
 // Analytics Service Class
 export class AnalyticsService {
   // 1.1 Form Submission Data APIs
@@ -259,17 +240,6 @@ export class AnalyticsService {
       validateResponse(GenericObjectSchema, response.data, {
         service: 'analytics',
         endpoint: 'GET /reports/case-analytics',
-      });
-    }
-    return response;
-  }
-
-  async getCaseTimeline(caseId: string): Promise<ApiResponse<CaseTimelineResponse>> {
-    const response = await apiService.get<CaseTimelineResponse>(`/reports/case-timeline/${caseId}`);
-    if (response?.success && response.data && typeof response.data === 'object') {
-      validateResponse(GenericObjectSchema, response.data, {
-        service: 'analytics',
-        endpoint: 'GET /reports/case-timeline/:caseId',
       });
     }
     return response;

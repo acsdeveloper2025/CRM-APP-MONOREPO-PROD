@@ -2,11 +2,12 @@ import type { Request, Response } from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { query } from '@/config/database';
+import { query, withTransaction } from '@/config/database';
 import { config } from '@/config';
 import { logger } from '@/config/logger';
 import { createError } from '@/middleware/errorHandler';
 import type { AuthenticatedRequest } from '@/middleware/auth';
+import { invalidateAuthContextCache } from '@/middleware/auth';
 import { createAuditLog } from '@/utils/auditLogger';
 import type { LoginRequest, LoginResponse, JwtPayload, RefreshTokenPayload } from '@/types/auth';
 import type { ApiResponse } from '@/types/api';
@@ -160,8 +161,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     // Find user by username
     const userRes = await query(
-      `SELECT u.id, u.name, u.username, u.email, u.password_hash as "password_hash", u.employee_id as "employee_id", u.designation, u.department, u.profile_photo_url as "profile_photo_url"
+      `SELECT u.id, u.name, u.username, u.email, u.password_hash, u.employee_id, d.name as designation, dept.name as department, u.profile_photo_url, u.token_version
        FROM users u
+       LEFT JOIN designations d ON d.id = u.designation_id
+       LEFT JOIN departments dept ON dept.id = u.department_id
        WHERE u.username = $1`,
       [username]
     );
@@ -223,15 +226,18 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       permissionCodes: rbacPermissionCodes,
     } as unknown as AuthenticatedRequest['user'];
 
-    // Generate tokens
+    // Generate tokens. F-B3.4: embed tokenVersion so any future bump
+    // (password change / logout-all) invalidates this token.
     const accessTokenPayload: JwtPayload = {
       userId: user.id,
       authMethod: 'PASSWORD', // Mark as password authentication
+      tokenVersion: user.tokenVersion,
     };
 
     const refreshTokenPayload: RefreshTokenPayload = {
       userId: user.id,
       authMethod: 'PASSWORD', // Mark as password authentication
+      tokenVersion: user.tokenVersion,
     };
 
     const accessToken = jwt.sign(accessTokenPayload, config.jwtSecret, {
@@ -371,7 +377,18 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
     // Invalidate ALL refresh tokens for this user — match mobile logout behavior.
     // Without this, an attacker holding a leaked refresh token could continue
     // exchanging it for new access tokens after the user "logged out".
-    await query(`DELETE FROM refresh_tokens WHERE user_id = $1`, [req.user.id]);
+    // 2026-04-28 F1.7.2: soft-delete via revoked_at to preserve forensic trail.
+    await query(
+      `UPDATE refresh_tokens
+       SET revoked_at = CURRENT_TIMESTAMP, revoked_reason = 'logout'
+       WHERE user_id = $1 AND revoked_at IS NULL`,
+      [req.user.id]
+    );
+
+    // F-B3.4: bump tokenVersion so any in-flight access tokens are
+    // rejected by verifyTokenAndSetUser on their next request.
+    await query(`UPDATE users SET token_version = token_version + 1 WHERE id = $1`, [req.user.id]);
+    invalidateAuthContextCache(req.user.id);
 
     const response: ApiResponse = {
       success: true,
@@ -460,8 +477,8 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
         u.email,
         u.department_id,
         u.employee_id,
-        u.designation,
-        u.department,
+        desig.name as designation,
+        d.name as department,
         u.profile_photo_url,
         u.is_active,
         u.last_login,
@@ -469,6 +486,7 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
         d.name as "department_name"
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
+      LEFT JOIN designations desig ON desig.id = u.designation_id
       WHERE u.id = $1
     `;
 
@@ -641,9 +659,14 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     // Hash incoming token to find in DB
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
-    // Check DB for valid, non-expired token
+    // Check DB for valid, non-expired, non-revoked token.
+    // 2026-04-28 F1.7.2: revoked tokens are kept for forensics but must
+    // not be honored for refresh.
     const result = await query(
-      `SELECT id, token, user_id, expires_at, created_at FROM refresh_tokens WHERE token = $1 AND user_id = $2 AND expires_at > CURRENT_TIMESTAMP`,
+      `SELECT id, token, user_id, expires_at, created_at FROM refresh_tokens
+       WHERE token = $1 AND user_id = $2
+         AND expires_at > CURRENT_TIMESTAMP
+         AND revoked_at IS NULL`,
       [tokenHash, decoded.userId]
     );
 
@@ -658,7 +681,11 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
 
     // Fetch user to ensure they still exist and get current role
     const userRes = await query(
-      `SELECT id, name, username, email, employee_id, designation, department, profile_photo_url, is_active FROM users WHERE id = $1`,
+      `SELECT u.id, u.name, u.username, u.email, u.employee_id, d.name as designation, dept.name as department, u.profile_photo_url, u.is_active, u.token_version
+       FROM users u
+       LEFT JOIN designations d ON d.id = u.designation_id
+       LEFT JOIN departments dept ON dept.id = u.department_id
+       WHERE u.id = $1`,
       [decoded.userId]
     );
     const user = userRes.rows[0];
@@ -672,24 +699,63 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
+    // F-B3.4: reject the refresh attempt if the refresh token's
+    // tokenVersion is stale (password changed or user was logged out
+    // of all devices since this token was issued).
+    if (decoded.tokenVersion !== user.tokenVersion) {
+      res.status(401).json({
+        success: false,
+        message: 'Refresh token has been revoked',
+        error: { code: 'TOKEN_REVOKED' },
+      });
+      return;
+    }
+
     // Generate NEW access token
     const accessTokenPayload: JwtPayload = {
       userId: user.id,
       authMethod: 'PASSWORD',
+      tokenVersion: user.tokenVersion,
     };
 
     const accessToken = jwt.sign(accessTokenPayload, config.jwtSecret, {
       expiresIn: config.jwtExpiresIn as string & jwt.SignOptions['expiresIn'],
     });
 
-    // Phase E5: if the caller was using the HttpOnly cookie path,
-    // re-issue the cookie with a fresh maxAge so every successful
-    // refresh extends the session by another 30 days (sliding
-    // session). If the caller supplied the token in the body (mobile
-    // / legacy web), skip the cookie re-issue — their storage path
-    // is outside our reach.
+    // F-B3.1: rotate the refresh token (mirrors mobileAuthController).
+    // Without rotation a stolen RT was good for 30 days with no
+    // detection trail. With rotation: each successful refresh
+    // invalidates the previous token, so a replay attempt fails on
+    // the second use.
+    const refreshTokenPayload: RefreshTokenPayload = {
+      userId: user.id,
+      tokenVersion: user.tokenVersion,
+    };
+    const newRefreshToken = jwt.sign(refreshTokenPayload, config.jwtRefreshSecret, {
+      expiresIn: config.jwtRefreshExpiresIn as string & jwt.SignOptions['expiresIn'],
+    });
+    const newRefreshHash = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
+    const newExpiresAt = new Date(Date.now() + parseDurationMs(config.jwtRefreshExpiresIn));
+
+    await withTransaction(async (client) => {
+      // Soft-delete the rotated token (keeps forensic trail per F1.7.2).
+      await client.query(
+        `UPDATE refresh_tokens
+         SET revoked_at = CURRENT_TIMESTAMP, revoked_reason = 'rotated'
+         WHERE token = $1 AND user_id = $2 AND revoked_at IS NULL`,
+        [tokenHash, decoded.userId]
+      );
+      await client.query(
+        `INSERT INTO refresh_tokens (token, user_id, expires_at, created_at, ip_address, user_agent)
+         VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)`,
+        [newRefreshHash, user.id, newExpiresAt, req.ip, req.get('User-Agent') || null]
+      );
+    });
+
+    // Phase E5 + F-B3.1: re-issue cookie with the NEW token value so
+    // the next refresh sees the rotated token, not the previous one.
     if (cookieToken) {
-      setRefreshTokenCookie(res, cookieToken);
+      setRefreshTokenCookie(res, newRefreshToken);
     }
 
     res.json({
@@ -697,6 +763,10 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
       message: 'Token refreshed successfully',
       data: {
         accessToken,
+        // Body-path clients (mobile / legacy web) need the new refresh
+        // token to replace their stored copy. Cookie-path clients
+        // ignore this field — the HttpOnly cookie has the new value.
+        refreshToken: newRefreshToken,
       },
     });
   } catch (error) {

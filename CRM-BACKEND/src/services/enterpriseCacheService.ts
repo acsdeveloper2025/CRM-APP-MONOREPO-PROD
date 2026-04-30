@@ -114,7 +114,7 @@ export class EnterpriseCacheService {
   /**
    * Set cached data with TTL and enterprise optimizations
    */
-  static async set(key: string, value: unknown, ttlSeconds = 3600): Promise<boolean> {
+  static async set(key: string, value: unknown, ttlSeconds = 300): Promise<boolean> {
     if (!this.available || !this.redis) {
       return false;
     }
@@ -190,7 +190,7 @@ export class EnterpriseCacheService {
     try {
       const multi = this.redis.multi();
 
-      keyValuePairs.forEach(({ key, value, ttl = 3600 }) => {
+      keyValuePairs.forEach(({ key, value, ttl = 300 }) => {
         const serialized = JSON.stringify(value);
         multi.setEx(key, ttl, serialized);
       });
@@ -204,9 +204,85 @@ export class EnterpriseCacheService {
   }
 
   /**
+   * F-B9.4: cache-stampede protection via single-flight lock.
+   *
+   * When a hot key expires, naive `get-or-compute` lets every
+   * concurrent request hit the upstream simultaneously. This wrapper
+   * acquires a Redis NX-EX lock so exactly ONE request runs `compute`;
+   * the rest poll the cache briefly and serve the freshly populated
+   * value.
+   *
+   * Fallback semantics:
+   *  - If Redis is unavailable, the lock acquisition is skipped and
+   *    every caller computes (degrades to today's behavior — no worse
+   *    than not having the cache at all).
+   *  - The lock auto-expires after 5s, so a crashed compute() doesn't
+   *    deadlock peers.
+   *  - Pollers wait up to ~5s (50 × 100ms) before giving up and
+   *    computing themselves; the 5s ceiling matches the lock TTL.
+   */
+  static async getOrCompute<T>(
+    key: string,
+    ttlSeconds: number,
+    compute: () => Promise<T>
+  ): Promise<T> {
+    const lockKey = `lock:${key}`;
+    const MAX_POLL_ATTEMPTS = 50;
+    const POLL_INTERVAL_MS = 100;
+
+    const cached = await this.get<T>(key);
+    if (cached !== null) {
+      return cached;
+    }
+
+    if (!this.available || !this.redis) {
+      // Redis unavailable — no lock, no cache. Just compute.
+      return compute();
+    }
+
+    for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
+      try {
+        const lockAcquired = await this.redis.set(lockKey, '1', {
+          NX: true,
+          EX: 5,
+        });
+        if (lockAcquired) {
+          try {
+            const value = await compute();
+            await this.set(key, value, ttlSeconds);
+            return value;
+          } finally {
+            await this.redis.del(lockKey).catch(() => {
+              // Lock will TTL-out; cleanup failure is non-fatal.
+            });
+          }
+        }
+      } catch (error) {
+        logger.warn('Cache stampede lock attempt failed; computing without lock', {
+          key,
+          error,
+        });
+        return compute();
+      }
+
+      // Lock held by another request — poll the cache, then retry the
+      // lock acquisition if still missing.
+      await new Promise<void>(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+      const refreshed = await this.get<T>(key);
+      if (refreshed !== null) {
+        return refreshed;
+      }
+    }
+
+    // Poll budget exhausted — compute ourselves rather than spinning.
+    logger.warn('Cache stampede poll budget exhausted; computing without lock', { key });
+    return compute();
+  }
+
+  /**
    * Increment counter with expiration (for rate limiting)
    */
-  static async increment(key: string, ttlSeconds = 3600): Promise<number> {
+  static async increment(key: string, ttlSeconds = 300): Promise<number> {
     if (!this.available || !this.redis) {
       return 0;
     }

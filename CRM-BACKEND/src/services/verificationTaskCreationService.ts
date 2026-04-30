@@ -251,11 +251,12 @@ export class VerificationTaskCreationService {
 
       const assignedToValue = String(assignedTo as string);
 
+      // F5.1.2 Phase B: pincode is now FK-only (text column dropped).
       const insertQuery = `
           INSERT INTO verification_tasks (
             case_id, verification_type_id, task_title, task_description,
             priority, assigned_to, assigned_by, assigned_at,
-            rate_type_id, estimated_amount, address, pincode,
+            rate_type_id, estimated_amount, address, pincode_id,
             estimated_completion_date, status, created_by,
             first_assigned_at, current_assigned_at,
             area_id
@@ -277,7 +278,7 @@ export class VerificationTaskCreationService {
         rateTypeId,
         actualAmount,
         address as string | undefined,
-        String(pincode as string),
+        territoryValidation.pincodeDbId,
         estimatedCompletionDate as string | undefined,
         userId,
         territoryValidation.areaId,

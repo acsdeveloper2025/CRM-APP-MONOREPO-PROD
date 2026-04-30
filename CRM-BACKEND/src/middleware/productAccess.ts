@@ -20,6 +20,7 @@ const productScope = createScopeAccess({
   getCaseEntityId: row => row.productId,
   errorCodePrefix: 'PRODUCT',
   humanLabel: 'product',
+  getAssignedIdsFromUser: user => user.assignedProductIds,
 });
 
 export const getAssignedProductIds = productScope.getAssignedIds;

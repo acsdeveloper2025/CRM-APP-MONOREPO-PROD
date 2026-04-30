@@ -665,15 +665,32 @@ const recordInvoiceStatusHistory = async (
 
 const getNextInvoiceIdentity = async (
   client: PoolClient
-): Promise<{ id: number; invoiceNumber: string }> => {
+): Promise<{
+  id: number;
+  invoiceNumber: string;
+  fiscalYear: string;
+  invoiceSequenceNo: number;
+}> => {
   const seqResult = await client.query<{ id: string }>(
     `SELECT nextval('invoices_id_seq')::text as id`
   );
   const id = Number(seqResult.rows[0].id);
-  const year = new Date().getFullYear();
+
+  // GST-compliant per-FY numbering (CGST Rule 46(b)).
+  // next_invoice_number() atomically increments invoice_sequences.current_value
+  // for the current Indian fiscal year (Apr-Mar) and returns the formatted number.
+  const fyResult = await client.query<{
+    out_fiscal_year: string;
+    out_sequence_no: number;
+    out_formatted_number: string;
+  }>(`SELECT * FROM next_invoice_number()`);
+  const fy = fyResult.rows[0];
+
   return {
     id,
-    invoiceNumber: `INV-${year}-${String(id).padStart(6, '0')}`,
+    invoiceNumber: fy.out_formatted_number,
+    fiscalYear: fy.out_fiscal_year,
+    invoiceSequenceNo: fy.out_sequence_no,
   };
 };
 
@@ -774,7 +791,7 @@ const loadCompletedUnbilledTasks = async (
        c.product_id as product_id
      FROM verification_tasks vt
      JOIN cases c ON c.id = vt.case_id
-     LEFT JOIN pincodes p ON p.code = COALESCE(vt.pincode, c."pincode")
+     LEFT JOIN pincodes p ON p.id = vt.pincode_id
      LEFT JOIN invoice_item_tasks iit ON iit.verification_task_id = vt.id
      WHERE ${conditions.join(' AND ')}
      ORDER BY COALESCE(vt.completed_at, vt.updated_at, vt.created_at) ASC`,
@@ -842,7 +859,12 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
         taskCandidates.length > 0 ||
         (!hasLegacyManualItems && selectedTaskIds.length === 0 && selectedCaseIds.length === 0);
 
-      const { id: invoiceId, invoiceNumber } = await getNextInvoiceIdentity(client);
+      const {
+        id: invoiceId,
+        invoiceNumber,
+        fiscalYear,
+        invoiceSequenceNo,
+      } = await getNextInvoiceIdentity(client);
 
       const generatedLines: Array<{
         description: string;
@@ -904,17 +926,19 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
 
       await client.query(
         `INSERT INTO invoices (
-           id, invoice_number, client_id, product_id, client_name, amount,
+           id, invoice_number, fiscal_year, invoice_sequence_no, client_id, product_id, client_name, amount,
            subtotal_amount, tax_amount, total_amount, currency, status,
            billing_period_from, billing_period_to, issue_date, due_date, notes, created_by
          ) VALUES (
-           $1, $2, $3, $4, $5, $6,
-           $7, $8, $9, $10, $11,
-           $12, $13, CURRENT_TIMESTAMP, $14, $15, $16
+           $1, $2, $3, $4, $5, $6, $7, $8,
+           $9, $10, $11, $12, $13,
+           $14, $15, CURRENT_TIMESTAMP, $16, $17, $18
          )`,
         [
           invoiceId,
           invoiceNumber,
+          fiscalYear,
+          invoiceSequenceNo,
           clientId,
           productId,
           body.clientName || clientRow.name,
@@ -1211,7 +1235,7 @@ const regenerateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) =
          FROM invoice_item_tasks iit
          JOIN verification_tasks vt ON vt.id = iit.verification_task_id
          JOIN cases c ON c.id = vt.case_id
-         LEFT JOIN pincodes p ON p.code = COALESCE(vt.pincode, c."pincode")
+         LEFT JOIN pincodes p ON p.id = vt.pincode_id
          JOIN invoice_items ii ON ii.id = iit.invoice_item_id
          WHERE ii.invoice_id = $1`,
         [Number(id)]

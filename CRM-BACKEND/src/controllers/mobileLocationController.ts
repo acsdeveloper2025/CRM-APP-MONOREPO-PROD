@@ -11,7 +11,6 @@ import { config } from '../config';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import type { QueryParams } from '../types/database';
 import { isFieldExecutionActor } from '@/security/rbacAccess';
-import { MobileOperationService } from '@/services/mobileOperationService';
 
 export class MobileLocationController {
   private static getOperationId(req: AuthenticatedRequest): string | null {
@@ -139,25 +138,6 @@ export class MobileLocationController {
             timestamp: new Date(existing.timestamp).toISOString(),
             accuracy: existing.accuracy,
           },
-        });
-      }
-
-      if (operationId) {
-        await MobileOperationService.recordOperation({
-          operationId,
-          type: 'LOCATION_CAPTURED',
-          entityType: 'LOCATION',
-          entityId: targetTaskId,
-          payload: {
-            taskId: targetTaskId,
-            caseId: targetCaseId,
-            latitude,
-            longitude,
-            accuracy,
-            source,
-            activityType,
-          },
-          retryCount: Number(req.body?.retry_count || 0),
         });
       }
 

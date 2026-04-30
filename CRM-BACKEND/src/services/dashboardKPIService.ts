@@ -330,15 +330,19 @@ export class DashboardKPIService {
 
     // Using simple parallel execution.
     // KYC stats query
+    // Workflow buckets read verification_status (PENDING/IN_PROGRESS/COMPLETED…).
+    // Outcome buckets read final_status (Positive/Negative/Refer/Fraud).
     const kycQuery = `
       SELECT
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE verification_status = 'PENDING') as pending,
-        COUNT(*) FILTER (WHERE verification_status = 'PASS') as passed,
-        COUNT(*) FILTER (WHERE verification_status = 'FAIL') as failed,
-        COUNT(*) FILTER (WHERE verification_status = 'REFER') as referred,
+        COUNT(*) FILTER (WHERE final_status = 'Positive') as passed,
+        COUNT(*) FILTER (WHERE final_status = 'Negative') as failed,
+        COUNT(*) FILTER (WHERE final_status = 'Refer') as referred,
+        COUNT(*) FILTER (WHERE final_status = 'Fraud') as fraud,
         COUNT(*) FILTER (WHERE verified_at >= CURRENT_DATE) as verified_today
       FROM kyc_document_verifications
+      WHERE deleted_at IS NULL
     `;
 
     const [taskRes, casesRes, clientsRes, agentsRes, perfRes, kycRes] = await Promise.all([

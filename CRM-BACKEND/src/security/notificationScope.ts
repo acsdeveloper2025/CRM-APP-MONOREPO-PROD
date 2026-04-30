@@ -149,7 +149,7 @@ const loadTaskScopeRows = async (
             c.product_id as product_id
           FROM verification_tasks vt
           JOIN cases c ON c.id = vt.case_id
-          LEFT JOIN pincodes p_scope ON p_scope.code = vt.pincode
+          LEFT JOIN pincodes p_scope ON p_scope.id = vt.pincode_id
           WHERE vt.id = ANY($1::uuid[])
         `,
         [taskIds]
@@ -166,7 +166,7 @@ const loadTaskScopeRows = async (
         c.product_id as product_id
       FROM verification_tasks vt
       JOIN cases c ON c.id = vt.case_id
-      LEFT JOIN pincodes p_scope ON p_scope.code = vt.pincode
+      LEFT JOIN pincodes p_scope ON p_scope.id = vt.pincode_id
       WHERE vt.id = ANY($1::uuid[])
     `,
         [taskIds]
@@ -196,7 +196,7 @@ const loadCaseScopeRows = async (
             ARRAY_REMOVE(ARRAY_AGG(DISTINCT p_scope.id), NULL) as "pincode_ids"
           FROM cases c
           LEFT JOIN verification_tasks vt ON vt.case_id = c.id
-          LEFT JOIN pincodes p_scope ON p_scope.code = vt.pincode
+          LEFT JOIN pincodes p_scope ON p_scope.id = vt.pincode_id
           WHERE c.id = ANY($1::uuid[])
           GROUP BY c.id, c.client_id, c.product_id
         `,
@@ -214,7 +214,7 @@ const loadCaseScopeRows = async (
         ARRAY_REMOVE(ARRAY_AGG(DISTINCT p_scope.id), NULL) as "pincode_ids"
       FROM cases c
       LEFT JOIN verification_tasks vt ON vt.case_id = c.id
-      LEFT JOIN pincodes p_scope ON p_scope.code = vt.pincode
+      LEFT JOIN pincodes p_scope ON p_scope.id = vt.pincode_id
       WHERE c.id = ANY($1::uuid[])
       GROUP BY c.id, c.client_id, c.product_id
     `,

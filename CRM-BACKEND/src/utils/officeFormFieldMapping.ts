@@ -103,7 +103,6 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   // Legacy/alternative field names
   companyName: 'company_nature_of_business', // Maps to company nature
   employeeId: null, // Legacy field, no direct DB mapping
-  workingHours: 'working_period', // Maps to working period
   hrVerification: null, // Derived field, ignore
   salaryConfirmed: null, // Derived field, ignore
   department: 'applicant_designation', // Maps to applicant designation
@@ -112,11 +111,7 @@ export const OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   hrContactName: null, // Legacy field, no direct DB mapping
   hrContactPhone: null, // Legacy field, no direct DB mapping
   officeAddress: null, // Legacy field, no direct DB mapping
-  totalEmployees: 'staff_strength', // Maps to staff strength
-  businessNature: 'company_nature_of_business', // Maps to business nature
   verificationMethod: null, // Derived field, ignore
-  documentsSeen: 'document_shown', // Maps to document shown
-  verificationNotes: 'other_observation', // Maps to other observation
 
   // Document fields
   documentType: 'document_type',

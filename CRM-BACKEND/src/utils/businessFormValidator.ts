@@ -19,7 +19,6 @@ const NUMERIC_FIELDS: readonly string[] = [
   'staffStrength',
   'staffSeen',
   'businessApproxArea',
-  'totalEmployees',
   'addressFloor',
   'addressStructure',
 ];

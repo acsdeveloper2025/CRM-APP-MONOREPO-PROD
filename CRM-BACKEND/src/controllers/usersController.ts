@@ -360,7 +360,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         u.department_id,
         u.designation_id,
         u.employee_id,
-        u.designation,
+        des.name as designation,
         u.is_active,
         u.last_login,
         u.created_at,
@@ -373,6 +373,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         ), ARRAY[]::text[]) as roles,
         ${USER_PERMISSION_CODES_SQL} as "permissionCodes",
         ${PRIMARY_RBAC_ROLE_NAME_SQL} as role_name,
+        d.name as department,
         d.name as "departmentName",
         des.name as "designationName",
         u.team_leader_id as "teamLeaderId",
@@ -518,7 +519,7 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
         u.department_id,
         u.designation_id,
         u.employee_id,
-        u.designation,
+        des.name as designation,
         u.is_active,
         u.last_login,
         u.created_at,
@@ -540,6 +541,7 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
           LIMIT 1
         ) as "roleDescription",
         ${USER_PERMISSION_CODES_SQL} as "rolePermissions",
+        d.name as department,
         d.name as "departmentName",
         d.description as "departmentDescription",
         des.name as "designationName",
@@ -661,13 +663,17 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
       departmentId,
       designationId,
       employeeId,
-      designation,
       phone,
       teamLeaderId,
       managerId,
       isActive = true,
       // Legacy fields for backward compatibility
       role,
+      // 2026-04-28 F1.1.2: legacy `designation` text input ignored.
+      // Designation is set via FK only (designationId → designations).
+      designation: _designation,
+      // 2026-04-28 F1.1.3: legacy `department` text input ignored.
+      // Department is set via FK only (departmentId → departments).
       department: _department,
     } = req.body;
 
@@ -786,14 +792,31 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
         throw err;
       }
 
+      // 2026-04-28 F1.1.1: dropped `role` from INSERT and RETURNING.
+      // Role assignment lives in `user_roles` (the INSERT INTO user_roles
+      // below handles it). Response shape preserved by deriving `role`
+      // from the freshly-inserted user_roles row inside the RETURNING
+      // sub-select pattern.
+      // 2026-04-28 F1.1.2: dropped `designation` text column from INSERT
+      // and RETURNING. Designation lives at `designations` table via the
+      // `designation_id` FK. RETURNING joins to derive `designation` for
+      // API contract preservation.
       const createUserQuery = `
-        INSERT INTO users (
-          name, username, email, password_hash, role, department_id, designation_id,
-          employee_id, designation, phone, team_leader_id, manager_id, is_active, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-        RETURNING id, name, username, email, role, department_id, designation_id,
-                  employee_id, designation, phone, team_leader_id as "team_leader_id",
-                  manager_id as "manager_id", is_active, created_at, updated_at
+        WITH inserted AS (
+          INSERT INTO users (
+            name, username, email, password_hash, department_id, designation_id,
+            employee_id, phone, team_leader_id, manager_id, is_active, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          RETURNING *
+        )
+        SELECT i.id, i.name, i.username, i.email, i.department_id, i.designation_id,
+               i.employee_id, des.name AS designation, dept.name AS department,
+               i.phone,
+               i.team_leader_id as "team_leader_id",
+               i.manager_id as "manager_id", i.is_active, i.created_at, i.updated_at
+        FROM inserted i
+        LEFT JOIN designations des ON des.id = i.designation_id
+        LEFT JOIN departments dept ON dept.id = i.department_id
       `;
 
       const insertRes = await client.query(createUserQuery, [
@@ -801,11 +824,9 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
         username,
         email,
         hashedPassword,
-        finalRole,
         cleanDepartmentId,
         cleanDesignationId,
         employeeId || null,
-        designation || null,
         phone || null,
         hierarchyAssignments.teamLeaderId,
         hierarchyAssignments.managerId,
@@ -818,17 +839,24 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
 
       if (rbacRoleId) {
         await client.query('DELETE FROM user_roles WHERE user_id = $1', [createdUser.id]);
+        // 2026-04-28 F1.5.1: record assigned_by for audit trail.
         await client.query(
-          'INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT (user_id, role_id) DO NOTHING',
-          [createdUser.id, rbacRoleId]
+          `INSERT INTO user_roles (user_id, role_id, assigned_by)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (user_id, role_id) DO NOTHING`,
+          [createdUser.id, rbacRoleId, req.user?.id ?? null]
         );
       }
 
       return insertRes;
     });
 
+    // 2026-04-28 F1.1.1: re-attach `role` to response (derived from the
+    // user_roles row that was just inserted). Preserves the API
+    // contract — frontend + mobile read response.role unchanged.
     const newUser = {
       ...result.rows[0],
+      role: finalRole,
       roleId: rbacRoleId,
     };
 
@@ -861,6 +889,18 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
         error: { code: 'VALIDATION_ERROR' },
       });
     }
+    // 2026-04-28 F1.1.4: surface PG unique-violation (23505) as 400 with
+    // a meaningful message. Race conditions between the pre-INSERT check
+    // and the INSERT itself land here. Constraint name encodes the
+    // conflicting column.
+    if ((error as { code?: string }).code === '23505') {
+      const constraint = (error as { constraint?: string }).constraint || '';
+      return res.status(400).json({
+        success: false,
+        message: 'Username or email already exists',
+        error: { code: 'DUPLICATE_USER', constraint },
+      });
+    }
     logger.error('Error creating user:', error);
     res.status(500).json({
       success: false,
@@ -876,11 +916,25 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
     const id = String(req.params.id || '');
     const updateData = req.body;
 
-    // Check if user exists
+    // Check if user exists.
+    // 2026-04-28 F1.1.1: derive `role` from RBAC (user_roles → roles_v2)
+    // because the `users.role` text column was dropped. Mirrors
+    // PRIMARY_RBAC_ROLE_NAME_SQL — kept inline here to avoid
+    // restructuring the function around the helper (single-use).
     const userExistsQuery = `
-      SELECT id, role, team_leader_id as "team_leader_id", manager_id as "manager_id"
-      FROM users
-      WHERE id = $1
+      SELECT
+        u.id,
+        COALESCE(
+          (SELECT rv.name FROM user_roles ur
+           JOIN roles_v2 rv ON rv.id = ur.role_id
+           WHERE ur.user_id = u.id
+           ORDER BY rv.name LIMIT 1),
+          NULL
+        ) AS role,
+        u.team_leader_id AS "team_leader_id",
+        u.manager_id AS "manager_id"
+      FROM users u
+      WHERE u.id = $1
     `;
     const userExists = await query(userExistsQuery, [id]);
 
@@ -988,15 +1042,20 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
     const updateParams: (string | number | boolean | null)[] = [];
     let paramIndex = 1;
 
+    // 2026-04-28 F1.1.1: dropped 'role' from allowedFields. The
+    // `users.role` text column no longer exists; role updates are
+    // applied via the `INSERT INTO user_roles` block below
+    // (gated on `rbacRoleId` resolved earlier in this function).
+    // 2026-04-28 F1.1.2: dropped 'designation' (text). Use `designationId`
+    // FK only.
     const allowedFields = [
       'name',
       'username',
       'email',
       'phone',
-      'role',
       'departmentId',
+      'designationId',
       'employeeId',
-      'designation',
       'teamLeaderId',
       'managerId',
       'isActive',
@@ -1005,6 +1064,7 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
     const fieldColumnMap: Record<string, string> = {
       employeeId: 'employee_id',
       departmentId: 'department_id',
+      designationId: 'designation_id',
       teamLeaderId: 'team_leader_id',
       managerId: 'manager_id',
       isActive: 'is_active',
@@ -1029,12 +1089,17 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
     updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
     updateParams.push(id);
 
+    // 2026-04-28 F1.1.1: dropped `role` from RETURNING (column gone).
+    // Role is re-derived after the transaction below to preserve API
+    // response shape.
+    // 2026-04-28 F1.1.2: dropped `designation` text from RETURNING.
+    // Designation is re-derived from FK after the transaction.
     const updateQuery = `
       UPDATE users
       SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}
-      RETURNING id, name, username, email, role, department_id,
-                employee_id, designation, phone, team_leader_id as "teamLeaderId",
+      RETURNING id, name, username, email, department_id, designation_id,
+                employee_id, phone, team_leader_id as "teamLeaderId",
                 manager_id as "managerId", is_active, created_at, updated_at
     `;
 
@@ -1042,15 +1107,60 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
       const updateRes = await client.query(updateQuery, updateParams);
       if (rbacRoleId) {
         await client.query('DELETE FROM user_roles WHERE user_id = $1', [id]);
+        // 2026-04-28 F1.5.1: record assigned_by for audit trail.
         await client.query(
-          'INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT (user_id, role_id) DO NOTHING',
-          [id, rbacRoleId]
+          `INSERT INTO user_roles (user_id, role_id, assigned_by)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (user_id, role_id) DO NOTHING`,
+          [id, rbacRoleId, req.user?.id ?? null]
         );
       }
       return updateRes;
     });
+
+    // 2026-04-28 F1.1.1: re-derive `role` after the transaction so the
+    // response shape includes role (frontend + mobile depend on it).
+    // If the caller passed a new role, use that; otherwise look up
+    // the current user_roles row.
+    // 2026-04-28 F1.1.2: also derive `designation` from FK so the
+    // response shape includes the human-readable name.
+    let resolvedRoleName: string | null = null;
+    if (typeof updateData.role === 'string' && updateData.role.trim()) {
+      resolvedRoleName = updateData.role;
+    } else {
+      const roleLookup = await query<{ role: string | null }>(
+        `SELECT (
+           SELECT rv.name FROM user_roles ur
+           JOIN roles_v2 rv ON rv.id = ur.role_id
+           WHERE ur.user_id = $1
+           ORDER BY rv.name LIMIT 1
+         ) AS role`,
+        [id]
+      );
+      resolvedRoleName = roleLookup.rows[0]?.role ?? null;
+    }
+
+    // 2026-04-28 F1.1.2 + F1.1.3: derive both `designation` and `department`
+    // from FK joins so the response shape includes human-readable names
+    // (text columns dropped from users table).
+    const namesLookup = await query<{
+      designation: string | null;
+      department: string | null;
+    }>(
+      `SELECT des.name AS designation, dept.name AS department FROM users u
+       LEFT JOIN designations des ON des.id = u.designation_id
+       LEFT JOIN departments dept ON dept.id = u.department_id
+       WHERE u.id = $1`,
+      [id]
+    );
+    const resolvedDesignation = namesLookup.rows[0]?.designation ?? null;
+    const resolvedDepartment = namesLookup.rows[0]?.department ?? null;
+
     const updatedUser = {
       ...result.rows[0],
+      role: resolvedRoleName,
+      designation: resolvedDesignation,
+      department: resolvedDepartment,
       ...(rbacRoleId ? { roleId: rbacRoleId } : {}),
     };
 
@@ -1086,6 +1196,17 @@ export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
         success: false,
         message: (error as Error).message,
         error: { code: 'VALIDATION_ERROR' },
+      });
+    }
+    // 2026-04-28 F1.1.4: surface PG unique-violation (23505) as 400 when
+    // an updateUser changes username/email to a value that collides with
+    // another user.
+    if ((error as { code?: string }).code === '23505') {
+      const constraint = (error as { constraint?: string }).constraint || '';
+      return res.status(400).json({
+        success: false,
+        message: 'Username or email already exists',
+        error: { code: 'DUPLICATE_USER', constraint },
       });
     }
     logger.error('Error updating user:', error);
@@ -1323,16 +1444,17 @@ export const searchUsers = async (req: AuthenticatedRequest, res: Response) => {
         u.email,
         ${PRIMARY_RBAC_ROLE_NAME_SQL} as role,
         d.name as "departmentName",
-        u.designation,
+        des.name as designation,
         u.is_active
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
+      LEFT JOIN designations des ON des.id = u.designation_id
       WHERE
         u.name ILIKE $1 OR
         u.email ILIKE $1 OR
         u.username ILIKE $1 OR
         d.name ILIKE $1 OR
-        u.designation ILIKE $1
+        des.name ILIKE $1
       ORDER BY u.name
       LIMIT 200
     `;
@@ -1626,7 +1748,10 @@ export const getUserSessions = async (req: AuthenticatedRequest, res: Response) 
         rt.expires_at,
         rt.ip_address,
         rt.user_agent,
-        (rt.expires_at > CURRENT_TIMESTAMP) as is_active,
+        rt.revoked_at,
+        rt.revoked_reason,
+        -- 2026-04-28 F1.7.2: a token is "active" only if not expired AND not revoked.
+        (rt.expires_at > CURRENT_TIMESTAMP AND rt.revoked_at IS NULL) as is_active,
         u.name as user_name,
         u.username
       FROM refresh_tokens rt
@@ -1676,7 +1801,7 @@ export const getUserClientAssignments = async (req: AuthenticatedRequest, res: R
     const { userId } = req.params;
 
     // Validate user exists
-    const userResult = await query('SELECT id, role FROM users WHERE id = $1', [userId]);
+    const userResult = await query('SELECT id FROM users WHERE id = $1', [userId]);
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({
@@ -1751,7 +1876,7 @@ export const assignClientsToUser = async (req: AuthenticatedRequest, res: Respon
     }
 
     // Validate user exists
-    const userResult = await query('SELECT id, role FROM users WHERE id = $1', [userId]);
+    const userResult = await query('SELECT id FROM users WHERE id = $1', [userId]);
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({
@@ -1853,7 +1978,7 @@ export const removeClientAssignment = async (req: AuthenticatedRequest, res: Res
     const { userId, clientId } = req.params;
 
     // Validate user exists
-    const userResult = await query('SELECT id, role FROM users WHERE id = $1', [userId]);
+    const userResult = await query('SELECT id FROM users WHERE id = $1', [userId]);
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({
@@ -1917,7 +2042,7 @@ export const getUserProductAssignments = async (req: AuthenticatedRequest, res: 
     const { userId } = req.params;
 
     // Validate user exists
-    const userResult = await query('SELECT id, role FROM users WHERE id = $1', [userId]);
+    const userResult = await query('SELECT id FROM users WHERE id = $1', [userId]);
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({
@@ -1978,7 +2103,7 @@ export const assignProductsToUser = async (req: AuthenticatedRequest, res: Respo
     }
 
     // Validate user exists
-    const userResult = await query('SELECT id, role FROM users WHERE id = $1', [userId]);
+    const userResult = await query('SELECT id FROM users WHERE id = $1', [userId]);
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({
@@ -2082,7 +2207,7 @@ export const removeProductAssignment = async (req: AuthenticatedRequest, res: Re
     const { userId, productId } = req.params;
 
     // Validate user exists
-    const userResult = await query('SELECT id, role FROM users WHERE id = $1', [userId]);
+    const userResult = await query('SELECT id FROM users WHERE id = $1', [userId]);
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({
@@ -2156,11 +2281,13 @@ export const generateTemporaryPassword = async (req: AuthenticatedRequest, res: 
     // Hash the temporary password
     const hashedPassword = await bcrypt.hash(tempPassword, config.bcryptRounds);
 
-    // Update user's password
+    // Update user's password. F-B3.4: bump tokenVersion to immediately
+    // invalidate any in-flight access tokens for this user.
     await query(
-      'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      'UPDATE users SET password_hash = $1, token_version = token_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
       [hashedPassword, id]
     );
+    invalidateAuthContextCache(id);
 
     // Send email with temporary password
     try {
@@ -2319,11 +2446,13 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response) =
     // Hash new password
     const hashedNewPassword = await bcrypt.hash(newPassword, config.bcryptRounds);
 
-    // Update password
+    // Update password. F-B3.4: bump tokenVersion to invalidate
+    // outstanding access tokens.
     await query(
-      'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      'UPDATE users SET password_hash = $1, token_version = token_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
       [hashedNewPassword, id]
     );
+    invalidateAuthContextCache(id);
 
     logger.info(`Password changed for user: ${user.username}`, {
       userId: req.user?.id,
@@ -2395,11 +2524,13 @@ export const resetPassword = async (req: AuthenticatedRequest, res: Response) =>
     // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, config.bcryptRounds);
 
-    // Update password
+    // Update password. F-B3.4: bump tokenVersion to invalidate
+    // outstanding access tokens.
     await query(
-      'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      'UPDATE users SET password_hash = $1, token_version = token_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
       [hashedPassword, user.id]
     );
+    invalidateAuthContextCache(user.id);
 
     logger.info(`Password reset for user: ${user.username}`, {
       userId: req.user?.id,
@@ -2607,7 +2738,8 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
         u.phone,
         ${PRIMARY_RBAC_ROLE_NAME_SQL} as role,
         u.employee_id,
-        u.designation,
+        des.name as designation,
+        d.name as department,
         u.is_active,
         u.last_login,
         u.created_at,
@@ -2616,6 +2748,7 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
         d.name as "departmentName"
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
+      LEFT JOIN designations des ON des.id = u.designation_id
       ${whereClause}
       ORDER BY ${safeSortColumn} ${safeSortOrder}
     `;
@@ -2724,7 +2857,7 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
             `"${user.name || ''}"`,
             user.username,
             user.email,
-            user.roleName || user.role,
+            user.roleName || '',
             `"${user.departmentName || ''}"`,
             user.employeeId || '',
             user.phone || '',

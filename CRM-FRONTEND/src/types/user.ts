@@ -20,9 +20,10 @@ export interface User {
   legacyPermissions?: Record<string, unknown>;
   routeAccess?: string[];
   employeeId: string;
-  designation: string;
-  designationId?: number;
-  designationName?: string;
+  // 2026-04-28 F1.1.2: nullable — derived from designations FK.
+  designation: string | null;
+  designationId?: number | null;
+  designationName?: string | null;
   department?: string; // Legacy display field
   departmentId?: number;
   departmentName?: string;
@@ -303,8 +304,10 @@ export interface UserProfile {
   email: string;
   role: Role;
   employeeId: string;
-  designation: string;
-  department: string;
+  // 2026-04-28 F1.1.2: nullable — derived from designations FK.
+  designation: string | null;
+  // 2026-04-28 F1.1.3: nullable — derived from departments FK.
+  department: string | null;
   profilePhotoUrl?: string;
   isActive: boolean;
   lastLoginAt?: string;
@@ -368,8 +371,10 @@ export interface UserExportData {
   email: string;
   role: Role;
   employeeId: string;
-  designation: string;
-  department: string;
+  // 2026-04-28 F1.1.2: nullable — derived from designations FK.
+  designation: string | null;
+  // 2026-04-28 F1.1.3: nullable — derived from departments FK.
+  department: string | null;
   isActive: boolean;
   lastLoginAt?: string;
   createdAt: string;

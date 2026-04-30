@@ -91,11 +91,12 @@ export class VerificationTasksController {
         areaId: currentTask.areaId,
       });
 
+    // F5.1.2 Phase B: pincode is FK-only (text column dropped).
     const newTaskResult = await client.query(
       `
       INSERT INTO verification_tasks (
         case_id, verification_type_id, task_title, task_description,
-        priority, rate_type_id, estimated_amount, address, pincode,
+        priority, rate_type_id, estimated_amount, address, pincode_id,
         area_id,
         assigned_to, assigned_by, assigned_at, current_assigned_at,
         status, created_by, parent_task_id, task_type,
@@ -118,7 +119,7 @@ export class VerificationTasksController {
         currentTask.rateTypeId,
         currentTask.estimatedAmount,
         currentTask.address,
-        currentTask.pincode,
+        recreatedTerritory.pincodeDbId,
         recreatedTerritory.areaId,
         assignedTo,
         assignedBy,
@@ -328,12 +329,17 @@ export class VerificationTasksController {
     try {
       await client.query('BEGIN');
 
-      // 1. Fetch original task details
+      // 1. Fetch original task details (F5.1.2 Phase B: pincode via FK)
       const originalTaskQuery = `
-        SELECT id, case_id, verification_type_id, status, assigned_to, address, pincode, latitude, longitude, priority, area_id,
-               task_title, task_description, rate_type_id, estimated_amount, document_type, document_number, document_details,
-               first_assigned_at, assigned_at, completed_at, created_at, updated_at
-        FROM verification_tasks WHERE id = $1
+        SELECT vt.id, vt.case_id, vt.verification_type_id, vt.status, vt.assigned_to,
+               vt.address, p.code AS pincode, vt.pincode_id,
+               vt.latitude, vt.longitude, vt.priority, vt.area_id,
+               vt.task_title, vt.task_description, vt.rate_type_id, vt.estimated_amount,
+               vt.document_type, vt.document_number, vt.document_details,
+               vt.first_assigned_at, vt.assigned_at, vt.completed_at, vt.created_at, vt.updated_at
+        FROM verification_tasks vt
+        LEFT JOIN pincodes p ON p.id = vt.pincode_id
+        WHERE vt.id = $1
       `;
       const originalTaskResult = await client.query(originalTaskQuery, [taskId]);
 
@@ -378,11 +384,12 @@ export class VerificationTasksController {
       const isAssigned = assignedToValue !== null;
       const taskStatus = isAssigned ? 'ASSIGNED' : 'PENDING';
 
+      // F5.1.2 Phase B: pincode is FK-only (text column dropped).
       const insertQuery = `
         INSERT INTO verification_tasks (
           case_id, verification_type_id, task_title, task_description,
           priority, assigned_to, assigned_by, assigned_at,
-          rate_type_id, estimated_amount, address, pincode,
+          rate_type_id, estimated_amount, address, pincode_id,
           area_id,
           estimated_completion_date, status, created_by,
           task_type, parent_task_id,
@@ -409,7 +416,7 @@ export class VerificationTasksController {
         originalTask.rateTypeId,
         originalTask.estimatedAmount,
         originalTask.address,
-        originalTask.pincode,
+        revisitedTerritory.pincodeDbId,
         revisitedTerritory.areaId,
         null, // Reset estimated completion date
         taskStatus,
@@ -647,13 +654,9 @@ export class VerificationTasksController {
         params.push(userId);
         paramIndex++;
 
-        // Condition 2: Task in assigned pincode
+        // Condition 2: Task in assigned pincode (F5.1.2 Phase B: int FK swap)
         if (assignedPincodeIds && assignedPincodeIds.length > 0) {
-          fieldAgentConditions.push(`EXISTS (
-            SELECT 1 FROM pincodes p_scope
-            WHERE p_scope.code = vt.pincode
-              AND p_scope.id = ANY($${paramIndex}::int[])
-          )`);
+          fieldAgentConditions.push(`vt.pincode_id = ANY($${paramIndex}::int[])`);
           params.push(assignedPincodeIds);
           paramIndex++;
         }
@@ -851,8 +854,8 @@ export class VerificationTasksController {
           u_assigned.employee_id as "assignedToEmployeeId",
           u_created.name as "assignedByName",
           rt.name as rate_type_name,
-          tcc.status as commission_status,
-          tcc.calculated_commission
+          cc.status as commission_status,
+          cc.calculated_commission
         FROM verification_tasks vt
         LEFT JOIN cases c ON vt.case_id = c.id
         LEFT JOIN clients cl ON c.client_id = cl.id
@@ -861,7 +864,7 @@ export class VerificationTasksController {
         LEFT JOIN users u_assigned ON vt.assigned_to = u_assigned.id
         LEFT JOIN users u_created ON vt.assigned_by = u_created.id
         LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
-        LEFT JOIN task_commission_calculations tcc ON vt.id = tcc.verification_task_id
+        LEFT JOIN commission_calculations cc ON vt.id = cc.verification_task_id
         ${whereClause}
         ORDER BY vt.${safeSortColumn} ${safeSortOrder}
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -1153,14 +1156,14 @@ export class VerificationTasksController {
           u_assigned.employee_id as assigned_to_employee_id,
           u_created.name as assigned_by_name,
           rt.name as rate_type_name,
-          tcc.status as commission_status,
-          tcc.calculated_commission
+          cc.status as commission_status,
+          cc.calculated_commission
         FROM verification_tasks vt
         LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
         LEFT JOIN users u_assigned ON vt.assigned_to = u_assigned.id
         LEFT JOIN users u_created ON vt.assigned_by = u_created.id
         LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
-        LEFT JOIN task_commission_calculations tcc ON vt.id = tcc.verification_task_id
+        LEFT JOIN commission_calculations cc ON vt.id = cc.verification_task_id
         WHERE ${whereClause}
         ORDER BY vt.created_at ASC
       `,
@@ -1242,11 +1245,14 @@ export class VerificationTasksController {
 
     try {
       // First, fetch the current task to check if it's a REVISIT task and validate territory updates
+      // F5.1.2 Phase B: source pincode text via FK, no longer from vt.pincode column
       const currentTaskResult = await dbQuery(
-        `SELECT vt.task_type, vt.status, vt.started_at, vt.pincode, vt.area_id,
+        `SELECT vt.task_type, vt.status, vt.started_at,
+                vt.pincode_id, p.code AS pincode, vt.area_id,
                 vt.verification_type_id, c.client_id as client_id, c.product_id as product_id
          FROM verification_tasks vt
          JOIN cases c ON c.id = vt.case_id
+         LEFT JOIN pincodes p ON p.id = vt.pincode_id
          WHERE vt.id = $1`,
         [taskId]
       );
@@ -1567,13 +1573,16 @@ export class VerificationTasksController {
       // duplicate ACTIVE tasks for the same (case_id,
       // verification_type_id). The partial unique index added in
       // migration 013 is the belt; this is the suspenders.
+      // F5.1.2 Phase B: source pincode text via FK
       const taskResult = await client.query(
-        `SELECT id, case_id, verification_type_id, status, assigned_to,
-                address, pincode, latitude, longitude, priority, area_id,
-                rate_type_id, started_at, completed_at, created_at, updated_at
-         FROM verification_tasks
-         WHERE id = $1
-         FOR UPDATE`,
+        `SELECT vt.id, vt.case_id, vt.verification_type_id, vt.status, vt.assigned_to,
+                vt.address, p.code AS pincode, vt.pincode_id,
+                vt.latitude, vt.longitude, vt.priority, vt.area_id,
+                vt.rate_type_id, vt.started_at, vt.completed_at, vt.created_at, vt.updated_at
+         FROM verification_tasks vt
+         LEFT JOIN pincodes p ON p.id = vt.pincode_id
+         WHERE vt.id = $1
+         FOR UPDATE OF vt`,
         [taskId]
       );
 
@@ -1601,23 +1610,22 @@ export class VerificationTasksController {
         });
         return;
       }
-      // Validate assigned user has territory coverage for the task's pincode
-      if (currentTask.pincode) {
+      // F5.1.2 Phase B: territory coverage check now uses pincode_id directly
+      // (was: nested SELECT id FROM pincodes WHERE code = $2 to convert text → int)
+      if (currentTask.pincodeId) {
         const territoryCheck = await client.query(
           `SELECT 1 FROM user_pincode_assignments
-           WHERE user_id = $1 AND pincode_id = (
-             SELECT id FROM pincodes WHERE code = $2 LIMIT 1
-           ) AND is_active = true
+           WHERE user_id = $1 AND pincode_id = $2 AND is_active = true
            LIMIT 1`,
-          [assignedTo, currentTask.pincode]
+          [assignedTo, currentTask.pincodeId]
         );
         if (territoryCheck.rows.length === 0) {
           logger.warn(
-            `Territory mismatch: user ${assignedTo} has no pincode assignment for ${currentTask.pincode}`,
+            `Territory mismatch: user ${assignedTo} has no pincode assignment for pincode_id=${currentTask.pincodeId}`,
             {
               taskId,
               assignedTo,
-              pincode: currentTask.pincode,
+              pincodeId: currentTask.pincodeId,
             }
           );
           // Warning only — some assignments may be intentional overrides by admins
@@ -2516,7 +2524,7 @@ export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Respons
         cl.name as client_name,
         p.name as product_name,
         vt.address,
-        vt.pincode,
+        (SELECT code FROM pincodes WHERE id = vt.pincode_id) as pincode,
         a.name as area_name,
         vt.status,
         vt.priority,

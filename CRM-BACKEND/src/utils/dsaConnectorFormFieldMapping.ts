@@ -350,7 +350,7 @@ export function ensureAllDsaConnectorFieldsPopulated(
     // 2026-04-27: met_person_type column added (was the same overload bug as
     // Property APF). DSA ERT mobile sends `metPersonType` (Security/Receptionist).
     'met_person_type',
-    'business_exist_status',
+    'business_exists_status',
 
     // Environment and area details
     'political_connection',

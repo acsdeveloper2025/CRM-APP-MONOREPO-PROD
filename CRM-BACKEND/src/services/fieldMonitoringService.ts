@@ -812,7 +812,7 @@ export class FieldMonitoringService {
         SELECT DISTINCT ON (vt.assigned_to)
           vt.assigned_to as user_id,
           vt.id as "verification_task_id",
-          vt.pincode,
+          (SELECT code FROM pincodes WHERE id = vt.pincode_id) as pincode,
           vt.area_id as area_id,
           a.name as "area_name"
         FROM verification_tasks vt
@@ -952,7 +952,7 @@ export class FieldMonitoringService {
           vt.started_at as started_at,
           vt.assigned_at as assigned_at,
           vt.current_assigned_at as "current_assigned_at",
-          vt.pincode,
+          (SELECT code FROM pincodes WHERE id = vt.pincode_id) as pincode,
           c.id as case_id,
           c.case_id as case_number,
           c.customer_name as customer_name,

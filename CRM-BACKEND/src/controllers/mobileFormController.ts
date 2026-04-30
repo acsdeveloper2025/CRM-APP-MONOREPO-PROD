@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import type { PoolClient } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
 import type { MobileFormSubmissionRequest, FormSubmissionData, FormSection } from '../types/mobile';
 import type {
@@ -88,10 +89,10 @@ import { query, withTransaction } from '@/config/database';
 import path from 'path';
 import fs from 'fs/promises';
 import sharp from 'sharp';
+import { storage as objectStorage, StorageKeys } from '@/services/storage';
 import { queueCaseCompletionNotification } from '../queues/notificationQueue';
 import { logger } from '../utils/logger';
 import { CaseStatusSyncService } from '../services/caseStatusSyncService';
-import { MobileOperationService } from '@/services/mobileOperationService';
 import { errorMessage } from '@/utils/errorMessage';
 // Enhanced services temporarily disabled for debugging
 
@@ -149,39 +150,6 @@ export class MobileFormController {
     }
 
     return processed;
-  }
-
-  private static getOperationId(req: Request): string | null {
-    const headerValue = req.header('Idempotency-Key');
-    if (!headerValue) {
-      return null;
-    }
-    const trimmed = headerValue.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  }
-
-  private static async recordFormOperation(
-    req: Request,
-    taskId: string,
-    formType: string,
-    payload: unknown
-  ): Promise<void> {
-    const operationId = MobileFormController.getOperationId(req);
-    if (!operationId) {
-      return;
-    }
-
-    await MobileOperationService.recordOperation({
-      operationId,
-      type: 'FORM_SUBMITTED',
-      entityType: 'FORM',
-      entityId: taskId,
-      payload: {
-        formType,
-        data: payload,
-      },
-      retryCount: Number((req.body as { retryCount?: number })?.retryCount || 0),
-    });
   }
 
   /**
@@ -670,14 +638,29 @@ export class MobileFormController {
         // entire mobile form image-upload path was broken. Removed
         // the duplicate column and the stale "will be set later"
         // null placeholder.
+        //
+        // Storage abstraction (F8.1.3 + F8.2.3 sister fix): also call
+        // storage.put + populate storage_key for future S3 cutover.
+        const photoIdRes = await query<{ id: string }>(
+          `SELECT nextval('verification_attachments_id_seq')::text AS id`
+        );
+        const photoInsId = Number(photoIdRes.rows[0].id);
+        const photoStorageKey = StorageKeys.verificationPhoto(
+          caseId,
+          verificationTaskId || 'unassigned',
+          photoInsId
+        );
+        await objectStorage.put(photoStorageKey, imageBuffer, 'image/jpeg');
+
         const attachmentResult = await query(
           `INSERT INTO verification_attachments (
-            case_id, verification_type, verification_task_id, filename, original_name,
-            mime_type, file_size, file_path, thumbnail_path, uploaded_by,
+            id, case_id, verification_type, verification_task_id, filename, original_name,
+            mime_type, file_size, file_path, thumbnail_path, storage_key, uploaded_by,
             geo_location, photo_type, submission_id
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-          RETURNING id, filename, file_path, thumbnail_path, created_at`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+          RETURNING id, filename, file_path, thumbnail_path, storage_key, created_at`,
           [
+            photoInsId,
             caseId,
             verificationType,
             verificationTaskId || null, // ✅ Link to verification task
@@ -687,6 +670,7 @@ export class MobileFormController {
             imageBuffer.length,
             `/uploads/verification/${verificationType.toLowerCase()}/${caseId}/${filename}`,
             `/uploads/verification/${verificationType.toLowerCase()}/${caseId}/thumbnails/thumb_${filename}`,
+            photoStorageKey,
             userId,
             image.geoLocation ? JSON.stringify(image.geoLocation) : null,
             photoType,
@@ -2062,10 +2046,12 @@ export class MobileFormController {
         },
       };
 
-      // Update case with verification data
+      // Update case with verification data.
+      // 2026-04-28 PE7 (F5.1.1 follow-up): cases.verification_type text column
+      // dropped — verification type lives in verification_type_id FK only.
       await query(
-        `UPDATE cases SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, verification_data = $1, verification_type = $2, verification_outcome = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
-        [JSON.stringify(verificationData), verificationType, formData.outcome || 'VERIFIED', caseId]
+        `UPDATE cases SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, verification_data = $1, verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+        [JSON.stringify(verificationData), formData.outcome || 'VERIFIED', caseId]
       );
       const caseUpd = await query(`SELECT id, status, completed_at FROM cases WHERE id = $1`, [
         caseId,
@@ -2151,8 +2137,10 @@ export class MobileFormController {
       }
 
       // Verify case access - handle both UUID and business caseId
+      // 2026-04-28 PE8 (F5.1.1 follow-up): cases.verification_type text column
+      // dropped — derive from verification_types FK.
       const vals: QueryParams = [];
-      let caseSql = `SELECT id, customer_name, verification_data, verification_type, verification_outcome, status FROM cases WHERE `;
+      let caseSql = `SELECT c.id, c.customer_name, c.verification_data, vtype.name AS verification_type, c.verification_outcome, c.status FROM cases c LEFT JOIN verification_types vtype ON vtype.id = c.verification_type_id WHERE c.`;
 
       // Check if caseId is a number (business caseId) or UUID
       const isNumeric = /^\d+$/.test(caseId);
@@ -2169,7 +2157,7 @@ export class MobileFormController {
       if (isExecutionActor) {
         caseSql += ` AND EXISTS (
           SELECT 1 FROM verification_tasks vt
-          WHERE vt.case_id = cases.id AND vt.assigned_to = $2
+          WHERE vt.case_id = c.id AND vt.assigned_to = $2
         )`;
         vals.push(userId);
       }
@@ -2430,6 +2418,84 @@ export class MobileFormController {
     return detectResidenceFormType(formData);
   }
 
+  /**
+   * 2026-04-28 F7.3.x: write to BOTH form_submissions (rich payload) AND
+   * task_form_submissions (junction). Pre-fix, only the junction was written
+   * with a fake form_submission_id pointing at nothing — leaving 9 analytic
+   * services querying form_submissions and getting empty results.
+   *
+   * Mobile is source of truth: submission_data captures the full formData
+   * payload exactly as mobile sent it.
+   */
+  private static async createFormSubmissionRecords(
+    client: PoolClient,
+    args: {
+      caseId: string;
+      taskId: string;
+      formTypeCode: string;
+      submittedBy: string;
+      formData: Record<string, unknown>;
+      photoCount: number;
+      attachmentCount: number;
+      geoLocation: unknown;
+    }
+  ): Promise<{ formSubmissionId: string; taskFormSubmissionId: string }> {
+    const formSubmissionId = uuidv4();
+    const taskFormSubmissionId = uuidv4();
+
+    // Insert the rich form_submissions row — derives verification_type_id
+    // from the verification_tasks row in the same statement.
+    await client.query(
+      `INSERT INTO form_submissions (
+         id, case_id, verification_task_id, verification_type_id, form_type,
+         submitted_by, submission_data, photos_count, attachments_count,
+         geo_location, submitted_at
+       )
+       SELECT $1, $2, $3, vt.verification_type_id, $4,
+              $5, $6::jsonb, $7, $8, $9::jsonb, NOW()
+       FROM verification_tasks vt WHERE vt.id = $3`,
+      [
+        formSubmissionId,
+        args.caseId,
+        args.taskId,
+        args.formTypeCode,
+        args.submittedBy,
+        JSON.stringify(args.formData ?? {}),
+        args.photoCount,
+        args.attachmentCount,
+        JSON.stringify(args.geoLocation ?? {}),
+      ]
+    );
+
+    // Insert the junction row + back-link any pre-uploaded
+    // verification_attachments for the same task that landed with
+    // submission_id=NULL during form-fill.
+    await client.query(
+      `WITH ins AS (
+         INSERT INTO task_form_submissions (
+           id, verification_task_id, case_id, form_submission_id, form_type,
+           submitted_by, submitted_at, validation_status
+         ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
+         RETURNING verification_task_id, form_submission_id
+       )
+       UPDATE verification_attachments va
+          SET submission_id = ins.form_submission_id
+         FROM ins
+        WHERE va.verification_task_id = ins.verification_task_id
+          AND va.submission_id IS NULL`,
+      [
+        taskFormSubmissionId,
+        args.taskId,
+        args.caseId,
+        formSubmissionId,
+        args.formTypeCode,
+        args.submittedBy,
+      ]
+    );
+
+    return { formSubmissionId, taskFormSubmissionId };
+  }
+
   static async submitVerificationForm(this: void, req: AuthenticatedRequest, res: Response) {
     const taskId = String(req.params.taskId || '');
     const formType = String(req.body?.formType || '')
@@ -2471,8 +2537,6 @@ export class MobileFormController {
           : data,
     };
 
-    await MobileFormController.recordFormOperation(req, taskId, formType, data);
-
     switch (formType) {
       case 'RESIDENCE':
         return MobileFormController.submitResidenceVerification(req, res);
@@ -2508,6 +2572,15 @@ export class MobileFormController {
       const taskId = String(req.params.taskId || '');
       // Preprocess composite Value+Unit fields from mobile into single fields
       req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
+      // 2026-04-28: mobile is source of truth — top-level verificationOutcome/outcome
+      // gets merged into formData so detectXxxFormType (which reads from formData)
+      // picks up the user-selected outcome instead of guessing via field indicators.
+      if (req.body.verificationOutcome && !req.body.formData.verificationOutcome) {
+        req.body.formData.verificationOutcome = req.body.verificationOutcome;
+      }
+      if (req.body.outcome && !req.body.formData.outcome) {
+        req.body.formData.outcome = req.body.outcome;
+      }
       const {
         verificationTaskId,
         formData,
@@ -2738,7 +2811,7 @@ export class MobileFormController {
 
         // c. Update case with verification data (without changing status)
         await client.query(
-          `UPDATE cases SET verification_data = $1, verification_type = 'RESIDENCE', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          `UPDATE cases SET verification_data = $1, verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
           [JSON.stringify(verificationData), verificationOutcome, caseId]
         );
 
@@ -2797,9 +2870,11 @@ export class MobileFormController {
         // Build dynamic INSERT query based on available data
         const { columns, placeholders, values } = buildInsert(dbInsertData);
 
+        // 2026-04-28 F6.0.1: write to unified verification_reports table.
+        // verification_type_id resolved via subquery on the type code (stable).
         const insertQuery = `
-        INSERT INTO residence_verification_reports (${columns})
-        VALUES (${placeholders})
+        INSERT INTO verification_reports (verification_type_id, ${columns})
+        VALUES ((SELECT id FROM verification_types WHERE code = 'RV'), ${placeholders})
       `;
 
         logger.info(`📝 Inserting residence verification with ${columns.length} fields:`, columns);
@@ -2809,33 +2884,20 @@ export class MobileFormController {
 
         // f. STAGE-2D: Strict Task Completion - Populate taskFormSubmissions.
         //    Any failure here now rolls back the whole submission (Finding #3).
-        await client.query(
-          // Insert the form-submission row AND back-link any pre-uploaded
-          // verification_attachments for the same task that landed with
-          // submission_id=NULL (captured live during form entry before this
-          // form_submission_id existed). Single statement keeps it in the
-          // same transaction: the back-link commits iff the insert does.
-          `WITH ins AS (
-             INSERT INTO task_form_submissions (
-               id, verification_task_id, case_id, form_submission_id, form_type,
-               submitted_by, submitted_at, validation_status
-             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
-             RETURNING verification_task_id, form_submission_id
-           )
-           UPDATE verification_attachments va
-              SET submission_id = ins.form_submission_id
-             FROM ins
-            WHERE va.verification_task_id = ins.verification_task_id
-              AND va.submission_id IS NULL`,
-          [
-            uuidv4(), // taskFormSubmission record ID
-            targetTaskId,
-            caseId,
-            uuidv4(), // NEW: formSubmissionId (mandatory)
-            'RESIDENCE_VERIFICATION',
-            userId,
-          ]
-        );
+        // 2026-04-28 F7.3.x: write to BOTH form_submissions (rich payload)
+        // AND task_form_submissions (junction). Pre-fix only the junction was
+        // populated, leaving 9 analytics services querying form_submissions
+        // and getting empty results.
+        await MobileFormController.createFormSubmissionRecords(client, {
+          caseId,
+          taskId: targetTaskId,
+          formTypeCode: 'RESIDENCE_VERIFICATION',
+          submittedBy: userId,
+          formData,
+          photoCount: photos?.length || images?.length || 0,
+          attachmentCount: photos?.length || images?.length || 0,
+          geoLocation,
+        });
         logger.info(`✅ Linked residence form submission to task ${targetTaskId}`);
 
         // g. Remove auto-save data (autoSaves table doesn't have formType column)
@@ -2915,6 +2977,15 @@ export class MobileFormController {
       const taskId = String(req.params.taskId || '');
       // Preprocess composite Value+Unit fields from mobile into single fields
       req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
+      // 2026-04-28: mobile is source of truth — top-level verificationOutcome/outcome
+      // gets merged into formData so detectXxxFormType (which reads from formData)
+      // picks up the user-selected outcome instead of guessing via field indicators.
+      if (req.body.verificationOutcome && !req.body.formData.verificationOutcome) {
+        req.body.formData.verificationOutcome = req.body.verificationOutcome;
+      }
+      if (req.body.outcome && !req.body.formData.outcome) {
+        req.body.formData.outcome = req.body.outcome;
+      }
       const {
         verificationTaskId,
         formData,
@@ -3152,7 +3223,7 @@ export class MobileFormController {
 
         // c. Update case with verification data (without changing status)
         await client.query(
-          `UPDATE cases SET verification_data = $1, verification_type = 'OFFICE', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          `UPDATE cases SET verification_data = $1, verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
           [JSON.stringify(verificationData), verificationOutcome, caseId]
         );
 
@@ -3198,8 +3269,8 @@ export class MobileFormController {
         const { columns, placeholders, values } = buildInsert(dbInsertData);
 
         const insertQuery = `
-        INSERT INTO office_verification_reports (${columns})
-        VALUES (${placeholders})
+        INSERT INTO verification_reports (verification_type_id, ${columns})
+        VALUES ((SELECT id FROM verification_types WHERE code = 'OV'), ${placeholders})
       `;
 
         // Log comprehensive database insert data for debugging
@@ -3224,27 +3295,19 @@ export class MobileFormController {
         // e. Insert the verification report
         await client.query(insertQuery, values);
 
-        // f. Populate taskFormSubmissions (no swallow — Finding #3).
-        await client.query(
-          // Insert the form-submission row AND back-link any pre-uploaded
-          // verification_attachments for the same task that landed with
-          // submission_id=NULL (captured live during form entry before this
-          // form_submission_id existed). Single statement keeps it in the
-          // same transaction: the back-link commits iff the insert does.
-          `WITH ins AS (
-             INSERT INTO task_form_submissions (
-               id, verification_task_id, case_id, form_submission_id, form_type,
-               submitted_by, submitted_at, validation_status
-             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
-             RETURNING verification_task_id, form_submission_id
-           )
-           UPDATE verification_attachments va
-              SET submission_id = ins.form_submission_id
-             FROM ins
-            WHERE va.verification_task_id = ins.verification_task_id
-              AND va.submission_id IS NULL`,
-          [uuidv4(), targetTaskId, caseId, uuidv4(), 'OFFICE_VERIFICATION', userId]
-        );
+        // f. Populate form_submissions + task_form_submissions (no swallow — Finding #3).
+        // 2026-04-28 F7.3.x — write to BOTH tables; pre-fix the junction had a
+        // fake form_submission_id pointing nowhere, leaving 9 readers empty.
+        await MobileFormController.createFormSubmissionRecords(client, {
+          caseId,
+          taskId: targetTaskId,
+          formTypeCode: 'OFFICE_VERIFICATION',
+          submittedBy: userId,
+          formData,
+          photoCount: photos?.length || images?.length || 0,
+          attachmentCount: photos?.length || images?.length || 0,
+          geoLocation,
+        });
         logger.info(`✅ Linked office form submission to task ${targetTaskId}`);
 
         // g. Remove auto-save data
@@ -3322,6 +3385,15 @@ export class MobileFormController {
       const taskId = String(req.params.taskId || '');
       // Preprocess composite Value+Unit fields from mobile into single fields
       req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
+      // 2026-04-28: mobile is source of truth — top-level verificationOutcome/outcome
+      // gets merged into formData so detectXxxFormType (which reads from formData)
+      // picks up the user-selected outcome instead of guessing via field indicators.
+      if (req.body.verificationOutcome && !req.body.formData.verificationOutcome) {
+        req.body.formData.verificationOutcome = req.body.verificationOutcome;
+      }
+      if (req.body.outcome && !req.body.formData.outcome) {
+        req.body.formData.outcome = req.body.outcome;
+      }
       const {
         verificationTaskId,
         formData,
@@ -3568,7 +3640,7 @@ export class MobileFormController {
 
         // c. Update case with verification data (without changing status)
         await client.query(
-          `UPDATE cases SET verification_data = $1, verification_type = 'BUSINESS', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          `UPDATE cases SET verification_data = $1, verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
           [JSON.stringify(verificationData), verificationOutcome, caseId]
         );
 
@@ -3638,8 +3710,8 @@ export class MobileFormController {
         logger.info(`🔍 Columns for SQL insert:`, columns);
 
         const insertQuery = `
-        INSERT INTO business_verification_reports (${columns})
-        VALUES (${placeholders})
+        INSERT INTO verification_reports (verification_type_id, ${columns})
+        VALUES ((SELECT id FROM verification_types WHERE code = 'EV'), ${placeholders})
       `;
 
         // Log comprehensive database insert data for debugging
@@ -3664,27 +3736,18 @@ export class MobileFormController {
         // e. Insert the verification report
         await client.query(insertQuery, values);
 
-        // f. Populate taskFormSubmissions (no swallow — Finding #3).
-        await client.query(
-          // Insert the form-submission row AND back-link any pre-uploaded
-          // verification_attachments for the same task that landed with
-          // submission_id=NULL (captured live during form entry before this
-          // form_submission_id existed). Single statement keeps it in the
-          // same transaction: the back-link commits iff the insert does.
-          `WITH ins AS (
-             INSERT INTO task_form_submissions (
-               id, verification_task_id, case_id, form_submission_id, form_type,
-               submitted_by, submitted_at, validation_status
-             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
-             RETURNING verification_task_id, form_submission_id
-           )
-           UPDATE verification_attachments va
-              SET submission_id = ins.form_submission_id
-             FROM ins
-            WHERE va.verification_task_id = ins.verification_task_id
-              AND va.submission_id IS NULL`,
-          [uuidv4(), targetTaskId, caseId, uuidv4(), 'BUSINESS_VERIFICATION', userId]
-        );
+        // f. Populate form_submissions + task_form_submissions (no swallow — Finding #3).
+        // F7.3.x — write to BOTH tables.
+        await MobileFormController.createFormSubmissionRecords(client, {
+          caseId,
+          taskId: targetTaskId,
+          formTypeCode: 'BUSINESS_VERIFICATION',
+          submittedBy: userId,
+          formData,
+          photoCount: photos?.length || images?.length || 0,
+          attachmentCount: photos?.length || images?.length || 0,
+          geoLocation,
+        });
         logger.info(`✅ Linked business form submission to task ${targetTaskId}`);
 
         // g. Remove auto-save data
@@ -3762,6 +3825,15 @@ export class MobileFormController {
       const taskId = String(req.params.taskId || '');
       // Preprocess composite Value+Unit fields from mobile into single fields
       req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
+      // 2026-04-28: mobile is source of truth — top-level verificationOutcome/outcome
+      // gets merged into formData so detectXxxFormType (which reads from formData)
+      // picks up the user-selected outcome instead of guessing via field indicators.
+      if (req.body.verificationOutcome && !req.body.formData.verificationOutcome) {
+        req.body.formData.verificationOutcome = req.body.verificationOutcome;
+      }
+      if (req.body.outcome && !req.body.formData.outcome) {
+        req.body.formData.outcome = req.body.outcome;
+      }
       const {
         verificationTaskId,
         formData,
@@ -3972,7 +4044,7 @@ export class MobileFormController {
 
         // c. Update case with verification data (without changing status)
         await client.query(
-          `UPDATE cases SET verification_data = $1, verification_type = 'BUILDER', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          `UPDATE cases SET verification_data = $1, verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
           [JSON.stringify(verificationData), verificationOutcome, caseId]
         );
 
@@ -4018,8 +4090,8 @@ export class MobileFormController {
         logger.info('🔍 Columns for SQL insert:', columns);
 
         const insertQuery = `
-        INSERT INTO builder_verification_reports (${columns})
-        VALUES (${placeholders})
+        INSERT INTO verification_reports (verification_type_id, ${columns})
+        VALUES ((SELECT id FROM verification_types WHERE code = 'BV'), ${placeholders})
       `;
 
         // Log comprehensive database insert data for debugging
@@ -4044,27 +4116,18 @@ export class MobileFormController {
         // e. Insert the verification report
         await client.query(insertQuery, values);
 
-        // f. Populate taskFormSubmissions (no swallow — Finding #3).
-        await client.query(
-          // Insert the form-submission row AND back-link any pre-uploaded
-          // verification_attachments for the same task that landed with
-          // submission_id=NULL (captured live during form entry before this
-          // form_submission_id existed). Single statement keeps it in the
-          // same transaction: the back-link commits iff the insert does.
-          `WITH ins AS (
-             INSERT INTO task_form_submissions (
-               id, verification_task_id, case_id, form_submission_id, form_type,
-               submitted_by, submitted_at, validation_status
-             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
-             RETURNING verification_task_id, form_submission_id
-           )
-           UPDATE verification_attachments va
-              SET submission_id = ins.form_submission_id
-             FROM ins
-            WHERE va.verification_task_id = ins.verification_task_id
-              AND va.submission_id IS NULL`,
-          [uuidv4(), taskId || verificationTaskId, caseId, uuidv4(), 'BUILDER_VERIFICATION', userId]
-        );
+        // f. Populate form_submissions + task_form_submissions (no swallow — Finding #3).
+        // F7.3.x: helper writes BOTH rich payload (form_submissions) and junction.
+        await MobileFormController.createFormSubmissionRecords(client, {
+          caseId,
+          taskId: (taskId || verificationTaskId) as string,
+          formTypeCode: 'BUILDER_VERIFICATION',
+          submittedBy: userId,
+          formData,
+          photoCount: photos?.length || images?.length || 0,
+          attachmentCount: photos?.length || images?.length || 0,
+          geoLocation,
+        });
         logger.info(`✅ Linked builder form submission to task ${verificationTaskId}`);
 
         // g. Remove auto-save data
@@ -4145,6 +4208,15 @@ export class MobileFormController {
       const taskId = String(req.params.taskId || '');
       // Preprocess composite Value+Unit fields from mobile into single fields
       req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
+      // 2026-04-28: mobile is source of truth — top-level verificationOutcome/outcome
+      // gets merged into formData so detectXxxFormType (which reads from formData)
+      // picks up the user-selected outcome instead of guessing via field indicators.
+      if (req.body.verificationOutcome && !req.body.formData.verificationOutcome) {
+        req.body.formData.verificationOutcome = req.body.verificationOutcome;
+      }
+      if (req.body.outcome && !req.body.formData.outcome) {
+        req.body.formData.outcome = req.body.outcome;
+      }
       const submissionData: MobileFormSubmissionRequest = req.body;
       const userId = req.user!.id;
 
@@ -4235,7 +4307,7 @@ export class MobileFormController {
 
         // c. Update case with verification data
         await client.query(
-          `UPDATE cases SET verification_data = $1, verification_type = 'RESIDENCE_CUM_OFFICE', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          `UPDATE cases SET verification_data = $1, verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
           [JSON.stringify(verificationData), verificationOutcome, caseId]
         );
 
@@ -4276,8 +4348,8 @@ export class MobileFormController {
         const { columns, placeholders, values } = buildInsert(dbInsertData);
 
         const insertQuery = `
-        INSERT INTO residence_cum_office_verification_reports (${columns})
-        VALUES (${placeholders})
+        INSERT INTO verification_reports (verification_type_id, ${columns})
+        VALUES ((SELECT id FROM verification_types WHERE code = 'RC'), ${placeholders})
       `;
 
         logger.info(
@@ -4288,27 +4360,18 @@ export class MobileFormController {
         // e. Insert the verification report
         await client.query(insertQuery, values);
 
-        // f. Populate taskFormSubmissions (no swallow — Finding #3).
-        await client.query(
-          // Insert the form-submission row AND back-link any pre-uploaded
-          // verification_attachments for the same task that landed with
-          // submission_id=NULL (captured live during form entry before this
-          // form_submission_id existed). Single statement keeps it in the
-          // same transaction: the back-link commits iff the insert does.
-          `WITH ins AS (
-             INSERT INTO task_form_submissions (
-               id, verification_task_id, case_id, form_submission_id, form_type,
-               submitted_by, submitted_at, validation_status
-             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
-             RETURNING verification_task_id, form_submission_id
-           )
-           UPDATE verification_attachments va
-              SET submission_id = ins.form_submission_id
-             FROM ins
-            WHERE va.verification_task_id = ins.verification_task_id
-              AND va.submission_id IS NULL`,
-          [uuidv4(), taskId, caseId, uuidv4(), 'RESIDENCE_CUM_OFFICE_VERIFICATION', userId]
-        );
+        // f. Populate form_submissions + task_form_submissions (no swallow — Finding #3).
+        // F7.3.x: helper writes BOTH rich payload (form_submissions) and junction.
+        await MobileFormController.createFormSubmissionRecords(client, {
+          caseId,
+          taskId,
+          formTypeCode: 'RESIDENCE_CUM_OFFICE_VERIFICATION',
+          submittedBy: userId,
+          formData: submissionData.formData,
+          photoCount: submissionData.images?.length || submissionData.photos?.length || 0,
+          attachmentCount: submissionData.images?.length || submissionData.photos?.length || 0,
+          geoLocation: submissionData.geoLocation,
+        });
         logger.info(`✅ Linked residence-cum-office form submission to task ${taskId}`);
 
         // g. Remove auto-save data
@@ -4378,6 +4441,15 @@ export class MobileFormController {
       const taskId = String(req.params.taskId || '');
       // Preprocess composite Value+Unit fields from mobile into single fields
       req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
+      // 2026-04-28: mobile is source of truth — top-level verificationOutcome/outcome
+      // gets merged into formData so detectXxxFormType (which reads from formData)
+      // picks up the user-selected outcome instead of guessing via field indicators.
+      if (req.body.verificationOutcome && !req.body.formData.verificationOutcome) {
+        req.body.formData.verificationOutcome = req.body.verificationOutcome;
+      }
+      if (req.body.outcome && !req.body.formData.outcome) {
+        req.body.formData.outcome = req.body.outcome;
+      }
       const {
         verificationTaskId,
         formData,
@@ -4606,7 +4678,7 @@ export class MobileFormController {
 
         // c. Update case with verification data (without changing status)
         await client.query(
-          `UPDATE cases SET verification_data = $1, verification_type = 'DSA_CONNECTOR', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          `UPDATE cases SET verification_data = $1, verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
           [JSON.stringify(verificationData), verificationOutcome, caseId]
         );
 
@@ -4652,8 +4724,8 @@ export class MobileFormController {
         logger.info('🔍 Columns for SQL insert:', columns);
 
         const insertQuery = `
-        INSERT INTO dsa_connector_verification_reports (${columns})
-        VALUES (${placeholders})
+        INSERT INTO verification_reports (verification_type_id, ${columns})
+        VALUES ((SELECT id FROM verification_types WHERE code = 'DV'), ${placeholders})
       `;
 
         // Log comprehensive database insert data for debugging
@@ -4681,34 +4753,18 @@ export class MobileFormController {
         // e. Insert the verification report
         await client.query(insertQuery, values);
 
-        // f. Populate taskFormSubmissions (no swallow — Finding #3).
-        await client.query(
-          // Insert the form-submission row AND back-link any pre-uploaded
-          // verification_attachments for the same task that landed with
-          // submission_id=NULL (captured live during form entry before this
-          // form_submission_id existed). Single statement keeps it in the
-          // same transaction: the back-link commits iff the insert does.
-          `WITH ins AS (
-             INSERT INTO task_form_submissions (
-               id, verification_task_id, case_id, form_submission_id, form_type,
-               submitted_by, submitted_at, validation_status
-             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
-             RETURNING verification_task_id, form_submission_id
-           )
-           UPDATE verification_attachments va
-              SET submission_id = ins.form_submission_id
-             FROM ins
-            WHERE va.verification_task_id = ins.verification_task_id
-              AND va.submission_id IS NULL`,
-          [
-            uuidv4(),
-            taskId || verificationTaskId,
-            caseId,
-            uuidv4(),
-            'DSA_CONNECTOR_VERIFICATION',
-            userId,
-          ]
-        );
+        // f. Populate form_submissions + task_form_submissions (no swallow — Finding #3).
+        // F7.3.x: helper writes BOTH rich payload (form_submissions) and junction.
+        await MobileFormController.createFormSubmissionRecords(client, {
+          caseId,
+          taskId: (taskId || verificationTaskId) as string,
+          formTypeCode: 'DSA_CONNECTOR_VERIFICATION',
+          submittedBy: userId,
+          formData,
+          photoCount: photos?.length || images?.length || 0,
+          attachmentCount: photos?.length || images?.length || 0,
+          geoLocation,
+        });
         logger.info(`✅ Linked DSA Connector form submission to task ${verificationTaskId}`);
 
         // g. Remove auto-save data
@@ -4789,6 +4845,15 @@ export class MobileFormController {
       const taskId = String(req.params.taskId || '');
       // Preprocess composite Value+Unit fields from mobile into single fields
       req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
+      // 2026-04-28: mobile is source of truth — top-level verificationOutcome/outcome
+      // gets merged into formData so detectXxxFormType (which reads from formData)
+      // picks up the user-selected outcome instead of guessing via field indicators.
+      if (req.body.verificationOutcome && !req.body.formData.verificationOutcome) {
+        req.body.formData.verificationOutcome = req.body.verificationOutcome;
+      }
+      if (req.body.outcome && !req.body.formData.outcome) {
+        req.body.formData.outcome = req.body.outcome;
+      }
       const submissionData: MobileFormSubmissionRequest = req.body;
       const userId = req.user!.id;
 
@@ -4879,7 +4944,7 @@ export class MobileFormController {
 
         // c. Update case with verification data
         await client.query(
-          `UPDATE cases SET verification_data = $1, verification_type = 'PROPERTY_INDIVIDUAL', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          `UPDATE cases SET verification_data = $1, verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
           [JSON.stringify(verificationData), verificationOutcome, caseId]
         );
 
@@ -4920,8 +4985,8 @@ export class MobileFormController {
         const { columns, placeholders, values } = buildInsert(dbInsertData);
 
         const insertQuery = `
-        INSERT INTO property_individual_verification_reports (${columns})
-        VALUES (${placeholders})
+        INSERT INTO verification_reports (verification_type_id, ${columns})
+        VALUES ((SELECT id FROM verification_types WHERE code = 'PIV'), ${placeholders})
       `;
 
         logger.info(
@@ -4932,27 +4997,18 @@ export class MobileFormController {
         // e. Insert the verification report
         await client.query(insertQuery, values);
 
-        // f. Populate taskFormSubmissions (no swallow — Finding #3).
-        await client.query(
-          // Insert the form-submission row AND back-link any pre-uploaded
-          // verification_attachments for the same task that landed with
-          // submission_id=NULL (captured live during form entry before this
-          // form_submission_id existed). Single statement keeps it in the
-          // same transaction: the back-link commits iff the insert does.
-          `WITH ins AS (
-             INSERT INTO task_form_submissions (
-               id, verification_task_id, case_id, form_submission_id, form_type,
-               submitted_by, submitted_at, validation_status
-             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
-             RETURNING verification_task_id, form_submission_id
-           )
-           UPDATE verification_attachments va
-              SET submission_id = ins.form_submission_id
-             FROM ins
-            WHERE va.verification_task_id = ins.verification_task_id
-              AND va.submission_id IS NULL`,
-          [uuidv4(), taskId, caseId, uuidv4(), 'PROPERTY_INDIVIDUAL_VERIFICATION', userId]
-        );
+        // f. Populate form_submissions + task_form_submissions (no swallow — Finding #3).
+        // F7.3.x: helper writes BOTH rich payload (form_submissions) and junction.
+        await MobileFormController.createFormSubmissionRecords(client, {
+          caseId,
+          taskId,
+          formTypeCode: 'PROPERTY_INDIVIDUAL_VERIFICATION',
+          submittedBy: userId,
+          formData: submissionData.formData,
+          photoCount: submissionData.images?.length || 0,
+          attachmentCount: submissionData.images?.length || 0,
+          geoLocation: submissionData.geoLocation,
+        });
         logger.info(`✅ Linked Property Individual form submission to task ${taskId}`);
 
         // g. Remove auto-save data
@@ -5018,6 +5074,15 @@ export class MobileFormController {
       const taskId = String(req.params.taskId || '');
       // Preprocess composite Value+Unit fields from mobile into single fields
       req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
+      // 2026-04-28: mobile is source of truth — top-level verificationOutcome/outcome
+      // gets merged into formData so detectXxxFormType (which reads from formData)
+      // picks up the user-selected outcome instead of guessing via field indicators.
+      if (req.body.verificationOutcome && !req.body.formData.verificationOutcome) {
+        req.body.formData.verificationOutcome = req.body.verificationOutcome;
+      }
+      if (req.body.outcome && !req.body.formData.outcome) {
+        req.body.formData.outcome = req.body.outcome;
+      }
       const {
         verificationTaskId,
         formData,
@@ -5285,7 +5350,7 @@ export class MobileFormController {
 
         // c. Update case with verification data (without changing status)
         await client.query(
-          `UPDATE cases SET verification_data = $1, verification_type = 'PROPERTY_APF', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          `UPDATE cases SET verification_data = $1, verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
           [JSON.stringify(verificationData), verificationOutcome, caseId]
         );
 
@@ -5328,8 +5393,8 @@ export class MobileFormController {
         logger.info('🔍 Columns for SQL insert:', columns);
 
         const insertQuery = `
-        INSERT INTO property_apf_verification_reports (${columns})
-        VALUES (${placeholders})
+        INSERT INTO verification_reports (verification_type_id, ${columns})
+        VALUES ((SELECT id FROM verification_types WHERE code = 'PAV'), ${placeholders})
       `;
 
         // Log comprehensive database insert data for debugging
@@ -5357,34 +5422,18 @@ export class MobileFormController {
         // e. Insert the verification report
         await client.query(insertQuery, values);
 
-        // f. Populate taskFormSubmissions (no swallow — Finding #3).
-        await client.query(
-          // Insert the form-submission row AND back-link any pre-uploaded
-          // verification_attachments for the same task that landed with
-          // submission_id=NULL (captured live during form entry before this
-          // form_submission_id existed). Single statement keeps it in the
-          // same transaction: the back-link commits iff the insert does.
-          `WITH ins AS (
-             INSERT INTO task_form_submissions (
-               id, verification_task_id, case_id, form_submission_id, form_type,
-               submitted_by, submitted_at, validation_status
-             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
-             RETURNING verification_task_id, form_submission_id
-           )
-           UPDATE verification_attachments va
-              SET submission_id = ins.form_submission_id
-             FROM ins
-            WHERE va.verification_task_id = ins.verification_task_id
-              AND va.submission_id IS NULL`,
-          [
-            uuidv4(),
-            taskId || verificationTaskId,
-            caseId,
-            uuidv4(),
-            'PROPERTY_APF_VERIFICATION',
-            userId,
-          ]
-        );
+        // f. Populate form_submissions + task_form_submissions (no swallow — Finding #3).
+        // F7.3.x: helper writes BOTH rich payload (form_submissions) and junction.
+        await MobileFormController.createFormSubmissionRecords(client, {
+          caseId,
+          taskId: (taskId || verificationTaskId) as string,
+          formTypeCode: 'PROPERTY_APF_VERIFICATION',
+          submittedBy: userId,
+          formData,
+          photoCount: photos?.length || images?.length || 0,
+          attachmentCount: photos?.length || images?.length || 0,
+          geoLocation,
+        });
         logger.info(`✅ Linked Property APF form submission to task ${verificationTaskId}`);
 
         // g. Remove auto-save data
@@ -5462,6 +5511,15 @@ export class MobileFormController {
       const taskId = String(req.params.taskId || '');
       // Preprocess composite Value+Unit fields from mobile into single fields
       req.body.formData = MobileFormController.preprocessCompositeFields(req.body.formData || {});
+      // 2026-04-28: mobile is source of truth — top-level verificationOutcome/outcome
+      // gets merged into formData so detectXxxFormType (which reads from formData)
+      // picks up the user-selected outcome instead of guessing via field indicators.
+      if (req.body.verificationOutcome && !req.body.formData.verificationOutcome) {
+        req.body.formData.verificationOutcome = req.body.verificationOutcome;
+      }
+      if (req.body.outcome && !req.body.formData.outcome) {
+        req.body.formData.outcome = req.body.outcome;
+      }
       const {
         verificationTaskId,
         formData,
@@ -5680,7 +5738,7 @@ export class MobileFormController {
 
         // c. Update case with verification data (without changing status)
         await client.query(
-          `UPDATE cases SET verification_data = $1, verification_type = 'NOC', verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+          `UPDATE cases SET verification_data = $1, verification_outcome = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
           [JSON.stringify(verificationData), verificationOutcome, caseId]
         );
 
@@ -5723,8 +5781,8 @@ export class MobileFormController {
         logger.info('🔍 Columns for SQL insert:', columns);
 
         const insertQuery = `
-        INSERT INTO noc_verification_reports (${columns})
-        VALUES (${placeholders})
+        INSERT INTO verification_reports (verification_type_id, ${columns})
+        VALUES ((SELECT id FROM verification_types WHERE code = 'NV'), ${placeholders})
       `;
 
         // Log comprehensive database insert data for debugging
@@ -5749,27 +5807,18 @@ export class MobileFormController {
         // e. Insert the verification report
         await client.query(insertQuery, values);
 
-        // f. Populate taskFormSubmissions (no swallow — Finding #3).
-        await client.query(
-          // Insert the form-submission row AND back-link any pre-uploaded
-          // verification_attachments for the same task that landed with
-          // submission_id=NULL (captured live during form entry before this
-          // form_submission_id existed). Single statement keeps it in the
-          // same transaction: the back-link commits iff the insert does.
-          `WITH ins AS (
-             INSERT INTO task_form_submissions (
-               id, verification_task_id, case_id, form_submission_id, form_type,
-               submitted_by, submitted_at, validation_status
-             ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), 'PENDING')
-             RETURNING verification_task_id, form_submission_id
-           )
-           UPDATE verification_attachments va
-              SET submission_id = ins.form_submission_id
-             FROM ins
-            WHERE va.verification_task_id = ins.verification_task_id
-              AND va.submission_id IS NULL`,
-          [uuidv4(), taskId || verificationTaskId, caseId, uuidv4(), 'NOC_VERIFICATION', userId]
-        );
+        // f. Populate form_submissions + task_form_submissions (no swallow — Finding #3).
+        // F7.3.x: helper writes BOTH rich payload (form_submissions) and junction.
+        await MobileFormController.createFormSubmissionRecords(client, {
+          caseId,
+          taskId: (taskId || verificationTaskId) as string,
+          formTypeCode: 'NOC_VERIFICATION',
+          submittedBy: userId,
+          formData,
+          photoCount: photos?.length || images?.length || 0,
+          attachmentCount: photos?.length || images?.length || 0,
+          geoLocation,
+        });
         logger.info(`✅ Linked NOC form submission to task ${verificationTaskId}`);
 
         // g. Remove auto-save data
@@ -5962,9 +6011,10 @@ export class MobileFormController {
         workingStatus: ['EMPLOYED', 'SELF_EMPLOYED', 'HOUSE_WIFE', 'STUDENT', 'UNEMPLOYED'],
         stayingStatus: ['STAYING', 'SHIFTED', 'TEMPORARY'],
         documentShown: ['SHOWN', 'NOT_SHOWN'],
+        // F8.2.2: aligned with canonical document_types codes (AADHAR_CARD, PAN_CARD)
         documentType: [
-          'AADHAAR',
-          'PAN',
+          'AADHAR_CARD',
+          'PAN_CARD',
           'VOTER_ID',
           'DRIVING_LICENSE',
           'PASSPORT',

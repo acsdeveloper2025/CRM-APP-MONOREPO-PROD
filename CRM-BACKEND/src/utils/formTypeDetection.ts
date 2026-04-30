@@ -461,13 +461,24 @@ export function detectFormTypeEnhanced(
   if (outcome && UNIVERSAL_OUTCOME_MAPPING[outcome]) {
     const result = { ...UNIVERSAL_OUTCOME_MAPPING[outcome] };
 
-    // Refine verificationOutcome based on door/status fields
-    // When houseStatus/officeStatus/businessStatus/propertyStatus is "Open", use non-locked variant
-    const statusField =
-      formData.houseStatus ||
-      formData.officeStatus ||
-      formData.businessStatus ||
-      formData.propertyStatus;
+    // Refine verificationOutcome based on the type-specific door-state field.
+    // Each verification type has exactly ONE door-state field; using a generic
+    // `||` chain over all types is unsafe — for example RC uses
+    // `businessStatus` to mean entity-type ('Self Employee - Proprietorship'),
+    // not door open/closed. Per project_mobile_truth_quirks_2026_04_29.md Q8:
+    const doorFieldByType: Record<string, string> = {
+      RESIDENCE: 'houseStatus',
+      RESIDENCE_CUM_OFFICE: 'resiCumOfficeStatus',
+      OFFICE: 'officeStatus',
+      BUSINESS: 'businessStatus',
+      BUILDER: 'officeStatus',
+      NOC: 'officeStatus',
+      DSA_CONNECTOR: 'officeStatus',
+      PROPERTY_INDIVIDUAL: 'flatStatus',
+      // PROPERTY_APF: no door — driven by constructionActivity, not handled here
+    };
+    const doorFieldName = doorFieldByType[normalizedType];
+    const statusField = doorFieldName ? formData[doorFieldName] : undefined;
     const isOpened = typeof statusField === 'string' && statusField.toLowerCase() === 'open';
 
     if (isOpened) {
@@ -516,12 +527,20 @@ export function detectFormTypeEnhanced(
     return patternResult;
   }
 
-  // Method 4: Default fallback with low confidence
-  const statusField =
-    formData.houseStatus ||
-    formData.officeStatus ||
-    formData.businessStatus ||
-    formData.propertyStatus;
+  // Method 4: Default fallback with low confidence.
+  // Same per-form door-state caveat as Method 1 (Q8) — must branch on type.
+  const doorFieldByType2: Record<string, string> = {
+    RESIDENCE: 'houseStatus',
+    RESIDENCE_CUM_OFFICE: 'resiCumOfficeStatus',
+    OFFICE: 'officeStatus',
+    BUSINESS: 'businessStatus',
+    BUILDER: 'officeStatus',
+    NOC: 'officeStatus',
+    DSA_CONNECTOR: 'officeStatus',
+    PROPERTY_INDIVIDUAL: 'flatStatus',
+  };
+  const doorFieldName2 = doorFieldByType2[normalizedType];
+  const statusField = doorFieldName2 ? formData[doorFieldName2] : undefined;
   const isOpenedFallback = typeof statusField === 'string' && statusField.toLowerCase() === 'open';
   const fallbackOutcome = isOpenedFallback ? 'Positive & Door Open' : 'Positive & Door Locked';
 
@@ -759,32 +778,35 @@ export function detectFormType(
 }
 
 /**
- * Validates if a form type is valid for a given verification type
+ * Validates if a form type is valid for a given verification type.
+ * F2.7.1: source of truth is `verification_type_outcomes` table; this
+ * function is now async + per-type accurate (PIV doesn't allow SHIFTED,
+ * PAV allows NEGATIVE but not SHIFTED/NSP).
  *
- * @param verificationType - The verification type
- * @param formType - The form type to validate
- * @returns True if valid, false otherwise
+ * @param verificationType - canonical short code (RV/OV/...) or verbose name (RESIDENCE/OFFICE/...)
+ * @param formType         - outcome code candidate (POSITIVE/SHIFTED/...)
  */
-export function isValidFormType(verificationType: string, formType: string): boolean {
-  const validFormTypes = ['POSITIVE', 'SHIFTED', 'NSP', 'ENTRY_RESTRICTED', 'UNTRACEABLE'];
-  const _normalizedType = verificationType.toUpperCase();
-  const normalizedFormType = formType.toUpperCase();
-
-  // All verification types support the same form types
-  return validFormTypes.includes(normalizedFormType);
+export async function isValidFormType(
+  verificationType: string,
+  formType: string
+): Promise<boolean> {
+  const { isValidOutcome } = await import(
+    '../services/verificationTypeOutcomesService'
+  );
+  return isValidOutcome(verificationType, formType);
 }
 
 /**
- * Gets all possible form types for a verification type
- *
- * @param verificationType - The verification type
- * @returns Array of valid form types
+ * Gets all valid form types (outcome codes) for a verification type.
+ * F2.7.1: per-type accurate via lookup table.
  */
-export function getValidFormTypes(verificationType: string): string[] {
-  const _normalizedType = verificationType.toUpperCase();
-
-  // All verification types support the same form types
-  return ['POSITIVE', 'SHIFTED', 'NSP', 'ENTRY_RESTRICTED', 'UNTRACEABLE'];
+export async function getValidFormTypes(
+  verificationType: string
+): Promise<string[]> {
+  const { getValidOutcomeCodes } = await import(
+    '../services/verificationTypeOutcomesService'
+  );
+  return getValidOutcomeCodes(verificationType);
 }
 
 /**

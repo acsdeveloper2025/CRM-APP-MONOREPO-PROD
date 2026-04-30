@@ -232,10 +232,14 @@ export interface DocumentTypeExportData {
 }
 
 // Common Document Types (for quick reference)
+// F8.2.2: AADHAAR/PAN → AADHAR_CARD/PAN_CARD to align with canonical
+// document_types rows (id=113, 112). The older AADHAAR/PAN rows (id=1, 2)
+// were dedup-merged into these. Keep the const KEY names AADHAAR/PAN for
+// readability — only the string codes change.
 export const COMMON_DOCUMENT_TYPES = {
   // Identity
-  AADHAAR: 'AADHAAR',
-  PAN: 'PAN',
+  AADHAAR: 'AADHAR_CARD',
+  PAN: 'PAN_CARD',
   VOTER_ID: 'VOTER_ID',
   DRIVING_LICENSE: 'DRIVING_LICENSE',
   PASSPORT: 'PASSPORT',

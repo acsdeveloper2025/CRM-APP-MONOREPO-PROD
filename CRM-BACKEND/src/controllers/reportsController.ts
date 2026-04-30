@@ -343,7 +343,7 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
     }
     if (agentId) {
       const alias = formType.toUpperCase() === 'RESIDENCE' ? 'r' : 'o';
-      conditions.push(`${alias}.created_by = $${paramIndex}`);
+      conditions.push(`${alias}.verified_by = $${paramIndex}`);
       params.push(agentId);
       paramIndex++;
     }
@@ -360,11 +360,11 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
           u.name as "agentName",
           u.employee_id,
           COUNT(a.id) as "attachmentCount"
-        FROM residence_verification_reports r
+        FROM verification_reports r
         LEFT JOIN cases c ON r.case_id = c.id
-        LEFT JOIN users u ON r.created_by = u.id
+        LEFT JOIN users u ON r.verified_by = u.id
         LEFT JOIN attachments a ON a.case_id = c.id
-        ${whereClause}
+        ${whereClause}${whereClause ? ' AND' : 'WHERE'} r.verification_type_id = (SELECT id FROM verification_types WHERE code = 'RV')
         GROUP BY r.id, c.customer_name, c.case_id, u.name, u.employee_id
         ORDER BY r.created_at DESC
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -378,11 +378,11 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
           u.name as "agentName",
           u.employee_id,
           COUNT(a.id) as "attachmentCount"
-        FROM office_verification_reports o
+        FROM verification_reports o
         LEFT JOIN cases c ON o.case_id = c.id
-        LEFT JOIN users u ON o.created_by = u.id
+        LEFT JOIN users u ON o.verified_by = u.id
         LEFT JOIN attachments a ON a.case_id = c.id
-        ${whereClause}
+        ${whereClause}${whereClause ? ' AND' : 'WHERE'} o.verification_type_id = (SELECT id FROM verification_types WHERE code = 'OV')
         GROUP BY o.id, c.customer_name, c.case_id, u.name, u.employee_id
         ORDER BY o.created_at DESC
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -662,180 +662,6 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
   }
 };
 
-// GET /api/reports/case-timeline/:caseId - Get detailed case timeline
-export const getCaseTimeline = async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const caseId = String(req.params.caseId || '');
-
-    // Get case details
-    const caseQuery = `
-      SELECT c.*, cl.name as client_name, u.name as "agent_name"
-      FROM cases c
-      LEFT JOIN clients cl ON c.client_id = cl.id
-      LEFT JOIN users u ON c.assigned_to = u.id
-      WHERE c.case_id = $1
-    `;
-    const caseResult = await dbQuery(caseQuery, [caseId]);
-
-    if (caseResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Case not found',
-        error: { code: 'CASE_NOT_FOUND' },
-      });
-    }
-
-    const caseData = caseResult.rows[0];
-
-    if (isFieldExecutionActor(req.user)) {
-      const taskAccess = await dbQuery(
-        `SELECT 1
-         FROM verification_tasks vt
-         JOIN cases c ON vt.case_id = c.id
-         WHERE c.case_id = $1 AND vt.assigned_to = $2
-         LIMIT 1`,
-        [caseId, req.user!.id]
-      );
-      if (taskAccess.rows.length === 0) {
-        return res.status(403).json({
-          success: false,
-          message: 'Access denied',
-          error: { code: 'CASE_ACCESS_DENIED' },
-        });
-      }
-    }
-
-    if (isScopedOperationsUser(req.user) && req.user?.id) {
-      const scopedUserIds = await getScopedOperationalUserIds(req.user.id);
-      const creatorIds = scopedUserIds ?? [req.user.id];
-      if (creatorIds.length > 0) {
-        const scopeCheck = await dbQuery(
-          `SELECT 1
-           FROM cases c
-           WHERE c.case_id = $1
-             AND c.created_by_backend_user = ANY($2::uuid[])
-           LIMIT 1`,
-          [caseId, creatorIds]
-        );
-        if (scopeCheck.rows.length === 0) {
-          return res.status(403).json({
-            success: false,
-            message: 'Access denied',
-            error: { code: 'CASE_ACCESS_DENIED' },
-          });
-        }
-      } else {
-        const [assignedClientIds, assignedProductIds] = await Promise.all([
-          getAssignedClientIds(req.user.id),
-          getAssignedProductIds(req.user.id),
-        ]);
-
-        if (
-          assignedClientIds.length === 0 ||
-          assignedProductIds.length === 0 ||
-          !assignedClientIds.includes(Number(caseData.clientId)) ||
-          !assignedProductIds.includes(Number(caseData.productId))
-        ) {
-          return res.status(403).json({
-            success: false,
-            message: 'Access denied',
-            error: { code: 'CASE_ACCESS_DENIED' },
-          });
-        }
-      }
-    }
-
-    // Get timeline events
-    const timelineQuery = `
-      SELECT
-        'CASE_CREATED' as event_type,
-        c.created_at as event_date,
-        creator.name as performed_by,
-        'Case created and assigned' as description,
-        jsonb_build_object('status', c.status, 'priority', c.priority) as metadata
-      FROM cases c
-      LEFT JOIN users creator ON c.created_by_backend_user = creator.id
-      WHERE c.case_id = $1
-
-      UNION ALL
-
-      SELECT
-        'RESIDENCE_FORM_SUBMITTED' as event_type,
-        r.created_at as event_date,
-        u.name as performed_by,
-        'Residence verification form submitted' as description,
-        jsonb_build_object(
-          'applicantName', r.applicant_name,
-          'residenceConfirmed', r.residence_confirmed,
-          'personMet', r.person_met
-        ) as metadata
-      FROM residence_verification_reports r
-      LEFT JOIN users u ON r.created_by = u.id
-      WHERE r.case_id = $1
-
-      UNION ALL
-
-      SELECT
-        'OFFICE_FORM_SUBMITTED' as event_type,
-        o.created_at as event_date,
-        u.name as performed_by,
-        'Office verification form submitted' as description,
-        jsonb_build_object(
-          'companyName', o.company_name,
-          'officeConfirmed', o.office_confirmed,
-          'personMet', o.person_met
-        ) as metadata
-      FROM office_verification_reports o
-      LEFT JOIN users u ON o.created_by = u.id
-      WHERE o.case_id = $1
-
-      UNION ALL
-
-      SELECT
-        'ATTACHMENT_UPLOADED' as event_type,
-        a.created_at as event_date,
-        u.name as performed_by,
-        CONCAT('File uploaded: ', a.file_name) as description,
-        jsonb_build_object(
-          'fileName', a.file_name,
-          'fileType', a.file_type,
-          'fileSize', a.file_size
-        ) as metadata
-      FROM attachments a
-      LEFT JOIN users u ON a.uploaded_by = u.id
-      WHERE a.case_id = (SELECT id FROM cases WHERE case_id = $1)
-
-      ORDER BY event_date ASC
-    `;
-
-    const timelineResult = await dbQuery(timelineQuery, [caseId]);
-
-    res.json({
-      success: true,
-      data: {
-        case: caseData,
-        timeline: timelineResult.rows,
-        summary: {
-          totalEvents: timelineResult.rows.length,
-          formsSubmitted: timelineResult.rows.filter(e => e.eventType.includes('FORM_SUBMITTED'))
-            .length,
-          attachmentsUploaded: timelineResult.rows.filter(
-            e => e.eventType === 'ATTACHMENT_UPLOADED'
-          ).length,
-        },
-      },
-      message: 'Case timeline retrieved successfully',
-    });
-  } catch (error) {
-    logger.error('Error getting case timeline:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get case timeline',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
-};
-
 // 1.3 AGENT PERFORMANCE APIs
 
 // GET /api/reports/agent-performance - Get agent performance metrics
@@ -1056,9 +882,21 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
     const dateFrom = (req.query.dateFrom as unknown as string) || '';
     const dateTo = (req.query.dateTo as unknown as string) || '';
 
-    // Verify agent exists
+    // Verify agent exists.
+    // 2026-04-28 F1.1.1: derive `role` via RBAC (user_roles → roles_v2)
+    // because `users.role` text column was dropped. Without this, the
+    // response shape would silently miss the required `role` field.
     const agentQuery = `
-      SELECT u.*, d.name as "department_name"
+      SELECT
+        u.*,
+        d.name as "department_name",
+        COALESCE(
+          (SELECT rv.name FROM user_roles ur
+           JOIN roles_v2 rv ON rv.id = ur.role_id
+           WHERE ur.user_id = u.id
+           ORDER BY rv.name LIMIT 1),
+          NULL
+        ) AS role
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
       WHERE u.id = $1
@@ -1126,8 +964,10 @@ export const getAgentProductivity = async (req: AuthenticatedRequest, res: Respo
         COUNT(DISTINCT o.id) as office_forms,
         COUNT(DISTINCT a.id) as attachments_uploaded
       FROM cases c
-      LEFT JOIN residence_verification_reports r ON c.id = r.case_id AND r.created_by = $1
-      LEFT JOIN office_verification_reports o ON c.id = o.case_id AND o.created_by = $1
+      LEFT JOIN verification_reports r ON c.id = r.case_id AND r.verified_by = $1
+        AND r.verification_type_id = (SELECT id FROM verification_types WHERE code = 'RV')
+      LEFT JOIN verification_reports o ON c.id = o.case_id AND o.verified_by = $1
+        AND o.verification_type_id = (SELECT id FROM verification_types WHERE code = 'OV')
       LEFT JOIN attachments a ON c.id = a.case_id AND a.uploaded_by = $1
       ${whereClause}
       GROUP BY DATE(c.created_at)
@@ -1243,9 +1083,11 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Get cases from database with related data
+    // Get cases from database with related data. assignedToName is derived
+    // from the latest verification_task assignment because cases.assigned_to
+    // no longer exists — task assignment is the authoritative source.
     const casesQuery = `
-      SELECT 
+      SELECT
         c.*,
         cl.name as client_name,
         cl.code as "clientCode",
@@ -1253,7 +1095,14 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
         creator.name as "createdByName"
       FROM cases c
       LEFT JOIN clients cl ON c.client_id = cl.id
-      LEFT JOIN users u ON c.assigned_to = u.id
+      LEFT JOIN LATERAL (
+        SELECT u_inner.name
+        FROM verification_tasks vt
+        JOIN users u_inner ON u_inner.id = vt.assigned_to
+        WHERE vt.case_id = c.id AND vt.assigned_to IS NOT NULL
+        ORDER BY vt.assigned_at DESC NULLS LAST, vt.created_at DESC
+        LIMIT 1
+      ) u ON TRUE
       LEFT JOIN users creator ON c.created_by_backend_user = creator.id
       ${whereClause}
       ORDER BY c.created_at DESC
@@ -1341,7 +1190,11 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
     let userParamIndex = 1;
 
     if (department) {
-      userConditions.push(`u.department = $${userParamIndex}`);
+      // 2026-04-28 F1.1.3: derive from FK; users.department text dropped.
+      userConditions.push(`EXISTS (
+        SELECT 1 FROM departments df
+        WHERE df.id = u.department_id AND df.name ILIKE $${userParamIndex}
+      )`);
       userParams.push(department);
       userParamIndex++;
     }
@@ -1355,8 +1208,8 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
       userParams.push(role);
       userParamIndex++;
     }
-    if (isActive !== undefined) {
-      userConditions.push(`u.isActive = $${userParamIndex}`);
+    if (isActive !== '') {
+      userConditions.push(`u.is_active = $${userParamIndex}`);
       userParams.push(isActive === 'true');
       userParamIndex++;
     }
@@ -1364,11 +1217,33 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
     const userWhereClause =
       userConditions.length > 0 ? `WHERE ${userConditions.join(' AND ')}` : '';
 
-    // Get users from database
+    // Get users from database.
+    // 2026-04-28 F1.1.1: derive `role` via RBAC (user_roles → roles_v2)
+    // because `users.role` text column was dropped. Frontend report UI
+    // expects `role` on every row (User type makes it required).
+    // 2026-04-28 PE2: total_cases derived from verification_tasks because
+    // cases.assigned_to no longer exists — task assignment is the
+    // authoritative source. COUNT(DISTINCT vt.case_id) so a user assigned
+    // to multiple tasks of the same case is counted once.
+    // 2026-04-28 F1.1.2/F1.1.3: derive `designation` and `department`
+    // from FK joins because both text columns were dropped from users.
+    // Subselects (not JOIN) keep `u.*` semantics intact and avoid
+    // GROUP BY column explosion.
     const usersQuery = `
-      SELECT u.*, COUNT(c.case_id) as total_cases
+      SELECT
+        u.*,
+        (SELECT desf.name FROM designations desf WHERE desf.id = u.designation_id) AS designation,
+        (SELECT df.name FROM departments df WHERE df.id = u.department_id) AS department,
+        COUNT(DISTINCT vt.case_id) as total_cases,
+        COALESCE(
+          (SELECT rv.name FROM user_roles ur
+           JOIN roles_v2 rv ON rv.id = ur.role_id
+           WHERE ur.user_id = u.id
+           ORDER BY rv.name LIMIT 1),
+          NULL
+        ) AS role
       FROM users u
-      LEFT JOIN cases c ON u.id = c.assigned_to
+      LEFT JOIN verification_tasks vt ON vt.assigned_to = u.id
       ${userWhereClause}
       GROUP BY u.id
       ORDER BY u.name
@@ -1680,7 +1555,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
         vt.status as task_status,
         vt.priority as task_priority,
         vt.address,
-        vt.pincode,
+        (SELECT code FROM pincodes WHERE id = vt.pincode_id) as pincode,
         ar.name as area_name,
         rt.name as rate_type,
         vt.estimated_amount,
@@ -1959,7 +1834,7 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
         vt.status as task_status,
         vt.priority as task_priority,
         vt.address,
-        vt.pincode,
+        (SELECT code FROM pincodes WHERE id = vt.pincode_id) as pincode,
         rt.name as rate_type,
         vt.estimated_amount,
         vt.actual_amount,

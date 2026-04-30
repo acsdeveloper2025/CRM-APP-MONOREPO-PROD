@@ -82,6 +82,13 @@ export const FORM_TYPES = {
 export type FormType = (typeof FORM_TYPES)[keyof typeof FORM_TYPES];
 
 // Verification Outcomes
+//
+// F2.7.1: Authoritative runtime source is `/api/verification-type-outcomes`
+// hydrated via `useVerificationTypeOutcomes(verificationTypeCode)` hook.
+// This const is kept ONLY for compile-time type narrowing (string-literal
+// unions). DO NOT use it as a dropdown data source — different verification
+// types have different valid outcomes (PIV no SHIFTED, PAV has NEGATIVE,
+// no SHIFTED/NSP), and only the hook reflects per-type filtering.
 export const VERIFICATION_OUTCOMES = {
   POSITIVE: 'POSITIVE',
   NEGATIVE: 'NEGATIVE',

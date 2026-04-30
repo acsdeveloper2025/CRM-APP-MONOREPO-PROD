@@ -128,10 +128,6 @@ export class CasesService extends BaseApiService {
     return this.put(`/${id}`, data);
   }
 
-  async assignCase(id: string, assignedToId: string, reason?: string): Promise<ApiResponse<Case>> {
-    return this.put(`/${id}/assign`, { assignedToId, reason });
-  }
-
   async addCaseNote(id: string, note: string): Promise<ApiResponse<Case>> {
     return this.post(`/${id}/notes`, { note });
   }

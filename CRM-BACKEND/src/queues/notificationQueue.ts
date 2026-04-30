@@ -563,7 +563,7 @@ export const stopNotificationProcessor = async (): Promise<void> => {
 // Producer helpers — public API consumed by controllers and other
 // services. Signatures match the legacy bull file exactly so call
 // sites (mobileCaseController, mobileFormController,
-// verificationTasksController, caseAssignmentProcessor) need no edits.
+// verificationTasksController) need no edits.
 // ---------------------------------------------------------------------------
 
 export const queueSingleNotification = async (notification: NotificationData): Promise<string> => {
@@ -595,6 +595,9 @@ export const queueBulkNotification = async (
     },
     {
       priority: getPriorityValue(notificationTemplate.priority || 'MEDIUM'),
+      // F-B10.4: dedupe within the kept-completions window when a
+      // batchId is supplied (caller's natural idempotency unit).
+      ...(batchId ? { jobId: `bulk:${batchId}` } : {}),
     }
   );
   return job.id?.toString() || '';
@@ -603,6 +606,10 @@ export const queueBulkNotification = async (
 export const queueCaseAssignmentNotification = async (
   data: Omit<CaseAssignmentNotificationJobData, 'type'>
 ): Promise<string> => {
+  // F-B10.4: deterministic jobId protects against deadlock-retry
+  // double-fire — three callers in verificationTasksController sit
+  // inside withTransaction blocks (up to 6 retries / ~1.5s).
+  const jobId = `case-assign:${data.taskId || data.caseId}:${data.userId}:${data.assignmentType}`;
   const job = await notificationQueue.add(
     JOB_CASE_ASSIGNMENT,
     {
@@ -611,6 +618,7 @@ export const queueCaseAssignmentNotification = async (
     },
     {
       priority: 8, // High priority for case assignments
+      jobId,
     }
   );
   return job.id?.toString() || '';
@@ -619,6 +627,7 @@ export const queueCaseAssignmentNotification = async (
 export const queueCaseCompletionNotification = async (
   data: Omit<CaseCompletionNotificationJobData, 'type'>
 ): Promise<string> => {
+  const jobId = `case-complete:${data.caseId}:${data.fieldUserId}:${data.outcome}`;
   const job = await notificationQueue.add(
     JOB_CASE_COMPLETION,
     {
@@ -627,6 +636,7 @@ export const queueCaseCompletionNotification = async (
     },
     {
       priority: 5, // Medium priority for completions
+      jobId,
     }
   );
   return job.id?.toString() || '';
@@ -635,6 +645,7 @@ export const queueCaseCompletionNotification = async (
 export const queueCaseRevocationNotification = async (
   data: Omit<CaseRevocationNotificationJobData, 'type'>
 ): Promise<string> => {
+  const jobId = `case-revoke:${data.caseId}:${data.fieldUserId}`;
   const job = await notificationQueue.add(
     JOB_CASE_REVOCATION,
     {
@@ -643,6 +654,7 @@ export const queueCaseRevocationNotification = async (
     },
     {
       priority: 8, // High priority for revocations
+      jobId,
     }
   );
   return job.id?.toString() || '';
@@ -651,6 +663,7 @@ export const queueCaseRevocationNotification = async (
 export const queueTaskRevocationNotification = async (
   data: Omit<TaskRevocationNotificationJobData, 'type'>
 ): Promise<string> => {
+  const jobId = `task-revoke:${data.taskId}:${data.fieldUserId}`;
   const job = await notificationQueue.add(
     JOB_TASK_REVOCATION,
     {
@@ -659,6 +672,7 @@ export const queueTaskRevocationNotification = async (
     },
     {
       priority: getPriorityValue('HIGH'),
+      jobId,
     }
   );
   return job.id?.toString() || '';

@@ -17,6 +17,7 @@ import { isFieldExecutionActor } from '@/security/rbacAccess';
 import { getApiBaseUrl } from '@/utils/publicUrl';
 import { errorMessage } from '@/utils/errorMessage';
 import { generateRendition, requiresRendition } from '@/services/attachmentRenditionService';
+import { storage as objectStorage, StorageKeys } from '@/services/storage';
 
 /**
  * Generate base64-encoded attachment data with checksum for offline sync
@@ -248,18 +249,35 @@ export class MobileAttachmentController {
               .toFile(thumbnailPath);
           }
 
+          // F8.1.3 + storage abstraction: compute sha256 + storage_key on upload.
+          const fileBuffer = await fs.readFile(file.path);
+          const sha256Hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+          const ext = (path.extname(file.originalname || file.filename || '') || '.bin').replace(
+            /^\./,
+            ''
+          );
+          const idResult = await query<{ id: string }>(
+            `SELECT nextval('attachments_temp_id_seq')::text AS id`
+          );
+          const insertedAttachmentId = Number(idResult.rows[0].id);
+          const storageKey = StorageKeys.attachment(actualCaseId, insertedAttachmentId, ext);
+          await objectStorage.put(storageKey, fileBuffer, file.mimetype);
+
           // Save attachment to database with verification_task_id for field agents
           const attRes = await query(
-            `INSERT INTO attachments (case_id, filename, original_name, mime_type, file_size, file_path, uploaded_by, verification_task_id, created_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-             RETURNING id, filename, original_name, mime_type, file_size, file_path, created_at`,
+            `INSERT INTO attachments (id, case_id, filename, original_name, mime_type, file_size, file_path, storage_key, sha256_hash, uploaded_by, verification_task_id, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+             RETURNING id, filename, original_name, mime_type, file_size, file_path, storage_key, created_at`,
             [
+              insertedAttachmentId,
               actualCaseId, // case_id (UUID)
               file.filename,
               file.originalname,
               file.mimetype,
               file.size,
               `/uploads/mobile/${file.filename}`,
+              storageKey,
+              sha256Hash,
               userId,
               userTaskId, // verification_task_id (null for non-field-agents)
             ]
@@ -756,7 +774,6 @@ export class MobileAttachmentController {
   static async deleteAttachment(this: void, req: AuthenticatedRequest, res: Response) {
     type AttachmentWithStatus = VerificationAttachmentRow & {
       status?: string;
-      assignedTo?: string;
     };
     try {
       const attachmentId = String(req.params.attachmentId || '');
@@ -771,7 +788,7 @@ export class MobileAttachmentController {
         // Field agents can only delete attachments for their assigned task OR attachments with NULL task_id
         attachmentQuery = `
           SELECT a.id, a.filename, a.original_name, a.mime_type, a.file_size, a.file_path,
-                 a.uploaded_by, a.created_at, a.case_id, c.assigned_to, c.status
+                 a.uploaded_by, a.created_at, a.case_id, c.status
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
           LEFT JOIN verification_tasks vt ON vt.id = a.verification_task_id
@@ -788,7 +805,7 @@ export class MobileAttachmentController {
         // Admin/Manager can delete any attachment
         attachmentQuery = `
           SELECT a.id, a.filename, a.original_name, a.mime_type, a.file_size, a.file_path,
-                 a.uploaded_by, a.created_at, a.case_id, c.assigned_to, c.status
+                 a.uploaded_by, a.created_at, a.case_id, c.status
           FROM attachments a
           JOIN cases c ON a.case_id = c.id
           WHERE a.id = $1

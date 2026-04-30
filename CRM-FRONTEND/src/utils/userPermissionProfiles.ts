@@ -44,6 +44,10 @@ const getNormalizedUserRoles = (
   if (!user) {
     return [];
   }
+  // 2026-04-28 F1.1.1: `users.role` text column was dropped (RBAC tables are SSOT).
+  // Backend response shape may still include `role` (derived from RBAC join via
+  // PRIMARY_ROLE_NAME_SQL) for back-compat, so we keep reading it as a fallback —
+  // but `roleName` and `roles[]` are the canonical sources now.
   const rawRoles = [
     user.role,
     user.roleName,

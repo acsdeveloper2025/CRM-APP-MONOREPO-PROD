@@ -134,22 +134,12 @@ const createUserValidation = [
       }
       return true;
     }),
-  body('department')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('Department must be less than 100 characters'),
   body('employeeId')
     .trim()
     .notEmpty()
     .withMessage('Employee ID is required')
     .isLength({ max: 50 })
     .withMessage('Employee ID must be less than 50 characters'),
-  body('designation')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('Designation must be less than 100 characters'),
   body('phone')
     .optional()
     .trim()
@@ -256,16 +246,6 @@ const updateUserValidation = [
       }
       return true;
     }),
-  body('department')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('Department must be less than 100 characters'),
-  body('designation')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('Designation must be less than 100 characters'),
   body('phone')
     .optional()
     .trim()
@@ -294,7 +274,7 @@ const listUsersValidation = [
     .withMessage('Search term must be less than 100 characters'),
   query('sortBy')
     .optional()
-    .isIn(['name', 'username', 'email', 'role', 'department', 'createdAt', 'lastLoginAt'])
+    .isIn(['name', 'username', 'email', 'role', 'createdAt', 'lastLoginAt'])
     .withMessage('Invalid sort field'),
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
 ];

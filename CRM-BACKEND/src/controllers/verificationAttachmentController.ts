@@ -14,8 +14,8 @@ import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
-import { MobileOperationService } from '@/services/mobileOperationService';
 import { MobileTelemetryService } from '@/services/mobileTelemetryService';
+import { storage as objectStorage, StorageKeys } from '@/services/storage';
 
 // Configure storage for verification attachments
 const storage = multer.diskStorage({
@@ -189,7 +189,6 @@ export class VerificationAttachmentController {
            WHERE c.id = $1
              AND (
                c.created_by_backend_user = ANY($2::uuid[]) OR
-               c.assigned_to = ANY($2::uuid[]) OR
                vt.assigned_to = ANY($2::uuid[])
              )
            LIMIT 1`,
@@ -377,21 +376,6 @@ export class VerificationAttachmentController {
       logger.info(
         `🔗 Linked Attachment to Task: ${targetTaskId}, Case: ${targetCaseId}, File: ${files[0]?.originalname}`
       );
-      await MobileOperationService.recordOperation({
-        operationId,
-        type: 'PHOTO_CAPTURED',
-        entityType: 'ATTACHMENT',
-        entityId: targetTaskId,
-        payload: {
-          taskId: targetTaskId,
-          caseId: targetCaseId,
-          type: req.body?.type || 'PHOTO',
-          fileCount: files.length,
-          submissionId,
-          photoType,
-        },
-        retryCount: Number(req.body?.retry_count || 0),
-      });
 
       const uploadedAttachments: Record<string, unknown>[] = [];
 
@@ -427,18 +411,35 @@ export class VerificationAttachmentController {
           // more than once`, so the entire verification attachment
           // upload path was broken. Removed the duplicate column
           // and the stale targetCaseNumber value.
+          //
+          // Storage abstraction: also call objectStorage.put so S3 backend
+          // (when active) gets bytes. LocalFs backend writes to same disk
+          // location as multer; storage_key column populated for future cutover.
+          const photoFileBuffer = await fs.readFile(file.path);
+          const photoIdResult = await query<{ id: string }>(
+            `SELECT nextval('verification_attachments_id_seq')::text AS id`
+          );
+          const photoInsertedId = Number(photoIdResult.rows[0].id);
+          const photoStorageKey = StorageKeys.verificationPhoto(
+            targetCaseId,
+            targetTaskId || 'unassigned',
+            photoInsertedId
+          );
+          await objectStorage.put(photoStorageKey, photoFileBuffer, file.mimetype);
+
           const attachmentResult = await query(
             `INSERT INTO verification_attachments (
-              case_id, verification_type, filename, original_name,
-              mime_type, file_size, file_path, thumbnail_path, uploaded_by,
+              id, case_id, verification_type, filename, original_name,
+              mime_type, file_size, file_path, thumbnail_path, storage_key, uploaded_by,
               geo_location, photo_type, submission_id, verification_task_id, operation_id,
               sha256_hash
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             ON CONFLICT (operation_id) WHERE operation_id IS NOT NULL
             DO UPDATE SET operation_id = EXCLUDED.operation_id
-            RETURNING id, filename, original_name, mime_type, file_size, file_path,
+            RETURNING id, filename, original_name, mime_type, file_size, file_path, storage_key,
                      thumbnail_path, created_at, photo_type, verification_task_id`,
             [
+              photoInsertedId,
               targetCaseId,
               verificationTypeToUse,
               file.filename,
@@ -449,6 +450,7 @@ export class VerificationAttachmentController {
               thumbnailPath
                 ? `/uploads/${path.relative(path.join(process.cwd(), 'uploads'), thumbnailPath).replace(/\\/g, '/')}`
                 : null,
+              photoStorageKey,
               userId,
               geoLocation ? JSON.stringify(geoLocation) : null,
               photoType,

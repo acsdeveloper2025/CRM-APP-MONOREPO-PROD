@@ -197,9 +197,25 @@ export const getFieldAgentTerritoryById = async (req: AuthenticatedRequest, res:
       });
     }
 
-    // Verify user exists and is execution-eligible
+    // Verify user exists and is execution-eligible.
+    // 2026-04-28 F1.1.1: derive `role` from RBAC (user_roles → roles_v2)
+    // because the `users.role` text column was dropped. Mirrors the
+    // PRIMARY_ROLE_NAME_SQL pattern in `utils/userAuth.ts`.
     const userCheck = await query(
-      'SELECT id, name, username, employee_id FROM users WHERE id = $1',
+      `SELECT
+         u.id,
+         u.name,
+         u.username,
+         u.employee_id,
+         COALESCE(
+           (SELECT rv.name FROM user_roles ur
+            JOIN roles_v2 rv ON rv.id = ur.role_id
+            WHERE ur.user_id = u.id
+            ORDER BY rv.name LIMIT 1),
+           'UNASSIGNED'
+         ) as role
+       FROM users u
+       WHERE u.id = $1`,
       [userId]
     );
     const userProfile = await loadUserCapabilityProfile(userId);

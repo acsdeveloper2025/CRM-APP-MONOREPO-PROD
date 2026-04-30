@@ -35,7 +35,9 @@ export interface LoginResponse {
       email: string;
       role: Role;
       employeeId: string;
-      designation: string;
+      // 2026-04-28 F1.1.2: nullable — derived from FK; users without
+      // designation_id return null.
+      designation: string | null;
       department: string;
       profilePhotoUrl?: string;
     };
@@ -52,6 +54,9 @@ export interface JwtPayload {
   role?: Role;
   deviceId?: string;
   authMethod?: 'PASSWORD' | 'UUID'; // Authentication method used
+  // F-B3.4: per-user token version. Bumped on password change /
+  // logout-all to invalidate all in-flight access tokens immediately.
+  tokenVersion?: number;
   iat?: number;
   exp?: number;
 }
@@ -60,6 +65,8 @@ export interface RefreshTokenPayload {
   userId: string;
   deviceId?: string;
   authMethod?: 'PASSWORD' | 'UUID'; // Authentication method used
+  // F-B3.4: per-user token version (mirrors JwtPayload).
+  tokenVersion?: number;
   iat?: number;
   exp?: number;
 }

@@ -134,19 +134,19 @@ export class PDFExportService {
     let paramIndex = 1;
 
     if (dateFrom) {
-      whereConditions.push(`fs.submittedAt >= $${paramIndex}`);
+      whereConditions.push(`fs.submitted_at >= $${paramIndex}`);
       queryParams.push(dateFrom);
       paramIndex++;
     }
 
     if (dateTo) {
-      whereConditions.push(`fs.submittedAt <= $${paramIndex}`);
+      whereConditions.push(`fs.submitted_at <= $${paramIndex}`);
       queryParams.push(dateTo);
       paramIndex++;
     }
 
     if (filters?.formType) {
-      whereConditions.push(`fs.formType = $${paramIndex}`);
+      whereConditions.push(`fs.form_type = $${paramIndex}`);
       queryParams.push(filters.formType as string);
       paramIndex++;
     }
@@ -262,13 +262,13 @@ export class PDFExportService {
     let paramIndex = 1;
 
     if (dateFrom) {
-      whereConditions.push(`c.createdAt >= $${paramIndex}`);
+      whereConditions.push(`created_at >= $${paramIndex}`);
       queryParams.push(dateFrom);
       paramIndex++;
     }
 
     if (dateTo) {
-      whereConditions.push(`c.createdAt <= $${paramIndex}`);
+      whereConditions.push(`created_at <= $${paramIndex}`);
       queryParams.push(dateTo);
       paramIndex++;
     }
@@ -316,13 +316,13 @@ export class PDFExportService {
     let paramIndex = 1;
 
     if (dateFrom) {
-      whereConditions.push(`fs.submittedAt >= $${paramIndex}`);
+      whereConditions.push(`fs.submitted_at >= $${paramIndex}`);
       queryParams.push(dateFrom);
       paramIndex++;
     }
 
     if (dateTo) {
-      whereConditions.push(`fs.submittedAt <= $${paramIndex}`);
+      whereConditions.push(`fs.submitted_at <= $${paramIndex}`);
       queryParams.push(dateTo);
       paramIndex++;
     }

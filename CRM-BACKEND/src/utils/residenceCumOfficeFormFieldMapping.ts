@@ -101,7 +101,6 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
   businessLocation: 'sitting_location', // Maps to sitting location (At Same Address / From Different Address)
   businessOperatingAddress: 'business_operating_address', // Conditional text when businessLocation = 'From Different Address' — dedicated column (added 2026-04-18)
   applicantStayingFloor: 'address_floor', // Maps to address floor
-  businessNature: 'company_nature_of_business', // Maps to business nature
   verificationMethod: null, // Derived field, ignore
 
   // Additional form-specific fields from mobile components (avoiding duplicates)
@@ -117,15 +116,10 @@ export const RESIDENCE_CUM_OFFICE_FIELD_MAPPING: DatabaseFieldMapping = {
 
   // Document related fields (canonical 'documentShown' is at line 55; aliases below for legacy clients)
   documentTypes: 'document_type', // Maps to document type
-  idProofShown: 'document_shown', // Alternative for document shown
 
   // Additional comprehensive field mappings from all form types
   residenceConfirmed: null, // Ignore - derived field
   officeConfirmed: null, // Ignore - derived field
-  nameOnNamePlate: 'name_on_door_plate', // Maps to name on door plate
-  nameOnSocietyNamePlate: 'name_on_society_board', // Maps to society board name
-  nameOnCompanyNamePlate: 'name_on_board', // Maps to company board name
-  shiftedFrom: 'shifted_period', // Maps to shifted period
   oldOfficeAddress: null, // Ignore - not in database
   newOfficeAddress: null, // Ignore - not in database
   reasonForShift: null, // Ignore - not in database

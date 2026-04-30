@@ -19,7 +19,6 @@ import {
   normalizeCaseCreationBody,
   uploadForCaseCreation,
   updateCase,
-  getFieldAgentWorkload,
   exportCases,
   getCaseSummaryWithTasks,
   validateCaseConfiguration,
@@ -372,16 +371,10 @@ router.put(
   updateCase
 );
 
-// NOTE: Case-level assignment routes have been moved to verification task level.
-// Use /api/verification-tasks/:taskId/assign instead.
-
-// Analytics routes
-router.get(
-  '/analytics/field-agent-workload',
-  authorize('dashboard.view'),
-  validate,
-  getFieldAgentWorkload
-);
+// 2026-04-28 PE2.b cleanup: case-level assignment routes + analytics
+// /field-agent-workload deleted. Use /api/verification-tasks/:taskId/assign
+// for assignment; the workload analytics endpoint had zero consumers and
+// the backing DB view did not exist.
 
 // Verification Images route
 router.get(

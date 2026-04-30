@@ -1,4 +1,4 @@
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import type {
   MobileCaseListRequest,
   MobileCaseResponse,
@@ -21,10 +21,6 @@ import { logger } from '../utils/logger';
 import { isFieldExecutionActor } from '../security/rbacAccess';
 import { requireControllerPermission } from '@/security/controllerAuthorization';
 import { TaskRevocationService } from '@/services/taskRevocationService';
-import {
-  MobileOperationService,
-  type MobileOperationType,
-} from '@/services/mobileOperationService';
 import { getApiBaseUrl } from '@/utils/publicUrl';
 import { errorMessage } from '@/utils/errorMessage';
 
@@ -37,36 +33,6 @@ interface DateRangeFilter {
 }
 
 export class MobileCaseController {
-  private static getOperationId(req: Request): string | null {
-    const headerValue = req.header('Idempotency-Key');
-    if (!headerValue) {
-      return null;
-    }
-    const trimmed = headerValue.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  }
-
-  private static async recordTaskOperation(
-    req: Request,
-    taskId: string,
-    operation: MobileOperationType,
-    payload: unknown = {}
-  ): Promise<void> {
-    const operationId = MobileCaseController.getOperationId(req);
-    if (!operationId) {
-      return;
-    }
-
-    await MobileOperationService.recordOperation({
-      operationId,
-      type: operation,
-      entityType: 'TASK',
-      entityId: taskId,
-      payload,
-      retryCount: Number((req.body as { retry_count?: number })?.retry_count || 0),
-    });
-  }
-
   static async executeTaskOperation(this: void, req: AuthenticatedRequest, res: Response) {
     const taskId = String(req.params.taskId || '');
     const operation = String(req.body?.operation || '')
@@ -96,7 +62,6 @@ export class MobileCaseController {
     try {
       switch (operation) {
         case 'TASK_STARTED': {
-          await MobileCaseController.recordTaskOperation(req, taskId, 'TASK_STARTED', payload);
           return MobileCaseController.startTask(req, res);
         }
         case 'TASK_COMPLETED': {
@@ -111,7 +76,6 @@ export class MobileCaseController {
               completionPayload.verificationOutcome ?? req.body?.verificationOutcome,
             actualAmount: completionPayload.actualAmount ?? req.body?.actualAmount,
           };
-          await MobileCaseController.recordTaskOperation(req, taskId, 'TASK_COMPLETED', payload);
           return MobileCaseController.completeTask(req, res);
         }
         case 'TASK_REVOKED': {
@@ -120,7 +84,6 @@ export class MobileCaseController {
             ...req.body,
             reason: revokePayload.reason ?? req.body?.reason,
           };
-          await MobileCaseController.recordTaskOperation(req, taskId, 'TASK_REVOKED', payload);
           return MobileCaseController.revokeTask(req, res);
         }
         case 'PRIORITY_UPDATED': {
@@ -129,7 +92,6 @@ export class MobileCaseController {
             ...req.body,
             priority: priorityPayload.priority ?? req.body?.priority,
           };
-          await MobileCaseController.recordTaskOperation(req, taskId, 'PRIORITY_UPDATED', payload);
           return MobileCaseController.updateCasePriority(req, res);
         }
         default:
@@ -965,7 +927,7 @@ export class MobileCaseController {
   static async autoSaveForm(this: void, req: AuthenticatedRequest, res: Response) {
     try {
       const taskId = String(req.params.taskId || '');
-      const { formType, formData, timestamp }: MobileAutoSaveRequest = req.body;
+      const { formType, formData }: MobileAutoSaveRequest = req.body;
       const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
 
@@ -1006,21 +968,27 @@ export class MobileCaseController {
       const actualCaseId = existingCase.id; // Use the actual UUID from the database
 
       // Save or update auto-save data
+      // 2026-04-29 F7.9.x: code formerly referenced non-existent `timestamp`/`saved_at`
+      // columns; schema has `created_at` + `updated_at` (the latter maintained by
+      // trigger). Switched to those + added `form_type` + `user_id` to the WHERE
+      // so two devices for the same user don't collide on the same (case, form).
       const exAuto = await query(
-        `SELECT id FROM auto_saves WHERE case_id = $1 AND form_type = $2`,
-        [actualCaseId, formType]
+        `SELECT id FROM auto_saves WHERE user_id = $1 AND case_id = $2 AND form_type = $3`,
+        [userId, actualCaseId, formType]
       );
-      let autoSaveData: { timestamp?: Date; formData?: unknown } | null = null;
+      let autoSaveData: { updated_at?: Date; form_data?: unknown } | null = null;
       if (exAuto.rowCount && exAuto.rowCount > 0) {
-        const upd = await query(
-          `UPDATE auto_saves SET form_data = $1, timestamp = $2 WHERE id = $3 RETURNING *`,
-          [JSON.stringify(formData), new Date(timestamp), exAuto.rows[0].id]
-        );
+        const upd = await query(`UPDATE auto_saves SET form_data = $1 WHERE id = $2 RETURNING *`, [
+          JSON.stringify(formData),
+          exAuto.rows[0].id,
+        ]);
         autoSaveData = upd.rows[0];
       } else {
         const ins = await query(
-          `INSERT INTO auto_saves (id, case_id, form_type, form_data, timestamp) VALUES (gen_random_uuid()::text, $1, $2, $3, $4) RETURNING *`,
-          [actualCaseId, formType, JSON.stringify(formData), new Date(timestamp)]
+          `INSERT INTO auto_saves (case_id, user_id, form_type, form_data)
+           VALUES ($1, $2, $3, $4)
+           RETURNING *`,
+          [actualCaseId, userId, formType, JSON.stringify(formData)]
         );
         autoSaveData = ins.rows[0];
       }
@@ -1029,7 +997,7 @@ export class MobileCaseController {
         success: true,
         message: 'Form auto-saved successfully',
         data: {
-          savedAt: autoSaveData!.timestamp!.toISOString(),
+          savedAt: autoSaveData!.updated_at!.toISOString(),
           version: 1, // Default version since we removed the field
         },
       };
@@ -1092,9 +1060,12 @@ export class MobileCaseController {
       }
 
       const actualCaseId = existingCase.id; // Use the actual UUID from the database
+      // 2026-04-29 F7.9.x: was selecting `saved_at` (non-existent) and not scoping
+      // to user. Use `updated_at` (real column, trigger-maintained) and gate by
+      // user_id so a second user can't read another user's autosave on the same case.
       const autoRes = await query(
-        `SELECT id, case_id, form_type, form_data, saved_at, user_id FROM auto_saves WHERE case_id = $1 AND form_type = $2 LIMIT 1`,
-        [actualCaseId, formType.toUpperCase()]
+        `SELECT id, case_id, form_type, form_data, updated_at, user_id FROM auto_saves WHERE user_id = $1 AND case_id = $2 AND form_type = $3 LIMIT 1`,
+        [userId, actualCaseId, formType.toUpperCase()]
       );
       const autoSaveData = autoRes.rows[0];
       if (!autoSaveData) {
@@ -1109,8 +1080,11 @@ export class MobileCaseController {
         success: true,
         message: 'Auto-saved form data retrieved successfully',
         data: {
-          formData: JSON.parse(autoSaveData.formData),
-          savedAt: autoSaveData!.timestamp!.toISOString(),
+          formData:
+            typeof autoSaveData.formData === 'string'
+              ? JSON.parse(autoSaveData.formData)
+              : autoSaveData.formData,
+          savedAt: autoSaveData!.updatedAt!.toISOString(),
           version: 1, // Default version since we removed the field
         },
       });

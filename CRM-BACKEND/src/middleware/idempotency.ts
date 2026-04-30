@@ -1,6 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
 import crypto from 'crypto';
 import { query, withTransaction } from '@/config/database';
+import { redisClient, isRedisHealthy } from '@/config/redis';
+import { logger } from '@/config/logger';
 import type { PoolClient } from 'pg';
 import { MobileTelemetryService } from '@/services/mobileTelemetryService';
 
@@ -30,6 +32,76 @@ type IdempotencyLocals = {
 };
 
 const IDEMPOTENCY_HEADER = 'idempotency-key';
+
+// F-B4.7: thin Redis read-cache for COMPLETED-response replays.
+// Reservation rows (response_status=NULL), conflict detection on
+// pending state, orphan recovery, and durability all stay on DB —
+// the cache only short-circuits the hot replay path (a retried
+// request whose original response is already persisted). Saves the
+// SELECT + INSERT-ON-CONFLICT round-trip on the most common path
+// without compromising the documented case-1 incident protections.
+type CachedReplay = {
+  requestHash: string;
+  responseStatus: number;
+  responseBody: unknown;
+};
+
+const buildCacheKey = (scope: string, userId: string | null, key: string): string =>
+  `idem:${scope}:${userId ?? 'anon'}:${key}`;
+
+const cacheGetCompletedReplay = async (
+  scope: string,
+  userId: string | null,
+  key: string
+): Promise<CachedReplay | null> => {
+  if (!isRedisHealthy()) {
+    return null;
+  }
+  try {
+    const raw = await redisClient.get(buildCacheKey(scope, userId, key));
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as CachedReplay;
+    if (typeof parsed.responseStatus !== 'number' || typeof parsed.requestHash !== 'string') {
+      return null;
+    }
+    return parsed;
+  } catch (error) {
+    logger.warn('Idempotency Redis GET failed; falling back to DB lookup', { error });
+    return null;
+  }
+};
+
+const cacheSetCompletedReplay = async (
+  scope: string,
+  userId: string | null,
+  key: string,
+  payload: CachedReplay,
+  ttlHours: number
+): Promise<void> => {
+  if (!isRedisHealthy()) {
+    return;
+  }
+  try {
+    await redisClient.set(buildCacheKey(scope, userId, key), JSON.stringify(payload), {
+      EX: ttlHours * 3600,
+    });
+  } catch (error) {
+    logger.warn('Idempotency Redis SET failed; cache miss is non-fatal', { error });
+  }
+};
+
+const cacheDelete = async (scope: string, userId: string | null, key: string): Promise<void> => {
+  if (!isRedisHealthy()) {
+    return;
+  }
+  try {
+    await redisClient.del(buildCacheKey(scope, userId, key));
+  } catch (error) {
+    logger.warn('Idempotency Redis DEL failed; stale cache will TTL out', { error });
+  }
+};
 
 function normalizeBody(body: unknown): string {
   if (body == null) {
@@ -124,7 +196,8 @@ async function reserveKey(
 async function persistResponse(
   ctx: IdempotencyRequestContext,
   statusCode: number,
-  body: unknown
+  body: unknown,
+  ttlHours: number
 ): Promise<void> {
   try {
     await query(
@@ -146,6 +219,19 @@ async function persistResponse(
   } catch {
     // Never block the primary API response on idempotency persistence failure.
   }
+  // F-B4.7: dual-write to Redis cache so the next replay short-circuits
+  // the DB lookup. Best-effort — DB row is the source of truth.
+  await cacheSetCompletedReplay(
+    ctx.scope,
+    ctx.userId,
+    ctx.key,
+    {
+      requestHash: ctx.requestHash,
+      responseStatus: statusCode,
+      responseBody: body,
+    },
+    ttlHours
+  );
 }
 
 /**
@@ -173,6 +259,9 @@ async function deleteReservation(ctx: IdempotencyRequestContext): Promise<void> 
   } catch {
     // Defensive — never block the primary API response on cleanup failure.
   }
+  // F-B4.7: also drop the Redis cache so a replay can't serve a
+  // response that's been deleted from durable storage.
+  await cacheDelete(ctx.scope, ctx.userId, ctx.key);
 }
 
 // Reservation rows in `response_status=NULL` state older than this are
@@ -204,6 +293,32 @@ export function idempotencyMiddleware(options: IdempotencyOptions = {}) {
 
     const userId = getUserId(req);
     const requestHash = buildRequestHash(req, scope);
+
+    // F-B4.7: hot replay path — completed responses are cached in
+    // Redis. If we hit, we skip the DB transaction entirely.
+    // Reservation rows / orphan recovery / conflict on pending state
+    // still flow through DB below.
+    try {
+      const cached = await cacheGetCompletedReplay(scope, userId, key);
+      if (cached) {
+        if (cached.requestHash !== requestHash) {
+          return res.status(409).json({
+            success: false,
+            message: 'Idempotency-Key already used with different payload',
+            error: {
+              code: 'IDEMPOTENCY_KEY_CONFLICT',
+              timestamp: new Date().toISOString(),
+            },
+          });
+        }
+        res.setHeader('X-Idempotent-Replay', 'true');
+        res.setHeader('X-Idempotent-Replay-Source', 'cache');
+        void MobileTelemetryService.increment('idempotentReplayCount', 1, { scope });
+        return res.status(cached.responseStatus).json(cached.responseBody);
+      }
+    } catch (error) {
+      logger.warn('Idempotency cache lookup failed; falling back to DB path', { error });
+    }
 
     try {
       const replay = await withTransaction(async client => {
@@ -328,7 +443,7 @@ export function idempotencyMiddleware(options: IdempotencyOptions = {}) {
         }
 
         const capturedBody = (res.locals as IdempotencyLocals).__idempotencyCapturedBody;
-        void persistResponse(state, res.statusCode, capturedBody ?? null);
+        void persistResponse(state, res.statusCode, capturedBody ?? null, ttlHours);
       });
 
       return next();

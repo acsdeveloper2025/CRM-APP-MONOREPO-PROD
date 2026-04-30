@@ -1,8 +1,12 @@
 import type { Response } from 'express';
+import { promises as fs } from 'fs';
+import path from 'path';
+import crypto from 'crypto';
 import { query, pool, wrapClient } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import type { QueryParams } from '@/types/database';
+import { storage, StorageKeys } from '@/services/storage';
 import ExcelJS from 'exceljs';
 
 /**
@@ -63,7 +67,10 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
     }
 
     if (documentType) {
-      conditions.push(`kdv.document_type = $${paramIndex}`);
+      // F8.2.2: API still receives the code string; resolve to FK id at filter time
+      conditions.push(
+        `kdv.document_type_id = (SELECT id FROM document_types WHERE code = $${paramIndex} AND is_active = true LIMIT 1)`
+      );
       params.push(documentType as string);
       paramIndex++;
     }
@@ -88,7 +95,7 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
     // the snake_case DB column here.
     const allowedSortColumns: Record<string, string> = {
       createdAt: 'kdv.created_at',
-      documentType: 'kdv.document_type',
+      documentType: 'kdt.code',
       verificationStatus: 'kdv.verification_status',
       customerName: 'c.customer_name',
       caseNumber: 'c.case_id',
@@ -112,7 +119,7 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
         kdv.id,
         kdv.verification_task_id,
         kdv.case_id,
-        kdv.document_type,
+        kdt.code AS document_type,
         kdv.document_number,
         kdv.document_holder_name,
         kdv.document_file_name,
@@ -144,7 +151,7 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
        LEFT JOIN users u_verified ON u_verified.id = kdv.verified_by
        LEFT JOIN users u_assigned ON u_assigned.id = kdv.assigned_to
        LEFT JOIN users u_created ON u_created.id = kdv.assigned_by
-       LEFT JOIN document_types kdt ON kdt.code = kdv.document_type
+       LEFT JOIN document_types kdt ON kdt.id = kdv.document_type_id
        ${whereClause}
        ORDER BY ${sortCol} ${sortDir}
        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
@@ -153,13 +160,17 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
 
     // Stats
     const statsResult = await query(
+      // Workflow buckets read verification_status; outcome buckets read final_status.
       `SELECT
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE verification_status = 'PENDING') as pending,
-        COUNT(*) FILTER (WHERE verification_status = 'PASS') as passed,
-        COUNT(*) FILTER (WHERE verification_status = 'FAIL') as failed,
-        COUNT(*) FILTER (WHERE verification_status = 'REFER') as referred
-       FROM kyc_document_verifications`
+        COUNT(*) FILTER (WHERE verification_status = 'IN_PROGRESS') as in_progress,
+        COUNT(*) FILTER (WHERE verification_status = 'COMPLETED') as completed,
+        COUNT(*) FILTER (WHERE final_status = 'Positive') as positive,
+        COUNT(*) FILTER (WHERE final_status = 'Negative') as negative,
+        COUNT(*) FILTER (WHERE final_status = 'Refer') as referred,
+        COUNT(*) FILTER (WHERE final_status = 'Fraud') as fraud
+       FROM kyc_document_verifications WHERE deleted_at IS NULL`
     );
 
     res.json({
@@ -194,7 +205,7 @@ export const getKYCTaskDetail = async (req: AuthenticatedRequest, res: Response)
         vt.task_number,
         vt.status as task_status,
         vt.address,
-        vt.pincode,
+        (SELECT code FROM pincodes WHERE id = vt.pincode_id) as pincode,
         u_verified.name as verified_by_name,
         u_assigned.name as assigned_to_name,
         kdt.name as document_type_name,
@@ -205,7 +216,7 @@ export const getKYCTaskDetail = async (req: AuthenticatedRequest, res: Response)
        JOIN verification_tasks vt ON vt.id = kdv.verification_task_id
        LEFT JOIN users u_verified ON u_verified.id = kdv.verified_by
        LEFT JOIN users u_assigned ON u_assigned.id = kdv.assigned_to
-       LEFT JOIN document_types kdt ON kdt.code = kdv.document_type
+       LEFT JOIN document_types kdt ON kdt.id = kdv.document_type_id
        WHERE kdv.id = $1`,
       [taskId]
     );
@@ -221,24 +232,39 @@ export const getKYCTaskDetail = async (req: AuthenticatedRequest, res: Response)
   }
 };
 
-// Verify a KYC document (Pass/Fail/Refer)
+// Verify a KYC document. The reviewer's outcome is the field-verification
+// final_status enum (Positive | Negative | Refer | Fraud). On a decision the
+// row's workflow `verification_status` advances to 'COMPLETED' and the
+// outcome lands in `final_status` (mirror of verification_reports.final_status).
 export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { taskId } = req.params;
-    const { status: verificationStatus, remarks, rejectionReason } = req.body;
+    // Accept `finalStatus` (canonical) and fall back to legacy `status` for
+    // older callers — the legacy values PASS/FAIL/REFER are mapped onto the
+    // canonical enum so existing clients don't 400 mid-deploy.
+    const rawFinalStatus: string =
+      (req.body?.finalStatus as string) || (req.body?.status as string) || '';
+    const legacyMap: Record<string, string> = {
+      PASS: 'Positive',
+      FAIL: 'Negative',
+      REFER: 'Refer',
+    };
+    const finalStatus = legacyMap[rawFinalStatus] || rawFinalStatus;
+    const { remarks, rejectionReason } = req.body;
     const userId = req.user!.id;
 
-    if (!verificationStatus || !['PASS', 'FAIL', 'REFER'].includes(verificationStatus)) {
+    const allowed = ['Positive', 'Negative', 'Refer', 'Fraud'];
+    if (!finalStatus || !allowed.includes(finalStatus)) {
       return res.status(400).json({
         success: false,
-        message: 'Valid verification status required (PASS, FAIL, REFER)',
+        message: `Valid finalStatus required (${allowed.join(', ')})`,
       });
     }
 
-    if (verificationStatus === 'FAIL' && !rejectionReason) {
+    if ((finalStatus === 'Negative' || finalStatus === 'Fraud') && !rejectionReason) {
       return res.status(400).json({
         success: false,
-        message: 'Rejection reason is required for FAIL status',
+        message: `Rejection reason is required for ${finalStatus} outcome`,
       });
     }
 
@@ -246,14 +272,15 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
     try {
       await client.query('BEGIN');
 
-      // Update KYC document verification
+      // Workflow advances to COMPLETED; outcome lands in final_status.
       const updateResult = await client.query(
         `UPDATE kyc_document_verifications
-         SET verification_status = $1, remarks = $2, rejection_reason = $3,
+         SET verification_status = 'COMPLETED', final_status = $1,
+             remarks = $2, rejection_reason = $3,
              verified_by = $4, verified_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
          WHERE id = $5
          RETURNING id, verification_task_id, case_id`,
-        [verificationStatus, remarks || null, rejectionReason || null, userId, taskId]
+        [finalStatus, remarks || null, rejectionReason || null, userId, taskId]
       );
 
       if (updateResult.rows.length === 0) {
@@ -271,25 +298,33 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
         [verificationTaskId]
       );
 
-      // If all docs verified, mark the verification_task as COMPLETED
+      // If all docs decided, mark the verification_task as COMPLETED. Overall
+      // outcome rolls up from the per-doc final_status enum: any Negative
+      // poisons the task to KYC_FAILED, any Fraud → KYC_FRAUD; any Refer →
+      // KYC_REFER; otherwise KYC_VERIFIED.
       if (parseInt(pendingDocs.rows[0].pending) === 0) {
-        // Determine overall outcome based on individual document results
         const docResults = await client.query(
-          `SELECT verification_status, COUNT(*) as cnt
+          `SELECT final_status, COUNT(*) as cnt
            FROM kyc_document_verifications
-           WHERE verification_task_id = $1
-           GROUP BY verification_status`,
+           WHERE verification_task_id = $1 AND deleted_at IS NULL
+           GROUP BY final_status`,
           [verificationTaskId]
         );
 
         const resultMap: Record<string, number> = {};
-        docResults.rows.forEach((r: { verificationStatus: string; cnt: string }) => {
-          resultMap[r.verificationStatus] = parseInt(r.cnt);
+        docResults.rows.forEach((r: { finalStatus: string | null; cnt: string }) => {
+          if (r.finalStatus) {
+            resultMap[r.finalStatus] = parseInt(r.cnt);
+          }
         });
 
         let overallOutcome = 'KYC_VERIFIED';
-        if (resultMap['FAIL'] > 0) {
+        if ((resultMap['Fraud'] || 0) > 0) {
+          overallOutcome = 'KYC_FRAUD';
+        } else if ((resultMap['Negative'] || 0) > 0) {
           overallOutcome = 'KYC_FAILED';
+        } else if ((resultMap['Refer'] || 0) > 0) {
+          overallOutcome = 'KYC_REFER';
         }
 
         await client.query(
@@ -320,8 +355,8 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
 
       res.json({
         success: true,
-        message: `Document marked as ${verificationStatus}`,
-        data: { id: taskId, status: verificationStatus },
+        message: `Document marked as ${finalStatus}`,
+        data: { id: taskId, finalStatus, verificationStatus: 'COMPLETED' },
       });
     } catch (err) {
       await client.query('ROLLBACK');
@@ -375,6 +410,9 @@ export const assignKYCTask = async (req: AuthenticatedRequest, res: Response) =>
 };
 
 // Upload document for KYC task
+// F8.2.3: writes through StorageService + populates document_storage_key alongside
+// the legacy document_file_path. Reads still use document_file_path until the
+// production S3 cutover, when document_file_path is dropped.
 export const uploadKYCDocument = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { taskId } = req.params;
@@ -384,21 +422,54 @@ export const uploadKYCDocument = async (req: AuthenticatedRequest, res: Response
       return res.status(400).json({ success: false, message: 'File is required' });
     }
 
+    // Look up the KYC row to derive case_id + a stable doc-type code for the storage key.
+    const lookup = await query<{ id: string; caseId: string; docCode: string | null }>(
+      `SELECT kdv.id,
+              kdv.case_id AS "caseId",
+              dt.code AS "docCode"
+         FROM kyc_document_verifications kdv
+         LEFT JOIN document_types dt ON dt.id = kdv.document_type_id
+        WHERE kdv.id = $1
+        LIMIT 1`,
+      [taskId]
+    );
+    if (lookup.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'KYC task not found' });
+    }
+    const kycRow = lookup.rows[0];
+    const ext = path.extname(file.originalname || file.filename || '').replace(/^\./, '') || 'bin';
+    const storageKey = StorageKeys.kycDocument(
+      kycRow.caseId,
+      kycRow.id,
+      kycRow.docCode || 'DOC',
+      ext
+    );
+
+    // Multer wrote bytes to disk at file.path. Stream them to storage.put so the
+    // S3 backend (when active) gets the bytes too. For the LocalFs backend this
+    // is effectively a copy under uploads/<storageKey>; the legacy file at file.path
+    // stays so existing reads (file_path) keep working during the dual-write window.
+    // F8.2.5 closure: also compute server-side SHA-256 for evidence integrity.
+    const buffer = await fs.readFile(file.path);
+    const sha256Hash = crypto.createHash('sha256').update(buffer).digest('hex');
+    await storage.put(storageKey, buffer, file.mimetype);
+
     const filePath = `/uploads/kyc/${file.filename}`;
     const result = await query(
       `UPDATE kyc_document_verifications
        SET document_file_path = $1, document_file_name = $2,
-           document_file_size = $3, document_mime_type = $4, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $5
+           document_file_size = $3, document_mime_type = $4,
+           document_storage_key = $5, sha256_hash = $6, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $7
        RETURNING id`,
-      [filePath, file.originalname, file.size, file.mimetype, taskId]
+      [filePath, file.originalname, file.size, file.mimetype, storageKey, sha256Hash, taskId]
     );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'KYC task not found' });
     }
 
-    res.json({ success: true, message: 'Document uploaded', data: { filePath } });
+    res.json({ success: true, message: 'Document uploaded', data: { filePath, storageKey } });
   } catch (error) {
     logger.error('Error uploading KYC document:', error);
     res.status(500).json({ success: false, message: 'Failed to upload document' });
@@ -432,7 +503,7 @@ export const getKYCTasksForCase = async (req: AuthenticatedRequest, res: Respons
     const result = await query(
       `SELECT
         kdv.id,
-        kdv.document_type,
+        kdt.code AS document_type,
         kdv.document_number,
         kdv.document_holder_name,
         kdv.document_file_name,
@@ -450,7 +521,7 @@ export const getKYCTasksForCase = async (req: AuthenticatedRequest, res: Respons
         u_verified.name as verified_by_name,
         u_assigned.name as assigned_to_name
        FROM kyc_document_verifications kdv
-       LEFT JOIN document_types kdt ON kdt.code = kdv.document_type
+       LEFT JOIN document_types kdt ON kdt.id = kdv.document_type_id
        LEFT JOIN users u_verified ON u_verified.id = kdv.verified_by
        LEFT JOIN users u_assigned ON u_assigned.id = kdv.assigned_to
        WHERE kdv.case_id = $1
@@ -480,7 +551,10 @@ export const exportKYCToExcel = async (req: AuthenticatedRequest, res: Response)
       paramIndex++;
     }
     if (documentType) {
-      conditions.push(`kdv.document_type = $${paramIndex}`);
+      // F8.2.2: API still receives the code string; resolve to FK id at filter time
+      conditions.push(
+        `kdv.document_type_id = (SELECT id FROM document_types WHERE code = $${paramIndex} AND is_active = true LIMIT 1)`
+      );
       params.push(documentType as string);
       paramIndex++;
     }
@@ -517,7 +591,7 @@ export const exportKYCToExcel = async (req: AuthenticatedRequest, res: Response)
         u_assigned.name as "Assigned To"
        FROM kyc_document_verifications kdv
        JOIN cases c ON c.id = kdv.case_id
-       LEFT JOIN document_types kdt ON kdt.code = kdv.document_type
+       LEFT JOIN document_types kdt ON kdt.id = kdv.document_type_id
        LEFT JOIN users u_verified ON u_verified.id = kdv.verified_by
        LEFT JOIN users u_assigned ON u_assigned.id = kdv.assigned_to
        ${whereClause}

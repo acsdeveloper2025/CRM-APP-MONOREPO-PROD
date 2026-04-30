@@ -58,7 +58,6 @@ export const BUSINESS_FIELD_MAPPING: DatabaseFieldMapping = {
   // Additional business fields from mobile forms
   businessAddress: null, // No full_address column — address is on verification_tasks
   operatingHours: null, // Map to other_observation or ignore
-  employeeCount: 'staff_strength', // Map employeeCount to staff_strength
 
   // Owner/Person details
   metPerson: 'met_person_name',
@@ -113,8 +112,6 @@ export const BUSINESS_FIELD_MAPPING: DatabaseFieldMapping = {
   // Legacy/alternative field names
   businessName: 'company_nature_of_business', // Maps to company nature
   companyName: 'company_nature_of_business', // Maps to company nature
-  totalEmployees: 'staff_strength', // Maps to staff strength
-  businessNature: 'company_nature_of_business', // Maps to business nature
   verificationMethod: null, // Derived field, ignore
 
   // Fields to ignore (UI state, images, etc.)

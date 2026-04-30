@@ -11,6 +11,7 @@ import { MobileLocationController } from '../controllers/mobileLocationControlle
 import { MobileSyncController } from '../controllers/mobileSyncController';
 import { MobileTelemetryController } from '../controllers/mobileTelemetryController';
 import { NotificationController } from '../controllers/notificationController';
+import { listVerificationTypeOutcomes } from '../controllers/verificationTypeOutcomesController';
 import { ProfilePhotoController } from '../controllers/profilePhotoController';
 import { profilePhotoUpload } from '../middleware/profilePhotoUpload';
 import { authenticateToken } from '../middleware/auth';
@@ -116,6 +117,15 @@ router.post(
   authenticateToken,
   profilePhotoUpload.single('photo'),
   ProfilePhotoController.uploadForSelf
+);
+
+// F2.7.1: reference data — verification_type_outcomes lookup
+// Mobile syncs this on every download cycle to keep the local mirror fresh.
+router.get(
+  '/reference/verification-type-outcomes',
+  authenticateToken,
+  validateMobileVersion,
+  listVerificationTypeOutcomes
 );
 
 // Mobile Case Management Routes (CACHED)
@@ -429,15 +439,10 @@ router.get(
 );
 
 // Mobile Sync Routes
-// Enterprise sync for 500+ field agents (optimized)
-router.post(
-  '/sync/enterprise',
-  authenticateToken,
-  authorize('visit.start'),
-  validateMobileVersion,
-  invalidateFieldMonitoring,
-  MobileSyncController.enterpriseSync
-);
+// F10.7.1 cleanup (2026-04-29): legacy `/sync/enterprise` route removed —
+// it backed an unused DB-queue notification path (mobile_notification_queue
+// table). Mobile uses `/sync/download` exclusively. Notifications now flow
+// through bullmq + websocket (see queues/notificationQueue.ts).
 router.post(
   '/sync/upload',
   authenticateToken,

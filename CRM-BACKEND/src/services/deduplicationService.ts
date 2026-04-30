@@ -94,7 +94,8 @@ export class DeduplicationService {
           c.status,
           c.created_at,
           c.verification_outcome,
-          c.pincode,
+          -- F5.1.x: cases.pincode dropped; derive from first task
+          (SELECT p2.code FROM verification_tasks vt2 JOIN pincodes p2 ON p2.id = vt2.pincode_id WHERE vt2.case_id = c.id AND vt2.pincode_id IS NOT NULL LIMIT 1) AS pincode,
           cl.name as client_name,
           p.name as product_name,
           vt.name as verification_type_name

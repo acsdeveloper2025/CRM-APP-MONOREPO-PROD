@@ -48,7 +48,6 @@ import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
 import { query } from '@/config/database';
 import { logger } from '../utils/logger';
-import { EnterpriseMobileSyncService } from '../services/enterpriseMobileSyncService';
 import { isFieldExecutionActor } from '@/security/rbacAccess';
 import { CaseStatusSyncService } from '../services/caseStatusSyncService';
 import { TaskRevocationService } from '../services/taskRevocationService';
@@ -99,50 +98,6 @@ export class MobileSyncController {
           code: 'SYNC_HEALTH_FAILED',
           timestamp: new Date().toISOString(),
           details: error instanceof Error ? error.message : 'Unknown error',
-        },
-      });
-    }
-  }
-
-  /**
-   * Enterprise-scale mobile synchronization for 500+ field agents
-   * Optimized for high-concurrency case assignment operations
-   */
-  static async enterpriseSync(this: void, req: AuthenticatedRequest, res: Response) {
-    try {
-      const { lastSyncTimestamp, deviceId, appVersion, platform } = req.body;
-      const userId = req.user!.id;
-      const isExecutionActor = isFieldExecutionActor(req.user);
-
-      if (!isExecutionActor) {
-        return res.status(403).json({
-          success: false,
-          message: 'Enterprise sync is only available for field agents',
-          error: {
-            code: 'UNAUTHORIZED_ROLE',
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
-
-      // Use enterprise sync service
-      const syncResponse = await EnterpriseMobileSyncService.syncFieldAgentData({
-        userId,
-        lastSyncTimestamp,
-        deviceId,
-        appVersion: appVersion || '1.0.0',
-        platform: platform || 'Android',
-      });
-
-      res.json(syncResponse);
-    } catch (error) {
-      logger.error('Enterprise sync error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Enterprise sync failed',
-        error: {
-          code: 'ENTERPRISE_SYNC_FAILED',
-          timestamp: new Date().toISOString(),
         },
       });
     }
@@ -529,11 +484,12 @@ export class MobileSyncController {
            va.verification_task_id as task_id,
            COALESCE(va.photo_type, 'verification') as type,
            va.filename as file_name,
-           COALESCE(va.file_size_bytes, va.file_size, 0) as file_size,
+           COALESCE(va.file_size_bytes, 0) as file_size,
            va.mime_type as mime_type,
            COALESCE(va.capture_time, va.created_at) as captured_at,
-           COALESCE(va.gps_latitude::double precision, NULLIF(va.geo_location->>'latitude', '')::double precision) as latitude,
-           COALESCE(va.gps_longitude::double precision, NULLIF(va.geo_location->>'longitude', '')::double precision) as longitude,
+           -- F5.4.2: gps_* columns dropped (never populated); read from geo_location jsonb directly
+           NULLIF(va.geo_location->>'latitude', '')::double precision  as latitude,
+           NULLIF(va.geo_location->>'longitude', '')::double precision as longitude,
            NULLIF(COALESCE(va.geo_location->>'address', va.geo_location->>'formattedAddress', ''), '') as address,
            (va.deleted_at IS NULL) as uploaded,
            va.created_at as created_at,
