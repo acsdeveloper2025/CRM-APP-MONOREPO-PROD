@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCase, useAssignCase } from '@/hooks/useCases';
+import { useCase } from '@/hooks/useCases';
 import { useCaseFormSubmissions } from '@/hooks/useForms';
-import { ReassignCaseModal } from '@/components/cases/ReassignCaseModal';
 import { OptimizedFormSubmissionViewer } from '@/components/forms/OptimizedFormSubmissionViewer';
 import { CaseDataEntryTab } from '@/components/cases/CaseDataEntryTab';
 import {
@@ -19,7 +18,6 @@ import {
   Building2,
   FileText,
   Edit,
-  UserCheck,
   FormInput,
   Camera,
   CheckSquare,
@@ -33,7 +31,6 @@ import { DownloadReportButton } from '@/components/reports/DownloadReportButton'
 import { useKYCTasksForCase } from '@/hooks/useKYC';
 import { formatDistanceToNow } from 'date-fns';
 import { LoadingState } from '@/components/ui/loading';
-import { logger } from '@/utils/logger';
 
 // Helper function to safely format dates
 const safeFormatDistanceToNow = (dateValue: string | null | undefined): string => {
@@ -54,15 +51,13 @@ const safeFormatDistanceToNow = (dateValue: string | null | undefined): string =
 export const CaseDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
 
   // Ensure id is available or use empty string (hooks will handle empty/undefined)
   const safeId = id || '';
-  const { data: caseData, isLoading, refetch } = useCase(safeId);
+  const { data: caseData, isLoading } = useCase(safeId);
   const { data: formSubmissionsData, isLoading: formSubmissionsLoading } =
     useCaseFormSubmissions(safeId);
   const { data: kycTasks = [] } = useKYCTasksForCase(safeId);
-  const assignCaseMutation = useAssignCase();
 
   const caseItem = caseData?.data;
   const formSubmissions = formSubmissionsData?.data?.submissions || [];
@@ -70,20 +65,6 @@ export const CaseDetailPage: React.FC = () => {
   // Handler functions
   const handleEditCase = () => {
     navigate(`/case-management/create-new-case?edit=${safeId}`);
-  };
-
-  const handleReassignCase = async (assignedToId: string, reason: string) => {
-    try {
-      await assignCaseMutation.mutateAsync({
-        id: safeId,
-        assignedToId,
-        reason,
-      });
-      setIsReassignModalOpen(false);
-      refetch(); // Refresh case data to show updated assignment
-    } catch (error) {
-      logger.error('Failed to reassign case:', error);
-    }
   };
 
   if (isLoading) {
@@ -528,30 +509,11 @@ export const CaseDetailPage: React.FC = () => {
                 <Edit className="mr-2 h-4 w-4" />
                 Edit Case
               </Button>
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={() => setIsReassignModalOpen(true)}
-              >
-                <UserCheck className="mr-2 h-4 w-4" />
-                Reassign
-              </Button>
               {caseItem.status !== 'COMPLETED' && <Button className="w-full">Mark Complete</Button>}
             </CardContent>
           </Card>
         </div>
       </div>
-
-      {/* Reassign Case Modal */}
-      {caseItem && (
-        <ReassignCaseModal
-          isOpen={isReassignModalOpen}
-          onClose={() => setIsReassignModalOpen(false)}
-          onReassign={handleReassignCase}
-          case={caseItem}
-          isLoading={assignCaseMutation.isPending}
-        />
-      )}
     </div>
   );
 };

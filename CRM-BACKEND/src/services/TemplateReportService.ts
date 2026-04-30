@@ -41,10 +41,10 @@ VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Met_Person_Name} ({Met_Person_Relation}), who confirmed {Customer_Name}'s stay and provided the details. {Customer_Name} has been staying at the given address for the last {Staying_Period} {Staying_Status}.
 
 PROPERTY & PERSONAL DETAILS:
-The approximate area of the premises is {Approx_Area_Sq_Feet}. Total family members are {Total_Family_Members} and earning members are {Total_Earning_Members}. {Customer_Name} is {Working_Status} at {Company_Name}. The door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
+The approximate area of the premises is {Approx_Area_Sq_Feet}. Total family members are {Total_Family_Members} and earning members are {Total_Earning_Members}. {Working_Profile_Text} The door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. {Customer_Name} is staying on the {Applicant_Staying_Floor} floor. The building color is {Address_Structure_Color} and door color is {Door_Color}. During the visit, the met person showed {Document_Type} as identity proof.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. {Customer_Name} is staying on the {Applicant_Staying_Floor} floor. The building color is {Address_Structure_Color} and door color is {Door_Color}. {Document_Shown_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} {Customer_Name}'s name and stay. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} {Customer_Name}'s residence.
@@ -1412,6 +1412,15 @@ Hence the profile is marked as {Final_Status}.`,
         populatedTemplate = populatedTemplate.replace(new RegExp(placeholder, 'g'), value);
       });
 
+      // Collapse whitespace artifacts left by smart placeholders that resolved
+      // to an empty string (e.g. {Working_Profile_Text} or {Document_Shown_Sentence}
+      // when the underlying form fields were not captured). Without this pass
+      // we'd render "earning members are 2.  The door nameplate" (double space)
+      // or "door color is Brown. \n\nTHIRD PARTY..." (trailing space at EOL).
+      populatedTemplate = populatedTemplate
+        .replace(/[ \t]{2,}/g, ' ') // collapse runs of spaces/tabs
+        .replace(/[ \t]+(\n|$)/g, '$1'); // strip trailing whitespace per line
+
       logger.info('Template-based report generated successfully', {
         caseId: data.caseDetails.caseId,
         templateUsed: this.getTemplateKey(data.verificationType, data.outcome, data.formData),
@@ -2173,7 +2182,39 @@ Hence the profile is marked as {Final_Status}.`,
           ? `the met person showed ${d} as identity proof`
           : 'the met person showed an identity proof';
       }
+      // Residence forms collect `documentType` directly without a `documentShown`
+      // status field. If a doc type is filled, narrate it; otherwise stay silent
+      // so we don't render "the met person showed  as identity proof".
+      if (d) {
+        return `the met person showed ${d} as identity proof`;
+      }
       return '';
+    };
+
+    // Wraps documentShownText with the "During the visit, ..." sentence prefix
+    // when content is present. Returns empty string when no document info was
+    // captured (avoids rendering "During the visit, ." in residence templates).
+    const documentShownSentence = (status: string, docType: string): string => {
+      const text = documentShownText(status, docType);
+      return text ? `During the visit, ${text}.` : '';
+    };
+
+    // Renders the applicant's working profile narration. Returns the full
+    // sentence when both `workingStatus` and `companyName` are present,
+    // otherwise empty. Avoids broken output like "Rahul Kumar is  at ."
+    // for residence forms where these fields are sometimes omitted.
+    const workingProfileText = (
+      customerName: string,
+      workingStatus: string,
+      companyName: string
+    ): string => {
+      const ws = (workingStatus || '').trim();
+      const cn = (companyName || '').trim();
+      const name = (customerName || '').trim();
+      if (!ws || !cn || !name) {
+        return '';
+      }
+      return `${name} is ${lc(ws)} at ${cn}.`;
     };
 
     // Lowercases a mobile-captured value for mid-sentence narration.
@@ -2465,6 +2506,15 @@ Hence the profile is marked as {Final_Status}.`,
         safeGet(formData, 'documentShown') || safeGet(formData, 'document_shown'),
         safeGet(formData, 'documentType') || safeGet(formData, 'document_type')
       ),
+      Document_Shown_Sentence: documentShownSentence(
+        safeGet(formData, 'documentShown') || safeGet(formData, 'document_shown'),
+        safeGet(formData, 'documentType') || safeGet(formData, 'document_type')
+      ),
+      Working_Profile_Text: workingProfileText(
+        this.getCustomerName(formData, caseDetails),
+        safeGet(formData, 'workingStatus') || '',
+        safeGet(formData, 'companyName') || safeGet(formData, 'employerName') || ''
+      ),
       Approx_Area: safeGet(formData, 'approxArea') || safeGet(formData, 'approx_area'),
 
       // Office SHIFTED-specific variables
@@ -2600,12 +2650,22 @@ Hence the profile is marked as {Final_Status}.`,
       Met_Person_Designation:
         safeGet(formData, 'metPersonDesignation') || safeGet(formData, 'met_person_designation'),
 
-      // Builder-specific variables
-      Builder_Type: safeGet(formData, 'builderType') || safeGet(formData, 'builder_type'),
+      // Builder-specific variables. Mobile BV POSITIVE collects `businessType`
+      // (no separate `builderType`), so fall through to it.
+      Builder_Type:
+        safeGet(formData, 'builderType') ||
+        safeGet(formData, 'builder_type') ||
+        safeGet(formData, 'businessType') ||
+        safeGet(formData, 'business_type'),
+      // Mobile builder form (BV POSITIVE) collects `nameOfCompanyOwners`, not
+      // `builderName` — fall through to that so the template doesn't render
+      // "Builder name: ." for valid submissions.
       Builder_Name:
         safeGet(formData, 'builderName') ||
         safeGet(formData, 'builder_name') ||
-        safeGet(formData, 'builderOwnerName'),
+        safeGet(formData, 'builderOwnerName') ||
+        safeGet(formData, 'nameOfCompanyOwners') ||
+        safeGet(formData, 'name_of_company_owners'),
 
       // Business-specific variables
       Business_Status: safeGet(formData, 'businessStatus') || safeGet(formData, 'business_status'),

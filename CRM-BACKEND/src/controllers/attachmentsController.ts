@@ -13,9 +13,11 @@ import {
 import { getScopedOperationalUserIds } from '@/security/userScope';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
+import fs, { promises as fsp } from 'fs';
+import crypto from 'crypto';
 import sharp from 'sharp';
 import { generateRendition, requiresRendition } from '@/services/attachmentRenditionService';
+import { storage as objectStorage, StorageKeys } from '@/services/storage';
 
 // In-memory attachment index for update/delete operations (upload uses database)
 const attachments: Record<string, unknown>[] = [
@@ -109,11 +111,7 @@ const enforceBackendUserCaseScope = async (
     clientId: number;
     productId: number;
     createdByBackendUser: string | null;
-    assignedTo: string | null;
-  }>(
-    `SELECT client_id, product_id, created_by_backend_user, assigned_to FROM cases WHERE id = $1`,
-    [caseUuid]
-  );
+  }>(`SELECT client_id, product_id, created_by_backend_user FROM cases WHERE id = $1`, [caseUuid]);
 
   if (caseResult.rows.length === 0) {
     return false;
@@ -128,7 +126,6 @@ const enforceBackendUserCaseScope = async (
        WHERE c.id = $1
          AND (
            c.created_by_backend_user = ANY($2::uuid[]) OR
-           c.assigned_to = ANY($2::uuid[]) OR
            vt.assigned_to = ANY($2::uuid[])
          )
        LIMIT 1`,
@@ -321,28 +318,50 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
           // numeric caseId. The prior code listed case_id twice
           // which PostgreSQL rejects with "column specified more
           // than once".
+          // F8.1.3 + storage abstraction: compute sha256 + storage_key on upload.
+          // Multer wrote bytes to file.path. Read buffer once for both: hashing
+          // and storage.put (so S3 backend gets the bytes automatically when active).
+          const fileBuffer = await fsp.readFile(file.path);
+          const sha256Hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+          const ext = (path.extname(file.originalname || file.filename || '') || '.bin').replace(
+            /^\./,
+            ''
+          );
+          // Pre-fetch next id so we can compute storage_key before INSERT (key embeds id).
+          const idResult = await query<{ id: string }>(
+            `SELECT nextval('attachments_temp_id_seq')::text AS id`
+          );
+          const insertedId = Number(idResult.rows[0].id);
+          const storageKey = StorageKeys.attachment(caseUUID, insertedId, ext);
+          await objectStorage.put(storageKey, fileBuffer, file.mimetype);
+
           const insertResult = await query(
             `INSERT INTO attachments (
+            id,
             filename,
             original_name,
             mime_type,
             file_size,
             file_path,
+            storage_key,
+            sha256_hash,
             uploaded_by,
             case_id,
             verification_task_id
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-          RETURNING id, filename, original_name, mime_type, file_size as size, file_path, uploaded_by, created_at as uploaded_at, case_id`,
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          RETURNING id, filename, original_name, mime_type, file_size as size, file_path, storage_key, uploaded_by, created_at as uploaded_at, case_id`,
             [
+              insertedId,
               file.filename,
               file.originalname,
               file.mimetype,
               file.size,
               `/uploads/attachments/case_${safeCaseId}/${file.filename}`,
+              storageKey,
+              sha256Hash,
               req.user?.id,
               caseUUID,
-
-              verificationTaskId || null, // Add verificationTaskId if provided
+              verificationTaskId || null,
             ]
           );
 
@@ -474,7 +493,10 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
           a.verification_task_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
-        WHERE a.case_id = $1 AND c.assigned_to = $2
+        WHERE a.case_id = $1 AND EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = c.id AND vt.assigned_to = $2
+        )
       `;
       queryParams = [resolvedCaseUuid, userId];
     } else {
@@ -544,7 +566,10 @@ export const getAttachmentById = async (req: AuthenticatedRequest, res: Response
                a.file_path, a.uploaded_by, a.created_at, a.case_id, a.case_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
-        WHERE a.id = $1 AND c.assigned_to = $2
+        WHERE a.id = $1 AND EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = c.id AND vt.assigned_to = $2
+        )
       `;
       queryParams = [id, userId];
     } else {
@@ -632,7 +657,10 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
              , a.case_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
-        WHERE a.id = $1 AND c.assigned_to = $2
+        WHERE a.id = $1 AND EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = c.id AND vt.assigned_to = $2
+        )
       `;
       queryParams = [id, userId];
     } else {
@@ -791,7 +819,10 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
              , a.case_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
-        WHERE a.id = $1 AND c.assigned_to = $2
+        WHERE a.id = $1 AND EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = c.id AND vt.assigned_to = $2
+        )
       `;
       queryParams = [id, userId];
     } else {
@@ -890,7 +921,10 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
              , a.case_id
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
-        WHERE a.id = $1 AND c.assigned_to = $2
+        WHERE a.id = $1 AND EXISTS (
+          SELECT 1 FROM verification_tasks vt
+          WHERE vt.case_id = c.id AND vt.assigned_to = $2
+        )
       `;
       queryParams = [id, userId];
     } else {

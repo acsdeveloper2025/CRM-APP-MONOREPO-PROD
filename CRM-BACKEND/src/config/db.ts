@@ -101,12 +101,42 @@ export const wrapClient = (client: PoolClient): PoolClient => {
   return client;
 };
 
+const SLOW_QUERY_MS = parseInt(process.env.SLOW_QUERY_MS || '500', 10);
+
+// F-B4.1: pre-flight AbortSignal check. pg 8 doesn't expose an
+// in-flight cancel hook on `pool.query()` (would need PG-level
+// pg_cancel_backend by PID), but bailing BEFORE issuing the query
+// when the request is already aborted still saves DB work for the
+// (common) case where multiple sequential queries happen after the
+// timeout fired. Handlers opt-in by passing `req.abortSignal`.
+class AbortError extends Error {
+  code = 'ABORT_ERR';
+  constructor() {
+    super('Operation aborted');
+    this.name = 'AbortError';
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const query = async <T extends QueryResultRow = any>(
   text: string,
-  params: QueryParams = []
+  params: QueryParams = [],
+  options?: { signal?: AbortSignal }
 ): Promise<QueryResult<T>> => {
+  if (options?.signal?.aborted) {
+    throw new AbortError();
+  }
+  const startedAt = Date.now();
   const result = await pool.query<T>(text, params);
+  const elapsedMs = Date.now() - startedAt;
+  if (elapsedMs > SLOW_QUERY_MS) {
+    logger.warn('Slow query detected', {
+      elapsedMs,
+      thresholdMs: SLOW_QUERY_MS,
+      sql: text.length > 500 ? `${text.slice(0, 500)}...` : text,
+      rowCount: result.rowCount,
+    });
+  }
   return transformResult(result);
 };
 
@@ -115,7 +145,10 @@ export const query = async <T extends QueryResultRow = any>(
  * the sleep prevents a long queue of retries from holding a connection
  * open for several seconds each while the database catches up.
  */
-const MAX_TRANSACTION_RETRY_DELAY_MS = 400;
+const MAX_TRANSACTION_RETRY_DELAY_MS = parseInt(
+  process.env.TRANSACTION_RETRY_MAX_DELAY_MS || '400',
+  10
+);
 
 /**
  * Number of retry attempts for deadlock/serialization failures. Bumped
@@ -123,7 +156,10 @@ const MAX_TRANSACTION_RETRY_DELAY_MS = 400;
  * users the old ceiling surfaced too many deadlocks as 5xx responses
  * even though a second or third attempt would have succeeded.
  */
-const DEFAULT_TRANSACTION_MAX_RETRIES = 6;
+const DEFAULT_TRANSACTION_MAX_RETRIES = parseInt(
+  process.env.TRANSACTION_MAX_RETRIES || '6',
+  10
+);
 
 export const withTransaction = async <T>(
   fn: (client: PoolClient) => Promise<T>,

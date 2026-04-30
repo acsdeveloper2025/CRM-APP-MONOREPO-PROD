@@ -260,15 +260,15 @@ router.get(
           rt.name as rate_type_name,
           c.case_id as case_number,
           c.customer_name as customer_name,
-          tcc.status as commission_status,
-          tcc.calculated_commission
+          cc.status as commission_status,
+          cc.calculated_commission
         FROM verification_tasks vt
         LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
         LEFT JOIN users u_assigned ON vt.assigned_to = u_assigned.id
         LEFT JOIN users u_created ON vt.assigned_by = u_created.id
         LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
         LEFT JOIN cases c ON vt.case_id = c.id
-        LEFT JOIN task_commission_calculations tcc ON vt.id = tcc.verification_task_id
+        LEFT JOIN commission_calculations cc ON vt.id = cc.verification_task_id
         WHERE vt.id = $1
       `,
         [taskId]

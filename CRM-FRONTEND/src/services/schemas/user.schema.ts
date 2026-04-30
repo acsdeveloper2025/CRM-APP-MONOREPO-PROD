@@ -26,12 +26,16 @@ export const UserSchema = z
     permissionCodes: z.array(z.string()).optional(),
     routeAccess: z.array(z.string()).optional(),
     employeeId: z.string().optional().default(''),
-    designation: z.string().optional().default(''),
-    designationId: z.number().optional(),
-    designationName: z.string().optional(),
-    department: z.string().optional(),
-    departmentId: z.number().optional(),
-    departmentName: z.string().optional(),
+    // 2026-04-28 F1.1.2: designation is now FK-derived (designations.name).
+    // Users without designation_id return null. Same for designationName.
+    designation: z.string().nullable().optional().default(''),
+    designationId: z.number().nullable().optional(),
+    designationName: z.string().nullable().optional(),
+    // 2026-04-28 F1.1.3: department is now FK-derived (departments.name).
+    // Users without department_id return null. Same for departmentName.
+    department: z.string().nullable().optional(),
+    departmentId: z.number().nullable().optional(),
+    departmentName: z.string().nullable().optional(),
     teamLeaderId: z.string().nullable().optional(),
     teamLeaderName: z.string().nullable().optional(),
     managerId: z.string().nullable().optional(),

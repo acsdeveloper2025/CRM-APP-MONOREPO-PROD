@@ -464,7 +464,9 @@ export async function buildReportContext(
       `SELECT c.id, c.case_id AS case_number, c.client_id, c.product_id,
               c.customer_name, c.customer_phone, c.customer_calling_code, c.pan_number,
               c.applicant_type, c.backend_contact_number, c.trigger, c.priority, c.status,
-              c.pincode, c.verification_outcome, c.created_at, c.completed_at,
+              -- F5.1.x: cases.pincode dropped; derive from first task
+              (SELECT p2.code FROM verification_tasks vt2 JOIN pincodes p2 ON p2.id = vt2.pincode_id WHERE vt2.case_id = c.id AND vt2.pincode_id IS NOT NULL LIMIT 1) AS pincode,
+              c.verification_outcome, c.created_at, c.completed_at,
               c.form_completion_percentage, c.total_tasks_count, c.completed_tasks_count,
               cl.name AS client_name, cl.logo_url, cl.stamp_url, cl.primary_color, cl.header_color,
               pr.name AS product_name
@@ -480,7 +482,9 @@ export async function buildReportContext(
       `SELECT c.id, c.case_id AS case_number, c.client_id, c.product_id,
               c.customer_name, c.customer_phone, c.customer_calling_code, c.pan_number,
               c.applicant_type, c.backend_contact_number, c.trigger, c.priority, c.status,
-              c.pincode, c.verification_outcome, c.created_at, c.completed_at,
+              -- F5.1.x: cases.pincode dropped; derive from first task
+              (SELECT p2.code FROM verification_tasks vt2 JOIN pincodes p2 ON p2.id = vt2.pincode_id WHERE vt2.case_id = c.id AND vt2.pincode_id IS NOT NULL LIMIT 1) AS pincode,
+              c.verification_outcome, c.created_at, c.completed_at,
               c.form_completion_percentage, c.total_tasks_count, c.completed_tasks_count,
               cl.name AS client_name, cl.logo_url, cl.stamp_url, cl.primary_color, cl.header_color,
               pr.name AS product_name
@@ -511,7 +515,8 @@ export async function buildReportContext(
     `SELECT vt.id, vt.task_number, vt.task_title, vt.task_description, vt.applicant_type,
             vt.verification_type_id, vtype.name AS verification_type_name,
             vt.status, vt.verification_outcome, vt.priority,
-            vt.estimated_amount, vt.actual_amount, vt.address, vt.pincode,
+            vt.estimated_amount, vt.actual_amount, vt.address,
+            (SELECT code FROM pincodes WHERE id = vt.pincode_id) AS pincode,
             vt.assigned_to, u_assigned.name AS assigned_to_name,
             u_assigned_by.name AS assigned_by_name,
             vt.assigned_at, vt.started_at, vt.completed_at, vt.reviewed_at
@@ -527,9 +532,12 @@ export async function buildReportContext(
   // 4. Attachments (ONLY from mobile form submissions; exclude general
   // `attachments` table entries and exclude soft-deleted rows). Grouped
   // by task for context composition.
+  // F5.4.2: source GPS from geo_location jsonb (gps_latitude/longitude columns dropped — never populated).
   const attachmentsRes = await query<AttachmentRow>(
     `SELECT id, verification_task_id, photo_type, filename, original_name,
-            mime_type, file_size, file_path, gps_latitude, gps_longitude,
+            mime_type, file_size, file_path,
+            NULLIF(geo_location->>'latitude','')::double precision  AS gps_latitude,
+            NULLIF(geo_location->>'longitude','')::double precision AS gps_longitude,
             capture_time, created_at
      FROM verification_attachments
      WHERE case_id = $1 AND deleted_at IS NULL

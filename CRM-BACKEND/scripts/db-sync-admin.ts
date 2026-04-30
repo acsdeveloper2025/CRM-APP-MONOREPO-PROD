@@ -5,9 +5,11 @@ import { adminRoleV2Id, adminUserId, createPool, logger } from './lib/dbAdmin';
 const syncSql = `
 BEGIN;
 
+-- 2026-04-28 F1.1.1: removed \`role = 'SUPER_ADMIN'\` from this UPDATE
+-- because the \`users.role\` text column was dropped. SUPER_ADMIN is
+-- enforced via the user_roles INSERT below (which assigns adminRoleV2Id).
 UPDATE users
-SET role = 'SUPER_ADMIN',
-    "isActive" = TRUE,
+SET "isActive" = TRUE,
     manager_id = NULL,
     team_leader_id = NULL
 WHERE id = '${adminUserId}';

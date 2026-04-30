@@ -15,7 +15,7 @@ import { config } from '@/config';
 import { logger } from '@/config/logger';
 import { connectDatabase, disconnectDatabase } from '@/config/database';
 import { connectRedis, disconnectRedis } from '@/config/redis';
-import { initializeQueues, closeQueues } from '@/config/queue';
+import { initAuthCachePubSub } from '@/middleware/auth';
 import { initializeWebSocket } from '@/websocket/server';
 import { EnterpriseCacheService } from './services/enterpriseCacheService';
 import { CacheWarmingService } from './services/cacheWarmingService';
@@ -26,6 +26,7 @@ import {
 } from '@/middleware/performanceMonitoring';
 import { startAuditLogProcessor, stopAuditLogProcessor } from '@/queues/auditLogQueue';
 import { startNotificationProcessor, stopNotificationProcessor } from '@/queues/notificationQueue';
+import { startDbMaintenance, stopDbMaintenance } from '@/services/dbMaintenanceService';
 // Migrations removed for production - use database import instead
 
 const server = createServer(app);
@@ -88,14 +89,15 @@ const startServer = async (): Promise<void> => {
 
     await EnterpriseCacheService.initialize();
 
+    // F-B9.1: subscribe to cross-worker auth-cache invalidation channel.
+    // Best-effort — if Redis is down, single-worker invalidation still works.
+    await initAuthCachePubSub();
+
     if (EnterpriseCacheService.isAvailable()) {
       await CacheWarmingService.warmAllCaches();
     } else {
       logger.warn('Enterprise cache unavailable, skipping cache warming');
     }
-
-    // Initialize job queues
-    await initializeQueues();
 
     // Start the server with strict port enforcement - bind to all interfaces for mobile access
     server.listen(config.port, '0.0.0.0', () => {
@@ -104,7 +106,7 @@ const startServer = async (): Promise<void> => {
       logger.info(`Environment: ${config.nodeEnv}`);
       logger.info(`WebSocket server running on port ${config.port}`);
 
-      // Start periodic cleanup of performance_metrics and system_health_metrics (every 6h, 7-day retention)
+      // Start periodic cleanup of performance_metrics (every 6h, 7-day retention)
       startMetricsCleanup();
 
       // Phase C3: drain the performance_metrics in-memory buffer into
@@ -123,6 +125,12 @@ const startServer = async (): Promise<void> => {
       // Migrating to bullmq we made the worker lifecycle explicit so
       // graceful shutdown can drain in-flight jobs deterministically.
       startNotificationProcessor();
+
+      // 2026-04-30 audit closure: schedule daily DB-side maintenance —
+      // ensure_*_partitions (extend forward window) + purge_stale_*
+      // (retention). Without this, partitioned tables eventually fall
+      // into _default and stale notifications/auto_saves accumulate.
+      startDbMaintenance();
 
       // Schedule periodic cache refresh (every 10 minutes)
       cacheRefreshInterval = setInterval(
@@ -172,6 +180,7 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
   try {
     // Stop all monitoring intervals before closing connections
     stopMonitoringIntervals();
+    stopDbMaintenance();
     if (cacheRefreshInterval) {
       clearInterval(cacheRefreshInterval);
       cacheRefreshInterval = null;
@@ -196,9 +205,6 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
 
     // Close the notification bullmq queue + worker.
     await stopNotificationProcessor();
-
-    // Close job queues (allow in-flight jobs to finish)
-    await closeQueues();
 
     // Close enterprise cache service
     await EnterpriseCacheService.close();

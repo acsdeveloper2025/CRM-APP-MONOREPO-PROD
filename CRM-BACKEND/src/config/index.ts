@@ -35,13 +35,15 @@ const requireEnv = (name: string): string => {
   return value;
 };
 
+const nodeEnv = process.env.NODE_ENV || 'development';
+
 export const config = {
   // Server — port resolved from PORT env var (defaults to 3000 in dev)
   port: resolvedPort,
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv,
 
   // Database
-  databaseUrl: process.env.DATABASE_URL || '',
+  databaseUrl: requireEnv('DATABASE_URL'),
 
   // JWT — fail fast if missing so types stay narrow downstream and we
   // never silently fall through to an empty/undefined signing secret.
@@ -52,7 +54,8 @@ export const config = {
 
   // Redis
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
-  redisPassword: process.env.REDIS_PASSWORD || '',
+  redisPassword:
+    nodeEnv === 'production' ? requireEnv('REDIS_PASSWORD') : process.env.REDIS_PASSWORD || '',
 
   // Firebase Cloud Messaging (FCM)
   firebase: {
@@ -73,7 +76,7 @@ export const config = {
   // CORS - Support both web app and mobile app with configurable origins
   corsOrigin: process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-    : ['http://localhost:5173', 'http://localhost:5180', 'capacitor://localhost'],
+    : ['http://localhost:5173', 'http://localhost:5180'],
 
   // Rate Limiting - Very generous limits for field agents processing 100+ cases/day
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 minutes
@@ -82,6 +85,23 @@ export const config = {
   // File Upload - ONLY images, PDF, and Word documents
   maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '52428800', 10), // 50MB (increased for mobile app with multiple images)
   uploadPath: process.env.UPLOAD_PATH || './uploads',
+
+  // Storage backend (F7.11.2 + F8.2.3)
+  // - 'local': default, files on local FS (dev + small prod)
+  // - 's3':    AWS S3 / Cloudflare R2 / MinIO (any S3-compatible). Production target.
+  storage: {
+    backend: (process.env.STORAGE_BACKEND || 'local') as 'local' | 's3',
+    bucket: process.env.STORAGE_BUCKET || '',
+    endpoint: process.env.STORAGE_ENDPOINT || '', // optional; e.g. https://s3.ap-south-1.amazonaws.com or MinIO URL
+    region: process.env.STORAGE_REGION || 'ap-south-1',
+    accessKey: process.env.STORAGE_ACCESS_KEY || '',
+    secretKey: process.env.STORAGE_SECRET_KEY || '',
+    forcePathStyle: process.env.STORAGE_FORCE_PATH_STYLE === 'true', // true for MinIO, false for AWS
+    // Signed-URL TTLs
+    readUrlTtlSeconds: parseInt(process.env.STORAGE_READ_URL_TTL || '900', 10), // 15 min
+    writeUrlTtlSeconds: parseInt(process.env.STORAGE_WRITE_URL_TTL || '300', 10), // 5 min
+  },
+
   allowedFileTypes: process.env.ALLOWED_FILE_TYPES?.split(',') || [
     'image/jpeg',
     'image/png',
@@ -108,7 +128,7 @@ export const config = {
     ? process.env.WS_CORS_ORIGIN.split(',').map((o: string) => o.trim())
     : process.env.CORS_ORIGIN
       ? process.env.CORS_ORIGIN.split(',').map((o: string) => o.trim())
-      : ['http://localhost:5173', 'http://localhost:5180', 'capacitor://localhost'],
+      : ['http://localhost:5173', 'http://localhost:5180'],
   wsHeartbeatInterval: parseInt(process.env.WS_HEARTBEAT_INTERVAL || '30000', 10),
   wsConnectionTimeout: parseInt(process.env.WS_CONNECTION_TIMEOUT || '60000', 10),
 
@@ -229,11 +249,7 @@ export const config = {
   },
 };
 
-// Validate required environment variables
-const requiredEnvVars = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
-
-for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
-    throw new Error(`Required environment variable ${envVar} is not set`);
-  }
-}
+// DATABASE_URL / JWT_SECRET / JWT_REFRESH_SECRET are now validated inline
+// via requireEnv() at config build time, so no separate post-config check
+// is needed. REDIS_PASSWORD is fail-fast in production via the conditional
+// requireEnv on the redisPassword field.

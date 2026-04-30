@@ -14,18 +14,8 @@ const PHOTO_REQUIREMENTS: Record<string, { min: number; required: string[] }> = 
   PROPERTY_INDIVIDUAL: { min: 6, required: ['property_exterior', 'property_interior'] },
 };
 
-// Valid outcomes by verification type
-const VALID_OUTCOMES: Record<string, string[]> = {
-  BUSINESS: ['POSITIVE', 'SHIFTED', 'NSP', 'ENTRY_RESTRICTED', 'UNTRACEABLE'],
-  RESIDENCE: ['POSITIVE', 'SHIFTED', 'NSP', 'ENTRY_RESTRICTED', 'UNTRACEABLE'],
-  OFFICE: ['POSITIVE', 'SHIFTED', 'NSP', 'ENTRY_RESTRICTED', 'UNTRACEABLE'],
-  RESIDENCE_CUM_OFFICE: ['POSITIVE', 'SHIFTED', 'NSP', 'ENTRY_RESTRICTED', 'UNTRACEABLE'],
-  BUILDER: ['POSITIVE', 'SHIFTED', 'NSP', 'ENTRY_RESTRICTED', 'UNTRACEABLE'],
-  NOC: ['POSITIVE', 'SHIFTED', 'NSP', 'ENTRY_RESTRICTED', 'UNTRACEABLE'],
-  DSA_CONNECTOR: ['POSITIVE', 'SHIFTED', 'NSP', 'ENTRY_RESTRICTED', 'UNTRACEABLE'],
-  PROPERTY_APF: ['POSITIVE', 'ENTRY_RESTRICTED', 'UNTRACEABLE'],
-  PROPERTY_INDIVIDUAL: ['POSITIVE', 'NSP', 'ENTRY_RESTRICTED', 'UNTRACEABLE'],
-};
+// F2.7.1: VALID_OUTCOMES removed — sourced from verification_type_outcomes
+// table via verificationTypeOutcomesService. See validateOutcome() below.
 
 // Valid status transitions
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -89,7 +79,7 @@ export class TaskCompletionValidator {
       }
 
       // 4. Validate outcome is valid for verification type
-      const outcomeValidation = this.validateOutcome(verificationType, verificationOutcome);
+      const outcomeValidation = await this.validateOutcome(verificationType, verificationOutcome);
       if (!outcomeValidation.isValid) {
         errors.push(...outcomeValidation.errors);
       }
@@ -272,18 +262,23 @@ export class TaskCompletionValidator {
   }
 
   /**
-   * Validate verification outcome is valid for the verification type
+   * Validate verification outcome is valid for the verification type.
+   * F2.7.1: lookup table-driven (verification_type_outcomes).
    */
-  private static validateOutcome(verificationType: string, outcome: string): ValidationResult {
+  private static async validateOutcome(
+    verificationType: string,
+    outcome: string
+  ): Promise<ValidationResult> {
     const errors: string[] = [];
 
-    const validOutcomes = VALID_OUTCOMES[verificationType];
-    if (!validOutcomes) {
+    const { getValidOutcomeCodes } = await import('./verificationTypeOutcomesService');
+    const validOutcomes = await getValidOutcomeCodes(verificationType);
+    if (validOutcomes.length === 0) {
       errors.push(`Unknown verification type: ${verificationType}`);
       return { isValid: false, errors, warnings: [] };
     }
 
-    if (!validOutcomes.includes(outcome)) {
+    if (!validOutcomes.includes(outcome.toUpperCase())) {
       errors.push(
         `Invalid outcome '${outcome}' for ${verificationType}. Valid outcomes: ${validOutcomes.join(', ')}`
       );

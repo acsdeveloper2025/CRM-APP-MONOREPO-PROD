@@ -100,24 +100,6 @@ export const useUpdateCase = () => {
   });
 };
 
-export const useAssignCase = () => {
-  return useMutationWithInvalidation({
-    mutationFn: ({
-      id,
-      assignedToId,
-      reason,
-    }: {
-      id: string;
-      assignedToId: string;
-      reason?: string;
-    }) => casesService.assignCase(id, assignedToId, reason),
-    invalidateKeys: [caseKeys.all],
-    successMessage: 'Case reassigned successfully',
-    errorContext: 'Case Assignment',
-    errorFallbackMessage: 'Failed to reassign case',
-  });
-};
-
 export const useCreateCase = () => {
   return useMutationWithInvalidation({
     mutationFn: (data: CreateCaseWithMultipleTasksPayload) =>

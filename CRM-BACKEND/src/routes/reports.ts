@@ -1,8 +1,7 @@
 import express from 'express';
-import { body, query } from 'express-validator';
+import { body, param, query } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
-import { validateCaseRecordAccess } from '@/middleware/recordAccess';
 import { validate } from '@/middleware/validation';
 import { exportRateLimit, listRateLimit } from '@/middleware/rateLimiter';
 import {
@@ -14,7 +13,6 @@ import {
   getFormSubmissionsByType,
   getFormValidationStatus,
   getCaseAnalytics,
-  getCaseTimeline,
   getAgentPerformance,
   getAgentProductivity,
   getInvoicesReport,
@@ -260,20 +258,12 @@ router.get('/form-validation-status', dateRangeValidation, validate, getFormVali
 // 1.2 Case Analytics APIs
 router.get('/case-analytics', caseAnalyticsValidation, validate, getCaseAnalytics);
 
-router.get(
-  '/case-timeline/:caseId',
-  ...validateCaseRecordAccess,
-  [query('caseId').isString().trim().notEmpty().withMessage('Case ID is required')],
-  validate,
-  getCaseTimeline
-);
-
 // 1.3 Agent Performance APIs
 router.get('/agent-performance', agentPerformanceValidation, validate, getAgentPerformance);
 
 router.get(
   '/agent-productivity/:agentId',
-  [...dateRangeValidation, query('agentId').isUUID().withMessage('Agent ID must be a valid UUID')],
+  [...dateRangeValidation, param('agentId').isUUID().withMessage('Agent ID must be a valid UUID')],
   validate,
   getAgentProductivity
 );

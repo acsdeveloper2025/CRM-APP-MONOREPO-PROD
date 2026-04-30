@@ -39,7 +39,8 @@ const PREFILL_QUERY = `
     c.case_id                       AS case_number,
     c.applicant_type,
     c.priority,
-    c.pincode,
+    -- F5.1.x: cases.pincode dropped; derive from first task
+    (SELECT p2.code FROM verification_tasks vt2 JOIN pincodes p2 ON p2.id = vt2.pincode_id WHERE vt2.case_id = c.id AND vt2.pincode_id IS NOT NULL LIMIT 1) AS pincode,
     c.backend_contact_number,
     c.trigger,
     c.created_at                    AS received_date,

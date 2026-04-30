@@ -6,6 +6,7 @@ import type { JwtPayload } from '@/types/auth';
 import type { ApiResponse } from '@/types/api';
 import { logger } from '@/config/logger';
 import { query } from '@/config/database';
+import { redisClient } from '@/config/redis';
 import {
   hasSystemScopeBypass,
   isFieldExecutionActor,
@@ -45,11 +46,58 @@ const authContextCache = new Map<string, { context: DbUserAuthContext; expiresAt
 let authContextCacheHits = 0;
 let authContextCacheMisses = 0;
 
-export function invalidateAuthContextCache(userId?: string): void {
+// F-B9.1: cross-worker auth cache invalidation via Redis pub/sub.
+// Each PM2 worker holds its own in-memory authContextCache. Without
+// pub/sub, an `invalidateAuthContextCache(userId)` only clears the
+// caller's worker — peer workers would keep serving stale permissions
+// for up to AUTH_CONTEXT_CACHE_TTL_MS (5s). The pub/sub channel
+// fans the invalidation to all subscribed workers.
+const AUTH_INVALIDATE_CHANNEL = 'auth-cache-invalidate';
+let authCacheSubscriber: ReturnType<typeof redisClient.duplicate> | null = null;
+
+const clearLocal = (userId?: string): void => {
   if (userId) {
     authContextCache.delete(userId);
   } else {
     authContextCache.clear();
+  }
+};
+
+export async function initAuthCachePubSub(): Promise<void> {
+  if (authCacheSubscriber) {
+    return;
+  }
+  try {
+    const subscriber = redisClient.duplicate();
+    await subscriber.connect();
+    await subscriber.subscribe(AUTH_INVALIDATE_CHANNEL, (raw: string) => {
+      try {
+        const payload = JSON.parse(raw) as { userId?: string };
+        clearLocal(payload.userId);
+      } catch {
+        // Malformed message — ignore. Worker stays consistent via
+        // the AUTH_CONTEXT_CACHE_TTL_MS fallback.
+      }
+    });
+    authCacheSubscriber = subscriber;
+    logger.info('Auth cache pub/sub subscribed (cross-worker invalidation enabled)');
+  } catch (error) {
+    logger.warn('Auth cache pub/sub init failed; falling back to local-only invalidation', {
+      error,
+    });
+  }
+}
+
+export function invalidateAuthContextCache(userId?: string): void {
+  clearLocal(userId);
+  // Best-effort fan-out to peer workers. If Redis is down, local
+  // clear still happens — single-worker correctness is preserved.
+  if (redisClient.isOpen) {
+    redisClient
+      .publish(AUTH_INVALIDATE_CHANNEL, JSON.stringify({ userId }))
+      .catch((error: unknown) => {
+        logger.warn('Auth cache invalidation publish failed', { error });
+      });
   }
 }
 
@@ -130,6 +178,10 @@ type DbUserAuthContext = {
   roles: string[];
   teamLeaderId: string | null;
   managerId: string | null;
+  // F-B3.4: per-user token version. JWTs whose `tokenVersion` doesn't
+  // match this are rejected — implements immediate revocation on
+  // password change / logout-all-devices.
+  tokenVersion: number;
 };
 
 export const loadUserAuthContext = async (userId: string): Promise<DbUserAuthContext | null> => {
@@ -150,6 +202,7 @@ export const loadUserAuthContext = async (userId: string): Promise<DbUserAuthCon
     roles: string[] | null;
     teamLeaderId: string | null;
     managerId: string | null;
+    tokenVersion: number;
   }>(
     `
       SELECT
@@ -178,7 +231,8 @@ export const loadUserAuthContext = async (userId: string): Promise<DbUserAuthCon
           WHERE ur.user_id = u.id
         ), ARRAY[]::varchar[]) as roles,
         u.team_leader_id as "team_leader_id",
-        u.manager_id as "manager_id"
+        u.manager_id as "manager_id",
+        u.token_version as "token_version"
       FROM users u
       WHERE u.id = $1
       LIMIT 1
@@ -199,6 +253,7 @@ export const loadUserAuthContext = async (userId: string): Promise<DbUserAuthCon
     roles: Object.freeze(row.roles || []) as string[],
     teamLeaderId: row.teamLeaderId ?? null,
     managerId: row.managerId ?? null,
+    tokenVersion: row.tokenVersion,
   });
   authContextCache.set(userId, { context, expiresAt: now + AUTH_CONTEXT_CACHE_TTL_MS });
   return context;
@@ -254,6 +309,17 @@ const verifyTokenAndSetUser = async (
         success: false,
         message: 'User not found',
         error: { code: 'UNAUTHORIZED' },
+      });
+      return;
+    }
+
+    // F-B3.4: token version check. Bumped on password change /
+    // logout-all so old access tokens are rejected immediately.
+    if (decoded.tokenVersion !== userContext.tokenVersion) {
+      res.status(401).json({
+        success: false,
+        message: 'Token has been revoked',
+        error: { code: 'TOKEN_REVOKED' },
       });
       return;
     }
@@ -345,32 +411,6 @@ export const authenticateTokenFlexible = (
     });
   });
 };
-
-export const requireRole = (_allowedRoles: unknown[]) => {
-  return (req: AuthenticatedRequest, res: Response, _next: NextFunction): void => {
-    if (!req.user) {
-      const response: ApiResponse = {
-        success: false,
-        message: 'Authentication required',
-        error: {
-          code: 'UNAUTHORIZED',
-        },
-      };
-      res.status(401).json(response);
-      return;
-    }
-
-    res.status(403).json({
-      success: false,
-      message: 'Legacy role middleware is disabled. Use authorize(permission).',
-      error: { code: 'FORBIDDEN' },
-    });
-  };
-};
-
-export const requireAdmin = requireRole([]);
-export const requireBackendOrAdmin = requireRole([]);
-export const requireFieldOrHigher = requireRole([]);
 
 // Enhanced auth middleware that loads user permissions.
 // verifyTokenAndSetUser already populates the full capability profile, so this

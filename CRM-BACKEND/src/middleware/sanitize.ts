@@ -85,5 +85,14 @@ export const sanitizeInput = (req: Request, _res: Response, next: NextFunction):
     }
   }
 
+  if (req.params && typeof req.params === 'object') {
+    for (const key of Object.keys(req.params)) {
+      const value = (req.params as Record<string, unknown>)[key];
+      if (typeof value === 'string') {
+        (req.params as Record<string, unknown>)[key] = xss(value);
+      }
+    }
+  }
+
   next();
 };

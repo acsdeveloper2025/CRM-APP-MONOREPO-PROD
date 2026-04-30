@@ -27,12 +27,16 @@ WHERE role_id <> '${adminRoleV2Id}';
 DELETE FROM roles_v2
 WHERE id <> '${adminRoleV2Id}';
 
+-- 2026-04-28 F1.1.1: removed \`role = 'SUPER_ADMIN'\` from this UPDATE
+-- because the \`users.role\` text column was dropped. The admin's role
+-- is set via the \`user_roles\` table — this script's earlier blocks
+-- already preserve the admin's user_roles row (DELETE FROM user_roles
+-- WHERE user_id <> '${adminUserId}') so RBAC continues to work.
 UPDATE users
 SET manager_id = NULL,
     team_leader_id = NULL,
     "departmentId" = 2,
     "designationId" = NULL,
-    role = 'SUPER_ADMIN',
     "isActive" = TRUE
 WHERE id = '${adminUserId}';
 

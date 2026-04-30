@@ -330,11 +330,11 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       baseParamIndex++;
 
       if (assignedPincodeIds && assignedPincodeIds.length > 0) {
+        // F5.1.2 Phase B: int FK swap, JOIN no longer needed
         fieldAgentConditions.push(`EXISTS (
           SELECT 1 FROM verification_tasks vt
-          JOIN pincodes p_scope ON p_scope.code = vt.pincode
           WHERE vt.case_id = c.id
-          AND p_scope.id = ANY($${baseParamIndex}::int[])
+          AND vt.pincode_id = ANY($${baseParamIndex}::int[])
         )`);
         baseParams.push(assignedPincodeIds);
         baseParamIndex++;
@@ -543,16 +543,19 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     // Enhanced query with all 13 required fields for mobile app and custom sorting
     let orderByClause;
     if (safeSortBy === 'pendingDuration') {
-      // Calculate pending duration for sorting (time since creation or last assignment)
+      // Calculate pending duration: time since latest task assignment
+      // (or case creation if never assigned).
+      // 2026-04-28 F4.7.1: switched from case_assignment_history (orphan
+      // table dropped) to verification_tasks (live task-level assignments).
       orderByClause = `
         ORDER BY
           CASE
             WHEN c.status IN ('PENDING', 'IN_PROGRESS') THEN
               COALESCE(
                 EXTRACT(EPOCH FROM (NOW() - (
-                  SELECT MAX(cah.assigned_at)
-                  FROM case_assignment_history cah
-                  WHERE cah.case_id = c.id
+                  SELECT MAX(vt.assigned_at)
+                  FROM verification_tasks vt
+                  WHERE vt.case_id = c.id
                 ))),
                 EXTRACT(EPOCH FROM (NOW() - c.created_at))
               )
@@ -569,7 +572,7 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         c.*,
         -- Get representative address, pincode, area from tasks
         (SELECT address FROM verification_tasks WHERE case_id = c.id LIMIT 1) as address,
-        (SELECT vt2.pincode FROM verification_tasks vt2 WHERE vt2.case_id = c.id AND vt2.pincode IS NOT NULL AND vt2.pincode != '' LIMIT 1) as "taskPincode",
+        (SELECT p2.code FROM verification_tasks vt2 JOIN pincodes p2 ON p2.id = vt2.pincode_id WHERE vt2.case_id = c.id AND vt2.pincode_id IS NOT NULL LIMIT 1) as "taskPincode",
         (SELECT ar2.name FROM verification_tasks vt2 LEFT JOIN areas ar2 ON ar2.id = vt2.area_id WHERE vt2.case_id = c.id AND vt2.area_id IS NOT NULL LIMIT 1) as "taskAreaName",
         -- Client information (Field 3: Client)
         cl.name as client_name,
@@ -771,7 +774,7 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
         c.*,
         -- Get representative address, pincode, area from tasks
         (SELECT address FROM verification_tasks WHERE case_id = c.id LIMIT 1) as address,
-        (SELECT vt2.pincode FROM verification_tasks vt2 WHERE vt2.case_id = c.id AND vt2.pincode IS NOT NULL AND vt2.pincode != '' LIMIT 1) as "taskPincode",
+        (SELECT p2.code FROM verification_tasks vt2 JOIN pincodes p2 ON p2.id = vt2.pincode_id WHERE vt2.case_id = c.id AND vt2.pincode_id IS NOT NULL LIMIT 1) as "taskPincode",
         (SELECT ar2.name FROM verification_tasks vt2 LEFT JOIN areas ar2 ON ar2.id = vt2.area_id WHERE vt2.case_id = c.id AND vt2.area_id IS NOT NULL LIMIT 1) as "taskAreaName",
         -- Client information (Field 3: Client)
         cl.name as client_name,
@@ -855,13 +858,12 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
       queryParams.push(userId);
       paramIndex++;
 
-      // Condition 2: Task in assigned pincode
+      // Condition 2: Task in assigned pincode (F5.1.2 Phase B: int FK swap)
       if (assignedPincodeIds && assignedPincodeIds.length > 0) {
         fieldAgentConditions.push(`EXISTS (
           SELECT 1 FROM verification_tasks vt
-          JOIN pincodes p_scope ON p_scope.code = vt.pincode
           WHERE vt.case_id = c.id
-          AND p_scope.id = ANY($${paramIndex}::int[])
+          AND vt.pincode_id = ANY($${paramIndex}::int[])
         )`);
         queryParams.push(assignedPincodeIds);
         paramIndex++;
@@ -955,81 +957,23 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
 
     const caseRow = result.rows[0];
 
-    // NEW: Fetch applicants, verifications, and visits hierarchy
-    const hierarchyQuery = `
-      SELECT 
-        a.id as applicant_id, a.name as applicant_name, a.mobile as applicant_mobile, a.role as applicant_role,
-        v.id as verification_id, v.verification_type_id, v.address, v.pincode_id,
-        vt.name as verification_type_name,
-        vi.id as visit_id, vi.status as visit_status, vi.assigned_to as visit_assigned_to,
-        vi.visit_number, vi.completed_at as visit_completed_at,
-        au.name as visit_assigned_to_name
-      FROM applicants a
-      LEFT JOIN verifications v ON a.id = v.applicant_id
-      LEFT JOIN verification_types vt ON v.verification_type_id = vt.id
-      LEFT JOIN visits vi ON v.id = vi.verification_id
-      LEFT JOIN users au ON vi.assigned_to = au.id
-      WHERE a.case_id = $1
-      ORDER BY a.created_at ASC, v.created_at ASC, vi.visit_number DESC
-    `;
-
-    const hierarchyResult = await dbQuery(hierarchyQuery, [caseRow.id]);
-
-    // Group hierarchy data
-    const applicantsMap = new Map();
-
-    hierarchyResult.rows.forEach(row => {
-      if (!row.applicantId) {
-        return;
-      }
-
-      if (!applicantsMap.has(row.applicantId)) {
-        applicantsMap.set(row.applicantId, {
-          id: row.applicantId,
-          name: row.applicantName,
-          mobile: row.applicantMobile,
-          role: row.applicantRole,
-          verifications: new Map(),
-        });
-      }
-
-      const applicant = applicantsMap.get(row.applicantId);
-
-      if (row.verificationId) {
-        if (!applicant.verifications.has(row.verificationId)) {
-          applicant.verifications.set(row.verificationId, {
-            id: row.verificationId,
-            verificationTypeId: row.verificationTypeId,
-            verificationTypeName: row.verificationTypeName,
-            address: row.address,
-            pincodeId: row.pincodeId,
-            visits: [],
-          });
-        }
-
-        const verification = applicant.verifications.get(row.verificationId);
-
-        if (row.visitId) {
-          verification.visits.push({
-            id: row.visitId,
-            status: row.visitStatus,
-            visitNumber: row.visitNumber,
-            assignedTo: row.visitAssignedTo
-              ? {
-                  id: row.visitAssignedTo,
-                  name: row.visitAssignedToName,
-                }
-              : null,
-            completedAt: row.visitCompletedAt,
-          });
-        }
-      }
-    });
-
-    // Transform maps to arrays
-    const applicants = Array.from(applicantsMap.values()).map(app => ({
-      ...app,
-      verifications: Array.from(app.verifications.values()),
+    // F5.3.1 cleanup (2026-04-29): legacy `verifications` + `visits` tables
+    // were dropped. The applicants list is now flat — verification work
+    // lives on `verification_tasks` (returned by /api/verification-tasks
+    // endpoints) and KYC docs on `kyc_document_verifications`.
+    const applicantsResult = await dbQuery(
+      `SELECT id, name, mobile, role
+         FROM applicants
+        WHERE case_id = $1
+        ORDER BY created_at ASC`,
+      [caseRow.id]
+    );
+    const applicants = applicantsResult.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      mobile: row.mobile,
+      role: row.role,
+      verifications: [] as Array<unknown>, // shape kept for backwards-compat; always empty
     }));
 
     // Transform data to match frontend expectations (Backward Compatibility + New Hierarchy)
@@ -1401,250 +1345,13 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
-export const assignCase = async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    if (!requireControllerPermission(req, res, 'case.assign')) {
-      return;
-    }
-    const rawId = req.params.id;
-    const id = Array.isArray(rawId) ? String(rawId[0]) : String(rawId || '');
-    const { assignedToId, reason } = req.body;
-
-    // Import the service here to avoid circular dependencies
-    const { CaseAssignmentService } = await import('../services/caseAssignmentService');
-
-    // Use the queue-based assignment service
-    const result = await CaseAssignmentService.assignCase({
-      caseId: id,
-      assignedToId,
-      assignedById: req.user!.id,
-      reason,
-      priority: 'MEDIUM',
-    });
-
-    logger.info('Case assignment queued', {
-      userId: req.user?.id,
-      caseId: id,
-      assignedTo: assignedToId,
-      jobId: result.jobId,
-    });
-
-    res.json({
-      success: true,
-      data: { jobId: result.jobId },
-      message: 'Case assignment queued successfully',
-    });
-  } catch (error) {
-    logger.error('Error queueing case assignment:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to queue case assignment',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
-};
-
-// POST /api/cases/bulk/assign - Bulk assign cases to a field agent
-export const bulkAssignCases = async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    if (!requireControllerPermission(req, res, 'case.assign')) {
-      return;
-    }
-    const { caseIds, assignedToId, reason, priority } = req.body;
-
-    if (!Array.isArray(caseIds) || caseIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Case IDs array is required and cannot be empty',
-        error: { code: 'INVALID_CASE_IDS' },
-      });
-    }
-
-    if (!assignedToId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Assigned user ID is required',
-        error: { code: 'MISSING_ASSIGNED_TO' },
-      });
-    }
-
-    // Import the service here to avoid circular dependencies
-    const { CaseAssignmentService } = await import('../services/caseAssignmentService');
-
-    // Use the queue-based bulk assignment service
-    const result = await CaseAssignmentService.bulkAssignCases({
-      caseIds,
-      assignedToId,
-      assignedById: req.user!.id,
-      reason,
-      priority: priority || 'MEDIUM',
-    });
-
-    logger.info('Bulk case assignment queued', {
-      userId: req.user?.id,
-      totalCases: caseIds.length,
-      assignedTo: assignedToId,
-      batchId: result.batchId,
-      jobId: result.jobId,
-    });
-
-    res.json({
-      success: true,
-      data: {
-        batchId: result.batchId,
-        jobId: result.jobId,
-        totalCases: caseIds.length,
-      },
-      message: 'Bulk case assignment queued successfully',
-    });
-  } catch (error) {
-    logger.error('Error queueing bulk case assignment:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to queue bulk case assignment',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
-};
-
-// GET /api/cases/bulk/assign/:batchId/status - Get bulk assignment status
-export const getBulkAssignmentStatus = async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const rawBatchId = req.params.batchId;
-    const batchId = Array.isArray(rawBatchId) ? String(rawBatchId[0]) : String(rawBatchId || '');
-
-    // Import the service here to avoid circular dependencies
-    const { CaseAssignmentService } = await import('../services/caseAssignmentService');
-
-    const status = await CaseAssignmentService.getBulkAssignmentStatus(batchId);
-
-    if (!status) {
-      return res.status(404).json({
-        success: false,
-        message: 'Bulk assignment batch not found',
-        error: { code: 'BATCH_NOT_FOUND' },
-      });
-    }
-
-    res.json({
-      success: true,
-      data: status,
-      message: 'Bulk assignment status retrieved successfully',
-    });
-  } catch (error) {
-    logger.error('Error getting bulk assignment status:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get bulk assignment status',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
-};
-
-// POST /api/cases/:id/reassign - Reassign case to another field agent
-export const reassignCase = async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    if (!requireControllerPermission(req, res, 'case.reassign')) {
-      return;
-    }
-    const rawId = req.params.id;
-    const id = Array.isArray(rawId) ? String(rawId[0]) : String(rawId || '');
-    const { fromUserId, toUserId, reason } = req.body;
-
-    if (!fromUserId || !toUserId || !reason) {
-      return res.status(400).json({
-        success: false,
-        message: 'From user ID, to user ID, and reason are required',
-        error: { code: 'MISSING_REQUIRED_FIELDS' },
-      });
-    }
-
-    // Import the service here to avoid circular dependencies
-    const { CaseAssignmentService } = await import('../services/caseAssignmentService');
-
-    // Use the queue-based reassignment service
-    const result = await CaseAssignmentService.reassignCase({
-      caseId: id,
-      fromUserId,
-      toUserId,
-      assignedById: req.user!.id,
-      reason,
-    });
-
-    logger.info('Case reassignment queued', {
-      userId: req.user?.id,
-      caseId: id,
-      fromUserId,
-      toUserId,
-      jobId: result.jobId,
-    });
-
-    res.json({
-      success: true,
-      data: { jobId: result.jobId },
-      message: 'Case reassignment queued successfully',
-    });
-  } catch (error) {
-    logger.error('Error queueing case reassignment:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to queue case reassignment',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
-};
-
-// GET /api/cases/:id/assignment-history - Get case assignment history
-export const getCaseAssignmentHistory = async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const rawId = req.params.id;
-    const id = Array.isArray(rawId) ? String(rawId[0]) : String(rawId || '');
-
-    // Import the service here to avoid circular dependencies
-    const { CaseAssignmentService } = await import('../services/caseAssignmentService');
-
-    const history = await CaseAssignmentService.getCaseAssignmentHistory(id);
-
-    res.json({
-      success: true,
-      data: history,
-      message: 'Case assignment history retrieved successfully',
-    });
-  } catch (error) {
-    logger.error('Error getting case assignment history:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get case assignment history',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
-};
-
-// GET /api/cases/analytics/field-agent-workload - Get field agent workload analytics
-export const getFieldAgentWorkload = async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    // Import the service here to avoid circular dependencies
-    const { CaseAssignmentService } = await import('../services/caseAssignmentService');
-
-    const workload = await CaseAssignmentService.getFieldAgentWorkload();
-
-    res.json({
-      success: true,
-      data: workload,
-      message: 'Field agent workload retrieved successfully',
-    });
-  } catch (error) {
-    logger.error('Error getting field agent workload:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get field agent workload',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
-};
-
-// POST /api/cases/with-attachments - Create case with attachments (OLD - REMOVED)
-// Replaced by unified createCase endpoint at the end of this file
+// 2026-04-28 PE2.b cleanup: deleted dead caseAssignment chain (6 handlers,
+// services/caseAssignmentService.ts, jobs/caseAssignmentProcessor.ts,
+// config/queue.ts). Case-level assignment is no longer a valid concept —
+// assignment lives on verification_tasks. The 5 unmounted handlers had no
+// route; getFieldAgentWorkload was routed at /analytics/field-agent-workload
+// but had zero frontend consumers AND its backing view `field_agent_workload`
+// did not exist in the DB (500 on call).
 
 // Export cases to Excel
 export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
@@ -1729,22 +1436,12 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
       paramIndex++;
     }
 
-    if (stateId) {
-      whereConditions.push(`c.state_id = $${paramIndex}`);
-      queryParams.push(stateId as string);
-      paramIndex++;
-    }
-
-    if (cityId) {
-      whereConditions.push(`c.city_id = $${paramIndex}`);
-      queryParams.push(cityId as string);
-      paramIndex++;
-    }
-
-    if (pincodeId) {
-      whereConditions.push(`c.pincode_id = $${paramIndex}`);
-      queryParams.push(pincodeId as string);
-      paramIndex++;
+    // F5.1.x: cases.state_id / city_id / pincode_id filters were dead code —
+    // those columns don't exist on `cases` (location lives at task level).
+    // If we ever need case-level location filtering, route through
+    // verification_tasks JOINs.
+    if (stateId || cityId || pincodeId) {
+      // intentional no-op — reserved for a future task-level filter rewrite
     }
 
     if (priority) {
@@ -1772,13 +1469,10 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
         if (hierarchyUserIds.length === 0) {
           whereConditions.push('FALSE');
         } else {
-          whereConditions.push(`(
-            c.assigned_to = ANY($${paramIndex}::uuid[]) OR
-            EXISTS (
-              SELECT 1 FROM verification_tasks vts
-              WHERE vts.case_id = c.id
-                AND vts.assigned_to = ANY($${paramIndex}::uuid[])
-            )
+          whereConditions.push(`EXISTS (
+            SELECT 1 FROM verification_tasks vts
+            WHERE vts.case_id = c.id
+              AND vts.assigned_to = ANY($${paramIndex}::uuid[])
           )`);
           queryParams.push(hierarchyUserIds);
           paramIndex++;
@@ -1819,7 +1513,8 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
         c.customer_phone as customer_phone,
         c.customer_calling_code as customer_calling_code,
         (SELECT address FROM verification_tasks WHERE case_id = c.id LIMIT 1) as address,
-        c.pincode,
+        -- F5.1.x: cases.pincode dropped; derive from first task
+        (SELECT p2.code FROM verification_tasks vt2 JOIN pincodes p2 ON p2.id = vt2.pincode_id WHERE vt2.case_id = c.id AND vt2.pincode_id IS NOT NULL LIMIT 1) AS pincode,
         cl.name as client_name,
         cl.code as client_code,
         p.name as product_name,
@@ -2032,10 +1727,10 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
 
 /**
  * Get case summary with verification tasks
- * GET /api/cases/:caseId/summary
+ * GET /api/cases/:id/summary
  */
 export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Response) => {
-  const rawCaseId = req.params.caseId;
+  const rawCaseId = req.params.id;
   const caseId = Array.isArray(rawCaseId) ? String(rawCaseId[0]) : String(rawCaseId || '');
 
   try {
@@ -2155,8 +1850,8 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
       SELECT
         COALESCE(SUM(calculated_commission), 0) as total_commission,
         COALESCE(SUM(CASE WHEN status = 'PAID' THEN calculated_commission ELSE 0 END), 0) as paid_commission,
-        COALESCE(SUM(CASE WHEN status = 'PENDING' OR status = 'CALCULATED' OR status = 'APPROVED' THEN calculated_commission ELSE 0 END), 0) as pending_commission
-      FROM task_commission_calculations
+        COALESCE(SUM(CASE WHEN status IN ('PENDING','APPROVED','HOLD') THEN calculated_commission ELSE 0 END), 0) as pending_commission
+      FROM commission_calculations
       WHERE case_id = $1
     `,
       [caseId]
@@ -3017,57 +2712,15 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
         ]
       );
       const applicant = applicantResult.rows[0];
-      const verifications = [];
 
-      if (appData.verifications && Array.isArray(appData.verifications)) {
-        for (const verData of appData.verifications) {
-          const verificationData = verData as Record<string, unknown>;
-          const resolvedVerificationTypeId = getNumericField(
-            verificationData,
-            'verificationTypeId',
-            'verificationTypeId'
-          );
-          const pincodeId =
-            getNumericField(verificationData, 'pincodeId', 'pincodeId') ||
-            (verificationData.pincode
-              ? (
-                  await client.query('SELECT id FROM pincodes WHERE code = $1', [
-                    verificationData.pincode,
-                  ])
-                ).rows[0]?.id
-              : null);
-
-          const verificationResult = await client.query(
-            `INSERT INTO verifications (applicant_id, verification_type_id, address, pincode_id)
-               VALUES ($1, $2, $3, $4) RETURNING *`,
-            [
-              applicant.id,
-              resolvedVerificationTypeId,
-              verificationData.address as string | null,
-              pincodeId,
-            ]
-          );
-          const verification = verificationResult.rows[0];
-          const visits = [];
-
-          // Automatically create initial visit for each verification
-          const visitResult = await client.query(
-            `INSERT INTO visits (verification_id, visit_number, status, assigned_to, sla_deadline)
-               VALUES ($1, 1, 'PENDING', $2, $3) RETURNING *`,
-            [
-              verification.id,
-              (verificationData.assignedTo || verificationData.assignedTo || null) as string | null,
-              (verificationData.estimatedCompletionDate || verificationData.slaDeadline || null) as
-                | string
-                | null,
-            ]
-          );
-          visits.push(visitResult.rows[0]);
-
-          verifications.push({ ...verification, visits });
-        }
-      }
-      createdHierarchy.push({ ...applicant, verifications });
+      // F5.3.1 cleanup (2026-04-29): the legacy `verifications` + `visits`
+      // tables were dropped — the field-verification workflow is now
+      // exclusively `cases → verification_tasks → verification_attachments`.
+      // The KYC workflow is `verification_tasks (task_type='KYC') →
+      // kyc_document_verifications`. Inputs in `appData.verifications` are
+      // ignored; clients should use the top-level `verificationTasks` array
+      // on the case-creation request instead.
+      createdHierarchy.push({ ...applicant, verifications: [] });
     }
 
     // Backward compatibility: Set customerName on case from primary applicant
@@ -3252,12 +2905,21 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
 
         // Create the KYC document verification record. Assignee is
         // guaranteed by the validation above.
+        // F8.2.2: document_type is now FK-only (varchar dropped). Frontend
+        // still sends the code string (e.g. 'AADHAR_CARD') in doc.documentType;
+        // resolve to the FK id at INSERT time. The CHECK is the FK itself —
+        // if code doesn't exist, FK violation surfaces a 23503 error.
         await client.query(
           `INSERT INTO kyc_document_verifications (
-              verification_task_id, case_id, document_type, document_number,
-              document_holder_name, verification_status, document_details, description,
+              verification_task_id, case_id, document_type_id,
+              document_number, document_holder_name, verification_status,
+              document_details, description,
               assigned_to, assigned_by, assigned_at, rate_amount
-            ) VALUES ($1, $2, $3, $4, $5, 'PENDING', $6, $7, $8, $9, NOW(), $10)`,
+            ) VALUES (
+              $1, $2,
+              (SELECT id FROM document_types WHERE code = $3 AND is_active = true LIMIT 1),
+              $4, $5, 'PENDING', $6, $7, $8, $9, NOW(), $10
+            )`,
           [
             kycTaskId,
             newCase.id,

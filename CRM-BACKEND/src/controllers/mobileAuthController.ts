@@ -15,6 +15,7 @@ import type {
 import { createAuditLog } from '../utils/auditLogger';
 import { logger } from '../utils/logger';
 import { AuthenticatedRequest, JwtPayload } from '../types/auth';
+import { invalidateAuthContextCache } from '@/middleware/auth';
 import { getPrimaryRoleNameFromRbac, isFieldExecutionActor } from '@/security/rbacAccess';
 import { getApiBaseUrl, getWsUrl } from '@/utils/publicUrl';
 
@@ -25,11 +26,13 @@ interface UserQueryResult {
   email: string;
   passwordHash: string;
   employeeId: string;
-  designation: string;
+  // 2026-04-28 F1.1.2: nullable — FK-derived from designations table.
+  designation: string | null;
   department: string;
   profilePhotoUrl: string | null;
   roleName: string | null;
   permissions: Record<string, unknown>; // Permissions structure can be complex
+  tokenVersion: number;
 }
 
 interface UserPincodeRow {
@@ -63,8 +66,10 @@ export class MobileAuthController {
       // every row regardless of how we project. Quoted aliases were
       // misleading since they suggested camelization could be avoided.
       const userRes = await query<UserQueryResult>(
-        `SELECT u.id, u.name, u.username, u.email, u.password_hash, u.employee_id, u.designation, u.department, u.profile_photo_url
+        `SELECT u.id, u.name, u.username, u.email, u.password_hash, u.employee_id, d.name as designation, dept.name as department, u.profile_photo_url, u.token_version
          FROM users u
+         LEFT JOIN designations d ON d.id = u.designation_id
+         LEFT JOIN departments dept ON dept.id = u.department_id
          WHERE u.username = $1`,
         [username]
       );
@@ -136,11 +141,13 @@ export class MobileAuthController {
         permissionCodes: rbacPermissionCodes,
       } as unknown as AuthenticatedRequest['user'];
 
-      // Generate tokens (simplified - no device ID)
-      // Generate tokens (simplified - no device ID)
+      // Generate tokens (simplified - no device ID).
+      // F-B3.4: embed tokenVersion so password change / logout-all
+      // bumps invalidate this access token immediately.
       const accessToken = jwt.sign(
         {
           userId: user.id,
+          tokenVersion: user.tokenVersion,
         } as JwtPayload,
         config.jwtSecret,
         { expiresIn: config.mobile.jwtExpiresIn as unknown as jwt.SignOptions['expiresIn'] }
@@ -155,6 +162,7 @@ export class MobileAuthController {
         {
           userId: user.id,
           type: 'refresh',
+          tokenVersion: user.tokenVersion,
         },
         config.jwtRefreshSecret,
         {
@@ -288,10 +296,14 @@ export class MobileAuthController {
       // S2: look up by sha256 hash, not plaintext.
       const incomingHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
+      // 2026-04-28 F1.7.2: skip revoked tokens (kept for forensics).
+      // F-B3.4: also fetch u.token_version for the version-match check.
       const storedRes = await query(
-        `SELECT rt.token, u.id as user_id, u.username
+        `SELECT rt.token, u.id as user_id, u.username, u.token_version
          FROM refresh_tokens rt JOIN users u ON u.id = rt.user_id
-         WHERE rt.token = $1 AND rt.user_id = $2 AND rt.expires_at > CURRENT_TIMESTAMP
+         WHERE rt.token = $1 AND rt.user_id = $2
+           AND rt.expires_at > CURRENT_TIMESTAMP
+           AND rt.revoked_at IS NULL
          LIMIT 1`,
         [incomingHash, decoded.userId]
       );
@@ -308,10 +320,23 @@ export class MobileAuthController {
         });
       }
 
-      // Generate new access token
+      // F-B3.4: reject if the refresh token's tokenVersion is stale.
+      if (decoded.tokenVersion !== storedToken.tokenVersion) {
+        return res.status(401).json({
+          success: false,
+          message: 'Refresh token has been revoked',
+          error: {
+            code: 'TOKEN_REVOKED',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      // Generate new access token. F-B3.4: include tokenVersion.
       const newAccessToken = jwt.sign(
         {
           userId: storedToken.userId,
+          tokenVersion: storedToken.tokenVersion,
         } as JwtPayload,
         config.jwtSecret,
         { expiresIn: config.mobile.jwtExpiresIn as unknown as jwt.SignOptions['expiresIn'] }
@@ -321,7 +346,11 @@ export class MobileAuthController {
       // delete the old one atomically. Without rotation a stolen RT is
       // good for 30 days with no revocation trail.
       const newRefreshToken = jwt.sign(
-        { userId: storedToken.userId, type: 'refresh' },
+        {
+          userId: storedToken.userId,
+          type: 'refresh',
+          tokenVersion: storedToken.tokenVersion,
+        },
         config.jwtRefreshSecret,
         {
           expiresIn: config.mobile.refreshTokenExpiresIn as unknown as jwt.SignOptions['expiresIn'],
@@ -331,10 +360,14 @@ export class MobileAuthController {
 
       await query('BEGIN');
       try {
-        await query('DELETE FROM refresh_tokens WHERE token = $1 AND user_id = $2', [
-          incomingHash,
-          decoded.userId,
-        ]);
+        // 2026-04-28 F1.7.2: soft-delete the rotated token (keeps forensic
+        // trail showing when the token was last used + rotated).
+        await query(
+          `UPDATE refresh_tokens
+           SET revoked_at = CURRENT_TIMESTAMP, revoked_reason = 'rotated'
+           WHERE token = $1 AND user_id = $2 AND revoked_at IS NULL`,
+          [incomingHash, decoded.userId]
+        );
         await query(
           `INSERT INTO refresh_tokens (token, user_id, expires_at, created_at, ip_address, user_agent) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)`,
           [
@@ -386,11 +419,27 @@ export class MobileAuthController {
         typeof req.body?.refreshToken === 'string' && req.body.refreshToken.length > 0
           ? req.body.refreshToken
           : null;
+      // 2026-04-28 F1.7.2: soft-delete via revoked_at to preserve forensic trail.
       if (suppliedRefresh) {
         const hash = crypto.createHash('sha256').update(suppliedRefresh).digest('hex');
-        await query(`DELETE FROM refresh_tokens WHERE user_id = $1 AND token = $2`, [userId, hash]);
+        await query(
+          `UPDATE refresh_tokens
+           SET revoked_at = CURRENT_TIMESTAMP, revoked_reason = 'logout'
+           WHERE user_id = $1 AND token = $2 AND revoked_at IS NULL`,
+          [userId, hash]
+        );
       } else {
-        await query(`DELETE FROM refresh_tokens WHERE user_id = $1`, [userId]);
+        await query(
+          `UPDATE refresh_tokens
+           SET revoked_at = CURRENT_TIMESTAMP, revoked_reason = 'logout_all'
+           WHERE user_id = $1 AND revoked_at IS NULL`,
+          [userId]
+        );
+        // F-B3.4: bump tokenVersion so all in-flight access tokens
+        // are immediately rejected. Single-token logout doesn't bump
+        // (other devices' sessions stay alive).
+        await query(`UPDATE users SET token_version = token_version + 1 WHERE id = $1`, [userId]);
+        invalidateAuthContextCache(userId);
       }
 
       await createAuditLog({

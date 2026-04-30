@@ -104,7 +104,6 @@ export const RESIDENCE_FIELD_MAPPING: DatabaseFieldMapping = {
   // Legacy/alternative field names for backward compatibility
   applicantName: 'met_person_name', // Maps to met_person_name
   addressConfirmed: null, // Derived field, ignore
-  residenceType: 'house_status', // Maps to house_status
   familyMembers: 'total_family_members', // Maps to total_family_members
   neighborVerification: null, // Derived field, ignore
 

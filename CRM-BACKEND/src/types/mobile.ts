@@ -28,7 +28,9 @@ export interface MobileLoginResponse {
       email: string;
       role: string;
       employeeId: string;
-      designation: string;
+      // 2026-04-28 F1.1.2: nullable — derived from FK; users without
+      // designation_id return null.
+      designation: string | null;
       department: string;
       profilePhotoUrl?: string;
     };

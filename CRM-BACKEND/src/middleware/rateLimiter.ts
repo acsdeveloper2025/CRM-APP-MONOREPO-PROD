@@ -38,9 +38,17 @@ const createRateLimiter = (
   max: number,
   message: string,
   keyType: 'IP' | 'USER' | 'AUTO' = 'AUTO',
-  storePrefix = 'default'
+  storePrefix = 'default',
+  // F-B4.4: when true and Redis is unhealthy, the limiter REJECTS
+  // requests with 503 instead of silently falling back to the
+  // per-process in-memory store (which lets attackers amplify the
+  // effective limit by `cluster_size`). Use only on auth endpoints
+  // where amplification is a brute-force risk; general endpoints
+  // should keep the fail-open default so a Redis outage doesn't
+  // take down the app.
+  failClosed = false
 ) => {
-  return rateLimit({
+  const limiter = rateLimit({
     windowMs,
     max,
     message: {
@@ -67,6 +75,35 @@ const createRateLimiter = (
     // way to bypass these limiters at runtime — any such knob is a
     // production footgun waiting to happen.
   });
+
+  if (!failClosed) {
+    return limiter;
+  }
+
+  // Fail-closed wrapper: if Redis is unhealthy at the moment the
+  // request arrives, refuse the request rather than letting the
+  // limiter fall back to a per-process counter that an attacker can
+  // amplify across PM2 workers.
+  const wrapper = ((req: AuthenticatedRequest, res: Response, next: () => void) => {
+    if (!isRedisHealthy()) {
+      logger.warn('Auth rate limiter fail-closed: Redis unhealthy, rejecting request', {
+        endpoint: req.originalUrl,
+        ip: req.ip,
+      });
+      res.status(503).json({
+        success: false,
+        message: 'Authentication temporarily unavailable, please retry shortly',
+        error: { code: 'AUTH_RATE_LIMITER_DEGRADED' },
+      } as ApiResponse);
+      return;
+    }
+    return limiter(req, res, next);
+  }) as typeof limiter;
+  // Express-rate-limit attaches admin helpers (resetKey, etc.) on the
+  // returned middleware. Forward the ones we use so callers don't
+  // notice the wrap.
+  wrapper.resetKey = limiter.resetKey.bind(limiter);
+  return wrapper;
 };
 
 /**
@@ -78,7 +115,8 @@ export const authRateLimit = createRateLimiter(
   10, // 10 attempts
   'Too many authentication attempts, please try again later',
   'IP', // Always IP-based for auth since user ID isn't known yet
-  'auth'
+  'auth',
+  true // F-B4.4: fail-closed — refuse rather than amplify limit during Redis outage.
 );
 
 /**

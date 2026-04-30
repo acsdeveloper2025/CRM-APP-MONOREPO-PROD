@@ -25,6 +25,7 @@ const clientScope = createScopeAccess({
   getCaseEntityId: row => row.clientId,
   errorCodePrefix: 'CLIENT',
   humanLabel: 'client',
+  getAssignedIdsFromUser: user => user.assignedClientIds,
 });
 
 export const getAssignedClientIds = clientScope.getAssignedIds;

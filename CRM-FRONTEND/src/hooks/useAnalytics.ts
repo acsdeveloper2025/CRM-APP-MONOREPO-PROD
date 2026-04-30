@@ -23,7 +23,6 @@ export const analyticsKeys = {
   caseAnalytics: () => [...analyticsKeys.all, 'case-analytics'] as const,
   caseAnalyticsList: (query: CaseAnalyticsQuery) =>
     [...analyticsKeys.caseAnalytics(), query] as const,
-  caseTimeline: (caseId: string) => [...analyticsKeys.all, 'case-timeline', caseId] as const,
 
   agentPerformance: () => [...analyticsKeys.all, 'agent-performance'] as const,
   agentPerformanceList: (query: AgentPerformanceQuery) =>
@@ -67,15 +66,6 @@ export const useCaseAnalytics = (query: CaseAnalyticsQuery = {}) => {
     queryKey: analyticsKeys.caseAnalyticsList(query),
     queryFn: () => analyticsService.getCaseAnalytics(query),
     staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-};
-
-export const useCaseTimeline = (caseId: string) => {
-  return useQuery({
-    queryKey: analyticsKeys.caseTimeline(caseId),
-    queryFn: () => analyticsService.getCaseTimeline(caseId),
-    enabled: !!caseId,
-    staleTime: 2 * 60 * 1000, // 2 minutes
   });
 };
 

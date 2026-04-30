@@ -111,8 +111,16 @@ export class GeocodeController {
         });
       }
 
+      // F5.4.2: source coords from `geo_location` jsonb (canonical mobile-supplied
+      // payload). The legacy `gps_latitude`/`gps_longitude` columns were planned
+      // for an EXIF-extracted-coords anti-fraud feature that was never shipped —
+      // they were always NULL, which made first-time address resolution return
+      // 404 NO_COORDINATES even though the lat/lng was sitting in `geo_location`.
       const lookup = await query(
-        `SELECT id, gps_latitude, gps_longitude, reverse_geocoded_address
+        `SELECT id,
+                NULLIF(geo_location->>'latitude','')::double precision  AS latitude,
+                NULLIF(geo_location->>'longitude','')::double precision AS longitude,
+                reverse_geocoded_address
            FROM verification_attachments
           WHERE id = $1
           LIMIT 1`,
@@ -129,8 +137,8 @@ export class GeocodeController {
 
       const row = lookup.rows[0] as {
         id: number;
-        gps_latitude: string | null;
-        gps_longitude: string | null;
+        latitude: number | null;
+        longitude: number | null;
         reverse_geocoded_address: string | null;
       };
 
@@ -143,9 +151,9 @@ export class GeocodeController {
         });
       }
 
-      const latitude = row.gps_latitude != null ? parseFloat(row.gps_latitude) : NaN;
-      const longitude = row.gps_longitude != null ? parseFloat(row.gps_longitude) : NaN;
-      if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+      const latitude = row.latitude;
+      const longitude = row.longitude;
+      if (latitude == null || longitude == null || Number.isNaN(latitude) || Number.isNaN(longitude)) {
         return res.status(404).json({
           success: false,
           message: 'Attachment has no GPS coordinates; address cannot be resolved',

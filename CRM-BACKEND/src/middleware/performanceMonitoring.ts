@@ -382,129 +382,6 @@ export const databaseMonitoring = async (req: Request, res: Response, next: Next
 };
 
 /**
- * API endpoint performance tracking
- */
-export const endpointPerformanceTracking = (endpointName: string) => {
-  return (req: RequestWithMetrics, res: Response, next: NextFunction) => {
-    const startTime = performance.now();
-
-    // Override res.json to track response time
-    const originalJson = res.json;
-    res.json = function (data: unknown) {
-      const endTime = performance.now();
-      const responseTime = endTime - startTime;
-
-      // Log endpoint performance
-      logger.info('Endpoint performance', {
-        endpoint: endpointName,
-        method: req.method,
-        responseTime: `${responseTime.toFixed(2)}ms`,
-        statusCode: res.statusCode,
-        requestId: req.requestId,
-      });
-
-      // Store endpoint-specific metrics
-      void storeEndpointMetrics(endpointName, req.method, responseTime, res.statusCode);
-
-      return originalJson.call(this, data);
-    };
-
-    next();
-  };
-};
-
-/**
- * Store endpoint-specific performance metrics
- */
-async function storeEndpointMetrics(
-  endpoint: string,
-  method: string,
-  responseTime: number,
-  statusCode: number
-): Promise<void> {
-  try {
-    await query(
-      `
-      INSERT INTO system_health_metrics 
-      (metric_name, metric_value, metric_unit, tags, timestamp)
-      VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-    `,
-      [
-        'endpoint_response_time',
-        responseTime,
-        'milliseconds',
-        JSON.stringify({ endpoint, method, statusCode }),
-      ]
-    );
-  } catch (error) {
-    logger.error('Failed to store endpoint metrics:', error);
-  }
-}
-
-/**
- * System health monitoring — returns cleanup function to prevent interval leaks on PM2 reload.
- */
-let healthMonitoringInterval: ReturnType<typeof setInterval> | null = null;
-
-export const systemHealthMonitoring = () => {
-  // Prevent duplicate intervals if called multiple times (PM2 reload)
-  if (healthMonitoringInterval) {
-    clearInterval(healthMonitoringInterval);
-  }
-
-  // Monitor system health every 30 seconds
-  healthMonitoringInterval = setInterval(() => {
-    void (async () => {
-      try {
-        const memoryUsage = process.memoryUsage();
-        const cpuUsage = process.cpuUsage();
-
-        // Store system metrics
-        await Promise.all([
-          query(
-            `
-          INSERT INTO system_health_metrics 
-          (metric_name, metric_value, metric_unit, timestamp)
-          VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
-        `,
-            ['memory_heap_used', memoryUsage.heapUsed / 1024 / 1024, 'MB']
-          ),
-
-          query(
-            `
-          INSERT INTO system_health_metrics 
-          (metric_name, metric_value, metric_unit, timestamp)
-          VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
-        `,
-            ['memory_rss', memoryUsage.rss / 1024 / 1024, 'MB']
-          ),
-
-          query(
-            `
-          INSERT INTO system_health_metrics 
-          (metric_name, metric_value, metric_unit, timestamp)
-          VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
-        `,
-            ['cpu_user', cpuUsage.user / 1000, 'milliseconds']
-          ),
-
-          query(
-            `
-          INSERT INTO system_health_metrics 
-          (metric_name, metric_value, metric_unit, timestamp)
-          VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
-        `,
-            ['cpu_system', cpuUsage.system / 1000, 'milliseconds']
-          ),
-        ]);
-      } catch (error) {
-        logger.error('Failed to store system health metrics:', error);
-      }
-    })();
-  }, 30000); // 30 seconds
-};
-
-/**
  * Performance metrics aggregation
  */
 export const getPerformanceMetrics = async (timeRange = '1h') => {
@@ -562,12 +439,8 @@ export const startMetricsCleanup = () => {
         const perfResult = await query(
           `DELETE FROM performance_metrics WHERE timestamp < NOW() - INTERVAL '${RETENTION_DAYS} days'`
         );
-        const healthResult = await query(
-          `DELETE FROM system_health_metrics WHERE timestamp < NOW() - INTERVAL '${RETENTION_DAYS} days'`
-        );
         logger.info('Metrics cleanup completed', {
           performanceMetricsDeleted: perfResult.rowCount,
-          systemHealthMetricsDeleted: healthResult.rowCount,
         });
       } catch (error) {
         logger.error('Metrics cleanup failed:', error);
@@ -581,10 +454,6 @@ export const startMetricsCleanup = () => {
  * interval leaks and DB writes after pool is closed.
  */
 export const stopMonitoringIntervals = () => {
-  if (healthMonitoringInterval) {
-    clearInterval(healthMonitoringInterval);
-    healthMonitoringInterval = null;
-  }
   if (metricsCleanupInterval) {
     clearInterval(metricsCleanupInterval);
     metricsCleanupInterval = null;
@@ -604,8 +473,6 @@ export default {
   memoryMonitoring,
   performanceAwareRateLimit,
   databaseMonitoring,
-  endpointPerformanceTracking,
-  systemHealthMonitoring,
   getPerformanceMetrics,
   startMetricsCleanup,
 };

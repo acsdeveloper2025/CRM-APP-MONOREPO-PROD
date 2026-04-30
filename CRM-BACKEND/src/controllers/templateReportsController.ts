@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { logger } from '../utils/logger';
 import { templateReportService } from '../services/TemplateReportService';
 import { query as dbQuery } from '../config/database';
+import { storage, StorageKeys } from '../services/storage';
 import type { AuthenticatedRequest } from '../middleware/auth';
 
 /**
@@ -68,10 +69,16 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
 
     // Get case details
     // Handle both UUID and integer caseId
+    // 2026-04-28 PE8 (F5.1.1 follow-up): cases.verification_type text column
+    // dropped — derive from verification_types FK.
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
     const caseQuery = isUuid
-      ? `SELECT id, customer_name, verification_data, verification_type, verification_outcome, status FROM cases WHERE id = $1`
-      : `SELECT id, customer_name, verification_data, verification_type, verification_outcome, status FROM cases WHERE case_id = $1`;
+      ? `SELECT c.id, c.customer_name, c.verification_data, vtype.name AS verification_type, c.verification_outcome, c.status
+         FROM cases c LEFT JOIN verification_types vtype ON vtype.id = c.verification_type_id
+         WHERE c.id = $1`
+      : `SELECT c.id, c.customer_name, c.verification_data, vtype.name AS verification_type, c.verification_outcome, c.status
+         FROM cases c LEFT JOIN verification_types vtype ON vtype.id = c.verification_type_id
+         WHERE c.case_id = $1`;
     const caseResult = await dbQuery(caseQuery, [isUuid ? caseId : parseInt(caseId)]);
 
     if (caseResult.rows.length === 0) {
@@ -134,7 +141,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
 
     if (typeUpper.includes('RESIDENCE') && !typeUpper.includes('OFFICE')) {
       const residenceQuery = `
-        SELECT * FROM residence_verification_reports
+        SELECT * FROM verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -213,7 +220,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       }
     } else if (typeUpper.includes('OFFICE') && !typeUpper.includes('RESIDENCE')) {
       const officeQuery = `
-        SELECT * FROM office_verification_reports
+        SELECT * FROM verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -298,7 +305,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       }
     } else if (typeUpper.includes('BUSINESS')) {
       const businessQuery = `
-        SELECT * FROM business_verification_reports
+        SELECT * FROM verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -387,7 +394,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       }
     } else if (typeUpper.includes('RESIDENCE') && typeUpper.includes('OFFICE')) {
       const residenceCumOfficeQuery = `
-        SELECT * FROM residence_cum_office_verification_reports
+        SELECT * FROM verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -498,7 +505,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       }
     } else if (typeUpper.includes('BUILDER')) {
       const builderQuery = `
-        SELECT * FROM builder_verification_reports
+        SELECT * FROM verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -580,7 +587,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       }
     } else if (typeUpper.includes('NOC')) {
       const nocQuery = `
-        SELECT * FROM noc_verification_reports
+        SELECT * FROM verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -681,7 +688,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       }
     } else if (typeUpper.includes('DSA') || typeUpper.includes('CONNECTOR')) {
       const dsaQuery = `
-        SELECT * FROM dsa_connector_verification_reports
+        SELECT * FROM verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -819,7 +826,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       }
     } else if (typeUpper.includes('PROPERTY') && typeUpper.includes('APF')) {
       const propertyApfQuery = `
-        SELECT * FROM property_apf_verification_reports
+        SELECT * FROM verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -952,7 +959,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       }
     } else if (typeUpper.includes('PROPERTY') && typeUpper.includes('INDIVIDUAL')) {
       const propertyIndividualQuery = `
-        SELECT * FROM property_individual_verification_reports
+        SELECT * FROM verification_reports
         WHERE verification_task_id = $1
         ORDER BY created_at DESC
         LIMIT 1
@@ -1129,7 +1136,8 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       return res.status(500).json({ error: result.error });
     }
 
-    // Save report to database
+    // F7.11.2: dual-write report content to object storage and DB.
+    // Legacy report_content TEXT column kept until S3 cutover.
     const saveQuery = `
       INSERT INTO template_reports (
         case_id, submission_id, verification_type, outcome,
@@ -1148,6 +1156,29 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
     ]);
 
     const reportId = saveResult.rows[0].id;
+
+    // F7.11.2: write the rendered report to object storage + record storage_key.
+    // After production S3 cutover, drop report_content TEXT column and read
+    // exclusively via storage.get(storage_key).
+    try {
+      const storageKey = StorageKeys.templateReport(caseData.id, submissionId, reportId);
+      await storage.put(
+        storageKey,
+        Buffer.from(result.report || '', 'utf8'),
+        'text/html; charset=utf-8'
+      );
+      await dbQuery(`UPDATE template_reports SET storage_key = $1 WHERE id = $2`, [
+        storageKey,
+        reportId,
+      ]);
+    } catch (storageErr) {
+      // Storage failure is non-fatal during dual-write window; report_content TEXT
+      // is still persisted in DB. Logged for ops follow-up.
+      logger.warn('template_reports storage.put failed (dual-write fallback to DB only)', {
+        reportId,
+        error: String(storageErr),
+      });
+    }
 
     logger.info('Template report generated and saved successfully', {
       caseId,
