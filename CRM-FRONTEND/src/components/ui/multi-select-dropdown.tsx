@@ -219,7 +219,17 @@ export function MultiSelectDropdown({
                 return (
                   <div
                     key={option.id}
+                    role="option"
+                    aria-selected={isSelected}
+                    aria-disabled={option.disabled || false}
+                    tabIndex={option.disabled ? -1 : 0}
                     onClick={() => !option.disabled && handleToggleOption(option.id)}
+                    onKeyDown={(e) => {
+                      if (!option.disabled && (e.key === 'Enter' || e.key === ' ')) {
+                        e.preventDefault();
+                        handleToggleOption(option.id);
+                      }
+                    }}
                     className={cn(
                       'flex items-center gap-2 p-2 cursor-pointer hover:bg-green-50 hover:text-green-900 transition-colors',
                       option.disabled && 'opacity-50 cursor-not-allowed',

@@ -606,7 +606,12 @@ export const bulkImportProducts = async (
       userId: req.user?.id,
       action: 'BULK_IMPORT_PRODUCTS',
       entityType: 'PRODUCT',
-      details: { total: results.total, created: results.created, updated: results.updated, failed: results.failed },
+      details: {
+        total: results.total,
+        created: results.created,
+        updated: results.updated,
+        failed: results.failed,
+      },
       ipAddress: req.ip,
       userAgent: req.get('User-Agent'),
     });

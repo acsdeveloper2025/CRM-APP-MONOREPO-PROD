@@ -1,10 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
-import {
-  createClientFormSchema,
-  type CreateClientFormData,
-} from '@/forms/schemas/client.schema';
+import { createClientFormSchema, type CreateClientFormData } from '@/forms/schemas/client.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

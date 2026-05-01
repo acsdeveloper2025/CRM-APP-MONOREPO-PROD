@@ -182,6 +182,7 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
                   checked={field.value === option.value}
                   onChange={(e) => onChange?.(e.target.value)}
                   className="h-4 w-4"
+                  aria-label={option.label}
                 />
                 <Label htmlFor={`${field.id}-${option.value}`} className="text-sm">
                   {option.label}

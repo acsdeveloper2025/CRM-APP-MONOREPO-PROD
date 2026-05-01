@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useEffect } from 'react';
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -100,6 +100,13 @@ export const SearchInput: React.FC<SearchInputProps> = ({
     onSearch(debouncedSearchValue);
   }, [debouncedSearchValue, onSearch]);
 
+  // Programmatic focus on mount (replaces autoFocus prop for a11y)
+  useEffect(() => {
+    if (autoFocus) {
+      inputRef.current?.focus();
+    }
+  }, [autoFocus]);
+
   // Handle input change with focus preservation
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -164,7 +171,6 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         value={searchValue}
         onChange={handleInputChange}
         disabled={disabled}
-        autoFocus={autoFocus}
         className={cn(
           sizeClasses[size],
           paddingClasses[size],

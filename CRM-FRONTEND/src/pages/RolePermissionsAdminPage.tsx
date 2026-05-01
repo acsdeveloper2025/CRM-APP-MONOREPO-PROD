@@ -303,8 +303,18 @@ export default function RolePermissionsAdminPage() {
             {roles.map((role) => (
               <div
                 key={role.id}
+                role="button"
+                tabIndex={0}
+                aria-pressed={selectedRoleId === role.id}
+                aria-label={`Select role ${role.name}`}
                 className={`rounded border p-3 cursor-pointer ${selectedRoleId === role.id ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}
                 onClick={() => setSelectedRoleId(role.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedRoleId(role.id);
+                  }
+                }}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -391,9 +401,11 @@ export default function RolePermissionsAdminPage() {
                     return (
                       <label
                         key={code}
+                        htmlFor={`role-perm-${code}`}
                         className="flex items-start gap-2 rounded border p-2 hover:bg-gray-50"
                       >
                         <Checkbox
+                          id={`role-perm-${code}`}
                           checked={checked}
                           onCheckedChange={(value) => togglePermission(code, value === true)}
                         />
@@ -427,6 +439,7 @@ export default function RolePermissionsAdminPage() {
             {ROUTE_ACCESS_OPTIONS.map((route) => (
               <label
                 key={route.key}
+                htmlFor={`role-route-${route.key}`}
                 className="flex items-center justify-between rounded border p-3 hover:bg-gray-50"
               >
                 <div>
@@ -434,6 +447,7 @@ export default function RolePermissionsAdminPage() {
                   <div className="text-xs text-gray-500">{route.key}</div>
                 </div>
                 <Checkbox
+                  id={`role-route-${route.key}`}
                   checked={!!selectedRoutes[route.key]}
                   onCheckedChange={(value) =>
                     setSelectedRoutes((prev) => ({ ...prev, [route.key]: value === true }))

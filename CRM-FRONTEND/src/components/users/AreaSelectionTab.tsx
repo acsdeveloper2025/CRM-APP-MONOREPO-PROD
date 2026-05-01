@@ -181,10 +181,20 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
                       return (
                         <div
                           key={area.id}
+                          role="button"
+                          tabIndex={0}
+                          aria-pressed={isSelected}
+                          aria-label={`Toggle area ${area.name}`}
                           className={`flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
                             isSelected ? 'bg-emerald-50' : ''
                           }`}
                           onClick={() => onAreaToggle(pincodeIdNum, areaIdNum)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              onAreaToggle(pincodeIdNum, areaIdNum);
+                            }
+                          }}
                         >
                           <Checkbox
                             checked={isSelected}

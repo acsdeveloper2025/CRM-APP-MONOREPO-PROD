@@ -247,6 +247,9 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
         )}
         {/* File Upload Area */}
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="File upload drop zone, press Enter to browse files"
           className={cn(
             'border-2 border-dashed rounded-lg p-6 text-center transition-colors',
             dragOver ? 'border-green-500 bg-green-50' : 'border-border',
@@ -257,6 +260,12 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
+          onKeyDown={(e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && attachments.length < maxFiles) {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
         >
           <Upload className="h-8 w-8 text-gray-600 mx-auto mb-2" />
           <p className="text-sm text-gray-600 mb-2">
@@ -277,6 +286,7 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
           <input
             ref={fileInputRef}
             type="file"
+            aria-label="Choose files to upload"
             multiple
             accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp,.svg,.tif,.tiff,.heic,.heif,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,.rtf"
             onChange={(e) => handleFileSelect(e.target.files)}

@@ -24,6 +24,7 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
+import { TraceIdRatioBasedSampler } from '@opentelemetry/sdk-trace-node';
 import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 
 const enabled = process.env.OTEL_ENABLED === 'true';
@@ -42,12 +43,30 @@ if (enabled) {
   const serviceVersion = process.env.npm_package_version || '1.0.0';
   const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces';
 
+  // 2026-05-01 pre-AWS hardening: head-based ratio sampling. Default
+  // 1.0 (sample everything) so dev keeps full fidelity. Production
+  // should set OTEL_TRACE_SAMPLING_RATIO=0.1 (or lower) to keep
+  // CloudWatch / ADOT cost bounded — without sampling, 100K cases/day
+  // × ~20 spans/case = 2M spans/day, which explodes ingest costs.
+  const samplingRatioRaw = process.env.OTEL_TRACE_SAMPLING_RATIO;
+  const samplingRatio = (() => {
+    const parsed = samplingRatioRaw != null ? Number(samplingRatioRaw) : 1;
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return 1;
+    }
+    if (parsed > 1) {
+      return 1;
+    }
+    return parsed;
+  })();
+
   sdk = new NodeSDK({
     resource: resourceFromAttributes({
       [ATTR_SERVICE_NAME]: serviceName,
       [ATTR_SERVICE_VERSION]: serviceVersion,
       'deployment.environment': process.env.NODE_ENV || 'development',
     }),
+    sampler: new TraceIdRatioBasedSampler(samplingRatio),
     traceExporter: new OTLPTraceExporter({ url: otlpEndpoint }),
     instrumentations: [
       getNodeAutoInstrumentations({
@@ -65,7 +84,7 @@ if (enabled) {
     // winston logger here. Use console.info (allowed by the
     // project's lint config).
     console.info(
-      `[otel] tracing enabled — service=${serviceName} version=${serviceVersion} endpoint=${otlpEndpoint}`
+      `[otel] tracing enabled — service=${serviceName} version=${serviceVersion} endpoint=${otlpEndpoint} sampling=${samplingRatio}`
     );
   } catch (error) {
     console.error('[otel] failed to start tracing', error);

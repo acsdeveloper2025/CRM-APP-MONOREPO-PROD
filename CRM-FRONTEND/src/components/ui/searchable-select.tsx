@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Check, ChevronDown, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,13 @@ export function SearchableSelect({
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      searchInputRef.current?.focus();
+    }
+  }, [open]);
 
   const selectedOption = options.find((option) => option.value === value);
 
@@ -82,6 +89,7 @@ export function SearchableSelect({
           <div className="flex items-center border-b border-gray-200 px-3 py-2 bg-gray-50">
             <Search className="mr-2 h-4 w-4 shrink-0 text-gray-500" />
             <Input
+              ref={searchInputRef}
               placeholder={searchPlaceholder}
               value={searchQuery}
               onChange={(e) => {
@@ -89,7 +97,6 @@ export function SearchableSelect({
                 onSearchChange?.(e.target.value);
               }}
               className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-900 placeholder:text-gray-500"
-              autoFocus
             />
           </div>
 
@@ -110,7 +117,14 @@ export function SearchableSelect({
                       : 'text-gray-700'
                   )}
                   onClick={() => handleSelect(option.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleSelect(option.value);
+                    }
+                  }}
                   role="option"
+                  tabIndex={0}
                   aria-selected={value === option.value}
                 >
                   <Check

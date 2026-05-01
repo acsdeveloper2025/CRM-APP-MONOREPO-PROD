@@ -209,16 +209,20 @@ const AsyncImage: React.FC<AsyncImageProps> = ({
     );
   }
 
-  return (
-    <img
-      src={finalUrl}
-      alt={alt}
-      loading="lazy"
-      decoding="async"
-      className={className}
-      onClick={onClick}
-    />
-  );
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={alt}
+        className={`p-0 border-0 bg-transparent cursor-pointer ${className || ''}`}
+      >
+        <img src={finalUrl} alt={alt} loading="lazy" decoding="async" className={className} />
+      </button>
+    );
+  }
+
+  return <img src={finalUrl} alt={alt} loading="lazy" decoding="async" className={className} />;
 };
 
 interface VerificationImagesProps {

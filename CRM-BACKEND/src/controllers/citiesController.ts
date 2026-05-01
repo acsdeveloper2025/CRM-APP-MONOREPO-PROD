@@ -570,10 +570,7 @@ export const bulkImportCities = async (
           results.updated++;
         } else {
           // Create new city. country is reachable via state_id → states.country_id.
-          await query(
-            `INSERT INTO cities (name, state_id) VALUES ($1, $2)`,
-            [name, stateId]
-          );
+          await query(`INSERT INTO cities (name, state_id) VALUES ($1, $2)`, [name, stateId]);
           results.created++;
         }
       } catch (error: unknown) {

@@ -540,11 +540,18 @@ CORS_ORIGIN=${CORS_ORIGIN}
 LOG_LEVEL=info
 REDIS_URL=${REDIS_URL}
 GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
-ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
 EOF
-        print_status "Backend .env file created"
+        # 2026-05-01 pre-AWS hardening: tighten file permissions on the
+        # secret-bearing .env. AWS migration replaces the file with
+        # AWS Secrets Manager / SSM Parameter Store; until then, 0600
+        # blocks readers other than the owning user (acs).
+        chmod 600 "$PROJECT_ROOT/CRM-BACKEND/.env"
+        print_status "Backend .env file created (0600)"
     else
-        print_info "Backend .env file already exists"
+        # Even if the file already exists, ensure permissions are tight.
+        # No-op if already 0600.
+        chmod 600 "$PROJECT_ROOT/CRM-BACKEND/.env"
+        print_info "Backend .env file already exists (perms verified)"
     fi
 
     # Frontend environment
@@ -554,7 +561,10 @@ VITE_API_BASE_URL=${PUBLIC_BASE_URL}/api
 VITE_GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
 NODE_ENV=production
 EOF
-    print_status "Frontend .env file updated"
+    # Frontend .env is also embedded into the bundle at build time, so
+    # it doesn't carry server-side secrets — but tighten anyway.
+    chmod 600 "$PROJECT_ROOT/CRM-FRONTEND/.env"
+    print_status "Frontend .env file updated (0600)"
 
     print_status "Environment files setup completed"
 }

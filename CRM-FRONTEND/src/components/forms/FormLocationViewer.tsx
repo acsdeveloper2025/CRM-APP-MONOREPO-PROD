@@ -98,6 +98,7 @@ export function FormLocationViewer({
             <h4 className="font-medium text-sm mb-2">Map Preview</h4>
             <div className="relative bg-slate-100 dark:bg-slate-800/60 rounded-lg overflow-hidden">
               <iframe
+                title="Location map preview"
                 src={`https://www.google.com/maps/embed/v1/place?key=${getGoogleMapsApiKey()}&q=${location.latitude},${location.longitude}&zoom=16`}
                 width="100%"
                 height="200"

@@ -1474,11 +1474,7 @@ export const bulkImportClients = async (
           });
           continue;
         }
-        if (
-          gstin !== null &&
-          gstinStateCode !== null &&
-          gstin.substring(0, 2) !== gstinStateCode
-        ) {
+        if (gstin !== null && gstinStateCode !== null && gstin.substring(0, 2) !== gstinStateCode) {
           results.failed++;
           results.errors.push({
             row: i + 1,
@@ -1538,10 +1534,9 @@ export const bulkImportClients = async (
                 'SELECT id FROM states WHERE LOWER(name) = LOWER($1) AND country_id = $2',
                 [stateName, billingCountryId]
               )
-            : await query<{ id: number }>(
-                'SELECT id FROM states WHERE LOWER(name) = LOWER($1)',
-                [stateName]
-              );
+            : await query<{ id: number }>('SELECT id FROM states WHERE LOWER(name) = LOWER($1)', [
+                stateName,
+              ]);
           if (r.rows.length === 0) {
             results.failed++;
             results.errors.push({
@@ -1562,10 +1557,9 @@ export const bulkImportClients = async (
                 'SELECT id FROM cities WHERE LOWER(name) = LOWER($1) AND state_id = $2',
                 [cityName, billingStateId]
               )
-            : await query<{ id: number }>(
-                'SELECT id FROM cities WHERE LOWER(name) = LOWER($1)',
-                [cityName]
-              );
+            : await query<{ id: number }>('SELECT id FROM cities WHERE LOWER(name) = LOWER($1)', [
+                cityName,
+              ]);
           if (r.rows.length === 0) {
             results.failed++;
             results.errors.push({

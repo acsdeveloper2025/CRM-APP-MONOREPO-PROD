@@ -228,7 +228,7 @@ export function RateViewReportTab() {
           {/* Filter Dropdowns */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Client</label>
+              <span className="text-sm font-medium">Client</span>
               <Select
                 value={selectedClientId}
                 onValueChange={(v) => {
@@ -252,7 +252,7 @@ export function RateViewReportTab() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Product</label>
+              <span className="text-sm font-medium">Product</span>
               <Select
                 value={selectedProductId}
                 onValueChange={(v) => {
@@ -275,7 +275,7 @@ export function RateViewReportTab() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Verification Type</label>
+              <span className="text-sm font-medium">Verification Type</span>
               <Select
                 value={selectedVerificationTypeId}
                 onValueChange={setSelectedVerificationTypeId}
@@ -295,7 +295,7 @@ export function RateViewReportTab() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Rate Type</label>
+              <span className="text-sm font-medium">Rate Type</span>
               <Select value={selectedRateTypeId} onValueChange={setSelectedRateTypeId}>
                 <SelectTrigger>
                   <SelectValue placeholder="All rate types" />
@@ -312,7 +312,7 @@ export function RateViewReportTab() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
+              <span className="text-sm font-medium">Status</span>
               <Select value={isActiveFilter} onValueChange={setIsActiveFilter}>
                 <SelectTrigger>
                   <SelectValue />
@@ -326,7 +326,7 @@ export function RateViewReportTab() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Actions</label>
+              <span className="text-sm font-medium">Actions</span>
               <Button variant="outline" onClick={clearFilters} className="w-full">
                 <Filter className="h-4 w-4 mr-2" />
                 Clear Filters

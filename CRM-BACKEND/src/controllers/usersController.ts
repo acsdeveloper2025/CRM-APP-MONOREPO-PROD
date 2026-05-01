@@ -2919,9 +2919,7 @@ const normalizeHeader = (raw: unknown): string | null => {
   return HEADER_TO_KEY[stripped] ?? null;
 };
 
-const parseXlsxToRows = async (
-  buffer: Buffer
-): Promise<Array<Record<string, string>>> => {
+const parseXlsxToRows = async (buffer: Buffer): Promise<Array<Record<string, string>>> => {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
   const sheet = workbook.worksheets[0];
@@ -2943,7 +2941,11 @@ const parseXlsxToRows = async (
       if (!key) {
         return;
       }
-      const value = cell.value == null ? '' : String(cell.value);
+      // exceljs `cell.value` can be a primitive, Date, or rich object
+      // (formula, hyperlink, richText). `cell.text` returns the
+      // already-formatted display string — exactly what an XLSX
+      // import wants. Avoids `[object Object]` from naive String().
+      const value = cell.text == null ? '' : String(cell.text);
       if (value.trim() !== '') {
         hasAnyValue = true;
       }
@@ -2994,17 +2996,11 @@ export const bulkImportUsers = async (
       typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
 
     // Pre-load lookup maps once per call. Cheap and avoids N+1.
-    const rolesRes = await query<{ id: string; name: string }>(
-      'SELECT id, name FROM roles_v2'
-    );
+    const rolesRes = await query<{ id: string; name: string }>('SELECT id, name FROM roles_v2');
     const roleByName = new Map(rolesRes.rows.map(r => [r.name.toUpperCase(), r.id]));
-    const deptRes = await query<{ id: number; name: string }>(
-      'SELECT id, name FROM departments'
-    );
+    const deptRes = await query<{ id: number; name: string }>('SELECT id, name FROM departments');
     const deptByName = new Map(deptRes.rows.map(d => [d.name.toLowerCase(), d.id]));
-    const desRes = await query<{ id: number; name: string }>(
-      'SELECT id, name FROM designations'
-    );
+    const desRes = await query<{ id: number; name: string }>('SELECT id, name FROM designations');
     const desByName = new Map(desRes.rows.map(d => [d.name.toLowerCase(), d.id]));
 
     for (let i = 0; i < rows.length; i++) {
@@ -3029,8 +3025,7 @@ export const bulkImportUsers = async (
           continue;
         }
 
-        const canonicalRole =
-          normalizeRbacRoleName(roleRaw) ?? (roleRaw.toUpperCase() as string);
+        const canonicalRole = normalizeRbacRoleName(roleRaw) ?? roleRaw.toUpperCase();
         const roleId = roleByName.get(String(canonicalRole).toUpperCase());
         if (!roleId) {
           results.failed++;

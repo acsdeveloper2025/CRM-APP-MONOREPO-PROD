@@ -3,10 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
-import {
-  editClientFormSchema,
-  type EditClientFormData,
-} from '@/forms/schemas/client.schema';
+import { editClientFormSchema, type EditClientFormData } from '@/forms/schemas/client.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

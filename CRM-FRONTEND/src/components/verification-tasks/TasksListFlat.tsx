@@ -313,10 +313,10 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                     </td>
 
                     {/* Actions */}
-                    <td className="px-4 py-4 whitespace-nowrap">
+                    <td aria-label="Actions" className="px-4 py-4 whitespace-nowrap">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" aria-label="Open task actions menu">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>

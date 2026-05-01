@@ -790,9 +790,7 @@ export async function isValidFormType(
   verificationType: string,
   formType: string
 ): Promise<boolean> {
-  const { isValidOutcome } = await import(
-    '../services/verificationTypeOutcomesService'
-  );
+  const { isValidOutcome } = await import('../services/verificationTypeOutcomesService');
   return isValidOutcome(verificationType, formType);
 }
 
@@ -800,12 +798,8 @@ export async function isValidFormType(
  * Gets all valid form types (outcome codes) for a verification type.
  * F2.7.1: per-type accurate via lookup table.
  */
-export async function getValidFormTypes(
-  verificationType: string
-): Promise<string[]> {
-  const { getValidOutcomeCodes } = await import(
-    '../services/verificationTypeOutcomesService'
-  );
+export async function getValidFormTypes(verificationType: string): Promise<string[]> {
+  const { getValidOutcomeCodes } = await import('../services/verificationTypeOutcomesService');
   return getValidOutcomeCodes(verificationType);
 }
 

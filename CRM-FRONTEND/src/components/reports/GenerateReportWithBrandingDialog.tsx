@@ -80,6 +80,7 @@ function FileSlot({
           <input
             ref={inputRef}
             id={inputId}
+            aria-label={`Choose ${label} image`}
             type="file"
             accept="image/*"
             className="hidden"
