@@ -1,8 +1,8 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
+import { pincodeFormSchema, type PincodeFormData } from '@/forms/schemas/location.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -33,29 +33,14 @@ import { locationsService } from '@/services/locations';
 import { EnhancedAreasMultiSelect } from './EnhancedAreasMultiSelect';
 import { toast } from 'sonner';
 
-const createPincodeSchema = z.object({
-  code: z
-    .string()
-    .min(6, 'Pincode must be 6 digits')
-    .max(6, 'Pincode must be 6 digits')
-    .regex(/^\d{6}$/, 'Pincode must contain only numbers'),
-  areas: z
-    .array(z.string())
-    .min(1, 'At least one area must be selected')
-    .max(15, 'Maximum 15 areas allowed'),
-  cityId: z.string().min(1, 'City selection is required'),
-});
-
-type CreatePincodeFormData = z.infer<typeof createPincodeSchema>;
-
 interface CreatePincodeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function CreatePincodeDialog({ open, onOpenChange }: CreatePincodeDialogProps) {
-  const form = useForm<CreatePincodeFormData>({
-    resolver: zodResolver(createPincodeSchema),
+  const form = useForm<PincodeFormData>({
+    resolver: zodResolver(pincodeFormSchema),
     defaultValues: {
       code: '',
       areas: [],
@@ -75,7 +60,7 @@ export function CreatePincodeDialog({ open, onOpenChange }: CreatePincodeDialogP
   // Areas will be loaded by AreasMultiSelect component
 
   const createMutation = useCRUDMutation({
-    mutationFn: (data: CreatePincodeFormData) => locationsService.createPincode(data),
+    mutationFn: (data: PincodeFormData) => locationsService.createPincode(data),
     queryKey: ['pincodes'],
     resourceName: 'Pincode',
     operation: 'create',
@@ -86,7 +71,7 @@ export function CreatePincodeDialog({ open, onOpenChange }: CreatePincodeDialogP
     },
   });
 
-  const onSubmit = (data: CreatePincodeFormData) => {
+  const onSubmit = (data: PincodeFormData) => {
     // Find the selected city to get additional required fields
     const selectedCity = cities.find((city) => String(city.id) === data.cityId);
 

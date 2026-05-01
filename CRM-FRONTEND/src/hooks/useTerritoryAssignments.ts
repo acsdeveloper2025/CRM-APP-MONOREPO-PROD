@@ -1,5 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { territoryAssignmentsService } from '@/services/territoryAssignments';
 import type {
   UserTerritoryAssignments,
@@ -49,28 +50,18 @@ export const useAreasByPincodes = (pincodeIds: number[]) => {
 export const useBulkSaveTerritoryAssignments = (userId: string) => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useStandardizedMutation({
     mutationFn: (assignments: TerritoryAssignment[]) =>
       territoryAssignmentsService.bulkSaveTerritoryAssignments(userId, assignments),
+    errorContext: 'Territory Assignment Save',
+    errorFallbackMessage: 'Failed to save territory assignments',
     onSuccess: (data) => {
-      // Invalidate and refetch territory assignments
       queryClient.invalidateQueries({ queryKey: ['userTerritoryAssignments', userId] });
-
-      // Invalidate ALL user lists to ensure counts are updated in the main table
       queryClient.invalidateQueries({ queryKey: ['users'] });
-
-      // Invalidate specific user cache
       queryClient.invalidateQueries({ queryKey: ['user', userId] });
-
       toast.success(
         `Territory assignments saved! ${data.data.pincodeAssignmentsCreated} pincodes, ${data.data.areaAssignmentsCreated} areas.`
       );
-    },
-    onError: (error: unknown) => {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to save territory assignments';
-      toast.error(message);
     },
   });
 };

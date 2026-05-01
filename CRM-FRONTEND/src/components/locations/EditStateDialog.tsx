@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
+import { stateFormSchema, type StateFormData } from '@/forms/schemas/location.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -32,18 +32,6 @@ import {
 import { locationsService } from '@/services/locations';
 import type { State, UpdateStateData } from '@/types/location';
 
-const updateStateSchema = z.object({
-  name: z.string().min(1, 'State name is required').max(100, 'State name is too long'),
-  code: z
-    .string()
-    .min(2, 'State code must be at least 2 characters')
-    .max(10, 'State code is too long')
-    .regex(/^[A-Z0-9]+$/, 'State code must contain only uppercase letters and numbers'),
-  country: z.string().min(1, 'Country is required'),
-});
-
-type UpdateStateFormData = z.infer<typeof updateStateSchema>;
-
 interface EditStateDialogProps {
   state: State;
   open: boolean;
@@ -51,8 +39,8 @@ interface EditStateDialogProps {
 }
 
 export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogProps) {
-  const form = useForm<UpdateStateFormData>({
-    resolver: zodResolver(updateStateSchema),
+  const form = useForm<StateFormData>({
+    resolver: zodResolver(stateFormSchema),
     defaultValues: {
       name: state.name,
       code: state.code,
@@ -91,7 +79,7 @@ export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogPr
     },
   });
 
-  const onSubmit = (data: UpdateStateFormData) => {
+  const onSubmit = (data: StateFormData) => {
     updateStateMutation.mutate(data);
   };
 

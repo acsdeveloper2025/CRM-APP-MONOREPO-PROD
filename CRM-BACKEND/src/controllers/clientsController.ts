@@ -10,6 +10,7 @@ import { config } from '@/config';
 import { getAssignedProductIds } from '@/middleware/productAccess';
 import { isScopedOperationsUser } from '@/security/rbacAccess';
 import { createAuditLog } from '@/utils/auditLogger';
+import { sendError } from '@/utils/apiResponse';
 
 interface DatabaseError extends Error {
   code?: string;
@@ -1391,3 +1392,287 @@ export const deleteClientLogo = (req: AuthenticatedRequest, res: Response) =>
   handleBrandingDelete(req, res, 'logo');
 export const deleteClientStamp = (req: AuthenticatedRequest, res: Response) =>
   handleBrandingDelete(req, res, 'stamp');
+
+// POST /api/clients/bulk-import - CSV bulk upsert. Headers (camelCase):
+//   required: name, code
+//   optional: email, phone, address, gstin, pan, gstinStateCode,
+//             billingAddressLine1, billingAddressLine2, billingPincode,
+//             billingCity (name), billingState (name), billingCountry (name),
+//             tier, isActive
+// Branding (logo/stamp/colors) and timestamps stay out — separate flows.
+// Match key is `code`; existing row → UPDATE, else INSERT.
+export const bulkImportClients = async (
+  req: AuthenticatedRequest & { file?: Express.Multer.File },
+  res: Response
+) => {
+  try {
+    if (!req.file) {
+      return sendError(res, 400, 'No file uploaded', 'NO_FILE');
+    }
+    const { parseCSV, validateCSVRow } = await import('@/utils/csvParser');
+    const rows = await parseCSV(req.file.buffer);
+
+    const results = {
+      total: rows.length,
+      created: 0,
+      updated: 0,
+      failed: 0,
+      errors: [] as Array<{ row: number; data: Record<string, unknown>; error: string }>,
+    };
+
+    const ALLOWED_TIERS = ['STARTER', 'GROWTH', 'ENTERPRISE'];
+    const GSTIN_RE = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9][A-Z][0-9A-Z]$/;
+    const PAN_RE = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+    const PINCODE_RE = /^[1-9][0-9]{5}$/;
+    const STATE_CODE_RE = /^[0-9]{2}$/;
+
+    const blankToNull = (v: string | undefined): string | null =>
+      typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        const validationError = validateCSVRow(row, ['name', 'code']);
+        if (validationError) {
+          results.failed++;
+          results.errors.push({ row: i + 1, data: row, error: validationError });
+          continue;
+        }
+
+        const name = row.name.trim();
+        const code = row.code.trim();
+        const email = blankToNull(row.email);
+        const phone = blankToNull(row.phone);
+        const address = blankToNull(row.address);
+        const gstin = blankToNull(row.gstin)?.toUpperCase() ?? null;
+        const pan = blankToNull(row.pan)?.toUpperCase() ?? null;
+        const gstinStateCode = blankToNull(row.gstinStateCode);
+        const billingAddressLine1 = blankToNull(row.billingAddressLine1);
+        const billingAddressLine2 = blankToNull(row.billingAddressLine2);
+        const billingPincode = blankToNull(row.billingPincode);
+        const tier = blankToNull(row.tier)?.toUpperCase() ?? null;
+        const isActiveRaw = blankToNull(row.isActive);
+
+        // CSV-side validation surfaces clear errors before relying on
+        // the table's CHECK constraints (which fail with cryptic Postgres errors).
+        if (gstin !== null && !GSTIN_RE.test(gstin)) {
+          results.failed++;
+          results.errors.push({ row: i + 1, data: row, error: `Invalid GSTIN: ${gstin}` });
+          continue;
+        }
+        if (pan !== null && !PAN_RE.test(pan)) {
+          results.failed++;
+          results.errors.push({ row: i + 1, data: row, error: `Invalid PAN: ${pan}` });
+          continue;
+        }
+        if (gstinStateCode !== null && !STATE_CODE_RE.test(gstinStateCode)) {
+          results.failed++;
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: `Invalid gstinStateCode: ${gstinStateCode} (must be 2 digits)`,
+          });
+          continue;
+        }
+        if (
+          gstin !== null &&
+          gstinStateCode !== null &&
+          gstin.substring(0, 2) !== gstinStateCode
+        ) {
+          results.failed++;
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: `gstinStateCode (${gstinStateCode}) does not match GSTIN prefix (${gstin.substring(0, 2)})`,
+          });
+          continue;
+        }
+        if (billingPincode !== null && !PINCODE_RE.test(billingPincode)) {
+          results.failed++;
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: `Invalid billingPincode: ${billingPincode}`,
+          });
+          continue;
+        }
+        if (tier !== null && !ALLOWED_TIERS.includes(tier)) {
+          results.failed++;
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: `Invalid tier: ${tier}. Must be one of ${ALLOWED_TIERS.join(', ')}`,
+          });
+          continue;
+        }
+        const isActive: boolean | null =
+          isActiveRaw === null
+            ? null
+            : ['true', '1', 'yes', 'y'].includes(isActiveRaw.toLowerCase());
+
+        // FK lookups by NAME — country/state/city must already exist
+        // (auto-create removed across location imports for the same reason).
+        let billingCountryId: number | null = null;
+        if (blankToNull(row.billingCountry)) {
+          const r = await query<{ id: number }>(
+            'SELECT id FROM countries WHERE LOWER(name) = LOWER($1)',
+            [row.billingCountry.trim()]
+          );
+          if (r.rows.length === 0) {
+            results.failed++;
+            results.errors.push({
+              row: i + 1,
+              data: row,
+              error: `billingCountry "${row.billingCountry}" not found.`,
+            });
+            continue;
+          }
+          billingCountryId = r.rows[0].id;
+        }
+
+        let billingStateId: number | null = null;
+        if (blankToNull(row.billingState)) {
+          const stateName = row.billingState.trim();
+          const r = billingCountryId
+            ? await query<{ id: number }>(
+                'SELECT id FROM states WHERE LOWER(name) = LOWER($1) AND country_id = $2',
+                [stateName, billingCountryId]
+              )
+            : await query<{ id: number }>(
+                'SELECT id FROM states WHERE LOWER(name) = LOWER($1)',
+                [stateName]
+              );
+          if (r.rows.length === 0) {
+            results.failed++;
+            results.errors.push({
+              row: i + 1,
+              data: row,
+              error: `billingState "${stateName}" not found.`,
+            });
+            continue;
+          }
+          billingStateId = r.rows[0].id;
+        }
+
+        let billingCityId: number | null = null;
+        if (blankToNull(row.billingCity)) {
+          const cityName = row.billingCity.trim();
+          const r = billingStateId
+            ? await query<{ id: number }>(
+                'SELECT id FROM cities WHERE LOWER(name) = LOWER($1) AND state_id = $2',
+                [cityName, billingStateId]
+              )
+            : await query<{ id: number }>(
+                'SELECT id FROM cities WHERE LOWER(name) = LOWER($1)',
+                [cityName]
+              );
+          if (r.rows.length === 0) {
+            results.failed++;
+            results.errors.push({
+              row: i + 1,
+              data: row,
+              error: `billingCity "${cityName}" not found.`,
+            });
+            continue;
+          }
+          billingCityId = r.rows[0].id;
+        }
+
+        const existing = await query<{ id: number }>(
+          'SELECT id FROM clients WHERE code = $1 AND deleted_at IS NULL',
+          [code]
+        );
+
+        if (existing.rows.length > 0) {
+          await query(
+            `UPDATE clients SET
+               name = $1,
+               email = COALESCE($2, email),
+               phone = COALESCE($3, phone),
+               address = COALESCE($4, address),
+               gstin = COALESCE($5, gstin),
+               pan = COALESCE($6, pan),
+               gstin_state_code = COALESCE($7, gstin_state_code),
+               billing_address_line1 = COALESCE($8, billing_address_line1),
+               billing_address_line2 = COALESCE($9, billing_address_line2),
+               billing_pincode = COALESCE($10, billing_pincode),
+               billing_country_id = COALESCE($11, billing_country_id),
+               billing_state_id = COALESCE($12, billing_state_id),
+               billing_city_id = COALESCE($13, billing_city_id),
+               tier = COALESCE($14, tier),
+               is_active = COALESCE($15, is_active),
+               updated_at = NOW()
+             WHERE code = $16 AND deleted_at IS NULL`,
+            [
+              name,
+              email,
+              phone,
+              address,
+              gstin,
+              pan,
+              gstinStateCode,
+              billingAddressLine1,
+              billingAddressLine2,
+              billingPincode,
+              billingCountryId,
+              billingStateId,
+              billingCityId,
+              tier,
+              isActive,
+              code,
+            ]
+          );
+          results.updated++;
+        } else {
+          await query(
+            `INSERT INTO clients (
+               name, code, email, phone, address, gstin, pan, gstin_state_code,
+               billing_address_line1, billing_address_line2, billing_pincode,
+               billing_country_id, billing_state_id, billing_city_id, tier, is_active
+             ) VALUES (
+               $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+               COALESCE($16, true)
+             )`,
+            [
+              name,
+              code,
+              email,
+              phone,
+              address,
+              gstin,
+              pan,
+              gstinStateCode,
+              billingAddressLine1,
+              billingAddressLine2,
+              billingPincode,
+              billingCountryId,
+              billingStateId,
+              billingCityId,
+              tier,
+              isActive,
+            ]
+          );
+          results.created++;
+        }
+      } catch (error) {
+        results.failed++;
+        results.errors.push({
+          row: i + 1,
+          data: row,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        logger.error(`Error importing client at row ${i + 1}:`, error);
+      }
+    }
+
+    logger.info('Bulk import clients completed', { userId: req.user?.id, results });
+    res.status(200).json({
+      success: true,
+      message: `Bulk import completed: ${results.created} created, ${results.updated} updated, ${results.failed} failed`,
+      data: results,
+    });
+  } catch (error) {
+    logger.error('Error in bulk import clients:', error);
+    return sendError(res, 500, 'Failed to bulk import clients', 'INTERNAL_ERROR');
+  }
+};

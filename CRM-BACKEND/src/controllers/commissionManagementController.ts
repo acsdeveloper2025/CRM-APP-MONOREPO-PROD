@@ -1473,8 +1473,7 @@ export const exportCommissionsToExcel = async (req: AuthenticatedRequest, res: R
         cc.transaction_id as payment_reference,
         vt.verification_outcome,
         vt.completed_at as task_completed_at,
-        cc.created_at,
-        cc.updated_at
+        cc.created_at
       FROM commission_calculations cc
       LEFT JOIN users u ON cc.user_id = u.id
       LEFT JOIN clients c ON cc.client_id = c.id

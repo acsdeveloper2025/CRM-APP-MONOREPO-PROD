@@ -1,8 +1,11 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import {
+  editVerificationTypeFormSchema,
+  type EditVerificationTypeFormData,
+} from '@/forms/schemas/client.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -25,13 +28,6 @@ import { Input } from '@/components/ui/input';
 import { clientsService } from '@/services/clients';
 import { VerificationType } from '@/types/client';
 
-const editVerificationTypeSchema = z.object({
-  name: z.string().min(1, 'Verification type name is required').max(100, 'Name too long'),
-  code: z.string().min(2, 'Code is required').max(50, 'Code too long'),
-});
-
-type EditVerificationTypeFormData = z.infer<typeof editVerificationTypeSchema>;
-
 interface EditVerificationTypeDialogProps {
   verificationType: VerificationType;
   open: boolean;
@@ -44,7 +40,7 @@ export function EditVerificationTypeDialog({
   onOpenChange,
 }: EditVerificationTypeDialogProps) {
   const form = useForm<EditVerificationTypeFormData>({
-    resolver: zodResolver(editVerificationTypeSchema),
+    resolver: zodResolver(editVerificationTypeFormSchema),
     defaultValues: {
       name: verificationType.name,
       code: verificationType.code || '',

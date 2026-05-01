@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { Upload, Loader2, FileSpreadsheet, X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,7 +30,6 @@ import {
   suggestPrefillSourceForHeader,
 } from '@/constants/templateFieldPrefillCatalog';
 import { toast } from 'sonner';
-import { logger } from '@/utils/logger';
 
 // Fields returned by the parse endpoint (server already strips id/templateId/
 // isActive/createdAt/updatedAt from what a caller would send back to /POST).
@@ -99,13 +99,14 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
     onOpenChange(false);
   };
 
-  const parseMutation = useMutation({
+  const parseMutation = useStandardizedMutation({
     mutationFn: async () => {
       if (!file || !clientId || !productId) {
         throw new Error('Client, product, and file are required');
       }
       return caseDataService.parseUpload(Number(clientId), Number(productId), file);
     },
+    errorContext: 'Template Parse',
     onSuccess: (res) => {
       const payload = (
         res as {
@@ -137,17 +138,9 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
       setTemplateName(`${cName}${pName ? ` — ${pName}` : ''}`);
       setStep('preview');
     },
-    onError: (err: unknown) => {
-      const apiErr = err as {
-        response?: { data?: { message?: string; error?: { code?: string } } };
-      };
-      const msg = apiErr.response?.data?.message ?? (err as Error).message ?? 'Failed to parse';
-      toast.error(msg);
-      logger.error('parseUpload failed', err);
-    },
   });
 
-  const saveMutation = useMutation({
+  const saveMutation = useStandardizedMutation({
     mutationFn: async () => {
       if (existingTemplateId !== null) {
         // Update existing — backend triggers the versioning logic:
@@ -165,22 +158,12 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
         fields,
       });
     },
+    successMessage: existingTemplateId !== null ? 'Template replaced' : 'Template created',
+    errorContext: 'Template Save',
+    errorFallbackMessage: 'Failed to save template',
     onSuccess: () => {
-      toast.success(existingTemplateId !== null ? 'Template replaced' : 'Template created');
       queryClient.invalidateQueries({ queryKey: ['case-data-templates'] });
       closeDialog();
-    },
-    onError: (err: unknown) => {
-      const apiErr = err as {
-        response?: { data?: { message?: string; error?: { details?: string[] } } };
-      };
-      const details = apiErr.response?.data?.error?.details;
-      if (details?.length) {
-        toast.error(details.join('\n'));
-      } else {
-        toast.error(apiErr.response?.data?.message ?? 'Failed to save template');
-      }
-      logger.error('createTemplate (from import) failed', err);
     },
   });
 

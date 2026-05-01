@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { MoreHorizontal, Download, Trash2, BarChart3, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,20 +44,15 @@ export function MISReportsTable({ data, isLoading }: MISReportsTableProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [reportToDelete, setReportToDelete] = useState<MISReport | null>(null);
 
-  const queryClient = useQueryClient();
-
-  const deleteMutation = useMutation({
+  const deleteMutation = useMutationWithInvalidation({
     mutationFn: (id: string) => reportsService.deleteMISReport(id),
+    invalidateKeys: [['mis-reports']],
+    successMessage: 'Report deleted successfully',
+    errorContext: 'Report Deletion',
+    errorFallbackMessage: 'Failed to delete report',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mis-reports'] });
-      toast.success('Report deleted successfully');
       setShowDeleteDialog(false);
       setReportToDelete(null);
-    },
-    onError: (error: unknown) => {
-      const message = error instanceof Error ? error.message : 'Failed to delete report';
-      const axiosError = error as { response?: { data?: { message?: string } } };
-      toast.error(axiosError.response?.data?.message || message);
     },
   });
 

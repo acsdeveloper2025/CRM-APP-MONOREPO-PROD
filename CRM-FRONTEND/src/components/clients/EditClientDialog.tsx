@@ -1,9 +1,12 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
+import {
+  editClientFormSchema,
+  type EditClientFormData,
+} from '@/forms/schemas/client.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -30,40 +33,6 @@ import { ProductMappingsEditor, type ProductMapping } from './ProductMappingsEdi
 import type { Client, Product, VerificationType } from '@/types/client';
 import type { DocumentType } from '@/types/documentType';
 
-// Hex color validator: #RGB or #RRGGBB (empty string allowed to clear).
-const HEX_COLOR_REGEX = /^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}))?$/;
-
-const editClientSchema = z.object({
-  name: z.string().min(1, 'Client name is required').max(100, 'Name too long'),
-  code: z
-    .string()
-    .min(2, 'Client code must be at least 2 characters')
-    .max(10, 'Client code must be at most 10 characters')
-    .regex(
-      /^[A-Z0-9_]+$/,
-      'Client code must contain only uppercase letters, numbers, and underscores'
-    ),
-  productMappings: z
-    .array(
-      z.object({
-        productId: z.number(),
-        verificationTypeIds: z.array(z.number()),
-        documentTypeIds: z.array(z.number()),
-      })
-    )
-    .optional(),
-  primaryColor: z
-    .string()
-    .regex(HEX_COLOR_REGEX, 'Must be a hex color like #FF9800 or empty')
-    .optional(),
-  headerColor: z
-    .string()
-    .regex(HEX_COLOR_REGEX, 'Must be a hex color like #FFEB3B or empty')
-    .optional(),
-});
-
-type EditClientFormData = z.infer<typeof editClientSchema>;
-
 interface EditClientDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -72,7 +41,7 @@ interface EditClientDialogProps {
 
 export function EditClientDialog({ open, onOpenChange, client }: EditClientDialogProps) {
   const form = useForm<EditClientFormData>({
-    resolver: zodResolver(editClientSchema),
+    resolver: zodResolver(editClientFormSchema),
     defaultValues: {
       name: '',
       code: '',

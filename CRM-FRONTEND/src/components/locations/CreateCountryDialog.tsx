@@ -1,7 +1,11 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import {
+  countryFormSchema,
+  type CountryFormData,
+  CONTINENTS,
+} from '@/forms/schemas/location.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -30,36 +34,14 @@ import { Input } from '@/components/ui/input';
 import { locationsService } from '@/services/locations';
 import type { CreateCountryData } from '@/types/location';
 
-const createCountrySchema = z.object({
-  name: z.string().min(1, 'Country name is required').max(100, 'Country name is too long'),
-  code: z
-    .string()
-    .min(2, 'Country code must be at least 2 characters')
-    .max(3, 'Country code must be at most 3 characters')
-    .regex(/^[A-Z]{2,3}$/, 'Country code must be uppercase letters only (ISO format)'),
-  continent: z.string().min(1, 'Continent is required'),
-});
-
-type CreateCountryFormData = z.infer<typeof createCountrySchema>;
-
 interface CreateCountryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const continents = [
-  'Africa',
-  'Antarctica',
-  'Asia',
-  'Europe',
-  'North America',
-  'Oceania',
-  'South America',
-];
-
 export function CreateCountryDialog({ open, onOpenChange }: CreateCountryDialogProps) {
-  const form = useForm<CreateCountryFormData>({
-    resolver: zodResolver(createCountrySchema),
+  const form = useForm<CountryFormData>({
+    resolver: zodResolver(countryFormSchema),
     defaultValues: {
       name: '',
       code: '',
@@ -82,7 +64,7 @@ export function CreateCountryDialog({ open, onOpenChange }: CreateCountryDialogP
     },
   });
 
-  const onSubmit = (data: CreateCountryFormData) => {
+  const onSubmit = (data: CountryFormData) => {
     createCountryMutation.mutate(data);
   };
 
@@ -153,7 +135,7 @@ export function CreateCountryDialog({ open, onOpenChange }: CreateCountryDialogP
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {continents.map((continent) => (
+                      {CONTINENTS.map((continent) => (
                         <SelectItem key={continent} value={continent}>
                           {continent}
                         </SelectItem>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { MoreHorizontal, CheckCircle, DollarSign, TrendingUp, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,7 +20,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { LoadingState } from '@/components/ui/loading';
 import { Checkbox } from '@/components/ui/checkbox';
-import { toast } from 'sonner';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import { billingService } from '@/services/billing';
 import { Commission } from '@/types/billing';
@@ -33,68 +32,38 @@ interface CommissionsTableProps {
 export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
   const [selectedCommissions, setSelectedCommissions] = useState<string[]>([]);
 
-  const queryClient = useQueryClient();
-
-  const approveCommissionMutation = useMutation({
+  const approveCommissionMutation = useMutationWithInvalidation({
     mutationFn: (id: string) => billingService.approveCommission(id),
-    onSuccess: () => {
-      // Invalidate commission-related queries
-      queryClient.invalidateQueries({ queryKey: ['commissions'] });
-      // Invalidate dashboard stats (affects commission amounts, pending commissions)
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      toast.success('Commission approved successfully');
-    },
-    onError: (error: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.error((error as any).response?.data?.message || 'Failed to approve commission');
-    },
+    invalidateKeys: [['commissions'], ['dashboard']],
+    successMessage: 'Commission approved successfully',
+    errorContext: 'Commission Approval',
+    errorFallbackMessage: 'Failed to approve commission',
   });
 
-  const markPaidMutation = useMutation({
+  const markPaidMutation = useMutationWithInvalidation({
     mutationFn: (id: string) => billingService.markCommissionPaid(id),
-    onSuccess: () => {
-      // Invalidate commission-related queries
-      queryClient.invalidateQueries({ queryKey: ['commissions'] });
-      // Invalidate dashboard stats (affects paid commissions, outstanding amounts)
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      toast.success('Commission marked as paid');
-    },
-    onError: (error: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.error((error as any).response?.data?.message || 'Failed to mark commission as paid');
-    },
+    invalidateKeys: [['commissions'], ['dashboard']],
+    successMessage: 'Commission marked as paid',
+    errorContext: 'Commission Mark Paid',
+    errorFallbackMessage: 'Failed to mark commission as paid',
   });
 
-  const bulkApproveMutation = useMutation({
+  const bulkApproveMutation = useMutationWithInvalidation({
     mutationFn: (ids: string[]) => billingService.bulkApproveCommissions(ids),
-    onSuccess: () => {
-      // Invalidate commission-related queries
-      queryClient.invalidateQueries({ queryKey: ['commissions'] });
-      // Invalidate dashboard stats
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      toast.success('Commissions approved successfully');
-      setSelectedCommissions([]);
-    },
-    onError: (error: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.error((error as any).response?.data?.message || 'Failed to approve commissions');
-    },
+    invalidateKeys: [['commissions'], ['dashboard']],
+    successMessage: 'Commissions approved successfully',
+    errorContext: 'Commission Bulk Approval',
+    errorFallbackMessage: 'Failed to approve commissions',
+    onSuccess: () => setSelectedCommissions([]),
   });
 
-  const bulkMarkPaidMutation = useMutation({
+  const bulkMarkPaidMutation = useMutationWithInvalidation({
     mutationFn: (ids: string[]) => billingService.bulkMarkCommissionsPaid(ids),
-    onSuccess: () => {
-      // Invalidate commission-related queries
-      queryClient.invalidateQueries({ queryKey: ['commissions'] });
-      // Invalidate dashboard stats
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      toast.success('Commissions marked as paid');
-      setSelectedCommissions([]);
-    },
-    onError: (error: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.error((error as any).response?.data?.message || 'Failed to mark commissions as paid');
-    },
+    invalidateKeys: [['commissions'], ['dashboard']],
+    successMessage: 'Commissions marked as paid',
+    errorContext: 'Commission Bulk Mark Paid',
+    errorFallbackMessage: 'Failed to mark commissions as paid',
+    onSuccess: () => setSelectedCommissions([]),
   });
 
   const handleSelectCommission = (commissionId: string, checked: boolean) => {

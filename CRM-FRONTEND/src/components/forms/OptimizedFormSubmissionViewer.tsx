@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FormField, FormSubmission } from '@/types/form';
-import VerificationImages from '@/components/VerificationImages';
+import VerificationImages from '@/components/verification-tasks/VerificationImages';
 import { TemplateReportCard } from '@/components/forms/TemplateReportCard';
 import { baseBadgeStyle } from '@/lib/badgeStyles';
 

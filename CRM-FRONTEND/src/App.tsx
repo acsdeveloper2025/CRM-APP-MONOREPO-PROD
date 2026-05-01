@@ -5,7 +5,7 @@ import { Toaster } from 'sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { AppRoutes } from '@/components/AppRoutes';
+import { AppRoutes } from '@/routes/AppRoutes';
 import { LayoutProvider } from '@/contexts/LayoutContext';
 import { PermissionProvider } from '@/contexts/PermissionContext';
 
@@ -64,7 +64,13 @@ const queryClient = new QueryClient({
       retry: 1,
       refetchOnWindowFocus: false,
       staleTime: 2 * 60 * 1000, // 2 minutes — prevents refetch on every render
-      gcTime: 10 * 60 * 1000, // 10 minutes — garbage-collect unused cache entries
+      gcTime: 30 * 60 * 1000, // 30 minutes — garbage-collect unused cache entries
+    },
+    // Mutations never auto-retry: a lost response on a successful POST
+    // would otherwise create a duplicate. Idempotency-Key (api.ts) is
+    // the second line of defence.
+    mutations: {
+      retry: 0,
     },
   },
 });
@@ -79,7 +85,7 @@ function App() {
               <LayoutProvider>
                 <SessionHandler />
                 <Router>
-                  <div className="min-h-screen bg-[#FAFAFA]">
+                  <div className="min-h-screen bg-background">
                     <AppRoutes />
                   </div>
                 </Router>

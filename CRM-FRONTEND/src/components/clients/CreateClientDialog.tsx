@@ -1,7 +1,10 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import {
+  createClientFormSchema,
+  type CreateClientFormData,
+} from '@/forms/schemas/client.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -26,29 +29,6 @@ import { clientsService } from '@/services/clients';
 import { ProductMappingsEditor } from './ProductMappingsEditor';
 import type { CreateClientData } from '@/types/client';
 
-const createClientSchema = z.object({
-  name: z.string().min(1, 'Client name is required').max(100, 'Name too long'),
-  code: z
-    .string()
-    .min(2, 'Client code must be at least 2 characters')
-    .max(10, 'Client code must be at most 10 characters')
-    .regex(
-      /^[A-Z0-9_]+$/,
-      'Client code must contain only uppercase letters, numbers, and underscores'
-    ),
-  productMappings: z
-    .array(
-      z.object({
-        productId: z.number(),
-        verificationTypeIds: z.array(z.number()),
-        documentTypeIds: z.array(z.number()),
-      })
-    )
-    .optional(),
-});
-
-type CreateClientFormData = z.infer<typeof createClientSchema>;
-
 interface CreateClientDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -56,7 +36,7 @@ interface CreateClientDialogProps {
 
 export function CreateClientDialog({ open, onOpenChange }: CreateClientDialogProps) {
   const form = useForm<CreateClientFormData>({
-    resolver: zodResolver(createClientSchema),
+    resolver: zodResolver(createClientFormSchema),
     defaultValues: {
       name: '',
       code: '',

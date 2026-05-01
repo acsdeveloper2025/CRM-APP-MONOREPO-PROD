@@ -1,4 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
+import multer, { type FileFilterCallback } from 'multer';
 import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize, authorizeAny } from '@/middleware/authorize';
@@ -39,9 +40,31 @@ import {
   getAvailableFieldAgents,
   exportUsers,
   downloadUserTemplate,
+  bulkImportUsers,
 } from '@/controllers/usersController';
 
 const router = express.Router();
+
+// Bulk-import accepts CSV or XLSX (template is XLSX). The shared upload
+// middleware is CSV-only, so users gets its own instance.
+const userImportUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb: FileFilterCallback) => {
+    const name = file.originalname.toLowerCase();
+    const ok =
+      name.endsWith('.csv') ||
+      name.endsWith('.xlsx') ||
+      file.mimetype === 'text/csv' ||
+      file.mimetype ===
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    if (ok) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV or XLSX files are allowed'));
+    }
+  },
+});
 const SUPPORTED_USER_ROLES = [...CANONICAL_RBAC_ROLE_NAMES];
 const SUPPORTED_USER_ROLES_MESSAGE = `Role must be one of: ${SUPPORTED_USER_ROLES.join(', ')}`;
 
@@ -355,6 +378,16 @@ router.get(
 
 // Export users route
 router.post('/export', authenticateToken, authorize('user.view'), exportUsers);
+
+// POST /api/users/import - CSV or XLSX bulk insert
+router.post(
+  '/import',
+  authenticateToken,
+  authorize('user.create'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
+  userImportUpload.single('file'),
+  bulkImportUsers
+);
 
 router.get('/import-template', authenticateToken, authorize('user.view'), downloadUserTemplate);
 

@@ -122,7 +122,7 @@ export const getFieldAgentTerritories = async (req: AuthenticatedRequest, res: R
       LEFT JOIN pincodes p ON upa.pincode_id = p.id
       LEFT JOIN cities c ON p.city_id = c.id
       LEFT JOIN states s ON c.state_id = s.id
-      LEFT JOIN countries co ON c.country_id = co.id
+      LEFT JOIN countries co ON s.country_id = co.id
       LEFT JOIN (
         SELECT
           uaa.user_id,

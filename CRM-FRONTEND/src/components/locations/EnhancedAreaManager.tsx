@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Plus, X, AlertCircle, Building2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,8 +31,6 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
   const [areaToRemove, setAreaToRemove] = useState<PincodeArea | null>(null);
   const [selectedAreaIds, setSelectedAreaIds] = useState<(string | number)[]>([]);
   const [areaSearchQuery, setAreaSearchQuery] = useState('');
-
-  const queryClient = useQueryClient();
 
   // Fetch all available areas for selection
   const { data: areasData, isLoading: areasLoading } = useQuery({
@@ -73,34 +72,30 @@ export function EnhancedAreaManager({ pincode, className }: EnhancedAreaManagerP
   }, [allAreas, pincode.areas, areaSearchQuery]);
 
   // Add areas mutation
-  const addAreasMutation = useMutation({
+  const addAreasMutation = useMutationWithInvalidation({
     mutationFn: (areaIds: number[]) => locationsService.addPincodeAreas(pincode.id, { areaIds }),
+    invalidateKeys: [['pincodes'], ['areas']],
+    successMessage: 'Areas added successfully',
+    errorContext: 'Add Pincode Areas',
+    errorFallbackMessage: 'Failed to add areas',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pincodes'] });
-      queryClient.invalidateQueries({ queryKey: ['areas'] });
-      toast.success('Areas added successfully');
       setSelectedAreaIds([]);
       setShowAddPopover(false);
-    },
-    onError: (error: unknown) => {
-      const err = error as import('@/types/api').ApiErrorResponse;
-      toast.error(err.response?.data?.message || 'Failed to add areas');
     },
   });
 
   // Remove area mutation
-  const removeAreaMutation = useMutation({
+  const removeAreaMutation = useMutationWithInvalidation({
     mutationFn: (areaId: string) => locationsService.removePincodeArea(pincode.id, areaId),
+    invalidateKeys: [['pincodes'], ['areas']],
+    successMessage: 'Area removed successfully',
+    errorContext: 'Remove Pincode Area',
+    errorFallbackMessage: 'Failed to remove area',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pincodes'] });
-      queryClient.invalidateQueries({ queryKey: ['areas'] });
-      toast.success('Area removed successfully');
       setShowRemoveDialog(false);
       setAreaToRemove(null);
     },
-    onError: (error: unknown) => {
-      const err = error as import('@/types/api').ApiErrorResponse;
-      toast.error(err.response?.data?.message || 'Failed to remove area');
+    onErrorCallback: () => {
       setShowRemoveDialog(false);
       setAreaToRemove(null);
     },

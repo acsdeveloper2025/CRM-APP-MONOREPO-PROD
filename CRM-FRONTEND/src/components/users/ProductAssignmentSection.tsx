@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Package, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +8,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { usersService } from '@/services/users';
 import { productsService } from '@/services/products';
-import { toast } from 'sonner';
 import type { User, UserClientAssignment } from '@/types/user';
 import type { Product } from '@/types/product';
 import { LoadingSpinner } from '@/components/ui/loading';
@@ -19,7 +19,6 @@ interface ProductAssignmentSectionProps {
 
 export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps) {
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
-  const queryClient = useQueryClient();
 
   // 1. Fetch user's currently assigned clients — products dropdown is scoped to these.
   const { data: clientAssignmentsData, isLoading: clientAssignmentsLoading } = useQuery({
@@ -65,17 +64,16 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
     }
   }, [assignmentsData]);
 
-  const saveAssignmentsMutation = useMutation({
+  const saveAssignmentsMutation = useMutationWithInvalidation({
     mutationFn: (productIds: number[]) => usersService.assignProductsToUser(user.id, productIds),
-    onSuccess: () => {
-      toast.success('Product assignments updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['user-product-assignments', user.id] });
-      queryClient.invalidateQueries({ queryKey: ['user-stats'] });
-    },
-    onError: (error: { response?: { data?: { message?: string } } }) => {
-      toast.error(error.response?.data?.message || 'Failed to update product assignments');
-    },
+    invalidateKeys: [
+      ['users'],
+      ['user-product-assignments', user.id],
+      ['user-stats'],
+    ],
+    successMessage: 'Product assignments updated successfully',
+    errorContext: 'Product Assignment',
+    errorFallbackMessage: 'Failed to update product assignments',
   });
 
   if (!isBackendScopedUser(user)) {

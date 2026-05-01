@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
+import { pincodeFormSchema, type PincodeFormData } from '@/forms/schemas/location.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -34,21 +34,6 @@ import { locationsService } from '@/services/locations';
 import { Pincode } from '@/types/location';
 import { EnhancedAreasMultiSelect } from './EnhancedAreasMultiSelect';
 
-const editPincodeSchema = z.object({
-  code: z
-    .string()
-    .min(6, 'Pincode must be 6 digits')
-    .max(6, 'Pincode must be 6 digits')
-    .regex(/^\d{6}$/, 'Pincode must contain only numbers'),
-  areas: z
-    .array(z.string())
-    .min(1, 'At least one area must be selected')
-    .max(15, 'Maximum 15 areas allowed'),
-  cityId: z.string().min(1, 'City selection is required'),
-});
-
-type EditPincodeFormData = z.infer<typeof editPincodeSchema>;
-
 interface EditPincodeDialogProps {
   pincode: Pincode;
   open: boolean;
@@ -56,8 +41,8 @@ interface EditPincodeDialogProps {
 }
 
 export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDialogProps) {
-  const form = useForm<EditPincodeFormData>({
-    resolver: zodResolver(editPincodeSchema),
+  const form = useForm<PincodeFormData>({
+    resolver: zodResolver(pincodeFormSchema),
     defaultValues: {
       code: String(pincode.code),
       areas: pincode.areas?.map((area) => String(area.id)) || [], // Convert areas to IDs or empty array
@@ -84,7 +69,7 @@ export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDi
   });
 
   const updateMutation = useCRUDMutation({
-    mutationFn: (data: EditPincodeFormData) => locationsService.updatePincode(pincode.id, data),
+    mutationFn: (data: PincodeFormData) => locationsService.updatePincode(pincode.id, data),
     queryKey: ['pincodes'],
     resourceName: 'Pincode',
     operation: 'update',
@@ -94,7 +79,7 @@ export function EditPincodeDialog({ pincode, open, onOpenChange }: EditPincodeDi
     },
   });
 
-  const onSubmit = (data: EditPincodeFormData) => {
+  const onSubmit = (data: PincodeFormData) => {
     updateMutation.mutate(data);
   };
 

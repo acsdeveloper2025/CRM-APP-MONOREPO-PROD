@@ -2,7 +2,10 @@ import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { z } from 'zod';
+import {
+  documentTypeFormSchema,
+  type DocumentTypeFormData,
+} from '@/forms/schemas/documentType.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,17 +27,6 @@ import { Input } from '@/components/ui/input';
 import { documentTypesService } from '@/services/documentTypes';
 import type { DocumentType } from '@/types/documentType';
 
-const editDocumentTypeSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255, 'Name too long'),
-  code: z
-    .string()
-    .min(2, 'Code must be at least 2 characters')
-    .max(50, 'Code must be at most 50 characters')
-    .regex(/^[A-Z0-9_]+$/, 'Code must contain only uppercase letters, numbers, and underscores'),
-});
-
-type EditDocumentTypeData = z.infer<typeof editDocumentTypeSchema>;
-
 interface EditDocumentTypeDialogProps {
   documentType: DocumentType | null;
   open: boolean;
@@ -46,8 +38,8 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
   open,
   onOpenChange,
 }) => {
-  const form = useForm<EditDocumentTypeData>({
-    resolver: zodResolver(editDocumentTypeSchema),
+  const form = useForm<DocumentTypeFormData>({
+    resolver: zodResolver(documentTypeFormSchema),
     defaultValues: { name: '', code: '' },
   });
 
@@ -61,7 +53,7 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
   }, [documentType, form]);
 
   const updateDocumentTypeMutation = useMutationWithInvalidation({
-    mutationFn: (data: EditDocumentTypeData) => {
+    mutationFn: (data: DocumentTypeFormData) => {
       if (!documentType) {
         throw new Error('Document Type is missing');
       }
@@ -76,7 +68,7 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
     },
   });
 
-  const onSubmit = (data: EditDocumentTypeData) => {
+  const onSubmit = (data: DocumentTypeFormData) => {
     if (!documentType) {
       return;
     }

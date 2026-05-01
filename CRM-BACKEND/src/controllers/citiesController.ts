@@ -10,7 +10,6 @@ interface City {
   id: string;
   name: string;
   stateId: string;
-  countryId: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -41,7 +40,7 @@ export const getCities = async (req: AuthenticatedRequest, res: Response) => {
         0 as "pincode_count"
       FROM cities c
       JOIN states s ON c.state_id = s.id
-      JOIN countries co ON c.country_id = co.id
+      JOIN countries co ON s.country_id = co.id
 
       WHERE 1=1
     `;
@@ -101,7 +100,7 @@ export const getCities = async (req: AuthenticatedRequest, res: Response) => {
       SELECT COUNT(*)
       FROM cities c
       JOIN states s ON c.state_id = s.id
-      JOIN countries co ON c.country_id = co.id
+      JOIN countries co ON s.country_id = co.id
       WHERE 1=1
     `;
     const countParams: QueryParams = [];
@@ -139,9 +138,8 @@ export const getCities = async (req: AuthenticatedRequest, res: Response) => {
       success: true,
       data: result.rows.map(city => ({
         ...city,
-        id: city.id.toString(), // Convert integer ID to string
-        stateId: city.stateId ? city.stateId.toString() : null, // Convert integer stateId to string if exists
-        countryId: city.countryId ? city.countryId.toString() : null, // Convert integer countryId to string if exists
+        id: city.id.toString(),
+        stateId: city.stateId ? city.stateId.toString() : null,
       })),
       pagination: {
         page: pageNum,
@@ -173,7 +171,7 @@ export const getCityById = async (req: AuthenticatedRequest, res: Response) => {
         c.updated_at
        FROM cities c
        JOIN states s ON c.state_id = s.id
-       JOIN countries co ON c.country_id = co.id
+       JOIN countries co ON s.country_id = co.id
        WHERE c.id = $1`,
       [Number(id)]
     );
@@ -236,7 +234,6 @@ export const createCity = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     const stateId = stateResult.rows[0].id;
-    const countryId = countryResult.rows[0].id;
 
     // Check if city already exists in this state
     const existingCity = await query<{ id: string }>(
@@ -248,12 +245,12 @@ export const createCity = async (req: AuthenticatedRequest, res: Response) => {
       return errors.conflict(res, 'City already exists in this state');
     }
 
-    // Insert new city
+    // Insert new city. country reachable via state_id → states.country_id.
     const insertResult = await query<City>(
-      `INSERT INTO cities (name, state_id, country_id, created_at, updated_at)
-       VALUES ($1, $2, $3, NOW(), NOW())
-       RETURNING id, name, state_id, country_id, created_at, updated_at`,
-      [name, stateId, countryId]
+      `INSERT INTO cities (name, state_id, created_at, updated_at)
+       VALUES ($1, $2, NOW(), NOW())
+       RETURNING id, name, state_id, created_at, updated_at`,
+      [name, stateId]
     );
 
     const newCity = insertResult.rows[0];
@@ -269,7 +266,7 @@ export const createCity = async (req: AuthenticatedRequest, res: Response) => {
         c.updated_at
        FROM cities c
        JOIN states s ON c.state_id = s.id
-       JOIN countries co ON c.country_id = co.id
+       JOIN countries co ON s.country_id = co.id
        WHERE c.id = $1`,
       [newCity.id]
     );
@@ -335,14 +332,13 @@ export const updateCity = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     const stateId = stateResult.rows[0].id;
-    const countryId = countryResult.rows[0].id;
 
-    // Update city
+    // Update city. country reachable via state_id → states.country_id.
     await query(
       `UPDATE cities
-       SET name = $1, state_id = $2, country_id = $3, updated_at = NOW()
-       WHERE id = $4`,
-      [name, stateId, countryId, id]
+       SET name = $1, state_id = $2, updated_at = NOW()
+       WHERE id = $3`,
+      [name, stateId, id]
     );
 
     // Get updated city data
@@ -356,7 +352,7 @@ export const updateCity = async (req: AuthenticatedRequest, res: Response) => {
         c.updated_at
        FROM cities c
        JOIN states s ON c.state_id = s.id
-       JOIN countries co ON c.country_id = co.id
+       JOIN countries co ON s.country_id = co.id
        WHERE c.id = $1`,
       [id]
     );
@@ -395,7 +391,7 @@ export const deleteCity = async (req: AuthenticatedRequest, res: Response) => {
         co.name as country
        FROM cities c
        JOIN states s ON c.state_id = s.id
-       JOIN countries co ON c.country_id = co.id
+       JOIN countries co ON s.country_id = co.id
        WHERE c.id = $1`,
       [id]
     );
@@ -447,7 +443,7 @@ export const getCitiesStats = async (req: AuthenticatedRequest, res: Response) =
     const countryDistributionResult = await query<{ country: string; count: string }>(
       `SELECT co.name as country, COUNT(*) as count
        FROM cities c
-       JOIN countries co ON c.country_id = co.id
+       JOIN countries co ON s.country_id = co.id
        GROUP BY co.name
        ORDER BY count DESC`
     );
@@ -524,39 +520,38 @@ export const bulkImportCities = async (
 
         const { name, state, country } = row;
 
-        // Find or create country
+        // Country must exist (auto-create removed — produced junk rows
+        // with hardcoded continent + truncated code).
         const countryResult = await query(
           'SELECT id FROM countries WHERE LOWER(name) = LOWER($1)',
           [country]
         );
-
-        let countryId: number;
         if (countryResult.rows.length === 0) {
-          const newCountry = await query(
-            'INSERT INTO countries (name, code, continent) VALUES ($1, $2, $3) RETURNING id',
-            [country, country.substring(0, 3).toUpperCase(), 'Asia']
-          );
-          countryId = newCountry.rows[0].id;
-        } else {
-          countryId = countryResult.rows[0].id;
+          results.failed++;
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: `Country "${country}" not found. Seed it via the countries import first.`,
+          });
+          continue;
         }
+        const countryId = countryResult.rows[0].id;
 
-        // Find or create state
+        // State must exist within country (same reason).
         const stateResult = await query(
           'SELECT id FROM states WHERE LOWER(name) = LOWER($1) AND country_id = $2',
           [state, countryId]
         );
-
-        let stateId: number;
         if (stateResult.rows.length === 0) {
-          const newState = await query(
-            'INSERT INTO states (name, code, country_id) VALUES ($1, $2, $3) RETURNING id',
-            [state, state.substring(0, 3).toUpperCase(), countryId]
-          );
-          stateId = newState.rows[0].id;
-        } else {
-          stateId = stateResult.rows[0].id;
+          results.failed++;
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: `State "${state}" not found in country "${country}". Seed it via the states import first.`,
+          });
+          continue;
         }
+        const stateId = stateResult.rows[0].id;
 
         // Check if city already exists
         const existingCity = await query(
@@ -574,11 +569,10 @@ export const bulkImportCities = async (
           );
           results.updated++;
         } else {
-          // Create new city
+          // Create new city. country is reachable via state_id → states.country_id.
           await query(
-            `INSERT INTO cities (name, state_id, country_id)
-             VALUES ($1, $2, $3)`,
-            [name, stateId, countryId]
+            `INSERT INTO cities (name, state_id) VALUES ($1, $2)`,
+            [name, stateId]
           );
           results.created++;
         }

@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import { productFormSchema, type ProductFormData } from '@/forms/schemas/client.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -23,21 +23,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { productsService } from '@/services/products';
 
-const createProductSchema = z.object({
-  name: z.string().min(1, 'Product name is required').max(100, 'Name too long'),
-  code: z.string().min(2, 'Product code is required').max(50, 'Code too long'),
-});
-
-type CreateProductFormData = z.infer<typeof createProductSchema>;
-
 interface CreateProductDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function CreateProductDialog({ open, onOpenChange }: CreateProductDialogProps) {
-  const form = useForm<CreateProductFormData>({
-    resolver: zodResolver(createProductSchema),
+  const form = useForm<ProductFormData>({
+    resolver: zodResolver(productFormSchema),
     defaultValues: {
       name: '',
       code: '',
@@ -45,7 +38,7 @@ export function CreateProductDialog({ open, onOpenChange }: CreateProductDialogP
   });
 
   const createMutation = useCRUDMutation({
-    mutationFn: (data: CreateProductFormData) =>
+    mutationFn: (data: ProductFormData) =>
       productsService.createProduct({
         name: data.name,
         code: data.code,
@@ -60,7 +53,7 @@ export function CreateProductDialog({ open, onOpenChange }: CreateProductDialogP
     },
   });
 
-  const onSubmit = (data: CreateProductFormData) => {
+  const onSubmit = (data: ProductFormData) => {
     createMutation.mutate(data);
   };
 

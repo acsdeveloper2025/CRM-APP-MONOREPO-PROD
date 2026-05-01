@@ -3,6 +3,7 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
 import { createAuditLog } from '@/utils/auditLogger';
+import { sendError } from '@/utils/apiResponse';
 
 // GET /api/products - List products with pagination and filters
 export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
@@ -468,5 +469,154 @@ export const getProductVerificationTypes = async (req: AuthenticatedRequest, res
       message: 'Failed to retrieve product verification types',
       error: { code: 'INTERNAL_ERROR' },
     });
+  }
+};
+
+// POST /api/products/bulk-import - CSV bulk upsert. Headers (camelCase):
+//   required: name, code
+//   optional: description, isActive, clientCodes (semicolon-separated client
+//             codes for the client_products M2M mapping)
+// Match key is `code`; existing row → UPDATE, else INSERT. clientCodes when
+// present REPLACES the existing mapping for the product (full overwrite).
+export const bulkImportProducts = async (
+  req: AuthenticatedRequest & { file?: Express.Multer.File },
+  res: Response
+) => {
+  try {
+    if (!req.file) {
+      return sendError(res, 400, 'No file uploaded', 'NO_FILE');
+    }
+    const { parseCSV, validateCSVRow } = await import('@/utils/csvParser');
+    const rows = await parseCSV(req.file.buffer);
+
+    const results = {
+      total: rows.length,
+      created: 0,
+      updated: 0,
+      failed: 0,
+      errors: [] as Array<{ row: number; data: Record<string, unknown>; error: string }>,
+    };
+
+    const blankToNull = (v: string | undefined): string | null =>
+      typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      try {
+        const validationError = validateCSVRow(row, ['name', 'code']);
+        if (validationError) {
+          results.failed++;
+          results.errors.push({ row: i + 1, data: row, error: validationError });
+          continue;
+        }
+
+        const name = row.name.trim();
+        const code = row.code.trim();
+        const description = blankToNull(row.description);
+        const isActiveRaw = blankToNull(row.isActive);
+        const isActive: boolean | null =
+          isActiveRaw === null
+            ? null
+            : ['true', '1', 'yes', 'y'].includes(isActiveRaw.toLowerCase());
+
+        // Resolve client codes → client ids for the M2M mapping. Unknown
+        // codes fail the row outright.
+        const clientCodesRaw = blankToNull(row.clientCodes);
+        let clientIds: number[] | null = null;
+        if (clientCodesRaw !== null) {
+          const codes = clientCodesRaw
+            .split(';')
+            .map(c => c.trim())
+            .filter(c => c.length > 0);
+          if (codes.length > 0) {
+            const r = await query<{ id: number; code: string }>(
+              'SELECT id, code FROM clients WHERE code = ANY($1::varchar[]) AND deleted_at IS NULL',
+              [codes]
+            );
+            const found = new Set(r.rows.map(c => c.code));
+            const missing = codes.filter(c => !found.has(c));
+            if (missing.length > 0) {
+              results.failed++;
+              results.errors.push({
+                row: i + 1,
+                data: row,
+                error: `clientCodes not found: ${missing.join(', ')}`,
+              });
+              continue;
+            }
+            clientIds = r.rows.map(c => c.id);
+          } else {
+            clientIds = [];
+          }
+        }
+
+        const existing = await query<{ id: number }>('SELECT id FROM products WHERE code = $1', [
+          code,
+        ]);
+
+        let productId: number;
+        if (existing.rows.length > 0) {
+          productId = existing.rows[0].id;
+          await query(
+            `UPDATE products SET
+               name = $1,
+               description = COALESCE($2, description),
+               is_active = COALESCE($3, is_active),
+               updated_at = NOW()
+             WHERE code = $4`,
+            [name, description, isActive, code]
+          );
+          results.updated++;
+        } else {
+          const ins = await query<{ id: number }>(
+            `INSERT INTO products (name, code, description, is_active)
+             VALUES ($1, $2, $3, COALESCE($4, true))
+             RETURNING id`,
+            [name, code, description, isActive]
+          );
+          productId = ins.rows[0].id;
+          results.created++;
+        }
+
+        // M2M overwrite (only when CSV supplied a clientCodes column).
+        if (clientIds !== null) {
+          await query('DELETE FROM client_products WHERE product_id = $1', [productId]);
+          for (const cid of clientIds) {
+            await query(
+              `INSERT INTO client_products (client_id, product_id)
+               VALUES ($1, $2)
+               ON CONFLICT (client_id, product_id) DO NOTHING`,
+              [cid, productId]
+            );
+          }
+        }
+      } catch (error) {
+        results.failed++;
+        results.errors.push({
+          row: i + 1,
+          data: row,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        logger.error(`Error importing product at row ${i + 1}:`, error);
+      }
+    }
+
+    logger.info('Bulk import products completed', { userId: req.user?.id, results });
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'BULK_IMPORT_PRODUCTS',
+      entityType: 'PRODUCT',
+      details: { total: results.total, created: results.created, updated: results.updated, failed: results.failed },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
+    res.status(200).json({
+      success: true,
+      message: `Bulk import completed: ${results.created} created, ${results.updated} updated, ${results.failed} failed`,
+      data: results,
+    });
+  } catch (error) {
+    logger.error('Error in bulk import products:', error);
+    return sendError(res, 500, 'Failed to bulk import products', 'INTERNAL_ERROR');
   }
 };

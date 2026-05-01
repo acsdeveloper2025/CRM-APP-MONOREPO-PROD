@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { kycService, type KYCTaskListQuery } from '@/services/kyc';
 
 const kycKeys = {
@@ -55,8 +56,7 @@ export const useKYCTasksForCase = (caseId: string) => {
 };
 
 export const useVerifyKYCDocument = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: ({
       taskId,
       data,
@@ -64,30 +64,25 @@ export const useVerifyKYCDocument = () => {
       taskId: string;
       data: { status: string; remarks?: string; rejectionReason?: string };
     }) => kycService.verifyDocument(taskId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: kycKeys.all });
-    },
+    invalidateKeys: [kycKeys.all],
+    errorContext: 'KYC Verification',
   });
 };
 
 export const useAssignKYCTask = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: ({ taskId, assignedTo }: { taskId: string; assignedTo: string }) =>
       kycService.assignTask(taskId, assignedTo),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: kycKeys.all });
-    },
+    invalidateKeys: [kycKeys.all],
+    errorContext: 'KYC Task Assignment',
   });
 };
 
 export const useUploadKYCDocument = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: ({ taskId, file }: { taskId: string; file: File }) =>
       kycService.uploadDocument(taskId, file),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: kycKeys.all });
-    },
+    invalidateKeys: [kycKeys.all],
+    errorContext: 'KYC Document Upload',
   });
 };

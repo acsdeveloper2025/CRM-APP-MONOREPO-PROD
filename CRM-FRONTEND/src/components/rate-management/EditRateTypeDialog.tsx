@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import { rateTypeFormSchema, type RateTypeFormData } from '@/forms/schemas/rateType.schema';
 import {
   Dialog,
   DialogContent,
@@ -26,17 +26,6 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { rateTypesService, type RateType, type UpdateRateTypeData } from '@/services/rateTypes';
 
-const updateRateTypeSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Rate type name is required')
-    .max(100, 'Name must be less than 100 characters'),
-  description: z.string().max(500, 'Description must be less than 500 characters').optional(),
-  isActive: z.boolean(),
-});
-
-type UpdateRateTypeFormData = z.infer<typeof updateRateTypeSchema>;
-
 interface EditRateTypeDialogProps {
   rateType: RateType;
   open: boolean;
@@ -44,8 +33,8 @@ interface EditRateTypeDialogProps {
 }
 
 export function EditRateTypeDialog({ rateType, open, onOpenChange }: EditRateTypeDialogProps) {
-  const form = useForm<UpdateRateTypeFormData>({
-    resolver: zodResolver(updateRateTypeSchema),
+  const form = useForm<RateTypeFormData>({
+    resolver: zodResolver(rateTypeFormSchema),
     defaultValues: {
       name: rateType.name,
       description: rateType.description || '',
@@ -73,7 +62,7 @@ export function EditRateTypeDialog({ rateType, open, onOpenChange }: EditRateTyp
     },
   });
 
-  const onSubmit = (data: UpdateRateTypeFormData) => {
+  const onSubmit = (data: RateTypeFormData) => {
     updateMutation.mutate(data);
   };
 

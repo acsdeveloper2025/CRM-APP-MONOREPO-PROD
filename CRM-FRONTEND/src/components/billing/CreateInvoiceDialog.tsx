@@ -1,6 +1,7 @@
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { z } from 'zod';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
 import { billingService } from '@/services/billing';
 import { clientsService } from '@/services/clients';
 
@@ -55,8 +55,6 @@ interface CreateInvoiceDialogProps {
 }
 
 export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<CreateInvoiceFormData>({
     resolver: zodResolver(createInvoiceSchema),
     defaultValues: {
@@ -78,17 +76,15 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
     enabled: open,
   });
 
-  const createMutation = useMutation({
+  const createMutation = useMutationWithInvalidation({
     mutationFn: (data: CreateInvoiceFormData) => billingService.createInvoice(data),
+    invalidateKeys: [['invoices']],
+    successMessage: 'Invoice created successfully',
+    errorContext: 'Invoice Creation',
+    errorFallbackMessage: 'Failed to create invoice',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      toast.success('Invoice created successfully');
       form.reset();
       onOpenChange(false);
-    },
-    onError: (error: unknown) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      toast.error((error as any).response?.data?.message || 'Failed to create invoice');
     },
   });
 

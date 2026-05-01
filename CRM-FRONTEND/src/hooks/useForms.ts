@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { formsService, FormSubmissionsResponse } from '@/services/forms';
 import { FormSubmission } from '@/types/form';
 import { VerificationFormData } from '@/types/dto/form.dto';
@@ -29,27 +30,24 @@ export const useFormTemplate = (formType: string) => {
 export const useSubmitForm = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useStandardizedMutation({
     mutationFn: ({ caseId, formData }: { caseId: string; formData: VerificationFormData }) =>
       formsService.submitForm(caseId, formData),
+    errorContext: 'Form Submission',
     onSuccess: (_data, variables) => {
-      // Invalidate and refetch case form submissions
-      queryClient.invalidateQueries({
-        queryKey: ['case-form-submissions', variables.caseId],
-      });
-      // Invalidate case data as well since it might have been updated
-      queryClient.invalidateQueries({
-        queryKey: ['case', variables.caseId],
-      });
+      queryClient.invalidateQueries({ queryKey: ['case-form-submissions', variables.caseId] });
+      queryClient.invalidateQueries({ queryKey: ['case', variables.caseId] });
     },
   });
 };
 
-// Hook to auto-save form
+// Auto-save fails silently — user is still typing, surfacing a toast on every
+// dropped packet would be noisy.
 export const useAutoSaveForm = () => {
-  return useMutation({
+  return useStandardizedMutation({
     mutationFn: ({ caseId, formData }: { caseId: string; formData: VerificationFormData }) =>
       formsService.autoSaveForm(caseId, formData),
+    errorOptions: { showToast: false },
   });
 };
 

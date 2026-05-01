@@ -33,7 +33,7 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
         c.name as city_name,
         c.state_id as state_id,
         s.name as state_name,
-        c.country_id as country_id,
+        s.country_id as country_id,
         co.name as country_name,
         p.created_at as created_at,
         p.updated_at as updated_at,
@@ -50,7 +50,7 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
       FROM pincodes p
       JOIN cities c ON p.city_id = c.id
       JOIN states s ON c.state_id = s.id
-      JOIN countries co ON c.country_id = co.id
+      JOIN countries co ON s.country_id = co.id
       LEFT JOIN pincode_areas pa ON p.id = pa.pincode_id
       LEFT JOIN areas a ON pa.area_id = a.id
       WHERE 1=1
@@ -88,7 +88,7 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Add GROUP BY clause for area aggregation
-    sql += ` GROUP BY p.id, p.code, p.city_id, c.name, c.state_id, s.name, c.country_id, co.name, p.created_at, p.updated_at`;
+    sql += ` GROUP BY p.id, p.code, p.city_id, c.name, c.state_id, s.name, s.country_id, co.name, p.created_at, p.updated_at`;
 
     // Apply sorting
     const sortDirection = sortOrder === 'desc' ? 'DESC' : 'ASC';
@@ -126,7 +126,7 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
       FROM pincodes p
       JOIN cities c ON p.city_id = c.id
       JOIN states s ON c.state_id = s.id
-      JOIN countries co ON c.country_id = co.id
+      JOIN countries co ON s.country_id = co.id
       LEFT JOIN pincode_areas pa ON p.id = pa.pincode_id
       LEFT JOIN areas a ON pa.area_id = a.id
       WHERE 1=1
@@ -231,7 +231,7 @@ export const getPincodeById = async (req: AuthenticatedRequest, res: Response) =
       FROM pincodes p
       JOIN cities c ON p.city_id = c.id
       JOIN states s ON c.state_id = s.id
-      JOIN countries co ON c.country_id = co.id
+      JOIN countries co ON s.country_id = co.id
       LEFT JOIN pincode_areas pa ON p.id = pa.pincode_id
       LEFT JOIN areas a ON pa.area_id = a.id
       WHERE p.id = $1
@@ -371,7 +371,7 @@ export const createPincode = async (req: AuthenticatedRequest, res: Response) =>
       FROM pincodes p
       JOIN cities c ON p.city_id = c.id
       JOIN states s ON c.state_id = s.id
-      JOIN countries co ON c.country_id = co.id
+      JOIN countries co ON s.country_id = co.id
       LEFT JOIN pincode_areas pa ON p.id = pa.pincode_id
       LEFT JOIN areas a ON pa.area_id = a.id
       WHERE p.id = $1
@@ -560,7 +560,7 @@ export const searchPincodes = async (req: AuthenticatedRequest, res: Response) =
       FROM pincodes p
       JOIN cities c ON p.city_id = c.id
       JOIN states s ON c.state_id = s.id
-      JOIN countries co ON c.country_id = co.id
+      JOIN countries co ON s.country_id = co.id
       WHERE
         LOWER(p.code) LIKE $1 OR
         LOWER(p.area) LIKE $1 OR
@@ -621,68 +621,42 @@ export const bulkImportPincodes = async (
           continue;
         }
 
-        // Helper function to get continent for a country
-        const getContinent = (countryName: string): string => {
-          const continentMap: { [key: string]: string } = {
-            India: 'Asia',
-            China: 'Asia',
-            Japan: 'Asia',
-            USA: 'North America',
-            'United States': 'North America',
-            UK: 'Europe',
-            'United Kingdom': 'Europe',
-            Germany: 'Europe',
-            France: 'Europe',
-            Australia: 'Oceania',
-            Brazil: 'South America',
-            Canada: 'North America',
-            Mexico: 'North America',
-            'South Africa': 'Africa',
-            Egypt: 'Africa',
-            Nigeria: 'Africa',
-          };
-          return continentMap[countryName] || 'Asia'; // Default to Asia
-        };
-
-        // Find or create country
+        // Country must exist (auto-create removed — produced junk rows
+        // with hardcoded continent + truncated code).
         const countryName = country || 'India';
         const countryResult = await query(
           'SELECT id FROM countries WHERE LOWER(name) = LOWER($1)',
           [countryName]
         );
-
-        let countryId: number;
         if (countryResult.rows.length === 0) {
-          const countryCode = countryName.substring(0, 3).toUpperCase();
-          const continent = getContinent(countryName);
-
-          const newCountry = await query(
-            'INSERT INTO countries (name, code, continent) VALUES ($1, $2, $3) RETURNING id',
-            [countryName, countryCode, continent]
-          );
-          countryId = newCountry.rows[0].id;
-        } else {
-          countryId = countryResult.rows[0].id;
+          results.failed++;
+          results.errors.push({
+            row: i + 1,
+            code,
+            error: `Country "${countryName}" not found. Seed it via the countries import first.`,
+          });
+          continue;
         }
+        const countryId = countryResult.rows[0].id;
 
-        // Find or create state
+        // State must exist within country (same reason).
         const stateResult = await query(
           'SELECT id FROM states WHERE LOWER(name) = LOWER($1) AND country_id = $2',
           [state, countryId]
         );
-
-        let stateId: number;
         if (stateResult.rows.length === 0) {
-          const newState = await query(
-            'INSERT INTO states (name, code, country_id) VALUES ($1, $2, $3) RETURNING id',
-            [state, state.substring(0, 3).toUpperCase(), countryId]
-          );
-          stateId = newState.rows[0].id;
-        } else {
-          stateId = stateResult.rows[0].id;
+          results.failed++;
+          results.errors.push({
+            row: i + 1,
+            code,
+            error: `State "${state}" not found in country "${countryName}". Seed it via the states import first.`,
+          });
+          continue;
         }
+        const stateId = stateResult.rows[0].id;
 
-        // Find or create city
+        // City auto-created on demand within the state — cities don't
+        // carry country/continent metadata so there's nothing to fake.
         const cityResult = await query(
           'SELECT id FROM cities WHERE LOWER(name) = LOWER($1) AND state_id = $2',
           [cityName, stateId]
@@ -691,8 +665,8 @@ export const bulkImportPincodes = async (
         let cityId: number;
         if (cityResult.rows.length === 0) {
           const newCity = await query(
-            'INSERT INTO cities (name, state_id, country_id) VALUES ($1, $2, $3) RETURNING id',
-            [cityName, stateId, countryId]
+            'INSERT INTO cities (name, state_id) VALUES ($1, $2) RETURNING id',
+            [cityName, stateId]
           );
           cityId = newCity.rows[0].id;
         } else {
@@ -821,7 +795,7 @@ export const getPincodesByCity = async (req: AuthenticatedRequest, res: Response
       FROM pincodes p
       JOIN cities c ON p.city_id = c.id
       JOIN states s ON c.state_id = s.id
-      JOIN countries co ON c.country_id = co.id
+      JOIN countries co ON s.country_id = co.id
       LEFT JOIN pincode_areas pa ON p.id = pa.pincode_id
       LEFT JOIN areas a ON pa.area_id = a.id
       WHERE p.city_id = $1

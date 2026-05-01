@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import { areaFormSchema, type AreaFormData } from '@/forms/schemas/location.schema';
 import {
   Dialog,
   DialogContent,
@@ -23,30 +23,21 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { locationsService } from '@/services/locations';
 
-const createAreaSchema = z.object({
-  name: z
-    .string()
-    .min(2, 'Area name must be at least 2 characters')
-    .max(100, 'Area name must be less than 100 characters'),
-});
-
-type CreateAreaFormData = z.infer<typeof createAreaSchema>;
-
 interface CreateAreaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function CreateAreaDialog({ open, onOpenChange }: CreateAreaDialogProps) {
-  const form = useForm<CreateAreaFormData>({
-    resolver: zodResolver(createAreaSchema),
+  const form = useForm<AreaFormData>({
+    resolver: zodResolver(areaFormSchema),
     defaultValues: {
       name: '',
     },
   });
 
   const createMutation = useCRUDMutation({
-    mutationFn: async (data: CreateAreaFormData) => {
+    mutationFn: async (data: AreaFormData) => {
       // Validate data before sending
       if (!data.name || data.name.trim() === '') {
         throw new Error('Please enter a valid area name');
@@ -67,7 +58,7 @@ export function CreateAreaDialog({ open, onOpenChange }: CreateAreaDialogProps) 
     },
   });
 
-  const onSubmit = (data: CreateAreaFormData) => {
+  const onSubmit = (data: AreaFormData) => {
     createMutation.mutate(data);
   };
 

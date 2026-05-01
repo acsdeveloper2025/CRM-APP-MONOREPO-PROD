@@ -138,8 +138,13 @@ export function RateViewReportTab() {
     }
   };
 
-  const handleExportRates = () => {
-    // Create CSV content
+  const handleExportRates = async () => {
+    // The visible `rates` array is paginated (pageSize=20). Re-fetch
+    // the full filtered set for the export so users don't get a
+    // 20-row CSV when the table actually has hundreds of rows.
+    const exportRes = await ratesService.getRates({ ...rateFilters, page: 1, limit: 10000 });
+    const allRates = exportRes?.data || [];
+
     const headers = [
       'Client Name',
       'Client Code',
@@ -156,7 +161,7 @@ export function RateViewReportTab() {
 
     const csvContent = [
       headers.join(','),
-      ...rates.map((rate) =>
+      ...allRates.map((rate) =>
         [
           `"${rate.clientName}"`,
           `"${rate.clientCode}"`,
@@ -173,7 +178,6 @@ export function RateViewReportTab() {
       ),
     ].join('\n');
 
-    // Download CSV
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -184,7 +188,7 @@ export function RateViewReportTab() {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
 
-    toast.success('Rates exported successfully');
+    toast.success(`Rates exported successfully (${allRates.length} rows)`);
   };
 
   const clearFilters = () => {

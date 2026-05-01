@@ -1,8 +1,11 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { z } from 'zod';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
+import {
+  documentTypeFormSchema,
+  type DocumentTypeFormData,
+} from '@/forms/schemas/documentType.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,17 +27,6 @@ import { Input } from '@/components/ui/input';
 import { documentTypesService } from '@/services/documentTypes';
 import { logger } from '@/utils/logger';
 
-const createDocumentTypeSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(255, 'Name too long'),
-  code: z
-    .string()
-    .min(2, 'Code must be at least 2 characters')
-    .max(50, 'Code must be at most 50 characters')
-    .regex(/^[A-Z0-9_]+$/, 'Code must contain only uppercase letters, numbers, and underscores'),
-});
-
-type CreateDocumentTypeData = z.infer<typeof createDocumentTypeSchema>;
-
 interface CreateDocumentTypeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -44,27 +36,26 @@ export const CreateDocumentTypeDialog: React.FC<CreateDocumentTypeDialogProps> =
   open,
   onOpenChange,
 }) => {
-  const queryClient = useQueryClient();
-
-  const form = useForm<CreateDocumentTypeData>({
-    resolver: zodResolver(createDocumentTypeSchema),
+  const form = useForm<DocumentTypeFormData>({
+    resolver: zodResolver(documentTypeFormSchema),
     defaultValues: {
       name: '',
       code: '',
     },
   });
 
-  const createDocumentTypeMutation = useMutation({
-    mutationFn: (data: CreateDocumentTypeData) => documentTypesService.createDocumentType(data),
+  const createDocumentTypeMutation = useMutationWithInvalidation({
+    mutationFn: (data: DocumentTypeFormData) => documentTypesService.createDocumentType(data),
+    invalidateKeys: [['document-types'], ['document-types-stats']],
+    successMessage: 'Document type created',
+    errorContext: 'Document Type Creation',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['document-types'] });
-      queryClient.invalidateQueries({ queryKey: ['document-types-stats'] });
       form.reset();
       onOpenChange(false);
     },
   });
 
-  const onSubmit = async (data: CreateDocumentTypeData) => {
+  const onSubmit = async (data: DocumentTypeFormData) => {
     try {
       await createDocumentTypeMutation.mutateAsync(data);
     } catch (error) {

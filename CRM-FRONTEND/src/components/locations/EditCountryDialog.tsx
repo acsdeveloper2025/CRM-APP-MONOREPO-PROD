@@ -1,8 +1,12 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import {
+  countryFormSchema,
+  type CountryFormData,
+  CONTINENTS,
+} from '@/forms/schemas/location.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -31,37 +35,15 @@ import { Input } from '@/components/ui/input';
 import { locationsService } from '@/services/locations';
 import { Country } from '@/types/location';
 
-const editCountrySchema = z.object({
-  name: z.string().min(1, 'Country name is required').max(100, 'Country name is too long'),
-  code: z
-    .string()
-    .min(2, 'Country code must be at least 2 characters')
-    .max(3, 'Country code must be at most 3 characters')
-    .regex(/^[A-Z]{2,3}$/, 'Country code must be uppercase letters only (ISO format)'),
-  continent: z.string().min(1, 'Continent is required'),
-});
-
-type EditCountryFormData = z.infer<typeof editCountrySchema>;
-
 interface EditCountryDialogProps {
   country: Country;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const continents = [
-  'Africa',
-  'Antarctica',
-  'Asia',
-  'Europe',
-  'North America',
-  'Oceania',
-  'South America',
-];
-
 export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDialogProps) {
-  const form = useForm<EditCountryFormData>({
-    resolver: zodResolver(editCountrySchema),
+  const form = useForm<CountryFormData>({
+    resolver: zodResolver(countryFormSchema),
     defaultValues: {
       name: country.name,
       code: country.code,
@@ -81,7 +63,7 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
   }, [country, form]);
 
   const updateCountryMutation = useCRUDMutation({
-    mutationFn: (data: EditCountryFormData) =>
+    mutationFn: (data: CountryFormData) =>
       locationsService.updateCountry(country.id.toString(), {
         ...data,
         code: data.code.toUpperCase(),
@@ -95,7 +77,7 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
     },
   });
 
-  const onSubmit = (data: EditCountryFormData) => {
+  const onSubmit = (data: CountryFormData) => {
     updateCountryMutation.mutate(data);
   };
 
@@ -164,7 +146,7 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {continents.map((continent) => (
+                      {CONTINENTS.map((continent) => (
                         <SelectItem key={continent} value={continent}>
                           {continent}
                         </SelectItem>

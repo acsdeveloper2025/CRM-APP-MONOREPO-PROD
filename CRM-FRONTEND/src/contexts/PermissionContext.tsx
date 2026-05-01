@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo } from 'react';
-import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/hooks/useAuth';
 
 interface PermissionContextValue {
   hasPermissionCode: (code: string) => boolean;
@@ -8,7 +8,7 @@ interface PermissionContextValue {
 const PermissionContext = createContext<PermissionContextValue | undefined>(undefined);
 
 export const PermissionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = usePermissions();
+  const { user } = useAuth();
 
   const value = useMemo<PermissionContextValue>(
     () => ({

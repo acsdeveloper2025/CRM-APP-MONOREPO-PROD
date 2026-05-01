@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
+import { cityFormSchema, type CityFormData } from '@/forms/schemas/location.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -32,14 +32,6 @@ import { Input } from '@/components/ui/input';
 import { locationsService } from '@/services/locations';
 import { City } from '@/types/location';
 
-const editCitySchema = z.object({
-  name: z.string().min(1, 'City name is required').max(100, 'Name too long'),
-  state: z.string().min(1, 'State is required'),
-  country: z.string().min(1, 'Country is required'),
-});
-
-type EditCityFormData = z.infer<typeof editCitySchema>;
-
 interface EditCityDialogProps {
   city: City;
   open: boolean;
@@ -47,8 +39,8 @@ interface EditCityDialogProps {
 }
 
 export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps) {
-  const form = useForm<EditCityFormData>({
-    resolver: zodResolver(editCitySchema),
+  const form = useForm<CityFormData>({
+    resolver: zodResolver(cityFormSchema),
     defaultValues: {
       name: city.name,
       state: city.state,
@@ -83,7 +75,7 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
   });
 
   const updateMutation = useCRUDMutation({
-    mutationFn: (data: EditCityFormData) => locationsService.updateCity(city.id.toString(), data),
+    mutationFn: (data: CityFormData) => locationsService.updateCity(city.id.toString(), data),
     queryKey: ['cities'],
     resourceName: 'City',
     operation: 'update',
@@ -93,7 +85,7 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
     },
   });
 
-  const onSubmit = (data: EditCityFormData) => {
+  const onSubmit = (data: CityFormData) => {
     updateMutation.mutate(data);
   };
 

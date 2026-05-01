@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Building2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { usersService } from '@/services/users';
 import { clientsService } from '@/services/clients';
-import { toast } from 'sonner';
 import type { User } from '@/types/user';
 import type { Client } from '@/types/client';
 import { LoadingSpinner } from '@/components/ui/loading';
@@ -18,7 +18,6 @@ interface ClientAssignmentSectionProps {
 
 export function ClientAssignmentSection({ user }: ClientAssignmentSectionProps) {
   const [selectedClientIds, setSelectedClientIds] = useState<number[]>([]);
-  const queryClient = useQueryClient();
 
   // Fetch all clients
   const { data: clientsData, isLoading: clientsLoading } = useQuery({
@@ -42,19 +41,12 @@ export function ClientAssignmentSection({ user }: ClientAssignmentSectionProps) 
     }
   }, [assignmentsData]);
 
-  // Save assignments mutation
-  const saveAssignmentsMutation = useMutation({
+  const saveAssignmentsMutation = useMutationWithInvalidation({
     mutationFn: (clientIds: number[]) => usersService.assignClientsToUser(user.id, clientIds),
-    onSuccess: () => {
-      toast.success('Client assignments updated successfully');
-      // Invalidate all user-related queries to ensure UI updates immediately
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['user-client-assignments', user.id] });
-      queryClient.invalidateQueries({ queryKey: ['user-stats'] });
-    },
-    onError: (error: { response?: { data?: { message?: string } } }) => {
-      toast.error(error.response?.data?.message || 'Failed to update client assignments');
-    },
+    invalidateKeys: [['users'], ['user-client-assignments', user.id], ['user-stats']],
+    successMessage: 'Client assignments updated successfully',
+    errorContext: 'Client Assignment',
+    errorFallbackMessage: 'Failed to update client assignments',
   });
 
   // Only show for BACKEND_USER users (moved after all hooks)

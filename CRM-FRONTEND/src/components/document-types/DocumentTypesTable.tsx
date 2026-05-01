@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { MoreHorizontal, Edit, Trash2, Eye, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,14 +34,11 @@ interface DocumentTypesTableProps {
 export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({ data, isLoading }) => {
   const [editingDocumentType, setEditingDocumentType] = useState<DocumentType | null>(null);
   const [viewingDocumentType, setViewingDocumentType] = useState<DocumentType | null>(null);
-  const queryClient = useQueryClient();
-
-  const deleteDocumentTypeMutation = useMutation({
+  const deleteDocumentTypeMutation = useMutationWithInvalidation({
     mutationFn: (id: number) => documentTypesService.deleteDocumentType(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['document-types'] });
-      queryClient.invalidateQueries({ queryKey: ['document-types-stats'] });
-    },
+    invalidateKeys: [['document-types'], ['document-types-stats']],
+    successMessage: 'Document type deleted',
+    errorContext: 'Document Type Deletion',
   });
 
   const handleDelete = async (documentType: DocumentType) => {
