@@ -182,14 +182,10 @@ class SessionManager {
   };
 
   private checkSession = () => {
-    // 1. Session sentinel: the refresh token is now an HttpOnly cookie
-    // (not readable here), so use the cached user profile as the "is
-    // there a session?" hint — it's set on login and cleared on logout.
-    // The legacy REFRESH_TOKEN key also counts as a hint for users
-    // mid-migration from a pre-flip build.
-    const hasSessionHint =
-      !!localStorage.getItem(STORAGE_KEYS.USER_DATA) ||
-      !!localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+    // Session sentinel: refresh token is an HttpOnly cookie (not readable
+    // here), so use the cached user profile as the "is there a session?"
+    // hint — set on login, cleared on logout.
+    const hasSessionHint = !!localStorage.getItem(STORAGE_KEYS.USER_DATA);
     if (!hasSessionHint) {
       // No session hint means we are likely logged out already
       return;
@@ -225,11 +221,8 @@ class SessionManager {
   };
 
   private triggerLogoutAction(reason: string = 'Your session has expired. Please login again.') {
-    // Avoid double logout — mirror the session-hint check above so the
-    // post-flip (cookie-only) path still gates correctly.
-    const hasSessionHint =
-      !!localStorage.getItem(STORAGE_KEYS.USER_DATA) ||
-      !!localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+    // Avoid double logout: mirror the session-hint check above.
+    const hasSessionHint = !!localStorage.getItem(STORAGE_KEYS.USER_DATA);
     if (!hasSessionHint) {
       return;
     }
@@ -239,7 +232,6 @@ class SessionManager {
 
     // Clear local data and memory
     apiService.setAccessToken(null);
-    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER_DATA);
 
     // Clean up our listeners

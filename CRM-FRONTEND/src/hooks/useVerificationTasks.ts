@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { apiService as api } from '@/services/api';
 import { VerificationTasksService } from '@/services/verificationTasks';
 import type {
@@ -142,36 +143,29 @@ export const useVerificationTask = (taskId: string) => {
 };
 
 export const useUpdateVerificationTask = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateVerificationTaskRequest }) => {
       const response = await api.put(`/verification-tasks/${id}`, data);
       return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['verification-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['cases'] });
-    },
+    invalidateKeys: [['verification-tasks'], ['cases']],
+    errorContext: 'Verification Task Update',
   });
 };
 
 export const useCreateVerificationTasks = (caseId: string) => {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: async ({ tasks }: { tasks: CreateVerificationTaskRequest[] }) => {
       const response = await api.post(`/cases/${caseId}/verification-tasks`, { tasks });
       return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['verification-tasks', caseId] });
-      queryClient.invalidateQueries({ queryKey: ['cases'] });
-    },
+    invalidateKeys: [['verification-tasks', caseId], ['cases']],
+    errorContext: 'Verification Task Creation',
   });
 };
 
 export const useAssignVerificationTask = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: async ({
       taskId,
       data,
@@ -182,11 +176,8 @@ export const useAssignVerificationTask = () => {
       const response = await VerificationTasksService.assignTask(taskId, data);
       return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['verification-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['all-verification-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['cases'] });
-    },
+    invalidateKeys: [['verification-tasks'], ['all-verification-tasks'], ['cases']],
+    errorContext: 'Verification Task Assignment',
   });
 };
 

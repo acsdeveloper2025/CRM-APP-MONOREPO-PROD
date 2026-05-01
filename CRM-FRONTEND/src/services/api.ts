@@ -28,9 +28,8 @@ const processQueue = (error: Error | null, token: string | null = null) => {
 };
 
 const getErrorCode = (error: unknown): string | undefined => {
-  const data = (error as { response?: { data?: { error?: { code?: string }; code?: string } } })
-    ?.response?.data;
-  return data?.error?.code || data?.code;
+  const data = (error as { response?: { data?: { error?: { code?: string } } } })?.response?.data;
+  return data?.error?.code;
 };
 
 const shouldAttemptTokenRefresh = (status?: number, errorCode?: string): boolean => {
@@ -55,14 +54,6 @@ const shouldForceLogoutOnRefreshFailure = (error: unknown): boolean => {
   return status === 400 || status === 401 || status === 403;
 };
 
-// -- Enhanced Features Types --
-interface CacheEntry {
-  data: unknown;
-  timestamp: number;
-  ttl: number;
-  etag?: string;
-}
-
 interface RequestMetrics {
   url: string;
   method: string;
@@ -82,16 +73,27 @@ interface AugmentedAxiosRequestConfig extends InternalAxiosRequestConfig {
   metadata?: { startTime: number };
 }
 
+// Stamp at the wrapper level (not the request interceptor) so the SAME key
+// is reused across executeWithRetry's 5xx-backoff loop. A new key per retry
+// would defeat server-side dedupe.
+const stampIdempotencyKey = (config?: AxiosRequestConfig): AxiosRequestConfig => {
+  const cfg = config ?? {};
+  cfg.headers = cfg.headers ?? {};
+  if (!cfg.headers['Idempotency-Key']) {
+    cfg.headers['Idempotency-Key'] =
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+  return cfg;
+};
+
 class ApiService {
   private api: AxiosInstance;
   private activeRequestCount = 0;
   private accessToken: string | null = null;
 
-  // Enhanced features state
-  private cache: Map<string, CacheEntry> = new Map();
   private requestMetrics: RequestMetrics[] = [];
-  private maxCacheSize = 1000;
-  private defaultTTL = 300000; // 5 minutes
   private maxMetricsSize = 1000;
 
   constructor() {
@@ -108,19 +110,16 @@ class ApiService {
       },
     });
 
-    // Phase E5 hardening: the access token is in-memory ONLY. Any
-    // value left in localStorage from an older build is an XSS
-    // exfiltration hazard, so wipe it eagerly on construction. The
-    // resulting first request will 401 and the response interceptor
-    // will exchange the HttpOnly refresh cookie for a fresh in-memory
-    // access token — that one avoidable 401 is the cost of closing the
-    // hazard.
+    // Tokens never live in localStorage (XSS exfiltration hazard).
+    // Defensive wipe in case a stale build left either key behind.
     if (localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) !== null) {
       localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
     }
+    if (localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN) !== null) {
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    }
 
     this.setupInterceptors();
-    this.startCacheCleanup();
   }
 
   public hasActiveRequests(): boolean {
@@ -205,15 +204,6 @@ class ApiService {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
-        // Add cache headers for GET requests
-        if (config.method === 'get') {
-          const cacheKey = this.getCacheKey(config);
-          const cached = this.cache.get(cacheKey);
-          if (cached?.etag) {
-            config.headers['If-None-Match'] = cached.etag;
-          }
-        }
-
         return config;
       },
       (error) => {
@@ -272,31 +262,19 @@ class ApiService {
           isRefreshing = true;
 
           try {
-            // Phase E5 follow-up: refresh tokens live in an HttpOnly
-            // cookie now (see backend/src/controllers/authController
-            // .ts REFRESH_COOKIE_* helpers). The cookie is scoped to
-            // /api/auth/refresh-token and is sent automatically
-            // because withCredentials: true is set on the axios
-            // instance below. Legacy localStorage value is only used
-            // as a migration fallback for users whose previous build
-            // stored it there; we clear it on the first successful
-            // refresh to close the XSS-exfiltration hazard.
-            const legacyBodyToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-            const refreshBody = legacyBodyToken ? { refreshToken: legacyBodyToken } : {};
-
-            // Call backend refresh endpoint
-            // Using a fresh axios instance to avoid interceptors
+            // Refresh token is an HttpOnly cookie scoped to
+            // /api/auth/refresh-token and sent automatically because
+            // withCredentials: true is set on the axios instance.
             this.incrementActiveRequests();
             let response;
             try {
               response = await axios.post(
                 `${this.getOptimalApiUrl()}/auth/refresh-token`,
-                refreshBody,
+                {},
                 {
-                  withCredentials: true, // Sends the HttpOnly cookie
+                  withCredentials: true,
                   headers: {
                     'Content-Type': 'application/json',
-                    // NO Authorization header
                     // X-Requested-With: required by refreshCsrfGuard —
                     // this axios call bypasses our interceptor, so the
                     // header must be set here explicitly.
@@ -308,19 +286,9 @@ class ApiService {
               this.decrementActiveRequests();
             }
 
-            // Migration cleanup: drop the legacy localStorage value
-            // once the cookie-backed refresh has succeeded.
-            if (legacyBodyToken) {
-              localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-            }
-
-            // Extract new token
             const data = response.data;
             const accessToken =
               data.data?.accessToken || data.data?.tokens?.accessToken || data.accessToken;
-
-            // Note: Mobile refresh endpoint does NOT return a new refresh token (rotation is 7 days)
-            // So we do NOT update the refresh token
 
             if (!accessToken) {
               throw new Error('Invalid refresh response');
@@ -328,29 +296,22 @@ class ApiService {
 
             logger.warn('✅ Token refresh successful');
 
-            // Update in-memory storage
             this.setAccessToken(accessToken);
-            // Do NOT update refresh token in localStorage
-
-            // Update default headers
             this.api.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
 
-            // Process queue
             processQueue(null, accessToken);
-            isRefreshing = false; // Reset flag after processing queue
+            isRefreshing = false;
 
-            // Retry original request
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
             return this.api(originalRequest);
           } catch (refreshError) {
             logger.error('❌ Token refresh failed:', refreshError);
-            isRefreshing = false; // Reset flag on error
+            isRefreshing = false;
             processQueue(refreshError as Error, null);
 
             if (shouldForceLogoutOnRefreshFailure(refreshError)) {
               localStorage.setItem(SYNC_KEYS.FORCE_LOGOUT, Date.now().toString());
               this.setAccessToken(null);
-              localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
               localStorage.removeItem(STORAGE_KEYS.USER_DATA);
               triggerLogout('Your session has expired. Please login again.');
             }
@@ -387,70 +348,6 @@ class ApiService {
     // Keep only recent metrics
     if (this.requestMetrics.length > this.maxMetricsSize) {
       this.requestMetrics = this.requestMetrics.slice(-this.maxMetricsSize);
-    }
-  }
-
-  private getCacheKey(config: AxiosRequestConfig): string {
-    const { method, url, params, data } = config;
-    return `${method}:${url}:${JSON.stringify(params)}:${JSON.stringify(data)}`;
-  }
-
-  private isResponseCacheable(response: AxiosResponse): boolean {
-    const { method, url } = response.config;
-
-    // Only cache GET requests
-    if (method !== 'get') {
-      return false;
-    }
-
-    // Don't cache error responses
-    if (response.status >= 400) {
-      return false;
-    }
-
-    // Don't cache real-time endpoints
-    const realtimeEndpoints = ['/notifications', '/live'];
-    if (realtimeEndpoints.some((endpoint) => url?.includes(endpoint))) {
-      return false;
-    }
-
-    return true;
-  }
-
-  private cacheCleanupInterval: ReturnType<typeof setInterval> | null = null;
-
-  private startCacheCleanup(): void {
-    if (this.cacheCleanupInterval) {
-      clearInterval(this.cacheCleanupInterval);
-    }
-    this.cacheCleanupInterval = setInterval(() => {
-      const now = Date.now();
-      for (const [key, entry] of this.cache.entries()) {
-        if (now - entry.timestamp > entry.ttl) {
-          this.cache.delete(key);
-        }
-      }
-
-      // Limit cache size
-      if (this.cache.size > this.maxCacheSize) {
-        const entries = Array.from(this.cache.entries());
-        entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
-        const toDelete = entries.slice(0, entries.length - this.maxCacheSize);
-        toDelete.forEach(([key]) => this.cache.delete(key));
-      }
-    }, 60000); // Clean every minute
-  }
-
-  public invalidateCache(pattern?: string): void {
-    if (!pattern) {
-      this.cache.clear();
-      return;
-    }
-
-    for (const key of this.cache.keys()) {
-      if (key.includes(pattern)) {
-        this.cache.delete(key);
-      }
     }
   }
 
@@ -509,74 +406,28 @@ class ApiService {
     url: string,
     params?: unknown,
     config?: AxiosRequestConfig & {
-      cacheTTL?: number;
-      useCache?: boolean;
       retryConfig?: RetryConfig;
     }
   ): Promise<AxiosResponse<T>> {
-    const {
-      cacheTTL = this.defaultTTL,
-      useCache = false,
-      retryConfig,
-      ...axiosConfig
-    } = config || {};
+    const { retryConfig, ...axiosConfig } = config || {};
 
-    // Check if this is a binary request
     const isBinary =
       axiosConfig.responseType === 'blob' || axiosConfig.responseType === 'arraybuffer';
 
-    // Prepare final config
     const finalConfig: AxiosRequestConfig = { params, ...axiosConfig };
 
     if (isBinary) {
-      // Bypass automatic JSON transformation for binary data
       finalConfig.transformResponse = [(data) => data];
-
-      // Ensure we don't force application/json Content-Type for GET
       finalConfig.headers = {
         ...finalConfig.headers,
         Accept: '*/*',
       };
-
-      // Axios instance has a default Content-Type: application/json
-      // We must explicitly remove or change it for binary GET requests to avoid server-side confusion
       if (finalConfig.headers['Content-Type'] === 'application/json') {
         delete finalConfig.headers['Content-Type'];
       }
     }
 
-    if (useCache && !isBinary) {
-      const cacheKey = this.getCacheKey({ method: 'get', url, params, ...axiosConfig });
-      const cached = this.cache.get(cacheKey);
-
-      if (cached && Date.now() - cached.timestamp < cached.ttl) {
-        return {
-          data: cached.data as T,
-          status: 200,
-          statusText: 'OK',
-          headers: { 'x-cache': 'HIT', etag: cached.etag },
-          config: { ...axiosConfig, url, method: 'get' } as InternalAxiosRequestConfig,
-        };
-      }
-    }
-
-    const response = await this.executeWithRetry(
-      () => this.api.get<T>(url, finalConfig),
-      retryConfig
-    );
-
-    // Cache successful responses
-    if (useCache && !isBinary && this.isResponseCacheable(response)) {
-      const cacheKey = this.getCacheKey({ method: 'get', url, params, ...axiosConfig });
-      this.cache.set(cacheKey, {
-        data: response.data,
-        timestamp: Date.now(),
-        ttl: cacheTTL,
-        etag: response.headers.etag,
-      });
-    }
-
-    return response;
+    return this.executeWithRetry(() => this.api.get<T>(url, finalConfig), retryConfig);
   }
 
   async postRaw<T>(
@@ -597,7 +448,8 @@ class ApiService {
       };
     }
 
-    return this.executeWithRetry(() => this.api.post<T>(url, data, axiosConfig), retryConfig);
+    const stampedConfig = stampIdempotencyKey(axiosConfig);
+    return this.executeWithRetry(() => this.api.post<T>(url, data, stampedConfig), retryConfig);
   }
 
   async putRaw<T>(
@@ -606,7 +458,8 @@ class ApiService {
     config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
   ): Promise<AxiosResponse<T>> {
     const { retryConfig, ...axiosConfig } = config || {};
-    return this.executeWithRetry(() => this.api.put<T>(url, data, axiosConfig), retryConfig);
+    const stampedConfig = stampIdempotencyKey(axiosConfig);
+    return this.executeWithRetry(() => this.api.put<T>(url, data, stampedConfig), retryConfig);
   }
 
   async deleteRaw<T>(
@@ -614,7 +467,8 @@ class ApiService {
     config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
   ): Promise<AxiosResponse<T>> {
     const { retryConfig, ...axiosConfig } = config || {};
-    return this.executeWithRetry(() => this.api.delete<T>(url, axiosConfig), retryConfig);
+    const stampedConfig = stampIdempotencyKey(axiosConfig);
+    return this.executeWithRetry(() => this.api.delete<T>(url, stampedConfig), retryConfig);
   }
 
   async patchRaw<T>(
@@ -623,7 +477,8 @@ class ApiService {
     config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
   ): Promise<AxiosResponse<T>> {
     const { retryConfig, ...axiosConfig } = config || {};
-    return this.executeWithRetry(() => this.api.patch<T>(url, data, axiosConfig), retryConfig);
+    const stampedConfig = stampIdempotencyKey(axiosConfig);
+    return this.executeWithRetry(() => this.api.patch<T>(url, data, stampedConfig), retryConfig);
   }
 
   // Standard convenience methods returning just data
@@ -631,8 +486,6 @@ class ApiService {
     url: string,
     params?: unknown,
     config?: AxiosRequestConfig & {
-      cacheTTL?: number;
-      useCache?: boolean;
       retryConfig?: RetryConfig;
     }
   ): Promise<ApiResponse<T>> {
@@ -735,6 +588,18 @@ class ApiService {
         headers.set('Content-Type', 'application/json');
       }
 
+      const method = (options.method || 'GET').toUpperCase();
+      if (
+        ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) &&
+        !headers.has('Idempotency-Key')
+      ) {
+        const idempotencyKey =
+          typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        headers.set('Idempotency-Key', idempotencyKey);
+      }
+
       const url = `${this.getOptimalApiUrl()}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
       const response = await fetch(url, {
@@ -768,47 +633,28 @@ class ApiService {
         // Trigger refresh manually
         isRefreshing = true;
         try {
-          // Phase E5 follow-up: cookie-first with legacy-body
-          // fallback for users upgrading from a pre-flip build.
-          // `credentials: 'include'` sends the HttpOnly cookie; if
-          // the user has already migrated, the body payload is
-          // empty and the backend reads the cookie.
-          const legacyBodyToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-          const refreshBody = legacyBodyToken ? { refreshToken: legacyBodyToken } : {};
-
           const refreshResponse = await fetch(`${this.getOptimalApiUrl()}/auth/refresh-token`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              // NO Authorization header
               // X-Requested-With: required by refreshCsrfGuard. Raw
               // fetch bypasses the axios interceptor so the header
               // must be set here explicitly.
               'X-Requested-With': 'fetch',
             },
-            body: JSON.stringify(refreshBody),
-            credentials: 'include', // Sends the HttpOnly cookie
+            body: JSON.stringify({}),
+            credentials: 'include',
           });
 
           if (!refreshResponse.ok) {
             throw new Error('Refresh failed');
           }
 
-          // Migration cleanup: first successful cookie-or-body
-          // refresh means the cookie is in place; drop the legacy
-          // localStorage value so the XSS-exfiltration hazard is
-          // closed on subsequent requests.
-          if (legacyBodyToken) {
-            localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-          }
-
           const refreshData = await refreshResponse.json();
-          // Look for accessToken in various possible response structures
           const accessToken =
             refreshData.data?.accessToken ||
             refreshData.data?.tokens?.accessToken ||
             refreshData.accessToken;
-          // Do NOT update refresh token
 
           if (!accessToken) {
             throw new Error('Invalid refresh response');
@@ -817,7 +663,6 @@ class ApiService {
           logger.warn('✅ Token refresh successful (safeFetch)');
 
           this.setAccessToken(accessToken);
-          // Do NOT update refresh token
 
           processQueue(null, accessToken);
           isRefreshing = false;
@@ -831,7 +676,6 @@ class ApiService {
           if (shouldForceLogoutOnRefreshFailure(error)) {
             localStorage.setItem(SYNC_KEYS.FORCE_LOGOUT, Date.now().toString());
             this.setAccessToken(null);
-            localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
             localStorage.removeItem(STORAGE_KEYS.USER_DATA);
             triggerLogout('Your session has expired. Please login again.');
           }

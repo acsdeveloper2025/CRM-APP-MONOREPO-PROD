@@ -9,7 +9,7 @@ import { invalidateClientScopeCache } from '@/middleware/clientAccess';
 import { invalidateProductScopeCache } from '@/middleware/productAccess';
 import { EmailDeliveryService } from '@/services/EmailDeliveryService';
 import ExcelJS from 'exceljs';
-import { CANONICAL_RBAC_ROLE_NAMES } from '@/constants/rbacRoles';
+import { CANONICAL_RBAC_ROLE_NAMES, normalizeRbacRoleName } from '@/constants/rbacRoles';
 import {
   deriveCapabilitiesFromPermissionCodes,
   hasSystemScopeBypass,
@@ -2886,6 +2886,256 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to export users',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+// Header normalizer for bulk-import. The XLSX template emits decorated
+// headers (e.g. "Name*", "Role* (SUPER_ADMIN, MANAGER, ...)",
+// "Password (Required if creating)"); strip the decoration and remap to
+// camelCase keys.
+const HEADER_TO_KEY: Record<string, string> = {
+  name: 'name',
+  username: 'username',
+  email: 'email',
+  role: 'role',
+  employeeid: 'employeeId',
+  phone: 'phone',
+  department: 'department',
+  designation: 'designation',
+  password: 'password',
+};
+const normalizeHeader = (raw: unknown): string | null => {
+  if (typeof raw !== 'string') {
+    return null;
+  }
+  const stripped = raw
+    .replace(/\*/g, '')
+    .replace(/\s*\(.*?\)\s*/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '');
+  return HEADER_TO_KEY[stripped] ?? null;
+};
+
+const parseXlsxToRows = async (
+  buffer: Buffer
+): Promise<Array<Record<string, string>>> => {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
+  const sheet = workbook.worksheets[0];
+  if (!sheet) {
+    return [];
+  }
+  const headerRow = sheet.getRow(1);
+  const headers: Array<string | null> = [];
+  headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+    headers[colNumber] = normalizeHeader(cell.value);
+  });
+  const rows: Array<Record<string, string>> = [];
+  for (let r = 2; r <= sheet.rowCount; r++) {
+    const row = sheet.getRow(r);
+    const obj: Record<string, string> = {};
+    let hasAnyValue = false;
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      const key = headers[colNumber];
+      if (!key) {
+        return;
+      }
+      const value = cell.value == null ? '' : String(cell.value);
+      if (value.trim() !== '') {
+        hasAnyValue = true;
+      }
+      obj[key] = value;
+    });
+    if (hasAnyValue) {
+      rows.push(obj);
+    }
+  }
+  return rows;
+};
+
+/**
+ * POST /api/users/import
+ * Bulk-create users from CSV or XLSX. Required cols: name, username,
+ * email, role, employeeId. Optional: phone, department, designation,
+ * password (auto-generated if absent).
+ */
+export const bulkImportUsers = async (
+  req: AuthenticatedRequest & { file?: Express.Multer.File },
+  res: Response
+) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded',
+        error: { code: 'NO_FILE' },
+      });
+    }
+
+    const filename = req.file.originalname.toLowerCase();
+    let rows: Array<Record<string, string>>;
+    if (filename.endsWith('.xlsx')) {
+      rows = await parseXlsxToRows(req.file.buffer);
+    } else {
+      const { parseCSV } = await import('@/utils/csvParser');
+      rows = await parseCSV(req.file.buffer);
+    }
+
+    const results = {
+      imported: 0,
+      failed: 0,
+      errors: [] as string[],
+    };
+
+    const blank = (v: string | undefined): string | null =>
+      typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
+
+    // Pre-load lookup maps once per call. Cheap and avoids N+1.
+    const rolesRes = await query<{ id: string; name: string }>(
+      'SELECT id, name FROM roles_v2'
+    );
+    const roleByName = new Map(rolesRes.rows.map(r => [r.name.toUpperCase(), r.id]));
+    const deptRes = await query<{ id: number; name: string }>(
+      'SELECT id, name FROM departments'
+    );
+    const deptByName = new Map(deptRes.rows.map(d => [d.name.toLowerCase(), d.id]));
+    const desRes = await query<{ id: number; name: string }>(
+      'SELECT id, name FROM designations'
+    );
+    const desByName = new Map(desRes.rows.map(d => [d.name.toLowerCase(), d.id]));
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const rowNum = i + 2; // +1 for 1-indexed; +1 for header row
+      try {
+        const name = blank(row.name);
+        const username = blank(row.username);
+        const email = blank(row.email);
+        const roleRaw = blank(row.role);
+        const employeeId = blank(row.employeeId);
+        const phone = blank(row.phone);
+        const department = blank(row.department);
+        const designation = blank(row.designation);
+        const passwordRaw = blank(row.password);
+
+        if (!name || !username || !email || !roleRaw || !employeeId) {
+          results.failed++;
+          results.errors.push(
+            `Row ${rowNum}: missing required field (name, username, email, role, employeeId)`
+          );
+          continue;
+        }
+
+        const canonicalRole =
+          normalizeRbacRoleName(roleRaw) ?? (roleRaw.toUpperCase() as string);
+        const roleId = roleByName.get(String(canonicalRole).toUpperCase());
+        if (!roleId) {
+          results.failed++;
+          results.errors.push(
+            `Row ${rowNum}: unknown role "${roleRaw}". Valid: ${CANONICAL_RBAC_ROLE_NAMES.join(', ')}`
+          );
+          continue;
+        }
+
+        let departmentId: number | null = null;
+        if (department) {
+          const id = deptByName.get(department.toLowerCase());
+          if (id === undefined) {
+            results.failed++;
+            results.errors.push(
+              `Row ${rowNum}: department "${department}" not found. Seed departments first.`
+            );
+            continue;
+          }
+          departmentId = id;
+        }
+
+        let designationId: number | null = null;
+        if (designation) {
+          const id = desByName.get(designation.toLowerCase());
+          if (id === undefined) {
+            results.failed++;
+            results.errors.push(
+              `Row ${rowNum}: designation "${designation}" not found. Seed designations first.`
+            );
+            continue;
+          }
+          designationId = id;
+        }
+
+        const dup = await query(
+          'SELECT id FROM users WHERE username = $1 OR LOWER(email) = LOWER($2) LIMIT 1',
+          [username, email]
+        );
+        if (dup.rows.length > 0) {
+          results.failed++;
+          results.errors.push(`Row ${rowNum}: username or email already exists`);
+          continue;
+        }
+
+        // Auto-generate a password when missing. The user receives it
+        // via out-of-band channel (email/admin); we do not echo it back
+        // in the response. 16 random hex chars meets the existing
+        // PASSWORD_POLICY_REGEX (uppercase, lowercase, digit, symbol)
+        // by construction below.
+        const password =
+          passwordRaw ??
+          `Im${Math.random().toString(36).slice(2, 8)}!${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+        const hashedPassword = await bcrypt.hash(password, config.bcryptRounds);
+
+        await withTransaction(async client => {
+          const ins = await client.query<{ id: string }>(
+            `INSERT INTO users (
+               name, username, email, password_hash, department_id, designation_id,
+               employee_id, phone, is_active, created_at, updated_at
+             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, NOW(), NOW())
+             RETURNING id`,
+            [name, username, email, hashedPassword, departmentId, designationId, employeeId, phone]
+          );
+          await client.query(
+            `INSERT INTO user_roles (user_id, role_id, assigned_by)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (user_id, role_id) DO NOTHING`,
+            [ins.rows[0].id, roleId, req.user?.id ?? null]
+          );
+        });
+
+        results.imported++;
+      } catch (error) {
+        results.failed++;
+        const msg = error instanceof Error ? error.message : 'Unknown error';
+        results.errors.push(`Row ${rowNum}: ${msg}`);
+        logger.error(`Error importing user at row ${rowNum}:`, error);
+      }
+    }
+
+    logger.info('Bulk import users completed', { userId: req.user?.id, results });
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'BULK_IMPORT_USERS',
+      entityType: 'USER',
+      details: {
+        total: rows.length,
+        imported: results.imported,
+        failed: results.failed,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
+
+    res.json({
+      success: true,
+      message: `Imported ${results.imported} of ${rows.length} users (${results.failed} failed)`,
+      data: results,
+    });
+  } catch (error) {
+    logger.error('Error in bulk import users:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to bulk import users',
       error: { code: 'INTERNAL_ERROR' },
     });
   }

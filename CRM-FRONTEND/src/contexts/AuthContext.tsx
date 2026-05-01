@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AuthState, LoginRequest } from '@/types/auth';
 import { authService } from '@/services/auth';
 import { toast } from 'sonner';
-import { STORAGE_KEYS } from '@/types/constants';
 import { AuthContext, AuthContextType } from './AuthContextObject';
 import { AUTH_LOGOUT_EVENT } from '@/utils/events';
 import { frontendSocketService } from '@/services/socket';
@@ -85,13 +84,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // profile as the "maybe logged in" hint — if it exists,
         // attempt a refresh; the cookie either succeeds (user stays
         // logged in) or the backend 401s and we fall through to the
-        // logged-out state. The legacy REFRESH_TOKEN key is still
-        // checked for one migration cycle so pre-flip users don't
-        // get force-logged-out on upgrade.
+        // logged-out state.
         const user = authService.getCurrentUser();
-        const hasLegacyRefreshToken = !!localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
 
-        if (user || hasLegacyRefreshToken) {
+        if (user) {
           // We have a session hint. Attempt a refresh; the cookie
           // (or legacy body token) will drive it.
           try {

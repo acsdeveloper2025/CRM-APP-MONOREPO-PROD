@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Upload, Download, FileText, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,9 +26,8 @@ interface BulkImportDialogProps {
 export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const queryClient = useQueryClient();
 
-  const importMutation = useMutation({
+  const importMutation = useMutationWithInvalidation({
     mutationFn: async (file: File) => {
       if (type === 'clients') {
         return clientsService.bulkImportClients(file);
@@ -36,21 +35,16 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
         return clientsService.bulkImportProducts(file);
       }
     },
-    onSuccess: (_response) => {
-      queryClient.invalidateQueries({ queryKey: [type] });
-      toast.success(`${type} imported successfully`);
+    invalidateKeys: [[type]],
+    successMessage: `${type} imported successfully`,
+    errorContext: `Bulk Import (${type})`,
+    errorFallbackMessage: `Failed to import ${type}`,
+    onSuccess: () => {
       setFile(null);
       setUploadProgress(0);
       onOpenChange(false);
     },
-    onError: (error: unknown) => {
-      const message =
-        error && typeof error === 'object' && 'response' in error
-          ? (error.response as { data?: { message?: string } })?.data?.message
-          : undefined;
-      toast.error(message || `Failed to import ${type}`);
-      setUploadProgress(0);
-    },
+    onErrorCallback: () => setUploadProgress(0),
   });
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,11 +69,13 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
   };
 
   const downloadTemplate = () => {
-    // In a real implementation, this would download a CSV template
+    // Templates match the backend bulk-import controllers. Required cols
+    // are first; optional cols follow. clientCodes on products takes a
+    // semicolon-separated list (e.g. ACME;FOO).
     const templateData =
       type === 'clients'
-        ? 'name,code\nExample Client,EXAMPLE_CLIENT'
-        : 'name,clientId\nExample Product,client-id-here';
+        ? 'name,code,email,phone,address,gstin,pan,gstinStateCode,billingAddressLine1,billingAddressLine2,billingPincode,billingCity,billingState,billingCountry,tier,isActive\nExample Client,EXAMPLE_CLIENT,ops@example.com,9999999999,,27ABCDE1234F1Z5,ABCDE1234F,27,Office #1,Marol,400059,Mumbai,Maharashtra,India,STARTER,true'
+        : 'name,code,description,isActive,clientCodes\nExample Product,EXAMPLE_PRODUCT,Demo product,true,EXAMPLE_CLIENT';
 
     const blob = new Blob([templateData], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -149,8 +145,8 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               {type === 'clients'
-                ? 'CSV should contain columns: name, code. Client codes must be unique.'
-                : 'CSV should contain columns: name, clientId. Make sure client IDs exist in the system.'}
+                ? 'Required: name, code (unique). Optional: email, phone, address, gstin, pan, gstinStateCode, billingAddressLine1/2, billingPincode, billingCity, billingState, billingCountry, tier (STARTER|GROWTH|ENTERPRISE), isActive. Country/state/city must already exist.'
+                : 'Required: name, code (unique). Optional: description, isActive, clientCodes (semicolon-separated, e.g. ACME;FOO; replaces existing client mapping when provided).'}
             </AlertDescription>
           </Alert>
         </div>

@@ -205,14 +205,19 @@ export const commissionManagementApi = {
   },
 
   async exportFieldUserAssignments(): Promise<Blob> {
-    const response = await apiService.get('/commission-management/field-user-assignments');
+    // Backend list endpoint paginates (default limit=20). For an export
+    // we need ALL rows; pass a large limit to bypass paging.
+    const response = await apiService.get(
+      '/commission-management/field-user-assignments',
+      { limit: 10000 }
+    );
     const data = Array.isArray(response.data) ? response.data : [];
     const csvData = this.convertAssignmentsToCSV(data);
     return new Blob([csvData], { type: 'text/csv' });
   },
 
   async exportCommissionCalculations(params: GetCommissionCalculationsParams = {}): Promise<Blob> {
-    const queryParams: Record<string, string> = {};
+    const queryParams: Record<string, string | number> = { limit: 10000 };
     if (params.userId) {
       queryParams.userId = params.userId;
     }

@@ -4,6 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 import react from 'eslint-plugin-react'
+import jsxA11y from 'eslint-plugin-jsx-a11y'
 
 export default tseslint.config(
   // Global ignores
@@ -31,6 +32,7 @@ export default tseslint.config(
       react,
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
+      'jsx-a11y': jsxA11y,
     },
     settings: {
       react: {
@@ -48,6 +50,17 @@ export default tseslint.config(
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-non-null-assertion': 'error', // Changed from 'warn' to 'error'
+
+      // jsx-a11y recommended at warn; tighten to error after backlog cleanup.
+      ...Object.fromEntries(
+        Object.entries(jsxA11y.flatConfigs.recommended.rules).map(([rule, _level]) => [
+          rule,
+          'warn',
+        ])
+      ),
+      // label-has-for is deprecated; label-has-associated-control covers
+      // the same intent and remains active.
+      'jsx-a11y/label-has-for': 'off',
 
       // React specific rules
       'react/react-in-jsx-scope': 'off', // Not needed in React 17+
@@ -126,10 +139,6 @@ export default tseslint.config(
       // Disabled id-match for React components (PascalCase is standard)
       'id-match': 'off',
 
-      // Import/Export rules
-      'no-restricted-imports': ['error', {
-        patterns: ['../**/index'], // Prevent importing from index files
-      }],
       // Enforce API Client Usage
       'no-restricted-globals': ['warn', {
         name: 'fetch',
@@ -146,6 +155,16 @@ export default tseslint.config(
           message: "Direct new Axios() is forbidden. Use apiService from @/services/api."
         }
       ],
+      // Raw useMutation bypasses standardized error/toast handling;
+      // import the wrappers from @/hooks/useStandardizedMutation instead.
+      'no-restricted-imports': ['error', {
+        patterns: ['../**/index'],
+        paths: [{
+          name: '@tanstack/react-query',
+          importNames: ['useMutation'],
+          message: 'Use useStandardizedMutation / useMutationWithInvalidation from @/hooks/useStandardizedMutation instead.',
+        }],
+      }],
     },
   },
   // Exempt api.ts from restriction rules
@@ -154,6 +173,14 @@ export default tseslint.config(
     rules: {
       'no-restricted-globals': 'off',
       'no-restricted-syntax': 'off',
+    }
+  },
+  // The standardized-mutation wrappers must import the raw useMutation
+  // they wrap.
+  {
+    files: ['src/hooks/useStandardizedMutation.ts'],
+    rules: {
+      'no-restricted-imports': 'off',
     }
   }
 )

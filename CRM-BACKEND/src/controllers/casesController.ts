@@ -1511,23 +1511,16 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
         c.case_id as case_id,
         c.customer_name as customer_name,
         c.customer_phone as customer_phone,
-        c.customer_calling_code as customer_calling_code,
         (SELECT address FROM verification_tasks WHERE case_id = c.id LIMIT 1) as address,
         -- F5.1.x: cases.pincode dropped; derive from first task
         (SELECT p2.code FROM verification_tasks vt2 JOIN pincodes p2 ON p2.id = vt2.pincode_id WHERE vt2.case_id = c.id AND vt2.pincode_id IS NOT NULL LIMIT 1) AS pincode,
         cl.name as client_name,
-        cl.code as client_code,
         p.name as product_name,
         vt.name as verification_type_name,
         c.status,
         c.priority,
-        c.applicant_type as applicant_type,
-        c.backend_contact_number as backend_contact_number,
-        c.trigger,
         assigned_user.name as assigned_to_name,
-        assigned_user.employee_id as assigned_to_employee_id,
         bu.name as created_by_backend_user_name,
-        bu.employee_id as created_by_backend_user_employee_id,
         c.verification_outcome as verification_outcome,
         c.created_at as created_at,
         c.updated_at as updated_at,
@@ -1570,7 +1563,9 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
       `Cases Export - ${typeof exportType === 'string' || typeof exportType === 'number' ? String(exportType) : 'All'}`
     );
 
-    // Define columns based on export type
+    // Area + Rate Type columns previously appeared here but were always
+    // blank — area/rate live on verification_tasks, not cases. Removed
+    // until a per-task export is wired.
     const baseColumns = [
       { header: 'Case ID', key: 'caseId', width: 12 },
       { header: 'Customer Name', key: 'customerName', width: 25 },
@@ -1578,8 +1573,6 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
       { header: 'Client', key: 'clientName', width: 20 },
       { header: 'Product', key: 'productName', width: 20 },
       { header: 'Verification Type', key: 'verificationTypeName', width: 25 },
-      { header: 'Area', key: 'areaType', width: 15 },
-      { header: 'Rate Type', key: 'rateTypeName', width: 20 },
       { header: 'Status', key: 'status', width: 15 },
       { header: 'Priority', key: 'priority', width: 12 },
       { header: 'Assigned To', key: 'assignedToName', width: 20 },

@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
+import { editUserFormSchema, type EditUserFormData } from '@/forms/schemas/user.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -37,20 +37,6 @@ import { designationsService } from '@/services/designations';
 import { USER_ROLES } from '@/types/constants';
 import { User } from '@/types/user';
 
-const editUserSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
-  email: z.string().email('Invalid email address'),
-  roleId: z.string().min(1, 'Role is required'),
-  employeeId: z.string().min(1, 'Employee ID is required'),
-  designationId: z.string().min(1, 'Designation is required'),
-  departmentId: z.string().min(1, 'Department is required'),
-  teamLeaderId: z.string().optional(),
-  managerId: z.string().optional(),
-  isActive: z.boolean(),
-});
-
-type EditUserFormData = z.infer<typeof editUserSchema>;
-
 interface EditUserDialogProps {
   user: User;
   open: boolean;
@@ -59,7 +45,7 @@ interface EditUserDialogProps {
 
 export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps) {
   const form = useForm<EditUserFormData>({
-    resolver: zodResolver(editUserSchema),
+    resolver: zodResolver(editUserFormSchema),
     defaultValues: {
       name: user.name,
       email: user.email,

@@ -1,5 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import {
+  useStandardizedMutation,
+  useMutationWithInvalidation,
+} from '@/hooks/useStandardizedMutation';
 import {
   reportTemplatesService,
   type CreateReportTemplatePayload,
@@ -76,54 +79,42 @@ export const useReportTemplateByConfig = (
 // ---------------------------------------------------------------------------
 
 export const useCreateReportTemplate = () => {
-  const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: (payload: CreateReportTemplatePayload) => reportTemplatesService.create(payload),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: reportTemplateKeys.lists() });
-      toast.success('Report template created');
-    },
-    onError: (err: unknown) => {
-      const message = err instanceof Error ? err.message : 'Failed to create template';
-      toast.error(message);
-    },
+    invalidateKeys: [reportTemplateKeys.lists()],
+    successMessage: 'Report template created',
+    errorContext: 'Report Template Creation',
+    errorFallbackMessage: 'Failed to create template',
   });
 };
 
 export const useUpdateReportTemplate = () => {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: UpdateReportTemplatePayload }) =>
-      reportTemplatesService.update(id, payload),
-    onSuccess: (_res, variables) => {
-      void qc.invalidateQueries({ queryKey: reportTemplateKeys.lists() });
-      void qc.invalidateQueries({ queryKey: reportTemplateKeys.detail(variables.id) });
-      toast.success('Report template updated');
-    },
-    onError: (err: unknown) => {
-      const message = err instanceof Error ? err.message : 'Failed to update template';
-      toast.error(message);
-    },
+  return useMutationWithInvalidation<
+    Awaited<ReturnType<typeof reportTemplatesService.update>>,
+    unknown,
+    { id: number; payload: UpdateReportTemplatePayload }
+  >({
+    mutationFn: ({ id, payload }) => reportTemplatesService.update(id, payload),
+    invalidateKeys: [reportTemplateKeys.lists()],
+    successMessage: 'Report template updated',
+    errorContext: 'Report Template Update',
+    errorFallbackMessage: 'Failed to update template',
   });
 };
 
 export const useDeactivateReportTemplate = () => {
-  const qc = useQueryClient();
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: (id: number) => reportTemplatesService.deactivate(id),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: reportTemplateKeys.lists() });
-      toast.success('Report template deactivated');
-    },
-    onError: (err: unknown) => {
-      const message = err instanceof Error ? err.message : 'Failed to deactivate template';
-      toast.error(message);
-    },
+    invalidateKeys: [reportTemplateKeys.lists()],
+    successMessage: 'Report template deactivated',
+    errorContext: 'Report Template Deactivation',
+    errorFallbackMessage: 'Failed to deactivate template',
   });
 };
 
 export const useValidateReportTemplate = () => {
-  return useMutation({
+  return useStandardizedMutation({
     mutationFn: (htmlContent: string) => reportTemplatesService.validate(htmlContent),
+    errorContext: 'Report Template Validation',
   });
 };

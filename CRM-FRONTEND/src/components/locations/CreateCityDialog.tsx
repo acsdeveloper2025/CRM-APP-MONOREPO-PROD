@@ -1,8 +1,8 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
+import { cityFormSchema, type CityFormData } from '@/forms/schemas/location.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -31,22 +31,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { locationsService } from '@/services/locations';
 
-const createCitySchema = z.object({
-  name: z.string().min(1, 'City name is required').max(100, 'Name too long'),
-  state: z.string().min(1, 'State is required'),
-  country: z.string().min(1, 'Country is required'),
-});
-
-type CreateCityFormData = z.infer<typeof createCitySchema>;
-
 interface CreateCityDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) {
-  const form = useForm<CreateCityFormData>({
-    resolver: zodResolver(createCitySchema),
+  const form = useForm<CityFormData>({
+    resolver: zodResolver(cityFormSchema),
     defaultValues: {
       name: '',
       state: '',
@@ -72,7 +64,7 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
   });
 
   const createMutation = useCRUDMutation({
-    mutationFn: (data: CreateCityFormData) => locationsService.createCity(data),
+    mutationFn: (data: CityFormData) => locationsService.createCity(data),
     queryKey: ['cities'],
     resourceName: 'City',
     operation: 'create',
@@ -82,7 +74,7 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
     },
   });
 
-  const onSubmit = (data: CreateCityFormData) => {
+  const onSubmit = (data: CityFormData) => {
     createMutation.mutate(data);
   };
 

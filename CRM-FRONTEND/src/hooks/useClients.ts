@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { clientsService } from '@/services/clients';
 import type {
   CreateClientData,
@@ -8,8 +9,7 @@ import type {
   CreateVerificationTypeData,
   UpdateVerificationTypeData,
 } from '@/types/client';
-import type { PaginationQuery, ApiErrorResponse } from '@/types/api';
-import { toast } from 'sonner';
+import type { PaginationQuery } from '@/types/api';
 
 // Query keys
 export const clientKeys = {
@@ -109,160 +109,97 @@ export const useVerificationTypesByClient = (clientId: string) => {
 
 // Client mutations
 export const useCreateClient = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: (data: CreateClientData) => clientsService.createClient(data),
-    onSuccess: () => {
-      // Invalidate all client-related queries to ensure lists update
-      queryClient.invalidateQueries({
-        queryKey: clientKeys.all,
-        exact: false, // This will invalidate all queries that start with ['clients']
-      });
-      // Invalidate dashboard stats (affects Total Clients count)
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      toast.success('Client created successfully');
-    },
-    onError: (error: ApiErrorResponse) => {
-      toast.error(error.response?.data?.message || 'Failed to create client');
-    },
+    invalidateKeys: [clientKeys.all, ['dashboard']],
+    successMessage: 'Client created successfully',
+    errorContext: 'Client Creation',
+    errorFallbackMessage: 'Failed to create client',
   });
 };
 
 export const useUpdateClient = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateClientData }) =>
-      clientsService.updateClient(Number(id), data),
-    onSuccess: () => {
-      // Invalidate all client-related queries to ensure lists update
-      queryClient.invalidateQueries({
-        queryKey: clientKeys.all,
-        exact: false, // This will invalidate all queries that start with ['clients']
-      });
-      // Invalidate dashboard stats
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      toast.success('Client updated successfully');
-    },
-    onError: (error: ApiErrorResponse) => {
-      toast.error(error.response?.data?.message || 'Failed to update client');
-    },
+  return useMutationWithInvalidation<unknown, unknown, { id: string; data: UpdateClientData }>({
+    mutationFn: ({ id, data }) => clientsService.updateClient(Number(id), data),
+    invalidateKeys: [clientKeys.all, ['dashboard']],
+    successMessage: 'Client updated successfully',
+    errorContext: 'Client Update',
+    errorFallbackMessage: 'Failed to update client',
   });
 };
 
 export const useDeleteClient = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: (id: string) => clientsService.deleteClient(Number(id)),
-    onSuccess: () => {
-      // Invalidate all client-related queries to ensure lists update
-      queryClient.invalidateQueries({
-        queryKey: clientKeys.all,
-        exact: false, // This will invalidate all queries that start with ['clients']
-      });
-      // Invalidate dashboard stats (affects Total Clients count)
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      toast.success('Client deleted successfully');
-    },
-    onError: (error: ApiErrorResponse) => {
-      toast.error(error.response?.data?.message || 'Failed to delete client');
-    },
+    invalidateKeys: [clientKeys.all, ['dashboard']],
+    successMessage: 'Client deleted successfully',
+    errorContext: 'Client Deletion',
+    errorFallbackMessage: 'Failed to delete client',
   });
 };
 
 // Product mutations
 export const useCreateProduct = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: (data: CreateProductData) => clientsService.createProduct(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: productKeys.all });
-      queryClient.invalidateQueries({ queryKey: clientKeys.all });
-      toast.success('Product created successfully');
-    },
-    onError: (error: ApiErrorResponse) => {
-      toast.error(error.response?.data?.message || 'Failed to create product');
-    },
+    invalidateKeys: [productKeys.all, clientKeys.all],
+    successMessage: 'Product created successfully',
+    errorContext: 'Product Creation',
+    errorFallbackMessage: 'Failed to create product',
   });
 };
 
 export const useUpdateProduct = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateProductData }) =>
-      clientsService.updateProduct(Number(id), data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: productKeys.all });
-      toast.success('Product updated successfully');
-    },
-    onError: (error: ApiErrorResponse) => {
-      toast.error(error.response?.data?.message || 'Failed to update product');
-    },
+  return useMutationWithInvalidation<unknown, unknown, { id: string; data: UpdateProductData }>({
+    mutationFn: ({ id, data }) => clientsService.updateProduct(Number(id), data),
+    invalidateKeys: [productKeys.all],
+    successMessage: 'Product updated successfully',
+    errorContext: 'Product Update',
+    errorFallbackMessage: 'Failed to update product',
   });
 };
 
 export const useDeleteProduct = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: (id: string) => clientsService.deleteProduct(Number(id)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: productKeys.all });
-      toast.success('Product deleted successfully');
-    },
-    onError: (error: ApiErrorResponse) => {
-      toast.error(error.response?.data?.message || 'Failed to delete product');
-    },
+    invalidateKeys: [productKeys.all],
+    successMessage: 'Product deleted successfully',
+    errorContext: 'Product Deletion',
+    errorFallbackMessage: 'Failed to delete product',
   });
 };
 
 // Verification type mutations
 export const useCreateVerificationType = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: (data: CreateVerificationTypeData) => clientsService.createVerificationType(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: verificationTypeKeys.all });
-      toast.success('Verification type created successfully');
-    },
-    onError: (error: ApiErrorResponse) => {
-      toast.error(error.response?.data?.message || 'Failed to create verification type');
-    },
+    invalidateKeys: [verificationTypeKeys.all],
+    successMessage: 'Verification type created successfully',
+    errorContext: 'Verification Type Creation',
+    errorFallbackMessage: 'Failed to create verification type',
   });
 };
 
 export const useUpdateVerificationType = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateVerificationTypeData }) =>
-      clientsService.updateVerificationType(Number(id), data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: verificationTypeKeys.all });
-      toast.success('Verification type updated successfully');
-    },
-    onError: (error: ApiErrorResponse) => {
-      toast.error(error.response?.data?.message || 'Failed to update verification type');
-    },
+  return useMutationWithInvalidation<
+    unknown,
+    unknown,
+    { id: string; data: UpdateVerificationTypeData }
+  >({
+    mutationFn: ({ id, data }) => clientsService.updateVerificationType(Number(id), data),
+    invalidateKeys: [verificationTypeKeys.all],
+    successMessage: 'Verification type updated successfully',
+    errorContext: 'Verification Type Update',
+    errorFallbackMessage: 'Failed to update verification type',
   });
 };
 
 export const useDeleteVerificationType = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useMutationWithInvalidation({
     mutationFn: (id: string) => clientsService.deleteVerificationType(Number(id)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: verificationTypeKeys.all });
-      toast.success('Verification type deleted successfully');
-    },
-    onError: (error: ApiErrorResponse) => {
-      toast.error(error.response?.data?.message || 'Failed to delete verification type');
-    },
+    invalidateKeys: [verificationTypeKeys.all],
+    successMessage: 'Verification type deleted successfully',
+    errorContext: 'Verification Type Deletion',
+    errorFallbackMessage: 'Failed to delete verification type',
   });
 };

@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import {
   Plus,
   Pencil,
@@ -410,8 +411,6 @@ const FieldRow: React.FC<{
 // ---------- Main Page ----------
 
 export const CaseDataTemplatesPage: React.FC = () => {
-  const queryClient = useQueryClient();
-
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | 'view'>('create');
@@ -490,35 +489,27 @@ export const CaseDataTemplatesPage: React.FC = () => {
   const inactiveCount = templates.length - activeCount;
 
   // Mutations
-  const createMutation = useMutation({
+  const createMutation = useMutationWithInvalidation({
     mutationFn: (data: Parameters<typeof caseDataService.createTemplate>[0]) =>
       caseDataService.createTemplate(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['case-data-templates'] });
-      toast.success('Template created successfully');
-      closeDialog();
-    },
-    onError: (err: { response?: { data?: { message?: string } }; message?: string }) => {
-      toast.error(err.response?.data?.message || err.message || 'Failed to create template');
-    },
+    invalidateKeys: [['case-data-templates']],
+    successMessage: 'Template created successfully',
+    errorContext: 'Template Creation',
+    errorFallbackMessage: 'Failed to create template',
+    onSuccess: () => closeDialog(),
   });
 
-  const updateMutation = useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: number;
-      data: Parameters<typeof caseDataService.updateTemplate>[1];
-    }) => caseDataService.updateTemplate(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['case-data-templates'] });
-      toast.success('Template updated successfully');
-      closeDialog();
-    },
-    onError: (err: { response?: { data?: { message?: string } }; message?: string }) => {
-      toast.error(err.response?.data?.message || err.message || 'Failed to update template');
-    },
+  const updateMutation = useMutationWithInvalidation<
+    Awaited<ReturnType<typeof caseDataService.updateTemplate>>,
+    unknown,
+    { id: number; data: Parameters<typeof caseDataService.updateTemplate>[1] }
+  >({
+    mutationFn: ({ id, data }) => caseDataService.updateTemplate(id, data),
+    invalidateKeys: [['case-data-templates']],
+    successMessage: 'Template updated successfully',
+    errorContext: 'Template Update',
+    errorFallbackMessage: 'Failed to update template',
+    onSuccess: () => closeDialog(),
   });
 
   // Helpers

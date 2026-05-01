@@ -340,7 +340,8 @@ router.get(
     query('status').optional().isString(),
     query('search').optional().isString(),
     query('assignedTo').optional().isUUID().withMessage('Invalid assigned to ID'),
-    query('clientId').optional().isUUID().withMessage('Invalid client ID'),
+    // clients.id is INT (not UUID); see project_uuid_vs_integer_joins memory.
+    query('clientId').optional().isInt({ min: 1 }).withMessage('Invalid client ID'),
     query('priority').optional().isString(),
     query('dateFrom').optional().isISO8601().withMessage('Invalid date format'),
     query('dateTo').optional().isISO8601().withMessage('Invalid date format'),

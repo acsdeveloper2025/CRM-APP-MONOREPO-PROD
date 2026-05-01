@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
+import { createUserFormSchema, type CreateUserFormData } from '@/forms/schemas/user.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -36,33 +36,8 @@ import { rolesService } from '@/services/roles';
 import { departmentsService } from '@/services/departments';
 import { designationsService } from '@/services/designations';
 import type { CreateUserData } from '@/types/user';
-import { PASSWORD_POLICY_REGEX } from '@/lib/passwordPolicy';
 import { USER_ROLES } from '@/types/constants';
 import { logger } from '@/utils/logger';
-
-const createUserSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
-  username: z
-    .string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(50, 'Username too long'),
-  email: z.string().email('Invalid email address'),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(
-      PASSWORD_POLICY_REGEX,
-      'Password must include uppercase, lowercase, number, and special character'
-    ),
-  roleId: z.string().min(1, 'Role is required'),
-  departmentId: z.string().optional(),
-  employeeId: z.string().min(1, 'Employee ID is required'),
-  designationId: z.string().optional(),
-  teamLeaderId: z.string().optional(),
-  managerId: z.string().optional(),
-});
-
-type CreateUserFormData = z.infer<typeof createUserSchema>;
 
 interface CreateUserDialogProps {
   open: boolean;
@@ -71,7 +46,7 @@ interface CreateUserDialogProps {
 
 export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) {
   const form = useForm<CreateUserFormData>({
-    resolver: zodResolver(createUserSchema),
+    resolver: zodResolver(createUserFormSchema),
     defaultValues: {
       name: '',
       username: '',

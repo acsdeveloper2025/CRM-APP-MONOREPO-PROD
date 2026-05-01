@@ -1,7 +1,7 @@
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
+import { rateTypeFormSchema, type RateTypeFormData } from '@/forms/schemas/rateType.schema';
 import {
   Dialog,
   DialogContent,
@@ -25,25 +25,14 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { rateTypesService, type CreateRateTypeData } from '@/services/rateTypes';
 
-const createRateTypeSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Rate type name is required')
-    .max(100, 'Name must be less than 100 characters'),
-  description: z.string().max(500, 'Description must be less than 500 characters').optional(),
-  isActive: z.boolean(),
-});
-
-type CreateRateTypeFormData = z.infer<typeof createRateTypeSchema>;
-
 interface CreateRateTypeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialogProps) {
-  const form = useForm<CreateRateTypeFormData>({
-    resolver: zodResolver(createRateTypeSchema),
+  const form = useForm<RateTypeFormData>({
+    resolver: zodResolver(rateTypeFormSchema),
     defaultValues: {
       name: '',
       description: '',
@@ -65,7 +54,7 @@ export function CreateRateTypeDialog({ open, onOpenChange }: CreateRateTypeDialo
     },
   });
 
-  const onSubmit: SubmitHandler<CreateRateTypeFormData> = (data) => {
+  const onSubmit: SubmitHandler<RateTypeFormData> = (data) => {
     createMutation.mutate(data);
   };
 

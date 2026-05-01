@@ -10,7 +10,6 @@ import {
   getAuditActions,
   getAuditCategories,
   getAuditStats,
-  exportAuditLogs,
   cleanupAuditLogs,
 } from '@/controllers/auditLogsController';
 
@@ -113,16 +112,6 @@ const statsValidation = [
     .withMessage('Period must be one of: day, week, month, year'),
 ];
 
-const exportValidation = [
-  body('format')
-    .optional()
-    .isIn(['CSV', 'JSON', 'EXCEL'])
-    .withMessage('Format must be one of: CSV, JSON, EXCEL'),
-  body('dateFrom').optional().isISO8601().withMessage('Date from must be a valid date'),
-  body('dateTo').optional().isISO8601().withMessage('Date to must be a valid date'),
-  body('filters').optional().isObject().withMessage('Filters must be an object'),
-];
-
 const cleanupValidation = [
   body('olderThanDays')
     .optional()
@@ -140,8 +129,6 @@ router.get('/categories', getAuditCategories);
 router.get('/stats', statsValidation, validate, getAuditStats);
 
 router.post('/', createAuditLogValidation, validate, createAuditLog);
-
-router.post('/export', exportValidation, validate, exportAuditLogs);
 
 router.delete('/cleanup', cleanupValidation, validate, cleanupAuditLogs);
 

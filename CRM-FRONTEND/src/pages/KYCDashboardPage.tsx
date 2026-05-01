@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { useKYCTasks, useKYCDocumentTypes } from '@/hooks/useKYC';
 import { kycService } from '@/services/kyc';
+import { logger } from '@/utils/logger';
 import { format } from 'date-fns';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -102,12 +103,21 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   const pagination = taskData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
   const stats = taskData?.statistics || { total: 0, pending: 0, passed: 0, failed: 0, referred: 0 };
 
-  const handleExport = () => {
-    const url = kycService.getExportUrl({
-      status: statusFilter !== 'ALL' ? statusFilter : undefined,
-      documentType: docTypeFilter !== 'ALL' ? docTypeFilter : undefined,
-    });
-    window.open(url, '_blank');
+  const handleExport = async () => {
+    try {
+      const blob = await kycService.exportToExcel({
+        status: statusFilter !== 'ALL' ? statusFilter : undefined,
+        documentType: docTypeFilter !== 'ALL' ? docTypeFilter : undefined,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kyc-verifications-${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      logger.error('KYC export failed:', error);
+    }
   };
 
   return (

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { Upload, Download, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,7 +15,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
-import { ApiErrorResponse } from '@/types/api';
 
 interface ImportResult {
   success: boolean;
@@ -41,7 +41,7 @@ export function BulkImportLocationDialog({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
-  const importMutation = useMutation({
+  const importMutation = useStandardizedMutation({
     mutationFn: (file: File) => {
       if (type === 'countries') {
         return locationsService.bulkImportCountries(file);
@@ -53,18 +53,15 @@ export function BulkImportLocationDialog({
         return locationsService.bulkImportPincodes(file);
       }
     },
+    successMessage: `${type} imported successfully`,
+    errorContext: `Bulk Import (${type})`,
+    errorFallbackMessage: `Failed to import ${type}`,
     onSuccess: (result) => {
-      // Cast the result to unknown first, then to ImportResult to satisfy TypeScript
-      // This assumes the API returns the result structure matching ImportResult
       setImportResult(result as unknown as ImportResult);
       queryClient.invalidateQueries({ queryKey: [type] });
       if (type === 'pincodes') {
         queryClient.invalidateQueries({ queryKey: ['cities'] });
       }
-      toast.success(`${type} imported successfully`);
-    },
-    onError: (error: ApiErrorResponse) => {
-      toast.error(error.response?.data?.message || `Failed to import ${type}`);
     },
   });
 
@@ -88,10 +85,16 @@ export function BulkImportLocationDialog({
   };
 
   const handleDownloadTemplate = () => {
-    const csvContent =
-      type === 'cities'
-        ? 'name,state,country\nMumbai,Maharashtra,India\nDelhi,Delhi,India'
-        : 'code,area,cityName,state,country\n400001,Fort,Mumbai,Maharashtra,India\n110001,Connaught Place,Delhi,Delhi,India';
+    const templates: Record<typeof type, string> = {
+      countries:
+        'name,code,continent\nIndia,IND,Asia\nUnited States,USA,North America',
+      states:
+        'name,code,country,gstStateCode\nMaharashtra,MH,India,27\nKarnataka,KA,India,29',
+      cities: 'name,state,country\nMumbai,Maharashtra,India\nDelhi,Delhi,India',
+      pincodes:
+        'code,area,cityName,state,country\n400001,Fort,Mumbai,Maharashtra,India\n110001,Connaught Place,Delhi,Delhi,India',
+    };
+    const csvContent = templates[type];
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);

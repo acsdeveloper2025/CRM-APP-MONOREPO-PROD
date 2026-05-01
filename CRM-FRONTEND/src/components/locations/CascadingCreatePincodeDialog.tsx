@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,10 +12,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
-import { toast } from 'sonner';
 import { locationsService } from '@/services/locations';
 import { CascadingLocationSelector } from './CascadingLocationSelector';
-import { logger } from '@/utils/logger';
 
 const cascadingCreatePincodeSchema = z.object({
   countryId: z.string().min(1, 'Country selection is required'),
@@ -43,8 +41,6 @@ export function CascadingCreatePincodeDialog({
   open,
   onOpenChange,
 }: CascadingCreatePincodeDialogProps) {
-  const queryClient = useQueryClient();
-
   const form = useForm<CascadingCreatePincodeFormData>({
     resolver: zodResolver(cascadingCreatePincodeSchema),
     defaultValues: {
@@ -57,9 +53,8 @@ export function CascadingCreatePincodeDialog({
     mode: 'onChange', // Enable real-time validation
   });
 
-  const createMutation = useMutation({
+  const createMutation = useMutationWithInvalidation({
     mutationFn: async (data: CascadingCreatePincodeFormData) => {
-      // Transform cascading data to backend format
       const pincodeData = {
         code: data.pincodeCode,
         areas: data.areas,
@@ -67,18 +62,13 @@ export function CascadingCreatePincodeDialog({
       };
       return locationsService.createPincode(pincodeData);
     },
+    invalidateKeys: [['pincodes'], ['cities']],
+    successMessage: 'Pincode created successfully',
+    errorContext: 'Pincode Creation',
+    errorFallbackMessage: 'Failed to create pincode',
     onSuccess: () => {
-      toast.success('Pincode created successfully');
-      queryClient.invalidateQueries({ queryKey: ['pincodes'] });
-      queryClient.invalidateQueries({ queryKey: ['cities'] });
       form.reset();
       onOpenChange(false);
-    },
-    onError: (error: unknown) => {
-      logger.error('Create pincode error:', error);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const errorMessage = (error as any)?.response?.data?.message || 'Failed to create pincode';
-      toast.error(errorMessage);
     },
   });
 

@@ -23,7 +23,7 @@ import { FormFieldViewer } from './FormFieldViewer';
 import { FormAttachmentsViewer } from './FormAttachmentsViewer';
 import { FormLocationViewer } from './FormLocationViewer';
 import { FormPhotosGallery } from './FormPhotosGallery';
-import VerificationImages from '@/components/VerificationImages';
+import VerificationImages from '@/components/verification-tasks/VerificationImages';
 import { formatDistanceToNow } from 'date-fns';
 import { baseBadgeStyle } from '@/lib/badgeStyles';
 

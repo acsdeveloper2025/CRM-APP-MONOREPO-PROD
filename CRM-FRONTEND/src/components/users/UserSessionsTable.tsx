@@ -1,5 +1,4 @@
-import { ApiErrorResponse } from '@/types/api';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { Monitor, Smartphone, Tablet, X, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,7 +12,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { LoadingState } from '@/components/ui/loading';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { toast } from 'sonner';
 import { usersService } from '@/services/users';
 import { UserSession } from '@/types/user';
 
@@ -23,18 +21,12 @@ interface UserSessionsTableProps {
 }
 
 export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
-  const queryClient = useQueryClient();
-
-  const terminateSessionMutation = useMutation({
+  const terminateSessionMutation = useMutationWithInvalidation({
     mutationFn: (sessionId: string) => usersService.terminateSession(sessionId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-sessions'] });
-      toast.success('Session terminated successfully');
-    },
-    onError: (error: unknown) => {
-      const apiError = error as ApiErrorResponse;
-      toast.error(apiError.response?.data?.message || 'Failed to terminate session');
-    },
+    invalidateKeys: [['user-sessions']],
+    successMessage: 'Session terminated successfully',
+    errorContext: 'Session Termination',
+    errorFallbackMessage: 'Failed to terminate session',
   });
 
   const getDeviceIcon = (userAgent: string) => {

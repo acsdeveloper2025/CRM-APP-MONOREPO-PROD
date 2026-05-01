@@ -24,7 +24,9 @@ import {
   uploadClientStamp,
   deleteClientLogo,
   deleteClientStamp,
+  bulkImportClients,
 } from '@/controllers/clientsController';
+import { upload } from '@/middleware/upload';
 
 // Dedicated uploader for branding assets. Memory storage is fine because the
 // controller writes the file to disk itself (allows us to tee the bytes to
@@ -168,6 +170,16 @@ router.post(
   EnterpriseCache.invalidate(CacheInvalidationPatterns.clientUpdate),
   validate(createClientValidation),
   createClient
+);
+
+// POST /api/clients/bulk-import - CSV bulk upsert
+router.post(
+  '/bulk-import',
+  authenticateToken,
+  authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.clientUpdate),
+  upload.single('file'),
+  bulkImportClients
 );
 
 // PUT /api/clients/:id - Update client (INVALIDATES CACHE)

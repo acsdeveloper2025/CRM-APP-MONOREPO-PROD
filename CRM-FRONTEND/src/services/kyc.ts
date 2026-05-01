@@ -140,23 +140,29 @@ class KYCService {
     return response;
   }
 
-  getExportUrl(
+  // Authenticated blob download — `window.open` won't carry the in-memory
+  // bearer token (Phase E5 hardening), so this returns the bytes via axios
+  // and the caller is responsible for triggering the browser save.
+  async exportToExcel(
     filters: { status?: string; documentType?: string; dateFrom?: string; dateTo?: string } = {}
-  ): string {
-    const params = new URLSearchParams();
+  ): Promise<Blob> {
+    const params: Record<string, string> = {};
     if (filters.status) {
-      params.append('status', filters.status);
+      params.status = filters.status;
     }
     if (filters.documentType) {
-      params.append('documentType', filters.documentType);
+      params.documentType = filters.documentType;
     }
     if (filters.dateFrom) {
-      params.append('dateFrom', filters.dateFrom);
+      params.dateFrom = filters.dateFrom;
     }
     if (filters.dateTo) {
-      params.append('dateTo', filters.dateTo);
+      params.dateTo = filters.dateTo;
     }
-    return `/api/kyc/export?${params.toString()}`;
+    const response = await apiService.getRaw<Blob>('/kyc/export', params, {
+      responseType: 'blob',
+    });
+    return response.data;
   }
 }
 

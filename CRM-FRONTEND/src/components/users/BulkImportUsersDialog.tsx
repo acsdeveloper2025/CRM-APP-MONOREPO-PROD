@@ -68,7 +68,8 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'users_import_template.csv';
+      // Backend serves XLSX (downloadUserTemplate uses ExcelJS).
+      a.download = 'users_import_template.xlsx';
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (_error) {
@@ -109,12 +110,11 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
             <AlertDescription>
               <div className="space-y-2">
                 <p>
-                  <strong>Required columns:</strong> name, username, email, role, employeeId,
-                  designation, department
+                  <strong>Required columns:</strong> name, username, email, role, employeeId
                 </p>
                 <p>
-                  <strong>Optional columns:</strong> password (will be auto-generated if not
-                  provided)
+                  <strong>Optional columns:</strong> phone, department, designation, password
+                  (auto-generated if not provided). Department + designation must already exist.
                 </p>
                 <Button
                   variant="link"

@@ -484,25 +484,32 @@ export const bulkImportStates = async (
           continue;
         }
 
-        const { name, code, country } = row;
+        const { name, code, country, gstStateCode } = row;
+        // Normalize gstStateCode to NULL when blank/missing; the table
+        // CHECK constraint enforces /^[0-9]{2}$/ when not null.
+        const gstCode: string | null =
+          typeof gstStateCode === 'string' && gstStateCode.trim() !== ''
+            ? gstStateCode.trim()
+            : null;
 
-        // Find or create country
+        // Country must exist. Auto-creation was removed because it
+        // hardcoded continent='Asia' and a 3-char-truncated code,
+        // producing junk rows.
         const countryResult = await query(
           'SELECT id FROM countries WHERE LOWER(name) = LOWER($1)',
           [country]
         );
 
-        let countryId: number;
         if (countryResult.rows.length === 0) {
-          // Auto-create country if it doesn't exist
-          const newCountry = await query(
-            'INSERT INTO countries (name, code, continent) VALUES ($1, $2, $3) RETURNING id',
-            [country, country.substring(0, 3).toUpperCase(), 'Asia'] // Default to Asia
-          );
-          countryId = newCountry.rows[0].id;
-        } else {
-          countryId = countryResult.rows[0].id;
+          results.failed++;
+          results.errors.push({
+            row: i + 1,
+            data: row,
+            error: `Country "${country}" not found. Seed it via the countries import first.`,
+          });
+          continue;
         }
+        const countryId = countryResult.rows[0].id;
 
         // Check if state already exists
         const existingState = await query(
@@ -511,20 +518,30 @@ export const bulkImportStates = async (
         );
 
         if (existingState.rows.length > 0) {
-          // Update existing state
-          await query(
-            `UPDATE states
-             SET name = $1, updated_at = NOW()
-             WHERE code = $2 AND country_id = $3`,
-            [name, code.toUpperCase(), countryId]
-          );
+          // Update existing state. gst_state_code only updated when CSV
+          // supplies it — preserves prior value otherwise.
+          if (gstCode !== null) {
+            await query(
+              `UPDATE states
+               SET name = $1, gst_state_code = $2, updated_at = NOW()
+               WHERE code = $3 AND country_id = $4`,
+              [name, gstCode, code.toUpperCase(), countryId]
+            );
+          } else {
+            await query(
+              `UPDATE states
+               SET name = $1, updated_at = NOW()
+               WHERE code = $2 AND country_id = $3`,
+              [name, code.toUpperCase(), countryId]
+            );
+          }
           results.updated++;
         } else {
           // Create new state
           await query(
-            `INSERT INTO states (name, code, country_id)
-             VALUES ($1, $2, $3)`,
-            [name, code.toUpperCase(), countryId]
+            `INSERT INTO states (name, code, country_id, gst_state_code)
+             VALUES ($1, $2, $3, $4)`,
+            [name, code.toUpperCase(), countryId, gstCode]
           );
           results.created++;
         }

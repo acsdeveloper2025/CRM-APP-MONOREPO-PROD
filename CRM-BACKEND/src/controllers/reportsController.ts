@@ -1848,11 +1848,6 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
           THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.first_assigned_at)) / 86400
           ELSE NULL
         END as task_tat_days,
-        CASE
-          WHEN vt.completed_at IS NOT NULL AND vt.started_at IS NOT NULL
-          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.started_at)) / 3600
-          ELSE NULL
-        END as visit_duration_hours,
 
         -- Field User Data
         u.name as assigned_field_user,
@@ -1866,9 +1861,6 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
         c.status as case_status,
         c.priority as case_priority,
         c.created_at as case_created_date,
-        c.total_tasks_count,
-        c.completed_tasks_count,
-        c.case_completion_percentage,
 
         -- Client and Product Data
         cl.name as client_name,
@@ -1917,14 +1909,14 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
         { header: 'Task ID', key: 'taskId', width: 12 },
         { header: 'Task Number', key: 'taskNumber', width: 15 },
         { header: 'Task Title', key: 'taskTitle', width: 30 },
-        { header: 'Verification Type', key: 'verificationTypeName', width: 25 },
+        { header: 'Verification Type', key: 'taskVerificationType', width: 25 },
         { header: 'Task Status', key: 'taskStatus', width: 15 },
         { header: 'Task Priority', key: 'taskPriority', width: 12 },
         { header: 'Field Agent', key: 'assignedFieldUser', width: 20 },
         { header: 'Field Agent ID', key: 'fieldUserEmployeeId', width: 15 },
         { header: 'Address', key: 'address', width: 40 },
         { header: 'Pincode', key: 'pincode', width: 10 },
-        { header: 'Area', key: 'areaName', width: 20 },
+        // Area column previously had key 'areaName' but no SQL source — column was always empty. Removed.
         { header: 'Rate Type', key: 'rateType', width: 15 },
         { header: 'Estimated Amount', key: 'estimatedAmount', width: 18 },
         { header: 'Actual Amount', key: 'actualAmount', width: 15 },

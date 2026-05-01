@@ -1,7 +1,7 @@
 import React from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { Plus, Pencil, Trash2, Save, Shield } from 'lucide-react';
-import { toast } from 'sonner';
 import { rbacAdminService, type RbacRole } from '@/services/rbacAdmin';
 import { PAGE_PERMISSION_GUIDE, RBAC_PERMISSION_MODULES } from '@/constants/rbac';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -183,11 +183,13 @@ export function RBACAdminPage() {
     }
   };
 
-  const createRoleMutation = useMutation({
+  const createRoleMutation = useStandardizedMutation({
     mutationFn: (payload: { name: string; description?: string; parentRoleId?: string | null }) =>
       rbacAdminService.createRole(payload),
+    successMessage: 'Role created',
+    errorContext: 'Role Creation',
+    errorFallbackMessage: 'Failed to create role',
     onSuccess: async (response) => {
-      toast.success('Role created');
       setShowCreate(false);
       const newId = response.data?.id || null;
       await refreshRoleData(newId);
@@ -195,48 +197,42 @@ export function RBACAdminPage() {
         setSelectedRoleId(newId);
       }
     },
-    onError: (error: unknown) => {
-      toast.error((error as { message?: string }).message || 'Failed to create role');
-    },
   });
 
-  const updateRoleMutation = useMutation({
+  const updateRoleMutation = useStandardizedMutation({
     mutationFn: (payload: {
       id: string;
       data: { name?: string; description?: string; parentRoleId?: string | null };
     }) => rbacAdminService.updateRole(payload.id, payload.data),
+    successMessage: 'Role updated',
+    errorContext: 'Role Update',
+    errorFallbackMessage: 'Failed to update role',
     onSuccess: async () => {
-      toast.success('Role updated');
       setEditingRole(null);
       await refreshRoleData(selectedRoleId);
     },
-    onError: (error: unknown) => {
-      toast.error((error as { message?: string }).message || 'Failed to update role');
-    },
   });
 
-  const deleteRoleMutation = useMutation({
+  const deleteRoleMutation = useStandardizedMutation({
     mutationFn: (id: string) => rbacAdminService.deleteRole(id),
+    successMessage: 'Role deleted',
+    errorContext: 'Role Deletion',
+    errorFallbackMessage: 'Failed to delete role',
     onSuccess: async () => {
-      toast.success('Role deleted');
       const deleted = selectedRoleId;
       setSelectedRoleId(null);
       await refreshRoleData(deleted);
     },
-    onError: (error: unknown) => {
-      toast.error((error as { message?: string }).message || 'Failed to delete role');
-    },
   });
 
-  const savePermissionsMutation = useMutation({
+  const savePermissionsMutation = useStandardizedMutation({
     mutationFn: () =>
       rbacAdminService.updateRolePermissions(selectedRoleId as string, selectedPermissionCodes),
+    successMessage: 'Permissions updated',
+    errorContext: 'Permission Save',
+    errorFallbackMessage: 'Failed to update permissions',
     onSuccess: async () => {
-      toast.success('Permissions updated');
       await refreshRoleData(selectedRoleId);
-    },
-    onError: (error: unknown) => {
-      toast.error((error as { message?: string }).message || 'Failed to update permissions');
     },
   });
 

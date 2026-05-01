@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import { productFormSchema, type ProductFormData } from '@/forms/schemas/client.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -25,13 +25,6 @@ import { Input } from '@/components/ui/input';
 import { clientsService } from '@/services/clients';
 import { Product } from '@/types/client';
 
-const editProductSchema = z.object({
-  name: z.string().min(1, 'Product name is required').max(100, 'Name too long'),
-  code: z.string().min(2, 'Product code is required').max(50, 'Code too long'),
-});
-
-type EditProductFormData = z.infer<typeof editProductSchema>;
-
 interface EditProductDialogProps {
   product: Product;
   open: boolean;
@@ -39,8 +32,8 @@ interface EditProductDialogProps {
 }
 
 export function EditProductDialog({ product, open, onOpenChange }: EditProductDialogProps) {
-  const form = useForm<EditProductFormData>({
-    resolver: zodResolver(editProductSchema),
+  const form = useForm<ProductFormData>({
+    resolver: zodResolver(productFormSchema),
     defaultValues: {
       name: product.name,
       code: product.code,
@@ -57,7 +50,7 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
   }, [product, form]);
 
   const updateMutation = useCRUDMutation({
-    mutationFn: (data: EditProductFormData) => clientsService.updateProduct(product.id, data),
+    mutationFn: (data: ProductFormData) => clientsService.updateProduct(product.id, data),
     queryKey: ['products'],
     resourceName: 'Product',
     operation: 'update',
@@ -67,7 +60,7 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
     },
   });
 
-  const onSubmit = (data: EditProductFormData) => {
+  const onSubmit = (data: ProductFormData) => {
     updateMutation.mutate(data);
   };
 

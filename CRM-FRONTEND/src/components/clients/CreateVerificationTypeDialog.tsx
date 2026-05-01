@@ -1,7 +1,10 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
+import {
+  createVerificationTypeFormSchema,
+  type CreateVerificationTypeFormData,
+} from '@/forms/schemas/client.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -23,14 +26,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { verificationTypesService } from '@/services/verificationTypes';
 
-const createVerificationTypeSchema = z.object({
-  name: z.string().min(1, 'Verification type name is required').max(100, 'Name too long'),
-  code: z.string().min(2, 'Code is required').max(50, 'Code too long'),
-  category: z.string().min(1, 'Category is required'), // Explicit string validation
-});
-
-type CreateVerificationTypeFormData = z.infer<typeof createVerificationTypeSchema>;
-
 interface CreateVerificationTypeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,7 +36,7 @@ export function CreateVerificationTypeDialog({
   onOpenChange,
 }: CreateVerificationTypeDialogProps) {
   const form = useForm<CreateVerificationTypeFormData>({
-    resolver: zodResolver(createVerificationTypeSchema),
+    resolver: zodResolver(createVerificationTypeFormSchema),
     defaultValues: {
       name: '',
       code: '',

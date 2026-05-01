@@ -1,7 +1,8 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,11 +32,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
-import { toast } from 'sonner';
 import { reportsService } from '@/services/reports';
 import { clientsService } from '@/services/clients';
 import { addDays } from 'date-fns';
-import { AxiosError } from 'axios';
 
 const generateReportSchema = z.object({
   reportType: z.string().min(1, 'Report type is required'),
@@ -59,8 +58,6 @@ export function GenerateReportDialog({ open, onOpenChange }: GenerateReportDialo
     to: new Date(),
   });
 
-  const queryClient = useQueryClient();
-
   const form = useForm<GenerateReportFormData>({
     resolver: zodResolver(generateReportSchema),
     defaultValues: {
@@ -80,7 +77,7 @@ export function GenerateReportDialog({ open, onOpenChange }: GenerateReportDialo
     enabled: open,
   });
 
-  const generateMutation = useMutation({
+  const generateMutation = useMutationWithInvalidation({
     mutationFn: (data: GenerateReportFormData) => {
       const reportData = {
         ...data,
@@ -93,18 +90,13 @@ export function GenerateReportDialog({ open, onOpenChange }: GenerateReportDialo
       };
       return reportsService.generateMISReport(reportData);
     },
+    invalidateKeys: [['mis-reports']],
+    successMessage: 'Report generated successfully',
+    errorContext: 'Report Generation',
+    errorFallbackMessage: 'Failed to generate report',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['mis-reports'] });
-      toast.success('Report generated successfully');
       form.reset();
       onOpenChange(false);
-    },
-    onError: (error: unknown) => {
-      const message =
-        error instanceof AxiosError
-          ? error.response?.data?.message || error.message
-          : 'Failed to generate report';
-      toast.error(message);
     },
   });
 

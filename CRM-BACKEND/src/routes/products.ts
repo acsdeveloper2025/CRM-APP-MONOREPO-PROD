@@ -17,7 +17,9 @@ import {
   deleteProduct,
   getProductStats,
   getProductVerificationTypes,
+  bulkImportProducts,
 } from '@/controllers/productsController';
+import { upload } from '@/middleware/upload';
 
 const router = express.Router();
 
@@ -134,6 +136,15 @@ router.post(
   createProductValidation,
   handleValidationErrors,
   createProduct
+);
+
+// POST /api/products/bulk-import - CSV bulk upsert
+router.post(
+  '/bulk-import',
+  authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.productUpdate),
+  upload.single('file'),
+  bulkImportProducts
 );
 
 router.get(

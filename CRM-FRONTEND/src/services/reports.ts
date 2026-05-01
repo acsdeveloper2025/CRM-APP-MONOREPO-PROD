@@ -185,14 +185,14 @@ export class ReportsService {
     return response;
   }
 
+  // Re-routes to the canonical MIS export endpoint. The previous
+  // POST /mis-reports/export had no backend wiring (404).
   async exportMISReports(
-    query: ReportQuery = {},
+    _query: ReportQuery = {},
     format: 'PDF' | 'EXCEL' | 'CSV' = 'EXCEL'
   ): Promise<Blob> {
-    const response = await apiService.postRaw<Blob>(`/mis-reports/export?format=${format}`, query, {
-      responseType: 'blob',
-    });
-    return response.data;
+    const exportFormat = format === 'PDF' ? 'EXCEL' : format;
+    return this.exportMISDashboardData({}, exportFormat as ExportFormat);
   }
 
   // Scheduled Reports

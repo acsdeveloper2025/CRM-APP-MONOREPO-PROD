@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Bell, RefreshCw, Search, Trash2, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -122,64 +123,59 @@ export function NotificationHistoryPage() {
     ]);
   };
 
-  const markReadMutation = useMutation({
+  const markReadMutation = useStandardizedMutation({
     mutationFn: async (ids: string[]) => {
       await Promise.all(ids.map((id) => notificationService.markRead(id)));
     },
-    onSuccess: async () => {
-      await refreshLists();
-      toast.success('Notifications marked as read');
-    },
-    onError: () => {
-      toast.error('Failed to update notifications');
+    successMessage: 'Notifications marked as read',
+    errorContext: 'Notification Mark Read',
+    errorFallbackMessage: 'Failed to update notifications',
+    onSuccess: () => {
+      void refreshLists();
     },
   });
 
-  const markUnreadMutation = useMutation({
+  const markUnreadMutation = useStandardizedMutation({
     mutationFn: async (ids: string[]) => {
       await Promise.all(ids.map((id) => notificationService.markUnread(id)));
     },
-    onSuccess: async () => {
-      await refreshLists();
-      toast.success('Notifications marked as unread');
-    },
-    onError: () => {
-      toast.error('Failed to update notifications');
+    successMessage: 'Notifications marked as unread',
+    errorContext: 'Notification Mark Unread',
+    errorFallbackMessage: 'Failed to update notifications',
+    onSuccess: () => {
+      void refreshLists();
     },
   });
 
-  const deleteMutation = useMutation({
+  const deleteMutation = useStandardizedMutation({
     mutationFn: async (ids: string[]) => {
       await Promise.all(ids.map((id) => notificationService.remove(id)));
     },
-    onSuccess: async () => {
-      await refreshLists();
-      toast.success('Notifications deleted');
-    },
-    onError: () => {
-      toast.error('Failed to delete notifications');
+    successMessage: 'Notifications deleted',
+    errorContext: 'Notification Deletion',
+    errorFallbackMessage: 'Failed to delete notifications',
+    onSuccess: () => {
+      void refreshLists();
     },
   });
 
-  const markAllReadMutation = useMutation({
+  const markAllReadMutation = useStandardizedMutation({
     mutationFn: () => notificationService.markAllRead(),
-    onSuccess: async () => {
-      await refreshLists();
-      toast.success('All notifications marked as read');
-    },
-    onError: () => {
-      toast.error('Failed to mark all as read');
+    successMessage: 'All notifications marked as read',
+    errorContext: 'Notification Mark All Read',
+    errorFallbackMessage: 'Failed to mark all as read',
+    onSuccess: () => {
+      void refreshLists();
     },
   });
 
-  const clearAllMutation = useMutation({
+  const clearAllMutation = useStandardizedMutation({
     mutationFn: () => notificationService.clearAll(),
-    onSuccess: async () => {
-      await refreshLists();
-      toast.success('All notifications cleared');
-    },
-    onError: () => {
-      toast.error('Failed to clear notifications');
+    successMessage: 'All notifications cleared',
+    errorContext: 'Notification Clear All',
+    errorFallbackMessage: 'Failed to clear notifications',
+    onSuccess: () => {
+      void refreshLists();
     },
   });
 

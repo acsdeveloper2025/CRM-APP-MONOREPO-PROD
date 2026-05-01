@@ -1,8 +1,8 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
+import { stateFormSchema, type StateFormData } from '@/forms/schemas/location.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -31,26 +31,14 @@ import {
 import { locationsService } from '@/services/locations';
 import type { CreateStateData } from '@/types/location';
 
-const createStateSchema = z.object({
-  name: z.string().min(1, 'State name is required').max(100, 'State name is too long'),
-  code: z
-    .string()
-    .min(2, 'State code must be at least 2 characters')
-    .max(10, 'State code is too long')
-    .regex(/^[A-Z0-9]+$/, 'State code must contain only uppercase letters and numbers'),
-  country: z.string().min(1, 'Country is required'),
-});
-
-type CreateStateFormData = z.infer<typeof createStateSchema>;
-
 interface CreateStateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function CreateStateDialog({ open, onOpenChange }: CreateStateDialogProps) {
-  const form = useForm<CreateStateFormData>({
-    resolver: zodResolver(createStateSchema),
+  const form = useForm<StateFormData>({
+    resolver: zodResolver(stateFormSchema),
     defaultValues: {
       name: '',
       code: '',
@@ -78,7 +66,7 @@ export function CreateStateDialog({ open, onOpenChange }: CreateStateDialogProps
     },
   });
 
-  const onSubmit = (data: CreateStateFormData) => {
+  const onSubmit = (data: StateFormData) => {
     createStateMutation.mutate(data);
   };
 
