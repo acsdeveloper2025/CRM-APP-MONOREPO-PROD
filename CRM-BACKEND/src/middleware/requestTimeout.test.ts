@@ -14,10 +14,16 @@ vi.mock('@/config/logger', () => ({
 }));
 
 function createMockReq(): Request {
+  // 2026-05-01: F-B4.1 abort-signal hardening landed in
+  // requestTimeout.ts; the timeout handler now calls `req.destroy()` to
+  // release the socket. Mock must provide `destroyed` + `destroy` so
+  // the handler doesn't throw "destroy is not a function" mid-test.
   return {
     method: 'GET',
     originalUrl: '/api/test',
     ip: '127.0.0.1',
+    destroyed: false,
+    destroy: vi.fn(),
   } as unknown as Request;
 }
 
