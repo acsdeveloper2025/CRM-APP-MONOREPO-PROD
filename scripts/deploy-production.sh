@@ -367,26 +367,29 @@ stop_services() {
 }
 
 # Install dependencies
+#
+# 2026-05-01 hardening: install BOTH components on every deploy,
+# matching the same always-rebuild principle that build_applications
+# already follows (see comment block at build_applications). The prior
+# per-component skip (gated on BACKEND_CHANGED / FRONTEND_CHANGED) had
+# a nasty failure mode:
+#   - push #1 changes both frontend + backend, but fails at lint/test
+#     before the remote install runs
+#   - push #2 only changes backend (e.g. fixes the lint error)
+#   - pre-deployment flags backend=true, frontend=false
+#   - install_dependencies skips frontend → node_modules stays at
+#     whatever the LAST SUCCESSFUL deploy left behind, which may be
+#     missing packages added in the failed push #1
+#   - build_applications then ALWAYS rebuilds frontend → fails on
+#     missing package
+# Paying ~30s extra per deploy to install both is the right trade-off.
+# BACKEND_CHANGED / FRONTEND_CHANGED / FORCE_REBUILD are still read for
+# log clarity / future use but are no longer load-bearing.
 install_dependencies() {
     print_header "📦 Installing Dependencies"
-    
-    local components=()
-    
-    # Determine which components need dependency updates
-    if [ "$BACKEND_CHANGED" = "true" ] || [ "$FORCE_REBUILD" = "true" ]; then
-        components+=("CRM-BACKEND")
-    fi
-    
-    if [ "$FRONTEND_CHANGED" = "true" ] || [ "$FORCE_REBUILD" = "true" ]; then
-        components+=("CRM-FRONTEND")
-    fi
-    
-    # Skip dependency install for migration-only deployments
-    if [ ${#components[@]} -eq 0 ]; then
-        print_info "No application dependency changes detected, skipping dependency install"
-        return 0
-    fi
-    
+
+    local components=("CRM-BACKEND" "CRM-FRONTEND")
+
     for component in "${components[@]}"; do
         if [ -d "$PROJECT_ROOT/$component" ]; then
             print_info "Installing dependencies for $component..."
