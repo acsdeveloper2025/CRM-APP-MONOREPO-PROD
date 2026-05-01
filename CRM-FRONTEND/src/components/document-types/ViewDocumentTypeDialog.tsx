@@ -53,11 +53,11 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
 
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-600">Name</label>
+            <span className="text-sm font-medium text-gray-600">Name</span>
             <p className="text-sm font-medium">{documentType.name}</p>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-600">Code</label>
+            <span className="text-sm font-medium text-gray-600">Code</span>
             <p className="text-sm">
               <code className="bg-slate-100 dark:bg-slate-800/60 px-2 py-1 rounded text-sm">
                 {documentType.code}
@@ -65,18 +65,18 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
             </p>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-600">Clients Using</label>
+            <span className="text-sm font-medium text-gray-600">Clients Using</span>
             <p className="text-sm">{documentType.clientCount || 0} clients</p>
           </div>
 
           <Separator />
 
           <div>
-            <label className="text-sm font-medium text-gray-600">Created At</label>
+            <span className="text-sm font-medium text-gray-600">Created At</span>
             <p className="text-sm">{formatDate(documentType.createdAt)}</p>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-600">Last Updated</label>
+            <span className="text-sm font-medium text-gray-600">Last Updated</span>
             <p className="text-sm">{formatDate(documentType.updatedAt)}</p>
           </div>
         </div>

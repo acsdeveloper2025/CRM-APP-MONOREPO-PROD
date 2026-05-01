@@ -359,18 +359,18 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
               {/* Read-only customer details from previous step */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Customer Name *</label>
+                  <span className="text-sm font-medium text-gray-600">Customer Name *</span>
                   <p className="text-base font-medium">{customerInfo.customerName}</p>
                 </div>
                 {customerInfo.panNumber && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">PAN</label>
+                    <span className="text-sm font-medium text-gray-600">PAN</span>
                     <p className="text-base font-mono">{customerInfo.panNumber}</p>
                   </div>
                 )}
                 {customerInfo.mobileNumber && (
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Mobile Number</label>
+                    <span className="text-sm font-medium text-gray-600">Mobile Number</span>
                     <p className="text-base">{customerInfo.mobileNumber}</p>
                   </div>
                 )}

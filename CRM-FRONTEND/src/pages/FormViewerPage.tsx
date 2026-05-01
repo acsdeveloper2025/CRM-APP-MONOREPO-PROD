@@ -57,7 +57,7 @@ export function FormViewerPage() {
         <CardContent>
           <div className="flex items-center space-x-4">
             <div className="flex-1">
-              <label className="text-sm font-medium mb-2 block">Form Type</label>
+              <span className="text-sm font-medium mb-2 block">Form Type</span>
               <Select value={selectedFormType} onValueChange={setSelectedFormType}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select form type" />
@@ -72,7 +72,7 @@ export function FormViewerPage() {
               </Select>
             </div>
             <div className="flex-1">
-              <label className="text-sm font-medium mb-2 block">View Mode</label>
+              <span className="text-sm font-medium mb-2 block">View Mode</span>
               <Select
                 value={viewMode}
                 onValueChange={(value: 'readonly' | 'editable') => setViewMode(value)}

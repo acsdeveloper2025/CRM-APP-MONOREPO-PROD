@@ -757,6 +757,7 @@ export function ReportTemplatesPage() {
                   </label>
                   <input
                     id="report-template-html-upload"
+                    aria-label="Upload HTML template file"
                     type="file"
                     accept=".html,.htm,.hbs,text/html"
                     className="hidden"
@@ -782,6 +783,7 @@ export function ReportTemplatesPage() {
                   </label>
                   <input
                     id="report-template-pdf-convert"
+                    aria-label="Convert PDF report to HTML template"
                     type="file"
                     accept="application/pdf,.pdf"
                     className="hidden"
@@ -834,6 +836,7 @@ export function ReportTemplatesPage() {
                 </div>
               </div>
               <textarea
+                aria-label="HTML template content"
                 className="min-h-[260px] w-full resize-y rounded-md border bg-background p-2 font-mono text-xs"
                 value={form.htmlContent}
                 onChange={(e) => setForm((f) => ({ ...f, htmlContent: e.target.value }))}

@@ -121,10 +121,20 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
               return (
                 <div
                   key={pincode.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={isSelected}
+                  aria-label={`Toggle pincode ${pincode.code}`}
                   className={`flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
                     isSelected ? 'bg-emerald-50' : ''
                   }`}
                   onClick={() => onPincodeToggle(pincodeIdNum)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onPincodeToggle(pincodeIdNum);
+                    }
+                  }}
                 >
                   <Checkbox
                     checked={isSelected}

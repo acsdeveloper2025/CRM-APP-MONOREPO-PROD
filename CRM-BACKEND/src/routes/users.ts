@@ -56,8 +56,7 @@ const userImportUpload = multer({
       name.endsWith('.csv') ||
       name.endsWith('.xlsx') ||
       file.mimetype === 'text/csv' ||
-      file.mimetype ===
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     if (ok) {
       cb(null, true);
     } else {

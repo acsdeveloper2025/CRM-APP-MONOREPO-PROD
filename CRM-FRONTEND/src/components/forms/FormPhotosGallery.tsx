@@ -44,7 +44,7 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ photo, isOpen, onClose }) => 
           <div className="flex justify-center">
             <img
               src={photo.url}
-              alt={`${photo.type} photo`}
+              alt={photo.type}
               loading="lazy"
               decoding="async"
               className="max-w-full max-h-96 object-contain rounded-lg border"
@@ -146,12 +146,21 @@ export const FormPhotosGallery: React.FC<FormPhotosGalleryProps> = ({ photos }) 
             {verificationPhotos.map((photo) => (
               <div
                 key={photo.id}
+                role="button"
+                tabIndex={0}
+                aria-label="View verification photo details"
                 className="relative group cursor-pointer"
                 onClick={() => setSelectedPhoto(photo)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedPhoto(photo);
+                  }
+                }}
               >
                 <img
                   src={photo.thumbnailUrl || photo.url}
-                  alt="Verification photo"
+                  alt="Verification"
                   loading="lazy"
                   className="w-full h-32 object-cover rounded-lg border transition-transform group-hover:scale-105"
                 />
@@ -181,8 +190,17 @@ export const FormPhotosGallery: React.FC<FormPhotosGalleryProps> = ({ photos }) 
             {selfiePhotos.map((photo) => (
               <div
                 key={photo.id}
+                role="button"
+                tabIndex={0}
+                aria-label="View verification selfie details"
                 className="relative group cursor-pointer"
                 onClick={() => setSelectedPhoto(photo)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedPhoto(photo);
+                  }
+                }}
               >
                 <img
                   src={photo.thumbnailUrl || photo.url}

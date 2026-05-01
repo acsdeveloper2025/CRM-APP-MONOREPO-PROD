@@ -348,7 +348,17 @@ export function RBACAdminPage() {
                 {roles.map((role) => (
                   <div
                     key={role.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={selectedRoleId === role.id}
+                    aria-label={`Select role ${role.name}`}
                     onClick={() => setSelectedRoleId(role.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelectedRoleId(role.id);
+                      }
+                    }}
                     className={`rounded-lg border p-3 cursor-pointer ${
                       selectedRoleId === role.id
                         ? 'border-green-500 bg-green-50'
@@ -437,9 +447,11 @@ export function RBACAdminPage() {
                           return (
                             <label
                               key={code}
+                              htmlFor={`rbac-perm-${code}`}
                               className="flex items-start gap-2 rounded border p-2 hover:bg-gray-50"
                             >
                               <Checkbox
+                                id={`rbac-perm-${code}`}
                                 checked={checked}
                                 onCheckedChange={(value) => togglePermission(code, value === true)}
                               />

@@ -30,6 +30,12 @@ env:
   NODE_VERSION: "22"
   DEPLOYMENT_TIMEOUT: "600"
 
+# 2026-05-01 pre-AWS hardening: explicit minimum permissions. Default
+# would grant write-all to GITHUB_TOKEN which the deploy doesn't need.
+# Each job below can override if it actually writes (none currently do).
+permissions:
+  contents: read
+
 jobs:
   # Pre-deployment checks and validation
   pre-deployment:
@@ -310,11 +316,17 @@ jobs:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
 
-      - name: 🔐 Setup SSH Key
+      # 2026-05-01 pre-AWS hardening: ssh-agent keeps the private key in
+      # agent memory only — never written to disk on the runner. Replaces
+      # the prior `echo > ~/.ssh/id_rsa` pattern.
+      - name: 🔐 Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
+
+      - name: 🔐 Pin host key (TOFU on first deploy, reject on mismatch after)
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p ${{ secrets.PRODUCTION_SSH_PORT || '2232' }} -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
 
       - name: 📋 Create Deployment Info
@@ -382,14 +394,14 @@ jobs:
             echo "ℹ️ restore_database is not enabled; skipping DB dump file transfer"
           fi
 
-          scp -r -P ${{ secrets.PRODUCTION_SSH_PORT || '2232' }} -o StrictHostKeyChecking=no \
+          scp -r -P ${{ secrets.PRODUCTION_SSH_PORT || '2232' }} -o StrictHostKeyChecking=accept-new \
             "${FILES[@]}" \
             ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }}:/tmp/
 
       - name: 🚀 Execute Deployment
         run: |
           echo "🚀 Starting production deployment..."
-          ssh -p ${{ secrets.PRODUCTION_SSH_PORT || '2232' }} -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+          ssh -p ${{ secrets.PRODUCTION_SSH_PORT || '2232' }} -o StrictHostKeyChecking=accept-new ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
             set -e
             
             # Move to deployment directory
@@ -411,7 +423,7 @@ jobs:
       - name: 🏥 Health Check
         run: |
           echo "🏥 Running post-deployment health checks..."
-          ssh -p ${{ secrets.PRODUCTION_SSH_PORT || '2232' }} -o StrictHostKeyChecking=no ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
+          ssh -p ${{ secrets.PRODUCTION_SSH_PORT || '2232' }} -o StrictHostKeyChecking=accept-new ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} << 'EOF'
             /tmp/health-check.sh
           EOF
 

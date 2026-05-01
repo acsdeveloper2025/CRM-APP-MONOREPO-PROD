@@ -131,10 +131,14 @@ export function BulkImportUsersDialog({ open, onOpenChange }: BulkImportUsersDia
 
           {/* File Selection */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Select File</label>
+            <label className="text-sm font-medium" htmlFor="bulk-import-users-file">
+              Select File
+            </label>
             <div className="flex items-center space-x-2">
               <input
                 ref={fileInputRef}
+                id="bulk-import-users-file"
+                aria-label="Select file to import"
                 type="file"
                 accept=".csv,.xlsx"
                 onChange={handleFileSelect}

@@ -16,10 +16,7 @@ import { getAllOutcomes } from '../services/verificationTypeOutcomesService';
  *   { success: true, data: [{ id, verificationTypeId, verificationTypeCode,
  *                              outcomeCode, displayLabel, sortOrder, isActive }] }
  */
-export async function listVerificationTypeOutcomes(
-  _req: AuthenticatedRequest,
-  res: Response
-) {
+export async function listVerificationTypeOutcomes(_req: AuthenticatedRequest, res: Response) {
   try {
     const outcomes = await getAllOutcomes();
     return res.json({

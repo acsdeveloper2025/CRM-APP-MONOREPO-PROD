@@ -156,10 +156,7 @@ const MAX_TRANSACTION_RETRY_DELAY_MS = parseInt(
  * users the old ceiling surfaced too many deadlocks as 5xx responses
  * even though a second or third attempt would have succeeded.
  */
-const DEFAULT_TRANSACTION_MAX_RETRIES = parseInt(
-  process.env.TRANSACTION_MAX_RETRIES || '6',
-  10
-);
+const DEFAULT_TRANSACTION_MAX_RETRIES = parseInt(process.env.TRANSACTION_MAX_RETRIES || '6', 10);
 
 export const withTransaction = async <T>(
   fn: (client: PoolClient) => Promise<T>,

@@ -133,13 +133,19 @@ export function FormAttachmentsViewer({
                         {/* Image Preview */}
                         {isImageFile(attachment.mimeType) && (
                           <div className="mb-3">
-                            <img
-                              src={attachment.url}
-                              alt={attachment.originalName}
-                              loading="lazy"
-                              className="w-full h-32 object-cover rounded-md cursor-pointer hover:opacity-80 transition-opacity"
+                            <button
+                              type="button"
+                              className="w-full p-0 border-0 bg-transparent cursor-pointer"
                               onClick={() => handlePreview(attachment)}
-                            />
+                              aria-label={`Preview ${attachment.originalName}`}
+                            >
+                              <img
+                                src={attachment.url}
+                                alt={attachment.originalName}
+                                loading="lazy"
+                                className="w-full h-32 object-cover rounded-md hover:opacity-80 transition-opacity"
+                              />
+                            </button>
                           </div>
                         )}
 

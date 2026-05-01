@@ -86,10 +86,8 @@ export function BulkImportLocationDialog({
 
   const handleDownloadTemplate = () => {
     const templates: Record<typeof type, string> = {
-      countries:
-        'name,code,continent\nIndia,IND,Asia\nUnited States,USA,North America',
-      states:
-        'name,code,country,gstStateCode\nMaharashtra,MH,India,27\nKarnataka,KA,India,29',
+      countries: 'name,code,continent\nIndia,IND,Asia\nUnited States,USA,North America',
+      states: 'name,code,country,gstStateCode\nMaharashtra,MH,India,27\nKarnataka,KA,India,29',
       cities: 'name,state,country\nMumbai,Maharashtra,India\nDelhi,Delhi,India',
       pincodes:
         'code,area,cityName,state,country\n400001,Fort,Mumbai,Maharashtra,India\n110001,Connaught Place,Delhi,Delhi,India',
@@ -177,10 +175,14 @@ export function BulkImportLocationDialog({
 
           {/* File Selection */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Select CSV File</label>
+            <label className="text-sm font-medium" htmlFor="bulk-import-location-file">
+              Select CSV File
+            </label>
             <div className="flex items-center space-x-2">
               <input
                 ref={fileInputRef}
+                id="bulk-import-location-file"
+                aria-label="Select CSV file to import"
                 type="file"
                 accept=".csv"
                 onChange={handleFileSelect}

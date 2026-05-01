@@ -105,37 +105,59 @@ export const UnifiedFilterPanel: React.FC<UnifiedFilterPanelProps> = ({
     <Card className={cn('border-muted', className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <div
-            className={cn(
-              'flex items-center gap-2',
-              collapsible && 'cursor-pointer select-none',
-              'transition-colors duration-200'
-            )}
-            onClick={toggleCollapse}
-          >
-            {showIcon && <Filter className="h-5 w-5 text-gray-600" />}
+          {collapsible ? (
+            <div
+              role="button"
+              tabIndex={0}
+              aria-expanded={!isCollapsed}
+              aria-label={`Toggle ${title}`}
+              className={cn(
+                'flex items-center gap-2 cursor-pointer select-none',
+                'transition-colors duration-200'
+              )}
+              onClick={toggleCollapse}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  toggleCollapse();
+                }
+              }}
+            >
+              {showIcon && <Filter className="h-5 w-5 text-gray-600" />}
 
-            <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+              <CardTitle className="text-lg font-semibold">{title}</CardTitle>
 
-            {activeFilterCount > 0 && (
-              <Badge
-                variant="secondary"
-                className="ml-2 bg-primary/10 text-primary hover:bg-primary/20"
-              >
-                {activeFilterCount}
-              </Badge>
-            )}
+              {activeFilterCount > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="ml-2 bg-primary/10 text-primary hover:bg-primary/20"
+                >
+                  {activeFilterCount}
+                </Badge>
+              )}
 
-            {collapsible && (
-              <div className="ml-2">
-                {isCollapsed ? (
-                  <ChevronDown className="h-4 w-4 text-gray-600" />
-                ) : (
-                  <ChevronUp className="h-4 w-4 text-gray-600" />
-                )}
-              </div>
-            )}
-          </div>
+              {isCollapsed ? (
+                <ChevronDown className="h-4 w-4 text-gray-500" />
+              ) : (
+                <ChevronUp className="h-4 w-4 text-gray-500" />
+              )}
+            </div>
+          ) : (
+            <div className={cn('flex items-center gap-2', 'transition-colors duration-200')}>
+              {showIcon && <Filter className="h-5 w-5 text-gray-600" />}
+
+              <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+
+              {activeFilterCount > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="ml-2 bg-primary/10 text-primary hover:bg-primary/20"
+                >
+                  {activeFilterCount}
+                </Badge>
+              )}
+            </div>
+          )}
 
           {hasActiveFilters && onClearFilters && !isCollapsed && (
             <Button

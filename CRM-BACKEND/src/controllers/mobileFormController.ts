@@ -4120,7 +4120,7 @@ export class MobileFormController {
         // F7.3.x: helper writes BOTH rich payload (form_submissions) and junction.
         await MobileFormController.createFormSubmissionRecords(client, {
           caseId,
-          taskId: (taskId || verificationTaskId) as string,
+          taskId: taskId || verificationTaskId,
           formTypeCode: 'BUILDER_VERIFICATION',
           submittedBy: userId,
           formData,
@@ -4757,7 +4757,7 @@ export class MobileFormController {
         // F7.3.x: helper writes BOTH rich payload (form_submissions) and junction.
         await MobileFormController.createFormSubmissionRecords(client, {
           caseId,
-          taskId: (taskId || verificationTaskId) as string,
+          taskId: taskId || verificationTaskId,
           formTypeCode: 'DSA_CONNECTOR_VERIFICATION',
           submittedBy: userId,
           formData,
@@ -5426,7 +5426,7 @@ export class MobileFormController {
         // F7.3.x: helper writes BOTH rich payload (form_submissions) and junction.
         await MobileFormController.createFormSubmissionRecords(client, {
           caseId,
-          taskId: (taskId || verificationTaskId) as string,
+          taskId: taskId || verificationTaskId,
           formTypeCode: 'PROPERTY_APF_VERIFICATION',
           submittedBy: userId,
           formData,
@@ -5811,7 +5811,7 @@ export class MobileFormController {
         // F7.3.x: helper writes BOTH rich payload (form_submissions) and junction.
         await MobileFormController.createFormSubmissionRecords(client, {
           caseId,
-          taskId: (taskId || verificationTaskId) as string,
+          taskId: taskId || verificationTaskId,
           formTypeCode: 'NOC_VERIFICATION',
           submittedBy: userId,
           formData,

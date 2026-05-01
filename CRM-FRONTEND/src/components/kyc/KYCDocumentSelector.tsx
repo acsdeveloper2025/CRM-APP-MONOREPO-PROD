@@ -319,8 +319,18 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                 >
                   {/* Compact header row — always visible */}
                   <div
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isExpanded}
+                    aria-label={`Toggle ${doc.documentTypeName} details`}
                     className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors"
                     onClick={() => toggleExpanded(doc.documentTypeCode)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleExpanded(doc.documentTypeCode);
+                      }
+                    }}
                   >
                     <ChevronDown
                       className={`h-3.5 w-3.5 text-gray-400 shrink-0 transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`}
@@ -463,6 +473,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                               <span>Upload</span>
                               <input
                                 type="file"
+                                aria-label={`Upload file for ${doc.documentTypeName}`}
                                 className="hidden"
                                 accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                                 onChange={(e) => {

@@ -153,7 +153,12 @@ export class GeocodeController {
 
       const latitude = row.latitude;
       const longitude = row.longitude;
-      if (latitude == null || longitude == null || Number.isNaN(latitude) || Number.isNaN(longitude)) {
+      if (
+        latitude == null ||
+        longitude == null ||
+        Number.isNaN(latitude) ||
+        Number.isNaN(longitude)
+      ) {
         return res.status(404).json({
           success: false,
           message: 'Attachment has no GPS coordinates; address cannot be resolved',

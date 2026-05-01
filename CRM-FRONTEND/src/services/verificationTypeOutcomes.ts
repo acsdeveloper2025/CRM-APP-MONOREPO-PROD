@@ -19,9 +19,7 @@ export interface VerificationTypeOutcome {
 export const verificationTypeOutcomesService = {
   /** Fetch all active verification-type-outcome rows. Server already filters is_active=true. */
   async list(): Promise<VerificationTypeOutcome[]> {
-    const response = await apiService.get<VerificationTypeOutcome[]>(
-      '/verification-type-outcomes'
-    );
+    const response = await apiService.get<VerificationTypeOutcome[]>('/verification-type-outcomes');
     return response.data || [];
   },
 };

@@ -279,6 +279,7 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                       <span>Upload document</span>
                       <input
                         type="file"
+                        aria-label="Upload document"
                         className="hidden"
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                         onChange={(e) => {

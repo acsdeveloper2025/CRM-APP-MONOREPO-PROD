@@ -91,15 +91,11 @@ export async function getOutcomesForType(
 ): Promise<VerificationTypeOutcome[]> {
   const all = await getAllOutcomes();
   const normalized = normalizeTypeKey(verificationTypeCodeOrName);
-  return all.filter(
-    o => normalizeTypeKey(o.verificationTypeCode) === normalized
-  );
+  return all.filter(o => normalizeTypeKey(o.verificationTypeCode) === normalized);
 }
 
 /** Just the outcome codes (for legacy callers that returned `string[]`). */
-export async function getValidOutcomeCodes(
-  verificationTypeCodeOrName: string
-): Promise<string[]> {
+export async function getValidOutcomeCodes(verificationTypeCodeOrName: string): Promise<string[]> {
   const outcomes = await getOutcomesForType(verificationTypeCodeOrName);
   return outcomes.map(o => o.outcomeCode);
 }

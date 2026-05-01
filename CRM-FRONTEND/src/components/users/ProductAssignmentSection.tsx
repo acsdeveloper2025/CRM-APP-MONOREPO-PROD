@@ -66,11 +66,7 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
 
   const saveAssignmentsMutation = useMutationWithInvalidation({
     mutationFn: (productIds: number[]) => usersService.assignProductsToUser(user.id, productIds),
-    invalidateKeys: [
-      ['users'],
-      ['user-product-assignments', user.id],
-      ['user-stats'],
-    ],
+    invalidateKeys: [['users'], ['user-product-assignments', user.id], ['user-stats']],
     successMessage: 'Product assignments updated successfully',
     errorContext: 'Product Assignment',
     errorFallbackMessage: 'Failed to update product assignments',

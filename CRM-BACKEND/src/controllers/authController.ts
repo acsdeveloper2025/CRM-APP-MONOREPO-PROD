@@ -6,8 +6,7 @@ import { query, withTransaction } from '@/config/database';
 import { config } from '@/config';
 import { logger } from '@/config/logger';
 import { createError } from '@/middleware/errorHandler';
-import type { AuthenticatedRequest } from '@/middleware/auth';
-import { invalidateAuthContextCache } from '@/middleware/auth';
+import { invalidateAuthContextCache, type AuthenticatedRequest } from '@/middleware/auth';
 import { createAuditLog } from '@/utils/auditLogger';
 import type { LoginRequest, LoginResponse, JwtPayload, RefreshTokenPayload } from '@/types/auth';
 import type { ApiResponse } from '@/types/api';
@@ -737,7 +736,7 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     const newRefreshHash = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
     const newExpiresAt = new Date(Date.now() + parseDurationMs(config.jwtRefreshExpiresIn));
 
-    await withTransaction(async (client) => {
+    await withTransaction(async client => {
       // Soft-delete the rotated token (keeps forensic trail per F1.7.2).
       await client.query(
         `UPDATE refresh_tokens

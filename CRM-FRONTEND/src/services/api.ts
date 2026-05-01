@@ -589,10 +589,7 @@ class ApiService {
       }
 
       const method = (options.method || 'GET').toUpperCase();
-      if (
-        ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) &&
-        !headers.has('Idempotency-Key')
-      ) {
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && !headers.has('Idempotency-Key')) {
         const idempotencyKey =
           typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
             ? crypto.randomUUID()

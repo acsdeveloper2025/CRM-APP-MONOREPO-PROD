@@ -49,24 +49,24 @@ export function StateDetailsDialog({ state, open, onOpenChange }: StateDetailsDi
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">State Name</label>
+                  <span className="text-sm font-medium text-gray-600">State Name</span>
                   <p className="text-sm font-medium">{state.name}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">State Code</label>
+                  <span className="text-sm font-medium text-gray-600">State Code</span>
                   <Badge variant="outline" className="mt-1">
                     {state.code}
                   </Badge>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Country</label>
+                  <span className="text-sm font-medium text-gray-600">Country</span>
                   <div className="flex items-center gap-2 mt-1">
                     <Globe className="h-4 w-4 text-gray-600" />
                     <span className="text-sm">{state.country}</span>
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Created</label>
+                  <span className="text-sm font-medium text-gray-600">Created</span>
                   <div className="flex items-center gap-2 mt-1">
                     <Calendar className="h-4 w-4 text-gray-600" />
                     <span className="text-sm">

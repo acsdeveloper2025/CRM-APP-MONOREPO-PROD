@@ -32,7 +32,8 @@ export function useVerificationTypeOutcomes(verificationTypeCode: string | null 
     verificationTypeCode && data
       ? data
           .filter(
-            o => normalizeTypeKey(o.verificationTypeCode) === normalizeTypeKey(verificationTypeCode)
+            (o) =>
+              normalizeTypeKey(o.verificationTypeCode) === normalizeTypeKey(verificationTypeCode)
           )
           .sort((a, b) => a.sortOrder - b.sortOrder)
       : [];

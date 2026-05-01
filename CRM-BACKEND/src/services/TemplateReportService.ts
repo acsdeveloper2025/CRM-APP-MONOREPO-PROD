@@ -2199,6 +2199,14 @@ Hence the profile is marked as {Final_Status}.`,
       return text ? `During the visit, ${text}.` : '';
     };
 
+    // Lowercases a mobile-captured value for mid-sentence narration.
+    // Mobile dropdowns store phrases like "Confirmed" / "Salaried" /
+    // "On a Self Owned Basis" in title case. When templates stitch these
+    // into sentences ("who Confirmed..." / "is Salaried at..."), the caps
+    // read as proper nouns. All shared tokens wrapped with lc() are used
+    // mid-sentence only (verified by grep). Safe globally.
+    const lc = (s: string): string => (s || '').toString().toLowerCase();
+
     // Renders the applicant's working profile narration. Returns the full
     // sentence when both `workingStatus` and `companyName` are present,
     // otherwise empty. Avoids broken output like "Rahul Kumar is  at ."
@@ -2216,14 +2224,6 @@ Hence the profile is marked as {Final_Status}.`,
       }
       return `${name} is ${lc(ws)} at ${cn}.`;
     };
-
-    // Lowercases a mobile-captured value for mid-sentence narration.
-    // Mobile dropdowns store phrases like "Confirmed" / "Salaried" /
-    // "On a Self Owned Basis" in title case. When templates stitch these
-    // into sentences ("who Confirmed..." / "is Salaried at..."), the caps
-    // read as proper nouns. All shared tokens wrapped with lc() are used
-    // mid-sentence only (verified by grep). Safe globally.
-    const lc = (s: string): string => (s || '').toString().toLowerCase();
 
     // Renders callRemark options as natural sentence fragments for UNTRACEABLE
     // templates that stitch them after "We called <name>, but ...".

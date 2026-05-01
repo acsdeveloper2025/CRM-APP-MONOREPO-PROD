@@ -358,18 +358,18 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Customer Name</label>
+                    <span className="text-sm font-medium text-gray-600">Customer Name</span>
                     <p className="text-base font-medium">{customerInfo.customerName}</p>
                   </div>
                   {customerInfo.panNumber && (
                     <div>
-                      <label className="text-sm font-medium text-gray-600">PAN</label>
+                      <span className="text-sm font-medium text-gray-600">PAN</span>
                       <p className="text-base font-mono">{customerInfo.panNumber}</p>
                     </div>
                   )}
                   {customerInfo.mobileNumber && (
                     <div>
-                      <label className="text-sm font-medium text-gray-600">Mobile</label>
+                      <span className="text-sm font-medium text-gray-600">Mobile</span>
                       <p className="text-base">{customerInfo.mobileNumber}</p>
                     </div>
                   )}
@@ -803,7 +803,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
         {/* Row 1: Applicant Type & Verification Type */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium">Applicant Type *</label>
+            <span className="text-sm font-medium">Applicant Type *</span>
             <Select
               value={task.applicantType}
               onValueChange={(value) => updateTask(task.id, 'applicantType', value)}
@@ -834,7 +834,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
           </div>
 
           <div>
-            <label className="text-sm font-medium">Verification Type *</label>
+            <span className="text-sm font-medium">Verification Type *</span>
             <Select
               value={task.verificationTypeId?.toString() || ''}
               onValueChange={(value) => updateTask(task.id, 'verificationTypeId', parseInt(value))}
@@ -861,7 +861,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
         {/* Row 2: Rate Type */}
         <div>
-          <label className="text-sm font-medium">Rate Type *</label>
+          <span className="text-sm font-medium">Rate Type *</span>
           <Select
             value={task.rateTypeId}
             onValueChange={(value) => updateTask(task.id, 'rateTypeId', value)}
@@ -922,7 +922,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
         {/* Row 3: Pincode & Area */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium">Pincode *</label>
+            <span className="text-sm font-medium">Pincode *</span>
             <SearchableSelect
               options={pincodes.map((pincode) => ({
                 value: pincode.id.toString(),
@@ -945,7 +945,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
           </div>
 
           <div>
-            <label className="text-sm font-medium">Area *</label>
+            <span className="text-sm font-medium">Area *</span>
             <Select
               value={task.areaId}
               onValueChange={(value) => updateTask(task.id, 'areaId', value)}
@@ -981,8 +981,11 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
         {/* Row 4: Address */}
         <div>
-          <label className="text-sm font-medium">Address *</label>
+          <label className="text-sm font-medium" htmlFor={`task-${task.id}-address`}>
+            Address *
+          </label>
           <Textarea
+            id={`task-${task.id}-address`}
             value={task.address}
             onChange={(e) => updateTask(task.id, 'address', e.target.value)}
             placeholder="Enter complete address"
@@ -998,8 +1001,11 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
         {/* Row 5: Trigger */}
         <div>
-          <label className="text-sm font-medium">TRIGGER *</label>
+          <label className="text-sm font-medium" htmlFor={`task-${task.id}-trigger`}>
+            TRIGGER *
+          </label>
           <Textarea
+            id={`task-${task.id}-trigger`}
             value={task.trigger}
             onChange={(e) => updateTask(task.id, 'trigger', e.target.value)}
             placeholder="Enter trigger or special instructions"
@@ -1016,7 +1022,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
         {/* Row 6: Priority & Assign To */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium">Priority *</label>
+            <span className="text-sm font-medium">Priority *</span>
             <Select
               value={task.priority}
               onValueChange={(value: unknown) => updateTask(task.id, 'priority', value)}
@@ -1034,7 +1040,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
           </div>
 
           <div>
-            <label className="text-sm font-medium">Assign To *</label>
+            <span className="text-sm font-medium">Assign To *</span>
             <Select
               value={task.assignedTo}
               onValueChange={(value) => updateTask(task.id, 'assignedTo', value)}
@@ -1292,6 +1298,9 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
 
       {/* File Upload Area */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="File upload drop zone, press Enter to browse files"
         className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
           isDragging ? 'border-green-500 bg-green-50' : 'border-gray-300'
         }`}
@@ -1299,6 +1308,12 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        onKeyDown={(e) => {
+          if ((e.key === 'Enter' || e.key === ' ') && attachments.length < MAX_FILES) {
+            e.preventDefault();
+            fileInputRef.current?.click();
+          }
+        }}
       >
         <Upload className="h-6 w-6 text-gray-600 mx-auto mb-2" />
         <p className="text-xs text-gray-600 mb-1">
@@ -1318,6 +1333,7 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
         <input
           ref={fileInputRef}
           type="file"
+          aria-label="Choose files to upload"
           multiple
           accept=".pdf,.jpg,.jpeg,.png,.gif,.bmp,.webp,.svg,.tif,.tiff,.heic,.heif,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,.rtf"
           onChange={(e) => {
