@@ -108,14 +108,18 @@ export const notificationService = {
             useCache: false,
           }
         );
-        return response.success ? `/task-management/${notification.taskId}` : null;
+        return response.success
+          ? `/task-management/${notification.taskNumber || notification.taskId}`
+          : null;
       }
 
       if (notification.caseId) {
         const response = await apiService.get(`/cases/${notification.caseId}`, undefined, {
           useCache: false,
         });
-        return response.success ? `/cases/${notification.caseId}` : null;
+        return response.success
+          ? `/case-management/${notification.caseNumber || notification.caseId}`
+          : null;
       }
 
       if (notification.actionUrl) {

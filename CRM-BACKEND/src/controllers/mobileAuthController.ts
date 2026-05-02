@@ -638,7 +638,11 @@ export class MobileAuthController {
         });
       }
 
-      const normalizedPlatform = platform.toLowerCase();
+      // 2026-05-02: DB CHECK constraint chk_notification_tokens_platform
+      // requires uppercase 'IOS' / 'ANDROID' / 'WEB'. Mobile sends mixed
+      // case (e.g. 'android'); normalize to upper so the INSERT below
+      // doesn't fail with "violates check constraint".
+      const normalizedPlatform = platform.toUpperCase();
       const normalizedPushToken =
         typeof pushToken === 'string' && pushToken.trim().length > 0 ? pushToken.trim() : null;
       const isEnabled = Boolean(enabled) && Boolean(normalizedPushToken);

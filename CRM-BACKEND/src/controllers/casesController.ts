@@ -617,7 +617,14 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       LEFT JOIN users created_user ON c.created_by_backend_user = created_user.id
       LEFT JOIN products p ON c.product_id = p.id
       LEFT JOIN verification_types vt ON c.verification_type_id = vt.id
-      LEFT JOIN rate_types rt ON c.rate_type_id = rt.id
+      LEFT JOIN LATERAL (
+        SELECT rt2.name, rt2.description
+        FROM verification_tasks vt3
+        LEFT JOIN rate_types rt2 ON rt2.id = vt3.rate_type_id
+        WHERE vt3.case_id = c.id AND vt3.rate_type_id IS NOT NULL
+        ORDER BY vt3.created_at ASC
+        LIMIT 1
+      ) rt ON true
       LEFT JOIN LATERAL (
         SELECT u.id, u.name, u.email
         FROM verification_tasks vts
@@ -813,7 +820,14 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
       LEFT JOIN users created_user ON c.created_by_backend_user = created_user.id
       LEFT JOIN products p ON c.product_id = p.id
       LEFT JOIN verification_types vt ON c.verification_type_id = vt.id
-      LEFT JOIN rate_types rt ON c.rate_type_id = rt.id
+      LEFT JOIN LATERAL (
+        SELECT rt2.name, rt2.description
+        FROM verification_tasks vt3
+        LEFT JOIN rate_types rt2 ON rt2.id = vt3.rate_type_id
+        WHERE vt3.case_id = c.id AND vt3.rate_type_id IS NOT NULL
+        ORDER BY vt3.created_at ASC
+        LIMIT 1
+      ) rt ON true
       LEFT JOIN LATERAL (
         SELECT u.id, u.name, u.email
         FROM verification_tasks vts

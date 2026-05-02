@@ -655,7 +655,7 @@ export class MobileFormController {
         const attachmentResult = await query(
           `INSERT INTO verification_attachments (
             id, case_id, verification_type, verification_task_id, filename, original_name,
-            mime_type, file_size, file_path, thumbnail_path, storage_key, uploaded_by,
+            mime_type, file_size_bytes, file_path, thumbnail_path, storage_key, uploaded_by,
             geo_location, photo_type, submission_id
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
           RETURNING id, filename, file_path, thumbnail_path, storage_key, created_at`,
@@ -2263,7 +2263,7 @@ export class MobileFormController {
 
           // FIXED: Get verification images for THIS SPECIFIC TASK only
           const imagesSql = `
-            SELECT id, verification_task_id, filename, file_path, file_size, mime_type, photo_type, thumbnail_path, geo_location, submission_id, created_at FROM verification_attachments
+            SELECT id, verification_task_id, filename, file_path, file_size_bytes, mime_type, photo_type, thumbnail_path, geo_location, submission_id, created_at FROM verification_attachments
             WHERE case_id = $1 AND verification_task_id = $2
             ORDER BY created_at
           `;

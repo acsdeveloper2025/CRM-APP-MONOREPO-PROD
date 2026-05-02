@@ -296,7 +296,7 @@ export const TATMonitoringPage: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/verification-tasks/${task.id}`)}
+                      onClick={() => navigate(`/task-management/${task.taskNumber || task.id}`)}
                     >
                       View Details
                     </Button>

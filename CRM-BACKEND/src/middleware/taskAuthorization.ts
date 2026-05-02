@@ -44,7 +44,7 @@ export const requireTaskAccess = async (
 
     // Extract taskId from params, body, or nested params
     const rawTaskId = (req.params.taskId || req.params.id || req.body.taskId || '') as string;
-    const taskId = Array.isArray(rawTaskId) ? rawTaskId[0] : String(rawTaskId || '');
+    let taskId = Array.isArray(rawTaskId) ? rawTaskId[0] : String(rawTaskId || '');
 
     if (!taskId) {
       const response: ApiResponse = {
@@ -54,6 +54,30 @@ export const requireTaskAccess = async (
       };
       res.status(400).json(response);
       return;
+    }
+
+    // 2026-05-02: accept both UUID and "VT-xxx" task numbers in URL params.
+    // Frontend now uses friendly task_number in URLs (matches case-management/:caseId
+    // pattern). Resolve VT-xxx → UUID once here so every downstream WHERE vt.id = $1
+    // query in this middleware + the routed handler works unchanged.
+    if (/^VT-/i.test(taskId)) {
+      const resolved = await query<{ id: string }>(
+        'SELECT id FROM verification_tasks WHERE task_number = $1 LIMIT 1',
+        [taskId]
+      );
+      if (resolved.rows.length === 0) {
+        res.status(404).json({
+          success: false,
+          message: 'Verification task not found',
+          error: { code: 'TASK_NOT_FOUND' },
+        });
+        return;
+      }
+      taskId = resolved.rows[0].id;
+      req.params.taskId = taskId;
+      if (req.params.id !== undefined) {
+        req.params.id = taskId;
+      }
     }
 
     if (hasSystemScopeBypass(user)) {

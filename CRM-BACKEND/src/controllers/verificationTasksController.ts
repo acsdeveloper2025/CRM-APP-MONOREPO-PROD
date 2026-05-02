@@ -844,6 +844,7 @@ export class VerificationTasksController {
         `
         SELECT
           vt.*,
+          pc.code AS pincode,
           c.case_id as case_number,
           c.customer_name as customer_name,
           c.status as case_status,
@@ -860,6 +861,7 @@ export class VerificationTasksController {
         LEFT JOIN cases c ON vt.case_id = c.id
         LEFT JOIN clients cl ON c.client_id = cl.id
         LEFT JOIN products p ON c.product_id = p.id
+        LEFT JOIN pincodes pc ON pc.id = vt.pincode_id
         LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
         LEFT JOIN users u_assigned ON vt.assigned_to = u_assigned.id
         LEFT JOIN users u_created ON vt.assigned_by = u_created.id
@@ -1146,11 +1148,15 @@ export class VerificationTasksController {
         }
       }
 
-      // Get verification tasks with populated data
+      // Get verification tasks with populated data.
+      // F5.1.2 Phase B: pincode comes via FK on pincode_id, not vt.pincode
+      // (text column dropped). LEFT JOIN pincodes p so the list view can
+      // display p.code without re-fetching per row.
       const tasksResult = await dbQuery(
         `
-        SELECT 
+        SELECT
           vt.*,
+          p.code AS pincode,
           vtype.name as verification_type_name,
           u_assigned.name as assigned_to_name,
           u_assigned.employee_id as assigned_to_employee_id,
@@ -1159,6 +1165,7 @@ export class VerificationTasksController {
           cc.status as commission_status,
           cc.calculated_commission
         FROM verification_tasks vt
+        LEFT JOIN pincodes p ON p.id = vt.pincode_id
         LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
         LEFT JOIN users u_assigned ON vt.assigned_to = u_assigned.id
         LEFT JOIN users u_created ON vt.assigned_by = u_created.id

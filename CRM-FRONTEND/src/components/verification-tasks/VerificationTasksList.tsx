@@ -252,7 +252,7 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       {onViewTask && (
-                        <DropdownMenuItem onClick={() => onViewTask(task.id)}>
+                        <DropdownMenuItem onClick={() => onViewTask(task.taskNumber || task.id)}>
                           <Eye className="h-4 w-4 mr-2" />
                           View Details
                         </DropdownMenuItem>
