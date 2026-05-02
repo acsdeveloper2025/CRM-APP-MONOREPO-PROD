@@ -52,10 +52,14 @@ export const config = {
   jwtRefreshSecret: requireEnv('JWT_REFRESH_SECRET'),
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
 
-  // Redis
+  // Redis. REDIS_PASSWORD is optional — many environments (incl. local dev
+  // server, Docker compose with bridge-isolated Redis, ElastiCache with IAM)
+  // run Redis without an AUTH password. The actual connection layer at
+  // src/config/redis.ts maps empty/undefined to `undefined` for ioredis,
+  // which then skips the AUTH command. Don't fail-fast here — that broke
+  // pm2 boot on the dev server (REDIS_URL=redis://localhost:6379, no auth).
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
-  redisPassword:
-    nodeEnv === 'production' ? requireEnv('REDIS_PASSWORD') : process.env.REDIS_PASSWORD || '',
+  redisPassword: process.env.REDIS_PASSWORD || '',
 
   // Firebase Cloud Messaging (FCM)
   firebase: {
