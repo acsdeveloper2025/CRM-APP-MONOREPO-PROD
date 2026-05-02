@@ -243,7 +243,35 @@ export class VerificationAttachmentController {
     const startedAt = Date.now();
     try {
       const taskId = String(req.params.taskId || '');
-      const { verificationType, submissionId, geoLocation, photoType = 'verification' } = req.body;
+      const { verificationType, submissionId, photoType = 'verification' } = req.body;
+      // Multipart parses geoLocation as a JSON string. Parse it once here so
+      // downstream INSERT can JSON.stringify it cleanly into a JSONB object.
+      // Without this, JSON.stringify(stringValue) produces a double-encoded
+      // string scalar that fails chk_verification_attachments_geo_location_shape.
+      let geoLocation: { latitude?: unknown; longitude?: unknown } | null = null;
+      const rawGeo = req.body?.geoLocation;
+      if (rawGeo && typeof rawGeo === 'string') {
+        try {
+          const parsed = JSON.parse(rawGeo);
+          if (
+            parsed &&
+            typeof parsed === 'object' &&
+            typeof parsed.latitude === 'number' &&
+            typeof parsed.longitude === 'number'
+          ) {
+            geoLocation = parsed;
+          }
+        } catch {
+          geoLocation = null;
+        }
+      } else if (
+        rawGeo &&
+        typeof rawGeo === 'object' &&
+        typeof rawGeo.latitude === 'number' &&
+        typeof rawGeo.longitude === 'number'
+      ) {
+        geoLocation = rawGeo;
+      }
       // 2026-04-28 deep-audit fix (D6/D17): mobile-supplied SHA-256 of the
       // file bytes at capture time. Validated below before persistence:
       // must be 64 lowercase hex chars or null. Anything else is rejected
@@ -311,7 +339,7 @@ export class VerificationAttachmentController {
       }
 
       const existingByOperation = await query(
-        `SELECT id, filename, original_name, mime_type, file_size, file_path, 
+        `SELECT id, filename, original_name, mime_type, file_size_bytes, file_path, 
                 thumbnail_path, created_at, photo_type
          FROM verification_attachments
          WHERE split_part(operation_id, ':', 1) = $1
@@ -430,13 +458,13 @@ export class VerificationAttachmentController {
           const attachmentResult = await query(
             `INSERT INTO verification_attachments (
               id, case_id, verification_type, filename, original_name,
-              mime_type, file_size, file_path, thumbnail_path, storage_key, uploaded_by,
+              mime_type, file_size_bytes, file_path, thumbnail_path, storage_key, uploaded_by,
               geo_location, photo_type, submission_id, verification_task_id, operation_id,
               sha256_hash
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             ON CONFLICT (operation_id) WHERE operation_id IS NOT NULL
             DO UPDATE SET operation_id = EXCLUDED.operation_id
-            RETURNING id, filename, original_name, mime_type, file_size, file_path, storage_key,
+            RETURNING id, filename, original_name, mime_type, file_size_bytes, file_path, storage_key,
                      thumbnail_path, created_at, photo_type, verification_task_id`,
             [
               photoInsertedId,
@@ -616,7 +644,7 @@ export class VerificationAttachmentController {
       const runImagesQuery = async (where: string, params: QueryParams) =>
         query(
           `SELECT
-            id, filename, original_name, mime_type, file_size, file_path,
+            id, filename, original_name, mime_type, file_size_bytes, file_path,
             thumbnail_path, uploaded_by, geo_location, photo_type,
             submission_id, verification_type, created_at
           FROM verification_attachments
@@ -741,7 +769,7 @@ export class VerificationAttachmentController {
 
       // Get image details from database
       const imageResult = await query(
-        `SELECT filename, original_name, mime_type, file_size, file_path, case_id, verification_type
+        `SELECT filename, original_name, mime_type, file_size_bytes, file_path, case_id, verification_type
          FROM verification_attachments WHERE id = $1`,
         [imageId]
       );
@@ -837,7 +865,7 @@ export class VerificationAttachmentController {
 
       // Get image details from database
       const imageResult = await query(
-        `SELECT filename, original_name, mime_type, file_size, thumbnail_path, case_id, verification_type
+        `SELECT filename, original_name, mime_type, file_size_bytes, thumbnail_path, case_id, verification_type
          FROM verification_attachments WHERE id = $1`,
         [imageId]
       );

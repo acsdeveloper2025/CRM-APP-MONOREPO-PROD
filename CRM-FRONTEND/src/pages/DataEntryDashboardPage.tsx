@@ -255,7 +255,7 @@ export function DataEntryDashboardPage() {
                             <Badge className={de.className}>{de.label}</Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Link to={`/cases/${r.caseId}`}>
+                            <Link to={`/case-management/${r.caseId}`}>
                               <Button variant="ghost" size="sm">
                                 <ExternalLink className="h-4 w-4 mr-1" />
                                 View

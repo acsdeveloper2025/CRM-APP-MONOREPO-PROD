@@ -99,7 +99,7 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({ cases, i
             <TableRow key={caseItem.id}>
               <TableCell className="font-medium">
                 <Link
-                  to={`/cases/${caseItem.caseId || caseItem.id}`}
+                  to={`/case-management/${caseItem.caseId || caseItem.id}`}
                   className="text-primary hover:underline"
                 >
                   #{caseItem.caseId || caseItem.id?.slice(-8) || 'N/A'}
@@ -184,7 +184,7 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({ cases, i
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
                     <DropdownMenuItem asChild>
-                      <Link to={`/cases/${caseItem.caseId || caseItem.id}`}>
+                      <Link to={`/case-management/${caseItem.caseId || caseItem.id}`}>
                         <Eye className="mr-2 h-4 w-4" />
                         View Details
                       </Link>

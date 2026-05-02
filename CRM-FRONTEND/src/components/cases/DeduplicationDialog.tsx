@@ -266,7 +266,7 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
                       className="ml-2"
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.open(`/cases/${duplicate.id}`, '_blank');
+                        window.open(`/case-management/${duplicate.id}`, '_blank');
                       }}
                       title="View case details in new tab"
                     >

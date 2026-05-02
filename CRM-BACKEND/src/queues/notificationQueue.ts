@@ -609,7 +609,9 @@ export const queueCaseAssignmentNotification = async (
   // F-B10.4: deterministic jobId protects against deadlock-retry
   // double-fire — three callers in verificationTasksController sit
   // inside withTransaction blocks (up to 6 retries / ~1.5s).
-  const jobId = `case-assign:${data.taskId || data.caseId}:${data.userId}:${data.assignmentType}`;
+  // BullMQ rejects `:` in custom Job IDs (`Custom Id cannot contain :`). Use
+  // `__` as the field separator so dedupe still works.
+  const jobId = `case-assign__${data.taskId || data.caseId}__${data.userId}__${data.assignmentType}`;
   const job = await notificationQueue.add(
     JOB_CASE_ASSIGNMENT,
     {
@@ -627,7 +629,7 @@ export const queueCaseAssignmentNotification = async (
 export const queueCaseCompletionNotification = async (
   data: Omit<CaseCompletionNotificationJobData, 'type'>
 ): Promise<string> => {
-  const jobId = `case-complete:${data.caseId}:${data.fieldUserId}:${data.outcome}`;
+  const jobId = `case-complete__${data.caseId}__${data.fieldUserId}__${data.outcome}`;
   const job = await notificationQueue.add(
     JOB_CASE_COMPLETION,
     {
@@ -645,7 +647,7 @@ export const queueCaseCompletionNotification = async (
 export const queueCaseRevocationNotification = async (
   data: Omit<CaseRevocationNotificationJobData, 'type'>
 ): Promise<string> => {
-  const jobId = `case-revoke:${data.caseId}:${data.fieldUserId}`;
+  const jobId = `case-revoke__${data.caseId}__${data.fieldUserId}`;
   const job = await notificationQueue.add(
     JOB_CASE_REVOCATION,
     {
@@ -663,7 +665,7 @@ export const queueCaseRevocationNotification = async (
 export const queueTaskRevocationNotification = async (
   data: Omit<TaskRevocationNotificationJobData, 'type'>
 ): Promise<string> => {
-  const jobId = `task-revoke:${data.taskId}:${data.fieldUserId}`;
+  const jobId = `task-revoke__${data.taskId}__${data.fieldUserId}`;
   const job = await notificationQueue.add(
     JOB_TASK_REVOCATION,
     {

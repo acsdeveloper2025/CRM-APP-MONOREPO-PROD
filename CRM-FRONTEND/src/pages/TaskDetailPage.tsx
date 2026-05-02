@@ -547,7 +547,7 @@ export const TaskDetailPage: React.FC = () => {
                   task.estimatedAmount > 0 && (
                     <div>
                       <p className="text-sm font-medium text-gray-600">Estimated Amount</p>
-                      <p className="text-sm">₹{task.estimatedAmount.toFixed(2)}</p>
+                      <p className="text-sm">₹{Number(task.estimatedAmount).toFixed(2)}</p>
                     </div>
                   )}
                 {task.actualAmount !== undefined &&
@@ -555,7 +555,7 @@ export const TaskDetailPage: React.FC = () => {
                   task.actualAmount > 0 && (
                     <div>
                       <p className="text-sm font-medium text-gray-600">Actual Amount</p>
-                      <p className="text-sm">₹{task.actualAmount.toFixed(2)}</p>
+                      <p className="text-sm">₹{Number(task.actualAmount).toFixed(2)}</p>
                     </div>
                   )}
                 {task.calculatedCommission !== undefined &&
@@ -563,7 +563,7 @@ export const TaskDetailPage: React.FC = () => {
                   task.calculatedCommission > 0 && (
                     <div>
                       <p className="text-sm font-medium text-gray-600">Commission</p>
-                      <p className="text-sm">₹{task.calculatedCommission.toFixed(2)}</p>
+                      <p className="text-sm">₹{Number(task.calculatedCommission).toFixed(2)}</p>
                       {task.commissionStatus && (
                         <Badge variant="secondary" className="mt-1">
                           {task.commissionStatus}

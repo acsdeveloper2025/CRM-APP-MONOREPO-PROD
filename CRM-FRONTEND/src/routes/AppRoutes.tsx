@@ -321,14 +321,6 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/verification-tasks/:taskId"
-            element={
-              <ProtectedRoute permission="page.tasks">
-                <TaskDetailPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/task-management/pending-tasks"
             element={
               <ProtectedRoute permission="page.tasks">

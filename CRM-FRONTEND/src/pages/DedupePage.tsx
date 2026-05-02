@@ -325,7 +325,9 @@ export const DedupePage: React.FC = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => window.open(`/cases/${result.caseId}`, '_blank')}
+                                onClick={() =>
+                                  window.open(`/case-management/${result.caseId}`, '_blank')
+                                }
                                 title="Open in New Tab"
                               >
                                 <ExternalLink className="h-4 w-4" />

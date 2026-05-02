@@ -133,7 +133,7 @@ export const CaseTable: React.FC<CaseTableProps> = React.memo(({ cases, isLoadin
               <TableRow key={caseItem.id}>
                 <TableCell className="font-medium">
                   <Link
-                    to={`/cases/${caseItem.caseId || caseItem.id}`}
+                    to={`/case-management/${caseItem.caseId || caseItem.id}`}
                     className="text-primary hover:underline"
                   >
                     #{caseItem.caseId || caseItem.id?.slice(-8) || 'N/A'}
@@ -200,7 +200,7 @@ export const CaseTable: React.FC<CaseTableProps> = React.memo(({ cases, isLoadin
                 </TableCell>
                 <TableCell>
                   <Button variant="ghost" size="sm" asChild>
-                    <Link to={`/cases/${caseItem.caseId || caseItem.id}`}>
+                    <Link to={`/case-management/${caseItem.caseId || caseItem.id}`}>
                       <Eye className="mr-2 h-4 w-4" />
                       View
                     </Link>
@@ -218,7 +218,7 @@ export const CaseTable: React.FC<CaseTableProps> = React.memo(({ cases, isLoadin
           <MobileTableCard key={caseItem.id}>
             <div className="flex justify-between items-start mb-3">
               <Link
-                to={`/cases/${caseItem.caseId || caseItem.id}`}
+                to={`/case-management/${caseItem.caseId || caseItem.id}`}
                 className="text-lg font-semibold text-primary hover:underline"
               >
                 #{caseItem.caseId || caseItem.id?.slice(-8) || 'N/A'}
@@ -228,7 +228,7 @@ export const CaseTable: React.FC<CaseTableProps> = React.memo(({ cases, isLoadin
                   {getStatusLabel(caseItem.status)}
                 </Badge>
                 <Button variant="ghost" size="sm" asChild>
-                  <Link to={`/cases/${caseItem.caseId || caseItem.id}`}>
+                  <Link to={`/case-management/${caseItem.caseId || caseItem.id}`}>
                     <Eye className="mr-2 h-4 w-4" />
                     View
                   </Link>
