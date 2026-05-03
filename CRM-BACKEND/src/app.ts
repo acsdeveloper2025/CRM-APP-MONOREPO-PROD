@@ -227,7 +227,10 @@ apiRouter.use('/auth', authRoutes);
 apiRouter.use('/cases', caseRoutes);
 apiRouter.use('/clients', clientRoutes);
 apiRouter.use('/clients', clientDocumentTypesRoutes);
-apiRouter.use('/attachments', attachmentRoutes);
+// Case-creation file uploads (sharp/thumbnail/sha256 + storage put) can
+// take longer than the global 30s defaultTimeout on slow networks or
+// large images. Use the extended 120s budget like /mobile and /exports.
+apiRouter.use('/attachments', extendedTimeout, attachmentRoutes);
 apiRouter.use('/storage', storageRoutes);
 apiRouter.use('/user', userRoutes);
 apiRouter.use('/users', usersRoutes);
