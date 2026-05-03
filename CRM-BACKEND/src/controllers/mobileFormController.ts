@@ -2294,7 +2294,9 @@ export class MobileFormController {
             photos: imagesRes.rows.map((img, _index) => {
               const geo = (() => {
                 const raw = img.geoLocation;
-                if (!raw) return null;
+                if (!raw) {
+                  return null;
+                }
                 if (typeof raw === 'string') {
                   try {
                     return JSON.parse(raw);
@@ -2304,12 +2306,10 @@ export class MobileFormController {
                 }
                 return raw as Record<string, unknown>;
               })();
-              const lat =
-                geo && typeof geo.latitude === 'number' ? (geo.latitude as number) : null;
+              const lat = geo && typeof geo.latitude === 'number' ? (geo.latitude as number) : null;
               const lng =
                 geo && typeof geo.longitude === 'number' ? (geo.longitude as number) : null;
-              const acc =
-                geo && typeof geo.accuracy === 'number' ? (geo.accuracy as number) : 0;
+              const acc = geo && typeof geo.accuracy === 'number' ? (geo.accuracy as number) : 0;
               const ts =
                 geo && typeof geo.timestamp === 'string'
                   ? (geo.timestamp as string)
@@ -2349,7 +2349,9 @@ export class MobileFormController {
             geoLocation: (() => {
               const firstWithGeo = imagesRes.rows.find(r => {
                 const raw = r.geoLocation;
-                if (!raw) return false;
+                if (!raw) {
+                  return false;
+                }
                 const parsed =
                   typeof raw === 'string'
                     ? (() => {
