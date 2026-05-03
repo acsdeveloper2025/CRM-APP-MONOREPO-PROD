@@ -2210,51 +2210,18 @@ export class MobileFormController {
         const verificationType = task.verificationTypeName || 'RESIDENCE';
         logger.info(`Processing task ${task.taskNumber} - Type: ${verificationType}`);
 
-        // Determine which report table to query based on verification type
-        let reportTableName = '';
-        let reportSql = '';
-
-        // Match verification type names (handle both short and full names)
-        // IMPORTANT: Check combined types BEFORE individual types
-        const typeUpper = verificationType.toUpperCase();
-
-        // Post-migration 010: all report tables are snake_case.
-        // The prior code used camelCase double-quoted names
-        // ("residenceVerificationReports") which PostgreSQL treats as
-        // case-sensitive identifiers → "relation does not exist" 500
-        // on every case detail page.
-        if (typeUpper.includes('RESIDENCE') && typeUpper.includes('OFFICE')) {
-          reportTableName = 'residence_cum_office_verification_reports';
-        } else if (typeUpper.includes('RESIDENCE')) {
-          reportTableName = 'residence_verification_reports';
-        } else if (typeUpper.includes('OFFICE')) {
-          reportTableName = 'office_verification_reports';
-        } else if (typeUpper.includes('BUSINESS')) {
-          reportTableName = 'business_verification_reports';
-        } else if (typeUpper.includes('BUILDER')) {
-          reportTableName = 'builder_verification_reports';
-        } else if (typeUpper.includes('NOC')) {
-          reportTableName = 'noc_verification_reports';
-        } else if (typeUpper.includes('DSA') || typeUpper.includes('CONNECTOR')) {
-          reportTableName = 'dsa_connector_verification_reports';
-        } else if (typeUpper.includes('PROPERTY') && typeUpper.includes('APF')) {
-          reportTableName = 'property_apf_verification_reports';
-        } else if (typeUpper.includes('PROPERTY') && typeUpper.includes('INDIVIDUAL')) {
-          reportTableName = 'property_individual_verification_reports';
-        } else {
-          logger.warn(
-            `Unknown verification type: ${verificationType}, falling back to residence_verification_reports`
-          );
-          reportTableName = 'residence_verification_reports';
-        }
-
-        // Query for reports — no double quotes needed since snake_case
-        // identifiers are case-insensitive in PostgreSQL.
-        reportSql = `SELECT * FROM ${reportTableName} WHERE verification_task_id = $1 LIMIT 1`;
-        const reportRes = await query(reportSql, [task.taskId]);
+        // Per-type report tables were consolidated into the unified
+        // `verification_reports` table by the DB audit (2026-04-28).
+        // The verification_task_id is itself unique per type, so no
+        // type-based switch is needed. The unified table carries a
+        // `verification_type` column for legacy filters that still need it.
+        const reportRes = await query(
+          `SELECT * FROM verification_reports WHERE verification_task_id = $1 LIMIT 1`,
+          [task.taskId]
+        );
 
         logger.info(
-          `Found ${reportRes.rows.length} reports in ${reportTableName} for task ${task.taskNumber}`
+          `Found ${reportRes.rows.length} reports in verification_reports for task ${task.taskNumber} (type=${verificationType})`
         );
 
         // Process each report (there should be only one per task, but handle multiple just in case)
