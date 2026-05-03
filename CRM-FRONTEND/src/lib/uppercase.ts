@@ -68,7 +68,12 @@ function isCaseSensitiveName(name: string): boolean {
   );
 }
 
-export function shouldUppercaseInput(type?: string, name?: string, explicit?: boolean): boolean {
+export function shouldUppercaseInput(
+  type?: string,
+  name?: string,
+  explicit?: boolean,
+  id?: string
+): boolean {
   if (explicit === false) {
     return false;
   }
@@ -78,7 +83,16 @@ export function shouldUppercaseInput(type?: string, name?: string, explicit?: bo
   if (type && CASE_SENSITIVE_TYPES.has(type.toLowerCase())) {
     return false;
   }
+  // 2026-05-03: also check `id` as fallback. When a password Input toggles
+  // show/hide via the eye icon, its `type` flips between 'password' and
+  // 'text'. If the field has no `name` prop, the type-based exclusion
+  // disappears the moment the user reveals the password — and global
+  // uppercase kicks in. Inspecting `id` (e.g. id="custom-password" or
+  // id="confirm-password") catches these toggle patterns.
   if (name && isCaseSensitiveName(name)) {
+    return false;
+  }
+  if (id && isCaseSensitiveName(id)) {
     return false;
   }
   return true;

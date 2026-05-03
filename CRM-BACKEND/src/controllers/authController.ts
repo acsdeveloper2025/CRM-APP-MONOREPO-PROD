@@ -237,6 +237,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       userId: user.id,
       authMethod: 'PASSWORD', // Mark as password authentication
       tokenVersion: user.tokenVersion,
+      jti: crypto.randomUUID(),
     };
 
     const accessToken = jwt.sign(accessTokenPayload, config.jwtSecret, {
@@ -729,6 +730,7 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     const refreshTokenPayload: RefreshTokenPayload = {
       userId: user.id,
       tokenVersion: user.tokenVersion,
+      jti: crypto.randomUUID(),
     };
     const newRefreshToken = jwt.sign(refreshTokenPayload, config.jwtRefreshSecret, {
       expiresIn: config.jwtRefreshExpiresIn as string & jwt.SignOptions['expiresIn'],

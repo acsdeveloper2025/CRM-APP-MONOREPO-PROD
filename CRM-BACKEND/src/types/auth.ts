@@ -67,6 +67,11 @@ export interface RefreshTokenPayload {
   authMethod?: 'PASSWORD' | 'UUID'; // Authentication method used
   // F-B3.4: per-user token version (mirrors JwtPayload).
   tokenVersion?: number;
+  // 2026-05-03: random JWT ID. Without this, two concurrent refresh-token
+  // calls within the same second produced identical JWTs (same payload
+  // + same iat-second) → identical SHA-256 hashes → unique constraint
+  // violation on `refresh_tokens_token_key` for the second insert.
+  jti?: string;
   iat?: number;
   exp?: number;
 }
