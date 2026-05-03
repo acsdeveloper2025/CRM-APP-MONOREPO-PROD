@@ -2635,9 +2635,7 @@ export class MobileFormController {
         typeof formData !== 'object' ||
         Object.keys(formData as Record<string, unknown>).length === 0
       ) {
-        logger.warn(
-          `❌ Empty formData on verification submission for task: ${req.params.taskId}`,
-        );
+        logger.warn(`❌ Empty formData on verification submission for task: ${req.params.taskId}`);
         return res.status(400).json({
           success: false,
           message: 'Form data is empty — cannot submit a verification without form fields',
@@ -2917,13 +2915,10 @@ export class MobileFormController {
         // per CHECK constraint: Positive / Negative / Refer / Fraud.
         if (!dbInsertData.final_status && verificationOutcome) {
           const baseOutcome = String(verificationOutcome).split(' & ')[0]?.trim();
-          if (
-            baseOutcome &&
-            ['Positive', 'Negative', 'Refer', 'Fraud'].includes(baseOutcome)
-          ) {
+          if (baseOutcome && ['Positive', 'Negative', 'Refer', 'Fraud'].includes(baseOutcome)) {
             dbInsertData.final_status = baseOutcome;
             logger.warn(
-              `Derived final_status="${baseOutcome}" from verificationOutcome="${verificationOutcome}" (formData lacked finalStatus)`,
+              `Derived final_status="${baseOutcome}" from verificationOutcome="${verificationOutcome}" (formData lacked finalStatus)`
             );
           }
         }
@@ -3086,9 +3081,7 @@ export class MobileFormController {
         typeof formData !== 'object' ||
         Object.keys(formData as Record<string, unknown>).length === 0
       ) {
-        logger.warn(
-          `❌ Empty formData on verification submission for task: ${req.params.taskId}`,
-        );
+        logger.warn(`❌ Empty formData on verification submission for task: ${req.params.taskId}`);
         return res.status(400).json({
           success: false,
           message: 'Form data is empty — cannot submit a verification without form fields',
@@ -3520,9 +3513,7 @@ export class MobileFormController {
         typeof formData !== 'object' ||
         Object.keys(formData as Record<string, unknown>).length === 0
       ) {
-        logger.warn(
-          `❌ Empty formData on verification submission for task: ${req.params.taskId}`,
-        );
+        logger.warn(`❌ Empty formData on verification submission for task: ${req.params.taskId}`);
         return res.status(400).json({
           success: false,
           message: 'Form data is empty — cannot submit a verification without form fields',
@@ -3986,9 +3977,7 @@ export class MobileFormController {
         typeof formData !== 'object' ||
         Object.keys(formData as Record<string, unknown>).length === 0
       ) {
-        logger.warn(
-          `❌ Empty formData on verification submission for task: ${req.params.taskId}`,
-        );
+        logger.warn(`❌ Empty formData on verification submission for task: ${req.params.taskId}`);
         return res.status(400).json({
           success: false,
           message: 'Form data is empty — cannot submit a verification without form fields',
@@ -4628,9 +4617,7 @@ export class MobileFormController {
         typeof formData !== 'object' ||
         Object.keys(formData as Record<string, unknown>).length === 0
       ) {
-        logger.warn(
-          `❌ Empty formData on verification submission for task: ${req.params.taskId}`,
-        );
+        logger.warn(`❌ Empty formData on verification submission for task: ${req.params.taskId}`);
         return res.status(400).json({
           success: false,
           message: 'Form data is empty — cannot submit a verification without form fields',
@@ -5287,9 +5274,7 @@ export class MobileFormController {
         typeof formData !== 'object' ||
         Object.keys(formData as Record<string, unknown>).length === 0
       ) {
-        logger.warn(
-          `❌ Empty formData on verification submission for task: ${req.params.taskId}`,
-        );
+        logger.warn(`❌ Empty formData on verification submission for task: ${req.params.taskId}`);
         return res.status(400).json({
           success: false,
           message: 'Form data is empty — cannot submit a verification without form fields',
@@ -5750,9 +5735,7 @@ export class MobileFormController {
         typeof formData !== 'object' ||
         Object.keys(formData as Record<string, unknown>).length === 0
       ) {
-        logger.warn(
-          `❌ Empty formData on verification submission for task: ${req.params.taskId}`,
-        );
+        logger.warn(`❌ Empty formData on verification submission for task: ${req.params.taskId}`);
         return res.status(400).json({
           success: false,
           message: 'Form data is empty — cannot submit a verification without form fields',
