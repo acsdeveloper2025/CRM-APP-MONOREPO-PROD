@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { kycService, type KYCTaskListQuery } from '@/services/kyc';
+import { usePermissionContext } from '@/contexts/PermissionContext';
 
 const kycKeys = {
   all: ['kyc'] as const,
@@ -47,11 +48,20 @@ export const useKYCTaskDetail = (taskId: string) => {
 };
 
 export const useKYCTasksForCase = (caseId: string) => {
+  // 2026-05-03: gate on `kyc.view` permission. The backend route is
+  // protected by `authorize('kyc.view')`, so users without the permission
+  // (most backend users + field agents in some configs) get a 403. Without
+  // this gate, the case-detail page fires the request anyway → repeated
+  // 403 noise in the browser console + axios retry storms. With the gate,
+  // the query stays disabled and `kycTasks` defaults to [] → KYC tab hides
+  // its content gracefully.
+  const { hasPermissionCode } = usePermissionContext();
+  const canViewKyc = hasPermissionCode('kyc.view');
   return useQuery({
     queryKey: kycKeys.caseTasks(caseId),
     queryFn: () => kycService.getTasksForCase(caseId),
     select: (data) => data.data || [],
-    enabled: !!caseId,
+    enabled: !!caseId && canViewKyc,
   });
 };
 
