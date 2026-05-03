@@ -284,10 +284,7 @@ const canAccessCase = (
   // would NOT receive the task-completion notification because nikhil is not
   // in pradnya's reporting hierarchy. Case creator → notification recipient
   // is a strict invariant: you opened the work, you hear about its outcome.
-  if (
-    caseRow.createdByBackendUser &&
-    caseRow.createdByBackendUser === viewerContext.viewer.id
-  ) {
+  if (caseRow.createdByBackendUser && caseRow.createdByBackendUser === viewerContext.viewer.id) {
     return true;
   }
 
