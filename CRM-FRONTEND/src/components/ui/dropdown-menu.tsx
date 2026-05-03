@@ -75,17 +75,33 @@ const DropdownMenuItem = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & {
     inset?: boolean;
   }
->(({ className, inset, ...props }, ref) => (
-  <DropdownMenuPrimitive.Item
-    ref={ref}
-    className={cn(
-      'relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:bg-green-50 focus:text-green-900 hover:bg-green-50 hover:text-green-900 data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-      inset && 'pl-8',
-      className
-    )}
-    {...props}
-  />
-));
+>(({ className, inset, onClick, ...props }, ref) => {
+  // 2026-05-03: defer onClick so the dropdown's pointerup/click bubble fully
+  // resolves before our handler fires. Without this, opening a Dialog
+  // synchronously from a DropdownMenuItem causes the pointer event to land
+  // on the just-opened Dialog → Radix interprets it as "click outside" →
+  // Dialog auto-dismisses. Known Radix issue. setTimeout(0) breaks the
+  // event chain cleanly. Skip when no onClick (passive items).
+  const handleClick = onClick
+    ? (event: React.MouseEvent<HTMLDivElement>) => {
+        // Persist event for setTimeout consumer (React synthetic events
+        // are pooled in legacy mode; setting a microtask delay is safer).
+        setTimeout(() => onClick(event), 0);
+      }
+    : undefined;
+  return (
+    <DropdownMenuPrimitive.Item
+      ref={ref}
+      className={cn(
+        'relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm text-gray-900 outline-none transition-colors focus:bg-green-50 focus:text-green-900 hover:bg-green-50 hover:text-green-900 data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+        inset && 'pl-8',
+        className
+      )}
+      onClick={handleClick}
+      {...props}
+    />
+  );
+});
 DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName;
 
 const DropdownMenuCheckboxItem = React.forwardRef<

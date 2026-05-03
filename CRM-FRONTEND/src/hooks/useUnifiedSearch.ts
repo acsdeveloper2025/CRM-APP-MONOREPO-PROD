@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 /**
@@ -123,9 +123,26 @@ export function useUnifiedSearch(options: UseUnifiedSearchOptions = {}): UseUnif
   const [debouncedSearchValue, setDebouncedSearchValue] = useState<string>(searchValue);
   const [isDebouncing, setIsDebouncing] = useState<boolean>(false);
 
-  // Debounce effect
+  // 2026-05-03: keep refs of the latest URL helpers so the debounce effect
+  // doesn't depend on `searchParams`/`setSearchParams` references. Putting
+  // those in the deps caused a ping-pong loop: typing → debounce writes URL
+  // → searchParams ref changes → debounce re-fires → writes URL again. The
+  // user-visible symptom was "search box auto-fills with prior value after
+  // any URL-changing action (e.g. opening/closing a Dialog that triggered
+  // a route restore)". Refs let us capture latest without re-subscribing.
+  const searchParamsRef = useRef(searchParams);
+  const setSearchParamsRef = useRef(setSearchParams);
   useEffect(() => {
-    // Don't debounce if search value is below minimum length
+    searchParamsRef.current = searchParams;
+    setSearchParamsRef.current = setSearchParams;
+  });
+
+  // Track whether the user (not a URL sync) just edited the value, so the
+  // URL→state effect doesn't clobber a fresh user edit with a stale URL.
+  const userEditedAtRef = useRef<number>(0);
+
+  // Debounce effect — restarts ONLY when searchValue (user edit) changes.
+  useEffect(() => {
     if (searchValue.length > 0 && searchValue.length < minSearchLength) {
       setDebouncedSearchValue('');
       setIsDebouncing(false);
@@ -138,20 +155,18 @@ export function useUnifiedSearch(options: UseUnifiedSearchOptions = {}): UseUnif
       setDebouncedSearchValue(searchValue);
       setIsDebouncing(false);
 
-      // Call onChange callback
       if (onSearchChange) {
         onSearchChange(searchValue);
       }
 
-      // Sync with URL if enabled
       if (syncWithUrl) {
-        const newParams = new URLSearchParams(searchParams);
+        const newParams = new URLSearchParams(searchParamsRef.current);
         if (searchValue) {
           newParams.set(searchKey, searchValue);
         } else {
           newParams.delete(searchKey);
         }
-        setSearchParams(newParams, { replace: true });
+        setSearchParamsRef.current(newParams, { replace: true });
       }
     }, debounceDelay);
 
@@ -159,41 +174,42 @@ export function useUnifiedSearch(options: UseUnifiedSearchOptions = {}): UseUnif
       clearTimeout(timer);
       setIsDebouncing(false);
     };
-  }, [
-    searchValue,
-    debounceDelay,
-    minSearchLength,
-    syncWithUrl,
-    onSearchChange,
-    searchParams,
-    setSearchParams,
-    searchKey,
-  ]);
+  }, [searchValue, debounceDelay, minSearchLength, syncWithUrl, onSearchChange, searchKey]);
 
-  // Update search value from URL when it changes externally
+  // Update search value from URL when it changes externally — but ignore
+  // URL changes that arrive within 2*debounce of a user edit (those are
+  // echoes of our own write). This prevents the URL→state effect from
+  // resurrecting stale values during the ping-pong window.
   useEffect(() => {
-    if (syncWithUrl) {
-      const urlValue = searchParams.get(searchKey) || '';
-      if (urlValue !== searchValue) {
-        setSearchValueState(urlValue);
-      }
+    if (!syncWithUrl) {
+      return;
     }
-  }, [searchParams, syncWithUrl, searchKey]); // eslint-disable-line react-hooks/exhaustive-deps
+    const sinceEdit = Date.now() - userEditedAtRef.current;
+    if (sinceEdit < debounceDelay * 2) {
+      return;
+    }
+    const urlValue = searchParams.get(searchKey) || '';
+    if (urlValue !== searchValue) {
+      setSearchValueState(urlValue);
+    }
+  }, [searchParams, syncWithUrl, searchKey, debounceDelay]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setSearchValue = useCallback((value: string) => {
+    userEditedAtRef.current = Date.now();
     setSearchValueState(value);
   }, []);
 
   const clearSearch = useCallback(() => {
+    userEditedAtRef.current = Date.now();
     setSearchValueState('');
     setDebouncedSearchValue('');
 
     if (syncWithUrl) {
-      const newParams = new URLSearchParams(searchParams);
+      const newParams = new URLSearchParams(searchParamsRef.current);
       newParams.delete(searchKey);
-      setSearchParams(newParams, { replace: true });
+      setSearchParamsRef.current(newParams, { replace: true });
     }
-  }, [syncWithUrl, searchParams, setSearchParams, searchKey]);
+  }, [syncWithUrl, searchKey]);
 
   return useMemo(
     () => ({

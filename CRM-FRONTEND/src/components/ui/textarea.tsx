@@ -11,7 +11,7 @@ export type TextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> & 
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, uppercase, onChange, ...props }, ref) => {
-    const autoUpper = shouldUppercaseInput(undefined, props.name, uppercase);
+    const autoUpper = shouldUppercaseInput(undefined, props.name, uppercase, props.id);
     const handleChange = autoUpper
       ? (e: React.ChangeEvent<HTMLTextAreaElement>) => {
           const upper = e.target.value.toUpperCase();

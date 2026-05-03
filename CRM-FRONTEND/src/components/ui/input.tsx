@@ -11,7 +11,7 @@ export type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, uppercase, onChange, ...props }, ref) => {
-    const autoUpper = shouldUppercaseInput(type, props.name, uppercase);
+    const autoUpper = shouldUppercaseInput(type, props.name, uppercase, props.id);
     const handleChange = autoUpper
       ? (e: React.ChangeEvent<HTMLInputElement>) => {
           const upper = e.target.value.toUpperCase();
