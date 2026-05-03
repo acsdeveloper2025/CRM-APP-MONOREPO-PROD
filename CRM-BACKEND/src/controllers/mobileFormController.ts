@@ -2621,6 +2621,32 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
+
+      // 2026-05-03 (bug 40): fail-fast on empty formData. Previously an
+      // empty submission (e.g. from a mobile sync_queue zombie with a
+      // stale snapshot) reached the INSERT into verification_reports
+      // and crashed on the chk_verification_reports_final_status NOT NULL
+      // constraint, returning 500. Now reject with 400 EMPTY_FORM_DATA
+      // before any DB work — same fail-fast pattern as INSUFFICIENT_PHOTOS.
+      // Mobile's SyncProcessor classifies 4xx as NON-RETRYABLE, so a stuck
+      // zombie DLQs immediately instead of retrying 10× and crashing the DB.
+      if (
+        !formData ||
+        typeof formData !== 'object' ||
+        Object.keys(formData as Record<string, unknown>).length === 0
+      ) {
+        logger.warn(
+          `❌ Empty formData on verification submission for task: ${req.params.taskId}`,
+        );
+        return res.status(400).json({
+          success: false,
+          message: 'Form data is empty — cannot submit a verification without form fields',
+          error: {
+            code: 'EMPTY_FORM_DATA',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
       const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user as never);
 
@@ -2882,6 +2908,26 @@ export class MobileFormController {
           ...mappedFormData,
         };
 
+        // 2026-05-03 (bug 41): defense-in-depth — derive final_status from
+        // verificationOutcome when mappedFormData didn't surface a value.
+        // Prevents the NOT NULL constraint violation on
+        // chk_verification_reports_final_status when a submission slips
+        // through with verificationOutcome="Positive & Door Locked" but
+        // missing the explicit finalStatus form field. Allowed values
+        // per CHECK constraint: Positive / Negative / Refer / Fraud.
+        if (!dbInsertData.final_status && verificationOutcome) {
+          const baseOutcome = String(verificationOutcome).split(' & ')[0]?.trim();
+          if (
+            baseOutcome &&
+            ['Positive', 'Negative', 'Refer', 'Fraud'].includes(baseOutcome)
+          ) {
+            dbInsertData.final_status = baseOutcome;
+            logger.warn(
+              `Derived final_status="${baseOutcome}" from verificationOutcome="${verificationOutcome}" (formData lacked finalStatus)`,
+            );
+          }
+        }
+
         // Log comprehensive database insert data for debugging
         const nullFields = Object.entries(dbInsertData).filter(([_, value]) => value === null);
         const populatedFields = Object.entries(dbInsertData).filter(
@@ -3026,6 +3072,32 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
+
+      // 2026-05-03 (bug 40): fail-fast on empty formData. Previously an
+      // empty submission (e.g. from a mobile sync_queue zombie with a
+      // stale snapshot) reached the INSERT into verification_reports
+      // and crashed on the chk_verification_reports_final_status NOT NULL
+      // constraint, returning 500. Now reject with 400 EMPTY_FORM_DATA
+      // before any DB work — same fail-fast pattern as INSUFFICIENT_PHOTOS.
+      // Mobile's SyncProcessor classifies 4xx as NON-RETRYABLE, so a stuck
+      // zombie DLQs immediately instead of retrying 10× and crashing the DB.
+      if (
+        !formData ||
+        typeof formData !== 'object' ||
+        Object.keys(formData as Record<string, unknown>).length === 0
+      ) {
+        logger.warn(
+          `❌ Empty formData on verification submission for task: ${req.params.taskId}`,
+        );
+        return res.status(400).json({
+          success: false,
+          message: 'Form data is empty — cannot submit a verification without form fields',
+          error: {
+            code: 'EMPTY_FORM_DATA',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
       const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user as never);
 
@@ -3434,6 +3506,32 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
+
+      // 2026-05-03 (bug 40): fail-fast on empty formData. Previously an
+      // empty submission (e.g. from a mobile sync_queue zombie with a
+      // stale snapshot) reached the INSERT into verification_reports
+      // and crashed on the chk_verification_reports_final_status NOT NULL
+      // constraint, returning 500. Now reject with 400 EMPTY_FORM_DATA
+      // before any DB work — same fail-fast pattern as INSUFFICIENT_PHOTOS.
+      // Mobile's SyncProcessor classifies 4xx as NON-RETRYABLE, so a stuck
+      // zombie DLQs immediately instead of retrying 10× and crashing the DB.
+      if (
+        !formData ||
+        typeof formData !== 'object' ||
+        Object.keys(formData as Record<string, unknown>).length === 0
+      ) {
+        logger.warn(
+          `❌ Empty formData on verification submission for task: ${req.params.taskId}`,
+        );
+        return res.status(400).json({
+          success: false,
+          message: 'Form data is empty — cannot submit a verification without form fields',
+          error: {
+            code: 'EMPTY_FORM_DATA',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
       const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user as never);
 
@@ -3874,6 +3972,32 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
+
+      // 2026-05-03 (bug 40): fail-fast on empty formData. Previously an
+      // empty submission (e.g. from a mobile sync_queue zombie with a
+      // stale snapshot) reached the INSERT into verification_reports
+      // and crashed on the chk_verification_reports_final_status NOT NULL
+      // constraint, returning 500. Now reject with 400 EMPTY_FORM_DATA
+      // before any DB work — same fail-fast pattern as INSUFFICIENT_PHOTOS.
+      // Mobile's SyncProcessor classifies 4xx as NON-RETRYABLE, so a stuck
+      // zombie DLQs immediately instead of retrying 10× and crashing the DB.
+      if (
+        !formData ||
+        typeof formData !== 'object' ||
+        Object.keys(formData as Record<string, unknown>).length === 0
+      ) {
+        logger.warn(
+          `❌ Empty formData on verification submission for task: ${req.params.taskId}`,
+        );
+        return res.status(400).json({
+          success: false,
+          message: 'Form data is empty — cannot submit a verification without form fields',
+          error: {
+            code: 'EMPTY_FORM_DATA',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
       const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user as never);
 
@@ -4490,6 +4614,32 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
+
+      // 2026-05-03 (bug 40): fail-fast on empty formData. Previously an
+      // empty submission (e.g. from a mobile sync_queue zombie with a
+      // stale snapshot) reached the INSERT into verification_reports
+      // and crashed on the chk_verification_reports_final_status NOT NULL
+      // constraint, returning 500. Now reject with 400 EMPTY_FORM_DATA
+      // before any DB work — same fail-fast pattern as INSUFFICIENT_PHOTOS.
+      // Mobile's SyncProcessor classifies 4xx as NON-RETRYABLE, so a stuck
+      // zombie DLQs immediately instead of retrying 10× and crashing the DB.
+      if (
+        !formData ||
+        typeof formData !== 'object' ||
+        Object.keys(formData as Record<string, unknown>).length === 0
+      ) {
+        logger.warn(
+          `❌ Empty formData on verification submission for task: ${req.params.taskId}`,
+        );
+        return res.status(400).json({
+          success: false,
+          message: 'Form data is empty — cannot submit a verification without form fields',
+          error: {
+            code: 'EMPTY_FORM_DATA',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
       const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user as never);
 
@@ -5123,6 +5273,32 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
+
+      // 2026-05-03 (bug 40): fail-fast on empty formData. Previously an
+      // empty submission (e.g. from a mobile sync_queue zombie with a
+      // stale snapshot) reached the INSERT into verification_reports
+      // and crashed on the chk_verification_reports_final_status NOT NULL
+      // constraint, returning 500. Now reject with 400 EMPTY_FORM_DATA
+      // before any DB work — same fail-fast pattern as INSUFFICIENT_PHOTOS.
+      // Mobile's SyncProcessor classifies 4xx as NON-RETRYABLE, so a stuck
+      // zombie DLQs immediately instead of retrying 10× and crashing the DB.
+      if (
+        !formData ||
+        typeof formData !== 'object' ||
+        Object.keys(formData as Record<string, unknown>).length === 0
+      ) {
+        logger.warn(
+          `❌ Empty formData on verification submission for task: ${req.params.taskId}`,
+        );
+        return res.status(400).json({
+          success: false,
+          message: 'Form data is empty — cannot submit a verification without form fields',
+          error: {
+            code: 'EMPTY_FORM_DATA',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
       const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user as never);
 
@@ -5560,6 +5736,32 @@ export class MobileFormController {
         photos,
         images,
       }: MobileFormSubmissionRequest = req.body;
+
+      // 2026-05-03 (bug 40): fail-fast on empty formData. Previously an
+      // empty submission (e.g. from a mobile sync_queue zombie with a
+      // stale snapshot) reached the INSERT into verification_reports
+      // and crashed on the chk_verification_reports_final_status NOT NULL
+      // constraint, returning 500. Now reject with 400 EMPTY_FORM_DATA
+      // before any DB work — same fail-fast pattern as INSUFFICIENT_PHOTOS.
+      // Mobile's SyncProcessor classifies 4xx as NON-RETRYABLE, so a stuck
+      // zombie DLQs immediately instead of retrying 10× and crashing the DB.
+      if (
+        !formData ||
+        typeof formData !== 'object' ||
+        Object.keys(formData as Record<string, unknown>).length === 0
+      ) {
+        logger.warn(
+          `❌ Empty formData on verification submission for task: ${req.params.taskId}`,
+        );
+        return res.status(400).json({
+          success: false,
+          message: 'Form data is empty — cannot submit a verification without form fields',
+          error: {
+            code: 'EMPTY_FORM_DATA',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
       const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user as never);
 

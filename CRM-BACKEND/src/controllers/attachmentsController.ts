@@ -321,7 +321,14 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
           // F8.1.3 + storage abstraction: compute sha256 + storage_key on upload.
           // Multer wrote bytes to file.path. Read buffer once for both: hashing
           // and storage.put (so S3 backend gets the bytes automatically when active).
-          const fileBuffer = await fsp.readFile(file.path);
+          //
+          // 2026-05-03 (bug 36): read from `finalPath` not `file.path`.
+          // The rename above moved bytes to finalPath; multer's File
+          // object still has the OLD tempPath in `file.path`, so reading
+          // it produces ENOENT every time. Same bug class as bug 4
+          // (verificationAttachmentController) — must use the post-move
+          // path, never the pre-move one.
+          const fileBuffer = await fsp.readFile(finalPath);
           const sha256Hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
           const ext = (path.extname(file.originalname || file.filename || '') || '.bin').replace(
             /^\./,
