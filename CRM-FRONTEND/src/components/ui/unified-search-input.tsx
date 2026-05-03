@@ -153,11 +153,18 @@ export const UnifiedSearchInput = React.forwardRef<HTMLInputElement, UnifiedSear
         <Input
           ref={combinedRef}
           type="text"
+          name="unified-search"
+          autoComplete="off"
+          spellCheck={false}
+          data-form-type="other"
+          data-lpignore="true"
+          data-1p-ignore="true"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
+          uppercase={false}
           className={cn(
             paddingClasses[size],
             sizeClasses[size],
