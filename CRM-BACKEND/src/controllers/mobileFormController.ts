@@ -2283,42 +2283,105 @@ export class MobileFormController {
               report.formType || 'POSITIVE'
             ),
 
-            // Convert verification images to photos format
-            photos: imagesRes.rows.map((img, _index) => ({
-              id: img.id,
-              attachmentId: img.id,
-              type: img.photoType === 'selfie' ? 'selfie' : 'verification',
-              url: `/api/verification-attachments/${img.id}/download`,
-              thumbnailUrl: `/api/verification-attachments/${img.id}/thumbnail`,
-              filename: img.filename,
-              size: img.fileSize,
-              capturedAt: img.createdAt,
-              geoLocation: {
-                latitude: img.latitude || 0,
-                longitude: 0,
-                accuracy: 0,
-                timestamp: img.createdAt,
-                address: 'Location captured during verification',
-              },
-              metadata: {
-                fileSize: img.fileSize,
-                mimeType: 'image/jpeg',
-                dimensions: { width: 0, height: 0 },
-                capturedAt: img.createdAt,
-              },
-            })),
+            // Convert verification images to photos format. The actual
+            // geo_location JSONB column carries the real coordinates +
+            // capture timestamp set by mobile at upload time. Don't
+            // fabricate fallback values — the frontend shows a graceful
+            // placeholder ("Resolving address…" / coordinates) when a
+            // field is missing, but a hardcoded address like
+            // "Verification location" is misleading and overrides the
+            // reverse-geocode lookup downstream.
+            photos: imagesRes.rows.map((img, _index) => {
+              const geo = (() => {
+                const raw = img.geoLocation;
+                if (!raw) return null;
+                if (typeof raw === 'string') {
+                  try {
+                    return JSON.parse(raw);
+                  } catch {
+                    return null;
+                  }
+                }
+                return raw as Record<string, unknown>;
+              })();
+              const lat =
+                geo && typeof geo.latitude === 'number' ? (geo.latitude as number) : null;
+              const lng =
+                geo && typeof geo.longitude === 'number' ? (geo.longitude as number) : null;
+              const acc =
+                geo && typeof geo.accuracy === 'number' ? (geo.accuracy as number) : 0;
+              const ts =
+                geo && typeof geo.timestamp === 'string'
+                  ? (geo.timestamp as string)
+                  : img.createdAt;
+              return {
+                id: img.id,
+                attachmentId: img.id,
+                type: img.photoType === 'selfie' ? 'selfie' : 'verification',
+                url: `/api/verification-attachments/${img.id}/download`,
+                thumbnailUrl: `/api/verification-attachments/${img.id}/thumbnail`,
+                filename: img.filename,
+                size: img.fileSize,
+                capturedAt: ts,
+                geoLocation: {
+                  latitude: lat ?? 0,
+                  longitude: lng ?? 0,
+                  accuracy: acc,
+                  timestamp: ts,
+                  // No hardcoded address — let frontend AddressLine resolve
+                  // via reverse-geocode (or fall through to coordinates).
+                },
+                metadata: {
+                  fileSize: img.fileSize,
+                  mimeType: 'image/jpeg',
+                  dimensions: { width: 0, height: 0 },
+                  capturedAt: ts,
+                },
+              };
+            }),
 
             attachments: [], // No separate attachments for this form type
 
-            geoLocation: {
-              latitude: 0,
-              longitude: 0,
-              accuracy: 0,
-              timestamp: report.verificationDate
-                ? `${report.verification_date}T00:00:00.000Z`
-                : new Date().toISOString(),
-              address: 'Verification location',
-            },
+            // Submission-level geoLocation: take the first photo's geo if
+            // available; otherwise leave coordinates zero and timestamp at
+            // the verification date. NEVER hardcode an "address" string —
+            // the frontend resolves addresses per-photo via reverse-geocode.
+            geoLocation: (() => {
+              const firstWithGeo = imagesRes.rows.find(r => {
+                const raw = r.geoLocation;
+                if (!raw) return false;
+                const parsed =
+                  typeof raw === 'string'
+                    ? (() => {
+                        try {
+                          return JSON.parse(raw);
+                        } catch {
+                          return null;
+                        }
+                      })()
+                    : raw;
+                return (
+                  parsed &&
+                  typeof parsed.latitude === 'number' &&
+                  typeof parsed.longitude === 'number'
+                );
+              });
+              const geo = firstWithGeo
+                ? typeof firstWithGeo.geoLocation === 'string'
+                  ? JSON.parse(firstWithGeo.geoLocation as string)
+                  : firstWithGeo.geoLocation
+                : null;
+              return {
+                latitude: geo?.latitude ?? 0,
+                longitude: geo?.longitude ?? 0,
+                accuracy: geo?.accuracy ?? 0,
+                timestamp:
+                  geo?.timestamp ||
+                  (report.verificationDate
+                    ? `${report.verification_date}T00:00:00.000Z`
+                    : new Date().toISOString()),
+              };
+            })(),
 
             metadata: {
               submissionTimestamp: report.verificationDate

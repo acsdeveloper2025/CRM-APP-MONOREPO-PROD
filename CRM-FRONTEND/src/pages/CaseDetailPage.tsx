@@ -183,9 +183,17 @@ export const CaseDetailPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2">
+      {/*
+        2026-05-03: bumped main:sidebar ratio from 2:1 to 3:1 (lg)
+        and 4:1 (xl). Previously the Assignment + Actions sidebar
+        ate 33% of the viewport on desktop, squeezing the 6-tab
+        TabsList so the labels merged ("Form Submissions" wrapping
+        into the Field Tasks tab) and the Case Information block
+        had cramped paragraphs.
+      */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+        {/* Main Content — 3/4 (lg) → 4/5 (xl) of viewport */}
+        <div className="lg:col-span-3 xl:col-span-4">
           <Tabs defaultValue="details" className="space-y-6">
             <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="details" className="flex items-center space-x-2">

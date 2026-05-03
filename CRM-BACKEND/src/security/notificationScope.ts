@@ -55,6 +55,12 @@ type CaseScopeRow = {
   assignedTo: string | null;
   clientId: number;
   productId: number;
+  // 2026-05-03 (bug 33): the user who created this case via the web
+  // frontend. They MUST receive notifications about its lifecycle even
+  // if their hierarchy/client/product access changed afterwards. Without
+  // this, the case creator (e.g. pradnya.mohite) was being skipped on
+  // task-completion notifications for their own cases.
+  createdByBackendUser: string | null;
   taskAssignees: string[] | null;
   areaIds: number[] | null;
   pincodeIds: number[] | null;
@@ -191,6 +197,7 @@ const loadCaseScopeRows = async (
             NULL::uuid as assigned_to,
             c.client_id as client_id,
             c.product_id as product_id,
+            c.created_by_backend_user as "created_by_backend_user",
             ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.assigned_to), NULL) as "task_assignees",
             ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.area_id), NULL) as "area_ids",
             ARRAY_REMOVE(ARRAY_AGG(DISTINCT p_scope.id), NULL) as "pincode_ids"
@@ -198,7 +205,7 @@ const loadCaseScopeRows = async (
           LEFT JOIN verification_tasks vt ON vt.case_id = c.id
           LEFT JOIN pincodes p_scope ON p_scope.id = vt.pincode_id
           WHERE c.id = ANY($1::uuid[])
-          GROUP BY c.id, c.client_id, c.product_id
+          GROUP BY c.id, c.client_id, c.product_id, c.created_by_backend_user
         `,
         [caseIds]
       )
@@ -209,6 +216,7 @@ const loadCaseScopeRows = async (
         NULL::uuid as assigned_to,
         c.client_id as client_id,
         c.product_id as product_id,
+        c.created_by_backend_user as "created_by_backend_user",
         ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.assigned_to), NULL) as "task_assignees",
         ARRAY_REMOVE(ARRAY_AGG(DISTINCT vt.area_id), NULL) as "area_ids",
         ARRAY_REMOVE(ARRAY_AGG(DISTINCT p_scope.id), NULL) as "pincode_ids"
@@ -216,7 +224,7 @@ const loadCaseScopeRows = async (
       LEFT JOIN verification_tasks vt ON vt.case_id = c.id
       LEFT JOIN pincodes p_scope ON p_scope.id = vt.pincode_id
       WHERE c.id = ANY($1::uuid[])
-      GROUP BY c.id, c.client_id, c.product_id
+      GROUP BY c.id, c.client_id, c.product_id, c.created_by_backend_user
     `,
         [caseIds]
       );
@@ -266,6 +274,20 @@ const canAccessCase = (
   }
 
   if (viewerContext.isBypass) {
+    return true;
+  }
+
+  // 2026-05-03 (bug 33): the user who created this case via the web frontend
+  // ALWAYS has access to its lifecycle notifications, regardless of their
+  // current hierarchy / client / product assignments. Without this, a backend
+  // user (e.g. pradnya.mohite) creating a case for nikhil.parab to verify
+  // would NOT receive the task-completion notification because nikhil is not
+  // in pradnya's reporting hierarchy. Case creator → notification recipient
+  // is a strict invariant: you opened the work, you hear about its outcome.
+  if (
+    caseRow.createdByBackendUser &&
+    caseRow.createdByBackendUser === viewerContext.viewer.id
+  ) {
     return true;
   }
 
