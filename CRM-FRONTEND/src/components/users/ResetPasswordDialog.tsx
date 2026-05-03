@@ -269,6 +269,11 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                   <Label htmlFor="username">Username</Label>
                   <Input
                     id="username"
+                    name="reset-target-username"
+                    autoComplete="off"
+                    data-form-type="other"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     value={user.username}
                     readOnly
                     className="bg-white text-gray-900 font-medium border-2 border-border focus:border-border shadow-sm"
