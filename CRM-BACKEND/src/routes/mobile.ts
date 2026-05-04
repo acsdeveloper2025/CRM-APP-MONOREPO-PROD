@@ -108,6 +108,45 @@ router.delete(
   NotificationController.clearAllNotifications.bind(NotificationController)
 );
 
+// Phase 2.3 (2026-05-04): mobile mirror of /api/notifications/preferences.
+// Same controller methods as the web prefix; the mobile Settings screen
+// hits these to GET/PUT user preferences.
+router.get(
+  '/notifications/preferences',
+  authenticateToken,
+  NotificationController.getNotificationPreferences.bind(NotificationController)
+);
+router.put(
+  '/notifications/preferences',
+  authenticateToken,
+  NotificationController.updateNotificationPreferences.bind(NotificationController)
+);
+
+// Phase 3.2 (2026-05-04): mobile mirror of /api/notifications/mute|mutes.
+// Field agent on TaskDetailScreen hits these to silence/unsilence the
+// bell for the task they're viewing. body: { taskId } since mobile
+// doesn't have caseId UUID locally (only integer case_number).
+router.post(
+  '/notifications/mute',
+  authenticateToken,
+  NotificationController.muteCase.bind(NotificationController)
+);
+router.delete(
+  '/notifications/mute/case/:caseId',
+  authenticateToken,
+  NotificationController.unmuteCase.bind(NotificationController)
+);
+router.delete(
+  '/notifications/mute/task/:taskId',
+  authenticateToken,
+  NotificationController.unmuteCase.bind(NotificationController)
+);
+router.get(
+  '/notifications/mutes',
+  authenticateToken,
+  NotificationController.listMutes.bind(NotificationController)
+);
+
 // Profile photo — mobile self-upload. Field agent captures via the
 // ProfilePhotoCaptureScreen on mobile; the resized JPEG is POSTed here.
 // No delete endpoint on the mobile path: decision 2026-04-21 (Q4=B) —

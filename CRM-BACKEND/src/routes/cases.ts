@@ -406,4 +406,18 @@ router.get(
   VerificationAttachmentController.serveVerificationThumbnail
 );
 
+// Phase 3.1 (2026-05-04): case-scoped notification timeline. Returns
+// every notifications row for the case across all recipients, joined
+// with users.name + role for "Read by X" badges. Auth: case.view +
+// underlying scope checks via the controller path. Used by
+// CaseDetailPage's Notifications tab.
+import { NotificationController } from '@/controllers/notificationController';
+router.get(
+  '/:caseId/notifications/timeline',
+  authorize('case.view'),
+  [param('caseId').trim().notEmpty().withMessage('Case ID is required')],
+  validate,
+  NotificationController.getCaseNotificationTimeline.bind(NotificationController)
+);
+
 export default router;

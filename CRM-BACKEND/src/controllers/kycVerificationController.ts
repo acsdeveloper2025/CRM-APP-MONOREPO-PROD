@@ -14,19 +14,85 @@ import ExcelJS from 'exceljs';
  * Handles CRUD + verification workflow for KYC document tasks
  */
 
-// List all KYC document types (for dropdowns)
-export const listDocumentTypes = async (_req: AuthenticatedRequest, res: Response) => {
+// Phase 1.4 (2026-05-04, revised): document type list optionally filters
+// by (clientId, productId) using TWO joins:
+//   - INNER JOIN `client_product_documents` → only return doc types
+//     assigned to this (client, product) pair
+//   - LEFT  JOIN `document_type_rates`     → annotate each row with
+//     `rate_amount` + `has_rate`. Doc types without a rate still come
+//     through but with `has_rate=false` so the frontend can warn the
+//     user (mirrors how the field-verification flow surfaces missing
+//     service-zone-rule rates).
+//
+// Pipeline:
+//   clients + products → client_products(id, client_id, product_id)
+//                       ↓
+//   client_product_documents(client_product_id, document_type_id, is_mandatory, display_order)
+//                       ↓
+//                document_types ←→ document_type_rates (LEFT JOIN, optional)
+//
+// Without clientId+productId, returns ALL active doc types (admin
+// catalog use case unchanged).
+export const listDocumentTypes = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const clientIdRaw = req.query.clientId;
+    const productIdRaw = req.query.productId;
+    const clientIdParam =
+      typeof clientIdRaw === 'string' && clientIdRaw.trim() !== '' ? Number(clientIdRaw) : null;
+    const productIdParam =
+      typeof productIdRaw === 'string' && productIdRaw.trim() !== '' ? Number(productIdRaw) : null;
+
+    const filterByAssignment =
+      clientIdParam !== null &&
+      Number.isFinite(clientIdParam) &&
+      productIdParam !== null &&
+      Number.isFinite(productIdParam);
+
+    if (filterByAssignment) {
+      const result = await query(
+        `SELECT
+            dt.id,
+            dt.code,
+            dt.name,
+            dt.category,
+            dt.is_active,
+            dt.sort_order,
+            COALESCE(dt.custom_fields, '[]'::jsonb) as custom_fields,
+            cpd.is_mandatory,
+            cpd.display_order,
+            dtr.amount as rate_amount,
+            (dtr.id IS NOT NULL) as has_rate
+         FROM document_types dt
+         INNER JOIN client_product_documents cpd
+           ON cpd.document_type_id = dt.id
+          AND cpd.is_active = true
+         INNER JOIN client_products cp
+           ON cp.id = cpd.client_product_id
+          AND cp.client_id = $1
+          AND cp.product_id = $2
+          AND cp.is_active = true
+         LEFT JOIN document_type_rates dtr
+           ON dtr.document_type_id = dt.id
+          AND dtr.client_id = $1
+          AND dtr.product_id = $2
+          AND dtr.is_active = true
+         WHERE dt.is_active = true
+         ORDER BY cpd.display_order, dt.sort_order, dt.name`,
+        [clientIdParam, productIdParam]
+      );
+      return res.json({ success: true, data: result.rows });
+    }
+
     const result = await query(
       `SELECT id, code, name, category, is_active, sort_order, COALESCE(custom_fields, '[]'::jsonb) as custom_fields
        FROM document_types
        WHERE is_active = true
        ORDER BY sort_order, name`
     );
-    res.json({ success: true, data: result.rows });
+    return res.json({ success: true, data: result.rows });
   } catch (error) {
     logger.error('Error listing KYC document types:', error);
-    res.status(500).json({ success: false, message: 'Failed to list document types' });
+    return res.status(500).json({ success: false, message: 'Failed to list document types' });
   }
 };
 

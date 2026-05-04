@@ -187,6 +187,54 @@ router.delete(
 );
 
 /**
+ * Phase 2.2 (2026-05-04): restore soft-deleted notifications.
+ * @route PUT /api/notifications/:notificationId/restore  (single)
+ * @route PUT /api/notifications/restore                  (batch via body.ids[])
+ * @desc Undo a delete / clear-all within the 30-day soft-delete window
+ * @access Private
+ */
+router.put(
+  '/:notificationId/restore',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.notificationUpdate),
+  notificationIdValidation,
+  validate,
+  NotificationController.restoreNotification.bind(NotificationController)
+);
+router.put(
+  '/restore',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.notificationUpdate),
+  NotificationController.restoreNotification.bind(NotificationController)
+);
+
+/**
+ * Phase 3.2 (2026-05-04): mute/unmute notifications for a case or task.
+ * @route POST   /api/notifications/mute            body: {caseId|taskId, expiresAt?}
+ * @route DELETE /api/notifications/mute/case/:caseId
+ * @route DELETE /api/notifications/mute/task/:taskId
+ * @route GET    /api/notifications/mutes           list active mutes
+ */
+router.post(
+  '/mute',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.notificationUpdate),
+  NotificationController.muteCase.bind(NotificationController)
+);
+router.delete(
+  '/mute/case/:caseId',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.notificationUpdate),
+  [param('caseId').isUUID().withMessage('Case ID must be a valid UUID')],
+  validate,
+  NotificationController.unmuteCase.bind(NotificationController)
+);
+router.delete(
+  '/mute/task/:taskId',
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.notificationUpdate),
+  [param('taskId').isUUID().withMessage('Task ID must be a valid UUID')],
+  validate,
+  NotificationController.unmuteCase.bind(NotificationController)
+);
+router.get('/mutes', NotificationController.listMutes.bind(NotificationController));
+
+/**
  * @route GET /api/notifications/preferences
  * @desc Get user's notification preferences
  * @access Private

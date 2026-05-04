@@ -22,6 +22,15 @@ export interface KYCDocumentType {
   isActive: boolean;
   sortOrder: number;
   customFields: KYCCustomField[];
+  // Phase 1.4 (2026-05-04): present only when the GET was scoped by
+  // (clientId, productId). `hasRate=false` means the doc type is
+  // assigned to the (client, product) but no active row in
+  // `document_type_rates` — same UX as missing-service-zone-rule
+  // for field verification (allow selection but warn).
+  isMandatory?: boolean;
+  displayOrder?: number;
+  rateAmount?: number | string | null;
+  hasRate?: boolean;
 }
 
 export interface KYCTask {
@@ -76,8 +85,26 @@ export interface KYCTaskListQuery {
 }
 
 class KYCService {
-  async getDocumentTypes(): Promise<ApiResponse<KYCDocumentType[]>> {
-    const response = await apiService.get<KYCDocumentType[]>('/kyc/document-types');
+  async getDocumentTypes(filter?: {
+    clientId?: number;
+    productId?: number;
+  }): Promise<ApiResponse<KYCDocumentType[]>> {
+    // Phase 1.4 (2026-05-04): backend filters by (clientId, productId) when
+    // both are provided — only doc types with an active row in
+    // `document_type_rates` for that pair are returned. Without the filter
+    // (or with only one), backend returns ALL active doc types
+    // (admin-catalog use case).
+    const params: Record<string, unknown> = {};
+    if (filter?.clientId != null) {
+      params.clientId = filter.clientId;
+    }
+    if (filter?.productId != null) {
+      params.productId = filter.productId;
+    }
+    const response = await apiService.get<KYCDocumentType[]>(
+      '/kyc/document-types',
+      Object.keys(params).length > 0 ? params : undefined
+    );
     if (response?.success && Array.isArray(response.data)) {
       validateResponse(GenericEntityListSchema, response.data, {
         service: 'kyc',

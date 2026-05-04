@@ -18,6 +18,7 @@ import { DeduplicationDialog } from './DeduplicationDialog';
 import { deduplicationService, type DeduplicationResult } from '@/services/deduplication';
 import { casesService, type CreateCaseData } from '@/services/cases';
 import { attachmentsService } from '@/services/attachments';
+import { kycService } from '@/services/kyc';
 import { usePincodes } from '@/hooks/useLocations';
 import { useVerificationTypes } from '@/hooks/useClients';
 import { toast } from 'sonner';
@@ -302,6 +303,19 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         toast.error(`"${docLabel}" must be assigned to a centralized user before submitting`);
         return;
       }
+      // Phase 1.4 (2026-05-04): block submit if any selected KYC doc lacks
+      // an active rate row in `document_type_rates` for this (client,
+      // product) pair. Mirrors the field-verification "no service-zone-
+      // rule" gate. The KYCDocumentSelector also shows a banner above
+      // the dropdown listing the unrated docs by name.
+      const unratedKyc = kycDocuments.filter((d) => d.hasRate === false);
+      if (unratedKyc.length > 0) {
+        const docLabels = unratedKyc.map((d) => d.documentTypeName).join(', ');
+        toast.error(
+          `KYC rate not configured for: ${docLabels}. Add rates in Rate Management → KYC Rates, or remove these documents before creating the case.`
+        );
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -561,6 +575,44 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           }
           if (uploadPromises.length > 0) {
             await Promise.allSettled(uploadPromises);
+          }
+        }
+
+        // Phase 1.5 (2026-05-04): KYC file upload fan-out. Per audit, the
+        // case-create endpoint sends JSON (no FormData) so File objects in
+        // kycDocuments[i].file never reached backend.
+        // `kyc_document_verifications.document_file_path` stayed NULL and
+        // verifiers saw "No document uploaded yet". Fix: after case is
+        // created, POST each file to the existing `/kyc/tasks/:taskId/upload`
+        // endpoint, matching by documentType code. Best-effort — failures
+        // toast but don't block navigation.
+        const createdKycTasks =
+          (response.data as { kycTasks?: Array<{ id: string; documentType: string }> }).kycTasks ||
+          [];
+        if (createdKycTasks.length > 0 && kycDocuments.length > 0) {
+          const kycUploadPromises: Promise<void>[] = [];
+          for (const doc of kycDocuments) {
+            if (!doc.file) {
+              continue;
+            }
+            const matched = createdKycTasks.find((t) => t.documentType === doc.documentTypeCode);
+            if (!matched) {
+              continue;
+            }
+            kycUploadPromises.push(
+              kycService
+                .uploadDocument(matched.id, doc.file)
+                .then(() => {
+                  toast.success(`Uploaded ${doc.documentTypeName}`);
+                })
+                .catch((err) => {
+                  logger.error(`KYC upload failed for ${doc.documentTypeName}`, err);
+                  toast.error(`Failed to upload ${doc.documentTypeName}`);
+                })
+            );
+          }
+          if (kycUploadPromises.length > 0) {
+            await Promise.allSettled(kycUploadPromises);
           }
         }
 
@@ -951,15 +1003,44 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             }
             editMode={editMode}
             caseType={caseType}
-            onCaseTypeChange={!editMode ? setCaseType : undefined}
+            // Round 1 bug 3 (2026-05-04): clear KYC docs when caseType
+            // leaves 'kyc'/'both'. Otherwise stale selections from a
+            // previous toggle leak into the payload.
+            onCaseTypeChange={
+              !editMode
+                ? (newType) => {
+                    if (newType !== 'kyc' && newType !== 'both') {
+                      setKYCDocuments([]);
+                    }
+                    setCaseType(newType);
+                  }
+                : undefined
+            }
+            // Round 1 bug 1 (2026-05-04): clear KYC docs when the
+            // selected client or product changes. Doc types are
+            // (client, product)-scoped — the previously chosen docs
+            // would otherwise carry the wrong client+product mapping
+            // forward silently.
+            onClientProductChange={() => setKYCDocuments([])}
+            // Round 2 #6 (2026-05-04): surface KYC count for accurate
+            // submit-button text.
+            kycCount={kycDocuments.length}
             renderAfterTasks={
-              !editMode && (caseType === 'kyc' || caseType === 'both') ? (
-                <KYCDocumentSelector
-                  selectedDocuments={kycDocuments}
-                  onChange={setKYCDocuments}
-                  customerName={customerInfo?.customerName}
-                />
-              ) : undefined
+              !editMode && (caseType === 'kyc' || caseType === 'both')
+                ? // Phase 1.4 (2026-05-04): function-as-child receives form
+                  // state. KYCDocumentSelector filters its doc-type
+                  // dropdown by (clientId, productId) so only types with
+                  // active rates for that pair show up.
+                  ({ clientId, productId }) => (
+                    <KYCDocumentSelector
+                      selectedDocuments={kycDocuments}
+                      onChange={setKYCDocuments}
+                      customerName={customerInfo?.customerName}
+                      clientId={clientId ? Number(clientId) : null}
+                      productId={productId ? Number(productId) : null}
+                    />
+                  )
+                : undefined
             }
           />
         )}

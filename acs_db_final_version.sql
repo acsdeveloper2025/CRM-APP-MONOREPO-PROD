@@ -3226,7 +3226,7 @@ CREATE TABLE public.cases (
     revoked_by uuid,
     CONSTRAINT cases_form_completion_percentage_check CHECK (((form_completion_percentage >= (0)::numeric) AND (form_completion_percentage <= (100)::numeric))),
     CONSTRAINT cases_forms_submitted_count_check CHECK ((forms_submitted_count >= 0)),
-    CONSTRAINT cases_total_forms_required_check CHECK ((total_forms_required > 0)),
+    CONSTRAINT cases_total_forms_required_check CHECK ((total_forms_required >= 0)),
     CONSTRAINT cases_validation_issues_count_check CHECK ((validation_issues_count >= 0)),
     CONSTRAINT chk_cases_applicant_type CHECK (((applicant_type)::text = ANY (ARRAY[('APPLICANT'::character varying)::text, ('CO-APPLICANT'::character varying)::text, ('REFERENCE PERSON'::character varying)::text, ('GUARANTOR'::character varying)::text]))),
     CONSTRAINT chk_cases_dedup_decision CHECK (((deduplication_decision)::text = ANY (ARRAY[('CREATE_NEW'::character varying)::text, ('USE_EXISTING'::character varying)::text, ('MERGE_CASES'::character varying)::text, ('NO_DUPLICATES'::character varying)::text, ('NO_DUPLICATES_FOUND'::character varying)::text]))),
@@ -5832,6 +5832,41 @@ CREATE TABLE public.notification_preferences (
 --
 
 COMMENT ON CONSTRAINT chk_notif_pref_quiet_hours_sanity ON public.notification_preferences IS 'F10.3.2: zero-length quiet window (start=end with enabled=true) is illegal — would silence everything or nothing depending on interpretation.';
+
+
+--
+-- Name: notification_mutes; Type: TABLE; Schema: public; Owner: -
+-- Phase 3.2 (2026-05-04): WhatsApp-style mute. Per (user, case) or
+-- (user, task), with optional expires_at for time-boxed mutes.
+-- Filtered out of GET /notifications via NOT EXISTS subquery in
+-- getScopedNotificationRows. Case-detail timeline endpoint is NOT
+-- filtered (read-receipts continue to flow there).
+--
+
+CREATE TABLE IF NOT EXISTS public.notification_mutes (
+    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    case_id uuid REFERENCES public.cases(id) ON DELETE CASCADE,
+    task_id uuid REFERENCES public.verification_tasks(id) ON DELETE CASCADE,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    expires_at timestamp with time zone,
+    CONSTRAINT chk_mute_scope CHECK (
+      (case_id IS NOT NULL AND task_id IS NULL) OR
+      (case_id IS NULL     AND task_id IS NOT NULL)
+    )
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_notification_mutes_user_case
+  ON public.notification_mutes (user_id, case_id)
+  WHERE case_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_notification_mutes_user_task
+  ON public.notification_mutes (user_id, task_id)
+  WHERE task_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_notification_mutes_expires
+  ON public.notification_mutes (expires_at)
+  WHERE expires_at IS NOT NULL;
 
 
 --
@@ -24275,6 +24310,19 @@ CREATE INDEX idx_document_type_rates_effective ON public.document_type_rates USI
 --
 
 CREATE INDEX idx_document_type_rates_lookup ON public.document_type_rates USING btree (client_id, product_id, document_type_id, is_active);
+
+
+--
+-- Name: uq_document_type_rates_active_per_pair; Type: INDEX; Schema: public; Owner: -
+-- Phase 1.5 (2026-05-04): partial UNIQUE prevents two active rates for
+-- the same (client, product, document_type) tuple. Without this, the
+-- LEFT JOIN in kycVerificationController.listDocumentTypes could
+-- return duplicate rows and the frontend would arbitrarily pick one
+-- amount. Inactive rates (is_active=false) are not constrained, so
+-- historical rates kept for audit don't conflict with the current rate.
+--
+
+CREATE UNIQUE INDEX uq_document_type_rates_active_per_pair ON public.document_type_rates USING btree (client_id, product_id, document_type_id) WHERE (is_active = true);
 
 
 --

@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
 import { authenticateToken } from '@/middleware/auth';
-import { authorize } from '@/middleware/authorize';
+import { authorize, authorizeAny } from '@/middleware/authorize';
 import {
   listDocumentTypes,
   listKYCTasks,
@@ -73,9 +73,15 @@ router.put('/tasks/:taskId/verify', authorize('kyc.verify'), verifyKYCDocument);
 router.put('/tasks/:taskId/assign', authorize('kyc.assign'), assignKYCTask);
 
 // Upload document
+// Phase 1.5 (2026-05-04): allow `case.create` users to upload during the
+// case-creation fan-out (immediately after case is created). Without
+// this, files attached in the case-creation form 403 because pradnya-
+// like users have case.create but not kyc.verify. The upload handler
+// itself validates the task exists + the user is the assigned uploader
+// or has equivalent rights.
 router.post(
   '/tasks/:taskId/upload',
-  authorize('kyc.verify'),
+  authorizeAny(['kyc.verify', 'case.create']),
   upload.single('document'),
   uploadKYCDocument
 );

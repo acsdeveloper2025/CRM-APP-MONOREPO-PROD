@@ -60,13 +60,16 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
   const [rejectionReasons, setRejectionReasons] = useState<Record<string, string>>({});
   const [assignUser, setAssignUser] = useState<Record<string, string>>({});
 
-  // Fetch users for assignment dropdown (only when not readonly)
+  // Fetch users for assignment dropdown (only when not readonly).
+  // Phase 1.4 (2026-05-04): switched from `/users?role=KYC_VERIFIER` (which
+  // requires `user.view` and 403'd for case.create-only users like
+  // pradnya.mohite) to the new lite endpoint `/users/assignable-by-role`
+  // which accepts case.create / user.view / case.assign / case.reassign
+  // and returns only id/name/email/employeeId.
   const { data: usersData } = useQuery({
     queryKey: ['users-for-kyc-assign'],
     queryFn: async () => {
-      const res = await apiService.get('/users', {
-        limit: 200,
-        isActive: 'true',
+      const res = await apiService.get('/users/assignable-by-role', {
         role: 'KYC_VERIFIER',
       });
       return res.data as Array<{ id: string; name: string; employeeId: string }>;
