@@ -147,15 +147,38 @@ export function NotificationHistoryPage() {
     },
   });
 
+  // Phase 2.2 (2026-05-04): backend soft-deletes; show Undo toast so the
+  // user can recover within ~5s. Per-row delete passes a single id; the
+  // batch toolbar passes many ids — both reuse the same restore.
   const deleteMutation = useStandardizedMutation({
     mutationFn: async (ids: string[]) => {
       await Promise.all(ids.map((id) => notificationService.remove(id)));
+      return ids;
     },
-    successMessage: 'Notifications deleted',
+    successMessage: undefined, // we surface the undo toast manually
     errorContext: 'Notification Deletion',
     errorFallbackMessage: 'Failed to delete notifications',
-    onSuccess: () => {
+    onSuccess: (ids) => {
       void refreshLists();
+      const count = (ids as string[]).length;
+      toast(count === 1 ? 'Notification deleted' : `${count} notifications deleted`, {
+        action: {
+          label: 'Undo',
+          onClick: async () => {
+            try {
+              if (count === 1) {
+                await notificationService.restore((ids as string[])[0]);
+              } else {
+                await notificationService.restoreBatch(ids as string[]);
+              }
+              void refreshLists();
+              toast.success(count === 1 ? 'Notification restored' : `${count} restored`);
+            } catch {
+              toast.error('Failed to restore');
+            }
+          },
+        },
+      });
     },
   });
 
@@ -170,11 +193,39 @@ export function NotificationHistoryPage() {
   });
 
   const clearAllMutation = useStandardizedMutation({
-    mutationFn: () => notificationService.clearAll(),
-    successMessage: 'All notifications cleared',
+    mutationFn: async () => {
+      const res = await notificationService.clearAll();
+      // Backend returns { data: { deletedIds: string[] } } so we can offer Undo.
+      const ids = (res as { data?: { deletedIds?: string[] } })?.data?.deletedIds || [];
+      return ids;
+    },
+    successMessage: undefined, // manual undo toast
     errorContext: 'Notification Clear All',
     errorFallbackMessage: 'Failed to clear notifications',
-    onSuccess: () => {
+    onSuccess: (ids) => {
+      const arr = (ids as string[]) || [];
+      const count = arr.length;
+      toast(
+        count === 0
+          ? 'No notifications to clear'
+          : `${count} notification${count === 1 ? '' : 's'} cleared`,
+        count > 0
+          ? {
+              action: {
+                label: 'Undo',
+                onClick: async () => {
+                  try {
+                    await notificationService.restoreBatch(arr);
+                    void refreshLists();
+                    toast.success(`${count} restored`);
+                  } catch {
+                    toast.error('Failed to restore');
+                  }
+                },
+              },
+            }
+          : undefined
+      );
       void refreshLists();
     },
   });

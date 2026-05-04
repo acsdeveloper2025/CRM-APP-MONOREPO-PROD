@@ -5,16 +5,31 @@ import { usePermissionContext } from '@/contexts/PermissionContext';
 
 const kycKeys = {
   all: ['kyc'] as const,
-  documentTypes: () => [...kycKeys.all, 'document-types'] as const,
+  documentTypes: (filter?: { clientId?: number | null; productId?: number | null }) =>
+    [...kycKeys.all, 'document-types', filter || {}] as const,
   tasks: (query: KYCTaskListQuery) => [...kycKeys.all, 'tasks', query] as const,
   task: (id: string) => [...kycKeys.all, 'task', id] as const,
   caseTasks: (caseId: string) => [...kycKeys.all, 'case', caseId] as const,
 };
 
-export const useKYCDocumentTypes = () => {
+/**
+ * Phase 1.4 (2026-05-04): optional (clientId, productId) filter. When
+ * BOTH are set, the dropdown returns only doc types that have an active
+ * row in `document_type_rates` for that pair. Without the filter (or
+ * with only one of them), behaves as before — returns ALL active
+ * document types.
+ */
+export const useKYCDocumentTypes = (filter?: {
+  clientId?: number | null;
+  productId?: number | null;
+}) => {
   return useQuery({
-    queryKey: kycKeys.documentTypes(),
-    queryFn: () => kycService.getDocumentTypes(),
+    queryKey: kycKeys.documentTypes(filter),
+    queryFn: () =>
+      kycService.getDocumentTypes({
+        clientId: filter?.clientId ?? undefined,
+        productId: filter?.productId ?? undefined,
+      }),
     select: (data) => data.data || [],
     staleTime: 30 * 60 * 1000, // 30 min cache
   });

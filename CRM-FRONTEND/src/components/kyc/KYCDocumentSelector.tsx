@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { FileText, Search, Upload, X, ChevronDown, Check } from 'lucide-react';
+import { FileText, Search, Upload, X, ChevronDown, Check, AlertTriangle } from 'lucide-react';
 import { useKYCDocumentTypes } from '@/hooks/useKYC';
 import type { KYCCustomField } from '@/services/kyc';
 import { useQuery } from '@tanstack/react-query';
@@ -27,12 +27,25 @@ export interface KYCDocumentSelection {
   description?: string;
   file?: File;
   assignedTo?: string;
+  // Phase 1.4 (2026-05-04): captured at selection time so the parent
+  // case-creation form can block submit when any selected doc has no
+  // rate. `undefined` = unknown (e.g. when KYCDocumentSelector is used
+  // without (clientId, productId) scope). The submit-blocker treats
+  // `false` as a hard fail; `undefined` is permissive.
+  hasRate?: boolean;
 }
 
 interface KYCDocumentSelectorProps {
   selectedDocuments: KYCDocumentSelection[];
   onChange: (documents: KYCDocumentSelection[]) => void;
   customerName?: string;
+  // Phase 1.4 (2026-05-04): when both are passed, the dropdown is filtered
+  // to only doc types that have an active row in `document_type_rates`
+  // for the (clientId, productId) pair. Without these props, behaves as
+  // before (all active doc types). Case-creation form should always pass
+  // them once a client + product is selected.
+  clientId?: number | null;
+  productId?: number | null;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -51,14 +64,18 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
   selectedDocuments,
   onChange,
   customerName,
+  clientId,
+  productId,
 }) => {
-  const { data: documentTypes = [] } = useKYCDocumentTypes();
+  // Phase 1.4: pass clientId+productId so the hook filters document types
+  // to those with active rates for this (client, product) pair. Backend
+  // falls back to ALL active doc types if either is missing.
+  const { data: documentTypes = [] } = useKYCDocumentTypes({ clientId, productId });
   const { data: kycUsers = [] } = useQuery({
     queryKey: ['users-for-kyc-assign'],
     queryFn: async () => {
-      const res = await apiService.get('/users', {
-        limit: 200,
-        isActive: 'true',
+      // Phase 1.4: lite endpoint, see KYCTaskVerificationSection for context.
+      const res = await apiService.get('/users/assignable-by-role', {
         role: 'KYC_VERIFIER',
       });
       return res.data as Array<{ id: string; name: string; employeeId: string }>;
@@ -112,6 +129,10 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
           documentCategory: docType.category,
           documentHolderName: customerName || '',
           documentDetails: {},
+          // Phase 1.4: carry hasRate up to the parent so it can block
+          // submit when any selected doc lacks a rate. Only present
+          // when the GET was scoped by (clientId, productId).
+          hasRate: docType.hasRate,
         },
       ]);
     }
@@ -170,6 +191,30 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
         <p className="text-xs text-muted-foreground">Select document types for KYC verification</p>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Phase 1.4 (2026-05-04): block-submit banner when any selected
+            document type has no rate configured for the (client, product)
+            pair. Mirrors the field-verification "no service-zone-rule"
+            blocker. Parent CaseCreationStepper also disables the submit
+            button via the same `hasRate === false` check on
+            kycDocuments. */}
+        {selectedDocuments.some((d) => d.hasRate === false) && (
+          <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-300 rounded-md text-amber-900 text-sm">
+            <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-medium">Rate not configured for some KYC documents</p>
+              <p className="text-xs text-amber-800 mt-1">
+                {selectedDocuments
+                  .filter((d) => d.hasRate === false)
+                  .map((d) => d.documentTypeName)
+                  .join(', ')}{' '}
+                — no active rate exists for this client + product. Configure rates in{' '}
+                <span className="font-semibold">Rate Management → KYC Rates</span> before creating
+                the case, or remove the unrated document(s).
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Dropdown multi-select */}
         <div ref={dropdownRef} className="relative">
           <button
@@ -193,25 +238,31 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
           {/* Selected tags */}
           {selectedDocuments.length > 0 && !dropdownOpen && (
             <div className="flex flex-wrap gap-1.5 mt-2">
-              {selectedDocuments.map((doc) => (
-                <Badge
-                  key={doc.documentTypeCode}
-                  variant="secondary"
-                  className="text-xs pl-2 pr-1 py-0.5 gap-1"
-                >
-                  {doc.documentTypeName}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeDocument(doc.documentTypeCode);
-                    }}
-                    className="ml-0.5 rounded-full hover:bg-gray-300/50 p-0.5"
+              {selectedDocuments.map((doc) => {
+                const rateMissing = doc.hasRate === false;
+                return (
+                  <Badge
+                    key={doc.documentTypeCode}
+                    variant="secondary"
+                    className={`text-xs pl-2 pr-1 py-0.5 gap-1 ${
+                      rateMissing ? 'bg-amber-100 text-amber-800 border-amber-300' : ''
+                    }`}
                   >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
+                    {rateMissing && <AlertTriangle className="h-3 w-3" />}
+                    {doc.documentTypeName}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeDocument(doc.documentTypeCode);
+                      }}
+                      className="ml-0.5 rounded-full hover:bg-gray-300/50 p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                );
+              })}
             </div>
           )}
 
@@ -243,6 +294,15 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                     const checked = isSelected(dt.code);
                     const categoryLabel = CATEGORY_LABELS[dt.category] || dt.category;
                     const customFieldCount = (dt.customFields || []).length;
+                    // Phase 1.4 (2026-05-04): when scoped by (clientId, productId),
+                    // backend annotates each row with `hasRate`. False = doc
+                    // type is assigned to the (client, product) but no active
+                    // rate row in `document_type_rates`. Mirror the field-
+                    // verification "no service-zone-rule" UX: allow selection
+                    // but show a warning badge so the operator knows billing
+                    // for that doc isn't configured yet.
+                    const rateMissing = dt.hasRate === false;
+                    const isMandatory = dt.isMandatory === true;
 
                     return (
                       <button
@@ -257,6 +317,14 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                           {checked && <Check className="h-3 w-3" />}
                         </div>
                         <span className="flex-1">{dt.name}</span>
+                        {isMandatory && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] px-1.5 py-0 border-amber-300 text-amber-700"
+                          >
+                            Required
+                          </Badge>
+                        )}
                         <span className="text-xs text-muted-foreground">{categoryLabel}</span>
                         {customFieldCount > 0 && (
                           <Badge
@@ -265,6 +333,15 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                           >
                             {customFieldCount} field{customFieldCount > 1 ? 's' : ''}
                           </Badge>
+                        )}
+                        {rateMissing && (
+                          <span
+                            title="No rate configured for this document under the selected client + product. Add a rate in Rate Management to enable billing."
+                            className="flex items-center gap-1 text-[10px] text-amber-700"
+                          >
+                            <AlertTriangle className="h-3 w-3" />
+                            No rate
+                          </span>
                         )}
                       </button>
                     );

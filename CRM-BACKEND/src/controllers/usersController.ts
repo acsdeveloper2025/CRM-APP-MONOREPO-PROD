@@ -2659,6 +2659,91 @@ export const getAvailableFieldAgents = async (req: AuthenticatedRequest, res: Re
   }
 };
 
+/**
+ * GET /api/users/assignable-by-role
+ *
+ * Phase 1.4 (2026-05-04) — lite endpoint that returns active users
+ * filtered by role, returning ONLY {id, name, email, employeeId}.
+ * Used by case-creation forms (KYC user picker, future agent pickers)
+ * where the caller has `case.create` but not full `user.view`.
+ *
+ * Mirrors the pattern of `getAvailableFieldAgents` (`/users/field-agents/available`)
+ * which already grants `case.create` users limited visibility into
+ * field-agent rosters. This is the role-keyed analog.
+ *
+ * Required query: `?role=KYC_VERIFIER` (must be a known role code).
+ * Permission: authorizeAny(['user.view', 'case.create']) — in
+ * the route definition.
+ */
+export const getAssignableUsersByRole = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const role = typeof req.query.role === 'string' ? req.query.role.trim() : '';
+
+    // Strict allow-list: only roles that legitimately receive case-time
+    // assignments. Prevents the endpoint from leaking arbitrary user
+    // lists by passing `?role=ADMIN` etc.
+    const ASSIGNABLE_ROLES = new Set([
+      'KYC_VERIFIER',
+      'FIELD_AGENT',
+      'BACKEND_USER',
+      'TEAM_LEADER',
+      'MANAGER',
+    ]);
+
+    if (!role || !ASSIGNABLE_ROLES.has(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid role query parameter is required',
+        error: {
+          code: 'INVALID_ROLE',
+          allowedRoles: Array.from(ASSIGNABLE_ROLES),
+        },
+      });
+    }
+
+    // Roles live in `roles_v2` (column `name`); the legacy `roles` table
+    // was dropped. user_roles.role_id → roles_v2.id.
+    const result = await query<{
+      id: string;
+      name: string;
+      email: string | null;
+      employeeId: string | null;
+    }>(
+      `
+        SELECT
+          u.id,
+          u.name,
+          u.email,
+          u.employee_id as "employeeId"
+        FROM users u
+        WHERE u.is_active = true
+          AND EXISTS (
+            SELECT 1
+            FROM user_roles ur
+            JOIN roles_v2 r ON r.id = ur.role_id
+            WHERE ur.user_id = u.id
+              AND r.name = $1
+          )
+        ORDER BY u.name
+      `,
+      [role]
+    );
+
+    return res.json({
+      success: true,
+      data: result.rows,
+      message: 'Assignable users retrieved successfully',
+    });
+  } catch (error) {
+    logger.error('Get assignable users by role error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch assignable users',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
 // POST /api/users/export - Export users to Excel
 export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {

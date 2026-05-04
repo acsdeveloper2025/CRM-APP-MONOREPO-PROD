@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import { toast } from 'sonner';
+import { NotificationPreferencesSection } from '@/components/settings/NotificationPreferencesSection';
 import {
   FiUser,
   FiLock,
@@ -37,13 +38,6 @@ interface UserSettings {
     phone: string;
     timezone: string;
     language: string;
-  };
-  notifications: {
-    emailNotifications: boolean;
-    pushNotifications: boolean;
-    caseUpdates: boolean;
-    systemAlerts: boolean;
-    weeklyReports: boolean;
   };
   preferences: {
     theme: 'light' | 'dark' | 'system';
@@ -66,13 +60,6 @@ export const SettingsPage: React.FC = () => {
       phone: user?.phone || '',
       timezone: 'America/New_York',
       language: 'en',
-    },
-    notifications: {
-      emailNotifications: true,
-      pushNotifications: true,
-      caseUpdates: true,
-      systemAlerts: true,
-      weeklyReports: false,
     },
     preferences: {
       theme: theme as 'light' | 'dark' | 'system',
@@ -109,13 +96,6 @@ export const SettingsPage: React.FC = () => {
     setSettings((prev) => ({
       ...prev,
       profile: { ...prev.profile, [field]: value },
-    }));
-  };
-
-  const updateNotifications = (field: string, value: boolean) => {
-    setSettings((prev) => ({
-      ...prev,
-      notifications: { ...prev.notifications, [field]: value },
     }));
   };
 
@@ -290,35 +270,12 @@ export const SettingsPage: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>Choose how you want to be notified about updates</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {Object.entries(settings.notifications).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor={key} className="font-medium capitalize">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </Label>
-                    <p className="text-sm text-gray-600">
-                      {key === 'emailNotifications' && 'Receive notifications via email'}
-                      {key === 'pushNotifications' && 'Receive push notifications in browser'}
-                      {key === 'caseUpdates' && 'Get notified when cases are updated'}
-                      {key === 'systemAlerts' && 'Receive important system alerts'}
-                      {key === 'weeklyReports' && 'Get weekly summary reports'}
-                    </p>
-                  </div>
-                  <Switch
-                    id={key}
-                    checked={value}
-                    onCheckedChange={(checked) => updateNotifications(key, checked)}
-                  />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+          {/* Phase 1.3 (2026-05-04): real wire-up to backend
+              /notifications/preferences. Replaces the stub mock toggles.
+              The save button INSIDE this section is independent of the
+              global page-level Save Changes button — preferences persist
+              immediately on click. */}
+          <NotificationPreferencesSection />
         </TabsContent>
 
         <TabsContent value="preferences" className="space-y-6">

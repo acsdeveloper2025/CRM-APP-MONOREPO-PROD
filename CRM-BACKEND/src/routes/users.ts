@@ -38,6 +38,7 @@ import {
   changePassword,
   resetPassword,
   getAvailableFieldAgents,
+  getAssignableUsersByRole,
   exportUsers,
   downloadUserTemplate,
   bulkImportUsers,
@@ -396,6 +397,17 @@ router.get(
   authenticateToken,
   authorizeAny(['user.view', 'case.create', 'case.assign', 'case.reassign']),
   getAvailableFieldAgents
+);
+
+// Phase 1.4 (2026-05-04): lite endpoint for case-creation forms — list
+// active users by role, returning only id/name/email/employeeId. Required
+// because BACKEND_USER role has `case.create` but not `user.view`, so
+// the full /api/users endpoint 403s when picking KYC verifiers.
+router.get(
+  '/assignable-by-role',
+  authenticateToken,
+  authorizeAny(['user.view', 'case.create', 'case.assign', 'case.reassign']),
+  getAssignableUsersByRole
 );
 
 router.get(

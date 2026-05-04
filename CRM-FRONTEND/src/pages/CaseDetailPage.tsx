@@ -23,8 +23,10 @@ import {
   CheckSquare,
   FileCheck,
   ClipboardList,
+  Bell,
 } from 'lucide-react';
 import { CaseAttachmentsSection } from '@/components/attachments/CaseAttachmentsSection';
+import { CaseNotificationsTab } from '@/components/cases/CaseNotificationsTab';
 import { VerificationTasksManager } from '@/components/verification-tasks';
 import { KYCTaskVerificationSection } from '@/components/kyc/KYCTaskVerificationSection';
 import { DownloadReportButton } from '@/components/reports/DownloadReportButton';
@@ -195,7 +197,7 @@ export const CaseDetailPage: React.FC = () => {
         {/* Main Content — 3/4 (lg) → 4/5 (xl) of viewport */}
         <div className="lg:col-span-3 xl:col-span-4">
           <Tabs defaultValue="details" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="details" className="flex items-center space-x-2">
                 <FileText className="h-4 w-4" />
                 <span>Case Details</span>
@@ -229,6 +231,10 @@ export const CaseDetailPage: React.FC = () => {
               <TabsTrigger value="attachments" className="flex items-center space-x-2">
                 <Camera className="h-4 w-4" />
                 <span>Attachments</span>
+              </TabsTrigger>
+              <TabsTrigger value="notifications" className="flex items-center space-x-2">
+                <Bell className="h-4 w-4" />
+                <span>Notifications</span>
               </TabsTrigger>
             </TabsList>
 
@@ -457,6 +463,10 @@ export const CaseDetailPage: React.FC = () => {
                   <CaseAttachmentsSection caseId={safeId} />
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="notifications">
+              <CaseNotificationsTab caseUuid={caseItem.id} />
             </TabsContent>
           </Tabs>
         </div>

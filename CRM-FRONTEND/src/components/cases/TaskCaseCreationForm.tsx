@@ -95,9 +95,24 @@ interface TaskCaseCreationFormProps {
     tasks?: TaskFormData[];
   };
   editMode?: boolean;
-  renderAfterTasks?: React.ReactNode;
+  // Phase 1.4 (2026-05-04): supports either a static node OR a render-prop
+  // function that receives the currently-selected clientId + productId
+  // from the form state. The KYCDocumentSelector needs these to filter
+  // doc types by the (client, product) rate matrix.
+  renderAfterTasks?:
+    | React.ReactNode
+    | ((state: { clientId: string; productId: string }) => React.ReactNode);
   caseType: CaseType;
   onCaseTypeChange?: (caseType: CaseType) => void;
+  // Round 1 bug 1 (2026-05-04): fired when the selected clientId or
+  // productId changes. The parent uses this to clear case-level state
+  // tied to (client, product) pairs — currently `kycDocuments` since
+  // the doc-type catalog is (client, product)-scoped.
+  onClientProductChange?: () => void;
+  // Round 2 #6 (2026-05-04): kyc selection count surfaced to render
+  // accurate submit-button text in caseType=both mode (e.g.
+  // "Create Case with 2 Field + 3 KYC Tasks").
+  kycCount?: number;
 }
 
 interface TaskValidationState {
@@ -117,6 +132,8 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   renderAfterTasks,
   caseType,
   onCaseTypeChange,
+  onClientProductChange,
+  kycCount = 0,
 }) => {
   const { user } = useAuth();
 
@@ -224,9 +241,29 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
     }
     if (previousClientIdRef.current && selectedClientId !== previousClientIdRef.current) {
       form.setValue('productId', '');
+      // Round 1 bug 1: client switched — case-level KYC selections are
+      // (client, product)-scoped and must be cleared.
+      onClientProductChange?.();
     }
     previousClientIdRef.current = selectedClientId;
-  }, [selectedClientId, form]);
+  }, [selectedClientId, form, onClientProductChange]);
+
+  // Round 1 bug 1 (2026-05-04): also fire when product changes (within
+  // same client). KYC doc catalog is keyed by (client_id, product_id).
+  const selectedProductId = form.watch('productId');
+  const previousProductIdRef = useRef<string>('');
+  const didInitializeProductRef = useRef(false);
+  useEffect(() => {
+    if (!didInitializeProductRef.current) {
+      didInitializeProductRef.current = true;
+      previousProductIdRef.current = selectedProductId;
+      return;
+    }
+    if (previousProductIdRef.current && selectedProductId !== previousProductIdRef.current) {
+      onClientProductChange?.();
+    }
+    previousProductIdRef.current = selectedProductId;
+  }, [selectedProductId, onClientProductChange]);
 
   // Add task
   const addTask = () => {
@@ -593,7 +630,12 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
           )}
 
           {/* KYC / Extra content injected by parent */}
-          {renderAfterTasks}
+          {typeof renderAfterTasks === 'function'
+            ? renderAfterTasks({
+                clientId: selectedClientId || '',
+                productId: form.watch('productId') || '',
+              })
+            : renderAfterTasks}
 
           {/* Form Actions */}
           <div
@@ -623,8 +665,10 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                   {editMode
                     ? 'Update Case'
                     : caseType === 'kyc'
-                      ? 'Create Case with KYC Tasks'
-                      : `Create Case with ${tasks.length} ${tasks.length === 1 ? 'Task' : 'Tasks'}${caseType === 'both' ? ' + KYC' : ''}`}
+                      ? `Create Case with ${kycCount} KYC ${kycCount === 1 ? 'Task' : 'Tasks'}`
+                      : caseType === 'both'
+                        ? `Create Case with ${tasks.length} Field + ${kycCount} KYC ${tasks.length + kycCount === 1 ? 'Task' : 'Tasks'}`
+                        : `Create Case with ${tasks.length} ${tasks.length === 1 ? 'Task' : 'Tasks'}`}
                 </>
               )}
             </Button>

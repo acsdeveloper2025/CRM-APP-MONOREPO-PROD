@@ -4,6 +4,7 @@ import { logger } from '@/utils/logger';
 import { createAuditLog } from '@/utils/auditLogger';
 import type { QueryParams } from '@/types/database';
 import { filterNotificationsByCurrentScope } from '@/security/notificationScope';
+import { getSocketIO } from '@/websocket/server';
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -29,7 +30,17 @@ export class NotificationController {
     return null;
   }
 
-  private static async getScopedNotificationRows(user: NonNullable<AuthenticatedRequest['user']>) {
+  // Phase 1.2a (2026-05-04): per-case feed support — frontend CaseDetailPage
+  // and mobile NotificationCenter pass `?caseId=<uuid>` to scope the feed
+  // to a single case. Both endpoints (GET /api/notifications and GET
+  // /api/mobile/notifications) flow through this method, so one filter
+  // covers all callers. UUID validation upstream in `getNotifications`
+  // before this is called.
+  private static async getScopedNotificationRows(
+    user: NonNullable<AuthenticatedRequest['user']>,
+    caseId?: string | null
+  ) {
+    const sqlCaseId = caseId && caseId.length > 0 ? caseId : null;
     const result = await query<{
       id: string;
       title: string;
@@ -72,9 +83,33 @@ export class NotificationController {
           updated_at as "updated_at"
         FROM notifications
         WHERE user_id = $1
+          AND is_deleted = false
+          AND ($2::uuid IS NULL OR case_id = $2::uuid)
+          -- Phase 3.2 (2026-05-04): exclude muted cases. A mute is
+          -- active if expires_at IS NULL or in the future. When the
+          -- caller is *already* asking for a specific case feed
+          -- (?caseId=...) we still hide muted ones (consistent with
+          -- WhatsApp behavior — muted = silent on the bell, but the
+          -- timeline tab on CaseDetailPage uses a different endpoint).
+          AND NOT EXISTS (
+            SELECT 1
+            FROM notification_mutes nm
+            WHERE nm.user_id = $1
+              AND nm.case_id IS NOT NULL
+              AND nm.case_id = notifications.case_id
+              AND (nm.expires_at IS NULL OR nm.expires_at > NOW())
+          )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM notification_mutes nm
+            WHERE nm.user_id = $1
+              AND nm.task_id IS NOT NULL
+              AND nm.task_id = notifications.task_id
+              AND (nm.expires_at IS NULL OR nm.expires_at > NOW())
+          )
         ORDER BY created_at DESC
       `,
-      [user.id]
+      [user.id, sqlCaseId]
     );
 
     const { visibleIds, actionTargets } = await filterNotificationsByCurrentScope(
@@ -109,6 +144,109 @@ export class NotificationController {
   }
 
   /**
+   * Phase 3.1 (2026-05-04): case-scoped notification timeline with
+   * cross-recipient visibility. Used by CaseDetailPage's Notifications
+   * tab to show "Read by [admin, manager]" badges. Auth gate is
+   * `case.view` (route-level); the response contains every
+   * `notifications` row for the case_id, joined with users.name +
+   * users.role to render recipient + read-receipt info.
+   *
+   * Distinct from `getNotifications` (which is per-user-scoped). This
+   * endpoint deliberately bypasses the per-user RBAC scope filter
+   * because case-detail viewers (managers, admins, case creator) need
+   * cross-recipient awareness for that case. The route-level auth
+   * still enforces "you can only call this if you can view the case."
+   */
+  static async getCaseNotificationTimeline(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user!.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          error: { code: 'UNAUTHORIZED' },
+        });
+      }
+      const caseId = this.getSingleParam(req.params.caseId);
+      if (
+        !caseId ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid case UUID required',
+          error: { code: 'INVALID_REQUEST' },
+        });
+      }
+      const result = await query<{
+        id: string;
+        type: string;
+        title: string;
+        message: string;
+        priority: 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW';
+        caseId: string | null;
+        caseNumber: string | null;
+        taskId: string | null;
+        taskNumber: string | null;
+        actionUrl: string | null;
+        recipientId: string;
+        recipientName: string;
+        recipientEmail: string | null;
+        recipientRole: string | null;
+        isRead: boolean;
+        readAt: string | null;
+        createdAt: string;
+      }>(
+        `
+          SELECT
+            n.id,
+            n.type,
+            n.title,
+            n.message,
+            n.priority,
+            n.case_id     as "case_id",
+            n.case_number as "case_number",
+            n.task_id     as "task_id",
+            n.task_number as "task_number",
+            n.action_url  as "action_url",
+            n.user_id     as "recipient_id",
+            u.name        as "recipient_name",
+            u.email       as "recipient_email",
+            (
+              SELECT r.name
+              FROM user_roles ur
+              JOIN roles_v2 r ON r.id = ur.role_id
+              WHERE ur.user_id = u.id
+              ORDER BY r.name
+              LIMIT 1
+            ) as "recipient_role",
+            n.is_read     as "is_read",
+            n.read_at     as "read_at",
+            n.created_at  as "created_at"
+          FROM notifications n
+          JOIN users u ON u.id = n.user_id
+          WHERE n.case_id = $1
+            AND n.is_deleted = false
+          ORDER BY n.created_at DESC
+        `,
+        [caseId]
+      );
+      return res.json({
+        success: true,
+        data: result.rows,
+        message: 'Case notification timeline retrieved',
+      });
+    } catch (error) {
+      logger.error('Get case notification timeline error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: { code: 'INTERNAL_ERROR' },
+      });
+    }
+  }
+
+  /**
    * Get user's notifications
    */
   static async getNotifications(req: AuthenticatedRequest, res: Response) {
@@ -124,7 +262,24 @@ export class NotificationController {
         });
       }
 
-      const rows = await this.getScopedNotificationRows(req.user!);
+      // Phase 1.2a: optional ?caseId=<uuid> for per-case feed.
+      // Validated as UUID before passing through; invalid input falls
+      // through as null (full feed) rather than 400 to keep this
+      // backwards compatible.
+      const rawCaseIdQuery = req.query.caseId;
+      const rawCaseId =
+        typeof rawCaseIdQuery === 'string'
+          ? rawCaseIdQuery
+          : Array.isArray(rawCaseIdQuery) && typeof rawCaseIdQuery[0] === 'string'
+            ? rawCaseIdQuery[0]
+            : null;
+      const caseIdFilter =
+        rawCaseId &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawCaseId)
+          ? rawCaseId
+          : null;
+
+      const rows = await this.getScopedNotificationRows(req.user!, caseIdFilter);
       const visibleRows = unreadOnly === 'true' ? rows.filter(row => !row.isRead) : rows;
       const total = visibleRows.length;
       const unreadCount = rows.filter(row => !row.isRead).length;
@@ -195,6 +350,27 @@ export class NotificationController {
         `,
         [notificationId, userId]
       );
+
+      // Phase 3.1 (2026-05-04): broadcast read-receipt to anyone viewing
+      // the case's notification timeline. Subscribers (CaseDetailPage
+      // Notifications tab) refetch on this event so the "Read by X"
+      // badges update in real time. Best-effort — if no socket server
+      // initialized, skip.
+      if (scopedNotification.caseId) {
+        try {
+          const io = getSocketIO();
+          if (io) {
+            io.to(`case:${scopedNotification.caseId}`).emit('notification:read', {
+              notificationId,
+              caseId: scopedNotification.caseId,
+              userId,
+              readAt: new Date().toISOString(),
+            });
+          }
+        } catch (wsError) {
+          logger.warn('Failed to broadcast notification:read', { wsError });
+        }
+      }
 
       res.json({
         success: true,
@@ -343,21 +519,84 @@ export class NotificationController {
         });
       }
 
+      // Phase 2.2 (2026-05-04): soft-delete. Setting `is_deleted=true`
+      // excludes the row from GET /notifications via the partial-index
+      // filter (added in DB migration). The row stays for 30 days for
+      // undo/audit; a future cron purges `is_deleted=true AND deleted_at
+      // < now() - 30 days`. Also returns `restoredAt` so the frontend
+      // can offer an Undo toast — the client passes the id back to
+      // restore.
       await query(
         `
-          DELETE FROM notifications
-          WHERE id = $1 AND user_id = $2
+          UPDATE notifications
+          SET is_deleted = true, deleted_at = NOW(), updated_at = NOW()
+          WHERE id = $1 AND user_id = $2 AND is_deleted = false
         `,
         [notificationId, userId]
       );
 
       res.json({
         success: true,
+        data: { id: notificationId, deletedAt: new Date().toISOString() },
         message: 'Notification deleted successfully',
       });
     } catch (error) {
       logger.error('Delete notification error:', error);
       res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: { code: 'INTERNAL_ERROR' },
+      });
+    }
+  }
+
+  /**
+   * Phase 2.2 (2026-05-04): restore soft-deleted notification(s).
+   * Used by the frontend "Undo" toast that appears after delete /
+   * clear-all. Accepts either a single id (PUT
+   * /notifications/:id/restore) or a batch (PUT
+   * /notifications/restore with body { ids: string[] }).
+   *
+   * Only the original recipient (user_id match) can restore. Rows
+   * older than the 30-day soft-delete TTL may have been hard-purged
+   * by the cleanup cron — those rows return 404.
+   */
+  static async restoreNotification(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user!.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          error: { code: 'UNAUTHORIZED' },
+        });
+      }
+      const singleId = this.getSingleParam(req.params.notificationId);
+      const bodyIds = Array.isArray((req.body as { ids?: unknown[] })?.ids)
+        ? (req.body as { ids: unknown[] }).ids.filter((v): v is string => typeof v === 'string')
+        : [];
+      const ids = singleId ? [singleId] : bodyIds;
+      if (ids.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'No notification ids supplied',
+          error: { code: 'INVALID_REQUEST' },
+        });
+      }
+      const result = await query(
+        `UPDATE notifications
+           SET is_deleted = false, deleted_at = NULL, updated_at = NOW()
+         WHERE user_id = $1 AND id = ANY($2::uuid[]) AND is_deleted = true`,
+        [userId, ids]
+      );
+      return res.json({
+        success: true,
+        data: { restoredCount: result.rowCount ?? 0, restoredIds: ids },
+        message: `${result.rowCount ?? 0} notifications restored`,
+      });
+    } catch (error) {
+      logger.error('Restore notification error:', error);
+      return res.status(500).json({
         success: false,
         message: 'Internal server error',
         error: { code: 'INTERNAL_ERROR' },
@@ -383,11 +622,15 @@ export class NotificationController {
       const scopedRows = await this.getScopedNotificationRows(req.user!);
       const idsToDelete = scopedRows.map(row => row.id);
 
+      // Phase 2.2 (2026-05-04): soft-delete clear-all. Same shape as
+      // single-id delete — sets is_deleted=true. Returns the list so
+      // a frontend "Undo" can restore the batch.
       if (idsToDelete.length > 0) {
         await query(
           `
-            DELETE FROM notifications
-            WHERE user_id = $1 AND id = ANY($2::uuid[])
+            UPDATE notifications
+            SET is_deleted = true, deleted_at = NOW(), updated_at = NOW()
+            WHERE user_id = $1 AND id = ANY($2::uuid[]) AND is_deleted = false
           `,
           [userId, idsToDelete]
         );
@@ -395,7 +638,11 @@ export class NotificationController {
 
       res.json({
         success: true,
-        data: { deletedCount: idsToDelete.length },
+        data: {
+          deletedCount: idsToDelete.length,
+          deletedIds: idsToDelete,
+          deletedAt: new Date().toISOString(),
+        },
         message: `${idsToDelete.length} notifications cleared`,
       });
     } catch (error) {
@@ -1044,6 +1291,182 @@ export class NotificationController {
     } catch (error) {
       logger.error('Get delivery status error:', error);
       res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: { code: 'INTERNAL_ERROR' },
+      });
+    }
+  }
+
+  /**
+   * Phase 3.2 (2026-05-04): mute notifications for a case (or task).
+   * WhatsApp-parity. Caller passes `{caseId}` or `{taskId}` (XOR via
+   * DB CHECK). Optional `expiresAt` (ISO 8601 string) for time-boxed
+   * mutes — null = mute forever until unmuted.
+   *
+   * Idempotent: re-muting an already-muted case is a no-op (unique
+   * partial index on (user_id, case_id) where expires_at IS NULL OR
+   * expires_at > NOW()).
+   */
+  static async muteCase(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user!.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          error: { code: 'UNAUTHORIZED' },
+        });
+      }
+      const body = req.body as { caseId?: string; taskId?: string; expiresAt?: string };
+      const caseId = body.caseId ?? null;
+      const taskId = body.taskId ?? null;
+      const expiresAt = body.expiresAt ?? null;
+      if ((caseId && taskId) || (!caseId && !taskId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Provide exactly one of caseId or taskId',
+          error: { code: 'INVALID_REQUEST' },
+        });
+      }
+      const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (caseId && !uuidRe.test(caseId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid caseId',
+          error: { code: 'INVALID_REQUEST' },
+        });
+      }
+      if (taskId && !uuidRe.test(taskId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid taskId',
+          error: { code: 'INVALID_REQUEST' },
+        });
+      }
+      // Idempotent re-mute: unique partial indexes are time-agnostic
+      // (matches live DB), so on conflict we refresh expires_at instead
+      // of leaving a stale expired row in place.
+      const conflictTarget = caseId
+        ? '(user_id, case_id) WHERE case_id IS NOT NULL'
+        : '(user_id, task_id) WHERE task_id IS NOT NULL';
+      const result = await query<{ id: string; expiresAt: string | null }>(
+        `INSERT INTO notification_mutes (user_id, case_id, task_id, expires_at)
+         VALUES ($1, $2::uuid, $3::uuid, $4::timestamptz)
+         ON CONFLICT ${conflictTarget}
+         DO UPDATE SET expires_at = EXCLUDED.expires_at, created_at = now()
+         RETURNING id, expires_at as "expiresAt"`,
+        [userId, caseId, taskId, expiresAt]
+      );
+      return res.json({
+        success: true,
+        data: { muted: true, caseId, taskId, expiresAt, id: result.rows[0]?.id },
+        message: 'Notifications muted',
+      });
+    } catch (error) {
+      logger.error('Mute case error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: { code: 'INTERNAL_ERROR' },
+      });
+    }
+  }
+
+  /**
+   * Phase 3.2 (2026-05-04): unmute. Hard-deletes the mute row(s) for
+   * (user, case) or (user, task). Idempotent.
+   */
+  static async unmuteCase(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user!.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          error: { code: 'UNAUTHORIZED' },
+        });
+      }
+      const caseId = this.getSingleParam(req.params.caseId);
+      const taskId = this.getSingleParam(req.params.taskId);
+      if ((caseId && taskId) || (!caseId && !taskId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Provide exactly one of caseId or taskId',
+          error: { code: 'INVALID_REQUEST' },
+        });
+      }
+      const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (caseId && !uuidRe.test(caseId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid caseId',
+          error: { code: 'INVALID_REQUEST' },
+        });
+      }
+      if (taskId && !uuidRe.test(taskId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid taskId',
+          error: { code: 'INVALID_REQUEST' },
+        });
+      }
+      const result = await query(
+        `DELETE FROM notification_mutes
+         WHERE user_id = $1
+           AND ($2::uuid IS NOT NULL AND case_id = $2::uuid
+                OR $3::uuid IS NOT NULL AND task_id = $3::uuid)`,
+        [userId, caseId, taskId]
+      );
+      return res.json({
+        success: true,
+        data: { unmuted: true, caseId, taskId, deletedCount: result.rowCount ?? 0 },
+        message: 'Notifications unmuted',
+      });
+    } catch (error) {
+      logger.error('Unmute case error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: { code: 'INTERNAL_ERROR' },
+      });
+    }
+  }
+
+  /**
+   * Phase 3.2 (2026-05-04): list active mutes for the current user.
+   * Used by the frontend to show "Muted" state on a case toggle.
+   */
+  static async listMutes(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user!.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          error: { code: 'UNAUTHORIZED' },
+        });
+      }
+      const result = await query(
+        `SELECT id,
+                case_id   as "caseId",
+                task_id   as "taskId",
+                created_at as "createdAt",
+                expires_at as "expiresAt"
+           FROM notification_mutes
+          WHERE user_id = $1
+            AND (expires_at IS NULL OR expires_at > NOW())
+          ORDER BY created_at DESC`,
+        [userId]
+      );
+      return res.json({
+        success: true,
+        data: result.rows,
+        message: 'Active mutes retrieved',
+      });
+    } catch (error) {
+      logger.error('List mutes error:', error);
+      return res.status(500).json({
         success: false,
         message: 'Internal server error',
         error: { code: 'INTERNAL_ERROR' },
