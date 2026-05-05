@@ -1,6 +1,7 @@
 import type { Response } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
+import { config } from '@/config';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { MobileLocationController } from './mobileLocationController';
 
@@ -196,6 +197,99 @@ export class GeocodeController {
         success: false,
         message: 'Internal server error',
         error: { code: 'ATTACHMENT_ADDRESS_FAILED', timestamp: new Date().toISOString() },
+      });
+    }
+  }
+
+  /**
+   * Static Maps proxy. The FE photo-card composite (web admin download)
+   * embeds a small location thumbnail next to the address strip; we
+   * proxy through the backend so the Google Maps API key stays
+   * server-side. Returns the PNG bytes directly with a one-day cache
+   * header — same coordinates always render the same map, so a long
+   * Cache-Control reduces Google quota burn.
+   */
+  static async staticMap(this: void, req: AuthenticatedRequest, res: Response) {
+    try {
+      const latRaw = (req.query.latitude as string) || '';
+      const lonRaw = (req.query.longitude as string) || '';
+      const sizeRaw = (req.query.size as string) || '200x200';
+      const zoomRaw = parseInt((req.query.zoom as string) || '16', 10);
+      const latitude = parseFloat(latRaw);
+      const longitude = parseFloat(lonRaw);
+
+      if (
+        Number.isNaN(latitude) ||
+        Number.isNaN(longitude) ||
+        Math.abs(latitude) > 90 ||
+        Math.abs(longitude) > 180
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: 'Latitude and longitude required',
+          error: { code: 'INVALID_COORDINATES' },
+        });
+      }
+      // Defensive: clamp size to 100..600 px per dimension; clamp zoom
+      // to 1..20 (Google's valid range). Static-Maps will 400 outside.
+      const sizeMatch = /^(\d{2,3})x(\d{2,3})$/.exec(sizeRaw);
+      const w = sizeMatch ? Math.min(600, Math.max(100, parseInt(sizeMatch[1], 10))) : 200;
+      const h = sizeMatch ? Math.min(600, Math.max(100, parseInt(sizeMatch[2], 10))) : 200;
+      const zoom = Number.isFinite(zoomRaw) ? Math.min(20, Math.max(1, zoomRaw)) : 16;
+
+      const apiKey = config.googleMapsApiKey;
+      if (!apiKey) {
+        return res.status(503).json({
+          success: false,
+          message: 'Static maps unavailable (no API key)',
+          error: { code: 'MAPS_KEY_MISSING' },
+        });
+      }
+
+      const url =
+        `https://maps.googleapis.com/maps/api/staticmap` +
+        `?center=${latitude},${longitude}` +
+        `&zoom=${zoom}` +
+        `&size=${w}x${h}` +
+        `&scale=2` +
+        `&markers=color:red%7C${latitude},${longitude}` +
+        `&key=${encodeURIComponent(apiKey)}`;
+
+      const upstream = await fetch(url);
+      if (!upstream.ok) {
+        // Capture Google's error body so the failure cause is visible
+        // in pm2 logs without a tcpdump. Google encodes "API key not
+        // authorized for this API" / "Daily quota exceeded" / "Billing
+        // not enabled" / etc. as plain-text or JSON in the body.
+        let bodyText = '';
+        try {
+          bodyText = await upstream.text();
+        } catch {
+          /* ignore body read failure */
+        }
+        logger.warn('Static map upstream non-200', {
+          status: upstream.status,
+          latitude,
+          longitude,
+          body: bodyText.slice(0, 500),
+        });
+        return res.status(502).json({
+          success: false,
+          message: 'Static map upstream unavailable',
+          error: { code: 'MAPS_UPSTREAM_FAILED', upstreamStatus: upstream.status },
+        });
+      }
+      const arrayBuffer = await upstream.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+      return res.send(buffer);
+    } catch (error) {
+      logger.error('Static map proxy error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: { code: 'STATIC_MAP_FAILED' },
       });
     }
   }

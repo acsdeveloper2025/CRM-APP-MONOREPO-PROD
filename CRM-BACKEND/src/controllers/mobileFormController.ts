@@ -429,6 +429,11 @@ export class MobileFormController {
   }
   /**
    * Helper function to send case completion notifications to backend users
+   *
+   * Bug 52 (2026-05-05): now accepts the verification_task_id so the
+   * notification row carries task_number for the mobile UI's
+   * "Task: VT-XXX" line. taskId is optional to keep backward compat with
+   * any legacy callers; when omitted, falls back to case-only notifs.
    */
   private static async sendCaseCompletionNotification(
     caseId: string,
@@ -436,7 +441,8 @@ export class MobileFormController {
     customerName: string,
     fieldUserId: string,
     completionStatus: string,
-    outcome: string
+    outcome: string,
+    taskId?: string
   ): Promise<void> {
     try {
       // Get field user information
@@ -445,6 +451,20 @@ export class MobileFormController {
       `;
       const fieldUserResult = await query(fieldUserQuery, [fieldUserId]);
       const fieldUserName = fieldUserResult.rows[0]?.name || 'Unknown User';
+
+      // Bug 52: derive task_number for the notification row.
+      let taskNumber: string | undefined;
+      if (taskId) {
+        try {
+          const tnRes = await query<{ taskNumber: string | null }>(
+            'SELECT task_number AS "taskNumber" FROM verification_tasks WHERE id = $1 LIMIT 1',
+            [taskId]
+          );
+          taskNumber = tnRes.rows[0]?.taskNumber || undefined;
+        } catch {
+          // Non-fatal — fall through to case-only notification.
+        }
+      }
 
       // Get users who should receive case completion notifications by RBAC permissions
       const notificationUsersQuery = `
@@ -464,6 +484,8 @@ export class MobileFormController {
         await queueCaseCompletionNotification({
           caseId,
           caseNumber,
+          taskId,
+          taskNumber,
           customerName,
           fieldUserId,
           fieldUserName,
@@ -2906,6 +2928,28 @@ export class MobileFormController {
           ...mappedFormData,
         };
 
+        // 2026-05-05 (bug 56): defense-in-depth — earning members can never
+        // exceed total family members per CHECK constraint
+        // chk_verification_reports_total_earning. Mobile form lets users
+        // type either field independently and there's no client-side
+        // cross-validation, so a typo (e.g. earning=4 / family=3) hits the
+        // backend and the INSERT 500s with a confusing CHECK violation.
+        // Clamp earning_member to family_members and log so we can fix the
+        // mobile form spec at leisure. Both stored as numeric strings or
+        // ints depending on form pipeline; coerce defensively.
+        const totalFamily = Number(dbInsertData.total_family_members);
+        const totalEarning = Number(dbInsertData.total_earning_member);
+        if (
+          Number.isFinite(totalFamily) &&
+          Number.isFinite(totalEarning) &&
+          totalEarning > totalFamily
+        ) {
+          logger.warn(
+            `Clamping total_earning_member ${totalEarning} → ${totalFamily} (cannot exceed total_family_members) for task ${taskId}`
+          );
+          dbInsertData.total_earning_member = totalFamily;
+        }
+
         // 2026-05-03 (bug 41): defense-in-depth — derive final_status from
         // verificationOutcome when mappedFormData didn't surface a value.
         // Prevents the NOT NULL constraint violation on
@@ -3011,7 +3055,8 @@ export class MobileFormController {
         updatedCase.customerName || 'Unknown Customer',
         userId,
         'COMPLETED',
-        verificationOutcome
+        verificationOutcome,
+        verificationTaskId
       );
 
       res.json({
@@ -3443,7 +3488,8 @@ export class MobileFormController {
         updatedCase.customerName || 'Unknown Customer',
         userId,
         'COMPLETED',
-        verificationOutcome
+        verificationOutcome,
+        verificationTaskId
       );
 
       res.json({
@@ -3907,7 +3953,8 @@ export class MobileFormController {
         updatedCase.customerName || 'Unknown Customer',
         userId,
         'COMPLETED',
-        verificationOutcome
+        verificationOutcome,
+        verificationTaskId
       );
 
       res.json({
@@ -4311,7 +4358,8 @@ export class MobileFormController {
         updatedCase.customerName || 'Unknown Customer',
         userId,
         'COMPLETED',
-        verificationOutcome
+        verificationOutcome,
+        verificationTaskId
       );
 
       res.json({
@@ -4972,7 +5020,8 @@ export class MobileFormController {
         updatedCase.customerName || 'Unknown Customer',
         userId,
         'COMPLETED',
-        verificationOutcome
+        verificationOutcome,
+        verificationTaskId
       );
 
       res.json({
@@ -5665,7 +5714,8 @@ export class MobileFormController {
         updatedCase.customerName || 'Unknown Customer',
         userId,
         'COMPLETED',
-        verificationOutcome
+        verificationOutcome,
+        verificationTaskId
       );
 
       res.json({
@@ -6074,7 +6124,8 @@ export class MobileFormController {
         updatedCase.customerName || 'Unknown Customer',
         userId,
         'COMPLETED',
-        verificationOutcome
+        verificationOutcome,
+        verificationTaskId
       );
 
       res.json({
