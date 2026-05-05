@@ -448,6 +448,19 @@ class ApiService {
       };
     }
 
+    // 2026-05-05: FormData uploads must NOT inherit the instance default
+    // `Content-Type: application/json` — multer on the backend rejects
+    // (400 "File is required") because it never sees a multipart body.
+    // Setting Content-Type to undefined tells axios to compute the right
+    // multipart/form-data boundary from the FormData itself. Symptom that
+    // hit KYC + every other FormData uploader before this fix.
+    if (typeof FormData !== 'undefined' && data instanceof FormData) {
+      axiosConfig.headers = {
+        ...axiosConfig.headers,
+        'Content-Type': undefined,
+      } as AxiosRequestConfig['headers'];
+    }
+
     const stampedConfig = stampIdempotencyKey(axiosConfig);
     return this.executeWithRetry(() => this.api.post<T>(url, data, stampedConfig), retryConfig);
   }
@@ -458,6 +471,12 @@ class ApiService {
     config?: AxiosRequestConfig & { retryConfig?: RetryConfig }
   ): Promise<AxiosResponse<T>> {
     const { retryConfig, ...axiosConfig } = config || {};
+    if (typeof FormData !== 'undefined' && data instanceof FormData) {
+      axiosConfig.headers = {
+        ...axiosConfig.headers,
+        'Content-Type': undefined,
+      } as AxiosRequestConfig['headers'];
+    }
     const stampedConfig = stampIdempotencyKey(axiosConfig);
     return this.executeWithRetry(() => this.api.put<T>(url, data, stampedConfig), retryConfig);
   }
