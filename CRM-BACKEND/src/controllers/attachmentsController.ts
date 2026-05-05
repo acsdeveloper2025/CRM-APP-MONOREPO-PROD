@@ -484,11 +484,16 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
     let queryText: string;
     let queryParams: QueryParams;
 
+    // 2026-05-05 (bug 51): UNION KYC document verifications so the
+    // Attachments tab shows BOTH admin-uploaded reference docs (from
+    // `attachments` table) AND KYC verification documents (from
+    // `kyc_document_verifications` rows with a file). Source distinguishes
+    // them client-side; mime_type / file_path / size shape is identical.
     if (isExecutionActor) {
       // Field agents can only see attachments for cases assigned to them
       queryText = `
         SELECT
-          a.id,
+          a.id::text,
           a.filename,
           a.original_name,
           a.mime_type,
@@ -497,20 +502,42 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
           a.uploaded_by,
           a.created_at as uploaded_at,
           a.case_id,
-          a.verification_task_id
+          a.verification_task_id,
+          'general' as source
         FROM attachments a
         JOIN cases c ON a.case_id = c.id
         WHERE a.case_id = $1 AND EXISTS (
           SELECT 1 FROM verification_tasks vt
           WHERE vt.case_id = c.id AND vt.assigned_to = $2
         )
+        UNION ALL
+        SELECT
+          kdv.id::text,
+          COALESCE(kdv.document_file_name, dt.code || '.bin') as filename,
+          kdv.document_file_name as original_name,
+          kdv.document_mime_type as mime_type,
+          kdv.document_file_size as size,
+          kdv.document_file_path as file_path,
+          kdv.assigned_by as uploaded_by,
+          kdv.created_at as uploaded_at,
+          kdv.case_id,
+          kdv.verification_task_id,
+          'kyc' as source
+        FROM kyc_document_verifications kdv
+        LEFT JOIN document_types dt ON dt.id = kdv.document_type_id
+        WHERE kdv.case_id = $1
+          AND kdv.document_file_path IS NOT NULL
+          AND EXISTS (
+            SELECT 1 FROM verification_tasks vt
+            WHERE vt.case_id = kdv.case_id AND vt.assigned_to = $2
+          )
       `;
       queryParams = [resolvedCaseUuid, userId];
     } else {
       // Admin/Manager can see all attachments for the case
       queryText = `
         SELECT
-          id,
+          id::text,
           filename,
           original_name,
           mime_type,
@@ -519,14 +546,33 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
           uploaded_by,
           created_at as uploaded_at,
           case_id,
-          verification_task_id
+          verification_task_id,
+          'general' as source
         FROM attachments
         WHERE case_id = $1
+        UNION ALL
+        SELECT
+          kdv.id::text,
+          COALESCE(kdv.document_file_name, dt.code || '.bin') as filename,
+          kdv.document_file_name as original_name,
+          kdv.document_mime_type as mime_type,
+          kdv.document_file_size as size,
+          kdv.document_file_path as file_path,
+          kdv.assigned_by as uploaded_by,
+          kdv.created_at as uploaded_at,
+          kdv.case_id,
+          kdv.verification_task_id,
+          'kyc' as source
+        FROM kyc_document_verifications kdv
+        LEFT JOIN document_types dt ON dt.id = kdv.document_type_id
+        WHERE kdv.case_id = $1
+          AND kdv.document_file_path IS NOT NULL
       `;
       queryParams = [resolvedCaseUuid];
     }
 
-    queryText += ` ORDER BY created_at DESC LIMIT $${queryParams.length + 1}`;
+    // UNION ALL requires ORDER BY to reference the first SELECT's alias.
+    queryText += ` ORDER BY uploaded_at DESC LIMIT $${queryParams.length + 1}`;
     queryParams.push(typeof limit === 'string' || typeof limit === 'number' ? String(limit) : '50');
 
     const result = await query(queryText, queryParams);

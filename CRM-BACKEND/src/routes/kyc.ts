@@ -61,7 +61,13 @@ router.get('/document-types', listDocumentTypes);
 router.get('/tasks', authorize('kyc.view'), listKYCTasks);
 
 // KYC tasks for a specific case
-router.get('/cases/:caseId/tasks', authorize('kyc.view'), getKYCTasksForCase);
+// 2026-05-05 (bug 48): widen to include case.view so case creators
+// (BACKEND_USER role with case.create + case.view but no kyc.view) can
+// see the KYC tasks they attached during case creation. Without this,
+// the case-detail KYC tab silently shows "No KYC tasks" even though
+// the rows exist server-side. Verifying KYC docs still requires
+// kyc.verify (handled per-action by the verify endpoint).
+router.get('/cases/:caseId/tasks', authorizeAny(['kyc.view', 'case.view']), getKYCTasksForCase);
 
 // Single KYC task detail
 router.get('/tasks/:taskId', authorize('kyc.view'), getKYCTaskDetail);
@@ -70,7 +76,16 @@ router.get('/tasks/:taskId', authorize('kyc.view'), getKYCTaskDetail);
 router.put('/tasks/:taskId/verify', authorize('kyc.verify'), verifyKYCDocument);
 
 // Assign KYC task to verifier
-router.put('/tasks/:taskId/assign', authorize('kyc.assign'), assignKYCTask);
+// 2026-05-05 (bug 49): widen to include case.create / case.assign /
+// case.reassign so the case creator (BACKEND_USER) can pick / change
+// the KYC verifier from the case-detail KYC tab without needing the
+// dedicated kyc.assign permission. The verifier UI itself still uses
+// kyc.verify for the verify action.
+router.put(
+  '/tasks/:taskId/assign',
+  authorizeAny(['kyc.assign', 'case.create', 'case.assign', 'case.reassign']),
+  assignKYCTask
+);
 
 // Upload document
 // Phase 1.5 (2026-05-04): allow `case.create` users to upload during the

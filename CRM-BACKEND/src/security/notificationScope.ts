@@ -48,6 +48,14 @@ type TaskScopeRow = {
   pincodeId: number | null;
   clientId: number;
   productId: number;
+  // 2026-05-05 (bug 57): JOIN'd from cases.created_by_backend_user so
+  // canAccessTask can mirror canAccessCase's creator carve-out. Bug 52
+  // added taskId to TASK_COMPLETED notifications, which routed them
+  // through canAccessTask — without this, case creators stopped getting
+  // their own cases' completion notifications. Re-introduces the
+  // bug 33 invariant ("creator always hears about lifecycle") on the
+  // task-scoped path.
+  createdByBackendUser: string | null;
 };
 
 type CaseScopeRow = {
@@ -152,7 +160,8 @@ const loadTaskScopeRows = async (
             vt.area_id as area_id,
             p_scope.id as pincode_id,
             c.client_id as client_id,
-            c.product_id as product_id
+            c.product_id as product_id,
+            c.created_by_backend_user as "created_by_backend_user"
           FROM verification_tasks vt
           JOIN cases c ON c.id = vt.case_id
           LEFT JOIN pincodes p_scope ON p_scope.id = vt.pincode_id
@@ -169,7 +178,8 @@ const loadTaskScopeRows = async (
         vt.area_id as area_id,
         p_scope.id as pincode_id,
         c.client_id as client_id,
-        c.product_id as product_id
+        c.product_id as product_id,
+        c.created_by_backend_user as "created_by_backend_user"
       FROM verification_tasks vt
       JOIN cases c ON c.id = vt.case_id
       LEFT JOIN pincodes p_scope ON p_scope.id = vt.pincode_id
@@ -241,6 +251,27 @@ const canAccessTask = (task: TaskScopeRow | undefined, viewerContext: ViewerCont
     return true;
   }
 
+  // 2026-05-05 (bug 55): a user assigned to THIS task always sees its
+  // notifications. Without this, KYC_VERIFIER users (isScopedOps=true,
+  // hierarchyUserIds=undefined, no client/product assignments) get
+  // rejected on their CASE_ASSIGNED notifications even though they ARE
+  // the task assignee. canAccessCase was patched in bug 47 with a
+  // taskAssignees check, but the filter dispatches taskId-bearing
+  // notifications to canAccessTask instead — same root, two paths.
+  if (task.assignedTo && task.assignedTo === viewerContext.viewer.id) {
+    return true;
+  }
+
+  // 2026-05-05 (bug 57): mirror canAccessCase's case-creator carve-out
+  // here. Bug 52 promoted TASK_COMPLETED notifications to carry taskId,
+  // which routes them through canAccessTask — and case creators (e.g.
+  // pradnya.mohite) stopped getting completion notifications for their
+  // own cases. Same invariant from bug 33: "you opened the work, you
+  // hear about its outcome" must hold across both task and case paths.
+  if (task.createdByBackendUser && task.createdByBackendUser === viewerContext.viewer.id) {
+    return true;
+  }
+
   if (viewerContext.isExecutionActor) {
     const areaSet = toArraySet(viewerContext.assignedAreaIds);
     const pincodeSet = toArraySet(viewerContext.assignedPincodeIds);
@@ -285,6 +316,18 @@ const canAccessCase = (
   // in pradnya's reporting hierarchy. Case creator → notification recipient
   // is a strict invariant: you opened the work, you hear about its outcome.
   if (caseRow.createdByBackendUser && caseRow.createdByBackendUser === viewerContext.viewer.id) {
+    return true;
+  }
+
+  // 2026-05-05 (bug 47): a user assigned to ANY task on this case (FIELD or
+  // KYC) always sees its notifications. Without this, KYC_VERIFIER users
+  // (who have `case.view` → isScopedOps=true but no supervisory perms →
+  // hierarchyUserIds=undefined → fallthrough to client/product check) get
+  // their case-assignment notifications rejected because they have no
+  // client/product assignments. Same shape as bug 33's createdByBackendUser
+  // carve-out: assignment is the strongest signal that you should hear
+  // about the case lifecycle, regardless of org-level scope assignments.
+  if (caseRow.taskAssignees?.includes(viewerContext.viewer.id)) {
     return true;
   }
 

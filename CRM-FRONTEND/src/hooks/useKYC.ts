@@ -71,7 +71,12 @@ export const useKYCTasksForCase = (caseId: string) => {
   // the query stays disabled and `kycTasks` defaults to [] → KYC tab hides
   // its content gracefully.
   const { hasPermissionCode } = usePermissionContext();
-  const canViewKyc = hasPermissionCode('kyc.view');
+  // 2026-05-05 (bug 48): also allow case.view so backend users who
+  // CREATED the case can see the KYC tasks they attached. Verifying
+  // documents still requires kyc.verify (the action endpoints check
+  // that), but reading the list to confirm what was attached is
+  // strictly a case-detail visibility concern.
+  const canViewKyc = hasPermissionCode('kyc.view') || hasPermissionCode('case.view');
   return useQuery({
     queryKey: kycKeys.caseTasks(caseId),
     queryFn: () => kycService.getTasksForCase(caseId),

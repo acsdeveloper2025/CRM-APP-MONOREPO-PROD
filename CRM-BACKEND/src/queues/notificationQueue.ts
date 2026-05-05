@@ -53,6 +53,12 @@ export interface CaseCompletionNotificationJobData {
   type: 'case-completion';
   caseId: string;
   caseNumber: string;
+  // Bug 52 (2026-05-05): include the completed task's identity so the
+  // notification row carries task_number for the mobile UI's
+  // "Task: VT-XXX" line. Without this, recipients see only the case
+  // number and cannot tell which task within the case completed.
+  taskId?: string;
+  taskNumber?: string;
   customerName: string;
   fieldUserId: string;
   fieldUserName: string;
@@ -263,10 +269,17 @@ const handleCaseCompletionNotification = async (job: Job<NotificationJobData>) =
   try {
     const notificationTemplate: Omit<NotificationData, 'userId'> = {
       title: 'Task Completed',
-      message: `Task for case ${data.caseNumber} has been completed by ${data.fieldUserName}`,
+      message: data.taskNumber
+        ? `Task ${data.taskNumber} for case ${data.caseNumber} (${data.customerName}) completed by ${data.fieldUserName}`
+        : `Task for case ${data.caseNumber} has been completed by ${data.fieldUserName}`,
       type: 'TASK_COMPLETED',
       caseId: data.caseId,
       caseNumber: data.caseNumber,
+      // Bug 52: persist task identity on the notification row so mobile
+      // UI can show "Task: VT-XXX" alongside the case number, matching
+      // CASE_ASSIGNED notification shape.
+      taskId: data.taskId,
+      taskNumber: data.taskNumber,
       data: {
         customerName: data.customerName,
         fieldUserId: data.fieldUserId,
@@ -274,8 +287,10 @@ const handleCaseCompletionNotification = async (job: Job<NotificationJobData>) =
         completionStatus: data.completionStatus,
         outcome: data.outcome,
       },
-      actionUrl: `/case-management/${data.caseId}`,
-      actionType: 'OPEN_CASE',
+      actionUrl: data.taskNumber
+        ? `/task-management/${data.taskNumber}`
+        : `/case-management/${data.caseId}`,
+      actionType: data.taskNumber ? 'OPEN_TASK' : 'OPEN_CASE',
       priority: 'MEDIUM',
     };
     const notificationIds = await NotificationService.sendBulkNotification(

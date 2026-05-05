@@ -489,13 +489,18 @@ export const uploadKYCDocument = async (req: AuthenticatedRequest, res: Response
     }
 
     // Look up the KYC row to derive case_id + a stable doc-type code for the storage key.
+    // 2026-05-05 (bug 50): the case-creation response returns kycTasks[].id =
+    // verification_tasks.id (the parent task record), but historically this
+    // controller only matched kdv.id. The case-create fan-out POSTed the
+    // verification_tasks.id and 404'd here. Accept either ID — the
+    // (verification_task_id, case_id) pair is unique for KYC tasks anyway.
     const lookup = await query<{ id: string; caseId: string; docCode: string | null }>(
       `SELECT kdv.id,
               kdv.case_id AS "caseId",
               dt.code AS "docCode"
          FROM kyc_document_verifications kdv
          LEFT JOIN document_types dt ON dt.id = kdv.document_type_id
-        WHERE kdv.id = $1
+        WHERE kdv.id = $1 OR kdv.verification_task_id = $1
         LIMIT 1`,
       [taskId]
     );
@@ -521,6 +526,9 @@ export const uploadKYCDocument = async (req: AuthenticatedRequest, res: Response
     await storage.put(storageKey, buffer, file.mimetype);
 
     const filePath = `/uploads/kyc/${file.filename}`;
+    // Use the resolved kdv.id from the lookup (above), not the URL param,
+    // because the URL param may have been a verification_task_id.
+    const resolvedKdvId = kycRow.id;
     const result = await query(
       `UPDATE kyc_document_verifications
        SET document_file_path = $1, document_file_name = $2,
@@ -528,7 +536,7 @@ export const uploadKYCDocument = async (req: AuthenticatedRequest, res: Response
            document_storage_key = $5, sha256_hash = $6, updated_at = CURRENT_TIMESTAMP
        WHERE id = $7
        RETURNING id`,
-      [filePath, file.originalname, file.size, file.mimetype, storageKey, sha256Hash, taskId]
+      [filePath, file.originalname, file.size, file.mimetype, storageKey, sha256Hash, resolvedKdvId]
     );
 
     if (result.rows.length === 0) {
