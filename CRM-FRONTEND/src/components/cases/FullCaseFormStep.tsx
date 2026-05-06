@@ -25,8 +25,8 @@ import {
 import { ArrowLeft, Send, Loader2, User, Building, Settings } from 'lucide-react';
 import { useAvailableFieldUsers } from '@/hooks/useUsers';
 import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/useClients';
-import { usePincodeSearch } from '@/hooks/useLocations';
-import { useAreasByPincode } from '@/hooks/useAreas';
+import { useScopedPincodeSearch } from '@/hooks/useLocations';
+import { useScopedAreasByPincode } from '@/hooks/useAreas';
 import { useAuth } from '@/hooks/useAuth';
 import { isBackendScopedUser } from '@/utils/userPermissionProfiles';
 import {
@@ -185,9 +185,15 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
     selectedPincodeNumber,
     selectedAreaNumber
   );
-  // Server-side pincode search (replaces bulk client-side load)
-  const { pincodes } = usePincodeSearch(selectedPincodeId);
-  const { data: areasResponse } = useAreasByPincode(
+  // 2026-05-06 bug 77: scope pincode + area lists to (client, product) via service_zone_rules.
+  const { pincodes } = useScopedPincodeSearch(
+    selectedClientId,
+    selectedProductId,
+    selectedPincodeId
+  );
+  const { data: areasResponse } = useScopedAreasByPincode(
+    selectedClientId || null,
+    selectedProductId || null,
     selectedPincodeId ? parseInt(selectedPincodeId) : undefined
   );
   const areas = useMemo(() => areasResponse?.data || [], [areasResponse?.data]);

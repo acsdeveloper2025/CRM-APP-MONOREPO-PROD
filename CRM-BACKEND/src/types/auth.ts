@@ -40,6 +40,14 @@ export interface LoginResponse {
       designation: string | null;
       department: string;
       profilePhotoUrl?: string;
+      // 2026-05-06: ship rbac permission codes inline so the FE has
+      // perms before /auth/me has been called. Closes a race where
+      // permission-gated UI (e.g. KYC dashboard cards) was hidden
+      // because /auth/me hadn't refreshed user state yet.
+      permissions?: string[];
+      roles?: string[];
+      assignedClients?: number[];
+      assignedProducts?: number[];
     };
     tokens: {
       accessToken: string;

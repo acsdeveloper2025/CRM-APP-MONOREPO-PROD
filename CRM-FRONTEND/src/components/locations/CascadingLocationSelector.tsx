@@ -77,37 +77,19 @@ export function CascadingLocationSelector({
     queryFn: () => locationsService.getCountries({ limit: 100 }),
   });
 
-  // Fetch states filtered by country
+  // 2026-05-06 bug 79: Fetch states by countryId directly (BE accepts both name + id).
+  // Previously did `countries.find(c => c.id === selectedCountryId).name` lookup, which
+  // raced when countries list hadn't loaded yet → states fetch returned empty.
   const { data: statesData, isLoading: statesLoading } = useQuery({
-    queryKey: ['states', selectedCountryId],
-    queryFn: () => {
-      if (!selectedCountryId) {
-        return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<State[]>);
-      }
-      const selectedCountry = countries.find(
-        (c: Country) => String(c.id) === String(selectedCountryId)
-      );
-      if (!selectedCountry) {
-        return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<State[]>);
-      }
-      return locationsService.getStates({ country: selectedCountry.name, limit: 100 });
-    },
+    queryKey: ['states', 'by-country-id', selectedCountryId],
+    queryFn: () => locationsService.getStates({ countryId: selectedCountryId, limit: 100 }),
     enabled: !!selectedCountryId,
   });
 
-  // Fetch cities filtered by state
+  // 2026-05-06 bug 79: Fetch cities by stateId directly. Same race fix as above.
   const { data: citiesData, isLoading: citiesLoading } = useQuery({
-    queryKey: ['cities', selectedStateId],
-    queryFn: () => {
-      if (!selectedStateId) {
-        return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<City[]>);
-      }
-      const selectedState = states.find((s: State) => String(s.id) === String(selectedStateId));
-      if (!selectedState) {
-        return Promise.resolve({ success: true, message: '', data: [] } as ApiResponse<City[]>);
-      }
-      return locationsService.getCities({ state: selectedState.name, limit: 100 });
-    },
+    queryKey: ['cities', 'by-state-id', selectedStateId],
+    queryFn: () => locationsService.getCities({ stateId: selectedStateId, limit: 100 }),
     enabled: !!selectedStateId,
   });
 

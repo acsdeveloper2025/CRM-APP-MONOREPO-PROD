@@ -9,7 +9,15 @@ import { sendError, errors } from '@/utils/apiResponse';
 // GET /api/states - List states with pagination and filters
 export const getStates = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { page = 1, limit = 20, country, search, sortBy = 'name', sortOrder = 'asc' } = req.query;
+    const {
+      page = 1,
+      limit = 20,
+      country,
+      countryId,
+      search,
+      sortBy = 'name',
+      sortOrder = 'asc',
+    } = req.query;
 
     // Build SQL query with joins to get country names and city counts
     let sql = `
@@ -37,8 +45,19 @@ export const getStates = async (req: AuthenticatedRequest, res: Response) => {
     // Apply filters
     if (country && typeof country === 'string') {
       paramCount++;
-      sql += ` AND co.name = $${paramCount}`;
+      sql += ` AND UPPER(co.name) = UPPER($${paramCount})`;
       params.push(country);
+    }
+
+    // 2026-05-06 bug 79: accept countryId in addition to country (name).
+    // Eliminates the FE-side parent-name lookup race in CascadingLocationSelector.
+    if (countryId !== undefined && countryId !== null && countryId !== '') {
+      const cidNum = Number(countryId);
+      if (Number.isFinite(cidNum)) {
+        paramCount++;
+        sql += ` AND s.country_id = $${paramCount}`;
+        params.push(cidNum);
+      }
     }
 
     if (search && typeof search === 'string') {
@@ -87,8 +106,17 @@ export const getStates = async (req: AuthenticatedRequest, res: Response) => {
 
     if (country && typeof country === 'string') {
       countParamCount++;
-      countSql += ` AND co.name = $${countParamCount}`;
+      countSql += ` AND UPPER(co.name) = UPPER($${countParamCount})`;
       countParams.push(country);
+    }
+
+    if (countryId !== undefined && countryId !== null && countryId !== '') {
+      const cidNum = Number(countryId);
+      if (Number.isFinite(cidNum)) {
+        countParamCount++;
+        countSql += ` AND s.country_id = $${countParamCount}`;
+        countParams.push(cidNum);
+      }
     }
 
     if (search && typeof search === 'string') {

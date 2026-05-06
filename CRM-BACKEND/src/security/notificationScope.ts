@@ -398,15 +398,22 @@ export const filterNotificationsByCurrentScope = async (
     let allowed = true;
     let actionTarget = '/dashboard';
 
-    if (notification.taskId) {
-      allowed = canAccessTask(taskRows.get(notification.taskId), viewerContext);
-      if (allowed) {
-        actionTarget = `/task-management/${notification.taskId}`;
-      }
-    } else if (notification.caseId) {
+    // 2026-05-06: case-level notifications (TASK_COMPLETED, CASE_ASSIGNED, etc.)
+    // carry BOTH taskId and caseId. We prefer the case page so the user lands on
+    // the holistic case view (all tasks + photos + submissions). When access
+    // check is run, use canAccessCase if caseId is present (it includes the
+    // case-creator carve-out — see project_e2e_live_test_2026_05_02.md bug 33);
+    // fall back to canAccessTask only for purely task-only notifications without
+    // a parent case context.
+    if (notification.caseId) {
       allowed = canAccessCase(caseRows.get(notification.caseId), viewerContext);
       if (allowed) {
         actionTarget = `/case-management/${notification.caseId}`;
+      }
+    } else if (notification.taskId) {
+      allowed = canAccessTask(taskRows.get(notification.taskId), viewerContext);
+      if (allowed) {
+        actionTarget = `/task-management/${notification.taskId}`;
       }
     }
 

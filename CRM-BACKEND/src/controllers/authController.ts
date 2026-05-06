@@ -323,6 +323,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           designation: user.designation,
           department: user.department,
           ...(user.profilePhotoUrl && { profilePhotoUrl: user.profilePhotoUrl }),
+          // 2026-05-06: ship rbac perms + roles in the login response so the
+          // FE has them before /auth/me refresh fires. Closes a race where
+          // permission-gated UI (e.g. KYC dashboard cards) was hidden because
+          // the post-login /auth/me refresh hadn't populated state yet.
+          permissions: rbacPermissionCodes,
+          roles: rbacRoles,
           // Include role-based assignments
           ...(isScopedOperationsUser(authProfile) && {
             assignedClients,

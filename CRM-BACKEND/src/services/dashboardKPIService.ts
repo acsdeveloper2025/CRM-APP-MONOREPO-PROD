@@ -196,10 +196,15 @@ export class DashboardKPIService {
           CURRENT_DATE - INTERVAL '1 day' as yesterday_start
       ),
       filtered_tasks AS (
-        SELECT vt.* 
+        SELECT vt.*
         FROM verification_tasks vt
         LEFT JOIN cases c ON vt.case_id = c.id
         WHERE ${whereClause}
+          -- 2026-05-06 bug 74: exclude KYC tasks from workload counts. KYC has its own
+          -- dedicated dashboard section (kycQuery) with own bucketing. Mixing them in
+          -- workload counts caused dashboard "Pending Tasks N" to mismatch the
+          -- /task-management/pending-tasks page (which uses excludeTaskType=KYC default).
+          AND COALESCE(vt.task_type, 'NORMAL') <> 'KYC'
       )
       SELECT
         -- VOLUME (CREATED)
@@ -332,17 +337,21 @@ export class DashboardKPIService {
     // KYC stats query
     // Workflow buckets read verification_status (PENDING/IN_PROGRESS/COMPLETED…).
     // Outcome buckets read final_status (Positive/Negative/Refer/Fraud).
+    // Scoped via the same whereClause as core/perf queries — JOIN through verification_tasks → cases
+    // so creator/client/product/agent filters apply. kdv. prefix on filtered columns avoids ambiguity.
     const kycQuery = `
       SELECT
         COUNT(*) as total,
-        COUNT(*) FILTER (WHERE verification_status = 'PENDING') as pending,
-        COUNT(*) FILTER (WHERE final_status = 'Positive') as passed,
-        COUNT(*) FILTER (WHERE final_status = 'Negative') as failed,
-        COUNT(*) FILTER (WHERE final_status = 'Refer') as referred,
-        COUNT(*) FILTER (WHERE final_status = 'Fraud') as fraud,
-        COUNT(*) FILTER (WHERE verified_at >= CURRENT_DATE) as verified_today
-      FROM kyc_document_verifications
-      WHERE deleted_at IS NULL
+        COUNT(*) FILTER (WHERE kdv.verification_status = 'PENDING') as pending,
+        COUNT(*) FILTER (WHERE kdv.final_status = 'Positive') as passed,
+        COUNT(*) FILTER (WHERE kdv.final_status = 'Negative') as failed,
+        COUNT(*) FILTER (WHERE kdv.final_status = 'Refer') as referred,
+        COUNT(*) FILTER (WHERE kdv.final_status = 'Fraud') as fraud,
+        COUNT(*) FILTER (WHERE kdv.verified_at >= CURRENT_DATE) as verified_today
+      FROM kyc_document_verifications kdv
+      JOIN verification_tasks vt ON vt.id = kdv.verification_task_id
+      LEFT JOIN cases c ON c.id = vt.case_id
+      WHERE kdv.deleted_at IS NULL AND (${whereClause})
     `;
 
     const [taskRes, casesRes, clientsRes, agentsRes, perfRes, kycRes] = await Promise.all([
@@ -361,6 +370,8 @@ export class DashboardKPIService {
         SELECT vt.* FROM verification_tasks vt
         LEFT JOIN cases c ON vt.case_id = c.id
         WHERE ${whereClause}
+          -- 2026-05-06 bug 74: exclude KYC from TAT/perf metrics — same reason as core query.
+          AND COALESCE(vt.task_type, 'NORMAL') <> 'KYC'
       )
       SELECT
         AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/86400)
@@ -373,7 +384,7 @@ export class DashboardKPIService {
       FROM filtered_tasks`,
         params
       ),
-      query(kycQuery),
+      query(kycQuery, params),
     ]);
 
     const stats = taskRes.rows[0];
