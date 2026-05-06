@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -723,8 +724,10 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
         err?.message,
         err
       );
-      window.alert(
-        `Composite download failed:\n${err?.name || 'Error'}: ${err?.message || 'unknown'}\n\nFalling back to raw .jpg without address overlay. Send this message to the dev team.`
+      // 2026-05-06: replaced window.alert with toast — alert blocks the event loop and
+      // ESLint no-alert flagged it. Toast surfaces the same diagnostic non-blocking.
+      toast.error(
+        `Composite download failed: ${err?.name || 'Error'}: ${err?.message || 'unknown'}. Falling back to raw .jpg without address overlay.`
       );
       // Fallback to regular download with case ID format
       const fallbackFriendlyId = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(String(caseId))

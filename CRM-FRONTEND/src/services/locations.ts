@@ -28,6 +28,11 @@ export interface LocationQuery extends PaginationQuery {
   state?: string;
   country?: string;
   continent?: string;
+  // 2026-05-06 bug 79: BE accepts stateId/countryId filters directly. Using these
+  // avoids the race where the FE looks up a parent's NAME from a list that hasn't
+  // loaded yet (cities query firing before states list arrived → empty dropdown).
+  stateId?: string | number;
+  countryId?: string | number;
 }
 
 export class LocationsService {
@@ -344,6 +349,40 @@ export class LocationsService {
         endpoint: 'GET /pincodes/:pincodeId/areas',
       });
     }
+    return response;
+  }
+
+  // 2026-05-06 bug 77: pincodes scoped to (client, product) via service_zone_rules.
+  // Use this in case-creation flows; the global getPincodes/usePincodeSearch is for
+  // admin master-data / monitoring screens only.
+  async getPincodesForClientProduct(
+    clientId: number | string,
+    productId: number | string,
+    options: { search?: string; limit?: number } = {}
+  ): Promise<ApiResponse<Pincode[]>> {
+    const params = new URLSearchParams();
+    if (options.search) {
+      params.set('search', options.search);
+    }
+    if (options.limit) {
+      params.set('limit', String(options.limit));
+    }
+    const qs = params.toString();
+    const response = await apiService.get<Pincode[]>(
+      `/clients/${Number(clientId)}/products/${Number(productId)}/pincodes${qs ? `?${qs}` : ''}`
+    );
+    return response;
+  }
+
+  // 2026-05-06 bug 77: areas scoped to (client, product, pincode) via service_zone_rules.
+  async getAreasForClientProduct(
+    clientId: number | string,
+    productId: number | string,
+    pincodeId: number | string
+  ): Promise<ApiResponse<{ id: number; name: string }[]>> {
+    const response = await apiService.get<{ id: number; name: string }[]>(
+      `/clients/${Number(clientId)}/products/${Number(productId)}/pincodes/${Number(pincodeId)}/areas`
+    );
     return response;
   }
 }

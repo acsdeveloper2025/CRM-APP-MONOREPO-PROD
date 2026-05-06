@@ -21,6 +21,7 @@ export const getCities = async (req: AuthenticatedRequest, res: Response) => {
       page = 1,
       limit = 20,
       state,
+      stateId,
       country = 'India',
       isActive: _isActive,
       search,
@@ -53,6 +54,17 @@ export const getCities = async (req: AuthenticatedRequest, res: Response) => {
       paramCount++;
       sql += ` AND UPPER(s.name) = UPPER($${paramCount})`;
       params.push(state as string);
+    }
+
+    // 2026-05-06 bug 79: accept stateId in addition to state (name).
+    // Eliminates the FE-side parent-name lookup race in CascadingLocationSelector.
+    if (stateId !== undefined && stateId !== null && stateId !== '') {
+      const sidNum = Number(stateId);
+      if (Number.isFinite(sidNum)) {
+        paramCount++;
+        sql += ` AND c.state_id = $${paramCount}`;
+        params.push(sidNum);
+      }
     }
 
     if (country) {
@@ -108,13 +120,22 @@ export const getCities = async (req: AuthenticatedRequest, res: Response) => {
 
     if (state) {
       countParamCount++;
-      countSql += ` AND s.name = $${countParamCount}`;
+      countSql += ` AND UPPER(s.name) = UPPER($${countParamCount})`;
       countParams.push(state as string);
+    }
+
+    if (stateId !== undefined && stateId !== null && stateId !== '') {
+      const sidNum = Number(stateId);
+      if (Number.isFinite(sidNum)) {
+        countParamCount++;
+        countSql += ` AND c.state_id = $${countParamCount}`;
+        countParams.push(sidNum);
+      }
     }
 
     if (country) {
       countParamCount++;
-      countSql += ` AND co.name = $${countParamCount}`;
+      countSql += ` AND UPPER(co.name) = UPPER($${countParamCount})`;
       countParams.push(country as string);
     }
 

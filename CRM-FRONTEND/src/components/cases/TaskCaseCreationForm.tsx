@@ -38,9 +38,11 @@ import {
   Image,
 } from 'lucide-react';
 import { useAvailableFieldUsers } from '@/hooks/useUsers';
-import { useClients, useVerificationTypes, useProductsByClient } from '@/hooks/useClients';
-import { usePincodeSearch } from '@/hooks/useLocations';
-import { useAreasByPincode } from '@/hooks/useAreas';
+import { useClients, useProductsByClient } from '@/hooks/useClients';
+import { verificationTypesService } from '@/services/verificationTypes';
+import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
+import { useScopedPincodeSearch } from '@/hooks/useLocations';
+import { useScopedAreasByPincode } from '@/hooks/useAreas';
 import { useAuth } from '@/hooks/useAuth';
 import { isBackendScopedUser } from '@/utils/userPermissionProfiles';
 import { SearchableSelect } from '@/components/ui/searchable-select';
@@ -200,20 +202,40 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
 
   // Fetch data
   const { data: clientsResponse } = useClients({ limit: 500 });
-  const { data: verificationTypesResponse } = useVerificationTypes({ limit: 500 });
-  // Server-side pincode search (replaces bulk client-side load)
-  const { pincodes, setSearchTerm: setPincodeSearch } = usePincodeSearch();
-
   const allClients = useMemo(() => clientsResponse?.data || [], [clientsResponse?.data]);
+
+  // Watch for client + product selection (used by all scoped fetches below).
+  const selectedClientId = form.watch('clientId');
+  const selectedProductIdForVT = form.watch('productId');
+  const { data: productsResponse } = useProductsByClient(selectedClientId);
+  const allProducts = useMemo(() => productsResponse?.data || [], [productsResponse?.data]);
+
+  // 2026-05-06 bug 76: scope verification types to (client, product) via
+  // client_product_verifications mapping — was previously a global fetch that
+  // showed ALL types regardless of client+product selection.
+  const { data: verificationTypesResponse } = useStandardizedQuery({
+    queryKey: ['client-product-verification-types', selectedClientId, selectedProductIdForVT],
+    queryFn: () =>
+      verificationTypesService.getVerificationTypesForClientProduct(
+        selectedClientId,
+        selectedProductIdForVT
+      ),
+    enabled: !!(selectedClientId && selectedProductIdForVT),
+    errorContext: 'Loading Verification Types',
+    errorFallbackMessage: 'Failed to load verification types for client+product',
+  });
   const verificationTypes = useMemo(
     () => verificationTypesResponse?.data || [],
     [verificationTypesResponse?.data]
   );
 
-  // Watch for client selection to fetch products
-  const selectedClientId = form.watch('clientId');
-  const { data: productsResponse } = useProductsByClient(selectedClientId);
-  const allProducts = useMemo(() => productsResponse?.data || [], [productsResponse?.data]);
+  // 2026-05-06 bug 77: pincode list scoped via service_zone_rules; awaits client+product.
+  // Bug 78: this MUST come AFTER selectedClientId + selectedProductIdForVT declarations
+  // (TDZ — `const` access before initialization throws).
+  const { pincodes, setSearchTerm: setPincodeSearch } = useScopedPincodeSearch(
+    selectedClientId,
+    selectedProductIdForVT
+  );
   const didInitializeClientRef = useRef(false);
   const previousClientIdRef = useRef<string>('');
 
@@ -713,8 +735,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
     selectedPincodeNumber,
     selectedAreaNumber
   );
-  // Fetch areas based on selected pincode
-  const { data: areasResponse } = useAreasByPincode(
+  // 2026-05-06 bug 77: areas scoped to (client, product, pincode) via service_zone_rules.
+  const { data: areasResponse } = useScopedAreasByPincode(
+    clientId || null,
+    productId || null,
     task.pincodeId ? parseInt(task.pincodeId) : undefined
   );
   const areas = useMemo(() => areasResponse?.data || [], [areasResponse?.data]);

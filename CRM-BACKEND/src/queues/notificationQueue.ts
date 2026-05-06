@@ -234,9 +234,9 @@ const handleCaseAssignmentNotification = async (job: Job<NotificationJobData>) =
         reason: data.reason,
         assignmentType: data.assignmentType,
       },
-      // Navigate to task if taskId is available, otherwise to case
-      actionUrl: data.taskId ? `/mobile/tasks/${data.taskId}` : `/mobile/cases/${data.caseId}`,
-      actionType: data.taskId ? 'OPEN_TASK' : 'OPEN_CASE',
+      // Always land on case page — holistic view of all tasks/photos/submissions.
+      actionUrl: `/case-management/${data.caseNumber || data.caseId}`,
+      actionType: 'OPEN_CASE',
       priority: 'HIGH',
     };
     const notificationId = await NotificationService.sendNotification(notification);
@@ -287,10 +287,9 @@ const handleCaseCompletionNotification = async (job: Job<NotificationJobData>) =
         completionStatus: data.completionStatus,
         outcome: data.outcome,
       },
-      actionUrl: data.taskNumber
-        ? `/task-management/${data.taskNumber}`
-        : `/case-management/${data.caseId}`,
-      actionType: data.taskNumber ? 'OPEN_TASK' : 'OPEN_CASE',
+      // Always land on case page — holistic view of all tasks/photos/submissions.
+      actionUrl: `/case-management/${data.caseNumber || data.caseId}`,
+      actionType: 'OPEN_CASE',
       priority: 'MEDIUM',
     };
     const notificationIds = await NotificationService.sendBulkNotification(

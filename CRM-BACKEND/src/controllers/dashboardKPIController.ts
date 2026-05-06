@@ -22,7 +22,9 @@ export class DashboardKPIController {
         ? await getScopedOperationalUserIds(req.user.id)
         : undefined;
 
-      if (req.user?.id && isScopedOperationsUser(req.user)) {
+      const isScoped = !!(req.user?.id && isScopedOperationsUser(req.user));
+
+      if (isScoped && req.user?.id) {
         const [assignedClientIds, assignedProductIds] = await Promise.all([
           getAssignedClientIds(req.user.id),
           getAssignedProductIds(req.user.id),
@@ -32,11 +34,19 @@ export class DashboardKPIController {
           assignedProductIds && assignedProductIds.length > 0 ? assignedProductIds : [-1];
       }
 
-      // Convert query params to expected types
+      // For scoped-ops users (BACKEND_USER, TL, MANAGER), use creatorUserIds —
+      // service's creator clause already covers (creator OR hierarchy-task-assignee)
+      // via OR(c.created_by_backend_user, EXISTS task assigned in hierarchy).
+      // Passing agentIds here would AND on top of that, filtering creators out.
       const filters = {
         clientId: clientId ? Number(clientId) : undefined,
         agentId: typeof agentId === 'string' ? agentId : undefined,
-        agentIds: typeof agentId === 'string' ? undefined : hierarchyAgentIds,
+        agentIds: isScoped
+          ? undefined
+          : typeof agentId === 'string'
+            ? undefined
+            : hierarchyAgentIds,
+        creatorUserIds: isScoped ? hierarchyAgentIds : undefined,
         clientIds,
         productIds,
         dateFrom: typeof dateFrom === 'string' ? dateFrom : undefined,

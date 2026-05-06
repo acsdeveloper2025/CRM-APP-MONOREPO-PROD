@@ -169,3 +169,98 @@ export const usePincodeSearch = (initialPincodeId?: string) => {
     selectedPincode,
   };
 };
+
+/**
+ * 2026-05-06 bug 77: pincode typeahead scoped to (client, product) via service_zone_rules.
+ * Same shape as usePincodeSearch (debounced server-side search + selected-pincode pin) but
+ * fetches from /api/clients/:clientId/products/:productId/pincodes. Use this in case-creation
+ * flows; usePincodeSearch (unscoped) is for admin master-data screens.
+ *
+ * - When clientId or productId is missing, returns an empty list (gated query).
+ * - When initialPincodeId points to a pincode no longer in the scope, falls back to a global
+ *   getPincodeById lookup so the saved value remains visible (avoids ghost edit-mode entries).
+ */
+export const useScopedPincodeSearch = (
+  clientId: string | number | undefined | null,
+  productId: string | number | undefined | null,
+  initialPincodeId?: string
+) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debounceRef = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSearchChange = useCallback(
+    (term: string) => {
+      setSearchTerm(term);
+      if (debounceRef[0]) {
+        clearTimeout(debounceRef[0]);
+      }
+      debounceRef[0] = setTimeout(() => {
+        setDebouncedSearch(term);
+      }, 300);
+    },
+    [debounceRef]
+  );
+
+  const enabled = !!(clientId && productId);
+
+  const { data: defaultData, isLoading: defaultLoading } = useQuery({
+    queryKey: ['scoped-pincodes', 'default', clientId, productId],
+    queryFn: () =>
+      locationsService.getPincodesForClientProduct(
+        clientId as string | number,
+        productId as string | number,
+        {
+          limit: 30,
+        }
+      ),
+    enabled,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const { data: searchData, isLoading: searchLoading } = useQuery({
+    queryKey: ['scoped-pincodes', 'search', clientId, productId, debouncedSearch],
+    queryFn: () =>
+      locationsService.getPincodesForClientProduct(
+        clientId as string | number,
+        productId as string | number,
+        {
+          search: debouncedSearch,
+          limit: 30,
+        }
+      ),
+    enabled: enabled && debouncedSearch.length >= 1,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Fallback global lookup so an already-saved (initial) pincode renders even if the
+  // service_zone_rules mapping was changed/removed after the case was created.
+  const { data: selectedData } = useQuery({
+    queryKey: ['pincodes', 'selected', initialPincodeId],
+    queryFn: () => locationsService.getPincodeById(initialPincodeId as string),
+    enabled: !!initialPincodeId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const pincodes = useMemo(() => {
+    const sourceData = debouncedSearch.length >= 1 ? searchData : defaultData;
+    const items = sourceData?.data || [];
+    if (selectedData?.data && initialPincodeId) {
+      const sel = selectedData.data;
+      const exists = items.some(
+        (p: { id: string | number }) => String(p.id) === String(initialPincodeId)
+      );
+      if (!exists) {
+        return [sel, ...items];
+      }
+    }
+    return items;
+  }, [defaultData, searchData, selectedData, debouncedSearch, initialPincodeId]);
+
+  return {
+    pincodes,
+    searchTerm,
+    setSearchTerm: handleSearchChange,
+    isLoading: defaultLoading || searchLoading,
+  };
+};

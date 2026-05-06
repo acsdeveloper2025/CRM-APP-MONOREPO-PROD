@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CaseCreationStepper } from '@/components/cases/CaseCreationStepper';
 import { useCase } from '@/hooks/useCases';
-import { usePincodes } from '@/hooks/useLocations';
 import { useAreasByPincode } from '@/hooks/useAreas';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -36,12 +35,10 @@ export const NewCasePage: React.FC = () => {
   const shouldFetchCase = isEditMode && editCaseId;
   const { data: caseData, isLoading: loadingCase } = useCase(shouldFetchCase ? editCaseId : '');
 
-  // In edit mode, fetch only the specific pincode(s) needed for mapping (replaces bulk 10K load)
-  const [editPincodeCode, setEditPincodeCode] = useState<string>('');
-  const { data: pincodesResponse } = usePincodes({
-    search: editPincodeCode,
-    limit: 30,
-  });
+  // 2026-05-06 bug 78 (proper fix): the verification_tasks endpoint already returns
+  // `pincodeId` directly (per F5.1.2 Phase B — vt.pincode_id FK + JOIN). The previous
+  // pattern of `usePincodes({ search: code, limit: 30 })` + `pincodes.find(p => p.code === ...)`
+  // was dead code from before that migration. Just read `task.pincodeId` directly.
 
   // Fetch verification tasks to get address (address is stored at task level, not case level)
   const { data: verificationTasksResponse } = useQuery({
@@ -63,54 +60,32 @@ export const NewCasePage: React.FC = () => {
   const [pincodeIdForAreas, setPincodeIdForAreas] = useState<number | undefined>();
   const { data: areasResponse } = useAreasByPincode(pincodeIdForAreas);
 
-  // Extract pincode code from case/task data to trigger targeted search
+  // 2026-05-06 bug 78 (proper fix): set pincodeIdForAreas directly from the task's
+  // pincodeId (returned by /api/verification-tasks). No global pincode fetch needed.
   useEffect(() => {
     if (isEditMode && caseData?.data) {
       const tasks = verificationTasksResponse?.data?.tasks || [];
       const selectedTask = editTaskId
         ? tasks.find((t: VerificationTask) => t.id === editTaskId)
         : tasks[0];
-      const taskPincodeCode = (selectedTask as unknown as Record<string, unknown>)?.pincode as
+      const taskPincodeId = (selectedTask as unknown as Record<string, unknown>)?.pincodeId as
+        | number
         | string
         | undefined;
-      const code = taskPincodeCode || caseData.data.pincode;
-      if (code && code !== editPincodeCode) {
-        setEditPincodeCode(code);
-      }
-    }
-  }, [isEditMode, caseData, verificationTasksResponse, editTaskId, editPincodeCode]);
-
-  // First useEffect: Set pincode ID for fetching areas (if pincode exists)
-  useEffect(() => {
-    if (isEditMode && caseData?.data && pincodesResponse?.data) {
-      const caseItem = caseData.data;
-      const pincodes = pincodesResponse.data;
-      const tasks = verificationTasksResponse?.data?.tasks || [];
-      const selectedTask = editTaskId
-        ? tasks.find((t: VerificationTask) => t.id === editTaskId)
-        : tasks[0];
-      const taskPincodeCode = (selectedTask as unknown as Record<string, unknown>)?.pincode as
-        | string
-        | undefined;
-      const effectivePincodeCode = taskPincodeCode || caseItem.pincode;
-
-      // Find pincode ID based on task-level pincode code first
-      const foundPincode = pincodes.find((p) => p.code === effectivePincodeCode);
-      if (foundPincode) {
-        setPincodeIdForAreas(parseInt(foundPincode.id));
+      if (taskPincodeId !== undefined && taskPincodeId !== null) {
+        const id = typeof taskPincodeId === 'string' ? parseInt(taskPincodeId, 10) : taskPincodeId;
+        setPincodeIdForAreas(Number.isFinite(id) ? id : undefined);
       } else {
-        // If pincode doesn't exist, still proceed with mapping (without areas)
         setPincodeIdForAreas(undefined);
       }
     }
-  }, [isEditMode, caseData, pincodesResponse, verificationTasksResponse, editTaskId]);
+  }, [isEditMode, caseData, verificationTasksResponse, editTaskId]);
 
   // Second useEffect: Map all case data when areas are loaded
   useEffect(() => {
     try {
-      if (isEditMode && caseData?.data && pincodesResponse?.data) {
+      if (isEditMode && caseData?.data) {
         const caseItem = caseData.data;
-        const pincodes = pincodesResponse.data;
 
         const tasks = verificationTasksResponse?.data?.tasks || [];
         if (!tasks.length) {
@@ -145,12 +120,12 @@ export const NewCasePage: React.FC = () => {
           assignedTo: firstTask?.assignedTo,
         });
 
-        const taskPincodeCode = firstTask?.pincode as string | undefined;
-        const effectivePincodeCode = taskPincodeCode || String(caseItem.pincode || '');
-
-        // Find pincode ID based on task-level pincode code first
-        const foundPincode = pincodes.find((p) => p.code === effectivePincodeCode);
-        const pincodeId = foundPincode?.id?.toString() || '';
+        // 2026-05-06 bug 78 (proper fix): task object already carries pincodeId
+        // from /api/verification-tasks (per F5.1.2 Phase B). Read it directly —
+        // no global pincode fetch + code lookup needed.
+        const rawPincodeId = firstTask?.pincodeId;
+        const pincodeId =
+          rawPincodeId !== undefined && rawPincodeId !== null ? String(rawPincodeId) : '';
 
         // Use task-level areaId directly when available
         const taskAreaId = firstTask?.areaId || firstTask?.areaId;
@@ -241,11 +216,10 @@ export const NewCasePage: React.FC = () => {
                 ? parseInt(String(taskRecord.verificationTypeId), 10)
                 : null,
             rateTypeId: String(taskRecord.rateTypeId || taskRecord.rateTypeId || ''),
-            pincodeId: (() => {
-              const taskPincodeCode = String(taskRecord.pincode || '');
-              const found = pincodes.find((p) => p.code === taskPincodeCode);
-              return found?.id?.toString() || '';
-            })(),
+            pincodeId:
+              taskRecord.pincodeId !== undefined && taskRecord.pincodeId !== null
+                ? String(taskRecord.pincodeId)
+                : '',
             areaId: String(taskRecord.areaId || taskRecord.areaId || ''),
             address: String(taskRecord.address || ''),
             trigger: String(taskRecord.trigger || caseFormData.trigger || ''),
@@ -291,7 +265,6 @@ export const NewCasePage: React.FC = () => {
   }, [
     isEditMode,
     caseData,
-    pincodesResponse,
     areasResponse,
     verificationTasksResponse,
     caseAttachmentsResponse,

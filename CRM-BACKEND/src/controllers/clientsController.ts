@@ -345,6 +345,75 @@ export const getDocumentTypesForClientProduct = async (
   }
 };
 
+// GET /api/clients/:clientId/products/:productId/pincodes
+// 2026-05-06 bug 77: returns ONLY the pincodes authorised for this (client, product)
+// tuple via service_zone_rules. Optional ?search filters by code or area name.
+// Optional ?limit (default 30) for typeahead; max 200.
+export const getPincodesForClientProduct = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const clientId = Number(req.params.clientId);
+    const productId = Number(req.params.productId);
+    const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const limit = Math.min(Number(req.query.limit) || 30, 200);
+    const params: (string | number)[] = [clientId, productId];
+    let searchClause = '';
+    if (search) {
+      params.push(`%${search}%`);
+      searchClause = ` AND (pin.code ILIKE $${params.length} OR a.name ILIKE $${params.length} OR c.name ILIKE $${params.length})`;
+    }
+    params.push(limit);
+    const r = await query(
+      `SELECT DISTINCT pin.id, pin.code, pin.city_id, c.name AS city_name, c.state_id,
+              s.name AS state_name, s.country_id
+         FROM service_zone_rules szr
+         JOIN pincodes pin ON pin.id = szr.pincode_id
+         LEFT JOIN areas a ON a.id = szr.area_id
+         LEFT JOIN cities c ON c.id = pin.city_id
+         LEFT JOIN states s ON s.id = c.state_id
+        WHERE szr.client_id = $1 AND szr.product_id = $2 AND szr.is_active = true${searchClause}
+        ORDER BY pin.code
+        LIMIT $${params.length}`,
+      params
+    );
+    res.json({ success: true, data: r.rows });
+  } catch (error) {
+    logger.error('Error retrieving pincodes for client+product:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve pincodes',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+// GET /api/clients/:clientId/products/:productId/pincodes/:pincodeId/areas
+// 2026-05-06 bug 77: returns ONLY the areas authorised for this (client, product, pincode)
+// triple via service_zone_rules.
+export const getAreasForClientProductPincode = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const clientId = Number(req.params.clientId);
+    const productId = Number(req.params.productId);
+    const pincodeId = Number(req.params.pincodeId);
+    const r = await query(
+      `SELECT DISTINCT a.id, a.name
+         FROM service_zone_rules szr
+         JOIN areas a ON a.id = szr.area_id
+        WHERE szr.client_id = $1 AND szr.product_id = $2 AND szr.pincode_id = $3
+          AND szr.is_active = true
+        ORDER BY a.name`,
+      [clientId, productId, pincodeId]
+    );
+    res.json({ success: true, data: r.rows });
+  } catch (error) {
+    logger.error('Error retrieving areas for client+product+pincode:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve areas',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
 // POST /api/clients - Create new client
 export const createClient = async (req: AuthenticatedRequest, res: Response) => {
   try {

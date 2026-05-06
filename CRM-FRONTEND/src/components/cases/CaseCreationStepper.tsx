@@ -19,7 +19,8 @@ import { deduplicationService, type DeduplicationResult } from '@/services/dedup
 import { casesService, type CreateCaseData } from '@/services/cases';
 import { attachmentsService } from '@/services/attachments';
 import { kycService } from '@/services/kyc';
-import { usePincodes } from '@/hooks/useLocations';
+import { locationsService } from '@/services/locations';
+import type { Pincode } from '@/types/location';
 import { useVerificationTypes } from '@/hooks/useClients';
 import { toast } from 'sonner';
 import type { CaseFormAttachment } from '@/components/attachments/CaseFormAttachmentsSection';
@@ -99,9 +100,22 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     'Case created through two-step workflow'
   );
 
-  // Fetch pincodes for code lookup
-  const { data: pincodesResponse } = usePincodes();
-  const pincodes = pincodesResponse?.data || [];
+  // 2026-05-06 bug 78: do NOT bulk-fetch all pincodes here (was usePincodes() — at
+  // production scale loads 10K+ rows for a 2-callsite ID→code lookup). Each submit
+  // handler batch-fetches only the pincodes its tasks reference via
+  // `locationsService.getPincodeById` — see `resolvePincodeCodes` helper below.
+  const resolvePincodeCodes = async (
+    pincodeIds: (string | undefined | null)[]
+  ): Promise<Pincode[]> => {
+    const ids = Array.from(new Set(pincodeIds.filter(Boolean) as string[]));
+    if (ids.length === 0) {
+      return [];
+    }
+    const results = await Promise.all(
+      ids.map((id) => locationsService.getPincodeById(id).catch(() => null))
+    );
+    return results.flatMap((r) => (r && r.success && r.data ? [r.data] : []));
+  };
 
   // Fetch verification types for ID lookup
   const { data: verificationTypesResponse } = useVerificationTypes({ limit: 500 });
@@ -327,9 +341,10 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         return vt?.name || 'Verification';
       };
 
-      // Get pincode code from pincode ID
+      // 2026-05-06 bug 78: batch-fetch only the pincodes referenced by submitting tasks.
+      const fetchedPincodes = await resolvePincodeCodes(tasks.map((t) => t.pincodeId));
       const getPincodeCode = (pincodeId: string) => {
-        const pincode = pincodes.find((p) => p.id.toString() === pincodeId);
+        const pincode = fetchedPincodes.find((p) => p.id.toString() === pincodeId);
         return pincode?.code || pincodeId;
       };
 
@@ -647,8 +662,9 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Get pincode code from pincode ID for backend compatibility
-      const selectedPincode = pincodes.find((p) => p.id.toString() === data.pincodeId);
+      // 2026-05-06 bug 78: fetch only this single pincode (was global usePincodes scan).
+      const fetchedPincodes = await resolvePincodeCodes([data.pincodeId]);
+      const selectedPincode = fetchedPincodes.find((p) => p.id.toString() === data.pincodeId);
       const pincodeCode = selectedPincode?.code || data.pincodeId;
 
       // Use verification type ID directly from form data

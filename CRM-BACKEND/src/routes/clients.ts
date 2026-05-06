@@ -20,6 +20,8 @@ import {
   getClientVerificationTypes,
   getVerificationTypesForClientProduct,
   getDocumentTypesForClientProduct,
+  getPincodesForClientProduct,
+  getAreasForClientProductPincode,
   uploadClientLogo,
   uploadClientStamp,
   deleteClientLogo,
@@ -231,6 +233,27 @@ router.get(
   authenticateToken,
   validate([param('clientId').isInt({ min: 1 }), param('productId').isInt({ min: 1 })]),
   getDocumentTypesForClientProduct
+);
+
+// 2026-05-06 bug 77: pincodes + areas scoped via service_zone_rules
+// GET /api/clients/:clientId/products/:productId/pincodes
+router.get(
+  '/:clientId/products/:productId/pincodes',
+  authenticateToken,
+  validate([param('clientId').isInt({ min: 1 }), param('productId').isInt({ min: 1 })]),
+  getPincodesForClientProduct
+);
+
+// GET /api/clients/:clientId/products/:productId/pincodes/:pincodeId/areas
+router.get(
+  '/:clientId/products/:productId/pincodes/:pincodeId/areas',
+  authenticateToken,
+  validate([
+    param('clientId').isInt({ min: 1 }),
+    param('productId').isInt({ min: 1 }),
+    param('pincodeId').isInt({ min: 1 }),
+  ]),
+  getAreasForClientProductPincode
 );
 
 // -----------------------------------------------------------------------

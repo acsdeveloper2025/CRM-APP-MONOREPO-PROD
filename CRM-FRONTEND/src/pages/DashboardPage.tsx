@@ -7,6 +7,7 @@ import { MonthlyTrendsChart } from '@/components/dashboard/MonthlyTrendsChart';
 import { RecentActivities } from '@/components/dashboard/RecentActivities';
 import { useDashboardKPI } from '@/hooks/useDashboardKPI';
 import { usePermission } from '@/hooks/usePermissions';
+import { useAuth } from '@/hooks/useAuth';
 import {
   XCircle,
   CheckSquare,
@@ -25,7 +26,25 @@ import { Link, useNavigate } from 'react-router-dom';
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const hasKYCAccess = usePermission('page.kyc');
+  // KYC dashboard cards: any user who can touch cases (creators, viewers, KYC reviewers).
+  // Backend kycQuery is RBAC-scoped (creator/client/product/hierarchy), so case-creators see
+  // only KYC stats for cases they're authorized on — no cross-tenant leak.
+  // Defense-in-depth: also fall back to role check so a perms-array race (login response
+  // missing perms before /auth/me populated state) never hides the section for case-touching roles.
+  const { user } = useAuth();
+  const hasKYCPagePermission = usePermission('page.kyc');
+  const hasCaseViewPermission = usePermission('case.view');
+  const hasCaseCreatePermission = usePermission('case.create');
+  const role = (user?.role || '').toString().toUpperCase();
+  const isCaseTouchingRole = [
+    'SUPER_ADMIN',
+    'ADMIN',
+    'MANAGER',
+    'TEAM_LEAD',
+    'BACKEND_USER',
+  ].includes(role);
+  const hasKYCAccess =
+    hasKYCPagePermission || hasCaseViewPermission || hasCaseCreatePermission || isCaseTouchingRole;
   const hasCasesAccess = usePermission('page.cases');
   const hasTasksAccess = usePermission('page.tasks');
   const hasBillingAccess = usePermission('page.billing');
