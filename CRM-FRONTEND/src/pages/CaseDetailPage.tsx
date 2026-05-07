@@ -272,6 +272,26 @@ export const CaseDetailPage: React.FC = () => {
                             <span className="text-sm">Type: {caseItem.applicantType}</span>
                           </div>
                         )}
+                        {caseItem.customerPhone && (
+                          <div className="flex items-center space-x-2">
+                            <Phone className="h-4 w-4 text-gray-600" />
+                            <span className="text-sm">Mobile: {caseItem.customerPhone}</span>
+                          </div>
+                        )}
+                        {caseItem.customerCallingCode && (
+                          <div className="flex items-center space-x-2">
+                            <FileText className="h-4 w-4 text-gray-600" />
+                            <span className="text-sm">
+                              Customer Calling Code: {caseItem.customerCallingCode}
+                            </span>
+                          </div>
+                        )}
+                        {caseItem.panNumber && (
+                          <div className="flex items-center space-x-2">
+                            <FileText className="h-4 w-4 text-gray-600" />
+                            <span className="text-sm">PAN: {caseItem.panNumber}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
