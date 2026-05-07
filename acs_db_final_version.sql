@@ -8511,7 +8511,7 @@ CREATE TABLE public.verification_reports (
     CONSTRAINT chk_verification_reports_staff_seen CHECK (((staff_seen IS NULL) OR (staff_strength IS NULL) OR ((staff_seen >= 0) AND (staff_seen <= staff_strength)))),
     CONSTRAINT chk_verification_reports_staff_strength CHECK (((staff_strength IS NULL) OR ((staff_strength >= 1) AND (staff_strength <= 10000)))),
     CONSTRAINT chk_verification_reports_total_earning CHECK (((total_earning_member IS NULL) OR (total_family_members IS NULL) OR ((total_earning_member >= 0) AND (total_earning_member <= total_family_members)))),
-    CONSTRAINT chk_verification_reports_total_family CHECK (((total_family_members IS NULL) OR ((total_family_members >= 1) AND (total_family_members <= 50)))),
+    CONSTRAINT chk_verification_reports_total_family CHECK (((total_family_members IS NULL) OR ((total_family_members >= 0) AND (total_family_members <= 50)))),
     CONSTRAINT chk_verification_reports_total_images CHECK ((total_images >= 0)),
     CONSTRAINT chk_verification_reports_total_selfies CHECK ((total_selfies >= 0))
 );
