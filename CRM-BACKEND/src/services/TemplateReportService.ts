@@ -125,7 +125,7 @@ VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Name_of_Met_Person} {Met_Person_Confirmation} that {Applicant_Staying_Status_Text}. Society board {Society_Name_Plate_Text}.
+{Name_of_Met_Person} {Met_Person_Confirmation_Text} that {Applicant_Staying_Status_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color}.
@@ -289,7 +289,7 @@ VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Name_of_Met_Person} {Met_Person_Confirmation} the office existence at the given address — {Office_Exists_Status}. The met person also informed that {Applicant_Working_Status_Text}. Entry is restricted due to security protocols or company policies.
+{Name_of_Met_Person} {Met_Person_Confirmation_Text} the office existence at the given address{Office_Exists_Status_Clause}. The met person also informed that {Applicant_Working_Status_Text}. Entry is restricted due to security protocols or company policies.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color}.
@@ -498,7 +498,7 @@ VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Name_of_Met_Person} {Met_Person_Confirmation} the business existence at the given address — {Business_Exists_Status}. The met person also informed that {Applicant_Working_Status_Text}. Entry is restricted due to security protocols or business policies.
+{Name_of_Met_Person} {Met_Person_Confirmation_Text} the business existence at the given address{Business_Exists_Status_Clause}. The met person also informed that {Applicant_Working_Status_Text}. Entry is restricted due to security protocols or business policies.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color}.
@@ -665,7 +665,7 @@ VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Name_of_Met_Person} {Met_Person_Confirmation} the residence and office existence at the given address — {Business_Exists_Status}. The met person also informed that {Applicant_Staying_Status_Text} and {Applicant_Working_Status_Text}. Entry is restricted due to security protocols or building policies.
+{Name_of_Met_Person} {Met_Person_Confirmation_Text} the residence and office existence at the given address{Business_Exists_Status_Clause}. The met person also informed that {Applicant_Staying_Status_Text} and {Applicant_Working_Status_Text}. Entry is restricted due to security protocols or building policies.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color}.
@@ -829,7 +829,7 @@ VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Name_of_Met_Person} {Met_Person_Confirmation} the builder office existence at the given address — {Business_Exists_Status}. The met person also informed that {Applicant_Working_Status_Text}. Entry is restricted due to security protocols or office policies.
+{Name_of_Met_Person} {Met_Person_Confirmation_Text} the builder office existence at the given address{Business_Exists_Status_Clause}. The met person also informed that {Applicant_Working_Status_Text}. Entry is restricted due to security protocols or office policies.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color}.
@@ -978,7 +978,7 @@ VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Name_of_Met_Person} {Met_Person_Confirmation} the NOC office existence at the given address — {Office_Exists_Status}. Entry is restricted due to security protocols or office policies.
+{Name_of_Met_Person} {Met_Person_Confirmation_Text} the NOC office existence at the given address{Office_Exists_Status_Clause}. Entry is restricted due to security protocols or office policies.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color}.
@@ -1139,7 +1139,7 @@ VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Name_of_Met_Person} {Met_Person_Confirmation} the DSA/Connector office existence at the given address — {Business_Exists_Status}. The applicant is staying on the {Applicant_Staying_Floor} floor. Entry is restricted due to security protocols or office policies.
+{Name_of_Met_Person} {Met_Person_Confirmation_Text} the DSA/Connector office existence at the given address{Business_Exists_Status_Clause}. The applicant is staying on the {Applicant_Staying_Floor} floor. Entry is restricted due to security protocols or office policies.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color}.
@@ -1232,7 +1232,7 @@ VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. Building status: {Building_Status}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Name_of_Met_Person} {Met_Person_Confirmation} the property existence at the given address.
+{Name_of_Met_Person} {Met_Person_Confirmation_Text} the property existence at the given address.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_Met_Person_1} {Name_of_TPC_1} and {TPC_Met_Person_2} {Name_of_TPC_2}.
@@ -1354,7 +1354,7 @@ VERIFICATION DETAILS:
 Visited at the given address for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Name_of_Met_Person} {Met_Person_Confirmation} the property existence at the given address. The property owner is {Property_Owner_Name}. Society board {Society_Name_Plate_Text}.
+{Name_of_Met_Person} {Met_Person_Confirmation_Text} the property existence at the given address. The property owner is {Property_Owner_Name}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The building color is {Address_Structure_Color}. The building status is {Building_Status}.
@@ -2207,6 +2207,26 @@ Hence the profile is marked as {Final_Status}.`,
     // mid-sentence only (verified by grep). Safe globally.
     const lc = (s: string): string => (s || '').toString().toLowerCase();
 
+    // Verb form for met-person confirmation in ERT prose. Mobile dropdown
+    // values are 'Confirmed' / 'Not Confirmed'; bare lc() yields broken
+    // grammar ("AMIT not confirmed the office existence ...").
+    const metPersonConfirmationText = (raw: string): string => {
+      const v = (raw || '').trim().toLowerCase();
+      if (v === 'not confirmed' || v === 'did not confirm') {
+        return 'did not confirm';
+      }
+      // Default to 'confirmed' for empty + 'Confirmed' (matches prior lc()
+      // default fallback at the Met_Person_Confirmation resolver).
+      return 'confirmed';
+    };
+
+    // Wraps a status value in ` — <value>` or returns '' when empty.
+    // Removes dangling "— ." artifact when ERT exists-status not captured.
+    const existsClause = (raw: string): string => {
+      const v = (raw || '').trim();
+      return v ? ` — ${v}` : '';
+    };
+
     // Renders the applicant's working profile narration. Returns the full
     // sentence when both `workingStatus` and `companyName` are present,
     // otherwise empty. Avoids broken output like "Rahul Kumar is  at ."
@@ -2550,6 +2570,20 @@ Hence the profile is marked as {Final_Status}.`,
         safeGet(formData, 'metPersonConfirmation') ||
           safeGet(formData, 'met_person_confirmation') ||
           'confirmed'
+      ),
+      // Bug 81 (2026-05-07): grammar-correct verb form for ERT prose.
+      // 'Confirmed' → 'confirmed', 'Not Confirmed' → 'did not confirm'.
+      Met_Person_Confirmation_Text: metPersonConfirmationText(
+        safeGet(formData, 'metPersonConfirmation') || safeGet(formData, 'met_person_confirmation')
+      ),
+      // Bug 81 (2026-05-07): wraps the ERT exists-status value in ` — X`
+      // or returns '' when empty. Removes dangling "— ." artifact when
+      // mobile didn't capture the status.
+      Office_Exists_Status_Clause: existsClause(
+        safeGet(formData, 'officeExistsStatus') || safeGet(formData, 'office_exists_status')
+      ),
+      Business_Exists_Status_Clause: existsClause(
+        safeGet(formData, 'businessExistsStatus') || safeGet(formData, 'business_exists_status')
       ),
       Met_Person_Status:
         safeGet(formData, 'metPersonStatus') || safeGet(formData, 'met_person_status'),

@@ -290,6 +290,8 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
 
           // NSP-specific fields
           officeExistence: officeData.officeExistence,
+          // ERT-specific (bug 81 Path-2 fix 2026-05-07): exists status
+          officeExistsStatus: officeData.officeExistsStatus,
 
           // Document & work fields
           documentType: officeData.documentType,
@@ -379,6 +381,8 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           metPersonType: businessData.metPersonType,
           metPersonConfirmation: businessData.metPersonConfirmation,
           applicantWorkingStatus: businessData.applicantWorkingStatus,
+          // ERT-specific (bug 81 Path-2 fix 2026-05-07): exists status
+          businessExistsStatus: businessData.businessExistsStatus,
           // Untraceable
           contactPerson: businessData.contactPerson,
           callRemark: businessData.callRemark,
@@ -485,6 +489,8 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           currentLocation: rcData.currentLocation,
           // NSP
           officeExistence: rcData.officeExistence,
+          // ERT-specific (bug 81 Path-2 fix 2026-05-07): exists status
+          businessExistsStatus: rcData.businessExistsStatus,
           // Untraceable
           contactPerson: rcData.contactPerson,
           callRemark: rcData.callRemark,
@@ -534,6 +540,8 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           // Builder details
           officeStatus: builderData.officeStatus,
           officeExistence: builderData.officeExistence,
+          // ERT-specific (bug 81 Path-2 fix 2026-05-07): exists status
+          businessExistsStatus: builderData.businessExistsStatus,
           builderType: builderData.builderType,
           builderName: builderData.builderName,
           builderOwnerName: builderData.builderOwnerName,
@@ -643,6 +651,8 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           metPersonDesignation: nocData.metPersonDesignation,
           metPersonRelation: nocData.metPersonRelation,
           metPersonContact: nocData.metPersonContact,
+          // ERT-specific (bug 81 Path-2 fix 2026-05-07): exists status
+          officeExistsStatus: nocData.officeExistsStatus,
           // NOC Positive xlsx fields
           authorisedSignature: nocData.authorisedSignature,
           nameOnNoc: nocData.nameOnNoc,
@@ -795,7 +805,8 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           applicantExistance: dsaData.applicantExistence,
           // ERT
           metPersonType: dsaData.metPersonDesignation,
-          businessExistStatus: dsaData.businessExistStatus,
+          // ERT-specific (bug 81 Path-2 fix 2026-05-07): exists status — was typo `businessExistStatus`
+          businessExistsStatus: dsaData.businessExistsStatus,
           applicantStayingFloor: dsaData.applicantStayingFloor,
           // Entry restricted
           entryRestrictionReason: dsaData.entryRestrictionReason,
