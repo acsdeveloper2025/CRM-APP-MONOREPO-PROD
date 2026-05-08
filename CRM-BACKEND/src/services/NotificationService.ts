@@ -194,9 +194,45 @@ export class NotificationService {
   }
 
   /**
-   * Create notification record in database
+   * Create notification record in database.
+   *
+   * Phase 2 TIER 3 (2026-05-08): app-level dedup against queue retry races.
+   * BullMQ jobIds prevent within-completion-window dupes, but a job lost
+   * after deletion from the completion store (server crash before INSERT
+   * commits) would duplicate-INSERT on retry. Pre-INSERT check rejects
+   * any (user_id, type, task_id, is_deleted=false) collision within the
+   * last 5 minutes. Returns the existing id on collision (idempotent).
+   * Logged when triggered for observability.
    */
   private static async createNotificationRecord(data: NotificationData): Promise<string> {
+    // Dedup: check for an active duplicate within the last 5 minutes.
+    // Scope by (user_id, type, task_id) when task_id is present;
+    // otherwise (user_id, type, case_id) when only case_id is present;
+    // otherwise no dedup (fall through). Avoids blocking legitimately
+    // distinct system notifications that share a type but no entity.
+    if (data.taskId || data.caseId) {
+      const dedupKey = data.taskId ? 'task_id' : 'case_id';
+      const dedupValue = data.taskId || data.caseId;
+      const dedupRes = await query<{ id: string }>(
+        `SELECT id FROM notifications
+         WHERE user_id = $1
+           AND type = $2
+           AND ${dedupKey} = $3
+           AND is_deleted = false
+           AND created_at > now() - interval '5 minutes'
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [data.userId, data.type, dedupValue]
+      );
+      if (dedupRes.rows[0]) {
+        const existingId = dedupRes.rows[0].id;
+        logger.info(
+          `Notification dedup hit — returning existing id ${existingId} for user=${data.userId} type=${data.type} ${dedupKey}=${dedupValue}`
+        );
+        return existingId;
+      }
+    }
+
     const insertQuery = `
       INSERT INTO notifications (
         user_id, title, message, type, case_id, case_number, task_id, task_number,

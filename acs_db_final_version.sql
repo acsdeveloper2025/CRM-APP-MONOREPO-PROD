@@ -1140,7 +1140,7 @@ DROP FUNCTION IF EXISTS public.set_updated_at_roles_v2();
 DROP FUNCTION IF EXISTS public.safe_to_numeric(t text);
 DROP FUNCTION IF EXISTS public.safe_to_date(t text);
 DROP FUNCTION IF EXISTS public.purge_stale_performance_metrics(retention interval);
-DROP FUNCTION IF EXISTS public.purge_stale_notifications(delivered_read_retention interval, unresolved_retention interval);
+DROP FUNCTION IF EXISTS public.purge_stale_notifications(delivered_read_retention interval, unresolved_retention interval, soft_deleted_retention interval);
 DROP FUNCTION IF EXISTS public.purge_stale_auto_saves(retention interval);
 DROP FUNCTION IF EXISTS public.purge_stale_audit_logs(retention interval);
 DROP FUNCTION IF EXISTS public.purge_expired_idempotency_keys(grace interval);
@@ -1655,16 +1655,18 @@ COMMENT ON FUNCTION public.purge_stale_auto_saves(retention interval) IS 'F7.9.3
 
 
 --
--- Name: purge_stale_notifications(interval, interval); Type: FUNCTION; Schema: public; Owner: -
+-- Name: purge_stale_notifications(interval, interval, interval); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.purge_stale_notifications(delivered_read_retention interval DEFAULT '90 days'::interval, unresolved_retention interval DEFAULT '365 days'::interval) RETURNS TABLE(deleted_delivered integer, deleted_unresolved integer, deleted_delivery_log integer)
+CREATE FUNCTION public.purge_stale_notifications(delivered_read_retention interval DEFAULT '90 days'::interval, unresolved_retention interval DEFAULT '365 days'::interval, soft_deleted_retention interval DEFAULT '30 days'::interval) RETURNS TABLE(deleted_delivered integer, deleted_unresolved integer, deleted_soft_purged integer, deleted_delivery_log integer)
     LANGUAGE plpgsql
     AS $$
 DECLARE
-  d1 integer; d2 integer; d_log_t1 integer; d_log_t2 integer;
-  ids_t1 uuid[]; ids_t2 uuid[];
+  d1 integer; d2 integer; d3 integer;
+  d_log_t1 integer; d_log_t2 integer; d_log_t3 integer;
+  ids_t1 uuid[]; ids_t2 uuid[]; ids_t3 uuid[];
 BEGIN
+  -- Tier 1: DELIVERED + is_read=true older than 90 days
   SELECT ARRAY(
     SELECT id FROM notifications
     WHERE delivery_status = 'DELIVERED' AND is_read = true
@@ -1676,6 +1678,7 @@ BEGIN
   DELETE FROM notifications WHERE id = ANY(ids_t1);
   GET DIAGNOSTICS d1 = ROW_COUNT;
 
+  -- Tier 2: FAILED/PENDING older than 365 days
   SELECT ARRAY(
     SELECT id FROM notifications
     WHERE delivery_status IN ('FAILED','PENDING')
@@ -1687,7 +1690,23 @@ BEGIN
   DELETE FROM notifications WHERE id = ANY(ids_t2);
   GET DIAGNOSTICS d2 = ROW_COUNT;
 
-  RETURN QUERY SELECT d1, d2, d_log_t1 + d_log_t2;
+  -- Tier 3 (Phase 2 TIER 2, 2026-05-08): soft-deleted (is_deleted=true)
+  -- older than 30 days. Source: user "Clear All" / per-row "Delete"
+  -- actions or admin clear. Without this, is_deleted=true rows accumulate
+  -- indefinitely.
+  SELECT ARRAY(
+    SELECT id FROM notifications
+    WHERE is_deleted = true
+      AND deleted_at IS NOT NULL
+      AND deleted_at < now() - soft_deleted_retention
+  ) INTO ids_t3;
+
+  DELETE FROM notification_delivery_log WHERE notification_id = ANY(ids_t3);
+  GET DIAGNOSTICS d_log_t3 = ROW_COUNT;
+  DELETE FROM notifications WHERE id = ANY(ids_t3);
+  GET DIAGNOSTICS d3 = ROW_COUNT;
+
+  RETURN QUERY SELECT d1, d2, d3, d_log_t1 + d_log_t2 + d_log_t3;
 END;
 $$;
 

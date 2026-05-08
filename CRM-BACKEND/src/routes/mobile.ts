@@ -107,6 +107,33 @@ router.delete(
   authenticateToken,
   NotificationController.clearAllNotifications.bind(NotificationController)
 );
+// T1.3 (Phase 1, 2026-05-08): per-row delete for mobile multi-select UI.
+// Web prefix already had this; mobile prefix was missing it. Routes to
+// the same handler (soft-delete via `is_deleted=true` per Phase 2.2).
+router.delete(
+  '/notifications/:notificationId',
+  authenticateToken,
+  NotificationController.deleteNotification.bind(NotificationController)
+);
+
+// Phase 3 Trash UI (2026-05-08): list + restore soft-deleted notifications
+// for the user. Mobile Trash/Restore screen calls these endpoints.
+// Web prefix already has restore mounts; this adds the mobile mirror.
+router.get(
+  '/notifications/trash',
+  authenticateToken,
+  NotificationController.getDeletedNotifications.bind(NotificationController)
+);
+router.put(
+  '/notifications/restore',
+  authenticateToken,
+  NotificationController.restoreNotification.bind(NotificationController)
+);
+router.put(
+  '/notifications/:notificationId/restore',
+  authenticateToken,
+  NotificationController.restoreNotification.bind(NotificationController)
+);
 
 // Phase 2.3 (2026-05-04): mobile mirror of /api/notifications/preferences.
 // Same controller methods as the web prefix; the mobile Settings screen

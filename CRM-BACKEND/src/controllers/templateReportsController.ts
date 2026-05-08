@@ -90,7 +90,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
     // Find verification task via task_form_submissions (submissionId = form_submission_id)
     // Falls back to verification_attachments.submissionId for legacy data
     const taskQuery = `
-      SELECT DISTINCT vt.id as task_id, vt.verification_type_id, vtype.name as verification_type_name
+      SELECT DISTINCT vt.id as task_id, vt.verification_type_id, vtype.name as verification_type_name, vt.address as task_address
       FROM verification_tasks vt
       LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
       WHERE vt.case_id = $1 AND (
@@ -104,7 +104,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
     if (taskResult.rows.length === 0) {
       // Last resort: just get the first task for this case
       const fallbackResult = await dbQuery(
-        `SELECT vt.id as task_id, vt.verification_type_id, vtype.name as verification_type_name
+        `SELECT vt.id as task_id, vt.verification_type_id, vtype.name as verification_type_name, vt.address as task_address
          FROM verification_tasks vt
          LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
          WHERE vt.case_id = $1 LIMIT 1`,
@@ -129,8 +129,10 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
     let outcome = caseData.verificationOutcome;
     let formData: Record<string, unknown> = {};
 
-    // Extract address from verificationData
+    // Extract address — verification_tasks.address is authoritative (the actual visit address).
+    // Falls back to legacy verificationData JSONB for old rows.
     const address =
+      taskData.taskAddress ||
       caseData.verificationData?.address ||
       caseData.verificationData?.formData?.address ||
       caseData.verificationData?.verification?.address ||
@@ -415,6 +417,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           customerName: rcData.customerName,
           addressLocatable: rcData.addressLocatable,
           addressRating: rcData.addressRating,
+          addressTraceable: rcData.addressTraceable,
           houseStatus: rcData.houseStatus,
           officeStatus: rcData.officeStatus,
           metPersonName: rcData.metPersonName,
@@ -1119,6 +1122,10 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
         caseData.verificationData?.formData || caseData.verificationData?.verification || {};
       logger.warn(`Unknown verification type ${verificationType}, using fallback data`);
     }
+
+    // Inject visit address into formData so templates can render
+    // "{Customer_Address}" without each per-type branch needing to add it.
+    formData.customerAddress = address;
 
     // CRITICAL FIX: Normalize verification type for template service
     // Database stores "Business Verification", but templates expect "BUSINESS"

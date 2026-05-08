@@ -310,6 +310,87 @@ export class NotificationController {
   }
 
   /**
+   * Phase 3 Trash UI (2026-05-08): list soft-deleted notifications for
+   * the current user. Used by mobile Trash/Restore screen + future web
+   * Trash view. Returns rows where `is_deleted=true` ordered by
+   * deleted_at DESC. Bypasses scope filtering (a user's own deleted
+   * notifications are always theirs to restore). Limited to last 30
+   * days (matches purge_stale_notifications soft-delete retention).
+   */
+  static async getDeletedNotifications(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user!.id;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          error: { code: 'UNAUTHORIZED' },
+        });
+      }
+      const { limit = 100, offset = 0 } = req.query;
+      const normalizedLimit = Math.min(Number(limit) || 100, 500);
+      const normalizedOffset = Number(offset) || 0;
+
+      const result = await query<{
+        id: string;
+        title: string;
+        message: string;
+        type: string;
+        caseId: string | null;
+        caseNumber: string | null;
+        taskId: string | null;
+        taskNumber: string | null;
+        actionUrl: string | null;
+        actionType: string | null;
+        isRead: boolean;
+        priority: string;
+        createdAt: string;
+        updatedAt: string;
+        deletedAt: string;
+      }>(
+        `SELECT
+           id, title, message, type,
+           case_id   AS "case_id",
+           case_number AS "case_number",
+           task_id   AS "task_id",
+           task_number AS "task_number",
+           action_url AS "action_url",
+           action_type AS "action_type",
+           is_read   AS "is_read",
+           priority,
+           created_at AS "created_at",
+           updated_at AS "updated_at",
+           deleted_at AS "deleted_at"
+         FROM notifications
+         WHERE user_id = $1
+           AND is_deleted = true
+           AND deleted_at > now() - interval '30 days'
+         ORDER BY deleted_at DESC
+         LIMIT $2 OFFSET $3`,
+        [userId, normalizedLimit, normalizedOffset]
+      );
+
+      res.json({
+        success: true,
+        data: result.rows,
+        pagination: {
+          total: result.rows.length,
+          limit: normalizedLimit,
+          offset: normalizedOffset,
+        },
+        message: 'Deleted notifications retrieved successfully',
+      });
+    } catch (error) {
+      logger.error('Get deleted notifications error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: { code: 'INTERNAL_ERROR' },
+      });
+    }
+  }
+
+  /**
    * Mark notification as read
    */
   static async markNotificationAsRead(req: AuthenticatedRequest, res: Response) {
