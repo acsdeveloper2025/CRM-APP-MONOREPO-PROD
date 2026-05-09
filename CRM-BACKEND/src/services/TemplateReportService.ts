@@ -125,13 +125,13 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Name_of_Met_Person} {Met_Person_Confirmation_Text} that {Applicant_Staying_Status_Text}. Society board {Society_Name_Plate_Text}.
+{Name_of_Met_Person} {Met_Person_Confirmation_Text}{Applicant_Staying_Status_That_Clause}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color}.
 
 AREA ASSESSMENT:
-Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from the met person. {Political_Connection_Text}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}.{Feedback_from_Neighbour_Sentence}{Political_Connection_Sentence}
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -289,13 +289,13 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Name_of_Met_Person} {Met_Person_Confirmation_Text} the office existence at the given address{Office_Exists_Status_Clause}. The met person also informed that {Applicant_Working_Status_Text}. Entry is restricted due to security protocols or company policies.
+{Name_of_Met_Person} {Met_Person_Confirmation_Text} the office existence at the given address{Office_Exists_Status_Clause}.{Applicant_Working_Status_Sentence} Entry is restricted due to security protocols or company policies.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color}.
 
 AREA ASSESSMENT:
-Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from the met person. {Political_Connection_Text}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}.{Feedback_from_Neighbour_Sentence}{Political_Connection_Sentence}
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -366,7 +366,7 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE_DOOR_OPEN: `Business Remark: POSITIVE & DOOR OPEN.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was {Business_Status}. Met with {Met_Person_Name} ({Designation}), who confirmed that {Customer_Name} has been running the business at the given address for the last {Business_Period}.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was {Business_Status_Lc}. Met with {Met_Person_Name} ({Designation}), who confirmed that {Customer_Name} has been running the business at the given address for the last {Business_Period}.
 
 BUSINESS DETAILS:
 Business type is {Business_Type} ({Ownership_Type}) and the nature of business is {Company_Nature_Of_Business}. The business area is approximately {Business_Approx_Area}. Business owner: {Business_Owner_Name}. Company nameplate {Company_Name_Plate_Text}. Total staff strength is {Staff_Strength} and {Staff_Seen} were seen during the visit.
@@ -387,7 +387,7 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE_DOOR_LOCKED: `Business Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was {Business_Status}.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was {Business_Status_Lc}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} {Customer_Name}'s business existence. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same. They informed that the business has been operating at the given address for the last {Business_Period}.
@@ -408,7 +408,7 @@ Hence the profile is marked as {Final_Status}.`,
     SHIFTED_DOOR_OPEN: `Business Remark: SHIFTED & DOOR OPEN.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was {Business_Status}. Met with {Met_Person_Name} ({Designation}), who confirmed that the business has shifted from the given address {Old_Business_Shifted_Period} ago.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was {Business_Status_Lc}. Met with {Met_Person_Name} ({Designation}), who confirmed that the business has shifted from the given address {Old_Business_Shifted_Period} ago.
 
 CURRENT BUSINESS STATUS:
 {Current_Company_Name} is currently operating at the given address for the last {Current_Company_Period}. Company nameplate {Company_Name_Plate_Text}.
@@ -450,7 +450,7 @@ Hence the profile is marked as {Final_Status}.`,
     NSP_DOOR_OPEN: `Business Remark: NSP & DOOR OPEN (No Such Person).
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was {Business_Status}. Met with {Met_Person_Name} ({Designation}).
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was {Business_Status_Lc}. Met with {Met_Person_Name} ({Designation}).
 
 BUSINESS VERIFICATION:
 The met person informed that no such person is running a business at the given address. As per the current business owner, {Customer_Name} has never operated a business at this address.
@@ -498,13 +498,13 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Name_of_Met_Person} {Met_Person_Confirmation_Text} the business existence at the given address{Business_Exists_Status_Clause}. The met person also informed that {Applicant_Working_Status_Text}. Entry is restricted due to security protocols or business policies.
+{Name_of_Met_Person} {Met_Person_Confirmation_Text} the business existence at the given address{Business_Exists_Status_Clause}.{Applicant_Working_Status_Sentence} Entry is restricted due to security protocols or business policies.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color}.
 
 AREA ASSESSMENT:
-Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from the met person. {Political_Connection_Text}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}.{Feedback_from_Neighbour_Sentence}{Political_Connection_Sentence}
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -665,13 +665,13 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Name_of_Met_Person} {Met_Person_Confirmation_Text} the residence and office existence at the given address{Business_Exists_Status_Clause}. The met person also informed that {Applicant_Staying_Status_Text} and {Applicant_Working_Status_Text}. Entry is restricted due to security protocols or building policies.
+{Name_of_Met_Person} {Met_Person_Confirmation_Text} the residence and office existence at the given address{Business_Exists_Status_Clause}.{Applicant_Staying_And_Working_Sentence} Entry is restricted due to security protocols or building policies.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color}.
 
 AREA ASSESSMENT:
-Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from the met person. {Political_Connection_Text}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}.{Feedback_from_Neighbour_Sentence}{Political_Connection_Sentence}
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -742,7 +742,7 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the builder office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), who confirmed that the builder office has shifted from the given address {Old_Office_Shifted_Period} ago.
 
 CURRENT OFFICE STATUS:
-At present, the given premises is {Premises_Status}. {Current_Company_Name} is currently operating at the given address for the last {Current_Company_Period}. The office area is approximately {Office_Approx_Area}. Company nameplate {Company_Name_Plate_Text}.
+At present, the given premises is {Premises_Status}. {Current_Company_Name} is currently operating at the given address for the last {Current_Company_Period}.{Office_Approx_Area_Sentence} Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -829,13 +829,13 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Name_of_Met_Person} {Met_Person_Confirmation_Text} the builder office existence at the given address{Business_Exists_Status_Clause}. The met person also informed that {Applicant_Working_Status_Text}. Entry is restricted due to security protocols or office policies.
+{Name_of_Met_Person} {Met_Person_Confirmation_Text} the builder office existence at the given address{Business_Exists_Status_Clause}.{Applicant_Working_Status_Sentence} Entry is restricted due to security protocols or office policies.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color}.
 
 AREA ASSESSMENT:
-Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from the met person. {Political_Connection_Text}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}.{Feedback_from_Neighbour_Sentence}{Political_Connection_Sentence}
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -894,7 +894,7 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. Met with {Met_Person_Name} ({Designation}), who informed that the NOC office has shifted from the given address {Old_Office_Shifted_Period} ago.
 
 CURRENT OFFICE STATUS:
-{Current_Company_Name} is currently operating at the given address for the last {Current_Company_Period}. The office area is approximately {Office_Approx_Area}. Company nameplate {Company_Name_Plate_Text}.
+{Current_Company_Name} is currently operating at the given address for the last {Current_Company_Period}.{Office_Approx_Area_Sentence} Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -984,7 +984,7 @@ LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color}.
 
 AREA ASSESSMENT:
-Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from the met person. {Political_Connection_Text}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}.{Feedback_from_Neighbour_Sentence}{Political_Connection_Sentence}
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -1055,7 +1055,7 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), who informed that {Customer_Name}'s DSA/Connector office has shifted from the given address {Old_Office_Shifted_Period} ago.
 
 CURRENT STATUS:
-{Current_Company_Name} is currently operating at the given address for the last {Current_Company_Period}. The premises status is {Premises_Status}. Approximate area is {Office_Approx_Area}. Company nameplate {Company_Name_Plate_Text}.
+{Current_Company_Name} is currently operating at the given address for the last {Current_Company_Period}. The premises status is {Premises_Status}.{Office_Approx_Area_Sentence} Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -1145,7 +1145,7 @@ LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color}.
 
 AREA ASSESSMENT:
-Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from the met person. {Political_Connection_Text}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}.{Feedback_from_Neighbour_Sentence}{Political_Connection_Sentence}
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -1241,7 +1241,7 @@ LOCALITY INFORMATION:
 The locality is {Locality}. Company nameplate {Company_Name_Plate_Text}.
 
 AREA ASSESSMENT:
-Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from the met person. {Political_Connection_Text}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}.{Feedback_from_Neighbour_Sentence}{Political_Connection_Sentence}
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -1360,7 +1360,7 @@ LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color}. The building status is {Building_Status}.
 
 AREA ASSESSMENT:
-Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from the met person. {Political_Connection_Text}.
+Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}.{Feedback_from_Neighbour_Sentence}{Political_Connection_Sentence}
 
 CONCLUSION:
 Field Executive Observation: {Other_Observation}
@@ -2239,6 +2239,25 @@ Hence the profile is marked as {Final_Status}.`,
       return v ? ` — ${v}` : '';
     };
 
+    // Bug 109 (e2e 2026-05-09): Builds a complete sentence "The office
+    // area is approximately {value} sq. feet." or empty string when value
+    // missing. Mobile SHIFTED forms (BV/Builder/DSA) now gate approxArea
+    // on status=Open, so when business is Closed/Shifted the value is
+    // empty — without this clause helper the prose renders the broken
+    // fragment "The office area is approximately ." (empty placeholder
+    // followed by stray period). Same pattern as `existsClause` for ERT
+    // exists-status. Used by Builder/NOC/DSA SHIFTED_DOOR_OPEN templates.
+    const areaSentence = (raw: string): string => {
+      const v = (raw || '').toString().trim();
+      // formatAreaSqFeet may return "" or "<n> sq. feet" or "<n>". Only
+      // emit the sentence when there's a non-empty value AND it isn't
+      // just whitespace/punctuation.
+      if (!v || v === 'sq. feet') {
+        return '';
+      }
+      return ` The office area is approximately ${v}.`;
+    };
+
     // Renders the applicant's working profile narration. Returns the full
     // sentence when both `workingStatus` and `companyName` are present,
     // otherwise empty. Avoids broken output like "Rahul Kumar is  at ."
@@ -2295,6 +2314,19 @@ Hence the profile is marked as {Final_Status}.`,
     //   "1 Year"  → "1 Year"
     //   "10 Month"→ "10 Months"
     //   "Ground"  → "Ground"  (passes through)
+    // Bug 111 (e2e 2026-05-09): generic sentence-clause wrap. Mobile ERT
+    // forms now gate `applicantStayingStatus`/`applicantWorkingStatus`/
+    // `politicalConnection`/`feedbackFromNeighbour` on `metPersonConfirmation
+    // != 'Not Confirmed'`. When met person didn't confirm, those fields are
+    // hidden + not submitted → templates would render broken fragments like
+    // "informed that ." or " feedback was received...". Wrap each fragment
+    // so empty value yields '' (clean drop) instead of broken prose. Same
+    // pattern as `existsClause` / `Office_Approx_Area_Sentence` / `areaSentence`.
+    const sentenceClause = (raw: string, prefix: string, suffix: string): string => {
+      const v = (raw || '').toString().trim();
+      return v ? `${prefix}${v}${suffix}` : '';
+    };
+
     const pluralizePeriod = (raw: string): string => {
       const s = (raw || '').trim();
       const m = s.match(/^(\d+(?:\.\d+)?)\s+(year|month|day|week)s?$/i);
@@ -2513,6 +2545,11 @@ Hence the profile is marked as {Final_Status}.`,
       Staff_Strength: safeGet(formData, 'staffStrength') || safeGet(formData, 'staff_strength'),
       Staff_Seen: safeGet(formData, 'staffSeen') || safeGet(formData, 'staff_seen'),
       Office_Approx_Area: this.formatAreaSqFeet(formData, 'office'),
+      // Bug 109 (e2e 2026-05-09): sentence-level wrap of Office_Approx_Area
+      // for SHIFTED templates (Builder/NOC/DSA). Renders "" when mobile
+      // gated the field out (status=Closed/Shifted) instead of a broken
+      // "The office area is approximately ." prose fragment.
+      Office_Approx_Area_Sentence: areaSentence(this.formatAreaSqFeet(formData, 'office')),
 
       // Applicant working/staying status (used in ERT templates)
       Applicant_Working_Status:
@@ -2523,6 +2560,68 @@ Hence the profile is marked as {Final_Status}.`,
       ),
       Applicant_Staying_Status_Text: applicantStayingStatusText(
         safeGet(formData, 'applicantStayingStatus') || safeGet(formData, 'applicant_staying_status')
+      ),
+
+      // Bug 111 (e2e 2026-05-09): ERT-template sentence wraps. Render the
+      // full inline/standalone clause when the underlying value is present;
+      // empty string when mobile gated the field out via metPersonConfirmation
+      // = 'Not Confirmed'. See `sentenceClause` helper above for rationale.
+      //
+      // RV ERT — inline form: `{Met_Person_Confirmation_Text}{Applicant_Staying_Status_That_Clause}.`
+      // (without value) → "Ramesh did not confirm." (with value) → "Ramesh did not confirm that <X>."
+      Applicant_Staying_Status_That_Clause: sentenceClause(
+        applicantStayingStatusText(
+          safeGet(formData, 'applicantStayingStatus') ||
+            safeGet(formData, 'applicant_staying_status')
+        ),
+        ' that ',
+        ''
+      ),
+      // OV / BV / Builder ERT — standalone "The met person also informed that ..." sentence.
+      Applicant_Working_Status_Sentence: sentenceClause(
+        applicantWorkingStatusText(
+          safeGet(formData, 'applicantWorkingStatus') ||
+            safeGet(formData, 'applicant_working_status')
+        ),
+        ' The met person also informed that ',
+        '.'
+      ),
+      // RCO ERT — combines staying + working with " and " when both present.
+      Applicant_Staying_And_Working_Sentence: (() => {
+        const s = applicantStayingStatusText(
+          safeGet(formData, 'applicantStayingStatus') ||
+            safeGet(formData, 'applicant_staying_status')
+        );
+        const w = applicantWorkingStatusText(
+          safeGet(formData, 'applicantWorkingStatus') ||
+            safeGet(formData, 'applicant_working_status')
+        );
+        if (s && w) {
+          return ` The met person also informed that ${s} and ${w}.`;
+        }
+        if (s) {
+          return ` The met person also informed that ${s}.`;
+        }
+        if (w) {
+          return ` The met person also informed that ${w}.`;
+        }
+        return '';
+      })(),
+      // All ERT — feedback line wraps "{capFirst(value)} feedback was received from the met person."
+      Feedback_from_Neighbour_Sentence: sentenceClause(
+        capFirst(
+          safeGet(formData, 'feedbackFromNeighbour') || safeGet(formData, 'feedback_from_neighbour')
+        ),
+        ' ',
+        ' feedback was received from the met person.'
+      ),
+      // All ERT — political-connection line wraps "{politicalConnectionText(value)}."
+      Political_Connection_Sentence: sentenceClause(
+        politicalConnectionText(
+          safeGet(formData, 'politicalConnection') || safeGet(formData, 'political_connection')
+        ),
+        ' ',
+        '.'
       ),
 
       // Res-cum-Office narration tokens (2026-04-18)
@@ -2718,8 +2817,20 @@ Hence the profile is marked as {Final_Status}.`,
         safeGet(formData, 'nameOfCompanyOwners') ||
         safeGet(formData, 'name_of_company_owners'),
 
-      // Business-specific variables
+      // Business-specific variables.
+      //
+      // Bug 107 (e2e 2026-05-08): the `businessStatus` field has two
+      // value-space semantics depending on the form: BV templates use
+      // it as a status (Open/Closed/Shifted) → need lowercase for prose
+      // "the business was {X}"; RCO templates use it as a legal entity
+      // type (Private Limited / Partnership Firm / Self Employee -
+      // Proprietorship) — proper nouns that must stay capitalized for
+      // "operated as {X}". The raw `Business_Status` resolver is kept
+      // unchanged for RCO; new `Business_Status_Lc` is for BV prose.
       Business_Status: safeGet(formData, 'businessStatus') || safeGet(formData, 'business_status'),
+      Business_Status_Lc: lc(
+        safeGet(formData, 'businessStatus') || safeGet(formData, 'business_status')
+      ),
       Business_Type: safeGet(formData, 'businessType') || safeGet(formData, 'business_type'),
       Ownership_Type: safeGet(formData, 'ownershipType') || safeGet(formData, 'ownership_type'),
       Business_Period: pluralizePeriod(
