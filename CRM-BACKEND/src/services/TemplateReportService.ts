@@ -480,7 +480,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that the business exists at the given address but no such person ({Customer_Name}) is running it.
 
 CURRENT BUSINESS STATUS:
-{Current_Company_Name} is currently operating at the given address. Company nameplate {Company_Name_Plate_Text}.
+{Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -700,7 +700,7 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the builder office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), who confirmed that {Customer_Name} has been running the builder firm at the given address for the last {Business_Period}.
 
 BUILDER & OFFICE DETAILS:
-Builder type is {Builder_Type} ({Ownership_Type}) and the nature of business is {Company_Nature_Of_Business}. Office area is approximately {Office_Approx_Area}. The office premises are held {Address_Status}. Builder name: {Builder_Name}. Total staff strength is {Staff_Strength} and {Staff_Seen} were seen. Company nameplate {Company_Name_Plate_Text}. During the visit, {Document_Shown_Text}.
+Builder type is {Builder_Type} ({Ownership_Type}) and the nature of business is {Company_Nature_Of_Business}. Office area is approximately {Office_Approx_Area}. The office premises are held {Address_Status}. Builder name: {Builder_Name}. Total staff strength is {Staff_Strength} and {Staff_Seen} were seen. Company nameplate {Company_Name_Plate_Text}. {Document_Shown_Sentence}
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -1121,7 +1121,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that the DSA/Connector office exists at the given address but no such person ({Customer_Name}) is operating there.
 
 CURRENT OFFICE STATUS:
-{Current_Company_Name} is currently operating at the given address. Company nameplate {Company_Name_Plate_Text}.
+{Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -1139,7 +1139,7 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Name_of_Met_Person} {Met_Person_Confirmation_Text} the DSA/Connector office existence at the given address{Business_Exists_Status_Clause}. The applicant is staying on the {Applicant_Staying_Floor} floor. Entry is restricted due to security protocols or office policies.
+{Name_of_Met_Person} {Met_Person_Confirmation_Text} the DSA/Connector office existence at the given address{Business_Exists_Status_Clause}. The applicant's office is on the {Applicant_Staying_Floor} floor. Entry is restricted due to security protocols or office policies.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color}.
@@ -2190,10 +2190,21 @@ Hence the profile is marked as {Final_Status}.`,
     const documentShownText = (status: string, docType: string): string => {
       const s = (status || '').trim().toLowerCase();
       const d = (docType || '').trim();
-      if (s.startsWith('did not') || s === 'not showed' || s === 'not shown') {
+      // Bug 125 (e2e 2026-05-09): BV/Builder/OV mobile `documentShown` was
+      // `type:'text'` (free input) — agents typed "no"/"yes". Recognize those
+      // alongside the canonical "Showed"/"Did Not Showed Any Document" select
+      // values to backfill rows already in DB.
+      if (
+        s.startsWith('did not') ||
+        s.startsWith('not ') ||
+        s === 'not showed' ||
+        s === 'not shown' ||
+        s === 'no' ||
+        s === 'n'
+      ) {
         return 'the met person did not show any document';
       }
-      if (s.startsWith('showed') || s === 'shown') {
+      if (s.startsWith('showed') || s === 'shown' || s === 'yes' || s === 'y') {
         return d
           ? `the met person showed ${d} as identity proof`
           : 'the met person showed an identity proof';
@@ -2311,6 +2322,15 @@ Hence the profile is marked as {Final_Status}.`,
       const v = (raw || '').toString().trim();
       return v ? `${prefix}${v}${suffix}` : '';
     };
+
+    // Bug 123 (e2e 2026-05-09): mobile ownershipType options are subject-verb
+    // fragments ("Are Partners" / "Are Directors" / "Is Proprietor") designed
+    // for inline-sentence narration, but BV/Builder/DSA POSITIVE_DOOR_OPEN
+    // templates inline as parenthetical "({Ownership_Type})" → renders awkward
+    // "PVT. LTD. Company (Are Partners)". Strip leading "Are/Is " prefix so
+    // the paren reads as noun-only: "(Partners)" / "(Directors)" / "(Proprietor)".
+    const ownershipTypeText = (raw: string): string =>
+      (raw || '').toString().replace(/^(Are|Is)\s+/i, '');
 
     // Bug 113 (e2e 2026-05-09): builds "<name> is currently operating at the
     // given address[ for the last <period>]." with trailing space, or "" when
@@ -2846,7 +2866,9 @@ Hence the profile is marked as {Final_Status}.`,
         safeGet(formData, 'businessStatus') || safeGet(formData, 'business_status')
       ),
       Business_Type: safeGet(formData, 'businessType') || safeGet(formData, 'business_type'),
-      Ownership_Type: safeGet(formData, 'ownershipType') || safeGet(formData, 'ownership_type'),
+      Ownership_Type: ownershipTypeText(
+        safeGet(formData, 'ownershipType') || safeGet(formData, 'ownership_type')
+      ),
       Business_Period: pluralizePeriod(
         safeGet(formData, 'businessPeriod') || safeGet(formData, 'business_period')
       ),
@@ -2855,7 +2877,7 @@ Hence the profile is marked as {Final_Status}.`,
         safeGet(formData, 'businessOwnerName') ||
         safeGet(formData, 'business_owner_name') ||
         safeGet(formData, 'nameOfCompanyOwners'),
-      Address_Status: safeGet(formData, 'addressStatus') || safeGet(formData, 'address_status'),
+      Address_Status: lc(safeGet(formData, 'addressStatus') || safeGet(formData, 'address_status')),
       Active_Client: safeGet(formData, 'activeClient') || safeGet(formData, 'active_client'),
       Business_Activity:
         safeGet(formData, 'businessActivity') || safeGet(formData, 'business_activity'),

@@ -545,6 +545,11 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           officeExistence: builderData.officeExistence,
           // ERT-specific (bug 81 Path-2 fix 2026-05-07): exists status
           businessExistsStatus: builderData.businessExistsStatus,
+          // Bug 124 (e2e 2026-05-09): Path-2 was missing these — Builder
+          // POSITIVE_DOOR_OPEN template renders "Builder type is X ({Ownership_Type})"
+          // and "premises are held {Address_Status}." DB has them; surface here.
+          ownershipType: builderData.ownershipType,
+          addressStatus: builderData.addressStatus,
           builderType: builderData.builderType,
           builderName: builderData.builderName,
           builderOwnerName: builderData.builderOwnerName,
@@ -750,6 +755,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           officeRent: dsaData.officeRent,
           // Staff
           totalStaff: dsaData.totalStaff,
+          staffStrength: dsaData.totalStaff,
           salesStaff: dsaData.salesStaff,
           supportStaff: dsaData.supportStaff,
           teamSize: dsaData.teamSize,
