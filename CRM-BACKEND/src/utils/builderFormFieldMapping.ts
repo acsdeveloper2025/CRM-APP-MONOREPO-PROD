@@ -50,7 +50,6 @@ export const BUILDER_FIELD_MAPPING: DatabaseFieldMapping = {
   approxArea: 'office_approx_area', // Alias for officeApproxArea
   businessExistance: 'office_existence', // NSP variant (Exist/Does Not Exist)
   businessExistsStatus: 'business_exists_status', // Builder ERT — dedicated column (split from office_existence)
-  applicantExistance: 'applicant_existence', // Builder NSP — dedicated column (split from applicant_working_status)
   companyNatureOfBusiness: 'company_nature_of_business', // Used in POSITIVE forms
   businessPeriod: 'business_period', // Used in POSITIVE forms
   officeApproxArea: 'office_approx_area', // Used in POSITIVE forms
@@ -206,7 +205,6 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     'address_rating',
     'office_status',
     'office_existence',
-    'applicant_existence',
     'met_person_name',
     'met_person_designation',
     'locality',
@@ -325,7 +323,6 @@ export function ensureAllBuilderFieldsPopulated(
     'met_person_type',
     'met_person_confirmation',
     'applicant_working_status',
-    'applicant_existence',
     'business_exists_status',
 
     // Untraceable specific fields

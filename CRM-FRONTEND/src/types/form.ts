@@ -285,7 +285,6 @@ export interface BusinessFormData {
 
   // Verification Details
   businessExistence: string;
-  applicantExistence: string;
 
   // Area Information
   politicalConnection: string;

@@ -1223,7 +1223,6 @@ export class MobileFormController {
       formData.businessExistence = report.businessExistence;
       formData.businessExistance = report.businessExistence;
       formData.businessExistsStatus = report.businessExistsStatus;
-      formData.applicantExistance = report.applicantExistence;
       formData.businessApproxArea = report.businessApproxArea;
       formData.staffStrength = report.staffStrength;
       formData.staffSeen = report.staffSeen;
@@ -1474,7 +1473,6 @@ export class MobileFormController {
       formData.officeApproxArea = report.officeApproxArea;
       formData.companyNamePlateStatus = report.companyNamePlateStatus;
       formData.nameOnBoard = report.nameOnBoard;
-      formData.applicantExistance = report.applicantExistence;
       formData.businessExistance = report.businessExistence;
       formData.officeExistsStatus = report.officeExistsStatus;
 
@@ -1518,7 +1516,6 @@ export class MobileFormController {
       formData.applicantWorkingStatus = report.applicantWorkingStatus;
       formData.addressStatus = report.addressStatus;
       formData.ownershipType = report.ownershipType;
-      formData.applicantExistance = report.applicantExistence;
 
       // Office Information
       formData.officeStatus = report.officeStatus;
@@ -1594,7 +1591,6 @@ export class MobileFormController {
       // Business Information
       formData.businessType = report.businessType;
       formData.businessExistance = report.businessExistence;
-      formData.applicantExistance = report.applicantExistence;
       formData.businessExistsStatus = report.businessExistsStatus;
       formData.applicantStayingFloor = report.applicantStayingFloor;
       formData.businessPeriod = report.businessPeriod;

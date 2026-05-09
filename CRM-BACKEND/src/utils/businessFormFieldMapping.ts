@@ -83,7 +83,6 @@ export const BUSINESS_FIELD_MAPPING: DatabaseFieldMapping = {
   // Alias: mobile sends approxArea for Business (maps to business_approx_area)
   approxArea: 'business_approx_area',
   // Mobile field variants
-  applicantExistance: 'applicant_existence',
   businessExistsStatus: 'business_exists_status',
   oldOfficeShiftedPeriod: 'old_business_shifted_period',
 
@@ -327,7 +326,6 @@ const RELEVANT_FIELDS_BY_TYPE: Readonly<Record<string, readonly string[]>> = {
     'address_rating',
     'business_status',
     'business_existence',
-    'applicant_existence',
     'met_person_name',
     'met_person_designation',
     'locality',
@@ -440,7 +438,6 @@ export function ensureAllBusinessFieldsPopulated(
     'met_person_type',
     'met_person_confirmation',
     'applicant_working_status',
-    'applicant_existence',
     'business_exists_status',
 
     // Untraceable specific fields

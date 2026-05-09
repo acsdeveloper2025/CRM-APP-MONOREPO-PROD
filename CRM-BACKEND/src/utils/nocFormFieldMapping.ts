@@ -65,7 +65,6 @@ export const NOC_FIELD_MAPPING: DatabaseFieldMapping = {
   // which are LEGACY ERT columns — causing ERT data loss (fixed 2026-04-19).
   nameOfMetPerson: 'met_person_name',
   metPersonConfirmation: 'met_person_confirmation',
-  applicantExistance: 'applicant_existence',
   businessExistance: 'business_existence',
 
   // Property/Project details (Form specific)

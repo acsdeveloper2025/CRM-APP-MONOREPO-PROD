@@ -349,7 +349,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that the office exists at the given address but no such person ({Customer_Name}) is working there.
 
 CURRENT OFFICE STATUS:
-{Current_Company_Name} is currently operating at the given address. Company nameplate {Company_Name_Plate_Text}.
+{Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -411,7 +411,7 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was {Business_Status_Lc}. Met with {Met_Person_Name} ({Designation}), who confirmed that the business has shifted from the given address {Old_Business_Shifted_Period} ago.
 
 CURRENT BUSINESS STATUS:
-{Current_Company_Name} is currently operating at the given address for the last {Current_Company_Period}. Company nameplate {Company_Name_Plate_Text}.
+{Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -435,7 +435,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that the business has shifted from the given address {Old_Business_Shifted_Period} ago. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
 
 CURRENT BUSINESS STATUS:
-{Current_Company_Name} is currently operating at the given address. Company nameplate {Company_Name_Plate_Text}.
+{Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -742,7 +742,7 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the builder office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), who confirmed that the builder office has shifted from the given address {Old_Office_Shifted_Period} ago.
 
 CURRENT OFFICE STATUS:
-At present, the given premises is {Premises_Status}. {Current_Company_Name} is currently operating at the given address for the last {Current_Company_Period}.{Office_Approx_Area_Sentence} Company nameplate {Company_Name_Plate_Text}.
+At present, the given premises is {Premises_Status}. {Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -766,7 +766,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that the builder office has shifted from the given address {Old_Office_Shifted_Period} ago. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
 
 CURRENT OFFICE STATUS:
-{Current_Company_Name} is currently operating at the given address. Company nameplate {Company_Name_Plate_Text}.
+{Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -811,7 +811,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that the builder office exists at the given address but no such person ({Customer_Name}) is working there as a builder.
 
 CURRENT OFFICE STATUS:
-At present, the given premises is {Premises_Status}. {Current_Company_Name} is currently operating at the given address. Company nameplate {Company_Name_Plate_Text}.
+At present, the given premises is {Premises_Status}. {Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -894,7 +894,7 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. Met with {Met_Person_Name} ({Designation}), who informed that the NOC office has shifted from the given address {Old_Office_Shifted_Period} ago.
 
 CURRENT OFFICE STATUS:
-{Current_Company_Name} is currently operating at the given address for the last {Current_Company_Period}.{Office_Approx_Area_Sentence} Company nameplate {Company_Name_Plate_Text}.
+{Current_Company_Name} is currently operating at the given address for the last {Current_Company_Period}. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -918,7 +918,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that the NOC office has shifted from the given address {Old_Office_Shifted_Period} ago. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
 
 CURRENT OFFICE STATUS:
-{Current_Company_Name} is currently operating at the given address. Company nameplate {Company_Name_Plate_Text}.
+{Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -960,7 +960,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that the NOC office exists at the given address but no such person ({Customer_Name}) is associated with it.
 
 CURRENT OFFICE STATUS:
-At present, the given premises is {Premises_Status}. {Current_Company_Name} is currently operating at the given address. Company nameplate {Company_Name_Plate_Text}.
+At present, the given premises is {Premises_Status}. {Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -1055,7 +1055,7 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), who informed that {Customer_Name}'s DSA/Connector office has shifted from the given address {Old_Office_Shifted_Period} ago.
 
 CURRENT STATUS:
-{Current_Company_Name} is currently operating at the given address for the last {Current_Company_Period}. The premises status is {Premises_Status}.{Office_Approx_Area_Sentence} Company nameplate {Company_Name_Plate_Text}.
+{Current_Company_Operating_Sentence}The premises status is {Premises_Status}. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -1079,7 +1079,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that the DSA/Connector office has shifted from the given address {Old_Office_Shifted_Period} ago. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
 
 CURRENT STATUS:
-{Current_Company_Name} is currently operating at the given address for the last {Current_Company_Period}. The premises status is {Premises_Status}. Company nameplate {Company_Name_Plate_Text}.
+{Current_Company_Operating_Sentence}The premises status is {Premises_Status}. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -2239,25 +2239,6 @@ Hence the profile is marked as {Final_Status}.`,
       return v ? ` — ${v}` : '';
     };
 
-    // Bug 109 (e2e 2026-05-09): Builds a complete sentence "The office
-    // area is approximately {value} sq. feet." or empty string when value
-    // missing. Mobile SHIFTED forms (BV/Builder/DSA) now gate approxArea
-    // on status=Open, so when business is Closed/Shifted the value is
-    // empty — without this clause helper the prose renders the broken
-    // fragment "The office area is approximately ." (empty placeholder
-    // followed by stray period). Same pattern as `existsClause` for ERT
-    // exists-status. Used by Builder/NOC/DSA SHIFTED_DOOR_OPEN templates.
-    const areaSentence = (raw: string): string => {
-      const v = (raw || '').toString().trim();
-      // formatAreaSqFeet may return "" or "<n> sq. feet" or "<n>". Only
-      // emit the sentence when there's a non-empty value AND it isn't
-      // just whitespace/punctuation.
-      if (!v || v === 'sq. feet') {
-        return '';
-      }
-      return ` The office area is approximately ${v}.`;
-    };
-
     // Renders the applicant's working profile narration. Returns the full
     // sentence when both `workingStatus` and `companyName` are present,
     // otherwise empty. Avoids broken output like "Rahul Kumar is  at ."
@@ -2321,10 +2302,32 @@ Hence the profile is marked as {Final_Status}.`,
     // hidden + not submitted → templates would render broken fragments like
     // "informed that ." or " feedback was received...". Wrap each fragment
     // so empty value yields '' (clean drop) instead of broken prose. Same
-    // pattern as `existsClause` / `Office_Approx_Area_Sentence` / `areaSentence`.
+    // pattern as `existsClause` for ERT exists-status.
     const sentenceClause = (raw: string, prefix: string, suffix: string): string => {
       const v = (raw || '').toString().trim();
       return v ? `${prefix}${v}${suffix}` : '';
+    };
+
+    // Bug 113 (e2e 2026-05-09): builds "<name> is currently operating at the
+    // given address[ for the last <period>]." with trailing space, or "" when
+    // name is empty. Mobile bug 108 gates currentCompanyName + Period on
+    // `premisesStatus != Vacant` for BV/Builder/DSA SHIFTED forms. When
+    // premises is Vacant, both empty → templates would render the broken
+    // " is currently operating at the given address. Company nameplate ..."
+    // fragment (leading space + missing subject). Wrap in this helper so the
+    // sentence drops cleanly. Used by 6 SHIFTED templates (BV/Builder/DSA ×
+    // DOOR_OPEN/DOOR_LOCKED). Trailing space included so callers concatenate
+    // directly into the next sentence without inserting a leading space.
+    const currentCompanyOperatingSentence = (name: string, period: string): string => {
+      const n = (name || '').toString().trim();
+      const p = (period || '').toString().trim();
+      if (!n) {
+        return '';
+      }
+      if (p) {
+        return `${n} is currently operating at the given address for the last ${p}. `;
+      }
+      return `${n} is currently operating at the given address. `;
     };
 
     const pluralizePeriod = (raw: string): string => {
@@ -2545,11 +2548,6 @@ Hence the profile is marked as {Final_Status}.`,
       Staff_Strength: safeGet(formData, 'staffStrength') || safeGet(formData, 'staff_strength'),
       Staff_Seen: safeGet(formData, 'staffSeen') || safeGet(formData, 'staff_seen'),
       Office_Approx_Area: this.formatAreaSqFeet(formData, 'office'),
-      // Bug 109 (e2e 2026-05-09): sentence-level wrap of Office_Approx_Area
-      // for SHIFTED templates (Builder/NOC/DSA). Renders "" when mobile
-      // gated the field out (status=Closed/Shifted) instead of a broken
-      // "The office area is approximately ." prose fragment.
-      Office_Approx_Area_Sentence: areaSentence(this.formatAreaSqFeet(formData, 'office')),
 
       // Applicant working/staying status (used in ERT templates)
       Applicant_Working_Status:
@@ -2667,6 +2665,18 @@ Hence the profile is marked as {Final_Status}.`,
         safeGet(formData, 'currentCompanyPeriod') ||
           safeGet(formData, 'current_company_period') ||
           safeGet(formData, 'establishmentPeriod')
+      ),
+      // Bug 113: SHIFTED-template current-company sentence. Drops cleanly
+      // when premisesStatus=Vacant gates currentCompanyName + Period out.
+      Current_Company_Operating_Sentence: currentCompanyOperatingSentence(
+        safeGet(formData, 'currentCompanyName') ||
+          safeGet(formData, 'current_company_name') ||
+          safeGet(formData, 'companyName'),
+        pluralizePeriod(
+          safeGet(formData, 'currentCompanyPeriod') ||
+            safeGet(formData, 'current_company_period') ||
+            safeGet(formData, 'establishmentPeriod')
+        )
       ),
 
       // ERT-specific variables (Entry Restricted)

@@ -148,7 +148,6 @@ export const VERIFICATION_TYPES: Record<string, VerificationTypeConfig> = {
       'businessStatus',
       'premisesStatus',
       'businessExistence',
-      'applicantExistence',
       'documentShown',
       'tpcConfirmation',
       'politicalConnection',

@@ -805,7 +805,6 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           currentCompanyName: dsaData.currentCompanyName,
           currentCompanyPeriod: dsaData.currentCompanyPeriod,
           // NSP
-          applicantExistance: dsaData.applicantExistence,
           // ERT
           metPersonType: dsaData.metPersonDesignation,
           // ERT-specific (bug 81 Path-2 fix 2026-05-07): exists status — was typo `businessExistStatus`

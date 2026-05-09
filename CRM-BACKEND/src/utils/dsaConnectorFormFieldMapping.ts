@@ -56,7 +56,6 @@ export const DSA_CONNECTOR_FIELD_MAPPING: DatabaseFieldMapping = {
   staffSeen: 'staff_seen',
   metPersonConfirmation: 'security_confirmation',
   businessExistance: 'business_existence',
-  applicantExistance: 'applicant_existence',
   oldOfficeShiftedPeriod: 'shifted_period',
 
   // DSA Positive form fields (per xlsx spec)

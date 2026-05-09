@@ -1047,15 +1047,6 @@ export const BUSINESS_FORM_FIELDS: FormFieldDefinition[] = [
     order: 6,
   },
   {
-    id: 'applicantExistance',
-    name: 'applicantExistance',
-    label: 'Applicant Existence',
-    type: 'select',
-    isRequired: false,
-    section: 'Business Details',
-    order: 7,
-  },
-  {
     id: 'businessExistsStatus',
     name: 'businessExistsStatus',
     label: 'Business Exists Status',
@@ -2401,15 +2392,6 @@ const NOC_FORM_FIELDS: FormFieldDefinition[] = [
     order: 1,
   },
   {
-    id: 'applicantExistance',
-    name: 'applicantExistance',
-    label: 'Applicant Existence',
-    type: 'select',
-    isRequired: false,
-    section: 'NSP Information',
-    order: 2,
-  },
-  {
     id: 'businessExistance',
     name: 'businessExistance',
     label: 'Business Existence',
@@ -2914,15 +2896,6 @@ const BUILDER_FORM_FIELDS: FormFieldDefinition[] = [
     isRequired: false,
     section: 'Builder Information',
     order: 5,
-  },
-  {
-    id: 'applicantExistance',
-    name: 'applicantExistance',
-    label: 'Applicant Existence',
-    type: 'select',
-    isRequired: false,
-    section: 'Builder Information',
-    order: 6,
   },
   {
     id: 'businessExistance',
@@ -3455,15 +3428,6 @@ const DSA_CONNECTOR_FORM_FIELDS: FormFieldDefinition[] = [
     isRequired: false,
     section: 'Shifted Information',
     order: 4,
-  },
-  {
-    id: 'applicantExistance',
-    name: 'applicantExistance',
-    label: 'Applicant Existence',
-    type: 'select',
-    isRequired: false,
-    section: 'NSP Information',
-    order: 1,
   },
   {
     id: 'businessExistance',
