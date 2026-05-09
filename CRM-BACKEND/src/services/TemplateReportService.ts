@@ -107,7 +107,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} {Customer_Name}'s shift from the given address for the last {Shifted_Period}. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
 
 PROPERTY DETAILS:
-At present, the given premises is {Premises_Status}. The door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
+The door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -480,7 +480,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that the business exists at the given address but no such person ({Customer_Name}) is running it.
 
 CURRENT BUSINESS STATUS:
-{Current_Company_Name} is currently operating at the given address. The given premises is {Premises_Status}. Company nameplate {Company_Name_Plate_Text}.
+{Current_Company_Name} is currently operating at the given address. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -811,7 +811,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that the builder office exists at the given address but no such person ({Customer_Name}) is working there as a builder.
 
 CURRENT OFFICE STATUS:
-At present, the given premises is {Premises_Status}. {Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
+{Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -960,7 +960,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that the NOC office exists at the given address but no such person ({Customer_Name}) is associated with it.
 
 CURRENT OFFICE STATUS:
-At present, the given premises is {Premises_Status}. {Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
+{Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -1079,7 +1079,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that the DSA/Connector office has shifted from the given address {Old_Office_Shifted_Period} ago. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
 
 CURRENT STATUS:
-{Current_Company_Operating_Sentence}The premises status is {Premises_Status}. Company nameplate {Company_Name_Plate_Text}.
+{Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -1121,7 +1121,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that the DSA/Connector office exists at the given address but no such person ({Customer_Name}) is operating there.
 
 CURRENT OFFICE STATUS:
-{Current_Company_Name} is currently operating at the given address. At present, the given premises is {Premises_Status}. Company nameplate {Company_Name_Plate_Text}.
+{Current_Company_Name} is currently operating at the given address. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
@@ -1931,7 +1931,11 @@ Hence the profile is marked as {Final_Status}.`,
         const officeStatus = (formData?.officeStatus || formData?.office_status) as
           | string
           | undefined;
-        if (officeStatus && officeStatus.toLowerCase() === 'opened') {
+        // Fix Pattern A (parity with NSP branch below): mobile emits 'Open'
+        // (not 'Opened') — comparing against 'opened' fell through to
+        // DOOR_LOCKED. Masked today by upstream universal picker, but
+        // defense-in-depth against outcome-string drift.
+        if (officeStatus && officeStatus.toLowerCase() === 'open') {
           return 'SHIFTED_DOOR_OPEN'; // DSA/Connector office was open, person was met
         } else {
           return 'SHIFTED_DOOR_LOCKED'; // DSA/Connector office was closed, only TPC

@@ -993,7 +993,11 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           propertyType: propertyData.propertyType,
           // Property Individual xlsx fields
           buildingStatus: propertyData.propertyStatus,
-          flatStatus: propertyData.premisesStatus,
+          // 2026-05-09: flatStatus has its OWN dedicated `flat_status` column
+          // since 2026-04-27 (per propertyIndividualFormFieldMapping.ts:39).
+          // Path-2 was reading from premisesStatus (legacy overload) which
+          // is NULL for current submissions.
+          flatStatus: propertyData.flatStatus,
           propertyOwnerName: propertyData.ownerName,
           relationship: propertyData.metPersonRelation,
           addressExistAt: propertyData.addressExistAt,

@@ -44,6 +44,10 @@ import {
   detectResidenceFormType,
   detectOfficeFormType,
   detectBusinessFormType,
+  detectBuilderFormType,
+  detectDsaConnectorFormType,
+  detectNocFormType,
+  detectPropertyApfFormType,
   detectPropertyIndividualFormType,
   detectResidenceCumOfficeFormType,
 } from '../utils/formTypeDetection';
@@ -4093,7 +4097,7 @@ export class MobileFormController {
       );
 
       // Determine form type and verification outcome based on form data
-      const { formType, verificationOutcome } = detectBusinessFormType(formData); // Use business detection for builder (similar structure)
+      const { formType, verificationOutcome } = detectBuilderFormType(formData);
 
       logger.info(
         `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
@@ -4745,7 +4749,7 @@ export class MobileFormController {
       }
 
       // Determine form type and verification outcome based on form data
-      const { formType, verificationOutcome } = detectBusinessFormType(formData); // Use business detection for DSA/DST Connector (similar structure)
+      const { formType, verificationOutcome } = detectDsaConnectorFormType(formData);
 
       logger.info(
         `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
@@ -5403,7 +5407,7 @@ export class MobileFormController {
       }
 
       // Determine form type and verification outcome based on form data
-      const detected = detectBusinessFormType(formData); // Use business detection for Property APF (similar structure)
+      const detected = detectPropertyApfFormType(formData);
       let formType = detected.formType;
       let verificationOutcome = detected.verificationOutcome;
 
@@ -5440,8 +5444,13 @@ export class MobileFormController {
             `⚠️ Property APF: overriding form_type ${formType} → ${derivedType} based on constructionActivity=${activity}`
           );
           formType = derivedType;
-          verificationOutcome = derivedType === 'POSITIVE' ? 'Positive' : 'Negative';
         }
+        // 2026-05-09: PAV is doorless. The detector's MAPPING-default
+        // 'Positive & Door Locked' string is misleading for PAV rows
+        // (dashboards/notifications would show a door state for a
+        // doorless type). Always set the clean 'Positive' / 'Negative'
+        // outcome for PAV regardless of whether form_type changed.
+        verificationOutcome = derivedType === 'POSITIVE' ? 'Positive' : 'Negative';
       }
 
       logger.info(
@@ -5865,7 +5874,7 @@ export class MobileFormController {
       }
 
       // Determine form type and verification outcome based on form data
-      const { formType, verificationOutcome } = detectBusinessFormType(formData); // Use business detection for NOC (similar structure)
+      const { formType, verificationOutcome } = detectNocFormType(formData);
 
       logger.info(
         `🔍 Detected form type: ${formType}, verification outcome: ${verificationOutcome}`
