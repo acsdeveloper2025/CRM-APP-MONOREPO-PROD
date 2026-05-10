@@ -273,96 +273,85 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
         </CardContent>
       </Card>
 
-      {/* Workflow Guide */}
+      {/* Workflow Guide — Phase 6 (refactor 2026-05-10): step order matches
+          dependency chain. Each step depends on the previous being configured. */}
       <Card>
         <CardHeader>
           <CardTitle>Rate Management Workflow</CardTitle>
           <CardDescription>
-            Follow these steps to set up rates for verification services
+            Configure each step in order — every step depends on the previous being set
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
                 1
               </div>
               <div>
-                <h4 className="font-semibold">Create Rate Types</h4>
+                <h4 className="font-semibold">Rate Types</h4>
                 <p className="text-sm text-gray-600">
-                  Define rate categories like Local, OGL, Outstation
+                  Master list — Local, Local1, OGL, Outstation, etc.
                 </p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
                 2
               </div>
               <div>
-                <h4 className="font-semibold">Map Rate Types</h4>
+                <h4 className="font-semibold">Rate Type Assignment</h4>
                 <p className="text-sm text-gray-600">
-                  Link territory combinations to the pricing zone they belong to
+                  Eligibility — pick allowed rate types per client + product + verification type
                 </p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
                 3
               </div>
               <div>
-                <h4 className="font-semibold">Assign Rate Types</h4>
+                <h4 className="font-semibold">Rate Amounts</h4>
                 <p className="text-sm text-gray-600">
-                  Map rate types to client-product-verification combinations
+                  Pricing — set actual amount per client + product + verification type + rate type
                 </p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
+              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
                 4
               </div>
               <div>
-                <h4 className="font-semibold">Set Rate Amounts</h4>
+                <h4 className="font-semibold">Service Zone Rules</h4>
                 <p className="text-sm text-gray-600">
-                  Configure actual pricing for each assigned rate type
+                  Geography — map client + product + verification type + pincode + area to a rate type
                 </p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-                5
-              </div>
-              <div>
-                <h4 className="font-semibold">View & Manage</h4>
-                <p className="text-sm text-gray-600">
-                  Monitor and update rates with comprehensive reporting
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold">
-                6
-              </div>
-              <div>
-                <h4 className="font-semibold">Document Rates</h4>
-                <p className="text-sm text-gray-600">
-                  Maintain separate pricing for document verification workflows
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
                 5
               </div>
               <div>
                 <h4 className="font-semibold">KYC Rates</h4>
                 <p className="text-sm text-gray-600">
-                  Set pricing for KYC document verification per client and product
+                  Separate pricing for KYC document verification per client + product + document type
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+                6
+              </div>
+              <div>
+                <h4 className="font-semibold">Rate Report</h4>
+                <p className="text-sm text-gray-600">
+                  View, search, and export all configured rates in one place
                 </p>
               </div>
             </div>
