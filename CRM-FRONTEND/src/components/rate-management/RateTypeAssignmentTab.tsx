@@ -97,6 +97,11 @@ export function RateTypeAssignmentTab() {
     invalidateKeys: [
       ['rate-type-assignments', selectedClientId, selectedProductId, selectedVerificationTypeId],
       ['rate-management-stats'],
+      // rate-mgmt refactor follow-up (2026-05-10): SZR's rate-type dropdown
+      // queries ['service-zone-rate-types', c, p, vt] (different namespace).
+      // Without invalidating it here, newly assigned rate types don't appear
+      // in SZR until manual page reload. Cache-invalidation gap closed.
+      ['service-zone-rate-types', selectedClientId, selectedProductId, selectedVerificationTypeId],
     ],
     successMessage: 'Rate type assignments saved successfully',
     errorContext: 'Rate Type Assignment',
