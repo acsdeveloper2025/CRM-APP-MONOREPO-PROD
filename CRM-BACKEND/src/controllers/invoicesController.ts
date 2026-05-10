@@ -698,33 +698,47 @@ const resolveTaskBillingAmount = async (
   task: InvoiceTaskCandidateRow
 ): Promise<{ amount: number; rateTypeId: number | null }> => {
   const candidateRateTypeId = toMaybeNumber(task.rateTypeId);
-  if (task.verificationTypeId && task.pincodeId) {
-    const validation = await financialConfigurationValidator.validateTaskConfiguration(
-      task.clientId,
-      task.productId,
-      task.verificationTypeId,
-      task.pincodeId,
-      task.areaId,
-      candidateRateTypeId
-    );
 
-    if (validation.isValid && validation.amount !== undefined) {
-      return {
-        amount: Number(validation.amount),
-        rateTypeId: validation.rateTypeId ?? candidateRateTypeId,
-      };
-    }
+  // Bug B-1 (audit 2026-05-10): silent fallback removed.
+  // Previously when validateTaskConfiguration failed (RTA reshuffled / rate
+  // deactivated / config drift), this function silently used
+  // `task.actualAmount || task.estimatedAmount` and billed the operator at
+  // the frozen task-creation amount with no error and no audit trail. That
+  // re-created the Phase-4-deleted "silent substitute" class one layer up.
+  // Now fails loud: invoice generation raises, operator must reconfigure
+  // RTA/rates for the affected (c, p, vt) before re-running invoice batch.
+  if (!task.verificationTypeId || !task.pincodeId) {
+    throw new Error(
+      `Billing amount cannot be resolved for verification task ${task.id} — ` +
+        `missing verificationTypeId or pincodeId on the task row. ` +
+        `Reconfigure the task before billing.`
+    );
   }
 
-  const fallbackAmount = toNumber(task.actualAmount) || toNumber(task.estimatedAmount);
-  if (fallbackAmount > 0) {
+  const validation = await financialConfigurationValidator.validateTaskConfiguration(
+    task.clientId,
+    task.productId,
+    task.verificationTypeId,
+    task.pincodeId,
+    task.areaId,
+    candidateRateTypeId
+  );
+
+  if (validation.isValid && validation.amount !== undefined) {
     return {
-      amount: fallbackAmount,
-      rateTypeId: candidateRateTypeId,
+      amount: Number(validation.amount),
+      rateTypeId: validation.rateTypeId ?? candidateRateTypeId,
     };
   }
 
-  throw new Error(`Billing amount not defined for verification task ${task.id}`);
+  throw new Error(
+    `Billing amount cannot be resolved for verification task ${task.id} — ` +
+      `${validation.errorCode ?? 'CONFIG_INVALID'}: ${validation.errorMessage ?? 'unknown'}. ` +
+      `Reconfigure Rate Type Assignment / Rate Amounts / Service Zone Rules for ` +
+      `client=${task.clientId} product=${task.productId} ` +
+      `verificationType=${task.verificationTypeId} pincode=${task.pincodeId} ` +
+      `area=${task.areaId ?? 'null'} before re-running invoice generation.`
+  );
 };
 
 const loadCompletedUnbilledTasks = async (
