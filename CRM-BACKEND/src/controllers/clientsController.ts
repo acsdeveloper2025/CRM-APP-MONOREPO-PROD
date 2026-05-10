@@ -355,7 +355,18 @@ export const getPincodesForClientProduct = async (req: AuthenticatedRequest, res
     const productId = Number(req.params.productId);
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
     const limit = Math.min(Number(req.query.limit) || 30, 200);
+    // Phase 3 (refactor 2026-05-10): optional VT filter narrows pincodes
+    // to those with active SZR rows for (c, p, vt). Backwards compat: when
+    // omitted, returns all pincodes for (c, p) — matches pre-refactor shape.
+    const verificationTypeId = req.query.verificationTypeId
+      ? Number(req.query.verificationTypeId)
+      : null;
     const params: (string | number)[] = [clientId, productId];
+    let vtClause = '';
+    if (verificationTypeId) {
+      params.push(verificationTypeId);
+      vtClause = ` AND szr.verification_type_id = $${params.length}`;
+    }
     let searchClause = '';
     if (search) {
       params.push(`%${search}%`);
@@ -370,7 +381,7 @@ export const getPincodesForClientProduct = async (req: AuthenticatedRequest, res
          LEFT JOIN areas a ON a.id = szr.area_id
          LEFT JOIN cities c ON c.id = pin.city_id
          LEFT JOIN states s ON s.id = c.state_id
-        WHERE szr.client_id = $1 AND szr.product_id = $2 AND szr.is_active = true${searchClause}
+        WHERE szr.client_id = $1 AND szr.product_id = $2 AND szr.is_active = true${vtClause}${searchClause}
         ORDER BY pin.code
         LIMIT $${params.length}`,
       params
@@ -394,14 +405,25 @@ export const getAreasForClientProductPincode = async (req: AuthenticatedRequest,
     const clientId = Number(req.params.clientId);
     const productId = Number(req.params.productId);
     const pincodeId = Number(req.params.pincodeId);
+    // Phase 3 (refactor 2026-05-10): optional VT narrows to areas with
+    // active SZR rows for (c,p,vt,pincode). Backwards compat — omit returns all.
+    const verificationTypeId = req.query.verificationTypeId
+      ? Number(req.query.verificationTypeId)
+      : null;
+    const params: (string | number)[] = [clientId, productId, pincodeId];
+    let vtClause = '';
+    if (verificationTypeId) {
+      params.push(verificationTypeId);
+      vtClause = ` AND szr.verification_type_id = $${params.length}`;
+    }
     const r = await query(
       `SELECT DISTINCT a.id, a.name
          FROM service_zone_rules szr
          JOIN areas a ON a.id = szr.area_id
         WHERE szr.client_id = $1 AND szr.product_id = $2 AND szr.pincode_id = $3
-          AND szr.is_active = true
+          AND szr.is_active = true${vtClause}
         ORDER BY a.name`,
-      [clientId, productId, pincodeId]
+      params
     );
     res.json({ success: true, data: r.rows });
   } catch (error) {

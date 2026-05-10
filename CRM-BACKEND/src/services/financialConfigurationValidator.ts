@@ -45,8 +45,29 @@ export const financialConfigurationValidator = {
     preferredRateTypeId?: number | null
   ): Promise<FinancialConfigValidationResult> => {
     try {
-      // If the caller explicitly selected a rate type, honor it first.
+      // If the caller explicitly selected a rate type, honor it — but ONLY if
+      // it is allowed in rate_type_assignments for this (c, p, vt). Phase 4
+      // (refactor 2026-05-10) closes audit risk #4: previously any caller could
+      // pass any rate_type and skip SZR entirely. Now the caller's choice must
+      // live within the eligibility ladder.
       if (preferredRateTypeId && Number(preferredRateTypeId) > 0) {
+        const rta = await query(
+          `SELECT 1 FROM rate_type_assignments
+           WHERE client_id = $1 AND product_id = $2
+             AND verification_type_id = $3 AND rate_type_id = $4
+             AND is_active = true
+           LIMIT 1`,
+          [clientId, productId, verificationTypeId, Number(preferredRateTypeId)]
+        );
+        if (rta.rows.length === 0) {
+          return {
+            isValid: false,
+            errorCode: FinancialConfigErrorCode.CONFIG_RATE_TYPE_MISSING,
+            errorMessage:
+              'Selected rate type is not allowed for this client/product/verification type combination.',
+          };
+        }
+
         const preferredAmount = await financialConfigurationValidator.validateRateAmount(
           clientId,
           productId,
@@ -71,9 +92,11 @@ export const financialConfigurationValidator = {
       }
 
       // Step 1: Look up rate type directly from service_zone_rules
+      // Phase 3 (refactor 2026-05-10): VT now part of resolver key.
       const rateTypeId = await financialConfigurationValidator.validateRateTypeRule(
         clientId,
         productId,
+        verificationTypeId,
         pincodeId,
         areaId
       );
@@ -96,20 +119,12 @@ export const financialConfigurationValidator = {
       );
 
       if (amount === null) {
-        const fallbackRate = await financialConfigurationValidator.findDeterministicActiveRate(
-          clientId,
-          productId,
-          verificationTypeId
-        );
-
-        if (fallbackRate) {
-          return {
-            isValid: true,
-            rateTypeId: fallbackRate.rateTypeId,
-            amount: fallbackRate.amount,
-          };
-        }
-
+        // Phase 4 (refactor 2026-05-10): silent fallback removed.
+        // Audit flagged findDeterministicActiveRate as the "single most
+        // dangerous code path" — when no rates row matched, it silently
+        // substituted whichever rate_type happened to have exactly one active
+        // rate row, returning isValid:true. Operators saw a different price
+        // than their territory map said, with no audit trail. Now fails loud.
         return {
           isValid: false,
           errorCode: FinancialConfigErrorCode.CONFIG_RATE_AMOUNT_MISSING,
@@ -133,10 +148,14 @@ export const financialConfigurationValidator = {
   /**
    * Step 1: Validate Rate Type Rule
    * Queries service_zone_rules for direct rate_type_id mapping.
+   * Phase 3 (refactor 2026-05-10): VT is part of the key — different VTs in
+   * same geography may map to different rate types (e.g. RV in Mumbai-Local
+   * priced differently from KYC in same Mumbai-Local pincode/area).
    */
   validateRateTypeRule: async (
     clientId: number,
     productId: number,
+    verificationTypeId: number,
     pincodeId: number,
     areaId?: number | null
   ): Promise<number | null> => {
@@ -146,10 +165,11 @@ export const financialConfigurationValidator = {
 
     const exactRule = await query(
       `SELECT rate_type_id FROM service_zone_rules
-       WHERE client_id = $1 AND product_id = $2 AND pincode_id = $3 AND area_id = $4
+       WHERE client_id = $1 AND product_id = $2 AND verification_type_id = $3
+         AND pincode_id = $4 AND area_id = $5
          AND is_active = true
        LIMIT 1`,
-      [clientId, productId, pincodeId, areaId]
+      [clientId, productId, verificationTypeId, pincodeId, areaId]
     );
     return exactRule.rows[0]?.rateTypeId ?? null;
   },
@@ -180,28 +200,9 @@ export const financialConfigurationValidator = {
     return null;
   },
 
-  findDeterministicActiveRate: async (
-    clientId: number,
-    productId: number,
-    verificationTypeId: number
-  ): Promise<{ rateTypeId: number; amount: number } | null> => {
-    const result = await query(
-      `SELECT rate_type_id, amount
-       FROM rates
-       WHERE client_id = $1 AND product_id = $2
-         AND verification_type_id = $3
-         AND is_active = true
-       ORDER BY rate_type_id ASC`,
-      [clientId, productId, verificationTypeId]
-    );
-
-    if (result.rows.length !== 1) {
-      return null;
-    }
-
-    return {
-      rateTypeId: Number(result.rows[0].rateTypeId),
-      amount: Number(result.rows[0].amount),
-    };
-  },
+  // Phase 4 (refactor 2026-05-10): findDeterministicActiveRate REMOVED.
+  // Was the silent-fallback path that flipped invalid configs into "isValid:true"
+  // by picking the lone active rate for (c,p,vt) when configured rate_type
+  // didn't have a matching rates row. Audit flagged as critical billing bug.
+  // No callers remain.
 };
