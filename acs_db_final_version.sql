@@ -43,6 +43,7 @@ ALTER TABLE IF EXISTS ONLY public.task_revocations DROP CONSTRAINT IF EXISTS tas
 ALTER TABLE IF EXISTS ONLY public.task_revocations DROP CONSTRAINT IF EXISTS task_revocations_revoked_from_user_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.task_revocations DROP CONSTRAINT IF EXISTS task_revocations_revoked_by_user_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.task_revocations DROP CONSTRAINT IF EXISTS task_revocations_reassigned_to_user_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.service_zone_rules DROP CONSTRAINT IF EXISTS service_zone_rules_verification_type_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.service_zone_rules DROP CONSTRAINT IF EXISTS service_zone_rules_rate_type_id_fkey;
 ALTER TABLE IF EXISTS ONLY public.scheduled_reports DROP CONSTRAINT IF EXISTS scheduled_reports_created_by_fkey;
 ALTER TABLE IF EXISTS ONLY public.roles_v2 DROP CONSTRAINT IF EXISTS roles_v2_parent_role_id_fkey;
@@ -7652,7 +7653,8 @@ CREATE TABLE public.service_zone_rules (
     is_active boolean DEFAULT true,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now(),
-    rate_type_id integer
+    rate_type_id integer,
+    verification_type_id integer NOT NULL
 );
 
 
@@ -19830,6 +19832,14 @@ COPY public.rate_type_assignments (is_active, created_at, updated_at, id, client
 t	2026-04-26 13:20:19.399701+05:30	2026-04-26 13:20:19.399701+05:30	1	1	1	1	1
 t	2026-04-26 13:20:19.399701+05:30	2026-04-26 13:20:19.399701+05:30	2	1	1	1	4
 t	2026-04-26 13:20:19.399701+05:30	2026-04-26 13:20:19.399701+05:30	3	1	1	1	7
+t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	4	1	1	2	1
+t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	5	1	1	3	1
+t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	6	1	1	4	1
+t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	7	1	1	5	1
+t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	8	1	1	6	1
+t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	9	1	1	7	1
+t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	10	1	1	8	1
+t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	11	1	1	9	1
 \.
 
 
@@ -20311,10 +20321,34 @@ COPY public.schema_migrations (id, filename, executed_at, checksum, execution_ti
 -- Data for Name: service_zone_rules; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY public.service_zone_rules (id, client_id, product_id, pincode_id, area_id, is_active, created_at, updated_at, rate_type_id) FROM stdin;
-890	1	1	17	145	t	2026-04-03 14:25:21.713534+05:30	2026-04-03 14:25:21.713534+05:30	1
-888	1	1	17	20	t	2026-04-03 14:21:07.069776+05:30	2026-04-26 13:19:41.982665+05:30	1
-889	1	1	17	114	t	2026-04-03 14:22:41.472174+05:30	2026-04-26 13:20:05.583166+05:30	1
+COPY public.service_zone_rules (id, client_id, product_id, pincode_id, area_id, is_active, created_at, updated_at, rate_type_id, verification_type_id) FROM stdin;
+894	1	1	17	145	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	1
+895	1	1	17	145	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	2
+896	1	1	17	145	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	3
+897	1	1	17	145	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	4
+898	1	1	17	145	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	6
+899	1	1	17	145	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	7
+900	1	1	17	145	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	8
+901	1	1	17	145	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	9
+902	1	1	17	145	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	5
+903	1	1	17	20	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	1
+904	1	1	17	20	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	2
+905	1	1	17	20	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	3
+906	1	1	17	20	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	4
+907	1	1	17	20	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	6
+908	1	1	17	20	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	7
+909	1	1	17	20	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	8
+910	1	1	17	20	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	9
+911	1	1	17	20	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	5
+912	1	1	17	114	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	1
+913	1	1	17	114	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	2
+914	1	1	17	114	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	3
+915	1	1	17	114	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	4
+916	1	1	17	114	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	6
+917	1	1	17	114	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	7
+918	1	1	17	114	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	8
+919	1	1	17	114	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	9
+920	1	1	17	114	t	2026-05-10 16:15:21.092629+05:30	2026-05-10 16:15:21.092629+05:30	1	5
 \.
 
 
@@ -20814,7 +20848,7 @@ SELECT pg_catalog.setval('public."rateHistory_temp_id_seq"', 1, false);
 -- Name: rateTypeAssignments_temp_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."rateTypeAssignments_temp_id_seq"', 3, true);
+SELECT pg_catalog.setval('public."rateTypeAssignments_temp_id_seq"', 11, true);
 
 
 --
@@ -20849,7 +20883,7 @@ SELECT pg_catalog.setval('public.report_templates_id_seq', 7, true);
 -- Name: service_zone_rules_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public.service_zone_rules_id_seq', 892, true);
+SELECT pg_catalog.setval('public.service_zone_rules_id_seq', 920, true);
 
 
 --
@@ -28757,7 +28791,7 @@ CREATE UNIQUE INDEX uq_pincode_areas_pincode_area ON public.pincode_areas USING 
 -- Name: uq_service_zone_rules_active_scope; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_service_zone_rules_active_scope ON public.service_zone_rules USING btree (client_id, product_id, pincode_id, area_id) NULLS NOT DISTINCT WHERE (is_active = true);
+CREATE UNIQUE INDEX uq_service_zone_rules_active_scope ON public.service_zone_rules USING btree (client_id, product_id, verification_type_id, pincode_id, area_id) NULLS NOT DISTINCT WHERE (is_active = true);
 
 
 --
@@ -33556,6 +33590,36 @@ CREATE TRIGGER update_verification_reports_updated_at BEFORE UPDATE ON public.ve
 
 
 --
+-- Name: rates trg_rates_check_rta_allowed; Type: TRIGGER; Schema: public; Owner: -
+-- Phase 4 (refactor 2026-05-10): enforces (c,p,vt,rt) ∈ active rate_type_assignments.
+-- Closes audit risk #1 — silent fallback / orphan rates.
+--
+
+CREATE OR REPLACE FUNCTION public.trg_rates_check_rta_allowed()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.is_active = true AND NOT EXISTS (
+    SELECT 1 FROM public.rate_type_assignments rta
+    WHERE rta.client_id = NEW.client_id
+      AND rta.product_id = NEW.product_id
+      AND rta.verification_type_id = NEW.verification_type_id
+      AND rta.rate_type_id = NEW.rate_type_id
+      AND rta.is_active = true
+  ) THEN
+    RAISE EXCEPTION 'Cannot insert/update active rates row: (client_id=%, product_id=%, verification_type_id=%, rate_type_id=%) has no matching active rate_type_assignments. Phase 4 refactor 2026-05-10.',
+      NEW.client_id, NEW.product_id, NEW.verification_type_id, NEW.rate_type_id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_rates_check_rta_allowed
+  BEFORE INSERT OR UPDATE ON public.rates
+  FOR EACH ROW
+  EXECUTE FUNCTION public.trg_rates_check_rta_allowed();
+
+
+--
 -- Name: verification_tasks verification_task_status_guard; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -35000,6 +35064,14 @@ ALTER TABLE ONLY public.scheduled_reports
 
 ALTER TABLE ONLY public.service_zone_rules
     ADD CONSTRAINT service_zone_rules_rate_type_id_fkey FOREIGN KEY (rate_type_id) REFERENCES public.rate_types(id);
+
+
+--
+-- Name: service_zone_rules service_zone_rules_verification_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.service_zone_rules
+    ADD CONSTRAINT service_zone_rules_verification_type_id_fkey FOREIGN KEY (verification_type_id) REFERENCES public.verification_types(id);
 
 
 --
