@@ -235,6 +235,8 @@ export interface ServiceZoneRule {
   pincodeId: number;
   areaId: number;
   rateTypeId: number;
+  // Phase 7 (refactor 2026-05-10): VT required; DB col is NOT NULL.
+  verificationTypeId: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -243,6 +245,8 @@ export interface ServiceZoneRule {
   pincodeCode: string;
   areaName: string;
   rateTypeName: string;
+  verificationTypeCode: string;
+  verificationTypeName: string;
 }
 
 export interface CreateServiceZoneRuleData {
@@ -251,6 +255,8 @@ export interface CreateServiceZoneRuleData {
   pincodeId: number;
   areaId: number;
   rateTypeId: number;
+  // Phase 7 (refactor 2026-05-10): required.
+  verificationTypeId: number;
 }
 
 export interface UpdateServiceZoneRuleData extends CreateServiceZoneRuleData {

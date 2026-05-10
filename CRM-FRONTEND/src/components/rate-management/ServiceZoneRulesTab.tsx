@@ -28,11 +28,15 @@ import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { locationsService } from '@/services/locations';
 import { serviceZoneRulesService } from '@/services/serviceZoneRules';
+import { verificationTypesService } from '@/services/verificationTypes';
+import { rateTypeAssignmentsService } from '@/services/rateTypeAssignments';
 import type { ServiceZoneRule } from '@/types/rateManagement';
 
 interface RuleFormState {
   clientId: string;
   productId: string;
+  // Phase 5 (Rate Mgmt refactor 2026-05-10): VT is part of SZR key.
+  verificationTypeId: string;
   pincodeId: string;
   areaId: string;
   rateTypeId: string;
@@ -41,6 +45,7 @@ interface RuleFormState {
 const EMPTY_FORM: RuleFormState = {
   clientId: '',
   productId: '',
+  verificationTypeId: '',
   pincodeId: '',
   areaId: '',
   rateTypeId: '',
@@ -55,10 +60,6 @@ export function ServiceZoneRulesTab() {
     queryKey: ['service-zone-rules'],
     queryFn: () => serviceZoneRulesService.listRules(),
   });
-  const { data: rateTypesResponse } = useQuery({
-    queryKey: ['service-zones'],
-    queryFn: () => serviceZoneRulesService.listServiceZones(),
-  });
   const { data: clientsResponse } = useQuery({
     queryKey: ['clients', 'service-zone-rules'],
     queryFn: () => clientsService.getClients({ limit: 100 }),
@@ -67,6 +68,17 @@ export function ServiceZoneRulesTab() {
     queryKey: ['service-zone-products', formState.clientId],
     queryFn: () => productsService.getProductsByClient(formState.clientId),
     enabled: Boolean(formState.clientId),
+  });
+  // Phase 5 (refactor 2026-05-10): VTs allowed for selected (c, p)
+  // via client_product_verifications junction.
+  const { data: vtsResponse } = useQuery({
+    queryKey: ['service-zone-vts', formState.clientId, formState.productId],
+    queryFn: () =>
+      verificationTypesService.getVerificationTypesForClientProduct(
+        formState.clientId,
+        formState.productId
+      ),
+    enabled: Boolean(formState.clientId && formState.productId),
   });
   const [pincodeSearchQuery, setPincodeSearchQuery] = useState('');
   const { data: pincodesResponse } = useQuery({
@@ -79,12 +91,34 @@ export function ServiceZoneRulesTab() {
     queryFn: () => locationsService.getAreasByPincode(Number(formState.pincodeId)),
     enabled: Boolean(formState.pincodeId),
   });
+  // Phase 5 (refactor 2026-05-10): Rate-type dropdown narrows to RTA-allowed
+  // for selected (c, p, vt). Closes the silent drift class — operator can no
+  // longer pick a rate type that lacks a price config (Phase 4 trigger would
+  // reject downstream rates INSERT anyway). Single source of truth = RTA.
+  const { data: rateTypeAssignmentsResponse } = useQuery({
+    queryKey: [
+      'service-zone-rate-types',
+      formState.clientId,
+      formState.productId,
+      formState.verificationTypeId,
+    ],
+    queryFn: () =>
+      rateTypeAssignmentsService.getAssignmentsByCombination({
+        clientId: Number(formState.clientId),
+        productId: Number(formState.productId),
+        verificationTypeId: Number(formState.verificationTypeId),
+      }),
+    enabled: Boolean(
+      formState.clientId && formState.productId && formState.verificationTypeId
+    ),
+  });
 
   const createRuleMutation = useMutationWithInvalidation({
     mutationFn: () =>
       serviceZoneRulesService.createRule({
         clientId: Number(formState.clientId),
         productId: Number(formState.productId),
+        verificationTypeId: Number(formState.verificationTypeId),
         pincodeId: Number(formState.pincodeId),
         areaId: Number(formState.areaId),
         rateTypeId: Number(formState.rateTypeId),
@@ -111,6 +145,7 @@ export function ServiceZoneRulesTab() {
       return serviceZoneRulesService.updateRule(editingRule.id, {
         clientId: Number(formState.clientId),
         productId: Number(formState.productId),
+        verificationTypeId: Number(formState.verificationTypeId),
         pincodeId: Number(formState.pincodeId),
         areaId: Number(formState.areaId),
         rateTypeId: Number(formState.rateTypeId),
@@ -139,9 +174,17 @@ export function ServiceZoneRulesTab() {
 
   const clients = useMemo(() => clientsResponse?.data || [], [clientsResponse?.data]);
   const products = useMemo(() => productsResponse?.data || [], [productsResponse?.data]);
+  const verificationTypes = useMemo(() => vtsResponse?.data || [], [vtsResponse?.data]);
   const pincodes = useMemo(() => pincodesResponse?.data || [], [pincodesResponse?.data]);
   const areas = useMemo(() => areasResponse?.data || [], [areasResponse?.data]);
-  const rateTypes = useMemo(() => rateTypesResponse?.data || [], [rateTypesResponse?.data]);
+  // Phase 5: only show rate types that are RTA-allowed AND active for (c, p, vt).
+  const rateTypes = useMemo(
+    () =>
+      (rateTypeAssignmentsResponse?.data || [])
+        .filter((rta) => rta.isAssigned && rta.assignmentActive)
+        .map((rta) => ({ id: rta.rateTypeId, name: rta.rateTypeName })),
+    [rateTypeAssignmentsResponse?.data]
+  );
   const rules = useMemo(() => rulesResponse?.data || [], [rulesResponse?.data]);
 
   useEffect(() => {
@@ -168,8 +211,16 @@ export function ServiceZoneRulesTab() {
     }
 
     return rules.filter((rule) =>
-      [rule.clientName, rule.productName, rule.pincodeCode, rule.areaName, rule.rateTypeName]
-        .filter(Boolean)
+      [
+        rule.clientName,
+        rule.productName,
+        rule.verificationTypeCode,
+        rule.verificationTypeName,
+        rule.pincodeCode,
+        rule.areaName,
+        rule.rateTypeName,
+      ]
+        .filter((value): value is string => Boolean(value))
         .some((value) => value.toLowerCase().includes(normalizedSearch))
     );
   }, [rules, searchQuery]);
@@ -177,6 +228,7 @@ export function ServiceZoneRulesTab() {
   const canSubmit =
     formState.clientId &&
     formState.productId &&
+    formState.verificationTypeId &&
     formState.pincodeId &&
     formState.areaId &&
     formState.rateTypeId;
@@ -186,16 +238,32 @@ export function ServiceZoneRulesTab() {
     setFormState({
       clientId: String(rule.clientId),
       productId: String(rule.productId),
+      verificationTypeId: String(rule.verificationTypeId),
       pincodeId: String(rule.pincodeId),
       areaId: String(rule.areaId),
       rateTypeId: String(rule.rateTypeId),
     });
   };
 
+  // Phase 5 (refactor 2026-05-10): cascading reset matches dependency chain
+  // Client → Product → VT → Pincode → Area → Rate Type. Changing any earlier
+  // field clears all downstream selections to prevent stale combinations.
   const handleFormChange = (field: keyof RuleFormState, value: string) => {
     setFormState((prev) => {
       if (field === 'clientId') {
-        return { ...prev, clientId: value, productId: '' };
+        return {
+          ...prev,
+          clientId: value,
+          productId: '',
+          verificationTypeId: '',
+          rateTypeId: '',
+        };
+      }
+      if (field === 'productId') {
+        return { ...prev, productId: value, verificationTypeId: '', rateTypeId: '' };
+      }
+      if (field === 'verificationTypeId') {
+        return { ...prev, verificationTypeId: value, rateTypeId: '' };
       }
       if (field === 'pincodeId') {
         return { ...prev, pincodeId: value, areaId: '' };
@@ -224,7 +292,7 @@ export function ServiceZoneRulesTab() {
           <CardTitle>{editingRule ? 'Edit Rate Type Rule' : 'Create Rate Type Rule'}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             <div className="space-y-2">
               <Label>Client *</Label>
               <Select
@@ -260,6 +328,30 @@ export function ServiceZoneRulesTab() {
                   {products.map((product) => (
                     <SelectItem key={product.id} value={String(product.id)}>
                       {product.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Verification Type *</Label>
+              <Select
+                value={formState.verificationTypeId}
+                onValueChange={(value) => handleFormChange('verificationTypeId', value)}
+                disabled={!formState.productId}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      formState.productId ? 'Select verification type' : 'Select product first'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {verificationTypes.map((vt) => (
+                    <SelectItem key={vt.id} value={String(vt.id)}>
+                      {vt.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -321,9 +413,18 @@ export function ServiceZoneRulesTab() {
               <Select
                 value={formState.rateTypeId}
                 onValueChange={(value) => handleFormChange('rateTypeId', value)}
+                disabled={!formState.verificationTypeId}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select rate type" />
+                  <SelectValue
+                    placeholder={
+                      !formState.verificationTypeId
+                        ? 'Select verification type first'
+                        : rateTypes.length === 0
+                        ? 'No rate types assigned for this combination'
+                        : 'Select rate type'
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {rateTypes.map((rt) => (
@@ -388,7 +489,7 @@ export function ServiceZoneRulesTab() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by client, product, pincode or area"
+              placeholder="Search by client, product, verification type, pincode or area"
               className="pl-10"
             />
           </div>
@@ -405,6 +506,7 @@ export function ServiceZoneRulesTab() {
                 <TableRow>
                   <TableHead>Client</TableHead>
                   <TableHead>Product</TableHead>
+                  <TableHead>Verification Type</TableHead>
                   <TableHead>Pincode</TableHead>
                   <TableHead>Area</TableHead>
                   <TableHead>Rate Type</TableHead>
@@ -417,6 +519,7 @@ export function ServiceZoneRulesTab() {
                   <TableRow key={rule.id}>
                     <TableCell>{rule.clientName}</TableCell>
                     <TableCell>{rule.productName}</TableCell>
+                    <TableCell>{rule.verificationTypeCode || rule.verificationTypeName}</TableCell>
                     <TableCell>{rule.pincodeCode}</TableCell>
                     <TableCell>{rule.areaName}</TableCell>
                     <TableCell>{rule.rateTypeName}</TableCell>
