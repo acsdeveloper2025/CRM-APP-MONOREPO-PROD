@@ -183,12 +183,12 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+            {/* Phase 6 (Rate Mgmt refactor 2026-05-10): tab order matches
+                dependency chain — Master → Eligibility → Pricing → Geography
+                → KYC → Reports. Operator onboarding follows top-to-bottom. */}
             <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="rate-types" className="text-sm">
                 Rate Types
-              </TabsTrigger>
-              <TabsTrigger value="service-zone-rules" className="text-sm">
-                Service Zone Rules
               </TabsTrigger>
               <TabsTrigger value="rate-type-assignment" className="text-sm">
                 Rate Type Assignment
@@ -196,11 +196,14 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               <TabsTrigger value="rate-assignment" className="text-sm">
                 Rate Amounts
               </TabsTrigger>
-              <TabsTrigger value="rate-view-report" className="text-sm">
-                Rate Report
+              <TabsTrigger value="service-zone-rules" className="text-sm">
+                Service Zone Rules
               </TabsTrigger>
               <TabsTrigger value="document-type-rates" className="text-sm">
                 KYC Rates
+              </TabsTrigger>
+              <TabsTrigger value="rate-view-report" className="text-sm">
+                Rate Report
               </TabsTrigger>
             </TabsList>
 
@@ -212,17 +215,6 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
                     Create and manage rate types: Local, Local1, Local2, OGL, OGL1, OGL2, Outstation
                   </p>
                   <RateTypesTab />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="service-zone-rules" className="space-y-4">
-                <div className="border rounded-lg p-4">
-                  <h3 className="text-lg font-semibold mb-2">Rate Type Rules</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Map client, product, pincode, and area combinations to a rate type before
-                    pricing is applied
-                  </p>
-                  <ServiceZoneRulesTab />
                 </div>
               </TabsContent>
 
@@ -246,13 +238,14 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
                 </div>
               </TabsContent>
 
-              <TabsContent value="rate-view-report" className="space-y-4">
+              <TabsContent value="service-zone-rules" className="space-y-4">
                 <div className="border rounded-lg p-4">
-                  <h3 className="text-lg font-semibold mb-2">Rate View & Reports</h3>
+                  <h3 className="text-lg font-semibold mb-2">Rate Type Rules</h3>
                   <p className="text-sm text-gray-600 mb-4">
-                    View and manage all configured rates with comprehensive filtering and reporting
+                    Map client, product, verification type, pincode, and area combinations to a rate
+                    type before pricing is applied
                   </p>
-                  <RateViewReportTab />
+                  <ServiceZoneRulesTab />
                 </div>
               </TabsContent>
 
@@ -263,6 +256,16 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
                     Configure pricing for KYC document verification per client and product
                   </p>
                   <DocumentTypeRatesTab />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="rate-view-report" className="space-y-4">
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-lg font-semibold mb-2">Rate View & Reports</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    View and manage all configured rates with comprehensive filtering and reporting
+                  </p>
+                  <RateViewReportTab />
                 </div>
               </TabsContent>
             </div>

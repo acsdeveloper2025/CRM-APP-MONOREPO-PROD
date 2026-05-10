@@ -265,19 +265,13 @@ export const navigationItems: NavigationItem[] = [
     permissionCode: 'page.masterdata',
     permission: { resource: 'rateManagement', action: 'read' },
     children: [
+      // Phase 6 (Rate Mgmt refactor 2026-05-10): order matches dependency
+      // chain — Master → Eligibility → Pricing → Geography → KYC → Reports.
       {
         id: 'rate-types',
         label: 'Rate Types',
         href: '/rate-management/rate-types',
         icon: DollarSign,
-        permissionCode: 'page.masterdata',
-        permission: { resource: 'rateManagement', action: 'read' },
-      },
-      {
-        id: 'service-zones',
-        label: 'Service Zone Rules',
-        href: '/rate-management/service-zone-rules',
-        icon: MapPin,
         permissionCode: 'page.masterdata',
         permission: { resource: 'rateManagement', action: 'read' },
       },
@@ -298,10 +292,10 @@ export const navigationItems: NavigationItem[] = [
         permission: { resource: 'rateManagement', action: 'read' },
       },
       {
-        id: 'rate-report',
-        label: 'Rate Report',
-        href: '/rate-management/rate-report',
-        icon: BarChart3,
+        id: 'service-zones',
+        label: 'Service Zone Rules',
+        href: '/rate-management/service-zone-rules',
+        icon: MapPin,
         permissionCode: 'page.masterdata',
         permission: { resource: 'rateManagement', action: 'read' },
       },
@@ -310,6 +304,14 @@ export const navigationItems: NavigationItem[] = [
         label: 'KYC Rates',
         href: '/rate-management/kyc-rates',
         icon: FileText,
+        permissionCode: 'page.masterdata',
+        permission: { resource: 'rateManagement', action: 'read' },
+      },
+      {
+        id: 'rate-report',
+        label: 'Rate Report',
+        href: '/rate-management/rate-report',
+        icon: BarChart3,
         permissionCode: 'page.masterdata',
         permission: { resource: 'rateManagement', action: 'read' },
       },
