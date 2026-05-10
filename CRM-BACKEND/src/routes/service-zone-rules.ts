@@ -30,6 +30,10 @@ const listValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Rate type ID must be a valid integer'),
+  query('verificationTypeId')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Verification type ID must be a valid integer'),
   query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   query('search').optional().isString().withMessage('Search must be a string'),
 ];
@@ -40,6 +44,10 @@ const ruleValidation = [
   body('pincodeId').isInt({ min: 1 }).withMessage('Pincode ID must be a valid integer'),
   body('areaId').isInt({ min: 1 }).withMessage('Area ID must be a valid integer'),
   body('rateTypeId').isInt({ min: 1 }).withMessage('Rate type ID must be a valid integer'),
+  // Phase 7 (refactor 2026-05-10): VT now REQUIRED — DB col is NOT NULL.
+  body('verificationTypeId')
+    .isInt({ min: 1 })
+    .withMessage('Verification type ID must be a valid integer'),
 ];
 
 router.get(

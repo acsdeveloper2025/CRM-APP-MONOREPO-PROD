@@ -10,6 +10,8 @@ type ServiceZoneRulePayload = {
   pincodeId: number;
   areaId: number;
   rateTypeId: number;
+  // Phase 7 (refactor 2026-05-10): VT required; DB col is NOT NULL.
+  verificationTypeId: number;
 };
 
 type ValidateReferencesResult =
@@ -19,19 +21,24 @@ type ValidateReferencesResult =
 const validateReferences = async (
   payload: ServiceZoneRulePayload
 ): Promise<ValidateReferencesResult> => {
-  const { clientId, productId, pincodeId, areaId, rateTypeId } = payload;
+  const { clientId, productId, pincodeId, areaId, rateTypeId, verificationTypeId } = payload;
 
-  const [clientRes, productRes, pincodeRes, areaRes, mappingRes, rateTypeRes] = await Promise.all([
-    query('SELECT id FROM clients WHERE id = $1 LIMIT 1', [clientId]),
-    query('SELECT id FROM products WHERE id = $1 LIMIT 1', [productId]),
-    query('SELECT id FROM pincodes WHERE id = $1 LIMIT 1', [pincodeId]),
-    query('SELECT id FROM areas WHERE id = $1 LIMIT 1', [areaId]),
-    query('SELECT 1 FROM pincode_areas WHERE pincode_id = $1 AND area_id = $2 LIMIT 1', [
-      pincodeId,
-      areaId,
-    ]),
-    query('SELECT id FROM rate_types WHERE id = $1 AND is_active = true LIMIT 1', [rateTypeId]),
-  ]);
+  const [clientRes, productRes, pincodeRes, areaRes, mappingRes, rateTypeRes, verificationTypeRes] =
+    await Promise.all([
+      query('SELECT id FROM clients WHERE id = $1 LIMIT 1', [clientId]),
+      query('SELECT id FROM products WHERE id = $1 LIMIT 1', [productId]),
+      query('SELECT id FROM pincodes WHERE id = $1 LIMIT 1', [pincodeId]),
+      query('SELECT id FROM areas WHERE id = $1 LIMIT 1', [areaId]),
+      query('SELECT 1 FROM pincode_areas WHERE pincode_id = $1 AND area_id = $2 LIMIT 1', [
+        pincodeId,
+        areaId,
+      ]),
+      query('SELECT id FROM rate_types WHERE id = $1 AND is_active = true LIMIT 1', [rateTypeId]),
+      // Phase 7 (refactor 2026-05-10): VT required.
+      query('SELECT id FROM verification_types WHERE id = $1 AND is_active = true LIMIT 1', [
+        verificationTypeId,
+      ]),
+    ]);
 
   if (!clientRes.rows[0]) {
     return { ok: false, status: 400, message: 'Selected client does not exist' };
@@ -57,6 +64,14 @@ const validateReferences = async (
       ok: false,
       status: 400,
       message: 'Selected rate type does not exist or is inactive',
+    };
+  }
+  // Phase 7 (refactor 2026-05-10): VT required.
+  if (!verificationTypeRes.rows[0]) {
+    return {
+      ok: false,
+      status: 400,
+      message: 'Selected verification type does not exist or is inactive',
     };
   }
 
@@ -100,6 +115,13 @@ export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Respo
       values.push(Number(rateTypeId));
       whereSql.push(`szr.rate_type_id = $${values.length}`);
     }
+    // Phase 1 (refactor 2026-05-10): VT filter additive; ignored if undefined.
+    const verificationTypeId = (req.query as { verificationTypeId?: string | number })
+      .verificationTypeId;
+    if (verificationTypeId) {
+      values.push(Number(verificationTypeId));
+      whereSql.push(`szr.verification_type_id = $${values.length}`);
+    }
     if (typeof isActive !== 'undefined') {
       values.push(typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive));
       whereSql.push(`szr.is_active = $${values.length}`);
@@ -123,6 +145,7 @@ export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Respo
       JOIN pincodes pin ON pin.id = szr.pincode_id
       JOIN areas a ON a.id = szr.area_id
       LEFT JOIN rate_types rt ON rt.id = szr.rate_type_id
+      LEFT JOIN verification_types vt ON vt.id = szr.verification_type_id
     `;
     const countRes = await query<{ count: string }>(
       `SELECT COUNT(*)::text as count ${baseFrom} ${whereClause}`,
@@ -139,6 +162,7 @@ export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Respo
         szr.pincode_id as pincode_id,
         szr.area_id as area_id,
         szr.rate_type_id as rate_type_id,
+        szr.verification_type_id as verification_type_id,
         szr.is_active as is_active,
         szr.created_at as created_at,
         szr.updated_at as updated_at,
@@ -146,7 +170,9 @@ export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Respo
         p.name as product_name,
         pin.code as pincode_code,
         a.name as "areaName",
-        rt.name as rate_type_name
+        rt.name as rate_type_name,
+        vt.code as verification_type_code,
+        vt.name as verification_type_name
        ${baseFrom}
        ${whereClause}
        ORDER BY c.name, p.name, pin.code, a.name
@@ -206,7 +232,7 @@ export const createServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
       });
     }
 
-    const { clientId, productId, pincodeId, areaId, rateTypeId } = payload;
+    const { clientId, productId, pincodeId, areaId, rateTypeId, verificationTypeId } = payload;
 
     // Upsert on (clientId, productId, pincodeId, areaId). One rule per combo
     // is the data model; the rate_type_id IS the editable value. If the user
@@ -214,6 +240,7 @@ export const createServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
     // than reject — that matches intent and avoids the "create a new rule"
     // vs "click Edit on the old one" UX trap. Rare accidental overwrite is
     // acceptable vs the common "duplicate, try again" friction.
+    // Phase 1 (refactor 2026-05-10): VT col is additive; reads ignore it.
     const existingRes = await query(
       `SELECT id FROM service_zone_rules
        WHERE client_id = $1 AND product_id = $2 AND pincode_id = $3 AND area_id = $4
@@ -225,10 +252,11 @@ export const createServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
       await query(
         `UPDATE service_zone_rules
          SET rate_type_id = $1,
+             verification_type_id = $2,
              is_active = true,
              updated_at = CURRENT_TIMESTAMP
-         WHERE id = $2`,
-        [rateTypeId, existingId]
+         WHERE id = $3`,
+        [rateTypeId, verificationTypeId, existingId]
       );
       return res.status(200).json({
         success: true,
@@ -239,10 +267,10 @@ export const createServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
 
     const insertRes = await query(
       `INSERT INTO service_zone_rules
-        (client_id, product_id, pincode_id, area_id, rate_type_id, is_active, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        (client_id, product_id, pincode_id, area_id, rate_type_id, verification_type_id, is_active, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
        RETURNING id`,
-      [clientId, productId, pincodeId, areaId, rateTypeId]
+      [clientId, productId, pincodeId, areaId, rateTypeId, verificationTypeId]
     );
 
     res.status(201).json({
@@ -306,14 +334,16 @@ export const updateServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
            pincode_id = $3,
            area_id = $4,
            rate_type_id = $5,
+           verification_type_id = $6,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $6`,
+       WHERE id = $7`,
       [
         payload.clientId,
         payload.productId,
         payload.pincodeId,
         payload.areaId,
         payload.rateTypeId,
+        payload.verificationTypeId,
         id,
       ]
     );
