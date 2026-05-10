@@ -861,7 +861,7 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE_DOOR_OPEN: `NOC Remark: POSITIVE & DOOR OPEN.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the NOC office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), who is the authorised signatory {Authorised_Signature} and confirmed that NOC has been issued in the name of {Name_on_NOC} for flat/shop/office no. {Flat_No}.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the NOC office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), who confirmed that NOC has been issued in the name of {Name_on_NOC} for flat/shop/office no. {Flat_No}. The authorised signatory is {Authorised_Signature}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color}.
