@@ -2045,22 +2045,13 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
       });
     }
 
-    // Direct rate type lookup from serviceZoneRules (no service zone indirection)
-    const rateTypeRuleResult = await dbQuery(
-      `SELECT rate_type_id
-       FROM service_zone_rules
-       WHERE client_id = $1
-         AND product_id = $2
-         AND pincode_id = $3
-         AND area_id = $4
-         AND is_active = true
-       LIMIT 1`,
-      [clientId, productId, resolvedPincodeId, areaId]
-    );
-
-    const mappedRateTypeId = rateTypeRuleResult.rows[0]?.rateTypeId
-      ? Number(rateTypeRuleResult.rows[0].rateTypeId)
-      : null;
+    // Bug B-3 (audit 2026-05-10): the redundant VT-blind `mappedRateTypeId`
+    // SQL was DELETED. With Phase 2's 9 SZR rows per (c,p,pin,area) — one per
+    // VT — that VT-blind LIMIT 1 returned a non-deterministic row, often from
+    // a different VT than the one being previewed. The validator below is the
+    // VT-aware source of truth (Phase 3 made `validateRateTypeRule` use VT in
+    // its WHERE clause). Use validator's result for both `rateTypeId` and
+    // `rateTypeRuleFound` (derived from errorCode).
 
     // resolvedPincodeId is guaranteed non-null by the validation block above:
     // either pincodeId/pincode supplied (else early 400), or one of the
@@ -2083,8 +2074,12 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
       preferredRateTypeId
     );
 
-    const effectiveRateTypeId =
-      validationResult.rateTypeId ?? mappedRateTypeId ?? preferredRateTypeId;
+    const effectiveRateTypeId = validationResult.rateTypeId ?? preferredRateTypeId;
+
+    // SZR rule found = validator did NOT bail with CONFIG_RATE_TYPE_MISSING.
+    // Either the rule was matched, or we never tried (preferredRateTypeId branch).
+    const rateTypeRuleFound =
+      validationResult.errorCode !== FinancialConfigErrorCode.CONFIG_RATE_TYPE_MISSING;
 
     res.json({
       success: true,
@@ -2093,7 +2088,7 @@ export const validateCaseConfiguration = async (req: AuthenticatedRequest, res: 
         : 'Configuration validation failed',
       data: {
         isValid: validationResult.isValid,
-        rateTypeRuleFound: Boolean(mappedRateTypeId),
+        rateTypeRuleFound,
         rateAmountFound:
           validationResult.isValid ||
           validationResult.errorCode === FinancialConfigErrorCode.CONFIG_RATE_AMOUNT_MISSING
