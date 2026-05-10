@@ -240,12 +240,16 @@ export const createServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
     // than reject — that matches intent and avoids the "create a new rule"
     // vs "click Edit on the old one" UX trap. Rare accidental overwrite is
     // acceptable vs the common "duplicate, try again" friction.
-    // Phase 1 (refactor 2026-05-10): VT col is additive; reads ignore it.
+    // Bug B-2 (audit 2026-05-10): VT is part of the SZR key. Existence check
+    // must include verification_type_id, else creating a 2nd VT rule for the
+    // same (c, p, pincode, area) silently overwrites a different VT's rule
+    // (UPDATE branch below changes the existing row's VT instead of inserting).
     const existingRes = await query(
       `SELECT id FROM service_zone_rules
-       WHERE client_id = $1 AND product_id = $2 AND pincode_id = $3 AND area_id = $4
+       WHERE client_id = $1 AND product_id = $2 AND verification_type_id = $3
+         AND pincode_id = $4 AND area_id = $5
        LIMIT 1`,
-      [clientId, productId, pincodeId, areaId]
+      [clientId, productId, verificationTypeId, pincodeId, areaId]
     );
     if (existingRes.rows[0]) {
       const existingId = existingRes.rows[0].id;
@@ -312,14 +316,26 @@ export const updateServiceZoneRule = async (req: AuthenticatedRequest, res: Resp
       });
     }
 
+    // Bug B-2 (audit 2026-05-10): VT is part of the SZR key. Duplicate check
+    // must include verification_type_id, else editing one VT's rule incorrectly
+    // raises DUPLICATE_RULE against another VT's rule for the same geography.
     const duplicateRes = await query(
       `SELECT id FROM service_zone_rules
-       WHERE client_id = $1 AND product_id = $2 AND pincode_id = $3 AND area_id = $4 AND id <> $5
+       WHERE client_id = $1 AND product_id = $2 AND verification_type_id = $3
+         AND pincode_id = $4 AND area_id = $5 AND id <> $6
        LIMIT 1`,
-      [payload.clientId, payload.productId, payload.pincodeId, payload.areaId, id]
+      [
+        payload.clientId,
+        payload.productId,
+        payload.verificationTypeId,
+        payload.pincodeId,
+        payload.areaId,
+        id,
+      ]
     );
     if (duplicateRes.rows[0]) {
-      const dupMsg = 'A rule already exists for this client/product/pincode/area combination';
+      const dupMsg =
+        'A rule already exists for this client/product/verification type/pincode/area combination';
       return res.status(400).json({
         success: false,
         message: dupMsg,
