@@ -23,22 +23,43 @@ const validateReferences = async (
 ): Promise<ValidateReferencesResult> => {
   const { clientId, productId, pincodeId, areaId, rateTypeId, verificationTypeId } = payload;
 
-  const [clientRes, productRes, pincodeRes, areaRes, mappingRes, rateTypeRes, verificationTypeRes] =
-    await Promise.all([
-      query('SELECT id FROM clients WHERE id = $1 LIMIT 1', [clientId]),
-      query('SELECT id FROM products WHERE id = $1 LIMIT 1', [productId]),
-      query('SELECT id FROM pincodes WHERE id = $1 LIMIT 1', [pincodeId]),
-      query('SELECT id FROM areas WHERE id = $1 LIMIT 1', [areaId]),
-      query('SELECT 1 FROM pincode_areas WHERE pincode_id = $1 AND area_id = $2 LIMIT 1', [
-        pincodeId,
-        areaId,
-      ]),
-      query('SELECT id FROM rate_types WHERE id = $1 AND is_active = true LIMIT 1', [rateTypeId]),
-      // Phase 7 (refactor 2026-05-10): VT required.
-      query('SELECT id FROM verification_types WHERE id = $1 AND is_active = true LIMIT 1', [
-        verificationTypeId,
-      ]),
-    ]);
+  const [
+    clientRes,
+    productRes,
+    pincodeRes,
+    areaRes,
+    mappingRes,
+    rateTypeRes,
+    verificationTypeRes,
+    rtaRes,
+  ] = await Promise.all([
+    query('SELECT id FROM clients WHERE id = $1 LIMIT 1', [clientId]),
+    query('SELECT id FROM products WHERE id = $1 LIMIT 1', [productId]),
+    query('SELECT id FROM pincodes WHERE id = $1 LIMIT 1', [pincodeId]),
+    query('SELECT id FROM areas WHERE id = $1 LIMIT 1', [areaId]),
+    query('SELECT 1 FROM pincode_areas WHERE pincode_id = $1 AND area_id = $2 LIMIT 1', [
+      pincodeId,
+      areaId,
+    ]),
+    query('SELECT id FROM rate_types WHERE id = $1 AND is_active = true LIMIT 1', [rateTypeId]),
+    // Phase 7 (refactor 2026-05-10): VT required.
+    query('SELECT id FROM verification_types WHERE id = $1 AND is_active = true LIMIT 1', [
+      verificationTypeId,
+    ]),
+    // Bug B-4 (audit 2026-05-10): backend defense-in-depth — selected rate
+    // type MUST be active in rate_type_assignments for this (c, p, vt). Closes
+    // the curl-bypass / stale-form gap where FE filters dropdown to RTA-allowed
+    // but BE accepted any active rate type. Symmetric to ratesController
+    // line 219-232 which already enforces this for Rate Amounts INSERT.
+    query(
+      `SELECT 1 FROM rate_type_assignments
+       WHERE client_id = $1 AND product_id = $2
+         AND verification_type_id = $3 AND rate_type_id = $4
+         AND is_active = true
+       LIMIT 1`,
+      [clientId, productId, verificationTypeId, rateTypeId]
+    ),
+  ]);
 
   if (!clientRes.rows[0]) {
     return { ok: false, status: 400, message: 'Selected client does not exist' };
@@ -72,6 +93,15 @@ const validateReferences = async (
       ok: false,
       status: 400,
       message: 'Selected verification type does not exist or is inactive',
+    };
+  }
+  // Bug B-4 (audit 2026-05-10): rate type must be RTA-allowed for (c, p, vt).
+  if (!rtaRes.rows[0]) {
+    return {
+      ok: false,
+      status: 400,
+      message:
+        'Selected rate type is not allowed for this client/product/verification type combination. Configure Rate Type Assignment first.',
     };
   }
 
