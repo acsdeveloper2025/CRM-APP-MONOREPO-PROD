@@ -327,7 +327,8 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               <div>
                 <h4 className="font-semibold">Service Zone Rules</h4>
                 <p className="text-sm text-gray-600">
-                  Geography — map client + product + verification type + pincode + area to a rate type
+                  Geography — map client + product + verification type + pincode + area to a rate
+                  type
                 </p>
               </div>
             </div>
@@ -339,7 +340,8 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               <div>
                 <h4 className="font-semibold">KYC Rates</h4>
                 <p className="text-sm text-gray-600">
-                  Separate pricing for KYC document verification per client + product + document type
+                  Separate pricing for KYC document verification per client + product + document
+                  type
                 </p>
               </div>
             </div>

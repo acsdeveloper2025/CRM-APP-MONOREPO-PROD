@@ -180,10 +180,6 @@ export const commissionManagementApi = {
     return response;
   },
 
-  async calculateCommissionForCase(caseId: string): Promise<ApiResponse<CommissionCalculation>> {
-    return apiService.post(`/commission-management/calculate-case/${caseId}`);
-  },
-
   // Commission Statistics
   async getCommissionStats(): Promise<ApiResponse<CommissionStats>> {
     const response = await apiService.get<CommissionStats>('/commission-management/stats');

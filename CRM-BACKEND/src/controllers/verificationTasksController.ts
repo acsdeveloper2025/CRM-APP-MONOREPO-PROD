@@ -16,6 +16,7 @@ import { getScopedOperationalUserIds } from '@/security/userScope';
 import { requireControllerPermission } from '@/security/controllerAuthorization';
 import { resolveDataScope, valueAllowedByScope } from '@/security/dataScope';
 import { TaskRevocationService } from '@/services/taskRevocationService';
+import { TaskCompletionFinalizer } from '@/services/taskCompletionFinalizer';
 
 type ReassignableTaskRecord = {
   id: string;
@@ -329,13 +330,15 @@ export class VerificationTasksController {
     try {
       await client.query('BEGIN');
 
-      // 1. Fetch original task details (F5.1.2 Phase B: pincode via FK)
+      // 1. Fetch original task details (F5.1.2 Phase B: pincode via FK).
+      // Note: KYC document data (document_type/document_number/document_details)
+      // lives on kyc_document_verifications post F8.2.2 — NOT on verification_tasks.
       const originalTaskQuery = `
         SELECT vt.id, vt.case_id, vt.verification_type_id, vt.status, vt.assigned_to,
                vt.address, p.code AS pincode, vt.pincode_id,
                vt.latitude, vt.longitude, vt.priority, vt.area_id,
                vt.task_title, vt.task_description, vt.rate_type_id, vt.estimated_amount,
-               vt.document_type, vt.document_number, vt.document_details,
+               vt.task_type,
                vt.first_assigned_at, vt.assigned_at, vt.completed_at, vt.created_at, vt.updated_at
         FROM verification_tasks vt
         LEFT JOIN pincodes p ON p.id = vt.pincode_id
@@ -354,6 +357,21 @@ export class VerificationTasksController {
       }
 
       const originalTask = originalTaskResult.rows[0];
+
+      // H-3 (audit 2026-05-11): revisit is only meaningful on a COMPLETED parent.
+      // Block revisit on ASSIGNED/IN_PROGRESS (use reassignment instead) and on
+      // REVOKED (use reassign-after-revoke). Without this guard, revisit on a
+      // REVOKED parent would create an orphan-linked task; revisit on ACTIVE
+      // would 23505 from the partial unique index with an opaque 500.
+      if (originalTask.status !== 'COMPLETED') {
+        await client.query('ROLLBACK');
+        res.status(400).json({
+          success: false,
+          message: `Cannot revisit a task in status ${originalTask.status}. Revisit requires a COMPLETED parent task.`,
+          error: { code: 'REVISIT_REQUIRES_COMPLETED_PARENT' },
+        });
+        return;
+      }
 
       const caseScopeResult = await client.query(
         'SELECT client_id, product_id FROM cases WHERE id = $1',
@@ -536,6 +554,23 @@ export class VerificationTasksController {
         // valid; the user can manually create the instance later.
         logger.warn('Failed to auto-create data entry instance for revisit:', deErr);
       }
+
+      // H-4 (audit 2026-05-11): audit-log coverage for revisit, matching the
+      // pattern in assignTask + revokeTask. Revisit is financially-relevant
+      // (full-rate re-billing per business rule R2) — must leave a trail.
+      await createAuditLog({
+        userId,
+        action: 'REVISIT_VERIFICATION_TASK',
+        entityType: 'VERIFICATION_TASK',
+        entityId: newTask.id,
+        details: {
+          parentTaskId: taskId,
+          parentCaseId: originalTask.caseId,
+          assignedTo: assignedToValue,
+          rateTypeId: originalTask.rateTypeId,
+          estimatedAmount: originalTask.estimatedAmount,
+        },
+      });
 
       await client.query('COMMIT');
 
@@ -2115,32 +2150,25 @@ export class VerificationTasksController {
         return;
       }
 
-      // 7. Complete task
+      // 7. Complete task (status flip only — financial snapshot via finalizer)
       const updateResult = await client.query(
         `UPDATE verification_tasks
          SET status = 'COMPLETED',
              verification_outcome = $1,
-             actual_amount = COALESCE($2, estimated_amount),
              completed_at = NOW(),
              updated_at = NOW()
-         WHERE id = $3
+         WHERE id = $2
          RETURNING *`,
-        [verificationOutcome, actualAmount, taskId]
+        [verificationOutcome, taskId]
       );
 
       const completedTask = updateResult.rows[0];
 
-      // Calculate commission if rate type is available
-      if (completedTask.rateTypeId && completedTask.assignedTo) {
-        try {
-          const { autoCalculateCommissionForTask } = await import(
-            './commissionManagementController'
-          );
-          await autoCalculateCommissionForTask(taskId);
-        } catch (commError) {
-          logger.error('Error calculating commission:', commError);
-        }
-      }
+      // 7b. Snapshot financial state via shared finalizer (inside the same tx).
+      // Owns: actual_amount snapshot + reserved hook point for future financial
+      // side-effects. Replaces the previous inline COALESCE on the UPDATE so
+      // web and mobile completion paths use the same authoritative logic.
+      await TaskCompletionFinalizer.snapshotFinancials(client, taskId, { actualAmount });
 
       // 8. Logging
       logger.info('Verification task completed with validated evidence', {
@@ -2168,8 +2196,13 @@ export class VerificationTasksController {
 
       await client.query('COMMIT');
 
-      // Sync case status
+      // Post-commit: case status recompute + financial hooks (commission etc).
+      // MUST run after COMMIT — finalizer's commission engine reads via the
+      // pool and cannot see uncommitted writes from this client.
       await CaseStatusSyncService.recalculateCaseStatus(task.caseId);
+      if (completedTask.rateTypeId && completedTask.assignedTo) {
+        await TaskCompletionFinalizer.triggerPostCompletionHooks(taskId);
+      }
 
       res.json({
         success: true,

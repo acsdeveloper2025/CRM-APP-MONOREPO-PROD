@@ -6,8 +6,16 @@ import { query, withTransaction } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { requireControllerPermission } from '@/security/controllerAuthorization';
-import { resolveDataScope, valueAllowedByScope } from '@/security/dataScope';
+import {
+  resolveDataScope,
+  valueAllowedByScope,
+  appendOperationalScopeConditions,
+} from '@/security/dataScope';
 import { financialConfigurationValidator } from '@/services/financialConfigurationValidator';
+import { resolveInvoiceGst, GstConfigError } from '@/services/gstResolver';
+
+// Single 2dp rounder shared with gstResolver for arithmetic parity.
+const round2 = (n: number): number => Math.round(n * 100) / 100;
 
 interface InvoiceItem {
   id: string;
@@ -47,6 +55,15 @@ interface Invoice {
   updatedAt: string;
   paymentMethod?: string;
   transactionId?: string;
+  // GST breakdown (NULL for legacy pre-2026-05-12 invoices).
+  supplyType?: 'INTRA_STATE' | 'INTER_STATE' | 'EXPORT' | null;
+  placeOfSupply?: string | null;
+  cgstRate?: number | null;
+  cgstAmount?: number | null;
+  sgstRate?: number | null;
+  sgstAmount?: number | null;
+  igstRate?: number | null;
+  igstAmount?: number | null;
 }
 
 type InvoiceListRow = {
@@ -72,6 +89,14 @@ type InvoiceListRow = {
   clientCode: string | null;
   clientEmail: string | null;
   clientPhone: string | null;
+  supplyType: string | null;
+  placeOfSupply: string | null;
+  cgstRate: string | null;
+  cgstAmount: string | null;
+  sgstRate: string | null;
+  sgstAmount: string | null;
+  igstRate: string | null;
+  igstAmount: string | null;
 };
 
 type InvoiceItemRow = {
@@ -93,6 +118,7 @@ type InvoiceTaskCandidateRow = {
   estimatedAmount: string | null;
   areaId: number | null;
   taskTitle: string | null;
+  taskType: 'NORMAL' | 'REVISIT' | 'KYC' | null;
   pincodeId: number | null;
   clientId: number;
   productId: number;
@@ -331,6 +357,14 @@ const mapDbInvoiceRow = (
   updatedAt: row.updatedAt,
   ...(row.paymentMethod ? { paymentMethod: row.paymentMethod } : {}),
   ...(row.transactionId ? { transactionId: row.transactionId } : {}),
+  supplyType: (row.supplyType as Invoice['supplyType']) ?? null,
+  placeOfSupply: row.placeOfSupply ?? null,
+  cgstRate: row.cgstRate !== null ? toNumber(row.cgstRate) : null,
+  cgstAmount: row.cgstAmount !== null ? toNumber(row.cgstAmount) : null,
+  sgstRate: row.sgstRate !== null ? toNumber(row.sgstRate) : null,
+  sgstAmount: row.sgstAmount !== null ? toNumber(row.sgstAmount) : null,
+  igstRate: row.igstRate !== null ? toNumber(row.igstRate) : null,
+  igstAmount: row.igstAmount !== null ? toNumber(row.igstAmount) : null,
 });
 
 const getInvoicesFromDb = async (
@@ -439,6 +473,14 @@ const getInvoicesFromDb = async (
        i.updated_at::text,
        i.payment_method,
        i.transaction_id,
+       i.supply_type,
+       i.place_of_supply,
+       i.cgst_rate::text,
+       i.cgst_amount::text,
+       i.sgst_rate::text,
+       i.sgst_amount::text,
+       i.igst_rate::text,
+       i.igst_amount::text,
        c.code as client_code,
        c.email as client_email,
        c.phone as client_phone
@@ -491,6 +533,14 @@ const getInvoiceByIdFromDb = async (
      i.updated_at::text,
      i.payment_method,
      i.transaction_id,
+     i.supply_type,
+     i.place_of_supply,
+     i.cgst_rate::text,
+     i.cgst_amount::text,
+     i.sgst_rate::text,
+     i.sgst_amount::text,
+     i.igst_rate::text,
+     i.igst_amount::text,
      c.code as client_code,
      c.email as client_email,
      c.phone as client_phone
@@ -699,19 +749,37 @@ const resolveTaskBillingAmount = async (
 ): Promise<{ amount: number; rateTypeId: number | null }> => {
   const candidateRateTypeId = toMaybeNumber(task.rateTypeId);
 
-  // Bug B-1 (audit 2026-05-10): silent fallback removed.
-  // Previously when validateTaskConfiguration failed (RTA reshuffled / rate
-  // deactivated / config drift), this function silently used
-  // `task.actualAmount || task.estimatedAmount` and billed the operator at
-  // the frozen task-creation amount with no error and no audit trail. That
-  // re-created the Phase-4-deleted "silent substitute" class one layer up.
-  // Now fails loud: invoice generation raises, operator must reconfigure
-  // RTA/rates for the affected (c, p, vt) before re-running invoice batch.
+  // Issue 2 (audit 2026-05-12): FROZEN PRICING.
+  // Field task billing amount is the snapshot persisted by
+  // TaskCompletionFinalizer.snapshotFinancials at completion time
+  // (`actual_amount = COALESCE(actual_amount, estimated_amount)`).
+  // Once the snapshot is set, this resolver MUST NOT re-validate against
+  // live rates/RTA/SZR — that would silently mutate DRAFT-invoice
+  // amounts on every regen if an admin changes config between completion
+  // and issuance. Same audit-safe model as KYC (already frozen via
+  // resolveKycTaskBillingAmount).
+  //
+  // Fallback to live validation only when the snapshot is missing
+  // (legacy data created before the finalizer landed, or edge cases
+  // where actual_amount was somehow not persisted). The fail-loud
+  // contract (B-1, 2026-05-10) is preserved in that fallback path —
+  // never silently substitute.
+  const snapshot = toMaybeNumber(task.actualAmount);
+  if (snapshot !== null && Number.isFinite(snapshot) && snapshot >= 0) {
+    return {
+      amount: snapshot,
+      rateTypeId: candidateRateTypeId,
+    };
+  }
+
+  // Snapshot missing — fall through to live validation (defensive path).
+  // Per B-1, fails loud rather than substituting estimated_amount silently.
   if (!task.verificationTypeId || !task.pincodeId) {
     throw new Error(
       `Billing amount cannot be resolved for verification task ${task.id} — ` +
-        `missing verificationTypeId or pincodeId on the task row. ` +
-        `Reconfigure the task before billing.`
+        `actual_amount snapshot is missing AND verificationTypeId/pincodeId are ` +
+        `not set for live re-resolution. Complete the task through the finalizer ` +
+        `or reconfigure before billing.`
     );
   }
 
@@ -751,7 +819,17 @@ const loadCompletedUnbilledTasks = async (
   billingPeriodFrom?: string,
   billingPeriodTo?: string
 ): Promise<InvoiceTaskCandidateRow[]> => {
-  const conditions: string[] = [`c.client_id = $1`, `vt.status = 'COMPLETED'`, `iit.id IS NULL`];
+  // C-2 (audit 2026-05-11): KYC tasks have NULL verification_type_id /
+  // pincode_id by design (CHECK chk_vt_type_matches_task_type). They cannot
+  // flow through resolveTaskBillingAmount and are loaded by the dedicated
+  // loadCompletedUnbilledKycTasks helper instead. REVISIT tasks keep field
+  // semantics (full-rate per business rule R2).
+  const conditions: string[] = [
+    `c.client_id = $1`,
+    `vt.status = 'COMPLETED'`,
+    `vt.task_type IN ('NORMAL', 'REVISIT')`,
+    `iit.id IS NULL`,
+  ];
   const params: Array<string | number | string[] | number[]> = [clientId];
 
   if (scope.restricted) {
@@ -794,12 +872,13 @@ const loadCompletedUnbilledTasks = async (
     `SELECT
        vt.id,
        vt.case_id,
-       vt.verificationTypeId,
-       vt.rateTypeId,
-       vt.actualAmount::text,
-       vt.estimatedAmount::text,
-       vt.areaId,
-       vt.taskTitle,
+       vt.verification_type_id,
+       vt.rate_type_id,
+       vt.actual_amount::text,
+       vt.estimated_amount::text,
+       vt.area_id,
+       vt.task_title,
+       vt.task_type,
        p.id as pincode_id,
        c.client_id as client_id,
        c.product_id as product_id
@@ -813,6 +892,127 @@ const loadCompletedUnbilledTasks = async (
   );
 
   return result.rows;
+};
+
+// KYC candidate row — sourced from verification_tasks where task_type='KYC',
+// joined to kyc_document_verifications + document_types for description.
+// Billing amount is the FROZEN snapshot from verification_tasks.estimated_amount
+// (populated at case-create from document_type_rates per business rule).
+type InvoiceKycTaskCandidateRow = {
+  id: string;
+  caseId: string;
+  taskTitle: string | null;
+  estimatedAmount: string | null;
+  actualAmount: string | null;
+  documentTypeId: number | null;
+  documentTypeName: string | null;
+  documentTypeCode: string | null;
+  clientId: number;
+  productId: number;
+};
+
+const loadCompletedUnbilledKycTasks = async (
+  client: PoolClient,
+  scope: Awaited<ReturnType<typeof resolveDataScope>>,
+  clientId: number,
+  selectedTaskIds: string[],
+  selectedCaseIds: string[],
+  productId?: number | null,
+  billingPeriodFrom?: string,
+  billingPeriodTo?: string
+): Promise<InvoiceKycTaskCandidateRow[]> => {
+  // C-2 + KYC billing (audit 2026-05-11): KYC tasks land in invoice_items
+  // with frozen pricing from verification_tasks.estimated_amount.
+  // KYC tasks don't have verification_type_id / pincode_id / area_id /
+  // rate_type_id — they're priced via document_type_rates(client, product,
+  // document_type) at case-create time and the snapshot is stored on the
+  // task row. We do NOT re-resolve from document_type_rates here.
+  const conditions: string[] = [
+    `c.client_id = $1`,
+    `vt.status = 'COMPLETED'`,
+    `vt.task_type = 'KYC'`,
+    `iit.id IS NULL`,
+  ];
+  const params: Array<string | number | string[] | number[]> = [clientId];
+
+  if (scope.restricted) {
+    if (scope.assignedClientIds && scope.assignedClientIds.length > 0) {
+      params.push(scope.assignedClientIds);
+      conditions.push(`c.client_id = ANY($${params.length}::int[])`);
+    }
+    if (scope.assignedProductIds && scope.assignedProductIds.length > 0) {
+      params.push(scope.assignedProductIds);
+      conditions.push(`c.product_id = ANY($${params.length}::int[])`);
+    }
+  }
+
+  if (productId) {
+    params.push(productId);
+    conditions.push(`c.product_id = $${params.length}`);
+  }
+
+  if (selectedTaskIds.length > 0) {
+    params.push(selectedTaskIds);
+    conditions.push(`vt.id = ANY($${params.length}::uuid[])`);
+  }
+
+  if (selectedCaseIds.length > 0) {
+    params.push(selectedCaseIds);
+    conditions.push(`vt.case_id = ANY($${params.length}::uuid[])`);
+  }
+
+  if (billingPeriodFrom) {
+    params.push(billingPeriodFrom);
+    conditions.push(`vt.completed_at >= $${params.length}`);
+  }
+
+  if (billingPeriodTo) {
+    params.push(billingPeriodTo);
+    conditions.push(`vt.completed_at <= $${params.length}`);
+  }
+
+  const result = await client.query<InvoiceKycTaskCandidateRow>(
+    `SELECT
+       vt.id,
+       vt.case_id,
+       vt.task_title,
+       vt.estimated_amount::text,
+       vt.actual_amount::text,
+       kdv.document_type_id,
+       dt.name as document_type_name,
+       dt.code as document_type_code,
+       c.client_id as client_id,
+       c.product_id as product_id
+     FROM verification_tasks vt
+     JOIN cases c ON c.id = vt.case_id
+     LEFT JOIN kyc_document_verifications kdv
+       ON kdv.verification_task_id = vt.id AND kdv.deleted_at IS NULL
+     LEFT JOIN document_types dt ON dt.id = kdv.document_type_id
+     LEFT JOIN invoice_item_tasks iit ON iit.verification_task_id = vt.id
+     WHERE ${conditions.join(' AND ')}
+     ORDER BY COALESCE(vt.completed_at, vt.updated_at, vt.created_at) ASC`,
+    params
+  );
+
+  return result.rows;
+};
+
+// Resolve the billing amount for a KYC task. Fails LOUD on missing snapshot
+// to match the field-task contract (B-1 audit fix). KYC pricing is FROZEN at
+// case-create time from document_type_rates; we never re-resolve.
+const resolveKycTaskBillingAmount = (task: InvoiceKycTaskCandidateRow): { amount: number } => {
+  const candidate = task.actualAmount ?? task.estimatedAmount;
+  const parsed = candidate !== null && candidate !== undefined ? Number(candidate) : NaN;
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(
+      `Billing amount cannot be resolved for KYC task ${task.id} — ` +
+        `verification_tasks.actual_amount and estimated_amount are both NULL/invalid. ` +
+        `KYC pricing snapshot is populated at case-create from document_type_rates; ` +
+        `reconfigure document_type_rates for client=${task.clientId} product=${task.productId} ` +
+        `documentType=${task.documentTypeId ?? 'null'} and re-create the task before billing.`
+    );
+  }
+  return { amount: parsed };
 };
 
 const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => {
@@ -868,9 +1068,21 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
         body.billingPeriodTo
       );
 
+      const kycTaskCandidates = await loadCompletedUnbilledKycTasks(
+        client,
+        scope,
+        clientId,
+        selectedTaskIds,
+        selectedCaseIds,
+        productId,
+        body.billingPeriodFrom,
+        body.billingPeriodTo
+      );
+
       const hasLegacyManualItems = Array.isArray(body.items) && body.items.length > 0;
       const useTaskDrivenGeneration =
         taskCandidates.length > 0 ||
+        kycTaskCandidates.length > 0 ||
         (!hasLegacyManualItems && selectedTaskIds.length === 0 && selectedCaseIds.length === 0);
 
       const {
@@ -892,7 +1104,7 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
       }> = [];
 
       if (useTaskDrivenGeneration) {
-        if (taskCandidates.length === 0) {
+        if (taskCandidates.length === 0 && kycTaskCandidates.length === 0) {
           throw new Error(
             'No completed unbilled verification tasks available for invoice generation'
           );
@@ -917,6 +1129,32 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
             ],
           });
         }
+
+        // C-2 + KYC billing (audit 2026-05-11): KYC tasks land in invoice_items
+        // with frozen pricing (no runtime re-resolution). verification_type_id
+        // and rate_type_id are NULL (KYC pricing is keyed on document_type
+        // via document_type_rates, snapshotted onto verification_tasks at
+        // case-create).
+        for (const kycTask of kycTaskCandidates) {
+          const resolved = resolveKycTaskBillingAmount(kycTask);
+          const docLabel = kycTask.documentTypeName || kycTask.documentTypeCode || 'Document';
+          generatedLines.push({
+            description: kycTask.taskTitle || `KYC Verification — ${docLabel}`,
+            quantity: 1,
+            unitPrice: resolved.amount,
+            amount: resolved.amount,
+            verificationTypeId: null,
+            rateTypeId: null,
+            productId: kycTask.productId,
+            linkedTasks: [
+              {
+                taskId: kycTask.id,
+                caseId: kycTask.caseId,
+                billedAmount: resolved.amount,
+              },
+            ],
+          });
+        }
       } else {
         for (const item of body.items || []) {
           const quantity = Math.max(1, Number(item.quantity || 1));
@@ -934,19 +1172,24 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
         }
       }
 
-      const subtotalAmount = generatedLines.reduce((sum, item) => sum + item.amount, 0);
-      const taxAmount = Math.round(subtotalAmount * 0.18 * 100) / 100;
-      const totalAmount = subtotalAmount + taxAmount;
+      const subtotalAmount = round2(generatedLines.reduce((sum, item) => sum + item.amount, 0));
+      // Centralized GST resolver — fails LOUD if supplier state env is unset
+      // or recipient state cannot be determined (per ops decision A1/C2).
+      const gst = await resolveInvoiceGst(client, { clientId, subtotalAmount });
 
       await client.query(
         `INSERT INTO invoices (
            id, invoice_number, fiscal_year, invoice_sequence_no, client_id, product_id, client_name, amount,
            subtotal_amount, tax_amount, total_amount, currency, status,
-           billing_period_from, billing_period_to, issue_date, due_date, notes, created_by
+           billing_period_from, billing_period_to, issue_date, due_date, notes, created_by,
+           supply_type, place_of_supply,
+           cgst_rate, cgst_amount, sgst_rate, sgst_amount, igst_rate, igst_amount
          ) VALUES (
            $1, $2, $3, $4, $5, $6, $7, $8,
            $9, $10, $11, $12, $13,
-           $14, $15, CURRENT_TIMESTAMP, $16, $17, $18
+           $14, $15, CURRENT_TIMESTAMP, $16, $17, $18,
+           $19, $20,
+           $21, $22, $23, $24, $25, $26
          )`,
         [
           invoiceId,
@@ -958,8 +1201,8 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
           body.clientName || clientRow.name,
           subtotalAmount,
           subtotalAmount,
-          taxAmount,
-          totalAmount,
+          gst.taxAmount,
+          gst.totalAmount,
           currency,
           STATUS.DRAFT,
           body.billingPeriodFrom || null,
@@ -967,6 +1210,14 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
           dueDate,
           body.notes || null,
           req.user?.id || null,
+          gst.supplyType,
+          gst.placeOfSupply,
+          gst.cgstRate,
+          gst.cgstAmount,
+          gst.sgstRate,
+          gst.sgstAmount,
+          gst.igstRate,
+          gst.igstAmount,
         ]
       );
 
@@ -1035,6 +1286,13 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
     });
   } catch (error) {
     logger.error('Error creating invoice:', error);
+    if (error instanceof GstConfigError) {
+      return res.status(422).json({
+        success: false,
+        message: error.operatorMessage,
+        error: { code: error.code },
+      });
+    }
     const message = error instanceof Error ? error.message : 'Failed to create invoice';
     return res.status(422).json({
       success: false,
@@ -1114,8 +1372,17 @@ const updateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) => {
           );
         }
 
-        const taxAmount = Math.round(subtotal * 0.18 * 100) / 100;
-        const totalAmount = subtotal + taxAmount;
+        // Centralized GST resolver — fails LOUD on config/data gaps.
+        const subtotalRounded = round2(subtotal);
+        const invClient = await client.query<{ clientId: number }>(
+          `SELECT client_id FROM invoices WHERE id = $1`,
+          [Number(id)]
+        );
+        const invClientId = Number(invClient.rows[0]?.clientId);
+        const gst = await resolveInvoiceGst(client, {
+          clientId: invClientId,
+          subtotalAmount: subtotalRounded,
+        });
         await client.query(
           `UPDATE invoices
            SET amount = $2,
@@ -1124,9 +1391,32 @@ const updateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) => {
                total_amount = $4,
                due_date = COALESCE($5, due_date),
                notes = COALESCE($6, notes),
+               supply_type = $7,
+               place_of_supply = $8,
+               cgst_rate = $9,
+               cgst_amount = $10,
+               sgst_rate = $11,
+               sgst_amount = $12,
+               igst_rate = $13,
+               igst_amount = $14,
                updated_at = CURRENT_TIMESTAMP
            WHERE id = $1`,
-          [Number(id), subtotal, taxAmount, totalAmount, dueDate || null, notes || null]
+          [
+            Number(id),
+            subtotalRounded,
+            gst.taxAmount,
+            gst.totalAmount,
+            dueDate || null,
+            notes || null,
+            gst.supplyType,
+            gst.placeOfSupply,
+            gst.cgstRate,
+            gst.cgstAmount,
+            gst.sgstRate,
+            gst.sgstAmount,
+            gst.igstRate,
+            gst.igstAmount,
+          ]
         );
       } else {
         await client.query(
@@ -1148,6 +1438,13 @@ const updateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     logger.error('Error updating invoice:', error);
+    if (error instanceof GstConfigError) {
+      return res.status(422).json({
+        success: false,
+        message: error.operatorMessage,
+        error: { code: error.code },
+      });
+    }
     return res.status(400).json({
       success: false,
       message: error instanceof Error ? error.message : 'Failed to update invoice',
@@ -1228,6 +1525,7 @@ const regenerateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) =
         estimatedAmount: string | null;
         areaId: number | null;
         taskTitle: string | null;
+        taskType: 'NORMAL' | 'REVISIT' | 'KYC' | null;
         pincodeId: number | null;
         clientId: number;
         productId: number;
@@ -1243,6 +1541,7 @@ const regenerateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) =
            vt.estimated_amount::text,
            vt.area_id,
            vt.task_title,
+           vt.task_type,
            p.id as pincode_id,
            c.client_id as client_id,
            c.product_id as product_id
@@ -1260,19 +1559,37 @@ const regenerateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) =
       }
 
       for (const linkedTask of linkedTasks.rows) {
-        const resolved = await resolveTaskBillingAmount({
-          id: linkedTask.verificationTaskId,
-          caseId: linkedTask.caseId,
-          verificationTypeId: linkedTask.verificationTypeId,
-          rateTypeId: linkedTask.rateTypeId,
-          actualAmount: linkedTask.actualAmount,
-          estimatedAmount: linkedTask.estimatedAmount,
-          areaId: linkedTask.areaId,
-          taskTitle: linkedTask.taskTitle,
-          pincodeId: linkedTask.pincodeId,
-          clientId: linkedTask.clientId,
-          productId: linkedTask.productId,
-        });
+        // KYC tasks have NULL verification_type_id/pincode_id by design —
+        // route them through the KYC-specific resolver which reads the
+        // frozen snapshot off the task row.
+        const resolved =
+          linkedTask.taskType === 'KYC'
+            ? resolveKycTaskBillingAmount({
+                id: linkedTask.verificationTaskId,
+                caseId: linkedTask.caseId,
+                taskTitle: linkedTask.taskTitle,
+                estimatedAmount: linkedTask.estimatedAmount,
+                actualAmount: linkedTask.actualAmount,
+                documentTypeId: null,
+                documentTypeName: null,
+                documentTypeCode: null,
+                clientId: linkedTask.clientId,
+                productId: linkedTask.productId,
+              })
+            : await resolveTaskBillingAmount({
+                id: linkedTask.verificationTaskId,
+                caseId: linkedTask.caseId,
+                verificationTypeId: linkedTask.verificationTypeId,
+                rateTypeId: linkedTask.rateTypeId,
+                actualAmount: linkedTask.actualAmount,
+                estimatedAmount: linkedTask.estimatedAmount,
+                areaId: linkedTask.areaId,
+                taskTitle: linkedTask.taskTitle,
+                taskType: linkedTask.taskType ?? 'NORMAL',
+                pincodeId: linkedTask.pincodeId,
+                clientId: linkedTask.clientId,
+                productId: linkedTask.productId,
+              });
 
         await client.query(`UPDATE invoice_item_tasks SET billed_amount = $2 WHERE id = $1`, [
           linkedTask.linkId,
@@ -1295,13 +1612,21 @@ const regenerateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) =
         [Number(id)]
       );
 
-      const totals = await client.query<{ subtotal: string }>(
-        `SELECT COALESCE(SUM(amount), 0)::text as subtotal FROM invoice_items WHERE invoice_id = $1`,
+      const totals = await client.query<{ subtotal: string; clientId: number }>(
+        `SELECT COALESCE(SUM(ii.amount), 0)::text as subtotal, i.client_id
+           FROM invoices i
+           LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
+          WHERE i.id = $1
+          GROUP BY i.id`,
         [Number(id)]
       );
-      const subtotal = toNumber(totals.rows[0]?.subtotal);
-      const taxAmount = Math.round(subtotal * 0.18 * 100) / 100;
-      const totalAmount = subtotal + taxAmount;
+      const subtotal = round2(toNumber(totals.rows[0]?.subtotal));
+      const invClientId = Number(totals.rows[0]?.clientId);
+      // Centralized GST resolver — keeps regen identical to create/update paths.
+      const gst = await resolveInvoiceGst(client, {
+        clientId: invClientId,
+        subtotalAmount: subtotal,
+      });
 
       await client.query(
         `UPDATE invoices
@@ -1309,9 +1634,30 @@ const regenerateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) =
              subtotal_amount = $2,
              tax_amount = $3,
              total_amount = $4,
+             supply_type = $5,
+             place_of_supply = $6,
+             cgst_rate = $7,
+             cgst_amount = $8,
+             sgst_rate = $9,
+             sgst_amount = $10,
+             igst_rate = $11,
+             igst_amount = $12,
              updated_at = CURRENT_TIMESTAMP
          WHERE id = $1`,
-        [Number(id), subtotal, taxAmount, totalAmount]
+        [
+          Number(id),
+          subtotal,
+          gst.taxAmount,
+          gst.totalAmount,
+          gst.supplyType,
+          gst.placeOfSupply,
+          gst.cgstRate,
+          gst.cgstAmount,
+          gst.sgstRate,
+          gst.sgstAmount,
+          gst.igstRate,
+          gst.igstAmount,
+        ]
       );
 
       await recordInvoiceStatusHistory(
@@ -1332,6 +1678,13 @@ const regenerateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) =
     });
   } catch (error) {
     logger.error('Error regenerating invoice:', error);
+    if (error instanceof GstConfigError) {
+      return res.status(422).json({
+        success: false,
+        message: error.operatorMessage,
+        error: { code: error.code },
+      });
+    }
     return res.status(400).json({
       success: false,
       message: error instanceof Error ? error.message : 'Failed to regenerate invoice',
@@ -1379,11 +1732,11 @@ const transitionInvoiceStatus = async (
   }
 
   await withTransaction(async client => {
-    const updateFields: string[] = ['status = $1::varchar', 'updatedAt = CURRENT_TIMESTAMP'];
+    const updateFields: string[] = ['status = $1::varchar', 'updated_at = CURRENT_TIMESTAMP'];
     const params: Array<string | number | null> = [nextStatus];
 
     if (extraUpdate?.sentAt) {
-      updateFields.push('sentAt = CURRENT_TIMESTAMP');
+      updateFields.push('sent_at = CURRENT_TIMESTAMP');
     }
 
     if (extraUpdate?.notes) {
@@ -1401,6 +1754,22 @@ const transitionInvoiceStatus = async (
        WHERE id = $${params.length}`,
       params
     );
+
+    // H-8 (audit 2026-05-11): on CANCELLED transition, sever the
+    // task↔invoice link rows so the underlying verification tasks become
+    // re-billable. Without this, the global UNIQUE on
+    // invoice_item_tasks.verification_task_id permanently locks the task
+    // out of any future invoice. invoice_items + invoices remain (audit
+    // trail intact via invoice_items.description + status_history).
+    if (nextStatus === STATUS.CANCELLED) {
+      await client.query(
+        `DELETE FROM invoice_item_tasks
+         WHERE invoice_item_id IN (
+           SELECT id FROM invoice_items WHERE invoice_id = $1
+         )`,
+        [Number(id)]
+      );
+    }
 
     await recordInvoiceStatusHistory(
       client,
@@ -1584,6 +1953,36 @@ export const downloadInvoice = async (req: AuthenticatedRequest, res: Response) 
         });
       }
 
+      // GST summary worksheet (Rule 46 — supply type + tax split breakdown).
+      const summary = workbook.addWorksheet('Summary');
+      summary.columns = [
+        { header: 'Field', key: 'field', width: 26 },
+        { header: 'Value', key: 'value', width: 28 },
+      ];
+      summary.getRow(1).font = { bold: true };
+      summary.addRow({ field: 'Invoice Number', value: invoice.invoiceNumber });
+      summary.addRow({ field: 'Client', value: invoice.client?.name ?? 'Unknown' });
+      summary.addRow({ field: 'Status', value: invoice.status });
+      summary.addRow({
+        field: 'Subtotal',
+        value: invoice.subtotalAmount ?? invoice.amount,
+      });
+      if (invoice.supplyType) {
+        summary.addRow({ field: 'Supply Type', value: invoice.supplyType });
+        summary.addRow({ field: 'Place of Supply', value: invoice.placeOfSupply ?? '' });
+      }
+      if (invoice.supplyType === 'INTRA_STATE') {
+        summary.addRow({ field: 'CGST Rate (%)', value: invoice.cgstRate ?? 0 });
+        summary.addRow({ field: 'CGST Amount', value: invoice.cgstAmount ?? 0 });
+        summary.addRow({ field: 'SGST Rate (%)', value: invoice.sgstRate ?? 0 });
+        summary.addRow({ field: 'SGST Amount', value: invoice.sgstAmount ?? 0 });
+      } else if (invoice.supplyType === 'INTER_STATE') {
+        summary.addRow({ field: 'IGST Rate (%)', value: invoice.igstRate ?? 0 });
+        summary.addRow({ field: 'IGST Amount', value: invoice.igstAmount ?? 0 });
+      }
+      summary.addRow({ field: 'Tax Amount', value: invoice.taxAmount });
+      summary.addRow({ field: 'Total Amount', value: invoice.totalAmount });
+
       const workbookBuffer = await workbook.xlsx.writeBuffer();
       res.setHeader(
         'Content-Type',
@@ -1608,10 +2007,16 @@ export const downloadInvoice = async (req: AuthenticatedRequest, res: Response) 
     doc.text(`Status: ${invoice.status}`, 14, 36);
     doc.text(`Issue Date: ${new Date(invoice.issueDate).toLocaleDateString()}`, 14, 44);
     doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, 14, 52);
-    doc.text(`Total Amount: INR ${invoice.totalAmount.toFixed(2)}`, 14, 60);
-    doc.text('Items:', 14, 72);
+    if (invoice.supplyType) {
+      doc.text(
+        `Supply Type: ${invoice.supplyType}  |  Place of Supply: ${invoice.placeOfSupply ?? '-'}`,
+        14,
+        60
+      );
+    }
+    doc.text('Items:', 14, invoice.supplyType ? 72 : 64);
 
-    let y = 82;
+    let y = invoice.supplyType ? 82 : 74;
     invoice.items.forEach((item, index) => {
       doc.text(
         `${index + 1}. ${item.description} | Qty ${item.quantity} | INR ${item.amount.toFixed(2)}`,
@@ -1619,14 +2024,47 @@ export const downloadInvoice = async (req: AuthenticatedRequest, res: Response) 
         y
       );
       y += 8;
-      if (y > 275) {
+      if (y > 245) {
         doc.addPage();
         y = 20;
       }
     });
 
+    // GST summary block — Rule 46 (CGST/SGST or IGST + place_of_supply).
+    y = Math.min(y + 4, 248);
+    const subtotalForPdf = invoice.subtotalAmount ?? invoice.amount;
+    doc.text(`Subtotal: INR ${subtotalForPdf.toFixed(2)}`, 14, y);
+    y += 8;
+    if (invoice.supplyType === 'INTRA_STATE') {
+      doc.text(
+        `CGST @ ${(invoice.cgstRate ?? 0).toFixed(2)}%: INR ${(invoice.cgstAmount ?? 0).toFixed(2)}`,
+        14,
+        y
+      );
+      y += 8;
+      doc.text(
+        `SGST @ ${(invoice.sgstRate ?? 0).toFixed(2)}%: INR ${(invoice.sgstAmount ?? 0).toFixed(2)}`,
+        14,
+        y
+      );
+      y += 8;
+    } else if (invoice.supplyType === 'INTER_STATE') {
+      doc.text(
+        `IGST @ ${(invoice.igstRate ?? 0).toFixed(2)}%: INR ${(invoice.igstAmount ?? 0).toFixed(2)}`,
+        14,
+        y
+      );
+      y += 8;
+    } else {
+      doc.text(`Tax Amount: INR ${invoice.taxAmount.toFixed(2)}`, 14, y);
+      y += 8;
+    }
+    doc.setFontSize(12);
+    doc.text(`Total Amount: INR ${invoice.totalAmount.toFixed(2)}`, 14, y);
+    doc.setFontSize(11);
+
     if (invoice.notes) {
-      doc.text(`Notes: ${invoice.notes}`, 14, Math.min(y + 8, 285));
+      doc.text(`Notes: ${invoice.notes}`, 14, Math.min(y + 12, 285));
     }
 
     const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
@@ -1656,9 +2094,19 @@ export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Resp
     const scope = await resolveDataScope(req);
     const { status, clientId, dateFrom, dateTo } = req.query;
 
+    // M-4 (audit 2026-05-11): use the central scope helper so empty
+    // assignedClientIds falls back to '1=0' (zero results) instead of
+    // silently widening to all invoices. Listing endpoint already uses
+    // buildScopeSql; export was inlining a non-equivalent length>0 check.
     const conditions: string[] = [];
-    const params: (string | number)[] = [];
-    let idx = 1;
+    const params: Array<string | number | boolean | string[] | number[]> = [];
+    appendOperationalScopeConditions({
+      scope,
+      conditions,
+      params,
+      clientExpr: 'i.client_id',
+    });
+    let idx = params.length + 1;
 
     if (status) {
       conditions.push(`i.status = $${idx++}`);
@@ -1677,11 +2125,6 @@ export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Resp
       params.push(`${dateTo as string} 23:59:59`);
     }
 
-    if (scope.assignedClientIds && scope.assignedClientIds.length > 0) {
-      conditions.push(`i.client_id = ANY($${idx++}::int[])`);
-      params.push(scope.assignedClientIds as unknown as number);
-    }
-
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const result = await query(
@@ -1695,6 +2138,14 @@ export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Resp
         i.subtotal_amount as subtotal,
         i.tax_amount,
         i.total_amount,
+        i.supply_type,
+        i.place_of_supply,
+        i.cgst_rate,
+        i.cgst_amount,
+        i.sgst_rate,
+        i.sgst_amount,
+        i.igst_rate,
+        i.igst_amount,
         i.notes,
         i.created_at
       FROM invoices i
@@ -1715,6 +2166,14 @@ export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Resp
       { header: 'Issue Date', key: 'issueDate', width: 18 },
       { header: 'Due Date', key: 'dueDate', width: 18 },
       { header: 'Subtotal', key: 'subtotal', width: 14 },
+      { header: 'Supply Type', key: 'supplyType', width: 14 },
+      { header: 'Place of Supply', key: 'placeOfSupply', width: 14 },
+      { header: 'CGST %', key: 'cgstRate', width: 10 },
+      { header: 'CGST Amount', key: 'cgstAmount', width: 14 },
+      { header: 'SGST %', key: 'sgstRate', width: 10 },
+      { header: 'SGST Amount', key: 'sgstAmount', width: 14 },
+      { header: 'IGST %', key: 'igstRate', width: 10 },
+      { header: 'IGST Amount', key: 'igstAmount', width: 14 },
       { header: 'Tax Amount', key: 'taxAmount', width: 14 },
       { header: 'Total Amount', key: 'totalAmount', width: 16 },
       { header: 'Notes', key: 'notes', width: 30 },
@@ -1730,13 +2189,24 @@ export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Resp
         subtotal: row.subtotal ? Number(row.subtotal) : 0,
         taxAmount: row.taxAmount ? Number(row.taxAmount) : 0,
         totalAmount: row.totalAmount ? Number(row.totalAmount) : 0,
+        supplyType: row.supplyType ?? '',
+        placeOfSupply: row.placeOfSupply ?? '',
+        cgstRate: row.cgstRate !== null && row.cgstRate !== undefined ? Number(row.cgstRate) : '',
+        cgstAmount:
+          row.cgstAmount !== null && row.cgstAmount !== undefined ? Number(row.cgstAmount) : '',
+        sgstRate: row.sgstRate !== null && row.sgstRate !== undefined ? Number(row.sgstRate) : '',
+        sgstAmount:
+          row.sgstAmount !== null && row.sgstAmount !== undefined ? Number(row.sgstAmount) : '',
+        igstRate: row.igstRate !== null && row.igstRate !== undefined ? Number(row.igstRate) : '',
+        igstAmount:
+          row.igstAmount !== null && row.igstAmount !== undefined ? Number(row.igstAmount) : '',
         issueDate: row.issueDate ? new Date(row.issueDate as string).toLocaleDateString() : '',
         dueDate: row.dueDate ? new Date(row.dueDate as string).toLocaleDateString() : '',
         createdAt: row.createdAt ? new Date(row.createdAt as string).toLocaleString() : '',
       });
     });
 
-    worksheet.autoFilter = { from: 'A1', to: `J${result.rows.length + 1}` };
+    worksheet.autoFilter = { from: 'A1', to: `R${result.rows.length + 1}` };
 
     res.setHeader(
       'Content-Type',

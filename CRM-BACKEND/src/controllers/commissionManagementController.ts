@@ -896,167 +896,6 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
   }
 };
 
-export const calculateCommissionForCompletedCase = async (
-  req: AuthenticatedRequest,
-  res: Response
-) => {
-  try {
-    if (!requireControllerPermission(req as never, res, 'billing.generate')) {
-      return;
-    }
-    const scope = await resolveDataScope(req as never);
-    const { caseId } = req.body;
-
-    if (!caseId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Case ID is required',
-        error: { code: 'VALIDATION_ERROR' },
-      });
-    }
-
-    // Get case details
-    const caseQuery = `
-      SELECT
-        c.*,
-        rt.name as rate_type_name,
-        rt.amount as rate_amount
-      FROM cases c
-      LEFT JOIN rate_types rt ON c.rate_type_id = rt.id
-      WHERE c.id = $1
-    `;
-    const caseResult = await query(caseQuery, [caseId]);
-
-    if (caseResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Case not found',
-        error: { code: 'NOT_FOUND' },
-      });
-    }
-
-    const caseData = caseResult.rows[0];
-    const scopedProductId = Number.isFinite(Number(caseData.productId))
-      ? Number(caseData.productId)
-      : Number.isFinite(Number(caseData.productId))
-        ? Number(caseData.productId)
-        : null;
-
-    if (
-      !valueAllowedByScope(
-        {
-          userId: (caseData.assignedTo as string | null) ?? null,
-          clientId: Number.isFinite(Number(caseData.clientId)) ? Number(caseData.clientId) : null,
-          productId: scopedProductId,
-        },
-        scope
-      )
-    ) {
-      return res.status(404).json({
-        success: false,
-        message: 'Case not found',
-        error: { code: 'NOT_FOUND' },
-      });
-    }
-
-    // Check if case is completed
-    if (caseData.status !== 'COMPLETED') {
-      return res.status(400).json({
-        success: false,
-        message: 'Commission can only be calculated for completed cases',
-        error: { code: 'INVALID_STATUS' },
-      });
-    }
-
-    // Check if commission already calculated
-    const existingCalculation = await query(
-      'SELECT id FROM commission_calculations WHERE case_id = $1',
-      [caseId]
-    );
-
-    if (existingCalculation.rows.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Commission already calculated for this case',
-        error: { code: 'ALREADY_CALCULATED' },
-      });
-    }
-
-    // Get field user commission assignment
-    const assignmentQuery = `
-      SELECT fuca.*
-      FROM field_user_commission_assignments fuca
-      WHERE fuca.user_id = $1
-        AND fuca.rate_type_id = $2
-        AND fuca.client_id = $3
-        AND fuca.is_active = true
-        AND (fuca.effective_from <= NOW() AND (fuca.effective_to IS NULL OR fuca.effective_to >= NOW()))
-    `;
-
-    const assignmentResult = await query(assignmentQuery, [
-      caseData.assignedTo,
-      caseData.rateTypeId,
-      caseData.clientId,
-    ]);
-
-    if (assignmentResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'No active commission assignment found for this field user, rate type, and client',
-        error: { code: 'NO_ASSIGNMENT' },
-      });
-    }
-
-    const assignment = assignmentResult.rows[0];
-    const baseAmount = caseData.rateAmount || 0;
-    const commissionAmount = assignment.commissionAmount || 0;
-    const calculatedCommission = commissionAmount; // Fixed amount
-
-    // Create commission calculation record
-    const insertQuery = `
-      INSERT INTO commission_calculations
-      (case_id, case_number, user_id, client_id, rate_type_id, base_amount, commission_amount, calculated_commission, calculation_method, status, created_by)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING *
-    `;
-
-    const newCalculation = await query(insertQuery, [
-      caseId,
-      caseData.caseNumber,
-      caseData.assignedTo,
-      caseData.clientId,
-      caseData.rateTypeId,
-      baseAmount,
-      commissionAmount,
-      calculatedCommission,
-      'FIXED_AMOUNT',
-      'PENDING',
-      req.user?.id,
-    ]);
-
-    logger.info('Created commission calculation for completed case', {
-      userId: req.user?.id,
-      caseId,
-      caseNumber: caseData.caseNumber,
-      fieldUserId: caseData.assignedTo,
-      calculatedCommission,
-    });
-
-    res.status(201).json({
-      success: true,
-      data: newCalculation.rows[0],
-      message: 'Commission calculated successfully for completed case',
-    });
-  } catch (error) {
-    logger.error('Error calculating commission for completed case:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to calculate commission for completed case',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
-};
-
 // =====================================================
 // AUTO-CALCULATION HELPER FUNCTION
 // =====================================================
@@ -1065,6 +904,12 @@ export const calculateCommissionForCompletedCase = async (
 // referenced dropped `cases.assigned_to`). The per-task path below
 // (`autoCalculateCommissionForTask`) is the live commission flow,
 // invoked from verificationTasksController on task completion.
+//
+// 2026-05-11 L-2 + L-3: deleted `calculateCommissionForCompletedCase` —
+// referenced dropped `cases.assigned_to`, INSERTed non-existent `created_by`
+// column, and zero FE UI consumers. Path A (per-case commission with NULL
+// verification_task_id) is gone; commission is per-task only via the live
+// path below.
 
 // Auto-calculate commission when verification task is completed (called internally)
 export const autoCalculateCommissionForTask = async (taskId: string): Promise<boolean> => {
@@ -1159,9 +1004,9 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
 
     // IDEMPOTENT INSERT: Use ON CONFLICT DO NOTHING for concurrency safety
     // The UNIQUE constraint on verificationTaskId prevents duplicates
+    // commission_calculations.id is bigint w/ nextval default — let the sequence fire.
     const insertQuery = `
       INSERT INTO commission_calculations (
-        id,
         verification_task_id,
         case_id,
         case_number,
@@ -1178,7 +1023,6 @@ export const autoCalculateCommissionForTask = async (taskId: string): Promise<bo
         created_at,
         updated_at
       ) VALUES (
-        gen_random_uuid(),
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
       )
       ON CONFLICT (verification_task_id) DO NOTHING
@@ -1434,10 +1278,24 @@ export const exportCommissionsToExcel = async (req: AuthenticatedRequest, res: R
       return;
     }
 
+    // C-5 (audit 2026-05-11): apply operational scope to the export, matching
+    // the pattern used by getCommissions/getCommissionStats. Without this, any
+    // billing.download user can pull every client's commissions regardless of
+    // their client/user/product scope — DPDP / multi-tenant breach.
+    const scope = await resolveDataScope(req as never);
+
     const { status, startDate, endDate } = req.query;
     const conditions: string[] = [];
-    const params: QueryParams = [];
-    let idx = 1;
+    const params: Array<string | number | boolean | string[] | number[]> = [];
+    appendOperationalScopeConditions({
+      scope,
+      conditions,
+      params,
+      userExpr: 'cc.user_id',
+      clientExpr: 'cc.client_id',
+      productExpr: 'cases.product_id',
+    });
+    let idx = params.length + 1;
 
     if (status) {
       conditions.push(`cc.status = $${idx++}`);

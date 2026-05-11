@@ -106,7 +106,6 @@ export interface ReportTaskContext {
   assignedAt: Date | null;
   startedAt: Date | null;
   completedAt: Date | null;
-  reviewedAt: Date | null;
   attachments: ReportAttachmentContext[];
 }
 
@@ -213,7 +212,6 @@ interface TaskRow {
   assignedAt: Date | null;
   startedAt: Date | null;
   completedAt: Date | null;
-  reviewedAt: Date | null;
 }
 
 interface AttachmentRow {
@@ -519,7 +517,7 @@ export async function buildReportContext(
             (SELECT code FROM pincodes WHERE id = vt.pincode_id) AS pincode,
             vt.assigned_to, u_assigned.name AS assigned_to_name,
             u_assigned_by.name AS assigned_by_name,
-            vt.assigned_at, vt.started_at, vt.completed_at, vt.reviewed_at
+            vt.assigned_at, vt.started_at, vt.completed_at
      FROM verification_tasks vt
      LEFT JOIN verification_types vtype ON vtype.id = vt.verification_type_id
      LEFT JOIN users u_assigned ON u_assigned.id = vt.assigned_to
@@ -637,7 +635,6 @@ export async function buildReportContext(
     assignedAt: t.assignedAt,
     startedAt: t.startedAt,
     completedAt: t.completedAt,
-    reviewedAt: t.reviewedAt,
     attachments: attachmentsByTask.get(t.id) ?? [],
   }));
 

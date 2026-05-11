@@ -251,6 +251,35 @@ export const config = {
       .map(s => s.trim())
       .filter(s => s.length > 0),
   },
+
+  // GST (Indian tax) — supplier identity + default rate.
+  //
+  // SUPPLIER_GST_STATE_CODE: 2-digit GST state code of ACS's registered
+  // GSTIN. Used to derive INTRA_STATE vs INTER_STATE for every invoice
+  // (matches recipient `clients.gstin_state_code` → intra → CGST+SGST;
+  // differs → inter → IGST). When unset, invoice generation fails LOUD
+  // with a config error — there's no safe legacy fallback (legacy
+  // `tax_amount`-only mode is intentionally disabled once GST split logic
+  // is wired, per ops decision 2026-05-11).
+  //
+  // GST_RATE_DEFAULT: flat rate in percent (e.g. `18` for 18%). Applied to
+  // every line item's subtotal. Per-service rates (SAC variation) are not
+  // supported today — single rate is the deliberate design choice (B1).
+  gst: {
+    supplierStateCode: process.env.SUPPLIER_GST_STATE_CODE || '',
+    rateDefault: (() => {
+      const raw = process.env.GST_RATE_DEFAULT;
+      if (!raw || raw.trim() === '') {
+        return 18;
+      }
+      const parsed = Number(raw);
+      if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+        process.stderr.write(`Invalid GST_RATE_DEFAULT env var: "${raw}". Falling back to 18.\n`);
+        return 18;
+      }
+      return parsed;
+    })(),
+  },
 };
 
 // DATABASE_URL / JWT_SECRET / JWT_REFRESH_SECRET are now validated inline

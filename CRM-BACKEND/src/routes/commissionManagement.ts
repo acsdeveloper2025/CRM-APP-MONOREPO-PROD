@@ -16,7 +16,6 @@ import {
   deleteFieldUserCommissionAssignment,
   // Commission Calculations
   getCommissionCalculations,
-  calculateCommissionForCompletedCase,
   // Commission Statistics
   getCommissionStats,
   // Export
@@ -201,19 +200,6 @@ router.get(
   commissionCalculationsQueryValidation,
   validate,
   getCommissionCalculations as express.RequestHandler
-);
-
-// =====================================================
-// UTILITY ROUTES
-// =====================================================
-
-// Test commission calculation endpoint
-router.post(
-  '/test-calculation',
-  authorize('billing.generate'),
-  body('caseId').isUUID().withMessage('Case ID must be a valid UUID'),
-  validate,
-  calculateCommissionForCompletedCase as express.RequestHandler
 );
 
 // =====================================================

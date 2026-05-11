@@ -108,9 +108,7 @@ export function ServiceZoneRulesTab() {
         productId: Number(formState.productId),
         verificationTypeId: Number(formState.verificationTypeId),
       }),
-    enabled: Boolean(
-      formState.clientId && formState.productId && formState.verificationTypeId
-    ),
+    enabled: Boolean(formState.clientId && formState.productId && formState.verificationTypeId),
   });
 
   const createRuleMutation = useMutationWithInvalidation({
@@ -421,8 +419,8 @@ export function ServiceZoneRulesTab() {
                       !formState.verificationTypeId
                         ? 'Select verification type first'
                         : rateTypes.length === 0
-                        ? 'No rate types assigned for this combination'
-                        : 'Select rate type'
+                          ? 'No rate types assigned for this combination'
+                          : 'Select rate type'
                     }
                   />
                 </SelectTrigger>

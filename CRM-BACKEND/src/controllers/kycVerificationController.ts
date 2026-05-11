@@ -7,6 +7,7 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import type { QueryParams } from '@/types/database';
 import { storage, StorageKeys } from '@/services/storage';
+import { TaskCompletionFinalizer } from '@/services/taskCompletionFinalizer';
 import ExcelJS from 'exceljs';
 
 /**
@@ -401,6 +402,11 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
           [overallOutcome, verificationTaskId]
         );
 
+        // Snapshot financial state via shared finalizer (frozen actual_amount
+        // for KYC tasks pulls from estimated_amount populated at case-create
+        // from document_type_rates). Keeps KYC + field completion symmetric.
+        await TaskCompletionFinalizer.snapshotFinancials(client, verificationTaskId);
+
         // Recalculate case status
         const allTasks = await client.query(
           `SELECT status FROM verification_tasks WHERE case_id = $1 AND status != 'REVOKED'`,
@@ -418,6 +424,10 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
       }
 
       await client.query('COMMIT');
+
+      // Post-commit financial hooks (commission auto-calc no-ops for KYC since
+      // rate_type_id is NULL — kept for symmetry + future KYC commission rules).
+      await TaskCompletionFinalizer.triggerPostCompletionHooks(verificationTaskId);
 
       res.json({
         success: true,

@@ -28,7 +28,7 @@ const listCommissionsValidation = [
   query('userId').optional().trim().notEmpty().withMessage('User ID must not be empty'),
   query('status')
     .optional()
-    .isIn(['PENDING', 'APPROVED', 'REJECTED'])
+    .isIn(['PENDING', 'CALCULATED', 'APPROVED', 'REJECTED', 'PAID', 'HOLD'])
     .withMessage('Invalid status'),
   query('clientId').optional().trim().notEmpty().withMessage('Client ID must not be empty'),
   query('search')

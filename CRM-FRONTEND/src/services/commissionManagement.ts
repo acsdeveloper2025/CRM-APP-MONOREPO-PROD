@@ -303,12 +303,6 @@ class CommissionManagementService {
   // COMMISSION CALCULATION UTILITIES
   // =====================================================
 
-  async testCommissionCalculation(
-    input: CommissionCalculationInput
-  ): Promise<ApiResponse<CommissionCalculationResult>> {
-    return apiService.post(`${this.baseUrl}/test-calculation`, input);
-  }
-
   // Client-side commission calculation helper
   calculateCommission(input: CommissionCalculationInput): CommissionCalculationResult {
     const { baseAmount, commissionAmount, commissionPercentage, calculationMethod } = input;

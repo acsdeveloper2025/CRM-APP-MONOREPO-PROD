@@ -97,6 +97,7 @@ import { storage as objectStorage, StorageKeys } from '@/services/storage';
 import { queueCaseCompletionNotification } from '../queues/notificationQueue';
 import { logger } from '../utils/logger';
 import { CaseStatusSyncService } from '../services/caseStatusSyncService';
+import { TaskCompletionFinalizer } from '../services/taskCompletionFinalizer';
 import { errorMessage } from '@/utils/errorMessage';
 // Enhanced services temporarily disabled for debugging
 
@@ -2884,6 +2885,12 @@ export class MobileFormController {
           [taskId || verificationTaskId]
         );
 
+        // Snapshot financial state via shared finalizer (frozen actual_amount).
+        await TaskCompletionFinalizer.snapshotFinancials(
+          client,
+          (taskId || verificationTaskId) as string
+        );
+
         // b. Update case status based on ALL tasks (pass the tx client!)
         await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
@@ -3058,6 +3065,9 @@ export class MobileFormController {
         verificationOutcome,
         verificationTaskId
       );
+
+      // Post-commit financial hooks via shared finalizer (commission auto-calc).
+      await TaskCompletionFinalizer.triggerPostCompletionHooks(verificationTaskId);
 
       res.json({
         success: true,
@@ -3360,6 +3370,12 @@ export class MobileFormController {
           [taskId || verificationTaskId]
         );
 
+        // Snapshot financial state via shared finalizer (frozen actual_amount).
+        await TaskCompletionFinalizer.snapshotFinancials(
+          client,
+          (taskId || verificationTaskId) as string
+        );
+
         // b. Recalculate case status (pass tx client)
         await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
@@ -3491,6 +3507,9 @@ export class MobileFormController {
         verificationOutcome,
         verificationTaskId
       );
+
+      // Post-commit financial hooks via shared finalizer (commission auto-calc).
+      await TaskCompletionFinalizer.triggerPostCompletionHooks(verificationTaskId);
 
       res.json({
         success: true,
@@ -3802,6 +3821,12 @@ export class MobileFormController {
           [taskId || verificationTaskId]
         );
 
+        // Snapshot financial state via shared finalizer (frozen actual_amount).
+        await TaskCompletionFinalizer.snapshotFinancials(
+          client,
+          (taskId || verificationTaskId) as string
+        );
+
         // b. Recalculate case status (pass tx client)
         await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
@@ -3956,6 +3981,9 @@ export class MobileFormController {
         verificationOutcome,
         verificationTaskId
       );
+
+      // Post-commit financial hooks via shared finalizer (commission auto-calc).
+      await TaskCompletionFinalizer.triggerPostCompletionHooks(verificationTaskId);
 
       res.json({
         success: true,
@@ -4231,6 +4259,12 @@ export class MobileFormController {
           [taskId || verificationTaskId]
         );
 
+        // Snapshot financial state via shared finalizer (frozen actual_amount).
+        await TaskCompletionFinalizer.snapshotFinancials(
+          client,
+          (taskId || verificationTaskId) as string
+        );
+
         // b. Recalculate case status (pass tx client)
         await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
@@ -4361,6 +4395,9 @@ export class MobileFormController {
         verificationOutcome,
         verificationTaskId
       );
+
+      // Post-commit financial hooks via shared finalizer (commission auto-calc).
+      await TaskCompletionFinalizer.triggerPostCompletionHooks(verificationTaskId);
 
       res.json({
         success: true,
@@ -4495,6 +4532,9 @@ export class MobileFormController {
           [taskId]
         );
 
+        // Snapshot financial state via shared finalizer (frozen actual_amount).
+        await TaskCompletionFinalizer.snapshotFinancials(client, taskId);
+
         // b. Recalculate case status (pass tx client)
         await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
@@ -4597,6 +4637,9 @@ export class MobileFormController {
         'COMPLETED',
         verificationOutcome
       );
+
+      // Post-commit financial hooks via shared finalizer (commission auto-calc).
+      await TaskCompletionFinalizer.triggerPostCompletionHooks(taskId);
 
       res.json({
         success: true,
@@ -4890,6 +4933,12 @@ export class MobileFormController {
           [taskId || verificationTaskId]
         );
 
+        // Snapshot financial state via shared finalizer (frozen actual_amount).
+        await TaskCompletionFinalizer.snapshotFinancials(
+          client,
+          (taskId || verificationTaskId) as string
+        );
+
         // b. Recalculate case status (pass tx client)
         await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
@@ -5024,6 +5073,9 @@ export class MobileFormController {
         verificationTaskId
       );
 
+      // Post-commit financial hooks via shared finalizer (commission auto-calc).
+      await TaskCompletionFinalizer.triggerPostCompletionHooks(verificationTaskId);
+
       res.json({
         success: true,
         message: `${formType} DSA/DST Connector verification submitted successfully`,
@@ -5157,6 +5209,9 @@ export class MobileFormController {
           [taskId]
         );
 
+        // Snapshot financial state via shared finalizer (frozen actual_amount).
+        await TaskCompletionFinalizer.snapshotFinancials(client, taskId);
+
         // b. Recalculate case status (pass tx client)
         await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
@@ -5259,6 +5314,9 @@ export class MobileFormController {
         'COMPLETED',
         verificationOutcome
       );
+
+      // Post-commit financial hooks via shared finalizer (commission auto-calc).
+      await TaskCompletionFinalizer.triggerPostCompletionHooks(taskId);
 
       res.json({
         success: true,
@@ -5592,6 +5650,12 @@ export class MobileFormController {
           [taskId || verificationTaskId]
         );
 
+        // Snapshot financial state via shared finalizer (frozen actual_amount).
+        await TaskCompletionFinalizer.snapshotFinancials(
+          client,
+          (taskId || verificationTaskId) as string
+        );
+
         // b. Recalculate case status (pass tx client)
         await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
@@ -5722,6 +5786,9 @@ export class MobileFormController {
         verificationOutcome,
         verificationTaskId
       );
+
+      // Post-commit financial hooks via shared finalizer (commission auto-calc).
+      await TaskCompletionFinalizer.triggerPostCompletionHooks(verificationTaskId);
 
       res.json({
         success: true,
@@ -6005,6 +6072,12 @@ export class MobileFormController {
           [taskId || verificationTaskId]
         );
 
+        // Snapshot financial state via shared finalizer (frozen actual_amount).
+        await TaskCompletionFinalizer.snapshotFinancials(
+          client,
+          (taskId || verificationTaskId) as string
+        );
+
         // b. Recalculate case status (pass tx client)
         await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
 
@@ -6132,6 +6205,9 @@ export class MobileFormController {
         verificationOutcome,
         verificationTaskId
       );
+
+      // Post-commit financial hooks via shared finalizer (commission auto-calc).
+      await TaskCompletionFinalizer.triggerPostCompletionHooks(verificationTaskId);
 
       res.json({
         success: true,

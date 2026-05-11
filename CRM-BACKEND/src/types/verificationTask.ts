@@ -45,14 +45,11 @@ export interface VerificationTask {
   completedAt?: string;
 
   // Revocation Fields (field agent initiated)
+  // 2026-05-11 L-1: dropped dead cancelled_* mirror — backend user cancel
+  // flow routes through revocation columns (see routes/verificationTasks.ts).
   revokedAt?: string;
   revokedBy?: string;
   revocationReason?: string;
-
-  // Cancellation Fields (backend user initiated)
-  cancelledAt?: string;
-  cancelledBy?: string;
-  cancellationReason?: string;
 
   // Audit Fields
   createdAt: string;
@@ -120,11 +117,6 @@ export interface CompleteVerificationTaskData {
 export interface RevokeVerificationTaskData {
   reason: string;
   revokedBy: string;
-}
-
-export interface CancelVerificationTaskData {
-  reason: string;
-  cancelledBy: string;
 }
 
 export type TaskStatus =

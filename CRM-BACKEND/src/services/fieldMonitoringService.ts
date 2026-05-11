@@ -710,7 +710,6 @@ export class FieldMonitoringService {
             vt.latitude,
             vt.longitude,
             COALESCE(
-              vt.submitted_at,
               vt.started_at::timestamptz,
               vt.current_assigned_at,
               vt.assigned_at::timestamptz,
@@ -724,7 +723,6 @@ export class FieldMonitoringService {
           ORDER BY
             vt.assigned_to,
             COALESCE(
-              vt.submitted_at,
               vt.started_at::timestamptz,
               vt.current_assigned_at,
               vt.assigned_at::timestamptz,
