@@ -37,15 +37,24 @@ export interface GstBreakdown {
   supplyType: SupplyType;
   /** 2-digit GST state code of recipient. NULL only for EXPORT (not auto-detected today). */
   placeOfSupply: string;
-  /** Rate as numeric percent (e.g. 9 for 9%). 0 when this leg doesn't apply. */
-  cgstRate: number;
-  sgstRate: number;
-  igstRate: number;
+  /**
+   * Rate as numeric percent (e.g. 9 for 9%). NULL when this leg doesn't apply.
+   *
+   * MUST be NULL (not 0) for the inapplicable legs because the DB CHECK
+   * `chk_invoices_gst_consistency` is strict:
+   *   INTRA_STATE → cgst_amount + sgst_amount NOT NULL, igst_amount NULL
+   *   INTER_STATE → igst_amount NOT NULL, cgst_amount + sgst_amount NULL
+   *   EXPORT      → all three NULL
+   * Returning 0 instead of NULL writes 0 to the column, violates the CHECK.
+   */
+  cgstRate: number | null;
+  sgstRate: number | null;
+  igstRate: number | null;
   /** Money amounts in INR with 2 decimal places (matches numeric(12,2) on invoices). */
-  cgstAmount: number;
-  sgstAmount: number;
-  igstAmount: number;
-  /** subtotal × totalRate, rounded to 2dp. Always equals cgst+sgst+igst. */
+  cgstAmount: number | null;
+  sgstAmount: number | null;
+  igstAmount: number | null;
+  /** subtotal × totalRate, rounded to 2dp. Always equals (cgst+sgst) | igst. */
   taxAmount: number;
   /** subtotal + taxAmount. */
   totalAmount: number;
@@ -167,10 +176,10 @@ export const resolveInvoiceGst = async (
       placeOfSupply: recipientCode,
       cgstRate: halfRate,
       sgstRate: halfRate,
-      igstRate: 0,
+      igstRate: null,
       cgstAmount,
       sgstAmount,
-      igstAmount: 0,
+      igstAmount: null,
       taxAmount,
       totalAmount: round2(params.subtotalAmount + taxAmount),
     };
@@ -179,11 +188,11 @@ export const resolveInvoiceGst = async (
     breakdown = {
       supplyType: 'INTER_STATE',
       placeOfSupply: recipientCode,
-      cgstRate: 0,
-      sgstRate: 0,
+      cgstRate: null,
+      sgstRate: null,
       igstRate: totalRate,
-      cgstAmount: 0,
-      sgstAmount: 0,
+      cgstAmount: null,
+      sgstAmount: null,
       igstAmount,
       taxAmount: igstAmount,
       totalAmount: round2(params.subtotalAmount + igstAmount),
@@ -191,7 +200,10 @@ export const resolveInvoiceGst = async (
   }
 
   // Defense-in-depth: arithmetic invariant.
-  const componentSum = round2(breakdown.cgstAmount + breakdown.sgstAmount + breakdown.igstAmount);
+  // Sum applicable legs only; NULLs (inapplicable legs) coerce to 0 for math.
+  const componentSum = round2(
+    (breakdown.cgstAmount ?? 0) + (breakdown.sgstAmount ?? 0) + (breakdown.igstAmount ?? 0)
+  );
   if (componentSum !== breakdown.taxAmount) {
     throw new GstConfigError(
       'GST_ARITHMETIC_DRIFT',

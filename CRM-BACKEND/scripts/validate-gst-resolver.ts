@@ -12,8 +12,7 @@ import { wrapClient } from '../src/config/database';
 
 const pool = new Pool({
   connectionString:
-    process.env.DATABASE_URL ||
-    'postgresql://acs_user:acs_password@localhost:5432/acs_db',
+    process.env.DATABASE_URL || 'postgresql://acs_user:acs_password@localhost:5432/acs_db',
 });
 
 const run = async () => {
@@ -67,10 +66,10 @@ const run = async () => {
     assert('  placeOfSupply=27', a.placeOfSupply, '27');
     assert('  cgstRate=9', a.cgstRate, 9);
     assert('  sgstRate=9', a.sgstRate, 9);
-    assert('  igstRate=0', a.igstRate, 0);
+    assert('  igstRate=null (inapplicable leg per CHECK)', a.igstRate, null);
     assert('  cgstAmount=90', a.cgstAmount, 90);
     assert('  sgstAmount=90', a.sgstAmount, 90);
-    assert('  igstAmount=0', a.igstAmount, 0);
+    assert('  igstAmount=null (inapplicable leg per CHECK)', a.igstAmount, null);
     assert('  taxAmount=180', a.taxAmount, 180);
     assert('  totalAmount=1180', a.totalAmount, 1180);
 
@@ -79,11 +78,11 @@ const run = async () => {
     const b = await resolveInvoiceGst(client, { clientId: bId, subtotalAmount: 1000 });
     assert('  supplyType=INTER_STATE', b.supplyType, 'INTER_STATE');
     assert('  placeOfSupply=29', b.placeOfSupply, '29');
-    assert('  cgstRate=0', b.cgstRate, 0);
-    assert('  sgstRate=0', b.sgstRate, 0);
+    assert('  cgstRate=null (inapplicable leg)', b.cgstRate, null);
+    assert('  sgstRate=null (inapplicable leg)', b.sgstRate, null);
     assert('  igstRate=18', b.igstRate, 18);
-    assert('  cgstAmount=0', b.cgstAmount, 0);
-    assert('  sgstAmount=0', b.sgstAmount, 0);
+    assert('  cgstAmount=null (inapplicable leg)', b.cgstAmount, null);
+    assert('  sgstAmount=null (inapplicable leg)', b.sgstAmount, null);
     assert('  igstAmount=180', b.igstAmount, 180);
     assert('  taxAmount=180', b.taxAmount, 180);
     assert('  totalAmount=1180', b.totalAmount, 1180);
