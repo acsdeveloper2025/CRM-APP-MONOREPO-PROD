@@ -678,6 +678,13 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
           tpcConfirmation2: nocData.tpcConfirmation2,
           // Shifted/Contact
           shiftedPeriod: nocData.shiftedPeriod,
+          // Bug 130: NOC SHIFTED Path-2 was missing these 3 — every SHIFTED
+          // regen rendered "shifted from the given address ago" (no period)
+          // and " is currently operating ... for the last ." (no subject, no
+          // period). Mirrors Office Path-2 lines 281-283.
+          oldOfficeShiftedPeriod: nocData.oldOfficeShiftedPeriod,
+          currentCompanyName: nocData.currentCompanyName,
+          currentCompanyPeriod: nocData.currentCompanyPeriod,
           currentLocation: nocData.currentLocation,
           premisesStatus: nocData.premisesStatus,
           entryRestrictionReason: nocData.entryRestrictionReason,

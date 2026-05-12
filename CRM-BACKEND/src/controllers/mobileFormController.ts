@@ -2886,10 +2886,7 @@ export class MobileFormController {
         );
 
         // Snapshot financial state via shared finalizer (frozen actual_amount).
-        await TaskCompletionFinalizer.snapshotFinancials(
-          client,
-          (taskId || verificationTaskId) as string
-        );
+        await TaskCompletionFinalizer.snapshotFinancials(client, taskId || verificationTaskId);
 
         // b. Update case status based on ALL tasks (pass the tx client!)
         await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
@@ -3371,10 +3368,7 @@ export class MobileFormController {
         );
 
         // Snapshot financial state via shared finalizer (frozen actual_amount).
-        await TaskCompletionFinalizer.snapshotFinancials(
-          client,
-          (taskId || verificationTaskId) as string
-        );
+        await TaskCompletionFinalizer.snapshotFinancials(client, taskId || verificationTaskId);
 
         // b. Recalculate case status (pass tx client)
         await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
@@ -3822,10 +3816,7 @@ export class MobileFormController {
         );
 
         // Snapshot financial state via shared finalizer (frozen actual_amount).
-        await TaskCompletionFinalizer.snapshotFinancials(
-          client,
-          (taskId || verificationTaskId) as string
-        );
+        await TaskCompletionFinalizer.snapshotFinancials(client, taskId || verificationTaskId);
 
         // b. Recalculate case status (pass tx client)
         await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
@@ -4260,10 +4251,7 @@ export class MobileFormController {
         );
 
         // Snapshot financial state via shared finalizer (frozen actual_amount).
-        await TaskCompletionFinalizer.snapshotFinancials(
-          client,
-          (taskId || verificationTaskId) as string
-        );
+        await TaskCompletionFinalizer.snapshotFinancials(client, taskId || verificationTaskId);
 
         // b. Recalculate case status (pass tx client)
         await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
@@ -4934,10 +4922,7 @@ export class MobileFormController {
         );
 
         // Snapshot financial state via shared finalizer (frozen actual_amount).
-        await TaskCompletionFinalizer.snapshotFinancials(
-          client,
-          (taskId || verificationTaskId) as string
-        );
+        await TaskCompletionFinalizer.snapshotFinancials(client, taskId || verificationTaskId);
 
         // b. Recalculate case status (pass tx client)
         await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
@@ -5509,6 +5494,39 @@ export class MobileFormController {
         // doorless type). Always set the clean 'Positive' / 'Negative'
         // outcome for PAV regardless of whether form_type changed.
         verificationOutcome = derivedType === 'POSITIVE' ? 'Positive' : 'Negative';
+
+        // Bug 133 (2026-05-11): verdict-vs-activity coherence enforcement.
+        // When the agent's final_status doesn't match the activity-implied
+        // natural verdict, the report would render an internally
+        // contradictory narrative (e.g. SEEN+Negative: "Met with X who
+        // confirmed the project" + "marked as Negative"). Force the agent
+        // to justify the mismatch via otherObservation. Template helpers
+        // `activityVerdictSentence` + `verdictOverrideNote` use this field
+        // to render the coherent explanatory clause. Mobile enforces the
+        // SEEN+non-Positive branch via legacyCondition; this server-side
+        // gate covers the OR of both branches (mobile AND-only condition
+        // can't express OR).
+        const finalStatusValue =
+          typeof formData.finalStatus === 'string' ? formData.finalStatus : '';
+        const naturalVerdict = activity === 'SEEN' ? 'Positive' : 'Negative';
+        const verdictMismatch = finalStatusValue !== '' && finalStatusValue !== naturalVerdict;
+        if (verdictMismatch) {
+          const obs =
+            typeof formData.otherObservation === 'string' ? formData.otherObservation.trim() : '';
+          if (obs.length < 10) {
+            logger.warn(
+              `❌ Property APF verdict-mismatch without justification: activity=${activity} finalStatus=${finalStatusValue} otherObservation=${obs.length}ch`
+            );
+            return res.status(400).json({
+              success: false,
+              message: `Property APF verdict (${finalStatusValue}) differs from observed activity (${activity}). Please provide justification of at least 10 characters in Other Observation explaining why.`,
+              error: {
+                code: 'VERDICT_JUSTIFICATION_REQUIRED',
+                timestamp: new Date().toISOString(),
+              },
+            });
+          }
+        }
       }
 
       logger.info(
@@ -5651,10 +5669,7 @@ export class MobileFormController {
         );
 
         // Snapshot financial state via shared finalizer (frozen actual_amount).
-        await TaskCompletionFinalizer.snapshotFinancials(
-          client,
-          (taskId || verificationTaskId) as string
-        );
+        await TaskCompletionFinalizer.snapshotFinancials(client, taskId || verificationTaskId);
 
         // b. Recalculate case status (pass tx client)
         await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
@@ -6073,10 +6088,7 @@ export class MobileFormController {
         );
 
         // Snapshot financial state via shared finalizer (frozen actual_amount).
-        await TaskCompletionFinalizer.snapshotFinancials(
-          client,
-          (taskId || verificationTaskId) as string
-        );
+        await TaskCompletionFinalizer.snapshotFinancials(client, taskId || verificationTaskId);
 
         // b. Recalculate case status (pass tx client)
         await CaseStatusSyncService.recalculateCaseStatus(caseId, client);

@@ -915,7 +915,7 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the premises were closed.
 
 THIRD PARTY CONFIRMATION:
-TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that the NOC office has shifted from the given address {Old_Office_Shifted_Period} ago. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
+TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that the NOC office has shifted from the given address. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
 
 CURRENT OFFICE STATUS:
 {Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
@@ -1171,7 +1171,7 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE: `Property APF Remark: POSITIVE.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. Construction activity: {Construction_Activity}. Met with {Met_Person_Name} ({Designation}), who confirmed the project at the given address.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. Construction activity: {Construction_Activity}. {Activity_Verdict_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_Met_Person_1} {Name_of_TPC_1} and {TPC_Met_Person_2} {Name_of_TPC_2}, who confirmed the project existence at the given address.
@@ -1193,7 +1193,7 @@ Hence the profile is marked as {Final_Status}.`,
     NEGATIVE_STOP: `Property APF Remark: NEGATIVE.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. Construction activity: {Construction_Activity}. Reason for stop: {Activity_Stop_Reason}
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. Construction activity: {Construction_Activity}. Reason for stop: {Activity_Stop_Reason}.{Verdict_Override_Note}
 
 PROJECT DETAILS:
 Project name: {Project_Name}. Building status: {Building_Status}. Project started {Project_Started_Date}, expected completion {Project_Completion_Date}. Total wings: {Total_Wing}. Total flats: {Total_Flats}. Project completion: {Project_Completion_Percent}%. Staff strength is {Staff_Strength} and {Staff_Seen} were seen during the visit.
@@ -1214,7 +1214,7 @@ Hence the profile is marked as {Final_Status}.`,
     NEGATIVE_VACANT: `Property APF Remark: NEGATIVE.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. Construction activity: {Construction_Activity}. The plot at the given address is currently vacant — no construction or project activity was observed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. Construction activity: {Construction_Activity}. The plot at the given address is currently vacant — no construction or project activity was observed.{Verdict_Override_Note}
 
 LOCALITY INFORMATION:
 The locality is {Locality}.
@@ -2354,6 +2354,50 @@ Hence the profile is marked as {Final_Status}.`,
       return `${n} is currently operating at the given address. `;
     };
 
+    // Bug 135: format a date column to YYYY-MM-DD for narrative rendering.
+    // pg library returns DATE columns as JS Date objects; template substitution
+    // then calls .toString() and produces "Sun Jan 15 2023 00:00:00 GMT+0530".
+    // Accept Date, ISO string, or already-formatted string; return YYYY-MM-DD.
+    const formatIsoDate = (raw: unknown): string => {
+      if (!raw) {
+        return '';
+      }
+      // Bug 135 follow-up: pg returns DATE columns as JS Date objects pinned
+      // to LOCAL midnight (IST on this server). Using toISOString() converts
+      // to UTC and shifts the date back by the timezone offset (5h30min on
+      // IST) — turning 2023-01-15 into 2023-01-14. Always read the date as
+      // local-calendar parts so the rendered date matches what the agent
+      // entered.
+      const localIso = (d: Date): string => {
+        if (Number.isNaN(d.getTime())) {
+          return '';
+        }
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      };
+      if (raw instanceof Date) {
+        return localIso(raw);
+      }
+      if (typeof raw !== 'string' && typeof raw !== 'number') {
+        return '';
+      }
+      const s = String(raw).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+        return s;
+      }
+      const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (m) {
+        return m[1];
+      }
+      const d = new Date(s);
+      if (!Number.isNaN(d.getTime())) {
+        return localIso(d);
+      }
+      return s;
+    };
+
     const pluralizePeriod = (raw: string): string => {
       const s = (raw || '').trim();
       const m = s.match(/^(\d+(?:\.\d+)?)\s+(year|month|day|week)s?$/i);
@@ -2364,6 +2408,77 @@ Hence the profile is marked as {Final_Status}.`,
       const unitLower = m[2].toLowerCase();
       const unitCap = unitLower.charAt(0).toUpperCase() + unitLower.slice(1);
       return `${m[1]} ${num === 1 ? unitCap : `${unitCap}s`}`;
+    };
+
+    // Bug 133: Property APF — verdict-vs-activity coherence.
+    // When agent's `final_status` doesn't match the natural verdict implied by
+    // `constructionActivity`, the report must still be internally coherent.
+    // Used by APF POSITIVE template (replaces the "Met with X who confirmed"
+    // hard-coded sentence). Mobile + backend validator enforce that
+    // `otherObservation` is populated whenever verdict mismatches activity.
+    const activityVerdictSentence = (
+      activity: string,
+      status: string,
+      metPersonName: string,
+      designation: string,
+      otherObservation: string
+    ): string => {
+      const a = (activity || '').toUpperCase().trim();
+      const s = (status || '').toLowerCase().trim();
+      const name = (metPersonName || '').toString().trim();
+      const role = (designation || '').toString().trim();
+      const obs = (otherObservation || '').toString().trim();
+      const who = name && role ? `${name} (${role})` : name || role || 'the met person';
+      // SEEN path — verdict-aware narrative
+      if (a === 'SEEN') {
+        if (s === 'positive') {
+          return `Met with ${who}, who confirmed the project at the given address.`;
+        }
+        if (s === 'refer') {
+          return `Met with ${who} at the project site. The construction was observed, but the case is being referred for further review${obs ? ` — ${obs}` : ''}.`;
+        }
+        if (s === 'fraud') {
+          return `Met with ${who} at the project site. Fraud indicators were noted${obs ? ` — ${obs}` : ''}.`;
+        }
+        // Negative
+        return `Met with ${who} at the project site. Despite the construction being observed, the verification was assessed as Negative${obs ? ` — ${obs}` : ''}.`;
+      }
+      // STOP/VACANT path uses Verdict_Override_Note in NEGATIVE_STOP /
+      // NEGATIVE_VACANT templates instead — this resolver is only referenced
+      // by the POSITIVE template, so fall back to a neutral met-person sentence
+      // if it's ever referenced from a non-SEEN context.
+      return `Met with ${who} at the given address.`;
+    };
+
+    // Companion helper for NEGATIVE_STOP and NEGATIVE_VACANT templates.
+    // Returns "" when verdict aligns with activity's natural outcome
+    // (Negative). Returns an explanatory clause when verdict overrides
+    // (Positive / Refer / Fraud on STOP/VACANT path).
+    const verdictOverrideNote = (
+      activity: string,
+      status: string,
+      otherObservation: string
+    ): string => {
+      const a = (activity || '').toUpperCase().trim();
+      const s = (status || '').toLowerCase().trim();
+      const obs = (otherObservation || '').toString().trim();
+      if (s === 'negative' || s === '') {
+        return '';
+      }
+      const tail = obs ? ` — ${obs}` : '';
+      const setting = a.includes('VACANT')
+        ? 'the plot being vacant'
+        : 'construction being stopped at the site';
+      if (s === 'positive') {
+        return ` However, despite ${setting}, the verification was completed as Positive${tail}.`;
+      }
+      if (s === 'refer') {
+        return ` Note: ${a.includes('VACANT') ? 'the plot is currently vacant' : 'construction is currently stopped at the site'}. The case is being referred for further review${tail}.`;
+      }
+      if (s === 'fraud') {
+        return ` Note: ${a.includes('VACANT') ? 'the plot is currently vacant' : 'construction is currently stopped at the site'}. Fraud indicators were noted${tail}.`;
+      }
+      return '';
     };
 
     return {
@@ -2915,16 +3030,49 @@ Hence the profile is marked as {Final_Status}.`,
         safeGet(formData, 'addressExistAt') || safeGet(formData, 'address_exist_at'),
       Construction_Activity:
         safeGet(formData, 'constructionActivity') || safeGet(formData, 'construction_activity'),
+      // Bug 133: APF activity-verdict coherence. Used only by POSITIVE
+      // template (SEEN path); replaces the hard-coded "Met with X who
+      // confirmed the project" sentence with a verdict-aware narrative.
+      Activity_Verdict_Sentence: activityVerdictSentence(
+        safeGet(formData, 'constructionActivity') || safeGet(formData, 'construction_activity'),
+        safeGet(formData, 'finalStatus') ||
+          safeGet(formData, 'final_status') ||
+          safeGet(formData, 'finalStatusNegative'),
+        safeGet(formData, 'metPersonName') || safeGet(formData, 'met_person_name'),
+        safeGet(formData, 'metPersonDesignation') ||
+          safeGet(formData, 'met_person_designation') ||
+          safeGet(formData, 'designation'),
+        safeGet(formData, 'otherObservation') || safeGet(formData, 'other_observation')
+      ),
+      // Used by NEGATIVE_STOP + NEGATIVE_VACANT templates. Empty for the
+      // natural Negative verdict; non-empty when verdict overrides to
+      // Positive / Refer / Fraud.
+      Verdict_Override_Note: verdictOverrideNote(
+        safeGet(formData, 'constructionActivity') || safeGet(formData, 'construction_activity'),
+        safeGet(formData, 'finalStatus') ||
+          safeGet(formData, 'final_status') ||
+          safeGet(formData, 'finalStatusNegative'),
+        safeGet(formData, 'otherObservation') || safeGet(formData, 'other_observation')
+      ),
       Activity_Stop_Reason:
         safeGet(formData, 'activityStopReason') || safeGet(formData, 'activity_stop_reason'),
-      Project_Started_Date:
-        safeGet(formData, 'projectStartedDate') || safeGet(formData, 'project_started_date'),
-      Project_Completion_Date:
-        safeGet(formData, 'projectCompletionDate') || safeGet(formData, 'project_completion_date'),
+      // Bug 135: format DATE columns / Date objects to YYYY-MM-DD for narrative.
+      Project_Started_Date: formatIsoDate(
+        safeGet(formData, 'projectStartedDate') || safeGet(formData, 'project_started_date')
+      ),
+      Project_Completion_Date: formatIsoDate(
+        safeGet(formData, 'projectCompletionDate') || safeGet(formData, 'project_completion_date')
+      ),
       Total_Wing: safeGet(formData, 'totalWing') || safeGet(formData, 'total_wing'),
       Total_Flats: safeGet(formData, 'totalFlats') || safeGet(formData, 'total_flats'),
+      // Bug 136: Path-2 regen camelizes `project_completion_percentage` →
+      // `projectCompletionPercentage` (with "age"). Resolver had only the
+      // shorter `projectCompletionPercent` (no "age") camel alias, so it
+      // missed the Path-2 form on render — rendered empty `%`. Add the
+      // full camel form as a third fallback.
       Project_Completion_Percent:
         safeGet(formData, 'projectCompletionPercent') ||
+        safeGet(formData, 'projectCompletionPercentage') ||
         safeGet(formData, 'project_completion_percentage'),
       APF_Status: safeGet(formData, 'apfStatus') || safeGet(formData, 'apf_status'),
       APF_Number: safeGet(formData, 'apfNumber') || safeGet(formData, 'apf_number'),
