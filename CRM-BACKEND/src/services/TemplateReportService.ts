@@ -1174,7 +1174,7 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. Construction activity: {Construction_Activity}. {Activity_Verdict_Sentence}
 
 THIRD PARTY CONFIRMATION:
-TPC was conducted with {TPC_Met_Person_1} {Name_of_TPC_1} and {TPC_Met_Person_2} {Name_of_TPC_2}, who confirmed the project existence at the given address.
+TPC was conducted with {TPC_Pair_Text}, who confirmed the project existence at the given address.
 
 LOCALITY INFORMATION:
 The locality is {Locality}. Company nameplate {Company_Name_Plate_Text}.
@@ -1196,10 +1196,10 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. Construction activity: {Construction_Activity}. Reason for stop: {Activity_Stop_Reason}.{Verdict_Override_Note}
 
 PROJECT DETAILS:
-Project name: {Project_Name}. Building status: {Building_Status}. Project started {Project_Started_Date}, expected completion {Project_Completion_Date}. Total wings: {Total_Wing}. Total flats: {Total_Flats}. Project completion: {Project_Completion_Percent}%. Staff strength is {Staff_Strength} and {Staff_Seen} were seen during the visit.
+Project name: {Project_Name}. Building status: {Building_Status}. Project started on {Project_Started_Date}, expected completion on {Project_Completion_Date}. Total wings: {Total_Wing}. Total flats: {Total_Flats}. Project completion: {Project_Completion_Percent}%. Staff strength is {Staff_Strength} and {Staff_Seen} were seen during the visit.
 
 THIRD PARTY CONFIRMATION:
-TPC was conducted with {TPC_Met_Person_1} {Name_of_TPC_1} and {TPC_Met_Person_2} {Name_of_TPC_2}.
+TPC was conducted with {TPC_Pair_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality}. Company nameplate {Company_Name_Plate_Text}.
@@ -1235,7 +1235,7 @@ ENTRY RESTRICTION DETAILS:
 {Name_of_Met_Person} {Met_Person_Confirmation_Text} the property existence at the given address.
 
 THIRD PARTY CONFIRMATION:
-TPC was conducted with {TPC_Met_Person_1} {Name_of_TPC_1} and {TPC_Met_Person_2} {Name_of_TPC_2}.
+TPC was conducted with {TPC_Pair_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality}. Company nameplate {Company_Name_Plate_Text}.
@@ -2124,6 +2124,24 @@ Hence the profile is marked as {Final_Status}.`,
       return n;
     };
 
+    // Bug 142: APF templates use the inverse-TPC pattern "{Met_Person_Type}
+    // {Name_of_TPC}" inlined as "with X1 N1 and X2 N2". When only one TPC is
+    // captured (TPC_2 fields empty), this leaves a dangling " and "
+    // OR — worse — renders the literal "Not provided" fallback. Helper
+    // returns the joined pair or single-TPC string or empty, never partials.
+    const tpcPairTextApf = (p1: string, n1: string, p2: string, n2: string): string => {
+      const valid = (s: string): boolean => {
+        const v = (s || '').trim();
+        return v.length > 0 && v.toLowerCase() !== 'not provided';
+      };
+      const a = valid(p1) && valid(n1) ? `${p1.trim()} ${n1.trim()}` : '';
+      const b = valid(p2) && valid(n2) ? `${p2.trim()} ${n2.trim()}` : '';
+      if (a && b) {
+        return `${a} and ${b}`;
+      }
+      return a || b || '';
+    };
+
     const applicantWorkingStatusText = (raw: string): string => {
       const v = (raw || '').trim().toLowerCase();
       if (!v) {
@@ -2583,6 +2601,17 @@ Hence the profile is marked as {Final_Status}.`,
       ),
       TPC_Met_Person_2: (formData.tpcMetPerson2 as string) || 'Not provided',
       Name_of_TPC_2: (formData.tpcName2 as string) || 'Not provided',
+      // Bug 142: APF-specific clean TPC join. Returns "X1 N1 and X2 N2",
+      // "X1 N1", "X2 N2", or "" — never dangling " and " or "Not provided
+      // Not provided". Used by APF POSITIVE / NEGATIVE_STOP / ERT templates
+      // which use the inverse-TPC inline join (different from NOC's
+      // TPC_X_Label pattern which has its own graceful empty handling).
+      TPC_Pair_Text: tpcPairTextApf(
+        (formData.tpcMetPerson1 as string) || '',
+        (formData.tpcName1 as string) || '',
+        (formData.tpcMetPerson2 as string) || '',
+        (formData.tpcName2 as string) || ''
+      ),
       TPC_Confirmation_2: lc((formData.tpcConfirmation2 as string) || 'Not provided'),
       TPC_1_Label: tpcLabel(
         (formData.tpcName1 as string) || '',
@@ -2753,13 +2782,19 @@ Hence the profile is marked as {Final_Status}.`,
         ' feedback was received from the met person.'
       ),
       // All ERT — political-connection line wraps "{politicalConnectionText(value)}."
-      Political_Connection_Sentence: sentenceClause(
-        politicalConnectionText(
-          safeGet(formData, 'politicalConnection') || safeGet(formData, 'political_connection')
-        ),
-        ' ',
-        '.'
-      ),
+      // Bug 140: when field is empty (legit case on ERT: politicalConnection
+      // is gated on metPersonConfirmation='Confirmed'), drop the whole clause
+      // instead of rendering the verbose fallback "Political connection status
+      // is not specified.". Non-ERT templates use Political_Connection_Text
+      // directly with politicalConnection required — unaffected by this gate.
+      Political_Connection_Sentence: (() => {
+        const raw =
+          safeGet(formData, 'politicalConnection') || safeGet(formData, 'political_connection');
+        if (!raw || !String(raw).trim()) {
+          return '';
+        }
+        return sentenceClause(politicalConnectionText(raw), ' ', '.');
+      })(),
 
       // Res-cum-Office narration tokens (2026-04-18)
       Residence_Setup_Text: setupText(
@@ -3021,7 +3056,13 @@ Hence the profile is marked as {Final_Status}.`,
       Property_Area: safeGet(formData, 'propertyArea') || safeGet(formData, 'property_area'),
       Property_Value: safeGet(formData, 'propertyValue') || safeGet(formData, 'property_value'),
       Market_Value: safeGet(formData, 'marketValue') || safeGet(formData, 'market_value'),
-      Building_Status: safeGet(formData, 'buildingStatus') || safeGet(formData, 'building_status'),
+      // Bug 139: lowercase mid-sentence ("is new construction" vs "is New
+      // Construction"). Mirrors Office_Status / Premises_Status / House_Status
+      // conventions. Used in 8 template sites (PropInd POSITIVE/NSP/ERT +
+      // APF NEGATIVE_STOP + APF ERT).
+      Building_Status: lc(
+        safeGet(formData, 'buildingStatus') || safeGet(formData, 'building_status')
+      ),
       Property_Owner_Name:
         safeGet(formData, 'propertyOwnerName') ||
         safeGet(formData, 'owner_name') ||
