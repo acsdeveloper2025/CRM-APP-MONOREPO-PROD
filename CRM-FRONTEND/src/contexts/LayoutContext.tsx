@@ -14,6 +14,16 @@ export const LayoutProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
   });
 
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('sidebarCollapsed');
+      return saved ? JSON.parse(saved) === true : false;
+    } catch (error) {
+      logger.error('Failed to parse sidebarCollapsed from localStorage', error);
+      return false;
+    }
+  });
+
   // Persist state changes to localStorage
   useEffect(() => {
     try {
@@ -22,6 +32,14 @@ export const LayoutProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       logger.error('Failed to save sidebarExpanded to localStorage', error);
     }
   }, [expandedMenus]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('sidebarCollapsed', JSON.stringify(isSidebarCollapsed));
+    } catch (error) {
+      logger.error('Failed to save sidebarCollapsed to localStorage', error);
+    }
+  }, [isSidebarCollapsed]);
 
   const setExpandedMenus = useCallback((menus: string[]) => {
     setExpandedMenusState(menus);
@@ -33,9 +51,19 @@ export const LayoutProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     );
   }, []);
 
+  const toggleSidebarCollapsed = useCallback(() => {
+    setIsSidebarCollapsed((prev) => !prev);
+  }, []);
+
   const value = useMemo(
-    () => ({ expandedMenus, setExpandedMenus, toggleMenu }),
-    [expandedMenus, setExpandedMenus, toggleMenu]
+    () => ({
+      expandedMenus,
+      setExpandedMenus,
+      toggleMenu,
+      isSidebarCollapsed,
+      toggleSidebarCollapsed,
+    }),
+    [expandedMenus, setExpandedMenus, toggleMenu, isSidebarCollapsed, toggleSidebarCollapsed]
   );
 
   return <LayoutContext.Provider value={value}>{children}</LayoutContext.Provider>;

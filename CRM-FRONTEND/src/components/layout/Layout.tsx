@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
+import { useLayout } from '@/contexts/LayoutContextDefinition';
+import { cn } from '@/lib/utils';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -8,6 +10,7 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { isSidebarCollapsed } = useLayout();
 
   const handleMenuClick = () => {
     setSidebarOpen(!sidebarOpen);
@@ -20,7 +23,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen bg-[#FAFAFA] overflow-x-hidden">
       <Sidebar isOpen={sidebarOpen} onClose={handleSidebarClose} />
-      <div className="lg:pl-64 transition-all duration-300 min-h-screen flex flex-col">
+      <div
+        className={cn(
+          'transition-all duration-300 min-h-screen flex flex-col',
+          isSidebarCollapsed ? 'lg:pl-0' : 'lg:pl-64'
+        )}
+      >
         <Header onMenuClick={handleMenuClick} />
         <main className="flex-1 py-3 sm:py-4 lg:py-6 animate-fade-in">
           <div className="px-4 sm:px-6 lg:px-8 h-full">{children}</div>

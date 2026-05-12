@@ -4,6 +4,8 @@ export interface LayoutContextType {
   expandedMenus: string[];
   setExpandedMenus: (menus: string[]) => void;
   toggleMenu: (menuId: string) => void;
+  isSidebarCollapsed: boolean;
+  toggleSidebarCollapsed: () => void;
 }
 
 export const LayoutContext = createContext<LayoutContextType | undefined>(undefined);

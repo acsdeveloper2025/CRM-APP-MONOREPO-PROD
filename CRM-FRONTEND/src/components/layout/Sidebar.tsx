@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, PanelLeftClose } from 'lucide-react';
 import { usePermissionContext } from '@/contexts/PermissionContext';
 import { navigationItems, type NavigationItem } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     expandedMenus: expandedItems,
     toggleMenu: toggleExpanded,
     setExpandedMenus,
+    isSidebarCollapsed,
+    toggleSidebarCollapsed,
   } = useLayout();
   const location = useLocation();
 
@@ -146,13 +148,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 sm:w-72 lg:w-64 bg-white shadow-lg border-r border-gray-200 transform transition-all duration-300 ease-in-out lg:translate-x-0',
-          isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          'fixed inset-y-0 left-0 z-50 w-64 sm:w-72 lg:w-64 bg-white shadow-lg border-r border-gray-200 transform transition-all duration-300 ease-in-out',
+          isOpen ? 'translate-x-0' : '-translate-x-full',
+          isSidebarCollapsed ? 'lg:-translate-x-full' : 'lg:translate-x-0'
         )}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-center h-16 px-4 border-b border-gray-200 bg-green-50">
+          <div className="relative flex items-center justify-center h-16 px-4 border-b border-gray-200 bg-green-50">
+            <button
+              type="button"
+              onClick={toggleSidebarCollapsed}
+              aria-label="Collapse sidebar"
+              title="Collapse sidebar"
+              className="hidden lg:flex absolute left-3 top-1/2 -translate-y-1/2 h-8 w-8 items-center justify-center rounded-md text-gray-600 hover:bg-green-100 hover:text-green-700 transition-colors duration-200"
+            >
+              <PanelLeftClose className="h-5 w-5" />
+            </button>
             <Link
               to="/dashboard"
               className="text-xl font-bold text-gray-900 hover:text-green-600 transition-colors duration-200"

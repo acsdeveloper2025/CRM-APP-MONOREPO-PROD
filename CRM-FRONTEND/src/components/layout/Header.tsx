@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, Moon, Sun, LogOut, User, Settings, Trash2, Bell, Clock } from 'lucide-react';
+import {
+  Menu,
+  Moon,
+  Sun,
+  LogOut,
+  User,
+  Settings,
+  Trash2,
+  Bell,
+  Clock,
+  PanelLeftOpen,
+} from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
@@ -18,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { notificationService, type AppNotification } from '@/services/notifications';
+import { useLayout } from '@/contexts/LayoutContextDefinition';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -26,6 +38,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { isSidebarCollapsed, toggleSidebarCollapsed } = useLayout();
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -232,6 +245,20 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         >
           <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
         </Button>
+
+        {/* Desktop expand-sidebar button — only visible when sidebar is collapsed */}
+        {isSidebarCollapsed && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden lg:flex h-9 w-9 sm:h-10 sm:w-10 mr-2 text-white hover:bg-green-700 dark:hover:bg-green-800 hover:text-white transition-colors duration-200"
+            onClick={toggleSidebarCollapsed}
+            aria-label="Expand sidebar"
+            title="Expand sidebar"
+          >
+            <PanelLeftOpen className="h-5 w-5 sm:h-6 sm:w-6" />
+          </Button>
+        )}
 
         {/* Page title - dynamic based on route */}
         <div className="flex-1 lg:flex-none min-w-0">
