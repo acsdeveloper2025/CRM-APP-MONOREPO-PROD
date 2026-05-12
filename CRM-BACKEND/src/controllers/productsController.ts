@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
-import { query } from '@/config/database';
+import { query, withTransaction } from '@/config/database';
 import { createAuditLog } from '@/utils/auditLogger';
 import { sendError } from '@/utils/apiResponse';
 
@@ -550,45 +550,61 @@ export const bulkImportProducts = async (
           }
         }
 
-        const existing = await query<{ id: number }>('SELECT id FROM products WHERE code = $1', [
-          code,
-        ]);
-
-        let productId: number;
-        if (existing.rows.length > 0) {
-          productId = existing.rows[0].id;
-          await query(
-            `UPDATE products SET
-               name = $1,
-               description = COALESCE($2, description),
-               is_active = COALESCE($3, is_active),
-               updated_at = NOW()
-             WHERE code = $4`,
-            [name, description, isActive, code]
+        // Per-row atomicity: product upsert + M2M `client_products` overwrite
+        // must succeed or fail together. Without this wrap, a crash between
+        // the DELETE and the INSERT loop below would leave the product with
+        // no client associations. Counter increments are returned from the
+        // tx so a rollback doesn't double-count the row as both succeeded
+        // and failed.
+        const outcome = await withTransaction(async client => {
+          const existing = await client.query<{ id: number }>(
+            'SELECT id FROM products WHERE code = $1',
+            [code]
           );
-          results.updated++;
-        } else {
-          const ins = await query<{ id: number }>(
-            `INSERT INTO products (name, code, description, is_active)
-             VALUES ($1, $2, $3, COALESCE($4, true))
-             RETURNING id`,
-            [name, code, description, isActive]
-          );
-          productId = ins.rows[0].id;
-          results.created++;
-        }
 
-        // M2M overwrite (only when CSV supplied a clientCodes column).
-        if (clientIds !== null) {
-          await query('DELETE FROM client_products WHERE product_id = $1', [productId]);
-          for (const cid of clientIds) {
-            await query(
-              `INSERT INTO client_products (client_id, product_id)
-               VALUES ($1, $2)
-               ON CONFLICT (client_id, product_id) DO NOTHING`,
-              [cid, productId]
+          let productId: number;
+          let kind: 'created' | 'updated';
+          if (existing.rows.length > 0) {
+            productId = existing.rows[0].id;
+            await client.query(
+              `UPDATE products SET
+                 name = $1,
+                 description = COALESCE($2, description),
+                 is_active = COALESCE($3, is_active),
+                 updated_at = NOW()
+               WHERE code = $4`,
+              [name, description, isActive, code]
             );
+            kind = 'updated';
+          } else {
+            const ins = await client.query<{ id: number }>(
+              `INSERT INTO products (name, code, description, is_active)
+               VALUES ($1, $2, $3, COALESCE($4, true))
+               RETURNING id`,
+              [name, code, description, isActive]
+            );
+            productId = ins.rows[0].id;
+            kind = 'created';
           }
+
+          // M2M overwrite (only when CSV supplied a clientCodes column).
+          if (clientIds !== null) {
+            await client.query('DELETE FROM client_products WHERE product_id = $1', [productId]);
+            for (const cid of clientIds) {
+              await client.query(
+                `INSERT INTO client_products (client_id, product_id)
+                 VALUES ($1, $2)
+                 ON CONFLICT (client_id, product_id) DO NOTHING`,
+                [cid, productId]
+              );
+            }
+          }
+          return kind;
+        });
+        if (outcome === 'created') {
+          results.created++;
+        } else {
+          results.updated++;
         }
       } catch (error) {
         results.failed++;
