@@ -118,6 +118,22 @@ export function BulkImportLocationDialog({
   };
 
   const getInstructions = () => {
+    if (type === 'countries') {
+      return {
+        title: 'Import Countries',
+        description: 'Upload a CSV file to bulk import countries',
+        format: 'CSV format: name, code, continent',
+        example: 'India, IND, Asia',
+      };
+    }
+    if (type === 'states') {
+      return {
+        title: 'Import States',
+        description: 'Upload a CSV file to bulk import states',
+        format: 'CSV format: name, code, country, gstStateCode',
+        example: 'Maharashtra, MH, India, 27',
+      };
+    }
     if (type === 'cities') {
       return {
         title: 'Import Cities',
@@ -125,14 +141,13 @@ export function BulkImportLocationDialog({
         format: 'CSV format: name, state, country',
         example: 'Mumbai, Maharashtra, India',
       };
-    } else {
-      return {
-        title: 'Import Pincodes',
-        description: 'Upload a CSV file to bulk import pincodes',
-        format: 'CSV format: code, area, cityName, state, country',
-        example: '400001, Fort, Mumbai, Maharashtra, India',
-      };
     }
+    return {
+      title: 'Import Pincodes',
+      description: 'Upload a CSV file to bulk import pincodes',
+      format: 'CSV format: code, area, cityName, state, country',
+      example: '400001, Fort, Mumbai, Maharashtra, India',
+    };
   };
 
   const instructions = getInstructions();
