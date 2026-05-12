@@ -171,7 +171,17 @@ export const downloadReport = async (req: Request, res: Response) => {
     if (!requireControllerPermission(req as AuthenticatedRequest, res, 'report.download')) {
       return;
     }
-    const fileName = String(req.params.fileName || '');
+    const rawFileName = String(req.params.fileName || '');
+    // Reject path-traversal / CRLF: only accept the literal basename so a
+    // request like '../etc/passwd' or 'foo.xlsx%0Aevil' cannot escape the
+    // exports dir or inject response headers downstream.
+    const fileName = path.basename(rawFileName);
+    if (!fileName || fileName !== rawFileName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid file name',
+      });
+    }
     const filePath = path.join(process.cwd(), 'exports', fileName);
 
     // Check if file exists
