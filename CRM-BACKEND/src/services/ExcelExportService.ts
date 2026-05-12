@@ -3,6 +3,7 @@
 import ExcelJS from 'exceljs';
 import { query as dbQuery } from '../config/database';
 import { logger } from '../utils/logger';
+import { escapeFormulaRow } from '../utils/formulaGuard';
 import path from 'path';
 import fs from 'fs/promises';
 import type {
@@ -474,20 +475,22 @@ export class ExcelExportService {
 
     // Data rows
     data.submissions.forEach((submission: FormSubmissionRow) => {
-      dataSheet.addRow([
-        submission.formType,
-        submission.validationStatus,
-        submission.agentName || 'N/A',
-        submission.employeeId || 'N/A',
-        submission.caseNumber,
-        submission.customerName,
-        submission.submissionScore || 'N/A',
-        submission.overallQualityScore || 'N/A',
-        submission.photosCount || 0,
-        submission.timeSpentMinutes || 'N/A',
-        submission.networkQuality || 'N/A',
-        new Date(submission.submittedAt).toLocaleDateString(),
-      ]);
+      dataSheet.addRow(
+        escapeFormulaRow([
+          submission.formType,
+          submission.validationStatus,
+          submission.agentName || 'N/A',
+          submission.employeeId || 'N/A',
+          submission.caseNumber,
+          submission.customerName,
+          submission.submissionScore || 'N/A',
+          submission.overallQualityScore || 'N/A',
+          submission.photosCount || 0,
+          submission.timeSpentMinutes || 'N/A',
+          submission.networkQuality || 'N/A',
+          new Date(submission.submittedAt).toLocaleDateString(),
+        ])
+      );
     });
 
     this.autoFitColumns(dataSheet);
@@ -501,12 +504,14 @@ export class ExcelExportService {
       this.styleHeaderRow(breakdownSheet, 1);
 
       data.formTypeBreakdown.forEach((item: FormTypeBreakdownRow) => {
-        breakdownSheet.addRow([
-          item.formType,
-          item.validationStatus,
-          item.count,
-          item.avgScore ? parseFloat(String(item.avgScore)).toFixed(2) : 'N/A',
-        ]);
+        breakdownSheet.addRow(
+          escapeFormulaRow([
+            item.formType,
+            item.validationStatus,
+            item.count,
+            item.avgScore ? parseFloat(String(item.avgScore)).toFixed(2) : 'N/A',
+          ])
+        );
       });
 
       this.autoFitColumns(breakdownSheet);
@@ -545,22 +550,24 @@ export class ExcelExportService {
           ? `${((agent.casesCompleted / agent.totalCasesAssigned) * 100).toFixed(1)}%`
           : 'N/A';
 
-      summarySheet.addRow([
-        agent.name,
-        agent.employeeId || 'N/A',
-        agent.departmentName || 'N/A',
-        agent.performanceRating || 'N/A',
-        agent.activeDays,
-        agent.totalCasesAssigned,
-        agent.casesCompleted,
-        completionRate,
-        agent.totalFormsSubmitted,
-        agent.avgQualityScore ? parseFloat(String(agent.avgQualityScore)).toFixed(1) : 'N/A',
-        agent.avgValidationRate
-          ? `${parseFloat(String(agent.avgValidationRate)).toFixed(1)}%`
-          : 'N/A',
-        agent.totalDistance ? parseFloat(String(agent.totalDistance)).toFixed(1) : 'N/A',
-      ]);
+      summarySheet.addRow(
+        escapeFormulaRow([
+          agent.name,
+          agent.employeeId || 'N/A',
+          agent.departmentName || 'N/A',
+          agent.performanceRating || 'N/A',
+          agent.activeDays,
+          agent.totalCasesAssigned,
+          agent.casesCompleted,
+          completionRate,
+          agent.totalFormsSubmitted,
+          agent.avgQualityScore ? parseFloat(String(agent.avgQualityScore)).toFixed(1) : 'N/A',
+          agent.avgValidationRate
+            ? `${parseFloat(String(agent.avgValidationRate)).toFixed(1)}%`
+            : 'N/A',
+          agent.totalDistance ? parseFloat(String(agent.totalDistance)).toFixed(1) : 'N/A',
+        ])
+      );
     });
 
     this.autoFitColumns(summarySheet);
@@ -586,20 +593,22 @@ export class ExcelExportService {
       this.styleHeaderRow(dailySheet, 1);
 
       data.dailyPerformance.forEach((daily: DailyPerformanceRow) => {
-        dailySheet.addRow([
-          new Date(daily.date).toLocaleDateString(),
-          daily.agentName,
-          daily.employeeId || 'N/A',
-          daily.casesAssigned || 0,
-          daily.casesCompleted || 0,
-          daily.formsSubmitted || 0,
-          daily.qualityScore ? parseFloat(String(daily.qualityScore)).toFixed(1) : 'N/A',
-          daily.validationSuccessRate
-            ? `${parseFloat(String(daily.validationSuccessRate)).toFixed(1)}%`
-            : 'N/A',
-          daily.activeHours ? parseFloat(String(daily.activeHours)).toFixed(1) : 'N/A',
-          daily.totalDistanceKm ? parseFloat(String(daily.totalDistanceKm)).toFixed(1) : 'N/A',
-        ]);
+        dailySheet.addRow(
+          escapeFormulaRow([
+            new Date(daily.date).toLocaleDateString(),
+            daily.agentName,
+            daily.employeeId || 'N/A',
+            daily.casesAssigned || 0,
+            daily.casesCompleted || 0,
+            daily.formsSubmitted || 0,
+            daily.qualityScore ? parseFloat(String(daily.qualityScore)).toFixed(1) : 'N/A',
+            daily.validationSuccessRate
+              ? `${parseFloat(String(daily.validationSuccessRate)).toFixed(1)}%`
+              : 'N/A',
+            daily.activeHours ? parseFloat(String(daily.activeHours)).toFixed(1) : 'N/A',
+            daily.totalDistanceKm ? parseFloat(String(daily.totalDistanceKm)).toFixed(1) : 'N/A',
+          ])
+        );
       });
 
       this.autoFitColumns(dailySheet);
@@ -641,22 +650,24 @@ export class ExcelExportService {
     this.styleHeaderRow(casesSheet, 1);
 
     data.cases.forEach((caseItem: CaseAnalyticsRow) => {
-      casesSheet.addRow([
-        caseItem.caseId,
-        caseItem.customerName,
-        caseItem.agentName || 'Unassigned',
-        caseItem.clientName || 'N/A',
-        caseItem.status,
-        caseItem.priority || 'N/A',
-        caseItem.completionDays ? parseFloat(String(caseItem.completionDays)).toFixed(1) : 'N/A',
-        caseItem.qualityScore || 'N/A',
-        caseItem.formCompletionPercentage || 'N/A',
-        caseItem.actualFormsSubmitted || 0,
-        caseItem.validForms || 0,
-        caseItem.attachmentCount || 0,
-        new Date(caseItem.createdAt).toLocaleDateString(),
-        new Date(caseItem.updatedAt).toLocaleDateString(),
-      ]);
+      casesSheet.addRow(
+        escapeFormulaRow([
+          caseItem.caseId,
+          caseItem.customerName,
+          caseItem.agentName || 'Unassigned',
+          caseItem.clientName || 'N/A',
+          caseItem.status,
+          caseItem.priority || 'N/A',
+          caseItem.completionDays ? parseFloat(String(caseItem.completionDays)).toFixed(1) : 'N/A',
+          caseItem.qualityScore || 'N/A',
+          caseItem.formCompletionPercentage || 'N/A',
+          caseItem.actualFormsSubmitted || 0,
+          caseItem.validForms || 0,
+          caseItem.attachmentCount || 0,
+          new Date(caseItem.createdAt).toLocaleDateString(),
+          new Date(caseItem.updatedAt).toLocaleDateString(),
+        ])
+      );
     });
 
     this.autoFitColumns(casesSheet);
@@ -683,15 +694,17 @@ export class ExcelExportService {
     this.styleHeaderRow(validationSheet, 1);
 
     data.validationData.forEach((item: ValidationStatusRow) => {
-      validationSheet.addRow([
-        item.formType,
-        item.validationStatus,
-        item.formCount,
-        item.avgSubmissionScore ? parseFloat(String(item.avgSubmissionScore)).toFixed(2) : 'N/A',
-        item.avgQualityScore ? parseFloat(String(item.avgQualityScore)).toFixed(2) : 'N/A',
-        item.avgCompleteness ? parseFloat(String(item.avgCompleteness)).toFixed(2) : 'N/A',
-        item.avgAccuracy ? parseFloat(String(item.avgAccuracy)).toFixed(2) : 'N/A',
-      ]);
+      validationSheet.addRow(
+        escapeFormulaRow([
+          item.formType,
+          item.validationStatus,
+          item.formCount,
+          item.avgSubmissionScore ? parseFloat(String(item.avgSubmissionScore)).toFixed(2) : 'N/A',
+          item.avgQualityScore ? parseFloat(String(item.avgQualityScore)).toFixed(2) : 'N/A',
+          item.avgCompleteness ? parseFloat(String(item.avgCompleteness)).toFixed(2) : 'N/A',
+          item.avgAccuracy ? parseFloat(String(item.avgAccuracy)).toFixed(2) : 'N/A',
+        ])
+      );
     });
 
     this.autoFitColumns(validationSheet);
@@ -716,7 +729,7 @@ export class ExcelExportService {
         displayValue = value.toFixed(2);
       }
 
-      worksheet.addRow([displayKey, displayValue]);
+      worksheet.addRow(escapeFormulaRow([displayKey, displayValue]));
     });
 
     this.autoFitColumns(worksheet);

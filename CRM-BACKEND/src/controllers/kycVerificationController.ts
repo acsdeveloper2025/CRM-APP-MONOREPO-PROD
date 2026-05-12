@@ -9,6 +9,7 @@ import type { QueryParams } from '@/types/database';
 import { storage, StorageKeys } from '@/services/storage';
 import { TaskCompletionFinalizer } from '@/services/taskCompletionFinalizer';
 import ExcelJS from 'exceljs';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
 
 /**
  * KYC Document Verification Controller
@@ -724,7 +725,7 @@ export const exportKYCToExcel = async (req: AuthenticatedRequest, res: Response)
           .map(([k, v]) => `${k}: ${v}`)
           .join(', ');
       }
-      sheet.addRow(row);
+      sheet.addRow(escapeFormulaRow(row));
     });
 
     // Auto-filter

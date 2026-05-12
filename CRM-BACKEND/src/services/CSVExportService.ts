@@ -2,6 +2,7 @@
 // Disabled require-await rule for CSV export service as some methods are async for consistency
 import { query as dbQuery } from '../config/database';
 import { logger } from '../utils/logger';
+import { escapeFormula } from '../utils/formulaGuard';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -523,7 +524,7 @@ export class CSVExportService {
       return '';
     }
 
-    const fieldStr = String(field);
+    const fieldStr = escapeFormula(field);
 
     // If field contains delimiter, newline, or quote, wrap in quotes and escape internal quotes
     if (
