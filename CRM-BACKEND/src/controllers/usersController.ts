@@ -3071,6 +3071,18 @@ export const bulkImportUsers = async (
       rows = await parseCSV(req.file.buffer);
     }
 
+    // Bound the row loop. Multer caps file size at 10 MB but a malicious XLSX
+    // can pack 100k+ minimal rows into that budget; the unbounded loop below
+    // would then allocate per-row state and run hundreds of DB lookups.
+    const MAX_BULK_IMPORT_ROWS = 10000;
+    if (rows.length > MAX_BULK_IMPORT_ROWS) {
+      return res.status(413).json({
+        success: false,
+        message: `Import exceeds ${MAX_BULK_IMPORT_ROWS} rows; split the file and retry`,
+        error: { code: 'PAYLOAD_TOO_LARGE', rowCount: rows.length, max: MAX_BULK_IMPORT_ROWS },
+      });
+    }
+
     const results = {
       imported: 0,
       failed: 0,
