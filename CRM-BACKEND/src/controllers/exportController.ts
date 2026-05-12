@@ -80,6 +80,21 @@ export const generateReport = async (req: AuthenticatedRequest, res: Response) =
       });
     }
 
+    // `form-submissions` and `validation-status` query analytics tables
+    // (`form_submission_analytics`, `form_quality_metrics`) that don't exist
+    // in the current schema — fail fast with a clear 501 instead of bubbling
+    // a 'relation does not exist' SQL error to the client.
+    if (
+      exportRequest.reportType === 'form-submissions' ||
+      exportRequest.reportType === 'validation-status'
+    ) {
+      return res.status(501).json({
+        success: false,
+        message: `Report type '${exportRequest.reportType}' is not currently supported`,
+        error: { code: 'REPORT_TYPE_NOT_IMPLEMENTED' },
+      });
+    }
+
     // Generate report based on format
     let result: ExportResult;
     switch (exportRequest.format) {

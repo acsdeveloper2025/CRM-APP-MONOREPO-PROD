@@ -341,6 +341,17 @@ export class ScheduledReportsService {
     try {
       logger.info(`Executing scheduled report: ${report.name} (${report.id})`);
 
+      // Skip report types backed by analytics tables that don't exist in the
+      // current schema (`form_submission_analytics`, `form_quality_metrics`).
+      // Lets the schedule queue continue rather than hard-failing a job that
+      // would 500 on every invocation.
+      if (report.reportType === 'form-submissions' || report.reportType === 'validation-status') {
+        logger.warn(
+          `Skipping scheduled report ${report.id}: reportType '${report.reportType}' not implemented`
+        );
+        throw new Error(`Report type '${report.reportType}' is not currently supported`);
+      }
+
       // Calculate date range for the report
       const dateRange = this.calculateDateRange(report.frequency);
 
