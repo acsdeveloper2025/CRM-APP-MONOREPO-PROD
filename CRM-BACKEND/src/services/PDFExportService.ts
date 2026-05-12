@@ -696,7 +696,10 @@ export class PDFExportService {
     const page = await this.browser.newPage();
 
     try {
-      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      // Puppeteer typings tightened: 'networkidle0' was removed from
+      // PageWaitForNetworkIdleOptions.waitUntil. For our static HTML
+      // (no async network fetches at render time) 'load' is equivalent.
+      await page.setContent(htmlContent, { waitUntil: 'load' });
 
       const pdfOptions: PDFOptions = {
         format: 'A4',
