@@ -8,20 +8,15 @@ import path from 'path';
 import fs from 'fs/promises';
 import type {
   ReportData,
-  FormSubmissionsReportData,
   AgentPerformanceReportData,
   CaseAnalyticsReportData,
-  ValidationStatusReportData,
-  FormSubmissionRow,
   AgentPerformanceRow,
   DailyPerformanceRow,
   CaseAnalyticsRow,
-  ValidationStatusRow,
-  FormTypeBreakdownRow,
 } from '../types/reports';
 
 export interface ExcelExportOptions {
-  reportType: 'form-submissions' | 'agent-performance' | 'case-analytics' | 'validation-status';
+  reportType: 'agent-performance' | 'case-analytics';
   dateFrom?: string;
   dateTo?: string;
   filters?: Record<string, unknown>;
@@ -98,120 +93,13 @@ export class ExcelExportService {
     const { reportType, dateFrom, dateTo, filters } = options;
 
     switch (reportType) {
-      case 'form-submissions':
-        return this.fetchFormSubmissionsData(dateFrom, dateTo, filters);
       case 'agent-performance':
         return this.fetchAgentPerformanceData(dateFrom, dateTo, filters);
       case 'case-analytics':
         return this.fetchCaseAnalyticsData(dateFrom, dateTo, filters);
-      case 'validation-status':
-        return this.fetchValidationStatusData(dateFrom, dateTo, filters);
       default:
         throw new Error(`Unsupported report type: ${String(reportType)}`);
     }
-  }
-
-  private async fetchFormSubmissionsData(
-    dateFrom?: string,
-    dateTo?: string,
-    filters?: Record<string, unknown>
-  ): Promise<FormSubmissionsReportData> {
-    const whereConditions = [];
-    const queryParams = [];
-    let paramIndex = 1;
-
-    if (dateFrom) {
-      whereConditions.push(`fs.submitted_at >= $${paramIndex}`);
-      queryParams.push(dateFrom);
-      paramIndex++;
-    }
-
-    if (dateTo) {
-      whereConditions.push(`fs.submitted_at <= $${paramIndex}`);
-      queryParams.push(dateTo);
-      paramIndex++;
-    }
-
-    if (filters?.formType) {
-      whereConditions.push(`fs.form_type = $${paramIndex}`);
-      queryParams.push(filters.formType as string);
-      paramIndex++;
-    }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
-    // Main submissions query
-    const submissionsQuery = `
-      SELECT 
-        fs.id,
-        fs.form_type,
-        fs.validation_status,
-        fs.submitted_at,
-        fs.validated_at,
-        fs.photos_count,
-        fs.attachments_count,
-        fs.submission_score,
-        fs.time_spent_minutes,
-        fs.network_quality,
-        fs.agent_name,
-        fs.employee_id,
-        fs.case_number,
-        fs.customer_name,
-        fs.case_status,
-        fqm.overall_quality_score,
-        fqm.completeness_score,
-        fqm.accuracy_score,
-        fqm.photo_quality_score
-      FROM form_submission_analytics fs
-      LEFT JOIN form_quality_metrics fqm ON fs.id = fqm.form_submission_id
-      ${whereClause}
-      ORDER BY fs.submitted_at DESC
-    `;
-
-    // Summary query
-    const summaryQuery = `
-      SELECT 
-        COUNT(*) as total_submissions,
-        COUNT(CASE WHEN validation_status = 'VALID' THEN 1 END) as valid_submissions,
-        COUNT(CASE WHEN validation_status = 'PENDING' THEN 1 END) as pending_submissions,
-        COUNT(CASE WHEN validation_status = 'INVALID' THEN 1 END) as invalid_submissions,
-        COUNT(CASE WHEN form_type = 'RESIDENCE' THEN 1 END) as residence_forms,
-        COUNT(CASE WHEN form_type = 'OFFICE' THEN 1 END) as office_forms,
-        COUNT(CASE WHEN form_type = 'BUSINESS' THEN 1 END) as business_forms,
-        AVG(submission_score) as avg_submission_score,
-        AVG(photos_count) as avg_photos_per_form,
-        AVG(time_spent_minutes) as avg_time_spent
-      FROM form_submission_analytics
-      ${whereClause}
-    `;
-
-    // Form type breakdown
-    const formTypeQuery = `
-      SELECT 
-        form_type,
-        validation_status,
-        COUNT(*) as count,
-        AVG(submission_score) as avg_score
-      FROM form_submission_analytics
-      ${whereClause}
-      GROUP BY form_type, validation_status
-      ORDER BY form_type, validation_status
-    `;
-
-    const [submissionsResult, summaryResult, formTypeResult] = await Promise.all([
-      dbQuery(submissionsQuery, queryParams),
-      dbQuery(summaryQuery, queryParams),
-      dbQuery(formTypeQuery, queryParams),
-    ]);
-
-    return {
-      submissions: submissionsResult.rows,
-      summary: summaryResult.rows[0],
-      formTypeBreakdown: formTypeResult.rows,
-      reportType: 'Form Submissions Report',
-      generatedAt: new Date().toISOString(),
-      dateRange: { from: dateFrom, to: dateTo },
-    };
   }
 
   private async fetchAgentPerformanceData(
@@ -362,64 +250,12 @@ export class ExcelExportService {
     };
   }
 
-  private async fetchValidationStatusData(
-    dateFrom?: string,
-    dateTo?: string,
-    _filters?: Record<string, unknown>
-  ): Promise<ValidationStatusReportData> {
-    const whereConditions = [];
-    const queryParams = [];
-    let paramIndex = 1;
-
-    if (dateFrom) {
-      whereConditions.push(`fs.submitted_at >= $${paramIndex}`);
-      queryParams.push(dateFrom);
-      paramIndex++;
-    }
-
-    if (dateTo) {
-      whereConditions.push(`fs.submitted_at <= $${paramIndex}`);
-      queryParams.push(dateTo);
-      paramIndex++;
-    }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
-    const validationQuery = `
-      SELECT 
-        fs.form_type,
-        fs.validation_status,
-        COUNT(*) as form_count,
-        AVG(fs.submission_score) as avg_submission_score,
-        AVG(fqm.overall_quality_score) as avg_quality_score,
-        AVG(fqm.completeness_score) as avg_completeness,
-        AVG(fqm.accuracy_score) as avg_accuracy
-      FROM form_submissions fs
-      LEFT JOIN form_quality_metrics fqm ON fs.id = fqm.form_submission_id
-      ${whereClause}
-      GROUP BY fs.form_type, fs.validation_status
-      ORDER BY fs.form_type, fs.validation_status
-    `;
-
-    const result = await dbQuery(validationQuery, queryParams);
-
-    return {
-      validationData: result.rows,
-      reportType: 'Form Validation Status Report',
-      generatedAt: new Date().toISOString(),
-      dateRange: { from: dateFrom, to: dateTo },
-    };
-  }
-
   private createWorksheets(
     workbook: ExcelJS.Workbook,
     data: ReportData,
     options: ExcelExportOptions
   ): void {
     switch (options.reportType) {
-      case 'form-submissions':
-        this.createFormSubmissionsWorksheets(workbook, data as FormSubmissionsReportData, options);
-        break;
       case 'agent-performance':
         this.createAgentPerformanceWorksheets(
           workbook,
@@ -430,91 +266,6 @@ export class ExcelExportService {
       case 'case-analytics':
         this.createCaseAnalyticsWorksheets(workbook, data as CaseAnalyticsReportData, options);
         break;
-      case 'validation-status':
-        this.createValidationStatusWorksheets(
-          workbook,
-          data as ValidationStatusReportData,
-          options
-        );
-        break;
-    }
-  }
-
-  private createFormSubmissionsWorksheets(
-    workbook: ExcelJS.Workbook,
-    data: FormSubmissionsReportData,
-    options: ExcelExportOptions
-  ): void {
-    // Summary worksheet
-    if (options.includeSummary !== false) {
-      const summarySheet = workbook.addWorksheet('Summary');
-      this.createSummarySheet(summarySheet, data.summary, 'Form Submissions Summary');
-    }
-
-    // Main data worksheet
-    const dataSheet = workbook.addWorksheet('Form Submissions');
-
-    // Headers
-    const headers = [
-      'Form Type',
-      'Validation Status',
-      'Agent Name',
-      'Employee ID',
-      'Case Number',
-      'Customer Name',
-      'Submission Score',
-      'Quality Score',
-      'Photos Count',
-      'Time Spent (min)',
-      'Network Quality',
-      'Submitted At',
-    ];
-
-    dataSheet.addRow(headers);
-    this.styleHeaderRow(dataSheet, 1);
-
-    // Data rows
-    data.submissions.forEach((submission: FormSubmissionRow) => {
-      dataSheet.addRow(
-        escapeFormulaRow([
-          submission.formType,
-          submission.validationStatus,
-          submission.agentName || 'N/A',
-          submission.employeeId || 'N/A',
-          submission.caseNumber,
-          submission.customerName,
-          submission.submissionScore || 'N/A',
-          submission.overallQualityScore || 'N/A',
-          submission.photosCount || 0,
-          submission.timeSpentMinutes || 'N/A',
-          submission.networkQuality || 'N/A',
-          new Date(submission.submittedAt).toLocaleDateString(),
-        ])
-      );
-    });
-
-    this.autoFitColumns(dataSheet);
-
-    // Form type breakdown worksheet
-    if (data.formTypeBreakdown && data.formTypeBreakdown.length > 0) {
-      const breakdownSheet = workbook.addWorksheet('Form Type Breakdown');
-
-      const breakdownHeaders = ['Form Type', 'Validation Status', 'Count', 'Average Score'];
-      breakdownSheet.addRow(breakdownHeaders);
-      this.styleHeaderRow(breakdownSheet, 1);
-
-      data.formTypeBreakdown.forEach((item: FormTypeBreakdownRow) => {
-        breakdownSheet.addRow(
-          escapeFormulaRow([
-            item.formType,
-            item.validationStatus,
-            item.count,
-            item.avgScore ? parseFloat(String(item.avgScore)).toFixed(2) : 'N/A',
-          ])
-        );
-      });
-
-      this.autoFitColumns(breakdownSheet);
     }
   }
 
@@ -671,43 +422,6 @@ export class ExcelExportService {
     });
 
     this.autoFitColumns(casesSheet);
-  }
-
-  private createValidationStatusWorksheets(
-    workbook: ExcelJS.Workbook,
-    data: ValidationStatusReportData,
-    _options: ExcelExportOptions
-  ): void {
-    const validationSheet = workbook.addWorksheet('Validation Status');
-
-    const headers = [
-      'Form Type',
-      'Validation Status',
-      'Form Count',
-      'Avg Submission Score',
-      'Avg Quality Score',
-      'Avg Completeness',
-      'Avg Accuracy',
-    ];
-
-    validationSheet.addRow(headers);
-    this.styleHeaderRow(validationSheet, 1);
-
-    data.validationData.forEach((item: ValidationStatusRow) => {
-      validationSheet.addRow(
-        escapeFormulaRow([
-          item.formType,
-          item.validationStatus,
-          item.formCount,
-          item.avgSubmissionScore ? parseFloat(String(item.avgSubmissionScore)).toFixed(2) : 'N/A',
-          item.avgQualityScore ? parseFloat(String(item.avgQualityScore)).toFixed(2) : 'N/A',
-          item.avgCompleteness ? parseFloat(String(item.avgCompleteness)).toFixed(2) : 'N/A',
-          item.avgAccuracy ? parseFloat(String(item.avgAccuracy)).toFixed(2) : 'N/A',
-        ])
-      );
-    });
-
-    this.autoFitColumns(validationSheet);
   }
 
   private createSummarySheet(

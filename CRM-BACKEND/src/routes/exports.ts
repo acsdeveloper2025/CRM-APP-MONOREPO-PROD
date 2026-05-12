@@ -82,28 +82,6 @@ router.get('/history', authorize('report.download'), getExportHistory);
 router.post('/test-email', authorize('report.generate'), testEmailConfig);
 
 /**
- * POST /api/exports/quick/form-submissions
- * Quick export for form submissions (CSV format)
- */
-router.post(
-  '/quick/form-submissions',
-  exportRateLimit,
-  authorize('report.generate'),
-  (req: AuthenticatedRequest, res, next) => {
-    req.body = {
-      format: 'csv',
-      reportType: 'form-submissions',
-      dateFrom: req.body.dateFrom,
-      dateTo: req.body.dateTo,
-      filters: req.body.filters,
-      delivery: { method: 'download' },
-    };
-    next();
-  },
-  generateReport
-);
-
-/**
  * POST /api/exports/quick/agent-performance
  * Quick export for agent performance (Excel format)
  */
@@ -143,34 +121,6 @@ router.post(
       filters: req.body.filters,
       options: { template: 'standard', orientation: 'landscape' },
       delivery: { method: 'download' },
-    };
-    next();
-  },
-  generateReport
-);
-
-/**
- * POST /api/exports/email/weekly-summary
- * Send weekly summary report via email
- */
-router.post(
-  '/email/weekly-summary',
-  authorize('report.generate'),
-  (req: AuthenticatedRequest, res, next) => {
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-
-    req.body = {
-      format: 'pdf',
-      reportType: 'form-submissions',
-      dateFrom: weekAgo.toISOString().split('T')[0],
-      dateTo: new Date().toISOString().split('T')[0],
-      options: { template: 'summary', includeCharts: true },
-      delivery: {
-        method: 'email',
-        recipients: req.body.recipients,
-        subject: 'Weekly CRM Analytics Summary',
-      },
     };
     next();
   },

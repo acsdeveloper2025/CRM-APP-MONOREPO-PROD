@@ -8,18 +8,14 @@ import fs from 'fs/promises';
 
 import type {
   ReportData,
-  FormSubmissionsReportData,
   AgentPerformanceReportData,
   CaseAnalyticsReportData,
-  ValidationStatusReportData,
-  FormSubmissionRow,
   AgentPerformanceRow,
   CaseAnalyticsRow,
-  ValidationStatusRow,
 } from '../types/reports';
 
 export interface PDFExportOptions {
-  reportType: 'form-submissions' | 'agent-performance' | 'case-analytics' | 'validation-status';
+  reportType: 'agent-performance' | 'case-analytics';
   dateFrom?: string;
   dateTo?: string;
   filters?: Record<string, unknown>;
@@ -111,84 +107,13 @@ export class PDFExportService {
     const { reportType, dateFrom, dateTo, filters } = options;
 
     switch (reportType) {
-      case 'form-submissions':
-        return this.fetchFormSubmissionsData(dateFrom, dateTo, filters);
       case 'agent-performance':
         return this.fetchAgentPerformanceData(dateFrom, dateTo, filters);
       case 'case-analytics':
         return this.fetchCaseAnalyticsData(dateFrom, dateTo, filters);
-      case 'validation-status':
-        return this.fetchValidationStatusData(dateFrom, dateTo, filters);
       default:
         throw new Error(`Unsupported report type: ${String(reportType)}`);
     }
-  }
-
-  private async fetchFormSubmissionsData(
-    dateFrom?: string,
-    dateTo?: string,
-    filters?: Record<string, unknown>
-  ): Promise<FormSubmissionsReportData> {
-    const whereConditions = [];
-    const queryParams = [];
-    let paramIndex = 1;
-
-    if (dateFrom) {
-      whereConditions.push(`fs.submitted_at >= $${paramIndex}`);
-      queryParams.push(dateFrom);
-      paramIndex++;
-    }
-
-    if (dateTo) {
-      whereConditions.push(`fs.submitted_at <= $${paramIndex}`);
-      queryParams.push(dateTo);
-      paramIndex++;
-    }
-
-    if (filters?.formType) {
-      whereConditions.push(`fs.form_type = $${paramIndex}`);
-      queryParams.push(filters.formType as string);
-      paramIndex++;
-    }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
-    const query = `
-      SELECT 
-        fs.*,
-        fqm.overall_quality_score,
-        fqm.completeness_score,
-        fqm.accuracy_score
-      FROM form_submission_analytics fs
-      LEFT JOIN form_quality_metrics fqm ON fs.id = fqm.form_submission_id
-      ${whereClause}
-      ORDER BY fs.submitted_at DESC
-      LIMIT 5000
-    `;
-
-    const summaryQuery = `
-      SELECT 
-        COUNT(*) as total_submissions,
-        COUNT(CASE WHEN validation_status = 'VALID' THEN 1 END) as valid_submissions,
-        COUNT(CASE WHEN validation_status = 'PENDING' THEN 1 END) as pending_submissions,
-        AVG(submission_score) as avg_submission_score,
-        AVG(photos_count) as avg_photos_per_form
-      FROM form_submission_analytics
-      ${whereClause}
-    `;
-
-    const [submissionsResult, summaryResult] = await Promise.all([
-      dbQuery(query, queryParams),
-      dbQuery(summaryQuery, queryParams),
-    ]);
-
-    return {
-      submissions: submissionsResult.rows,
-      summary: summaryResult.rows[0],
-      reportType: 'Form Submissions Report',
-      generatedAt: new Date().toISOString(),
-      dateRange: { from: dateFrom, to: dateTo },
-    };
   }
 
   private async fetchAgentPerformanceData(
@@ -301,53 +226,6 @@ export class PDFExportService {
       cases: casesResult.rows,
       summary: summaryResult.rows[0],
       reportType: 'Case Analytics Report',
-      generatedAt: new Date().toISOString(),
-      dateRange: { from: dateFrom, to: dateTo },
-    };
-  }
-
-  private async fetchValidationStatusData(
-    dateFrom?: string,
-    dateTo?: string,
-    _filters?: Record<string, unknown>
-  ): Promise<ValidationStatusReportData> {
-    const whereConditions = [];
-    const queryParams = [];
-    let paramIndex = 1;
-
-    if (dateFrom) {
-      whereConditions.push(`fs.submitted_at >= $${paramIndex}`);
-      queryParams.push(dateFrom);
-      paramIndex++;
-    }
-
-    if (dateTo) {
-      whereConditions.push(`fs.submitted_at <= $${paramIndex}`);
-      queryParams.push(dateTo);
-      paramIndex++;
-    }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
-    const query = `
-      SELECT 
-        fs.form_type,
-        fs.validation_status,
-        COUNT(*) as form_count,
-        AVG(fs.submission_score) as avg_submission_score,
-        AVG(fqm.overall_quality_score) as avg_quality_score
-      FROM form_submissions fs
-      LEFT JOIN form_quality_metrics fqm ON fs.id = fqm.form_submission_id
-      ${whereClause}
-      GROUP BY fs.form_type, fs.validation_status
-      ORDER BY fs.form_type, fs.validation_status
-    `;
-
-    const result = await dbQuery(query, queryParams);
-
-    return {
-      validationData: result.rows,
-      reportType: 'Form Validation Status Report',
       generatedAt: new Date().toISOString(),
       dateRange: { from: dateFrom, to: dateTo },
     };
@@ -479,74 +357,13 @@ export class PDFExportService {
 
   private generateReportContent(data: ReportData, options: PDFExportOptions): string {
     switch (options.reportType) {
-      case 'form-submissions':
-        return this.generateFormSubmissionsContent(data as FormSubmissionsReportData);
       case 'agent-performance':
         return this.generateAgentPerformanceContent(data as AgentPerformanceReportData);
       case 'case-analytics':
         return this.generateCaseAnalyticsContent(data as CaseAnalyticsReportData);
-      case 'validation-status':
-        return this.generateValidationStatusContent(data as ValidationStatusReportData);
       default:
         return '<p>Unsupported report type</p>';
     }
-  }
-
-  private generateFormSubmissionsContent(data: FormSubmissionsReportData): string {
-    const summary = data.summary;
-    const submissions = data.submissions;
-
-    return `
-      <div class="summary-cards">
-        <div class="card">
-          <h3>Total Submissions</h3>
-          <div class="value">${summary.totalSubmissions || 0}</div>
-        </div>
-        <div class="card">
-          <h3>Valid Submissions</h3>
-          <div class="value">${summary.validSubmissions || 0}</div>
-        </div>
-        <div class="card">
-          <h3>Pending Review</h3>
-          <div class="value">${summary.pendingSubmissions || 0}</div>
-        </div>
-        <div class="card">
-          <h3>Avg Quality Score</h3>
-          <div class="value">${summary.avgSubmissionScore ? parseFloat(String(summary.avgSubmissionScore)).toFixed(1) : 'N/A'}</div>
-        </div>
-      </div>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Form Type</th>
-            <th>Agent</th>
-            <th>Case</th>
-            <th>Status</th>
-            <th>Score</th>
-            <th>Photos</th>
-            <th>Submitted</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${submissions
-            .map(
-              (sub: FormSubmissionRow) => `
-            <tr>
-              <td>${sub.formType}</td>
-              <td>${sub.agentName || 'N/A'}</td>
-              <td>#${sub.caseNumber} - ${sub.customerName}</td>
-              <td><span class="status-badge status-${sub.validationStatus.toLowerCase()}">${sub.validationStatus}</span></td>
-              <td>${sub.submissionScore || 'N/A'}</td>
-              <td>${sub.photosCount || 0}</td>
-              <td>${new Date(sub.submittedAt).toLocaleDateString()}</td>
-            </tr>
-          `
-            )
-            .join('')}
-        </tbody>
-      </table>
-    `;
   }
 
   private generateAgentPerformanceContent(data: AgentPerformanceReportData): string {
@@ -637,39 +454,6 @@ export class PDFExportService {
               <td>${caseItem.completionDays ? parseFloat(String(caseItem.completionDays)).toFixed(1) : 'N/A'}</td>
               <td>${caseItem.qualityScore || 'N/A'}</td>
               <td>${caseItem.actualFormsSubmitted || 0}</td>
-            </tr>
-          `
-            )
-            .join('')}
-        </tbody>
-      </table>
-    `;
-  }
-
-  private generateValidationStatusContent(data: ValidationStatusReportData): string {
-    const validationData = data.validationData;
-
-    return `
-      <table>
-        <thead>
-          <tr>
-            <th>Form Type</th>
-            <th>Validation Status</th>
-            <th>Form Count</th>
-            <th>Avg Submission Score</th>
-            <th>Avg Quality Score</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${validationData
-            .map(
-              (item: ValidationStatusRow) => `
-            <tr>
-              <td>${item.formType}</td>
-              <td><span class="status-badge status-${item.validationStatus.toLowerCase()}">${item.validationStatus}</span></td>
-              <td>${item.formCount}</td>
-              <td>${item.avgSubmissionScore ? parseFloat(String(item.avgSubmissionScore)).toFixed(1) : 'N/A'}</td>
-              <td>${item.avgQualityScore ? parseFloat(String(item.avgQualityScore)).toFixed(1) : 'N/A'}</td>
             </tr>
           `
             )

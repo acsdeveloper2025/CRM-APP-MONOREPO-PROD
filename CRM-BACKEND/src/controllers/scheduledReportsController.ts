@@ -39,11 +39,7 @@ export const createScheduledReport = async (req: AuthenticatedRequest, res: Resp
     }
 
     // Validate report type
-    if (
-      !['form-submissions', 'agent-performance', 'case-analytics', 'validation-status'].includes(
-        reportType
-      )
-    ) {
+    if (!['agent-performance', 'case-analytics'].includes(reportType)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid report type',

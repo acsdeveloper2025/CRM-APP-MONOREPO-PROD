@@ -7,7 +7,7 @@ import path from 'path';
 import fs from 'fs/promises';
 
 export interface CSVExportOptions {
-  reportType: 'form-submissions' | 'agent-performance' | 'case-analytics' | 'validation-status';
+  reportType: 'agent-performance' | 'case-analytics';
   dateFrom?: string;
   dateTo?: string;
   filters?: Record<string, unknown>;
@@ -79,119 +79,13 @@ export class CSVExportService {
     const { reportType, dateFrom, dateTo, filters } = options;
 
     switch (reportType) {
-      case 'form-submissions':
-        return this.fetchFormSubmissionsData(dateFrom, dateTo, filters);
       case 'agent-performance':
         return this.fetchAgentPerformanceData(dateFrom, dateTo, filters);
       case 'case-analytics':
         return this.fetchCaseAnalyticsData(dateFrom, dateTo, filters);
-      case 'validation-status':
-        return this.fetchValidationStatusData(dateFrom, dateTo, filters);
       default:
         throw new Error(`Unsupported report type: ${String(reportType)}`);
     }
-  }
-
-  private async fetchFormSubmissionsData(
-    dateFrom?: string,
-    dateTo?: string,
-    filters?: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const whereConditions = [];
-    const queryParams = [];
-    let paramIndex = 1;
-
-    if (dateFrom) {
-      whereConditions.push(`fs.submitted_at >= $${paramIndex}`);
-      queryParams.push(dateFrom);
-      paramIndex++;
-    }
-
-    if (dateTo) {
-      whereConditions.push(`fs.submitted_at <= $${paramIndex}`);
-      queryParams.push(dateTo);
-      paramIndex++;
-    }
-
-    if (filters?.formType) {
-      whereConditions.push(`fs.form_type = $${paramIndex}`);
-      queryParams.push(filters.formType);
-      paramIndex++;
-    }
-
-    if (filters?.validationStatus) {
-      whereConditions.push(`fs.validation_status = $${paramIndex}`);
-      queryParams.push(filters.validationStatus);
-      paramIndex++;
-    }
-
-    if (filters?.agentId) {
-      whereConditions.push(`fs.submitted_by = $${paramIndex}`);
-      queryParams.push(filters.agentId);
-      paramIndex++;
-    }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
-    const query = `
-      SELECT 
-        fs.id as submission_id,
-        fs.form_type,
-        fs.validation_status,
-        fs.submitted_at,
-        fs.validated_at,
-        fs.photos_count,
-        fs.attachments_count,
-        fs.submission_score,
-        fs.time_spent_minutes,
-        fs.network_quality,
-        fs.agent_name,
-        fs.employee_id,
-        fs.case_number,
-        fs.customer_name,
-        fs.case_status,
-        fqm.overall_quality_score,
-        fqm.completeness_score,
-        fqm.accuracy_score,
-        fqm.photo_quality_score,
-        fqm.timeliness_score,
-        EXTRACT(EPOCH FROM (fs.validated_at - fs.submitted_at))/3600 as validation_time_hours
-      FROM form_submission_analytics fs
-      LEFT JOIN form_quality_metrics fqm ON fs.id = fqm.form_submission_id
-      ${whereClause}
-      ORDER BY fs.submitted_at DESC
-    `;
-
-    const result = await dbQuery(query, queryParams);
-
-    return {
-      headers: [
-        'Submission ID',
-        'Form Type',
-        'Validation Status',
-        'Submitted At',
-        'Validated At',
-        'Photos Count',
-        'Attachments Count',
-        'Submission Score',
-        'Time Spent (min)',
-        'Network Quality',
-        'Agent Name',
-        'Employee ID',
-        'Case Number',
-        'Customer Name',
-        'Case Status',
-        'Overall Quality Score',
-        'Completeness Score',
-        'Accuracy Score',
-        'Photo Quality Score',
-        'Timeliness Score',
-        'Validation Time (hours)',
-      ],
-      data: result.rows,
-      recordCount: result.rows.length,
-      reportType: 'form-submissions',
-    };
   }
 
   private async fetchAgentPerformanceData(
@@ -410,84 +304,6 @@ export class CSVExportService {
       data: result.rows,
       recordCount: result.rows.length,
       reportType: 'case-analytics',
-    };
-  }
-
-  private async fetchValidationStatusData(
-    dateFrom?: string,
-    dateTo?: string,
-    filters?: Record<string, unknown>
-  ): Promise<{
-    headers: string[];
-    data: unknown[];
-    recordCount: number;
-    reportType: string;
-  }> {
-    const whereConditions = [];
-    const queryParams = [];
-    let paramIndex = 1;
-
-    if (dateFrom) {
-      whereConditions.push(`fs.submitted_at >= $${paramIndex}`);
-      queryParams.push(dateFrom);
-      paramIndex++;
-    }
-
-    if (dateTo) {
-      whereConditions.push(`fs.submitted_at <= $${paramIndex}`);
-      queryParams.push(dateTo);
-      paramIndex++;
-    }
-
-    if (filters?.formType) {
-      whereConditions.push(`fs.form_type = $${paramIndex}`);
-      queryParams.push(filters.formType);
-      paramIndex++;
-    }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
-    const query = `
-      SELECT 
-        fs.form_type,
-        fs.validation_status,
-        COUNT(*) as form_count,
-        AVG(fs.submission_score) as avg_submission_score,
-        AVG(fqm.overall_quality_score) as avg_quality_score,
-        AVG(fqm.completeness_score) as avg_completeness_score,
-        AVG(fqm.accuracy_score) as avg_accuracy_score,
-        AVG(fqm.photo_quality_score) as avg_photo_quality_score,
-        AVG(fqm.timeliness_score) as avg_timeliness_score,
-        AVG(EXTRACT(EPOCH FROM (fs.validated_at - fs.submitted_at))/3600) as avg_validation_time_hours,
-        MIN(fs.submitted_at) as earliest_submission,
-        MAX(fs.submitted_at) as latest_submission
-      FROM form_submissions fs
-      LEFT JOIN form_quality_metrics fqm ON fs.id = fqm.form_submission_id
-      ${whereClause}
-      GROUP BY fs.form_type, fs.validation_status
-      ORDER BY fs.form_type, fs.validation_status
-    `;
-
-    const result = await dbQuery(query, queryParams);
-
-    return {
-      headers: [
-        'Form Type',
-        'Validation Status',
-        'Form Count',
-        'Avg Submission Score',
-        'Avg Quality Score',
-        'Avg Completeness Score',
-        'Avg Accuracy Score',
-        'Avg Photo Quality Score',
-        'Avg Timeliness Score',
-        'Avg Validation Time (hours)',
-        'Earliest Submission',
-        'Latest Submission',
-      ],
-      data: result.rows,
-      recordCount: result.rows.length,
-      reportType: 'validation-status',
     };
   }
 

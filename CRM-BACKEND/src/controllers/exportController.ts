@@ -12,7 +12,7 @@ import { requireControllerPermission } from '@/security/controllerAuthorization'
 
 export interface ExportRequest {
   format: 'pdf' | 'excel' | 'csv' | 'json';
-  reportType: 'form-submissions' | 'agent-performance' | 'case-analytics' | 'validation-status';
+  reportType: 'agent-performance' | 'case-analytics';
   dateFrom?: string;
   dateTo?: string;
   filters?: Record<string, unknown>;
@@ -77,21 +77,6 @@ export const generateReport = async (req: AuthenticatedRequest, res: Response) =
         success: false,
         message: 'Invalid export request',
         errors: validation.errors,
-      });
-    }
-
-    // `form-submissions` and `validation-status` query analytics tables
-    // (`form_submission_analytics`, `form_quality_metrics`) that don't exist
-    // in the current schema — fail fast with a clear 501 instead of bubbling
-    // a 'relation does not exist' SQL error to the client.
-    if (
-      exportRequest.reportType === 'form-submissions' ||
-      exportRequest.reportType === 'validation-status'
-    ) {
-      return res.status(501).json({
-        success: false,
-        message: `Report type '${exportRequest.reportType}' is not currently supported`,
-        error: { code: 'REPORT_TYPE_NOT_IMPLEMENTED' },
       });
     }
 
@@ -338,11 +323,7 @@ function validateExportRequest(request: ExportRequest): { isValid: boolean; erro
 
   if (!request.reportType) {
     errors.push('Report type is required');
-  } else if (
-    !['form-submissions', 'agent-performance', 'case-analytics', 'validation-status'].includes(
-      request.reportType
-    )
-  ) {
+  } else if (!['agent-performance', 'case-analytics'].includes(request.reportType)) {
     errors.push('Invalid report type');
   }
 
