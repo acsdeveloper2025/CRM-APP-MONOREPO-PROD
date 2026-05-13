@@ -20,6 +20,7 @@ import { pool, query as dbQuery, wrapClient } from '../config/db';
 import { authorize } from '@/middleware/authorize';
 import { isScopedOperationsUser } from '@/security/rbacAccess';
 import { EnterpriseCache, CacheInvalidationPatterns } from '@/middleware/enterpriseCache';
+import { TaskCompletionValidator } from '@/services/taskCompletionValidator';
 
 const router = express.Router();
 
@@ -170,8 +171,32 @@ router.post(
   authorize('visit.start', { ownership: 'task' }),
   async (req: AuthenticatedRequest, res) => {
     try {
-      const { taskId: _taskId } = req.params;
-      const _userId = req.user?.id;
+      const { taskId } = req.params;
+
+      // Defense-in-depth: only ASSIGNED → IN_PROGRESS is a valid transition
+      // for /start. Without this guard, updateTask happily moves COMPLETED
+      // or REVOKED tasks back to IN_PROGRESS.
+      const current = await dbQuery<{ status: string }>(
+        'SELECT status FROM verification_tasks WHERE id = $1',
+        [taskId]
+      );
+      const currentStatus = current.rows[0]?.status;
+      if (!currentStatus) {
+        res.status(404).json({
+          success: false,
+          message: 'Task not found',
+          error: { code: 'TASK_NOT_FOUND' },
+        });
+        return;
+      }
+      if (!TaskCompletionValidator.canTransition(currentStatus, 'IN_PROGRESS')) {
+        res.status(409).json({
+          success: false,
+          message: `Cannot start task in status ${currentStatus}`,
+          error: { code: 'INVALID_STATUS_TRANSITION' },
+        });
+        return;
+      }
 
       // Update task status to IN_PROGRESS and set started_at
       await VerificationTasksController.updateTask(
@@ -309,9 +334,32 @@ router.post(
   validateTaskRecordAccess,
   async (req: AuthenticatedRequest, res) => {
     try {
-      const { taskId: _taskId } = req.params;
+      const { taskId } = req.params;
       const { cancellationReason } = req.body;
       const userId = req.user!.id;
+
+      // Defense-in-depth: REVOKED + COMPLETED are terminal — block re-revoke.
+      const current = await dbQuery<{ status: string }>(
+        'SELECT status FROM verification_tasks WHERE id = $1',
+        [taskId]
+      );
+      const currentStatus = current.rows[0]?.status;
+      if (!currentStatus) {
+        res.status(404).json({
+          success: false,
+          message: 'Task not found',
+          error: { code: 'TASK_NOT_FOUND' },
+        });
+        return;
+      }
+      if (!TaskCompletionValidator.canTransition(currentStatus, 'REVOKED')) {
+        res.status(409).json({
+          success: false,
+          message: `Cannot revoke task in status ${currentStatus}`,
+          error: { code: 'INVALID_STATUS_TRANSITION' },
+        });
+        return;
+      }
 
       await VerificationTasksController.updateTask(
         {

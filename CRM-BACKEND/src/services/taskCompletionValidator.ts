@@ -333,6 +333,20 @@ export class TaskCompletionValidator {
   }
 
   /**
+   * Lightweight pure check — is `currentStatus → newStatus` allowed by the
+   * VALID_STATUS_TRANSITIONS map? Use this for cheap defense-in-depth at
+   * status-mutating endpoints where the heavyweight validateStatusUpdate
+   * (which does file/photo/report DB checks) would be overkill.
+   *
+   * Returns false for unknown statuses (safer than throwing — caller emits
+   * a 409 with the expected error).
+   */
+  static canTransition(currentStatus: string, newStatus: string): boolean {
+    const allowed = VALID_STATUS_TRANSITIONS[currentStatus];
+    return Array.isArray(allowed) && allowed.includes(newStatus);
+  }
+
+  /**
    * Validate status transition is allowed
    */
   private static validateStatusTransition(

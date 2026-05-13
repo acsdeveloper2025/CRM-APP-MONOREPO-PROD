@@ -2881,6 +2881,7 @@ export class MobileFormController {
             completed_at = CURRENT_TIMESTAMP,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
+          AND status = 'IN_PROGRESS'
       `,
           [taskId || verificationTaskId]
         );
@@ -3363,6 +3364,7 @@ export class MobileFormController {
             completed_at = CURRENT_TIMESTAMP,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
+          AND status = 'IN_PROGRESS'
       `,
           [taskId || verificationTaskId]
         );
@@ -3811,6 +3813,7 @@ export class MobileFormController {
         UPDATE verification_tasks
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
+          AND status = 'IN_PROGRESS'
       `,
           [taskId || verificationTaskId]
         );
@@ -4246,6 +4249,7 @@ export class MobileFormController {
         UPDATE verification_tasks
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
+          AND status = 'IN_PROGRESS'
       `,
           [taskId || verificationTaskId]
         );
@@ -4516,7 +4520,8 @@ export class MobileFormController {
          SET status = 'COMPLETED',
              completed_at = CURRENT_TIMESTAMP,
              updated_at = CURRENT_TIMESTAMP
-         WHERE id = $1`,
+         WHERE id = $1
+           AND status = 'IN_PROGRESS'`,
           [taskId]
         );
 
@@ -4917,6 +4922,7 @@ export class MobileFormController {
         UPDATE verification_tasks
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
+          AND status = 'IN_PROGRESS'
       `,
           [taskId || verificationTaskId]
         );
@@ -5190,7 +5196,8 @@ export class MobileFormController {
          SET status = 'COMPLETED',
              completed_at = CURRENT_TIMESTAMP,
              updated_at = CURRENT_TIMESTAMP
-         WHERE id = $1`,
+         WHERE id = $1
+           AND status = 'IN_PROGRESS'`,
           [taskId]
         );
 
@@ -5664,6 +5671,7 @@ export class MobileFormController {
         UPDATE verification_tasks
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
+          AND status = 'IN_PROGRESS'
       `,
           [taskId || verificationTaskId]
         );
@@ -6083,6 +6091,7 @@ export class MobileFormController {
         UPDATE verification_tasks
         SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
         WHERE id = $1
+          AND status = 'IN_PROGRESS'
       `,
           [taskId || verificationTaskId]
         );

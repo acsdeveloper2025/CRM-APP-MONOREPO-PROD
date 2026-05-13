@@ -1825,7 +1825,10 @@ export class MobileCaseController {
         }
       );
 
-      // Update task status to revoked and detach assignment
+      // Update task status to revoked and detach assignment.
+      // WHERE status NOT IN ('REVOKED','COMPLETED') guard: defense-in-depth
+      // against re-revoking terminal tasks. The earlier read may race a
+      // concurrent revoke; this clause makes the UPDATE itself idempotent.
       await query(
         `
         UPDATE verification_tasks
@@ -1837,6 +1840,7 @@ export class MobileCaseController {
             current_assigned_at = NULL,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = $3
+          AND status NOT IN ('REVOKED', 'COMPLETED')
       `,
         [userId, reason, taskId]
       );
