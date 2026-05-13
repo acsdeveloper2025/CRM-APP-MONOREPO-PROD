@@ -104,12 +104,31 @@ export function CascadingEditPincodeDialog({
   }, [pincode, cityData, statesData, countriesData, form]);
 
   const updateMutation = useMutationWithInvalidation({
-    mutationFn: (data: CascadingEditPincodeFormData) =>
-      locationsService.updatePincode(pincode.id, {
+    mutationFn: async (data: CascadingEditPincodeFormData) => {
+      // 1. Update core pincode fields (code + cityId).
+      const result = await locationsService.updatePincode(pincode.id, {
         code: data.pincodeCode,
         cityId: data.cityId,
-        // Note: Area-pincode relationships require a dedicated API endpoint (not yet available)
-      }),
+      });
+
+      // 2. Diff selected areas against the originals and sync via the
+      // dedicated endpoints (POST /pincodes/:id/areas + DELETE
+      // /pincodes/:id/areas/:areaId). Without this, area edits in the
+      // dialog were silently dropped.
+      const originalAreaIds = new Set((pincode.areas ?? []).map((a) => String(a.id)));
+      const selectedAreaIds = new Set(data.areas);
+      const toAdd = data.areas.filter((id) => !originalAreaIds.has(id)).map(Number);
+      const toRemove = [...originalAreaIds].filter((id) => !selectedAreaIds.has(id));
+
+      for (const areaId of toRemove) {
+        await locationsService.removePincodeArea(String(pincode.id), areaId);
+      }
+      if (toAdd.length > 0) {
+        await locationsService.addPincodeAreas(String(pincode.id), { areaIds: toAdd });
+      }
+
+      return result;
+    },
     invalidateKeys: [['pincodes'], ['cities']],
     successMessage: 'Pincode updated successfully',
     errorContext: 'Pincode Update',
