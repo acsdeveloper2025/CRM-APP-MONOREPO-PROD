@@ -70,7 +70,6 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
         ASSIGNED: UserCheck,
         IN_PROGRESS: Play,
         COMPLETED: CheckCircle,
-        ON_HOLD: AlertTriangle,
         REVOKED: X,
         SAVED: Clock,
       };

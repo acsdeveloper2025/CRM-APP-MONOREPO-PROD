@@ -61,7 +61,6 @@ const STATUS_COLORS: Record<string, string> = {
   IN_PROGRESS: '#8b5cf6',
   COMPLETED: '#10b981',
   REVOKED: '#ef4444',
-  ON_HOLD: '#6b7280',
 };
 
 const getDateFromRange = (range: string): string => {
@@ -117,7 +116,6 @@ export const TasksAnalytics: React.FC = () => {
     { name: 'In Progress', value: taskStats?.inProgress || 0, color: STATUS_COLORS.IN_PROGRESS },
     { name: 'Completed', value: taskStats?.completed || 0, color: STATUS_COLORS.COMPLETED },
     { name: 'Revoked', value: taskStats?.revoked || 0, color: STATUS_COLORS.REVOKED },
-    { name: 'On Hold', value: taskStats?.onHold || 0, color: STATUS_COLORS.ON_HOLD },
   ].filter((d) => d.value > 0);
 
   // Still need to use the tasks array for type and agent distribution as backend doesn't aggregate them yet

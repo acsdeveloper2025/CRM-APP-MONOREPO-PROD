@@ -158,7 +158,6 @@ export const useDashboardKPI = () => {
           { status: 'IN_PROGRESS', count: lc.tasks?.inProgress?.value ?? 0, percentage: 0 },
           { status: 'COMPLETED', count: lc.tasks?.completed?.value ?? 0, percentage: 0 },
           { status: 'REVOKED', count: lc.tasks?.revoked?.value ?? 0, percentage: 0 },
-          { status: 'ON_HOLD', count: lc.tasks?.onHold?.value ?? 0, percentage: 0 },
         ].map((item) => {
           const total = lc.tasks?.total?.value || 1;
           return { ...item, percentage: Math.round((item.count / total) * 100) };

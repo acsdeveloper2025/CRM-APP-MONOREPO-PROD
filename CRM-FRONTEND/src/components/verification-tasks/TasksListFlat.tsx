@@ -58,7 +58,6 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
       ASSIGNED: UserCheck,
       IN_PROGRESS: Play,
       COMPLETED: CheckCircle,
-      ON_HOLD: AlertTriangle,
       REVOKED: X,
       SAVED: Clock,
     };

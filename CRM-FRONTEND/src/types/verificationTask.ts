@@ -150,7 +150,6 @@ export type TaskStatus =
   | 'ASSIGNED'
   | 'IN_PROGRESS'
   | 'COMPLETED'
-  | 'ON_HOLD'
   | 'REVOKED'
   | 'SAVED';
 
@@ -428,7 +427,6 @@ export const TASK_STATUS_COLORS: Record<TaskStatus, string> = {
   ASSIGNED: 'blue',
   IN_PROGRESS: 'yellow',
   COMPLETED: 'green',
-  ON_HOLD: 'orange',
   REVOKED: 'red',
   SAVED: 'gray',
 };

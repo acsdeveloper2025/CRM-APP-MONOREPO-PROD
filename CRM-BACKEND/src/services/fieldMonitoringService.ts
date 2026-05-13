@@ -1,7 +1,7 @@
 import { query } from '@/config/database';
 import { deriveCapabilitiesFromPermissionCodes } from '@/security/rbacAccess';
 
-const ACTIVE_ASSIGNMENT_STATUSES = ['ASSIGNED', 'IN_PROGRESS', 'PENDING', 'ON_HOLD'] as const;
+const ACTIVE_ASSIGNMENT_STATUSES = ['ASSIGNED', 'IN_PROGRESS', 'PENDING'] as const;
 const OFFLINE_THRESHOLD_MS = 15 * 60 * 1000;
 const SUBMITTED_THRESHOLD_MS = 10 * 60 * 1000;
 const AT_LOCATION_THRESHOLD_MS = 15 * 60 * 1000;

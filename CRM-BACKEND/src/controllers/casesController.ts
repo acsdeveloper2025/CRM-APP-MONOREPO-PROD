@@ -521,7 +521,6 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
         COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'PENDING') as pending,
         COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'IN_PROGRESS') as "inProgress",
         COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'COMPLETED') as completed,
-        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'ON_HOLD') as "onHold",
         COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'REVOKED') as revoked,
         COUNT(DISTINCT c.id) FILTER (
           WHERE c.status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED')
@@ -1825,8 +1824,7 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
         COUNT(CASE WHEN status = 'ASSIGNED' THEN 1 END) as assigned_tasks,
         COUNT(CASE WHEN status = 'IN_PROGRESS' THEN 1 END) as in_progress_tasks,
         COUNT(CASE WHEN status = 'COMPLETED' THEN 1 END) as completed_tasks,
-        COUNT(CASE WHEN status = 'REVOKED' THEN 1 END) as revoked_tasks,
-        COUNT(CASE WHEN status = 'ON_HOLD' THEN 1 END) as on_hold_tasks
+        COUNT(CASE WHEN status = 'REVOKED' THEN 1 END) as revoked_tasks
       FROM verification_tasks
       WHERE case_id = $1
     `,

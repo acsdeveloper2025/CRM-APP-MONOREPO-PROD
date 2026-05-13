@@ -21,8 +21,7 @@ const PHOTO_REQUIREMENTS: Record<string, { min: number; required: string[] }> = 
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
   PENDING: ['ASSIGNED', 'REVOKED'],
   ASSIGNED: ['IN_PROGRESS', 'REVOKED'],
-  IN_PROGRESS: ['COMPLETED', 'ON_HOLD', 'REVOKED'],
-  ON_HOLD: ['IN_PROGRESS', 'REVOKED'],
+  IN_PROGRESS: ['COMPLETED', 'REVOKED'],
   COMPLETED: [], // Terminal state
   REVOKED: [], // Terminal state
   SAVED: ['IN_PROGRESS', 'REVOKED'],

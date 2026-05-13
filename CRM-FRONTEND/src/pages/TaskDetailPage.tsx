@@ -208,7 +208,6 @@ export const TaskDetailPage: React.FC = () => {
       IN_PROGRESS: { variant: 'default', label: 'In Progress', icon: Clock },
       COMPLETED: { variant: 'default', label: 'Completed', icon: CheckCircle2 },
       REVOKED: { variant: 'destructive', label: 'Revoked', icon: XCircle },
-      ON_HOLD: { variant: 'secondary', label: 'On Hold', icon: AlertCircle },
     };
 
     const config = statusConfig[status] || statusConfig.PENDING;

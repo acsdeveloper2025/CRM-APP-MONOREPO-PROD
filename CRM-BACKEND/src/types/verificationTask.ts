@@ -124,7 +124,6 @@ export type TaskStatus =
   | 'ASSIGNED'
   | 'IN_PROGRESS'
   | 'COMPLETED'
-  | 'ON_HOLD'
   | 'REVOKED'
   | 'SAVED';
 

@@ -980,7 +980,6 @@ export class VerificationTasksController {
           COUNT(*) FILTER (WHERE vt.status = 'IN_PROGRESS') as in_progress_count,
           COUNT(*) FILTER (WHERE vt.status = 'COMPLETED') as completed_count,
           COUNT(*) FILTER (WHERE vt.status = 'REVOKED') as revoked_count,
-          COUNT(*) FILTER (WHERE vt.status = 'ON_HOLD') as on_hold_count,
           COUNT(*) FILTER (WHERE vt.priority = 'URGENT') as urgent_count,
           COUNT(*) FILTER (WHERE vt.priority IN ('HIGH', 'URGENT')) as high_priority_count,
           COUNT(DISTINCT vt.assigned_to) FILTER (WHERE vt.assigned_to IS NOT NULL) as total_agents,

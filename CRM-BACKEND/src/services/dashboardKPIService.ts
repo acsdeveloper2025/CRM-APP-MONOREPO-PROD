@@ -83,7 +83,6 @@ export interface VerificationOperationsKPI {
       inProgress: MetricWithTrend; // Alias for workload.inProgressTasks
       completed: MetricWithTrend; // Completed in period
       revoked: MetricWithTrend; // Status = 'REVOKED'
-      onHold: MetricWithTrend; // Status = 'ON_HOLD'
     };
     clients: {
       total: MetricWithTrend; // Total in DB (Volume)? Usually Snapshot 'Active'
@@ -218,10 +217,6 @@ export class DashboardKPIService {
         -- REVOKED (FLOW)
         COUNT(*) FILTER (WHERE status = 'REVOKED' AND updated_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_revoked,
         COUNT(*) FILTER (WHERE status = 'REVOKED' AND updated_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_revoked,
-
-        -- ON HOLD (FLOW)
-        COUNT(*) FILTER (WHERE status = 'ON_HOLD' AND updated_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_on_hold,
-        COUNT(*) FILTER (WHERE status = 'ON_HOLD' AND updated_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_on_hold,
 
         -- IN PROGRESS (SNAPSHOT RECONSTRUCTION)
         -- Current: Status is IN_PROGRESS
@@ -487,7 +482,6 @@ export class DashboardKPIService {
           inProgress: buildMetric(stats.cpInProgress, stats.ppInProgress),
           completed: buildMetric(stats.cpCompleted, stats.ppCompleted),
           revoked: buildMetric(stats.cpRevoked, stats.ppRevoked),
-          onHold: buildMetric(stats.cpOnHold, stats.ppOnHold),
         },
         clients: {
           total: buildStaticMetric(clientStats.total),
