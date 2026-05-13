@@ -8,6 +8,7 @@ import type { AuthenticatedRequest } from '@/middleware/auth';
 import type { QueryParams } from '@/types/database';
 import { storage, StorageKeys } from '@/services/storage';
 import { TaskCompletionFinalizer } from '@/services/taskCompletionFinalizer';
+import { CaseStatusSyncService } from '@/services/caseStatusSyncService';
 import ExcelJS from 'exceljs';
 import { escapeFormulaRow } from '@/utils/formulaGuard';
 
@@ -408,20 +409,11 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
         // from document_type_rates). Keeps KYC + field completion symmetric.
         await TaskCompletionFinalizer.snapshotFinancials(client, verificationTaskId);
 
-        // Recalculate case status
-        const allTasks = await client.query(
-          `SELECT status FROM verification_tasks WHERE case_id = $1 AND status != 'REVOKED'`,
-          [caseId]
-        );
-        const allCompleted = allTasks.rows.every(
-          (t: { status: string }) => t.status === 'COMPLETED'
-        );
-        if (allCompleted && allTasks.rows.length > 0) {
-          await client.query(
-            `UPDATE cases SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
-            [caseId]
-          );
-        }
+        // Delegate to canonical 5-rule formula in CaseStatusSyncService.
+        // Prior inline derivation only handled the all-COMPLETED case and
+        // mis-resolved mixed states (e.g. 1×COMPLETED + 1×PENDING from a
+        // newly-added Revisit task → wrongly stayed COMPLETED).
+        await CaseStatusSyncService.recalculateCaseStatus(caseId, client);
       }
 
       await client.query('COMMIT');
