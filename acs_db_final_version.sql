@@ -5200,7 +5200,7 @@ CREATE TABLE public.kyc_document_verifications (
     document_type_id integer,
     document_storage_key text,
     CONSTRAINT chk_kyc_doc_final_status CHECK (((final_status IS NULL) OR ((final_status)::text = ANY ((ARRAY['Positive'::character varying, 'Negative'::character varying, 'Refer'::character varying, 'Fraud'::character varying])::text[])))),
-    CONSTRAINT chk_kyc_doc_workflow_status CHECK (((verification_status)::text = ANY ((ARRAY['PENDING'::character varying, 'ASSIGNED'::character varying, 'IN_PROGRESS'::character varying, 'COMPLETED'::character varying, 'REVOKED'::character varying, 'SAVED'::character varying, 'ON_HOLD'::character varying])::text[])))
+    CONSTRAINT chk_kyc_doc_workflow_status CHECK (((verification_status)::text = ANY ((ARRAY['PENDING'::character varying, 'ASSIGNED'::character varying, 'IN_PROGRESS'::character varying, 'COMPLETED'::character varying, 'REVOKED'::character varying])::text[])))
 );
 
 
