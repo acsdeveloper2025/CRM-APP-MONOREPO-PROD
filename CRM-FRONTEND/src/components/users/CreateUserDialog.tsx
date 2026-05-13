@@ -300,19 +300,6 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="employeeId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Employee ID</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter employee ID" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
