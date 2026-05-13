@@ -13,14 +13,19 @@ export class CaseStatusSyncService {
   /**
    * Recalculates and updates the status of a case based on its verification tasks.
    *
-   * Rules:
-   * - ANY task is PENDING / ASSIGNED / IN_PROGRESS → case = IN_PROGRESS
-   * - ALL tasks are COMPLETED or REVOKED → case = COMPLETED
-   * - ALL tasks are REVOKED → case = REVOKED
+   * Priority order (first match wins):
+   *   1. RV == T              → REVOKED  (only when ALL tasks revoked)
+   *   2. C + RV == T          → COMPLETED  (all done or revoked; CLOSED ≡ COMPLETED in this codebase)
+   *   3. IP > 0               → IN_PROGRESS  (any task actively being worked)
+   *   4. A > 0                → ASSIGNED  (some task waiting for FE to start)
+   *   5. P > 0                → PENDING  (no task assigned yet — = prompt's CREATED)
    *
-   * Also updates cases.completedAt:
-   * - Set to NOW() if status becomes COMPLETED
-   * - Set to NULL if status is NOT COMPLETED
+   * Mixed-state edge cases (e.g. 1×COMPLETED + 1×PENDING after a revisit task is added)
+   * fall through to the lowest-priority active rule (#5 = PENDING in that example).
+   *
+   * Also updates cases.completed_at:
+   * - Set to NOW() if status becomes COMPLETED (preserved if already set, via COALESCE)
+   * - Set to NULL otherwise
    *
    * @param caseId The UUID or numeric ID of the case
    * @param client Optional PoolClient for transaction support
@@ -45,26 +50,40 @@ export class CaseStatusSyncService {
         return;
       }
 
-      let newStatus = 'IN_PROGRESS';
+      const t = tasks.length;
+      const counts: { c: number; rv: number; ip: number; a: number; p: number } = {
+        c: 0,
+        rv: 0,
+        ip: 0,
+        a: 0,
+        p: 0,
+      };
+      for (const task of tasks) {
+        const s = String(task.status);
+        if (s === 'COMPLETED') counts.c++;
+        else if (s === 'REVOKED') counts.rv++;
+        else if (s === 'IN_PROGRESS') counts.ip++;
+        else if (s === 'ASSIGNED') counts.a++;
+        else if (s === 'PENDING') counts.p++;
+      }
+
+      let newStatus: string;
       let completedAt: Date | null = null;
 
-      const allRevoked = tasks.every(t => t.status === 'REVOKED');
-      const allCompletedOrRevoked = tasks.every(
-        t => t.status === 'COMPLETED' || t.status === 'REVOKED'
-      );
-      const anyInProgress = tasks.some(
-        t => t.status === 'PENDING' || t.status === 'ASSIGNED' || t.status === 'IN_PROGRESS'
-      );
-
-      if (allRevoked) {
+      if (counts.rv === t) {
         newStatus = 'REVOKED';
-      } else if (allCompletedOrRevoked) {
+      } else if (counts.c + counts.rv === t) {
         newStatus = 'COMPLETED';
         completedAt = new Date();
-      } else if (anyInProgress) {
+      } else if (counts.ip > 0) {
         newStatus = 'IN_PROGRESS';
+      } else if (counts.a > 0) {
+        newStatus = 'ASSIGNED';
+      } else {
+        // P > 0 by elimination (every task is in one of the 5 statuses
+        // and the four prior buckets are exhausted).
+        newStatus = 'PENDING';
       }
-      // Default remains IN_PROGRESS if none of the above matches exactly
 
       // Update the case
       // Use COALESCE to preserve the original completed_at if it was already set
