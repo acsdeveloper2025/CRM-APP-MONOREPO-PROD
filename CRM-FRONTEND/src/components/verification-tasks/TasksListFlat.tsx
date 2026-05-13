@@ -6,7 +6,6 @@ import {
   UserCheck,
   CheckCircle,
   Clock,
-  AlertTriangle,
   X,
   Play,
   Eye,

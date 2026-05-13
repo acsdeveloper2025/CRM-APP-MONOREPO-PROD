@@ -24,7 +24,6 @@ import {
   X,
   Eye,
   Clock,
-  AlertTriangle,
   RefreshCw,
 } from 'lucide-react';
 import { VerificationTask, TaskStatus } from '@/types/verificationTask';
