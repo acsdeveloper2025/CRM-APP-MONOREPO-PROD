@@ -22,6 +22,9 @@ const CaseDetailPage = React.lazy(() =>
 const CompletedCasesPage = React.lazy(() =>
   import('@/pages/CompletedCasesPage').then((module) => ({ default: module.CompletedCasesPage }))
 );
+const InProgressCasesPage = React.lazy(() =>
+  import('@/pages/InProgressCasesPage').then((module) => ({ default: module.InProgressCasesPage }))
+);
 const PendingTasksPage = React.lazy(() =>
   import('@/pages/PendingTasksPage').then((module) => ({ default: module.PendingTasksPage }))
 );
@@ -284,6 +287,14 @@ export const AppRoutes: React.FC = () => {
             element={
               <ProtectedRoute permission="page.cases">
                 <CompletedCasesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/case-management/in-progress"
+            element={
+              <ProtectedRoute permission="page.cases">
+                <InProgressCasesPage />
               </ProtectedRoute>
             }
           />

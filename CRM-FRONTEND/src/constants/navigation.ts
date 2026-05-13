@@ -71,6 +71,22 @@ export const navigationItems: NavigationItem[] = [
         permission: { resource: 'cases', action: 'read' },
       },
       {
+        id: 'cases-in-progress',
+        label: 'In Progress Cases',
+        href: '/case-management/in-progress',
+        icon: FileText,
+        permissionCode: 'page.cases',
+        permission: { resource: 'cases', action: 'read' },
+      },
+      {
+        id: 'cases-completed',
+        label: 'Completed Cases',
+        href: '/case-management/completed',
+        icon: FileText,
+        permissionCode: 'page.cases',
+        permission: { resource: 'cases', action: 'read' },
+      },
+      {
         id: 'dedupe',
         label: 'Dedupe',
         href: '/case-management/dedupe',
