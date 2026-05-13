@@ -8,6 +8,7 @@ import {
   getFieldMonitoringStats,
   getFieldMonitoringUsers,
   getFieldMonitoringUserDetail,
+  requestUserLocation,
 } from '@/controllers/fieldMonitoringController';
 
 const router = express.Router();
@@ -48,6 +49,19 @@ router.get(
   validate,
   EnterpriseCache.create(EnterpriseCacheConfigs.fieldMonitoringDetails),
   getFieldMonitoringUserDetail
+);
+
+// 2026-05-13: on-demand location ping. Admin → silent FCM → mobile
+// captures GPS → POSTs to /api/mobile/location/capture (existing).
+// Returns 202 immediately; actual location row arrives async via the
+// capture flow + WebSocket event in subsequent commit.
+router.post(
+  '/users/:id/request-location',
+  authenticateToken,
+  authorize('page.field_monitoring'),
+  [param('id').isUUID().withMessage('id must be a valid user ID')],
+  validate,
+  requestUserLocation
 );
 
 export default router;

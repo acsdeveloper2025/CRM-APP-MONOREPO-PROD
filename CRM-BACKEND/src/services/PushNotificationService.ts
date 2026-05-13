@@ -154,6 +154,80 @@ export class PushNotificationService {
   }
 
   /**
+   * Send a silent data-only FCM message — no visible notification on the
+   * device. Use for in-app actions (e.g., field-monitoring location-
+   * request ping) that should NOT display a banner to the agent.
+   * Android: high priority, no notification block → FCM service wakes
+   * the app's background handler. iOS data-only requires
+   * `content-available: 1` on APNS — handled in sendAPNSNotification.
+   */
+  public async sendDataMessage(
+    userIds: string[],
+    data: Record<string, string>
+  ): Promise<{ success: number; failed: number; errors: PushServiceError[] }> {
+    if (!this.initialized) {
+      this.initialize();
+    }
+
+    const results = { success: 0, failed: 0, errors: [] as PushServiceError[] };
+    if (!this.fcmApp) {
+      logger.warn('FCM not initialized, dropping data-only message', { userIds });
+      results.failed = userIds.length;
+      return results;
+    }
+
+    const tokens = await this.getActiveTokensForUsers(userIds);
+    if (tokens.length === 0) {
+      logger.warn('No active push tokens for users (data-only message)', { userIds });
+      return results;
+    }
+
+    const androidTokens = tokens.filter(t => t.platform === 'android');
+    if (androidTokens.length === 0) {
+      // iOS data-only / web data-only intentionally not supported here —
+      // the on-demand location ping is mobile-Android specific.
+      return results;
+    }
+
+    try {
+      const messaging = admin.messaging(this.fcmApp);
+      const message: admin.messaging.MulticastMessage = {
+        tokens: androidTokens.map(t => t.pushToken),
+        data,
+        android: {
+          priority: 'high',
+          // Omit `notification` entirely → silent data-only.
+        },
+      };
+
+      const response = await circuitBreakers.firebase.execute(() =>
+        messaging.sendEachForMulticast(message)
+      );
+      results.success = response.successCount;
+      results.failed = response.failureCount;
+
+      response.responses.forEach((resp, index) => {
+        if (!resp.success) {
+          const token = androidTokens[index];
+          results.errors.push({
+            userId: token.userId,
+            error: resp.error?.message ?? 'Unknown FCM error',
+          });
+          if (resp.error?.code === 'messaging/registration-token-not-registered') {
+            void this.deactivateToken(token.id);
+          }
+        }
+      });
+    } catch (error) {
+      logger.error('FCM data-message dispatch failed', error);
+      results.failed = androidTokens.length;
+      results.errors.push(error as Error);
+    }
+
+    return results;
+  }
+
+  /**
    * Send push notification to specific users
    */
   public async sendPushNotification(

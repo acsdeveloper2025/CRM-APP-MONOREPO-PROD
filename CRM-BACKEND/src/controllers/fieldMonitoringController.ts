@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import type { Response } from 'express';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import {
@@ -5,7 +6,11 @@ import {
   type FieldUserLiveStatus,
 } from '@/services/fieldMonitoringService';
 import { getScopedOperationalUserIds } from '@/security/userScope';
+import { PushNotificationService } from '@/services/PushNotificationService';
 import { errorMessage } from '@/utils/errorMessage';
+import { logger } from '@/config/logger';
+
+const pushNotificationService = PushNotificationService.getInstance();
 
 const ALLOWED_STATUSES: FieldUserLiveStatus[] = [
   'Offline',
@@ -154,6 +159,84 @@ export const getFieldMonitoringUserDetail = async (
       message: 'Failed to retrieve field monitoring user detail',
       error: {
         code: 'FIELD_MONITORING_USER_DETAIL_ERROR',
+        details: errorMessage(error),
+      },
+    });
+  }
+};
+
+/**
+ * On-demand location ping. Admin clicks "Get fresh location" on the
+ * field-monitoring page → BE sends a silent FCM data-message to the
+ * target user's registered Android device(s) → mobile FCM handler
+ * grabs GPS + POSTs to /api/mobile/location/capture → BE WebSocket
+ * pushes the updated row to admins watching the field-monitoring room.
+ *
+ * Returns 202 + requestId immediately. The actual location row lands
+ * via the standard capture flow + async WebSocket event; FE shows a
+ * spinner with 20s client-side timeout, then either resolves on the
+ * incoming WS event or shows "couldn't reach <user>".
+ *
+ * No rate limit (per product decision 2026-05-13).
+ */
+export const requestUserLocation = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const targetUserId =
+      typeof req.params.id === 'string' ? req.params.id : String(req.params.id || '');
+    if (!targetUserId) {
+      res.status(400).json({
+        success: false,
+        message: 'Target user id is required',
+        error: { code: 'MISSING_USER_ID' },
+      });
+      return;
+    }
+
+    // Enforce dataScope — admin can only ping users they have visibility on
+    // (same scope rule as the other field-monitoring endpoints).
+    const scopedUserIds = await resolveScopedUserIds(req);
+    if (scopedUserIds !== undefined && !scopedUserIds.includes(targetUserId)) {
+      res.status(404).json({
+        success: false,
+        message: 'Field monitoring user not found',
+        error: { code: 'FIELD_MONITORING_USER_NOT_FOUND' },
+      });
+      return;
+    }
+
+    const requestId = randomUUID();
+    const fcmResult = await pushNotificationService.sendDataMessage([targetUserId], {
+      type: 'LOCATION_REQUEST',
+      requestId,
+      requestedBy: req.user?.id || '',
+      requestedAt: new Date().toISOString(),
+    });
+
+    logger.info('Location-request ping dispatched', {
+      requestId,
+      targetUserId,
+      requestedBy: req.user?.id,
+      fcmSuccess: fcmResult.success,
+      fcmFailed: fcmResult.failed,
+    });
+
+    res.status(202).json({
+      success: true,
+      message: 'Location request dispatched',
+      data: {
+        requestId,
+        dispatchedToTokens: fcmResult.success,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to dispatch location request',
+      error: {
+        code: 'LOCATION_REQUEST_DISPATCH_FAILED',
         details: errorMessage(error),
       },
     });
