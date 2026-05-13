@@ -42,6 +42,16 @@ export interface SessionQuery extends PaginationQuery {
   isActive?: boolean;
 }
 
+export interface UserConsentRecord {
+  id: string;
+  userId: string;
+  policyVersion: number;
+  acceptedAt: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  source: 'MOBILE' | 'WEB';
+}
+
 export class UsersService {
   // User CRUD operations
   async getUsers(query: UserQuery = {}): Promise<ApiResponse<User[]>> {
@@ -140,6 +150,13 @@ export class UsersService {
     query: ActivityQuery = {}
   ): Promise<ApiResponse<UserActivity[]>> {
     return apiService.get<UserActivity[]>(`/users/${userId}/activities`, query);
+  }
+
+  // 2026-05-13: Field Executive Acknowledgement audit trail. One row
+  // per (user, policy_version) — admin uses this on the user-detail
+  // dialog to confirm acceptance during disputes / compliance review.
+  async getUserConsents(userId: string): Promise<ApiResponse<UserConsentRecord[]>> {
+    return apiService.get<UserConsentRecord[]>(`/users/${userId}/consents`);
   }
 
   // User sessions

@@ -3504,6 +3504,27 @@ COMMENT ON COLUMN public.clients.tier IS 'Plan tier — drives SLA / throttle / 
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
+CREATE TABLE public.user_consents (
+    id bigint NOT NULL,
+    user_id uuid NOT NULL,
+    policy_version smallint NOT NULL,
+    accepted_at timestamp with time zone DEFAULT now() NOT NULL,
+    ip_address inet,
+    user_agent text,
+    source character varying(10) DEFAULT 'MOBILE'::character varying NOT NULL,
+    CONSTRAINT chk_user_consents_source CHECK ((source::text = ANY (ARRAY['MOBILE'::character varying, 'WEB'::character varying]::text[])))
+);
+
+CREATE SEQUENCE public.user_consents_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.user_consents_id_seq OWNED BY public.user_consents.id;
+
+
 CREATE TABLE public.users (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name character varying(100) NOT NULL,

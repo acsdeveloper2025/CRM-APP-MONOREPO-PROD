@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { User, Shield, Calendar, Activity, Award } from 'lucide-react';
+import { format } from 'date-fns';
+import { User, Shield, Calendar, Activity, Award, FileCheck } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,18 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
   });
 
   const profile = userProfileData?.data;
+
+  // 2026-05-13: Field Executive Acknowledgement history. Loaded on
+  // dialog open (same gate as the profile query). Empty list = agent
+  // has never accepted, which is a compliance red flag in production
+  // — the rendered card calls it out.
+  const { data: consentsResponse } = useQuery({
+    queryKey: ['user-consents', user.id],
+    queryFn: () => usersService.getUserConsents(user.id),
+    enabled: open,
+  });
+  const consents = consentsResponse?.data ?? [];
+  const latestConsent = consents[0];
 
   const getStatusBadge = (isActive: boolean) => {
     return (
@@ -173,6 +186,76 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
                   </p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Field Executive Acknowledgement (consent audit trail) */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileCheck className="h-5 w-5 text-gray-600" />
+                Field Executive Acknowledgement
+              </CardTitle>
+              <CardDescription>
+                Code of Conduct / Anti-bribery / NDA / Privacy consent — recorded for compliance
+                review and dispute resolution.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {latestConsent ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Status</span>
+                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                      Accepted (v{latestConsent.policyVersion})
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Accepted at</span>
+                    <span className="text-sm font-medium">
+                      {format(new Date(latestConsent.acceptedAt), 'd MMM yyyy, HH:mm:ss')}
+                    </span>
+                  </div>
+                  {latestConsent.ipAddress && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">IP address</span>
+                      <span className="text-sm font-mono">{latestConsent.ipAddress}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Source</span>
+                    <span className="text-sm">{latestConsent.source}</span>
+                  </div>
+                  {latestConsent.userAgent && (
+                    <div className="pt-2 border-t border-border">
+                      <p className="text-xs text-muted-foreground mb-1">Device</p>
+                      <p className="text-xs font-mono break-all">{latestConsent.userAgent}</p>
+                    </div>
+                  )}
+                  {consents.length > 1 && (
+                    <div className="pt-2 border-t border-border">
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Prior versions ({consents.length - 1})
+                      </p>
+                      <div className="space-y-1">
+                        {consents.slice(1).map((c) => (
+                          <div key={c.id} className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">v{c.policyVersion}</span>
+                            <span>{format(new Date(c.acceptedAt), 'd MMM yyyy, HH:mm')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-900">
+                  <span className="text-sm text-yellow-900 dark:text-yellow-200">
+                    No acknowledgement on record. This user has not yet accepted the current Field
+                    Executive Acknowledgement.
+                  </span>
+                </div>
+              )}
             </CardContent>
           </Card>
 

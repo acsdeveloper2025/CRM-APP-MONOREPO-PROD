@@ -19,6 +19,7 @@ import { authorize } from '../middleware/authorize';
 import { validateMobileVersion } from '../middleware/mobileValidation';
 import { geoRateLimit, uploadRateLimit, mobileGeneralRateLimit } from '../middleware/rateLimiter';
 import { createMobileAuditLogs } from '../controllers/auditLogsController';
+import { acceptConsent } from '../controllers/userConsentsController';
 import { idempotencyMiddleware } from '../middleware/idempotency';
 import { body } from 'express-validator';
 import { config } from '@/config';
@@ -77,6 +78,16 @@ router.post(
   authenticateToken,
   authorize('visit.start'),
   MobileAuthController.registerNotifications
+);
+
+// 2026-05-13: Field Executive Acknowledgement record. Called by
+// mobile PrivacyConsentScreen on accept (one row per user+version
+// via UNIQUE constraint; idempotent on re-install).
+router.post(
+  '/consents/accept',
+  authenticateToken,
+  body('policyVersion').isInt({ min: 1 }).withMessage('policyVersion must be positive integer'),
+  acceptConsent
 );
 
 // Mobile Notifications

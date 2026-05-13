@@ -12,6 +12,7 @@ import {
 } from '../middleware/enterpriseCache';
 import { ProfilePhotoController } from '@/controllers/profilePhotoController';
 import { profilePhotoUpload } from '@/middleware/profilePhotoUpload';
+import { getUserConsents } from '@/controllers/userConsentsController';
 import {
   getUsers,
   getUserById,
@@ -549,6 +550,19 @@ router.get(
   [param('id').trim().notEmpty().withMessage('User ID is required')],
   validate,
   getUserById
+);
+
+// 2026-05-13: per-user consent history (Field Executive
+// Acknowledgement audit trail). Returned on user-detail page for
+// compliance/dispute review. UNIQUE (user_id, policy_version) means
+// rows ≤ number of policy versions ever bumped.
+router.get(
+  '/:id/consents',
+  authenticateToken,
+  authorize('user.view'),
+  [param('id').trim().notEmpty().withMessage('User ID is required')],
+  validate,
+  getUserConsents
 );
 
 router.put(
