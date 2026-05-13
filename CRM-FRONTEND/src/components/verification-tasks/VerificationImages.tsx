@@ -955,7 +955,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                             imageId={image.id}
                             thumbnailUrl={image.thumbnailUrl}
                             alt={image.originalName}
-                            className="absolute inset-0 w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                            className="absolute inset-0 w-full h-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
                             onClick={() =>
                               handleImageClick(image.url, image.originalName, image.id, image)
                             }
@@ -1039,7 +1039,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                             imageId={image.id}
                             thumbnailUrl={image.thumbnailUrl}
                             alt={image.originalName}
-                            className="absolute inset-0 w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                            className="absolute inset-0 w-full h-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
                             onClick={() =>
                               handleImageClick(image.url, image.originalName, image.id, image)
                             }
