@@ -297,7 +297,9 @@ const formatDMS = (decimal: number, isLat: boolean): string => {
 };
 
 const formatCompass = (heading: number | null | undefined): string | null => {
-  if (heading == null || !Number.isFinite(heading)) return null;
+  if (heading == null || !Number.isFinite(heading)) {
+    return null;
+  }
   const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
   const idx = Math.round(heading / 45) % 8;
   return `${dirs[idx]} ${Math.round(heading)}°`;
