@@ -584,7 +584,7 @@ export class MobileSyncController {
         revokeReason: caseItem.revocationReason || undefined,
         inProgressAt: caseItem.startedAt ? new Date(caseItem.startedAt).toISOString() : undefined,
         savedAt: caseItem.savedAt ? new Date(caseItem.savedAt).toISOString() : undefined,
-        isSaved: Boolean(caseItem.isSaved || caseItem.taskStatus === 'SAVED'),
+        isSaved: Boolean(caseItem.isSaved),
         client: {
           id: caseItem.clientId || 0, // Use number instead of string
           name: caseItem.clientName || '', // Client

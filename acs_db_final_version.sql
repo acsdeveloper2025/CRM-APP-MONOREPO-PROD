@@ -3578,7 +3578,7 @@ CREATE TABLE public.verification_tasks (
     area_id integer,
     pincode_id integer,
     CONSTRAINT check_priority CHECK (((priority)::text = ANY (ARRAY[('LOW'::character varying)::text, ('MEDIUM'::character varying)::text, ('HIGH'::character varying)::text, ('URGENT'::character varying)::text]))),
-    CONSTRAINT check_status_unified CHECK (((status)::text = ANY (ARRAY[('PENDING'::character varying)::text, ('ASSIGNED'::character varying)::text, ('IN_PROGRESS'::character varying)::text, ('COMPLETED'::character varying)::text, ('REVOKED'::character varying)::text, ('SAVED'::character varying)::text]))),
+    CONSTRAINT check_status_unified CHECK (((status)::text = ANY (ARRAY[('PENDING'::character varying)::text, ('ASSIGNED'::character varying)::text, ('IN_PROGRESS'::character varying)::text, ('COMPLETED'::character varying)::text, ('REVOKED'::character varying)::text]))),
     CONSTRAINT chk_verification_tasks_applicant_type CHECK (((applicant_type IS NULL) OR ((applicant_type)::text = ANY (ARRAY[('APPLICANT'::character varying)::text, ('CO-APPLICANT'::character varying)::text, ('REFERENCE PERSON'::character varying)::text, ('GUARANTOR'::character varying)::text])))),
     CONSTRAINT chk_vt_type_matches_task_type CHECK ((((task_type = ANY (ARRAY['NORMAL'::public.task_type_enum, 'REVISIT'::public.task_type_enum])) AND (verification_type_id IS NOT NULL)) OR ((task_type = 'KYC'::public.task_type_enum) AND (verification_type_id IS NULL))))
 );

@@ -59,7 +59,6 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
       IN_PROGRESS: Play,
       COMPLETED: CheckCircle,
       REVOKED: X,
-      SAVED: Clock,
     };
     return icons[status] || Clock;
   };

@@ -419,7 +419,7 @@ export class MobileCaseController {
         // Status timestamps
         inProgressAt: caseItem.started_at ? new Date(caseItem.started_at).toISOString() : undefined,
         savedAt: caseItem.saved_at ? new Date(caseItem.saved_at).toISOString() : undefined,
-        isSaved: caseItem.is_saved || caseItem.task_status === 'SAVED' || false,
+        isSaved: caseItem.is_saved || false,
         client: {
           id: caseItem.clientId || 0, // Use number instead of string
           name: caseItem.clientName || '', // Client

@@ -119,13 +119,7 @@ export interface RevokeVerificationTaskData {
   revokedBy: string;
 }
 
-export type TaskStatus =
-  | 'PENDING'
-  | 'ASSIGNED'
-  | 'IN_PROGRESS'
-  | 'COMPLETED'
-  | 'REVOKED'
-  | 'SAVED';
+export type TaskStatus = 'PENDING' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'REVOKED';
 
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 

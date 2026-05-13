@@ -71,7 +71,6 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
         IN_PROGRESS: Play,
         COMPLETED: CheckCircle,
         REVOKED: X,
-        SAVED: Clock,
       };
       return icons[status] || Clock;
     };
