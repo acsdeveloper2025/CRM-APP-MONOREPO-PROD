@@ -46,7 +46,7 @@ interface SyncControllerError extends Error {
 import { AuthenticatedRequest } from '../middleware/auth';
 import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
-import { query } from '@/config/database';
+import { query, withTransaction } from '@/config/database';
 import { logger } from '../utils/logger';
 import { isFieldExecutionActor } from '@/security/rbacAccess';
 import { CaseStatusSyncService } from '../services/caseStatusSyncService';
@@ -343,19 +343,25 @@ export class MobileSyncController {
     }
 
     if (requestedStatus === 'IN_PROGRESS') {
-      await query(
-        `
-        UPDATE verification_tasks
-        SET
-          status = 'IN_PROGRESS',
-          started_at = COALESCE(started_at, NOW()),
-          updated_at = NOW()
-        WHERE id = $1
-        `,
-        [entityId]
-      );
-
-      await CaseStatusSyncService.recalculateCaseStatus(task.caseId as string);
+      // Wrap UPDATE + case-status recalc in one transaction so they cannot
+      // commit independently. Prior split made it possible for the task to
+      // land in IN_PROGRESS while case status stayed stale if recalc threw.
+      // Also adds a transition guard (ASSIGNED → IN_PROGRESS only).
+      await withTransaction(async client => {
+        await client.query(
+          `
+          UPDATE verification_tasks
+          SET
+            status = 'IN_PROGRESS',
+            started_at = COALESCE(started_at, NOW()),
+            updated_at = NOW()
+          WHERE id = $1
+            AND status IN ('ASSIGNED', 'IN_PROGRESS')
+          `,
+          [entityId]
+        );
+        await CaseStatusSyncService.recalculateCaseStatus(task.caseId as string, client);
+      });
       syncResults.processedCases++;
       return;
     }
