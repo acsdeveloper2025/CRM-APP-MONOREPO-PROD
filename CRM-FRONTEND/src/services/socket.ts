@@ -21,6 +21,19 @@ type NotificationPayload = {
   timestamp?: string;
 };
 
+// 2026-05-13: field-monitoring live-map event. BE emits this on the
+// `perm:field_monitoring` room every time a new `locations` row is
+// INSERTed (both ADMIN_PING and TASK sources). FE listens to drop
+// polling latency from 60s to sub-second.
+export type FieldMonitoringLocationUpdatedPayload = {
+  userId: string;
+  latitude: number;
+  longitude: number;
+  accuracy: number | null;
+  recordedAt: string;
+  source: 'TASK' | 'ADMIN_PING';
+};
+
 class FrontendSocketService {
   private socket: Socket | null = null;
   private currentToken: string | null = null;
@@ -90,6 +103,18 @@ class FrontendSocketService {
     this.socket.on('notification', handler);
     return () => {
       this.socket?.off('notification', handler);
+    };
+  }
+
+  onFieldMonitoringLocationUpdated(
+    handler: (payload: FieldMonitoringLocationUpdatedPayload) => void
+  ): (() => void) | null {
+    if (!this.socket) {
+      return null;
+    }
+    this.socket.on('field-monitoring:location-updated', handler);
+    return () => {
+      this.socket?.off('field-monitoring:location-updated', handler);
     };
   }
 }

@@ -178,6 +178,20 @@ class FieldMonitoringService {
     }
     return response;
   }
+
+  // 2026-05-13: on-demand location ping. BE → FCM data-message → mobile
+  // captures GPS → POSTs to /api/mobile/location/capture → BE emits
+  // `field-monitoring:location-updated` on the socket room. Returns
+  // 202 + {requestId} immediately; the FE awaits the WS event with a
+  // client-side 20s timeout (handled in FieldMonitoringPage).
+  async requestUserLocation(
+    userId: string
+  ): Promise<ApiResponse<{ requestId: string; dispatchedToTokens: number }>> {
+    return apiService.post<{ requestId: string; dispatchedToTokens: number }>(
+      `${this.baseUrl}/users/${userId}/request-location`,
+      {}
+    );
+  }
 }
 
 export const fieldMonitoringService = new FieldMonitoringService();

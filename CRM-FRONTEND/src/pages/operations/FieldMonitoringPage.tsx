@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { Activity, ArrowLeft, Eye, Navigation, Radio, RefreshCw, UserCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -38,6 +39,8 @@ import {
   type FieldMonitoringLiveStatus,
   type FieldMonitoringRosterItem,
 } from '@/services/fieldMonitoring';
+import { frontendSocketService } from '@/services/socket';
+import { logger } from '@/utils/logger';
 
 const REFRESH_INTERVAL = 60_000; // 60s refresh for 1000+ field users (was 30s)
 const PAGE_SIZE = 20;
@@ -308,8 +311,15 @@ function FieldMonitoringDetailView({ userId }: { userId: string }) {
 
 function FieldMonitoringRosterView() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [activeView, setActiveView] = useState<'table' | 'map'>('table');
+  // Set of userIds with an in-flight location-ping request. UI shows
+  // the row's Refresh button as a spinning loader while pending; cleared
+  // on either the incoming WebSocket event (success) or the 20s
+  // client-side timeout (fail). One row can ping concurrently with
+  // others — each userId is independent.
+  const [pendingPings, setPendingPings] = useState<Set<string>>(new Set());
   const search = useUnifiedSearch({
     debounceDelay: 500,
     syncWithUrl: true,
@@ -327,6 +337,82 @@ function FieldMonitoringRosterView() {
     filters.filters.areaId,
     filters.filters.status,
   ]);
+
+  // 2026-05-13: subscribe to `field-monitoring:location-updated` WS
+  // events emitted by BE when a new `locations` row INSERTs (both
+  // ADMIN_PING and TASK source). On any event we invalidate the roster
+  // query so the map + table reflect the new position. Additionally if
+  // the userId matches a row currently in pendingPings (i.e., this
+  // admin's own button click), clear that row's spinner.
+  useEffect(() => {
+    const unsubscribe = frontendSocketService.onFieldMonitoringLocationUpdated((payload) => {
+      setPendingPings((current) => {
+        if (!current.has(payload.userId)) {
+          return current;
+        }
+        const next = new Set(current);
+        next.delete(payload.userId);
+        return next;
+      });
+      void queryClient.invalidateQueries({ queryKey: ['field-monitoring'] });
+    });
+    return () => {
+      unsubscribe?.();
+    };
+  }, [queryClient]);
+
+  // Trigger an FCM ping for one agent. BE sends silent FCM →
+  // mobile responds → BE emits WS event → we clear pendingPings
+  // and refresh the roster. If no event arrives within 20s, the
+  // 20s-timeout below resolves the spinner + shows a "couldn't reach"
+  // toast; the map keeps its existing last-known marker.
+  const handleRefreshLocation = useCallback(
+    async (userId: string) => {
+      if (pendingPings.has(userId)) {
+        return;
+      }
+      setPendingPings((current) => {
+        const next = new Set(current);
+        next.add(userId);
+        return next;
+      });
+
+      const timeoutHandle = window.setTimeout(() => {
+        setPendingPings((current) => {
+          if (!current.has(userId)) {
+            return current;
+          }
+          const next = new Set(current);
+          next.delete(userId);
+          return next;
+        });
+        toast.warning("Couldn't reach the agent — showing last known location");
+      }, 20_000);
+
+      try {
+        const response = await fieldMonitoringService.requestUserLocation(userId);
+        if (!response?.success) {
+          window.clearTimeout(timeoutHandle);
+          setPendingPings((current) => {
+            const next = new Set(current);
+            next.delete(userId);
+            return next;
+          });
+          toast.error(response?.message || 'Failed to dispatch location request');
+        }
+      } catch (error) {
+        window.clearTimeout(timeoutHandle);
+        setPendingPings((current) => {
+          const next = new Set(current);
+          next.delete(userId);
+          return next;
+        });
+        logger.error('requestUserLocation failed:', error);
+        toast.error('Failed to dispatch location request');
+      }
+    },
+    [pendingPings]
+  );
 
   const {
     data: statsResponse,
@@ -642,15 +728,32 @@ function FieldMonitoringRosterView() {
                             <TableCell>{getLastLocationDisplayTime(user)}</TableCell>
                             <TableCell>{user.activeAssignmentCount}</TableCell>
                             <TableCell className="text-right">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="gap-2"
-                                onClick={() => navigate(`/operations/field-monitoring/${user.id}`)}
-                              >
-                                <Eye className="h-4 w-4" />
-                                View
-                              </Button>
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-2"
+                                  disabled={pendingPings.has(user.id)}
+                                  title="Ping device for current location"
+                                  onClick={() => handleRefreshLocation(user.id)}
+                                >
+                                  <RefreshCw
+                                    className={`h-4 w-4 ${pendingPings.has(user.id) ? 'animate-spin' : ''}`}
+                                  />
+                                  {pendingPings.has(user.id) ? 'Locating…' : 'Refresh'}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-2"
+                                  onClick={() =>
+                                    navigate(`/operations/field-monitoring/${user.id}`)
+                                  }
+                                >
+                                  <Eye className="h-4 w-4" />
+                                  View
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
