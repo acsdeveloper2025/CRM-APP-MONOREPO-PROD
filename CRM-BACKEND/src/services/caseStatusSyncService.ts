@@ -60,11 +60,17 @@ export class CaseStatusSyncService {
       };
       for (const task of tasks) {
         const s = String(task.status);
-        if (s === 'COMPLETED') counts.c++;
-        else if (s === 'REVOKED') counts.rv++;
-        else if (s === 'IN_PROGRESS') counts.ip++;
-        else if (s === 'ASSIGNED') counts.a++;
-        else if (s === 'PENDING') counts.p++;
+        if (s === 'COMPLETED') {
+          counts.c++;
+        } else if (s === 'REVOKED') {
+          counts.rv++;
+        } else if (s === 'IN_PROGRESS') {
+          counts.ip++;
+        } else if (s === 'ASSIGNED') {
+          counts.a++;
+        } else if (s === 'PENDING') {
+          counts.p++;
+        }
       }
 
       let newStatus: string;
