@@ -13,6 +13,7 @@ import {
 } from '@/security/dataScope';
 import { financialConfigurationValidator } from '@/services/financialConfigurationValidator';
 import { resolveInvoiceGst, GstConfigError } from '@/services/gstResolver';
+import { createAuditLog } from '@/utils/auditLogger';
 
 // Single 2dp rounder shared with gstResolver for arithmetic parity.
 const round2 = (n: number): number => Math.round(n * 100) / 100;
@@ -1279,6 +1280,21 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
       source: 'database',
     });
 
+    void createAuditLog({
+      action: 'INVOICE_CREATED',
+      entityType: 'INVOICE',
+      entityId: String(invoice.id),
+      userId: req.user?.id,
+      details: {
+        invoiceNumber: invoice.invoiceNumber,
+        clientId,
+        totalAmount: invoice.totalAmount,
+        status: invoice.status,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') || undefined,
+    });
+
     return res.status(201).json({
       success: true,
       data: invoice,
@@ -1431,6 +1447,18 @@ const updateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) => {
     });
 
     const invoice = await getInvoiceByIdFromDb(id, accessible.scope);
+    void createAuditLog({
+      action: 'INVOICE_UPDATED',
+      entityType: 'INVOICE',
+      entityId: id,
+      userId: req.user?.id,
+      details: {
+        invoiceNumber: invoice?.invoiceNumber,
+        status: invoice?.status,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') || undefined,
+    });
     return res.json({
       success: true,
       data: invoice,
@@ -1480,6 +1508,15 @@ const deleteInvoiceInDb = async (req: AuthenticatedRequest, res: Response) => {
   }
 
   await query('DELETE FROM invoices WHERE id = $1', [Number(id)]);
+  void createAuditLog({
+    action: 'INVOICE_DELETED',
+    entityType: 'INVOICE',
+    entityId: id,
+    userId: req.user?.id,
+    details: { previousStatus: accessible.status },
+    ipAddress: req.ip,
+    userAgent: req.get('user-agent') || undefined,
+  });
   return res.json({
     success: true,
     message: 'Invoice deleted successfully',
@@ -1671,6 +1708,18 @@ const regenerateInvoiceInDb = async (req: AuthenticatedRequest, res: Response) =
     });
 
     const invoice = await getInvoiceByIdFromDb(id, accessible.scope);
+    void createAuditLog({
+      action: 'INVOICE_REGENERATED',
+      entityType: 'INVOICE',
+      entityId: id,
+      userId: req.user?.id,
+      details: {
+        invoiceNumber: invoice?.invoiceNumber,
+        totalAmount: invoice?.totalAmount,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') || undefined,
+    });
     return res.json({
       success: true,
       data: invoice,
@@ -1782,6 +1831,20 @@ const transitionInvoiceStatus = async (
   });
 
   const invoice = await getInvoiceByIdFromDb(id, accessible.scope);
+  void createAuditLog({
+    action: `INVOICE_STATUS_${nextStatus}`,
+    entityType: 'INVOICE',
+    entityId: id,
+    userId: req.user?.id,
+    details: {
+      invoiceNumber: invoice?.invoiceNumber,
+      fromStatus: accessible.status,
+      toStatus: nextStatus,
+      notes: extraUpdate?.notes || undefined,
+    },
+    ipAddress: req.ip,
+    userAgent: req.get('user-agent') || undefined,
+  });
   return res.json({
     success: true,
     data: invoice,

@@ -3,6 +3,7 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
 import type { QueryParams } from '@/types/database';
+import { createAuditLog } from '@/utils/auditLogger';
 
 // GET /api/rates - List rates with comprehensive filtering and pagination
 export const getRates = async (req: AuthenticatedRequest, res: Response) => {
@@ -231,6 +232,10 @@ export const createOrUpdateRate = async (req: AuthenticatedRequest, res: Respons
       });
     }
 
+    let auditAction: 'RATE_CREATED' | 'RATE_UPDATED' = 'RATE_CREATED';
+    let auditRateId: number | null = null;
+    let auditOldAmount: number | null = null;
+
     await withTransaction(async client => {
       // Check if active rate already exists
       const existingRes = await client.query(
@@ -243,7 +248,7 @@ export const createOrUpdateRate = async (req: AuthenticatedRequest, res: Respons
         // Update existing rate
         const existingRate = existingRes.rows[0];
         await client.query(
-          `UPDATE rates 
+          `UPDATE rates
            SET amount = $1, currency = $2, updated_at = CURRENT_TIMESTAMP
            WHERE id = $3`,
           [amount, currency, existingRate.id]
@@ -255,6 +260,10 @@ export const createOrUpdateRate = async (req: AuthenticatedRequest, res: Respons
           oldAmount: existingRate.amount,
           newAmount: amount,
         });
+
+        auditAction = 'RATE_UPDATED';
+        auditRateId = existingRate.id;
+        auditOldAmount = existingRate.amount;
       } else {
         // Create new rate
         const insertRes = await client.query(
@@ -282,7 +291,28 @@ export const createOrUpdateRate = async (req: AuthenticatedRequest, res: Respons
           verificationTypeId,
           rateTypeId,
         });
+
+        auditAction = 'RATE_CREATED';
+        auditRateId = newRate.id;
       }
+    });
+
+    void createAuditLog({
+      action: auditAction,
+      entityType: 'RATE',
+      entityId: auditRateId != null ? String(auditRateId) : undefined,
+      userId: req.user?.id,
+      details: {
+        clientId,
+        productId,
+        verificationTypeId,
+        rateTypeId,
+        amount,
+        currency,
+        oldAmount: auditOldAmount ?? undefined,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') || undefined,
     });
 
     res.json({
@@ -320,6 +350,15 @@ export const deleteRate = async (req: AuthenticatedRequest, res: Response) => {
     logger.info(`Deleted rate: ${id}`, {
       userId: req.user?.id,
       rateId: id,
+    });
+
+    void createAuditLog({
+      action: 'RATE_DELETED',
+      entityType: 'RATE',
+      entityId: String(id),
+      userId: req.user?.id,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') || undefined,
     });
 
     res.json({

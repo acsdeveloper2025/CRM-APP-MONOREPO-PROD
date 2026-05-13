@@ -10,6 +10,7 @@ import {
   resolveDataScope,
   valueAllowedByScope,
 } from '@/security/dataScope';
+import { createAuditLog } from '@/utils/auditLogger';
 
 // Extended interface for query results including joined fields
 interface CommissionCalculationRow extends CommissionCalculation {
@@ -324,6 +325,19 @@ export const approveCommission = async (req: AuthenticatedRequest, res: Response
       commissionAmount: updateResult.rows[0].commissionAmount,
     });
 
+    void createAuditLog({
+      action: 'COMMISSION_APPROVED',
+      entityType: 'COMMISSION',
+      entityId: String(id),
+      userId: approverId,
+      details: {
+        commissionAmount: updateResult.rows[0].commissionAmount,
+        notes: notes || undefined,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') || undefined,
+    });
+
     res.json({
       success: true,
       data: updateResult.rows[0],
@@ -438,6 +452,20 @@ export const markCommissionPaid = async (req: AuthenticatedRequest, res: Respons
     logger.info(`Commission marked as paid: ${id}`, {
       userId: payerId,
       commissionAmount: updateResult.rows[0].commissionAmount,
+    });
+
+    void createAuditLog({
+      action: 'COMMISSION_PAID',
+      entityType: 'COMMISSION',
+      entityId: String(id),
+      userId: payerId,
+      details: {
+        commissionAmount: updateResult.rows[0].commissionAmount,
+        paymentMethod,
+        transactionId,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') || undefined,
     });
 
     res.json({
@@ -630,6 +658,20 @@ export const bulkApproveCommissions = async (req: AuthenticatedRequest, res: Res
       approved: approvedIds.length,
     });
 
+    void createAuditLog({
+      action: 'COMMISSION_BULK_APPROVED',
+      entityType: 'COMMISSION',
+      userId: approverId,
+      details: {
+        approvedIds,
+        requested: commissionIds.length,
+        approved: approvedIds.length,
+        failedCount,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') || undefined,
+    });
+
     res.json({
       success: true,
       data: {
@@ -721,6 +763,22 @@ export const bulkMarkCommissionsPaid = async (req: AuthenticatedRequest, res: Re
       userId: payerId,
       requested: commissionIds.length,
       paid: paidIds.length,
+    });
+
+    void createAuditLog({
+      action: 'COMMISSION_BULK_PAID',
+      entityType: 'COMMISSION',
+      userId: payerId,
+      details: {
+        paidIds,
+        requested: commissionIds.length,
+        paid: paidIds.length,
+        failedCount,
+        paymentMethod,
+        transactionId,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') || undefined,
     });
 
     res.json({
