@@ -93,7 +93,9 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {/* Date Range */}
           <div className="space-y-2">
-            <Label htmlFor="dateFrom">From Date</Label>
+            <Label htmlFor="dateFrom">
+              Date From <span className="text-xs font-normal text-gray-500">(YYYY-MM-DD)</span>
+            </Label>
             <Input
               id="dateFrom"
               type="date"
@@ -103,7 +105,9 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="dateTo">To Date</Label>
+            <Label htmlFor="dateTo">
+              Date To <span className="text-xs font-normal text-gray-500">(YYYY-MM-DD)</span>
+            </Label>
             <Input
               id="dateTo"
               type="date"
