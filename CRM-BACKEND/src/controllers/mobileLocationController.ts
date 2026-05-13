@@ -491,11 +491,6 @@ export class MobileLocationController {
         status?: string;
         results?: Array<{
           formatted_address?: string;
-          address_components?: Array<{
-            long_name?: string;
-            short_name?: string;
-            types?: string[];
-          }>;
         }>;
       };
 
@@ -504,59 +499,15 @@ export class MobileLocationController {
         return null;
       }
 
-      const best = body.results[0];
-      const components = best.address_components || [];
-      const extract = (type: string): string => {
-        const comp = components.find(c => Array.isArray(c.types) && c.types.includes(type));
-        return comp?.long_name || '';
-      };
-
-      const parts: string[] = [];
-      const streetNum = extract('street_number');
-      const route = extract('route');
-      if (streetNum && route) {
-        parts.push(`${streetNum}, ${route}`);
-      } else if (route) {
-        parts.push(route);
-      }
-
-      const premise = extract('premise') || extract('subpremise');
-      if (premise) {
-        parts.push(premise);
-      }
-
-      const sublocality =
-        extract('sublocality_level_1') || extract('sublocality') || extract('neighborhood');
-      if (sublocality) {
-        parts.push(sublocality);
-      }
-
-      const locality = extract('locality') || extract('administrative_area_level_3');
-      if (locality) {
-        parts.push(locality);
-      }
-
-      const district = extract('administrative_area_level_2');
-      if (district && district !== locality) {
-        parts.push(district);
-      }
-
-      const state = extract('administrative_area_level_1');
-      if (state) {
-        parts.push(state);
-      }
-
-      const pincode = extract('postal_code');
-      if (pincode) {
-        parts.push(pincode);
-      }
-
-      const country = extract('country');
-      if (country) {
-        parts.push(country);
-      }
-
-      return parts.length > 0 ? parts.join(', ') : best.formatted_address || null;
+      // 2026-05-13: return Google's canonical formatted_address as-is.
+      // The prior hand-rolled assembly read sublocality_level_1 only
+      // (dropping _2 and _3 segments like "Yashaswi Nagar" / "Dhokali")
+      // and read admin_area_level_2 instead of _3 (so "Konkan Division"
+      // replaced "Thane"). Google's formatted_address is locale-aware
+      // and already chooses the right segments per region; FE-side
+      // deriveCityStateCountry strips remaining admin-region noise via
+      // SKIP_TOKENS for the 3-line header derivation.
+      return body.results[0].formatted_address || null;
     } catch (error) {
       logger.error('Google reverse geocoding error:', error);
       return null;
