@@ -273,10 +273,15 @@ export const TaskDetailPage: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Task
-          </Button>
+          {/* Edit hidden on terminal statuses — BE locks operational fields
+              (address/pincode/etc) once the task starts; only PENDING +
+              ASSIGNED can fully edit. */}
+          {(task.status === 'PENDING' || task.status === 'ASSIGNED') && (
+            <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Task
+            </Button>
+          )}
           {task.taskType && (
             <Badge
               className={

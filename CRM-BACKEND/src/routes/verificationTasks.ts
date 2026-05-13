@@ -465,20 +465,22 @@ router.post(
 
         for (const taskId of taskIds) {
           // Update task assignment
+          // Only reassign tasks in PENDING / ASSIGNED state. Prior CASE
+          // statement also reset IN_PROGRESS → ASSIGNED, which silently
+          // un-started a task an FE was actively working on. Terminal
+          // statuses (COMPLETED / REVOKED) are excluded by the WHERE
+          // clause and return zero rows for that taskId.
           const result = await client.query(
             `
-            UPDATE verification_tasks 
-            SET 
+            UPDATE verification_tasks
+            SET
               assigned_to = $1,
               assigned_by = $2,
               assigned_at = NOW(),
-              status = CASE 
-                WHEN status = 'PENDING' THEN 'ASSIGNED'
-                WHEN status = 'COMPLETED' OR status = 'REVOKED' THEN status
-                ELSE 'ASSIGNED'
-              END,
+              status = 'ASSIGNED',
               updated_at = NOW()
             WHERE id = $3
+              AND status IN ('PENDING', 'ASSIGNED')
             RETURNING *
           `,
             [assignedTo, userId, taskId]

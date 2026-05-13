@@ -272,7 +272,7 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
                             </DropdownMenuItem>
                           )}
 
-                          {(task.status === 'IN_PROGRESS' || task.status === 'ASSIGNED') && (
+                          {task.status === 'IN_PROGRESS' && (
                             <DropdownMenuItem onClick={() => onCompleteTask(task.id)}>
                               <CheckCircle className="h-4 w-4 mr-2" />
                               Complete Task

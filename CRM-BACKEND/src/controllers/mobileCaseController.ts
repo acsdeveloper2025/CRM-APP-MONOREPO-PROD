@@ -751,20 +751,19 @@ export class MobileCaseController {
       }
 
       logger.info(`✅ Case found:`, existingCase);
-      const compAt = status === 'COMPLETED' ? new Date() : existingCase.completedat;
       const actualCaseId = existingCase.id; // Use the actual UUID from the database
 
+      // Don't directly write cases.status — the canonical 5-rule formula
+      // in CaseStatusSyncService.recalculateCaseStatus (called below) is
+      // the authority. Prior code SET status = $1 here then overwrote it
+      // 60 lines later, leaving the response body showing the pre-recalc
+      // value while the DB held the recalc result.
       await query(
-        `UPDATE cases SET status = $1, trigger = COALESCE($2, trigger), completed_at = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
-        [status, notes, compAt, actualCaseId]
+        `UPDATE cases SET trigger = COALESCE($1, trigger), updated_at = CURRENT_TIMESTAMP WHERE id = $2`,
+        [notes, actualCaseId]
       );
-      const updRes = await query(
-        `SELECT id, case_id, status, updated_at, completed_at FROM cases WHERE id = $1`,
-        [actualCaseId]
-      );
-      const updatedCase = updRes.rows[0];
 
-      logger.info(`✅ Case status updated successfully:`, updatedCase);
+      logger.info(`✅ Case status update accepted for ${actualCaseId} (requested: ${status})`);
 
       await createAuditLog({
         action: 'CASE_STATUS_UPDATED',
@@ -812,8 +811,22 @@ export class MobileCaseController {
         // Don't fail the case update if WebSocket notification fails
       }
 
-      // Sync case status
+      // Sync case status — single source of truth for cases.status.
       await CaseStatusSyncService.recalculateCaseStatus(actualCaseId);
+
+      // Re-read the case AFTER recalc so the response reflects the
+      // formula-derived status, not user input.
+      const updRes = await query<{
+        id: string;
+        caseId: number;
+        status: string;
+        updatedAt: Date;
+        completedAt: Date | null;
+      }>(
+        `SELECT id, case_id as "caseId", status, updated_at as "updatedAt", completed_at as "completedAt" FROM cases WHERE id = $1`,
+        [actualCaseId]
+      );
+      const updatedCase = updRes.rows[0];
 
       res.json({
         success: true,
