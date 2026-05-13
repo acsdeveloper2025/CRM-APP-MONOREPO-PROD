@@ -134,6 +134,11 @@ const createMarkerInfoWindowContent = (user: FieldMonitoringRosterItem): string 
     <div style="min-width:220px;padding:4px 2px;font-family:inherit;">
       <div style="font-size:14px;font-weight:700;color:#111827;margin-bottom:8px;">${escapeHtml(user.name)}</div>
       ${infoRows}
+      <button
+        type="button"
+        data-refresh-userid="${escapeHtml(user.id)}"
+        style="margin-top:10px;width:100%;padding:6px 10px;font-size:12px;font-weight:600;color:#ffffff;background-color:#16a34a;border:none;border-radius:6px;cursor:pointer;"
+      >🔄 Get fresh location</button>
     </div>
   `;
 };
@@ -346,14 +351,22 @@ function FieldMonitoringRosterView() {
   // admin's own button click), clear that row's spinner.
   useEffect(() => {
     const unsubscribe = frontendSocketService.onFieldMonitoringLocationUpdated((payload) => {
+      let wasMyPing = false;
       setPendingPings((current) => {
         if (!current.has(payload.userId)) {
           return current;
         }
+        wasMyPing = true;
         const next = new Set(current);
         next.delete(payload.userId);
         return next;
       });
+      // Surface a success toast only for THIS admin's own pings (not
+      // for every TASK-source capture from every agent — that would
+      // be a spam fire-hose at 1000 agents).
+      if (wasMyPing && payload.source === 'ADMIN_PING') {
+        toast.success('Fresh location received');
+      }
       void queryClient.invalidateQueries({ queryKey: ['field-monitoring'] });
     });
     return () => {
@@ -412,6 +425,49 @@ function FieldMonitoringRosterView() {
       }
     },
     [pendingPings]
+  );
+
+  // 2026-05-13: bridge from map-marker InfoWindow (raw innerHTML) into
+  // the React handler. createMarkerInfoWindowContent embeds a button
+  // with data-refresh-userid attribute; this document-level click
+  // listener delegates the click into handleRefreshLocation. Reattaches
+  // when handleRefreshLocation identity changes.
+  useEffect(() => {
+    const onClick = (event: Event) => {
+      const target = event.target as HTMLElement | null;
+      const button = target?.closest<HTMLElement>('[data-refresh-userid]');
+      const userId = button?.dataset.refreshUserid;
+      if (userId) {
+        event.preventDefault();
+        event.stopPropagation();
+        void handleRefreshLocation(userId);
+      }
+    };
+    document.addEventListener('click', onClick);
+    return () => {
+      document.removeEventListener('click', onClick);
+    };
+  }, [handleRefreshLocation]);
+
+  // 2026-05-13: bulk-refresh — fires one FCM ping per currently-visible
+  // agent. Per Q4.A there's no rate-limit, but we serialize the dispatch
+  // here client-side so we don't open 200 parallel HTTP requests when
+  // an admin clicks on a fully-loaded map (MAP_PAGE_SIZE=200). One agent
+  // every ~30ms is plenty fast and stays kind to FCM quota.
+  const handleBulkRefresh = useCallback(
+    async (userIds: string[]) => {
+      const targets = userIds.filter((id) => !pendingPings.has(id));
+      if (targets.length === 0) {
+        return;
+      }
+      toast.info(`Refreshing ${targets.length} agent${targets.length === 1 ? '' : 's'}…`);
+      for (const userId of targets) {
+        void handleRefreshLocation(userId);
+        // Stagger to avoid spamming BE/FCM
+        await new Promise((resolve) => window.setTimeout(resolve, 30));
+      }
+    },
+    [pendingPings, handleRefreshLocation]
   );
 
   const {
@@ -666,10 +722,33 @@ function FieldMonitoringRosterView() {
             onValueChange={(value) => setActiveView(value as 'table' | 'map')}
             className="space-y-4"
           >
-            <TabsList className="grid w-full max-w-sm grid-cols-2">
-              <TabsTrigger value="table">Table View</TabsTrigger>
-              <TabsTrigger value="map">Map View</TabsTrigger>
-            </TabsList>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <TabsList className="grid w-full max-w-sm grid-cols-2">
+                <TabsTrigger value="table">Table View</TabsTrigger>
+                <TabsTrigger value="map">Map View</TabsTrigger>
+              </TabsList>
+              {(activeView === 'table' ? roster : mapRoster).length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  disabled={pendingPings.size > 0}
+                  onClick={() =>
+                    handleBulkRefresh(
+                      (activeView === 'table' ? roster : mapRoster).map((u) => u.id)
+                    )
+                  }
+                  title={
+                    pendingPings.size > 0
+                      ? `${pendingPings.size} ping(s) in flight`
+                      : 'Refresh all visible agents'
+                  }
+                >
+                  <RefreshCw className={`h-4 w-4 ${pendingPings.size > 0 ? 'animate-spin' : ''}`} />
+                  Refresh all visible
+                </Button>
+              )}
+            </div>
 
             <TabsContent value="table" className="space-y-4">
               {rosterLoading && !rosterResponse ? (
