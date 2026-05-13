@@ -29,7 +29,10 @@ export interface CreateVerificationTypeData {
   name: string;
   code: string;
   description?: string;
-  category: string;
+  // `category` is currently a stub on the backend — the verification_types
+  // table has no such column (see verificationTypesController.ts:296). Kept
+  // optional so legacy callers compile; new callers should omit it.
+  category?: string;
   isActive?: boolean;
   fields?: {
     name: string;

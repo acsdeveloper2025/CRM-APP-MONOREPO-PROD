@@ -290,7 +290,13 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
   // Add task
   const addTask = () => {
     const newTask: TaskFormData = {
-      id: Date.now().toString(),
+      // crypto.randomUUID avoids the Date.now() collision when two tasks
+      // are added inside the same millisecond (rare but reproducible on a
+      // double-click). IDs are local-only state keys, never persisted.
+      id:
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `task-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       applicantType: '',
       verificationTypeId: null,
       rateTypeId: '',

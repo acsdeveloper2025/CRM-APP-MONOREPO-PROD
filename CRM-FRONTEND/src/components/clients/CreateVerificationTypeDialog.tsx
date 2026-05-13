@@ -40,7 +40,6 @@ export function CreateVerificationTypeDialog({
     defaultValues: {
       name: '',
       code: '',
-      category: 'General',
     },
   });
 
@@ -49,7 +48,6 @@ export function CreateVerificationTypeDialog({
       verificationTypesService.createVerificationType({
         name: data.name,
         code: data.code,
-        category: data.category,
       }),
     queryKey: ['verification-types'],
     resourceName: 'Verification Type',

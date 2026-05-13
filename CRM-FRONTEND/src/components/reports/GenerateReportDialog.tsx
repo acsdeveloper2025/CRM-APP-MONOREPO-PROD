@@ -58,6 +58,15 @@ export function GenerateReportDialog({ open, onOpenChange }: GenerateReportDialo
     to: new Date(),
   });
 
+  // dateRange lives outside react-hook-form, so form.reset() in onSuccess
+  // doesn't restore it — without this effect, the previously-picked range
+  // persisted across dialog opens.
+  React.useEffect(() => {
+    if (!open) {
+      setDateRange({ from: addDays(new Date(), -30), to: new Date() });
+    }
+  }, [open]);
+
   const form = useForm<GenerateReportFormData>({
     resolver: zodResolver(generateReportSchema),
     defaultValues: {

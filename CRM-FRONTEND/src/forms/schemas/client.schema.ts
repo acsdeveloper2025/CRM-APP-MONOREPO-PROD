@@ -49,10 +49,10 @@ const baseVerificationTypeShape = {
   code: z.string().min(2, 'Code is required').max(50, 'Code too long'),
 };
 
-export const createVerificationTypeFormSchema = z.object({
-  ...baseVerificationTypeShape,
-  category: z.string().min(1, 'Category is required'),
-});
+// `category` was present in the Create schema (default 'General') but the
+// verification_types table doesn't have a category column — backend silently
+// dropped it. Removed from both schemas to avoid the dead-data round-trip.
+export const createVerificationTypeFormSchema = z.object(baseVerificationTypeShape);
 export type CreateVerificationTypeFormData = z.infer<typeof createVerificationTypeFormSchema>;
 
 export const editVerificationTypeFormSchema = z.object(baseVerificationTypeShape);
