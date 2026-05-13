@@ -326,6 +326,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                disabled={updateMutation.isPending}
                 className="w-full sm:w-auto"
               >
                 Cancel

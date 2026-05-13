@@ -76,6 +76,12 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
   };
 
   const handleClose = () => {
+    // Don't reset / close while a mutation is in flight — Esc + Cancel
+    // both route through here, and resetting form state mid-update can
+    // surface stale values if the mutation later errors.
+    if (updateDocumentTypeMutation.isPending) {
+      return;
+    }
     form.reset();
     onOpenChange(false);
   };
@@ -131,6 +137,7 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
                 type="button"
                 variant="outline"
                 onClick={handleClose}
+                disabled={updateDocumentTypeMutation.isPending}
                 className="w-full sm:w-auto"
               >
                 Cancel
