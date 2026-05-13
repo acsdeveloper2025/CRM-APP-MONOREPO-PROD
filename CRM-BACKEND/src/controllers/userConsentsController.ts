@@ -48,10 +48,7 @@ const normalizeIp = (raw: string | undefined): string | null => {
  * if BE-side write fails, the mobile already has local-KV acceptance
  * gating the UI; we just lose the BE audit row for this attempt.
  */
-export const acceptConsent = async (
-  req: AuthenticatedRequest,
-  res: Response
-): Promise<void> => {
+export const acceptConsent = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -137,10 +134,7 @@ export const acceptConsent = async (
  * policy version they've accepted, newest first). Used by the FE user-
  * detail page's Consent section + audit/compliance flows.
  */
-export const getUserConsents = async (
-  req: AuthenticatedRequest,
-  res: Response
-): Promise<void> => {
+export const getUserConsents = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const targetUserId =
       typeof req.params.id === 'string' ? req.params.id : String(req.params.id || '');
