@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
@@ -118,8 +118,8 @@ export const InProgressTasksPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">In Progress Tasks</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">In Progress Tasks</h1>
+          <p className="mt-2 text-muted-foreground">
             Verification tasks currently being worked on by field agents
           </p>
         </div>
@@ -128,57 +128,62 @@ export const InProgressTasksPage: React.FC = () => {
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total In Progress</CardTitle>
-            <Play className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalInProgress}</div>
-            <p className="text-xs text-gray-600">Active tasks</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Play className="h-8 w-8 text-blue-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Total In Progress</p>
+                <p className="text-2xl font-bold text-foreground">{totalInProgress}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Long Running</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{longRunningTasks}</div>
-            <p className="text-xs text-gray-600">&gt; 24 hours</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Clock className="h-8 w-8 text-yellow-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Long Running</p>
+                <p className="text-2xl font-bold text-foreground">{longRunningTasks}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">High Priority</CardTitle>
-            <TrendingUp className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{urgent + highPriority}</div>
-            <p className="text-xs text-gray-600">Urgent + High</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <TrendingUp className="h-8 w-8 text-red-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">High Priority</p>
+                <p className="text-2xl font-bold text-foreground">{urgent + highPriority}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Agents</CardTitle>
-            <Users className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalAgents}</div>
-            <p className="text-xs text-gray-600">Field agents</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Users className="h-8 w-8 text-green-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Active Agents</p>
+                <p className="text-2xl font-bold text-foreground">{totalAgents}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Duration</CardTitle>
-            <TrendingUp className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{Math.round(avgDuration)}h</div>
-            <p className="text-xs text-gray-600">Average runtime</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <TrendingUp className="h-8 w-8 text-purple-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Avg Duration</p>
+                <p className="text-2xl font-bold text-foreground">{Math.round(avgDuration)}h</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

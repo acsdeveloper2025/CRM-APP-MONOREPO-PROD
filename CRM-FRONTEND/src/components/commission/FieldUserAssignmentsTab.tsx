@@ -119,7 +119,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
         rateTypeApi.getRateTypes({ isActive: true }),
       ]);
 
-      setUsers(usersResponse.data);
+      setUsers(usersResponse.data ?? []);
       setRateTypes(rateTypesResponse.data);
     } catch (error) {
       logger.error('Error loading data:', error);
@@ -546,7 +546,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                   options={(rateTypes || []).map((rateType) => ({
                     value: rateType.id.toString(),
                     label: rateType.name,
-                    description: `Rate: ${(rateType as unknown).rateAmount || 'Not set'}`,
+                    description: `Rate: ${(rateType as unknown as Record<string, unknown>).rateAmount || 'Not set'}`,
                   }))}
                   value={formData.rateTypeId ? formData.rateTypeId.toString() : ''}
                   onValueChange={(value) =>

@@ -96,7 +96,6 @@ export interface NotificationPayload {
   title?: string;
   data?: Record<string, unknown>;
   createdAt: string;
-  createdAt?: string;
   read?: boolean;
   userId?: string;
   priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';

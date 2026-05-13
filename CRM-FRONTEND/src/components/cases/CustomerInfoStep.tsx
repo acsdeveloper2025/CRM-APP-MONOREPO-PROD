@@ -95,7 +95,7 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
 
   // Watch for form changes to reset deduplication
   useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
+    const subscription = form.watch((_value, { name }) => {
       // Reset deduplication when key fields change
       if (
         name &&

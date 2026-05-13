@@ -16,7 +16,7 @@ export type {
 } from './api';
 
 // Authentication & User Types
-export type { Role, User, LoginRequest, UuidLoginRequest, LoginResponse, AuthState } from './auth';
+export type { Role, User, LoginRequest, LoginResponse, AuthState } from './auth';
 
 // User Management Types
 export type {

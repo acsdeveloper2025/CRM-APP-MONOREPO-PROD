@@ -59,7 +59,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
     if (task) {
       setPriority(task.priority);
       if (task.assignedTo) {
-        setAssignedTo(task.assignedTo.id);
+        setAssignedTo(task.assignedTo);
       }
     }
   }, [task]);

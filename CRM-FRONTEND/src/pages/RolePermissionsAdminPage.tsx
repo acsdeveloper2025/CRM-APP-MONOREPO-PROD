@@ -267,7 +267,7 @@ export default function RolePermissionsAdminPage() {
     if (selectedPermissionCodes.length === 0) {
       return false;
     }
-    const mobileSet = new Set(MOBILE_PERMISSIONS);
+    const mobileSet = new Set<string>(MOBILE_PERMISSIONS);
     return selectedPermissionCodes.every((code) => mobileSet.has(code));
   }, [selectedPermissionCodes, MOBILE_PERMISSIONS]);
 

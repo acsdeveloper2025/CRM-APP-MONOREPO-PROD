@@ -76,7 +76,7 @@ export function UsersPage() {
 
   const queryTab = searchParams.get('tab');
   const derivedTab = segmentToTab(tabParam) ?? (queryTab as UserTab | null) ?? 'users';
-  const activeTab: UserTab = validTabs.includes(derivedTab as (typeof validTabs)[number])
+  const activeTab: UserTab = (validTabs as readonly UserTab[]).includes(derivedTab)
     ? derivedTab
     : 'users';
 

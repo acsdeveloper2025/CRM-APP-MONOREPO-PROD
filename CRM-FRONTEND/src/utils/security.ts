@@ -1,4 +1,5 @@
 // Input sanitization and validation utilities
+import { logger } from './logger';
 
 export class SecurityUtils {
   // XSS Protection

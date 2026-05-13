@@ -19,7 +19,7 @@ export interface CreateCaseWithMultipleTasksPayload {
     applicantType?: string;
     backendContactNumber?: string;
     priority: string;
-    pincode: string;
+    pincode?: string;
     trigger?: string;
     deduplicationDecision?: string;
     deduplicationRationale?: string;
@@ -50,6 +50,14 @@ export interface CreateCaseWithMultipleTasksPayload {
     areaId?: number;
     applicantType?: string;
     trigger?: string;
+  }>;
+  kycDocuments?: Array<{
+    documentType: string;
+    documentNumber?: string;
+    documentHolderName?: string;
+    documentDetails?: Record<string, unknown>;
+    description?: string;
+    assignedTo?: string;
   }>;
 }
 

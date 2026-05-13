@@ -158,10 +158,10 @@ export function ReportsPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {dashboardData?.data?.totalReports || 0}
+                      {(dashboardData?.data as { totalReports?: number } | undefined)?.totalReports || 0}
                     </div>
                     <p className="text-xs text-gray-600">
-                      {dashboardData?.data?.recentReports || 0} this week
+                      {(dashboardData?.data as { recentReports?: number } | undefined)?.recentReports || 0} this week
                     </p>
                   </CardContent>
                 </Card>
@@ -186,7 +186,7 @@ export function ReportsPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">
-                      {dashboardData?.data?.averageTurnaround || 0}h
+                      {(dashboardData?.data as { averageTurnaround?: number } | undefined)?.averageTurnaround || 0}h
                     </div>
                     <p className="text-xs text-gray-600">Target: 24h</p>
                   </CardContent>

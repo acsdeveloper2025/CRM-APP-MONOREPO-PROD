@@ -23,7 +23,7 @@ export interface AppNotification {
 }
 
 interface NotificationsResponse {
-  data: AppNotification[];
+  items: AppNotification[];
   unreadCount: number;
   pagination: {
     total: number;
@@ -84,9 +84,10 @@ export const notificationService = {
     if (params?.caseId) {
       queryParams.caseId = params.caseId;
     }
-    const response = (await apiService.get<AppNotification[]>('/notifications', queryParams, {
-      useCache: false,
-    })) as unknown as NotificationListApiResponse;
+    const response = (await apiService.get<AppNotification[]>(
+      '/notifications',
+      queryParams,
+    )) as unknown as NotificationListApiResponse;
 
     if (Array.isArray(response.data)) {
       validateResponse(NotificationListSchema, response.data, {
@@ -95,38 +96,37 @@ export const notificationService = {
       });
     }
 
+    const p = response.pagination;
     return {
       items: response.data || [],
       unreadCount: response.unreadCount || 0,
-      pagination: response.pagination || {
-        total: 0,
-        limit: params?.limit ?? 20,
-        offset: params?.offset ?? 0,
-        hasMore: false,
+      pagination: {
+        total: p?.total ?? 0,
+        limit: p?.limit ?? params?.limit ?? 20,
+        offset: p?.offset ?? params?.offset ?? 0,
+        hasMore: p?.hasMore ?? false,
       },
     } satisfies NotificationsResponse;
   },
 
   async markRead(notificationId: string) {
-    return apiService.put(`/notifications/${notificationId}/read`, undefined, { useCache: false });
+    return apiService.put(`/notifications/${notificationId}/read`, undefined);
   },
 
   async markUnread(notificationId: string) {
-    return apiService.put(`/notifications/${notificationId}/unread`, undefined, {
-      useCache: false,
-    });
+    return apiService.put(`/notifications/${notificationId}/unread`, undefined);
   },
 
   async markAllRead() {
-    return apiService.put('/notifications/mark-all-read', undefined, { useCache: false });
+    return apiService.put('/notifications/mark-all-read', undefined);
   },
 
   async remove(notificationId: string) {
-    return apiService.delete(`/notifications/${notificationId}`, { useCache: false });
+    return apiService.delete(`/notifications/${notificationId}`);
   },
 
   async clearAll() {
-    return apiService.delete('/notifications', { useCache: false });
+    return apiService.delete('/notifications');
   },
 
   // Phase 2.2 (2026-05-04): restore soft-deleted notification(s) within
@@ -135,13 +135,11 @@ export const notificationService = {
   // with body.ids[]). Used by the frontend "Undo" toast that fires
   // after a delete or clear-all action.
   async restore(notificationId: string) {
-    return apiService.put(`/notifications/${notificationId}/restore`, undefined, {
-      useCache: false,
-    });
+    return apiService.put(`/notifications/${notificationId}/restore`, undefined);
   },
 
   async restoreBatch(ids: string[]) {
-    return apiService.put('/notifications/restore', { ids }, { useCache: false });
+    return apiService.put('/notifications/restore', { ids });
   },
 
   // Phase 3.1 (2026-05-04): case-scoped timeline. Returns every
@@ -153,7 +151,6 @@ export const notificationService = {
     return apiService.get<CaseNotificationTimelineRow[]>(
       `/cases/${caseUuid}/notifications/timeline`,
       undefined,
-      { useCache: false }
     );
   },
 
@@ -164,15 +161,11 @@ export const notificationService = {
   // case-detail timeline tab uses a different endpoint and is NOT
   // filtered (read-receipts continue to flow there).
   async muteCase(caseId: string, expiresAt?: string) {
-    return apiService.post(
-      '/notifications/mute',
-      { caseId, expiresAt: expiresAt ?? null },
-      { useCache: false }
-    );
+    return apiService.post('/notifications/mute', { caseId, expiresAt: expiresAt ?? null });
   },
 
   async unmuteCase(caseId: string) {
-    return apiService.delete(`/notifications/mute/case/${caseId}`, { useCache: false });
+    return apiService.delete(`/notifications/mute/case/${caseId}`);
   },
 
   async listMutes() {
@@ -184,15 +177,13 @@ export const notificationService = {
         createdAt: string;
         expiresAt: string | null;
       }>
-    >('/notifications/mutes', undefined, { useCache: false });
+    >('/notifications/mutes', undefined);
   },
 
   async validateNavigationTarget(notification: AppNotification): Promise<string | null> {
     try {
       if (notification.caseId) {
-        const response = await apiService.get(`/cases/${notification.caseId}`, undefined, {
-          useCache: false,
-        });
+        const response = await apiService.get(`/cases/${notification.caseId}`, undefined);
         return response.success
           ? `/case-management/${notification.caseNumber || notification.caseId}`
           : null;
@@ -202,9 +193,6 @@ export const notificationService = {
         const response = await apiService.get(
           `/verification-tasks/${notification.taskId}`,
           undefined,
-          {
-            useCache: false,
-          }
         );
         return response.success
           ? `/task-management/${notification.taskNumber || notification.taskId}`
@@ -227,15 +215,11 @@ export const notificationService = {
   // row with defaults on first GET, so it's safe to call from a fresh
   // user.
   async getPreferences() {
-    return apiService.get<NotificationPreferences>('/notifications/preferences', undefined, {
-      useCache: false,
-    });
+    return apiService.get<NotificationPreferences>('/notifications/preferences', undefined);
   },
 
   async updatePreferences(payload: Partial<NotificationPreferences>) {
-    return apiService.put<NotificationPreferences>('/notifications/preferences', payload, {
-      useCache: false,
-    });
+    return apiService.put<NotificationPreferences>('/notifications/preferences', payload);
   },
 };
 

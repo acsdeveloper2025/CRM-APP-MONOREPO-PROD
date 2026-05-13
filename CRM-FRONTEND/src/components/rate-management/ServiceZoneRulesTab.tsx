@@ -435,11 +435,11 @@ export function ServiceZoneRulesTab() {
             </div>
           </div>
 
-          {(createRuleMutation.error || updateRuleMutation.error) && (
+          {!!(createRuleMutation.error || updateRuleMutation.error) && (
             <Alert variant="destructive">
               <AlertDescription>
-                {createRuleMutation.error?.message ||
-                  updateRuleMutation.error?.message ||
+                {(createRuleMutation.error as Error | undefined)?.message ||
+                  (updateRuleMutation.error as Error | undefined)?.message ||
                   'Unable to save rate type rule'}
               </AlertDescription>
             </Alert>

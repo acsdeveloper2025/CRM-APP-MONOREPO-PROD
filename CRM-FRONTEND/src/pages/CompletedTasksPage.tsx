@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
@@ -131,73 +131,79 @@ export const CompletedTasksPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Completed Tasks</h1>
-          <p className="text-gray-600 mt-1">Verification tasks that have been completed</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Completed Tasks</h1>
+          <p className="mt-2 text-muted-foreground">Verification tasks that have been completed</p>
         </div>
-        {/* Refresh button moved to UnifiedSearchFilterLayout actions */}
       </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Completed</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalCompleted}</div>
-            <p className="text-xs text-gray-600">All completed</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">This Month</CardTitle>
-            <Calendar className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pagination.total}</div>
-            <p className="text-xs text-gray-600">Current period</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {totalCompleted > 0
-                ? Math.round(
-                    (totalCompleted / (totalCompleted + inProgress + pending + assigned)) * 100
-                  )
-                : 0}
-              %
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Total Completed</p>
+                <p className="text-2xl font-bold text-foreground">{totalCompleted}</p>
+              </div>
             </div>
-            <p className="text-xs text-gray-600">Overall rate</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg TAT</CardTitle>
-            <Clock className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{Math.round(avgTurnaround)} days</div>
-            <p className="text-xs text-gray-600">Average turnaround</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Calendar className="h-8 w-8 text-blue-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">This Month</p>
+                <p className="text-2xl font-bold text-foreground">{pagination.total}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today</CardTitle>
-            <Award className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{completedToday}</div>
-            <p className="text-xs text-gray-600">Completed today</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <TrendingUp className="h-8 w-8 text-purple-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Completion Rate</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {totalCompleted > 0
+                    ? Math.round(
+                        (totalCompleted / (totalCompleted + inProgress + pending + assigned)) * 100
+                      )
+                    : 0}
+                  %
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Clock className="h-8 w-8 text-orange-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Avg TAT</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {Math.round(avgTurnaround)} days
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Award className="h-8 w-8 text-green-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Today</p>
+                <p className="text-2xl font-bold text-foreground">{completedToday}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

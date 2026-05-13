@@ -39,17 +39,20 @@ export const useKYCTasks = (query: KYCTaskListQuery = {}) => {
   return useQuery({
     queryKey: kycKeys.tasks(query),
     queryFn: () => kycService.listTasks(query),
-    select: (response) => ({
-      data: response.data || [],
-      pagination: response.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 },
-      statistics: response.statistics || {
-        total: 0,
-        pending: 0,
-        passed: 0,
-        failed: 0,
-        referred: 0,
-      },
-    }),
+    select: (response) => {
+      const payload = response.data;
+      return {
+        data: payload?.data || [],
+        pagination: payload?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 },
+        statistics: payload?.statistics || {
+          total: 0,
+          pending: 0,
+          passed: 0,
+          failed: 0,
+          referred: 0,
+        },
+      };
+    },
   });
 };
 

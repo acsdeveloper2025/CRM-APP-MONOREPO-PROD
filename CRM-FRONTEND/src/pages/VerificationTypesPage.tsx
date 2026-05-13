@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, FileCheck, CheckCircle, XCircle, Layers, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';

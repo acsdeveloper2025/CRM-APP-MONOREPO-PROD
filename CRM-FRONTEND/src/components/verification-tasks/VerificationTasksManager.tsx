@@ -89,12 +89,6 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
     setShowCreateModal(false);
   };
 
-  const handleAssignTask = async (_assignmentData: unknown) => {
-    logger.warn('Not yet implemented: Assign task');
-    setShowAssignModal(false);
-    setSelectedTaskId(null);
-  };
-
   const handleCompleteTask = async (_completionData: unknown) => {
     logger.warn('Not yet implemented: Complete task');
     setShowCompleteModal(false);
@@ -307,7 +301,6 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
         <TaskAssignmentModal
           taskId={selectedTaskId}
           onClose={handleCloseAssignModal}
-          onSubmit={handleAssignTask}
         />
       )}
 

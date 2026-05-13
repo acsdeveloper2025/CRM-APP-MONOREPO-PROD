@@ -122,8 +122,14 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({ cases, i
                 </div>
               </TableCell>
               <TableCell>
-                <Badge className={getVerificationTypeBadgeStyle(caseItem.verificationType)}>
-                  {formatBadgeLabel(caseItem.verificationType || 'Not specified')}
+                <Badge
+                  className={getVerificationTypeBadgeStyle(
+                    caseItem.verificationTypeName || caseItem.verificationType
+                  )}
+                >
+                  {formatBadgeLabel(
+                    caseItem.verificationTypeName || caseItem.verificationType || 'Not specified'
+                  )}
                 </Badge>
               </TableCell>
               <TableCell>

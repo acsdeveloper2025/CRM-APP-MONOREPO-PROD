@@ -139,6 +139,9 @@ export const useDashboardKPI = () => {
           criticalOverdue: wl.slaRiskTasks?.value ?? 0,
           totalOverdue: wl.overdueTasks?.value ?? 0,
           totalActiveTasks: wl.openTasks?.value ?? 0,
+          onTrack: 0,
+          avgOverdueDays: 0,
+          completedToday: 0,
           overduePercentage:
             (wl.totalTasks?.value ?? 0) > 0
               ? ((wl.overdueTasks?.value ?? 0) / (wl.totalTasks?.value ?? 1)) * 100

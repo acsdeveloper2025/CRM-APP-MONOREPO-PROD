@@ -101,7 +101,13 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
 
   const tasks = taskData?.data || [];
   const pagination = taskData?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 };
-  const stats = taskData?.statistics || { total: 0, pending: 0, passed: 0, failed: 0, referred: 0 };
+  const stats = (taskData?.statistics || {
+    total: 0,
+    pending: 0,
+    passed: 0,
+    failed: 0,
+    referred: 0,
+  }) as { total: number; pending: number; passed: number; failed: number; referred: number };
 
   const handleExport = async () => {
     try {

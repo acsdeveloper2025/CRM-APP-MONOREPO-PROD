@@ -7,7 +7,7 @@ const MARKERCLUSTERER_SCRIPT_ID = 'crm-markerclusterer-script';
 
 // Marker clustering for 200+ markers at enterprise scale
 const loadMarkerClustererScript = async (): Promise<void> => {
-  if ((window as Record<string, unknown>).MarkerClusterer) {
+  if ((window as unknown as Record<string, unknown>).MarkerClusterer) {
     return;
   }
   const existing = document.getElementById(MARKERCLUSTERER_SCRIPT_ID);

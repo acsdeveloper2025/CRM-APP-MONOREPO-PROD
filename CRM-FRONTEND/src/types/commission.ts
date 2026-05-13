@@ -189,7 +189,13 @@ export interface CommissionQuery {
   search?: string;
   limit?: number;
   offset?: number;
-  sortBy?: 'createdAt' | 'caseCompletedAt' | 'calculatedCommission' | 'status';
+  sortBy?:
+    | 'createdAt'
+    | 'caseCompletedAt'
+    | 'calculatedCommission'
+    | 'status'
+    | 'approvedAt'
+    | 'paidAt';
   sortOrder?: 'asc' | 'desc';
 }
 

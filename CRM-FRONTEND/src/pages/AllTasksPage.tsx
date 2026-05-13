@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { logger } from '@/utils/logger';
@@ -112,71 +112,76 @@ export const AllTasksPage: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Page Header — matches CasesPage */}
-      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">All Tasks</h1>
-          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
-            Manage and track all verification tasks
-          </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">All Tasks</h1>
+          <p className="mt-2 text-muted-foreground">Manage and track all verification tasks</p>
         </div>
       </div>
 
-      {/* Statistics Cards — ABOVE search, matches CasesPage layout */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-            <ListTodo className="h-4 w-4 text-gray-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pagination.total}</div>
-            <p className="text-xs text-gray-600">All tasks</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.pending + statistics.assigned}</div>
-            <p className="text-xs text-gray-600">Awaiting action</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-            <Users className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.inProgress}</div>
-            <p className="text-xs text-gray-600">Currently active</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.completed}</div>
-            <p className="text-xs text-gray-600">Successfully done</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">High Priority</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {(statistics.urgent || 0) + (statistics.highPriority || 0)}
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <ListTodo className="h-8 w-8 text-gray-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Total Tasks</p>
+                <p className="text-2xl font-bold text-foreground">{pagination.total}</p>
+              </div>
             </div>
-            <p className="text-xs text-gray-600">Urgent + High</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Clock className="h-8 w-8 text-yellow-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Pending</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {statistics.pending + statistics.assigned}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Users className="h-8 w-8 text-blue-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">In Progress</p>
+                <p className="text-2xl font-bold text-foreground">{statistics.inProgress}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <CheckCircle2 className="h-8 w-8 text-green-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Completed</p>
+                <p className="text-2xl font-bold text-foreground">{statistics.completed}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <AlertTriangle className="h-8 w-8 text-red-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">High Priority</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {(statistics.urgent || 0) + (statistics.highPriority || 0)}
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

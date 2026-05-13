@@ -90,7 +90,7 @@ export const NotificationPreferencesSection: React.FC = () => {
     onSuccess: () => {
       toast.success('Notification preferences saved');
     },
-    onError: () => {
+    onErrorCallback: () => {
       toast.error('Failed to save notification preferences');
     },
   });

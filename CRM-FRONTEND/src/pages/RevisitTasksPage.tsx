@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
@@ -111,89 +111,95 @@ export const RevisitTasksPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Revisit Tasks</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Revisit Tasks</h1>
+          <p className="mt-2 text-muted-foreground">
             Verification tasks that have been cloned for re-verification
           </p>
         </div>
-        {/* Refresh button moved to UnifiedSearchFilterLayout actions */}
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revisit Tasks</CardTitle>
-            <Copy className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pagination.total}</div>
-            <p className="text-xs text-gray-600">All revisit tasks</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Copy className="h-8 w-8 text-blue-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Total Revisit Tasks</p>
+                <p className="text-2xl font-bold text-foreground">{pagination.total}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">This Month</CardTitle>
-            <Calendar className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {
-                tasks.filter((t) => {
-                  if (!t.createdAt) {
-                    return false;
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Calendar className="h-8 w-8 text-purple-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">This Month</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {
+                    tasks.filter((t) => {
+                      if (!t.createdAt) {
+                        return false;
+                      }
+                      const created = new Date(t.createdAt);
+                      const now = new Date();
+                      return (
+                        created.getMonth() === now.getMonth() &&
+                        created.getFullYear() === now.getFullYear()
+                      );
+                    }).length
                   }
-                  const created = new Date(t.createdAt);
-                  const now = new Date();
-                  return (
-                    created.getMonth() === now.getMonth() &&
-                    created.getFullYear() === now.getFullYear()
-                  );
-                }).length
-              }
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-gray-600">Current period</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {pagination.total > 0
-                ? Math.round((statistics.completed / pagination.total) * 100)
-                : 0}
-              %
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <TrendingUp className="h-8 w-8 text-green-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Completion Rate</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {pagination.total > 0
+                    ? Math.round((statistics.completed / pagination.total) * 100)
+                    : 0}
+                  %
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-gray-600">Completed revisits</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{statistics.pending + statistics.assigned}</div>
-            <p className="text-xs text-gray-600">Awaiting verification</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Clock className="h-8 w-8 text-orange-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Pending</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {statistics.pending + statistics.assigned}
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">High Priority</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {(statistics.urgent || 0) + (statistics.highPriority || 0)}
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <AlertTriangle className="h-8 w-8 text-red-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">High Priority</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {(statistics.urgent || 0) + (statistics.highPriority || 0)}
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-gray-600">Urgent + High</p>
           </CardContent>
         </Card>
       </div>

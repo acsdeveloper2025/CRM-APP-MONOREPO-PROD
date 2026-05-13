@@ -169,7 +169,7 @@ class AttachmentsService extends BaseApiService {
    * Get attachment serve URL for preview
    */
   getAttachmentServeUrl(id: string): string {
-    return `${this.baseURL}/${id}/serve`;
+    return `${this.baseEndpoint}/${id}/serve`;
   }
 
   /**

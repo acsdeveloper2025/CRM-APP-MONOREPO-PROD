@@ -86,8 +86,8 @@ export function RateAssignmentTab() {
     if (availableRateTypesData?.data) {
       const inputs: Record<string, RateInput> = {};
       availableRateTypesData.data.forEach((rateType) => {
-        inputs[rateType.rateTypeId] = {
-          rateTypeId: rateType.rateTypeId,
+        inputs[rateType.id] = {
+          rateTypeId: String(rateType.id),
           amount: rateType.currentAmount?.toString() || '',
           currency: 'INR',
         };
@@ -297,7 +297,13 @@ export function RateAssignmentTab() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {availableRateTypes.map((rateType: unknown) => {
+                    {(availableRateTypes as unknown as Array<{
+                      rateTypeId: number;
+                      rateTypeName: string;
+                      rateTypeDescription?: string;
+                      hasRate: boolean;
+                      currentAmount?: number;
+                    }>).map((rateType) => {
                       const rateInput = rateInputs[rateType.rateTypeId] || {
                         rateTypeId: rateType.rateTypeId,
                         amount: '',

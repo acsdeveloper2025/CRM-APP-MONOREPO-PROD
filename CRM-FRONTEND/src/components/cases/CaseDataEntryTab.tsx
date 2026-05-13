@@ -57,7 +57,9 @@ interface ApiErrorShape {
   };
 }
 
-const extractApiError = (err: unknown): ApiErrorShape['response']['data'] & { status?: number } => {
+const extractApiError = (
+  err: unknown,
+): NonNullable<ApiErrorShape['response']>['data'] & { status?: number } => {
   const e = err as ApiErrorShape;
   return {
     status: e.response?.status,

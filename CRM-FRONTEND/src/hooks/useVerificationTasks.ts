@@ -4,6 +4,7 @@ import { apiService as api } from '@/services/api';
 import { VerificationTasksService } from '@/services/verificationTasks';
 import type {
   AssignVerificationTaskRequest,
+  CommissionStatus,
   CreateVerificationTaskRequest,
   TasksForCaseResponse,
   UpdateVerificationTaskRequest,
@@ -50,25 +51,17 @@ const normalizeTaskForUi = (task: Record<string, unknown>): VerificationTask => 
     verificationTypeName: str(task.verificationTypeName),
     taskTitle: strReq(task.taskTitle, ''),
     taskDescription: str(task.taskDescription),
-    // Assignment — reshape flat fields into nested object for UI
-    assignedTo:
-      assignedToId || assignedToName
-        ? {
-            id: assignedToId || '',
-            name: assignedToName || 'Unassigned',
-            employeeId: assignedToEmployeeId,
-          }
-        : null,
+    // Assignment — `assignedTo` / `assignedBy` are flat user-ID strings.
+    // Joined display fields live on `assignedToName` / `assignedByName`.
+    assignedTo: assignedToId || null,
     assignedToName,
     assignedToEmployeeId,
-    assignedBy:
-      typeof task.assignedBy === 'string' && typeof task.assignedByName === 'string'
-        ? { id: task.assignedBy as string, name: task.assignedByName as string }
-        : null,
+    assignedBy: typeof task.assignedBy === 'string' ? task.assignedBy : null,
     assignedByName: str(task.assignedByName),
     assignedAt: str(task.assignedAt),
     // Task type — preserve all values, not just REVISIT
-    taskType: typeof task.taskType === 'string' ? task.taskType : null,
+    taskType:
+      typeof task.taskType === 'string' ? (task.taskType as 'REVISIT' | null) : null,
     parentTaskId: str(task.parentTaskId) ?? null,
     // Financial
     rateTypeId: num(task.rateTypeId),
@@ -88,7 +81,7 @@ const normalizeTaskForUi = (task: Record<string, unknown>): VerificationTask => 
     createdAt: strReq(task.createdAt, ''),
     updatedAt: strReq(task.updatedAt, ''),
     // Commission
-    commissionStatus: str(task.commissionStatus),
+    commissionStatus: str(task.commissionStatus) as CommissionStatus | undefined,
     calculatedCommission: num(task.calculatedCommission),
   };
 };
@@ -104,26 +97,20 @@ export const useVerificationTasks = (caseId: string) => {
         `/cases/${caseId}/verification-tasks`,
         { excludeTaskType: 'KYC' }
       );
+      const data = response.data as NonNullable<typeof response.data>;
       return {
-        caseId: typeof response.data.caseId === 'string' ? response.data.caseId : caseId,
+        caseId: typeof data.caseId === 'string' ? data.caseId : caseId,
         caseNumber:
-          typeof response.data.caseNumber === 'string' ||
-          typeof response.data.caseNumber === 'number'
-            ? String(response.data.caseNumber)
+          typeof data.caseNumber === 'string' || typeof data.caseNumber === 'number'
+            ? String(data.caseNumber)
             : '',
-        customerName:
-          typeof response.data.customerName === 'string' ? response.data.customerName : '',
-        totalTasks: typeof response.data.totalTasks === 'number' ? response.data.totalTasks : 0,
-        completedTasks:
-          typeof response.data.completedTasks === 'number' ? response.data.completedTasks : 0,
+        customerName: typeof data.customerName === 'string' ? data.customerName : '',
+        totalTasks: typeof data.totalTasks === 'number' ? data.totalTasks : 0,
+        completedTasks: typeof data.completedTasks === 'number' ? data.completedTasks : 0,
         completionPercentage:
-          typeof response.data.completionPercentage === 'number'
-            ? response.data.completionPercentage
-            : 0,
-        tasks: Array.isArray(response.data.tasks)
-          ? response.data.tasks.map((task) =>
-              normalizeTaskForUi(task as unknown as Record<string, unknown>)
-            )
+          typeof data.completionPercentage === 'number' ? data.completionPercentage : 0,
+        tasks: Array.isArray(data.tasks)
+          ? data.tasks.map((task) => normalizeTaskForUi(task as unknown as Record<string, unknown>))
           : [],
       };
     },

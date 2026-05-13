@@ -51,6 +51,11 @@ export interface VerificationTask {
   trigger?: string;
   applicantType?: string;
 
+  // KYC document fields (populated for KYC tasks only)
+  documentType?: string;
+  documentNumber?: string;
+  documentDetails?: Record<string, unknown>;
+
   // Timing and Completion
   estimatedCompletionDate?: string;
   startedAt?: string; // When task moved to IN_PROGRESS
@@ -121,15 +126,9 @@ export interface UpdateVerificationTaskRequest {
   applicantType?: string;
   estimatedCompletionDate?: string;
   caseId?: string;
-  // Legacy snakeCase keys kept for backward compatibility in older callers
-  taskTitle?: string;
-  taskDescription?: string;
-  verificationOutcome?: string;
-  actualAmount?: number;
   documentType?: string;
   documentNumber?: string;
   documentDetails?: Record<string, unknown>;
-  estimatedCompletionDate?: string;
 }
 
 export interface AssignVerificationTaskRequest {

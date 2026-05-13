@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -72,7 +72,7 @@ export const RevokedTasksPage: React.FC = () => {
   const highPriorityCount = (statistics?.highPriority || 0) + (statistics?.urgent || 0);
   const uniqueCases = new Set(tasks.map((t: VerificationTask) => t.caseId)).size;
   const uniqueFieldAgents = new Set(
-    tasks.map((t: VerificationTask) => t.assignedTo?.id).filter(Boolean)
+    tasks.map((t: VerificationTask) => t.assignedTo).filter(Boolean)
   ).size;
 
   const handleViewTask = (taskId: string) => {
@@ -99,120 +99,60 @@ export const RevokedTasksPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1
-            className="text-2xl sm:text-3xl font-bold tracking-tight"
-            style={{ color: '#000000' }}
-          >
-            Revoke Tasks
-          </h1>
-          <p className="mt-1" style={{ color: '#1F2937' }}>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Revoke Tasks</h1>
+          <p className="mt-2 text-muted-foreground">
             Verification tasks that have been revoked by field agents
           </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={async () => {
-              try {
-                toast.info('Generating Excel export...');
-                const blob = await VerificationTasksService.exportToExcel({ status: 'REVOKED' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `revoked_tasks_${new Date().toISOString().split('T')[0]}.xlsx`;
-                a.click();
-                window.URL.revokeObjectURL(url);
-                toast.success('Export downloaded');
-              } catch (err) {
-                logger.error('Export failed:', err);
-                toast.error('Export failed');
-              }
-            }}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Button
-            onClick={() => refreshTasks()}
-            variant="outline"
-            size="sm"
-            disabled={loading}
-            className="gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
         </div>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card style={{ backgroundColor: '#FFFFFF' }}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium" style={{ color: '#1F2937' }}>
-              Total Revoked
-            </CardTitle>
-            <XCircle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" style={{ color: '#000000' }}>
-              {totalRevoked}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <XCircle className="h-8 w-8 text-red-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Total Revoked</p>
+                <p className="text-2xl font-bold text-foreground">{totalRevoked}</p>
+              </div>
             </div>
-            <p className="text-xs mt-1" style={{ color: '#1F2937' }}>
-              Tasks revoked by field agents
-            </p>
           </CardContent>
         </Card>
 
-        <Card style={{ backgroundColor: '#FFFFFF' }}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium" style={{ color: '#1F2937' }}>
-              High Priority
-            </CardTitle>
-            <AlertTriangle className="h-4 w-4" style={{ color: '#10B981' }} />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" style={{ color: '#000000' }}>
-              {highPriorityCount}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <AlertTriangle className="h-8 w-8 text-orange-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">High Priority</p>
+                <p className="text-2xl font-bold text-foreground">{highPriorityCount}</p>
+              </div>
             </div>
-            <p className="text-xs mt-1" style={{ color: '#1F2937' }}>
-              Urgent attention needed
-            </p>
           </CardContent>
         </Card>
 
-        <Card style={{ backgroundColor: '#FFFFFF' }}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium" style={{ color: '#1F2937' }}>
-              Unique Cases
-            </CardTitle>
-            <Package className="h-4 w-4" style={{ color: '#10B981' }} />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" style={{ color: '#000000' }}>
-              {uniqueCases}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Package className="h-8 w-8 text-blue-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Unique Cases</p>
+                <p className="text-2xl font-bold text-foreground">{uniqueCases}</p>
+              </div>
             </div>
-            <p className="text-xs mt-1" style={{ color: '#1F2937' }}>
-              Cases with revoked tasks
-            </p>
           </CardContent>
         </Card>
 
-        <Card style={{ backgroundColor: '#FFFFFF' }}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium" style={{ color: '#1F2937' }}>
-              Field Agents
-            </CardTitle>
-            <UserCheck className="h-4 w-4" style={{ color: '#10B981' }} />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" style={{ color: '#000000' }}>
-              {uniqueFieldAgents}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <UserCheck className="h-8 w-8 text-green-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Field Agents</p>
+                <p className="text-2xl font-bold text-foreground">{uniqueFieldAgents}</p>
+              </div>
             </div>
-            <p className="text-xs mt-1" style={{ color: '#1F2937' }}>
-              Agents who revoked tasks
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -250,6 +190,36 @@ export const RevokedTasksPage: React.FC = () => {
               </Select>
             </div>
           </FilterGrid>
+        }
+        actions={
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={async () => {
+                try {
+                  toast.info('Generating Excel export...');
+                  const blob = await VerificationTasksService.exportToExcel({ status: 'REVOKED' });
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `revoked_tasks_${new Date().toISOString().split('T')[0]}.xlsx`;
+                  a.click();
+                  window.URL.revokeObjectURL(url);
+                  toast.success('Export downloaded');
+                } catch (err) {
+                  logger.error('Export failed:', err);
+                  toast.error('Export failed');
+                }
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Button variant="outline" onClick={() => refreshTasks()} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         }
       />
 

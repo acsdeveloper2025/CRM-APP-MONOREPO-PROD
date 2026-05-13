@@ -90,7 +90,7 @@ export interface CreateDocumentTypeData {
   name: string;
   code: string;
   description?: string;
-  category: DocumentCategory;
+  category?: DocumentCategory;
   isGovernmentIssued?: boolean;
   requiresVerification?: boolean;
   validityPeriodMonths?: number;

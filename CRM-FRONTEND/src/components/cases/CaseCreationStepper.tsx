@@ -50,7 +50,6 @@ interface CaseCreationStepperProps {
 }
 
 type Step = 'mode-selection' | 'customer-info' | 'case-details' | 'multi-task-details';
-type _CaseCreationMode = 'single-task' | 'multi-task';
 
 // Helper function to map verification type names to backend expected values
 const mapVerificationType = (verificationType: string): string => {
@@ -544,7 +543,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
         // The prior code awaited all attachment uploads before navigating,
         // which caused the spinner to hang for 30s+ if the upload failed
         // or the File object was garbage collected.
-        const caseData = response.data?.case || response.data?.data?.case;
+        const caseData = response.data?.case;
         const numericCaseId = caseData?.caseId != null ? String(caseData.caseId) : null;
         const navigateId = numericCaseId || (caseData?.id ? String(caseData.id) : null);
 

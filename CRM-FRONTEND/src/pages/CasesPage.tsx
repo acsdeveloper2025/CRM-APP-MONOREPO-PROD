@@ -159,80 +159,84 @@ export const CasesPage: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Page Header */}
-      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">All Cases</h1>
-          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
-            Manage and track all verification cases
-          </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">All Cases</h1>
+          <p className="mt-2 text-muted-foreground">Manage and track all verification cases</p>
         </div>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Cases</CardTitle>
-            <FileText className="h-4 w-4 text-gray-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalCases}</div>
-            <p className="text-xs text-gray-600">All verification cases</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <FileText className="h-8 w-8 text-gray-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Total Cases</p>
+                <p className="text-2xl font-bold text-foreground">{totalCases}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pendingCases}</div>
-            <p className="text-xs text-gray-600">Awaiting action</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Clock className="h-8 w-8 text-yellow-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Pending</p>
+                <p className="text-2xl font-bold text-foreground">{pendingCases}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-            <PlayCircle className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{inProgressCases}</div>
-            <p className="text-xs text-gray-600">Currently active</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <PlayCircle className="h-8 w-8 text-blue-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">In Progress</p>
+                <p className="text-2xl font-bold text-foreground">{inProgressCases}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{completedCases}</div>
-            <p className="text-xs text-gray-600">Successfully done</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Completed</p>
+                <p className="text-2xl font-bold text-foreground">{completedCases}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{overdueCases}</div>
-            <p className="text-xs text-gray-600">More than 2 days old</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <AlertTriangle className="h-8 w-8 text-red-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Overdue</p>
+                <p className="text-2xl font-bold text-foreground">{overdueCases}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revoked</CardTitle>
-            <XCircle className="h-4 w-4 text-gray-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{revokedCases}</div>
-            <p className="text-xs text-gray-600">Revoked cases</p>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <XCircle className="h-8 w-8 text-gray-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Revoked</p>
+                <p className="text-2xl font-bold text-foreground">{revokedCases}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -1,10 +1,24 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { CompletedCaseTable } from '@/components/cases/CompletedCaseTable';
 import { CasePagination } from '@/components/cases/CasePagination';
 import { useCases, useRefreshCases } from '@/hooks/useCases';
+import { useClients } from '@/hooks/useClients';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
+import {
+  UnifiedSearchFilterLayout,
+  FilterGrid,
+} from '@/components/ui/unified-search-filter-layout';
+import { usePermissionContext } from '@/contexts/PermissionContext';
 import { Download, RefreshCw, CheckCircle } from 'lucide-react';
 import { casesService, type CaseListQuery } from '@/services/cases';
 import { logger } from '@/utils/logger';
@@ -16,15 +30,29 @@ interface CompletedCaseFilters {
 }
 
 export const CompletedCasesPage: React.FC = () => {
+  const { hasPermissionCode } = usePermissionContext();
+  const canViewClientsFilter =
+    hasPermissionCode('client.view') || hasPermissionCode('page.masterdata');
+
   // Unified search with 800ms debounce
-  const { debouncedSearchValue } = useUnifiedSearch({
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({
+      syncWithUrl: true,
+    });
+
+  // Unified filters with URL sync
+  const {
+    filters: activeFilters,
+    setFilter,
+    clearFilters,
+    hasActiveFilters,
+  } = useUnifiedFilters<CompletedCaseFilters>({
     syncWithUrl: true,
   });
 
-  // Unified filters with URL sync
-  const { filters: activeFilters } = useUnifiedFilters<CompletedCaseFilters>({
-    syncWithUrl: true,
-  });
+  const { data: clientsData } = useClients({ limit: 1000 });
+  const clients = clientsData?.data || [];
+  const activeFilterCount = Object.values(activeFilters).filter(Boolean).length;
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -185,6 +213,66 @@ export const CompletedCasesPage: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Unified Search & Filter */}
+      <UnifiedSearchFilterLayout
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        onSearchClear={clearSearch}
+        isSearchLoading={isDebouncing}
+        searchPlaceholder="Search completed cases by ID, customer name, or description..."
+        hasActiveFilters={hasActiveFilters}
+        activeFilterCount={activeFilterCount}
+        onClearFilters={clearFilters}
+        filterContent={
+          <FilterGrid columns={canViewClientsFilter ? 2 : 1}>
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Select
+                value={(activeFilters.priority as string) || 'all'}
+                onValueChange={(value) =>
+                  setFilter('priority', value === 'all' ? undefined : value)
+                }
+              >
+                <SelectTrigger id="priority">
+                  <SelectValue placeholder="All priorities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Priorities</SelectItem>
+                  <SelectItem value="1">Low</SelectItem>
+                  <SelectItem value="2">Medium</SelectItem>
+                  <SelectItem value="3">High</SelectItem>
+                  <SelectItem value="4">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {canViewClientsFilter && (
+              <div className="space-y-2">
+                <Label htmlFor="client">Client</Label>
+                <Select
+                  value={(activeFilters.clientId as string) || 'all'}
+                  onValueChange={(value) =>
+                    setFilter('clientId', value === 'all' ? undefined : value)
+                  }
+                >
+                  <SelectTrigger id="client">
+                    <SelectValue placeholder="All clients" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Clients</SelectItem>
+                    {clients.map((client: { id: number; name: string }) => (
+                      <SelectItem key={client.id} value={client.id.toString()}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </FilterGrid>
+        }
+      />
 
       {/* Cases Table */}
       <Card>

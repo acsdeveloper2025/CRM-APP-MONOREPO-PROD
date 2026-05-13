@@ -95,7 +95,7 @@ export function DataEntryDashboardPage() {
     if (!raw) {
       return [];
     }
-    if (typeof raw === 'object' && 'data' in (raw as Record<string, unknown>)) {
+    if (typeof raw === 'object' && 'data' in (raw as unknown as Record<string, unknown>)) {
       return (raw as DashboardResponse).data ?? [];
     }
     return [];
@@ -103,7 +103,7 @@ export function DataEntryDashboardPage() {
 
   const pagination = useMemo(() => {
     const raw = dashboardRes?.data;
-    if (raw && typeof raw === 'object' && 'pagination' in (raw as Record<string, unknown>)) {
+    if (raw && typeof raw === 'object' && 'pagination' in (raw as unknown as Record<string, unknown>)) {
       return (raw as DashboardResponse).pagination;
     }
     return { total: 0, page: 1, limit: pageSize, totalPages: 1 };
