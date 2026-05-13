@@ -10,12 +10,38 @@ interface MISDataTableProps {
   isLoading?: boolean;
 }
 
+// Width hint per column — matches the natural shape of the rendered cell so
+// the skeleton bars don't visually jump when real data lands.
+const SKELETON_WIDTHS = [
+  'w-20', // Verification Task
+  'w-16', // Case ID
+  'w-32', // Customer Name
+  'w-16', // Pincode
+  'w-24', // Area
+  'w-40', // Address
+  'w-28', // Client
+  'w-24', // Product
+  'w-28', // Verification Type
+  'w-28', // Backend User
+  'w-28', // Field User
+  'w-20', // Rate Type
+  'w-20', // Trigger
+  'w-24', // Report
+  'w-24', // Status
+  'w-20', // Created
+  'w-20', // Completed At
+];
+const SKELETON_ROW_COUNT = 5;
+
 export function MISDataTable({
   data,
   pagination,
   onPageChange,
-  isLoading: _isLoading,
+  isLoading,
 }: MISDataTableProps) {
+  // Skeleton replaces the rows ONLY on initial load (no data yet). On refetch
+  // we keep the existing rows so the user doesn't lose their place.
+  const showSkeleton = isLoading === true && data.length === 0;
   const formatDate = (dateString: string | null) => {
     if (!dateString) {
       return '-';
@@ -120,7 +146,23 @@ export function MISDataTable({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {data.map((taskRow) => (
+              {showSkeleton
+                ? Array.from({ length: SKELETON_ROW_COUNT }).map((_, rowIdx) => (
+                    <tr key={`mis-skeleton-${rowIdx}`} aria-hidden="true">
+                      {SKELETON_WIDTHS.map((widthClass, colIdx) => (
+                        <td
+                          key={`mis-skeleton-${rowIdx}-${colIdx}`}
+                          className="px-4 py-4 whitespace-nowrap"
+                        >
+                          <div
+                            className={`h-4 ${widthClass} max-w-full bg-gray-200 rounded animate-pulse`}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                : null}
+              {!showSkeleton && data.map((taskRow) => (
                 <tr key={taskRow.taskId} className="hover:bg-green-50 transition-colors">
                   {/* 1. Verification Task Column */}
                   <td className="px-4 py-4 whitespace-nowrap">
@@ -243,38 +285,40 @@ export function MISDataTable({
         </div>
       </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between px-2">
-        <div className="text-sm text-gray-600">
-          Showing{' '}
-          <span className="font-medium">{(pagination.page - 1) * pagination.limit + 1}</span> to{' '}
-          <span className="font-medium">
-            {Math.min(pagination.page * pagination.limit, pagination.total)}
-          </span>{' '}
-          of <span className="font-medium">{pagination.total}</span> tasks
+      {/* Pagination — hidden while skeleton is showing (no real counts yet). */}
+      {!showSkeleton && (
+        <div className="flex items-center justify-between px-2">
+          <div className="text-sm text-gray-600">
+            Showing{' '}
+            <span className="font-medium">{(pagination.page - 1) * pagination.limit + 1}</span> to{' '}
+            <span className="font-medium">
+              {Math.min(pagination.page * pagination.limit, pagination.total)}
+            </span>{' '}
+            of <span className="font-medium">{pagination.total}</span> tasks
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => onPageChange(pagination.page - 1)}
+              disabled={pagination.page === 1}
+              variant="outline"
+              size="sm"
+            >
+              Previous
+            </Button>
+            <span className="px-3 py-2 text-sm text-gray-600">
+              Page {pagination.page} of {pagination.totalPages}
+            </span>
+            <Button
+              onClick={() => onPageChange(pagination.page + 1)}
+              disabled={pagination.page >= pagination.totalPages}
+              variant="outline"
+              size="sm"
+            >
+              Next
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => onPageChange(pagination.page - 1)}
-            disabled={pagination.page === 1}
-            variant="outline"
-            size="sm"
-          >
-            Previous
-          </Button>
-          <span className="px-3 py-2 text-sm text-gray-600">
-            Page {pagination.page} of {pagination.totalPages}
-          </span>
-          <Button
-            onClick={() => onPageChange(pagination.page + 1)}
-            disabled={pagination.page >= pagination.totalPages}
-            variant="outline"
-            size="sm"
-          >
-            Next
-          </Button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -181,12 +181,15 @@ export const CaseTable: React.FC<CaseTableProps> = React.memo(({ cases, isLoadin
                 <TableCell className="hidden lg:table-cell">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">{caseItem.totalTasks || 0}</span>
-                    <div className="flex items-center gap-1 text-xs text-gray-600">
+                    <div
+                      className="flex items-center gap-1 text-xs text-gray-600"
+                      title={`Completed: ${caseItem.completedTasks || 0} · In Progress: ${caseItem.inProgressTasks || 0} · Pending: ${caseItem.pendingTasks || 0}`}
+                    >
                       <span className="text-green-600">✓ {caseItem.completedTasks || 0}</span>
                       <span>|</span>
-                      <span className="text-yellow-600">
-                        ⏳ {(caseItem.pendingTasks || 0) + (caseItem.inProgressTasks || 0)}
-                      </span>
+                      <span className="text-blue-600">▶ {caseItem.inProgressTasks || 0}</span>
+                      <span>|</span>
+                      <span className="text-yellow-600">⏸ {caseItem.pendingTasks || 0}</span>
                     </div>
                   </div>
                 </TableCell>

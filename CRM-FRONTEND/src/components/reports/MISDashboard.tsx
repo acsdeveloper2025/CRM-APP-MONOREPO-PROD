@@ -25,7 +25,6 @@ import type { VerificationType } from '@/types/client';
 import { useClients, useProducts } from '@/hooks/useClients';
 import { useVerificationTypes } from '@/hooks/useVerificationTypes';
 import { useUsers } from '@/hooks/useUsers';
-import { LoadingState } from '@/components/ui/loading';
 import { isBackendScopedUser, isFieldAgentUser } from '@/utils/userPermissionProfiles';
 import { logger } from '@/utils/logger';
 
@@ -409,14 +408,26 @@ export function MISDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {data && data.data && data.data.length > 0 ? (
+          {/* During initial load (no data yet) we still render MISDataTable so
+              its skeleton rows preserve the column widths and spare the user
+              a layout jump when real rows land. The empty-state branch only
+              fires when the request settled with zero rows. */}
+          {(isLoading && (!data || !data.data || data.data.length === 0)) ||
+          (data && data.data && data.data.length > 0) ? (
             <MISDataTable
-              data={data.data}
-              pagination={data.pagination}
+              data={data?.data || []}
+              pagination={
+                data?.pagination ?? {
+                  page: 1,
+                  limit: pagination.limit,
+                  total: 0,
+                  totalPages: 0,
+                }
+              }
               onPageChange={handlePageChange}
               isLoading={isLoading}
             />
-          ) : !isLoading ? (
+          ) : (
             <div className="text-center py-8">
               <p className="text-gray-600">
                 {hasActiveFilters
@@ -424,8 +435,6 @@ export function MISDashboard() {
                   : 'No data available for the selected period.'}
               </p>
             </div>
-          ) : (
-            <LoadingState message="Generating report..." size="lg" />
           )}
         </CardContent>
       </Card>
