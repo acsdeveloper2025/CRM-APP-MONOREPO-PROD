@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
 import { createAuditLog } from '@/utils/auditLogger';
+import { enqueueReverseGeocode } from '@/queues/reverseGeocodeQueue';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
@@ -507,6 +508,23 @@ export class VerificationAttachmentController {
             photoType: attachment.photoType,
             geoLocation,
           });
+
+          // 2026-05-13: fire-and-forget reverse-geocode backfill so the
+          // address is populated shortly after upload (typically before
+          // the first admin view). Without this, GET /attachments/:id/
+          // address hits Google on every "first view" and leaves 67% of
+          // attachments unresolved indefinitely if not viewed.
+          if (
+            geoLocation &&
+            typeof geoLocation.latitude === 'number' &&
+            typeof geoLocation.longitude === 'number'
+          ) {
+            void enqueueReverseGeocode({
+              attachmentId: Number(attachment.id),
+              latitude: geoLocation.latitude,
+              longitude: geoLocation.longitude,
+            });
+          }
         } catch (fileError) {
           logger.error(`Error processing file ${file.originalname}:`, fileError);
           // Clean up file on error

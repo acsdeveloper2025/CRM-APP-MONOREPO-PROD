@@ -26,6 +26,10 @@ import {
 } from '@/middleware/performanceMonitoring';
 import { startAuditLogProcessor, stopAuditLogProcessor } from '@/queues/auditLogQueue';
 import { startNotificationProcessor, stopNotificationProcessor } from '@/queues/notificationQueue';
+import {
+  startReverseGeocodeProcessor,
+  stopReverseGeocodeProcessor,
+} from '@/queues/reverseGeocodeQueue';
 import { startDbMaintenance, stopDbMaintenance } from '@/services/dbMaintenanceService';
 // Migrations removed for production - use database import instead
 
@@ -126,6 +130,14 @@ const startServer = async (): Promise<void> => {
       // graceful shutdown can drain in-flight jobs deterministically.
       startNotificationProcessor();
 
+      // 2026-05-13: drain reverse-geocode backfill jobs. Producer is
+      // verificationAttachmentController.uploadVerificationImages (fire
+      // -and-forget enqueue post-INSERT) + scripts/backfillAddresses.ts
+      // for legacy NULL rows. Consumer hits Google + persists into
+      // verification_attachments.reverse_geocoded_address so the on-
+      // view fast path always finds a cached value.
+      startReverseGeocodeProcessor();
+
       // 2026-04-30 audit closure: schedule daily DB-side maintenance —
       // ensure_*_partitions (extend forward window) + purge_stale_*
       // (retention). Without this, partitioned tables eventually fall
@@ -205,6 +217,9 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
 
     // Close the notification bullmq queue + worker.
     await stopNotificationProcessor();
+
+    // Close reverse-geocode backfill queue + worker.
+    await stopReverseGeocodeProcessor();
 
     // Close enterprise cache service
     await EnterpriseCacheService.close();

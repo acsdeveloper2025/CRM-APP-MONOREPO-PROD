@@ -2,8 +2,19 @@ import type { Response } from 'express';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
 import { config } from '@/config';
+import { redisClient, isRedisHealthy } from '@/config/redis';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { MobileLocationController } from './mobileLocationController';
+
+// Server-side cache for the Static Maps proxy. Without this every fresh
+// browser session re-fetches the PNG from Google for each photo card
+// — at 20 photos/case × ~30 cases/day × $0.002 = ~$1.20/day at our
+// current scale, scaling linearly with case volume. Key is the
+// (lat, lng, size, zoom) tuple; same key always renders the same map.
+// TTL 7d so an updated map (rare) gets picked up; can be tuned via env.
+const STATIC_MAP_TTL_SECONDS = parseInt(process.env.STATIC_MAP_CACHE_TTL_SECONDS || '604800', 10);
+const staticMapCacheKey = (lat: number, lng: number, size: string, zoom: number): string =>
+  `gmap:${lat.toFixed(6)}:${lng.toFixed(6)}:${size}:${zoom}`;
 
 /**
  * Admin-side reverse geocoding. Used by the CRM web frontend when
@@ -246,6 +257,30 @@ export class GeocodeController {
         });
       }
 
+      // Redis cache lookup — same (lat, lng, size, zoom) always returns
+      // the same PNG, so cross-session traffic for the same photo card
+      // never re-hits Google. Stored as base64 because node-redis client
+      // returns strings by default.
+      const cacheKey = staticMapCacheKey(latitude, longitude, `${w}x${h}`, zoom);
+      if (isRedisHealthy()) {
+        try {
+          const cached = await redisClient.get(cacheKey);
+          if (cached) {
+            const buf = Buffer.from(cached, 'base64');
+            res.setHeader('Content-Type', 'image/png');
+            res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+            res.setHeader('X-Cache', 'HIT');
+            return res.send(buf);
+          }
+        } catch (cacheErr) {
+          // Cache miss / Redis blip → fall through to Google. Don't
+          // fail the request just because cache lookup tripped.
+          logger.warn('Static map cache lookup failed', {
+            error: cacheErr instanceof Error ? cacheErr.message : String(cacheErr),
+          });
+        }
+      }
+
       const url =
         `https://maps.googleapis.com/maps/api/staticmap` +
         `?center=${latitude},${longitude}` +
@@ -281,8 +316,24 @@ export class GeocodeController {
       }
       const arrayBuffer = await upstream.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
+
+      // Populate cache for the next visitor (best-effort; cache write
+      // failures should never break the response).
+      if (isRedisHealthy()) {
+        try {
+          await redisClient.set(cacheKey, buffer.toString('base64'), {
+            EX: STATIC_MAP_TTL_SECONDS,
+          });
+        } catch (cacheErr) {
+          logger.warn('Static map cache write failed', {
+            error: cacheErr instanceof Error ? cacheErr.message : String(cacheErr),
+          });
+        }
+      }
+
       res.setHeader('Content-Type', 'image/png');
       res.setHeader('Cache-Control', 'public, max-age=86400, immutable');
+      res.setHeader('X-Cache', 'MISS');
       return res.send(buffer);
     } catch (error) {
       logger.error('Static map proxy error:', error);
