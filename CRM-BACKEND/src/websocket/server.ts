@@ -258,6 +258,17 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
       void socket.join('perm:billing');
     }
 
+    // 2026-05-13: field-monitoring live map subscribers — receive
+    // `field-monitoring:location-updated` events on every new
+    // `locations` row INSERT so the admin's map repaints without
+    // polling.
+    if (
+      socket.user.permissionCodes.includes('*') ||
+      socket.user.permissionCodes.includes('page.field_monitoring')
+    ) {
+      void socket.join('perm:field_monitoring');
+    }
+
     // Join scope rooms for operational users
     if (socket.user.capabilities.operationalScope || socket.user.capabilities.systemScopeBypass) {
       socket.user.assignedClientIds.forEach(clientId => {

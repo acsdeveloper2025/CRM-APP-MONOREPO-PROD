@@ -11,6 +11,7 @@ import { config } from '../config';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import type { QueryParams } from '../types/database';
 import { isFieldExecutionActor } from '@/security/rbacAccess';
+import { getSocketIO } from '@/websocket/server';
 
 export class MobileLocationController {
   private static getOperationId(req: AuthenticatedRequest): string | null {
@@ -53,6 +54,70 @@ export class MobileLocationController {
           error: {
             code: 'MISSING_REQUIRED_FIELDS',
             timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      // 2026-05-13: ADMIN_PING branch — admin-triggered on-demand location
+      // ping (silent FCM → mobile FCM handler responds here with no task
+      // context). Bypasses the strict task-walk validation; lands a row
+      // with case_id=NULL, source='ADMIN_PING'; emits WebSocket to admins
+      // subscribed to the field-monitoring room.
+      if (source === 'ADMIN_PING') {
+        const operationId = MobileLocationController.getOperationId(req);
+        if (!operationId) {
+          return res.status(400).json({
+            success: false,
+            message: 'Idempotency-Key header is required',
+            error: { code: 'IDEMPOTENCY_KEY_REQUIRED' },
+          });
+        }
+
+        const adminPingRes = await query(
+          `INSERT INTO locations (
+             latitude, longitude, accuracy, recorded_at, recorded_by, operation_id, source
+           ) VALUES ($1, $2, $3, $4, $5, $6, 'ADMIN_PING')
+           ON CONFLICT (operation_id) WHERE operation_id IS NOT NULL
+           DO UPDATE SET operation_id = EXCLUDED.operation_id
+           RETURNING id, recorded_at, latitude, longitude, accuracy`,
+          [latitude, longitude, accuracy, new Date(timestamp), userId, operationId]
+        );
+        const row = adminPingRes.rows[0];
+
+        const io = getSocketIO();
+        if (io) {
+          io.to('perm:field_monitoring').emit('field-monitoring:location-updated', {
+            userId,
+            latitude: Number(row.latitude),
+            longitude: Number(row.longitude),
+            accuracy: row.accuracy != null ? Number(row.accuracy) : null,
+            recordedAt: row.recorded_at.toISOString(),
+            source: 'ADMIN_PING',
+          });
+        }
+
+        await createAuditLog({
+          action: 'MOBILE_LOCATION_CAPTURED',
+          entityType: 'LOCATION',
+          entityId: String(row.id),
+          userId,
+          details: {
+            latitude,
+            longitude,
+            accuracy,
+            source: 'ADMIN_PING',
+          },
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent'),
+        });
+
+        return res.json({
+          success: true,
+          message: 'Location captured',
+          data: {
+            id: row.id,
+            timestamp: row.recorded_at.toISOString(),
+            accuracy,
           },
         });
       }
@@ -209,6 +274,21 @@ export class MobileLocationController {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
       });
+
+      // 2026-05-13: fan-out to field-monitoring live map. Task-walk
+      // captures count as "fresh location" for that agent and should
+      // repaint the admin's map without polling.
+      const taskIo = getSocketIO();
+      if (taskIo) {
+        taskIo.to('perm:field_monitoring').emit('field-monitoring:location-updated', {
+          userId,
+          latitude: Number(latitude),
+          longitude: Number(longitude),
+          accuracy: accuracy != null ? Number(accuracy) : null,
+          recordedAt: locationRecord.timestamp.toISOString(),
+          source: 'TASK',
+        });
+      }
 
       res.json({
         success: true,
