@@ -76,6 +76,33 @@ export interface CommissionSummary {
   paidAmount: number;
   totalCases: number;
   period: string;
+  // Counts (optional for backward compat — populated by /commissions/summary).
+  totalCommissions?: number;
+  pendingCommissions?: number;
+  approvedCommissions?: number;
+  paidCommissions?: number;
+}
+
+// Aggregated invoice stats (DB-wide, not page-limited). Returned by GET /invoices/stats.
+export interface InvoiceStats {
+  totalInvoices: number;
+  paidInvoices: number;
+  pendingInvoices: number;
+  overdueInvoices: number;
+  totalAmount: number;
+  paidAmount: number;
+  pendingAmount: number;
+  collectionRate: number;
+  statusDistribution: {
+    DRAFT: number;
+    SENT: number;
+    APPROVED: number;
+    PAID: number;
+    CANCELLED: number;
+    OVERDUE: number;
+  };
+  period: string;
+  generatedAt: string;
 }
 
 export interface CreateInvoiceData {

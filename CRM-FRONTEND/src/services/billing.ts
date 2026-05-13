@@ -5,6 +5,7 @@ import type {
   CommissionSummary,
   CreateInvoiceData,
   UpdateInvoiceData,
+  InvoiceStats,
 } from '@/types/billing';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
 import { validateResponse } from './schemas/runtime';
@@ -88,6 +89,23 @@ export class BillingService {
 
   async getOverdueInvoices(): Promise<ApiResponse<Invoice[]>> {
     return this.getInvoices({ status: 'OVERDUE' });
+  }
+
+  // DB-wide aggregates (NOT page-limited). Use this for header stat cards;
+  // never derive totals from getInvoices() which paginates.
+  async getInvoiceStats(period?: string): Promise<ApiResponse<InvoiceStats>> {
+    const params: Record<string, string> = {};
+    if (period) {
+      params.period = period;
+    }
+    const response = await apiService.get<InvoiceStats>('/invoices/stats', params);
+    if (response?.success && response.data) {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'billing',
+        endpoint: 'GET /invoices/stats',
+      });
+    }
+    return response;
   }
 
   // Commission operations

@@ -91,6 +91,20 @@ export function BillingPage() {
     enabled: activeTab === 'commissions',
   });
 
+  // DB-wide aggregates (page-independent) drive the 5 header stat cards.
+  // Without these, the cards previously summed only the current paginated
+  // page (max 20 rows) and silently mis-reported totals as the user
+  // navigated pages.
+  const { data: invoiceStatsData } = useQuery({
+    queryKey: ['invoice-stats'],
+    queryFn: () => billingService.getInvoiceStats(),
+  });
+
+  const { data: commissionStatsData } = useQuery({
+    queryKey: ['commission-summary', 'stats'],
+    queryFn: () => billingService.getCommissionSummary(undefined, undefined),
+  });
+
   const handleDownloadReport = async () => {
     try {
       let blob: Blob;
@@ -115,30 +129,27 @@ export function BillingPage() {
     }
   };
 
-  const getTabStats = () => {
-    const invoices = invoicesData?.data || [];
-    const commissions = commissionsData?.data || [];
-
-    return {
-      invoices: {
-        total: invoices.length,
-        totalAmount: invoices.reduce((sum, inv) => sum + inv.totalAmount, 0),
-        draft: invoices.filter((inv) => inv.status === 'DRAFT').length,
-        draftAmount: invoices
-          .filter((inv) => inv.status === 'DRAFT')
-          .reduce((sum, inv) => sum + inv.totalAmount, 0),
-        overdue: invoices.filter((inv) => inv.status === 'OVERDUE').length,
-      },
-      commissions: {
-        total: commissions.length,
-        totalAmount: commissions.reduce((sum, comm) => sum + comm.amount, 0),
-        pending: commissions.filter((comm) => comm.status === 'PENDING').length,
-        paid: commissions.filter((comm) => comm.status === 'PAID').length,
-      },
-    };
+  // Header stat cards read from DB-wide aggregate endpoints, NOT the
+  // paginated invoicesData / commissionsData. Falls back to zero while
+  // the queries load.
+  const invoiceStats = invoiceStatsData?.data;
+  const commissionStats = commissionStatsData?.data;
+  const stats = {
+    invoices: {
+      total: invoiceStats?.totalInvoices ?? 0,
+      totalAmount: invoiceStats?.totalAmount ?? 0,
+      draft: invoiceStats?.statusDistribution?.DRAFT ?? 0,
+      // pendingAmount = outstandingAmount on BE (SENT + unpaid).
+      outstandingAmount: invoiceStats?.pendingAmount ?? 0,
+      overdue: invoiceStats?.overdueInvoices ?? 0,
+    },
+    commissions: {
+      total: commissionStats?.totalCommissions ?? 0,
+      totalAmount: commissionStats?.totalAmount ?? 0,
+      pending: commissionStats?.pendingCommissions ?? 0,
+      paid: commissionStats?.paidCommissions ?? 0,
+    },
   };
-
-  const stats = getTabStats();
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
@@ -212,14 +223,14 @@ export function BillingPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue Amount</CardTitle>
+            <CardTitle className="text-sm font-medium">Outstanding Amount</CardTitle>
             <AlertTriangle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              ₹{(stats.invoices.draftAmount || 0).toLocaleString()}
+              ₹{(stats.invoices.outstandingAmount || 0).toLocaleString()}
             </div>
-            <p className="text-xs text-gray-600">Draft invoice value</p>
+            <p className="text-xs text-gray-600">Sent &amp; unpaid</p>
           </CardContent>
         </Card>
       </div>
