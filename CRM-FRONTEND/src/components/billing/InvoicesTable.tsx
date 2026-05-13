@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/loading';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { toast } from 'sonner';
 import { billingService } from '@/services/billing';
 import { Invoice } from '@/types/billing';
@@ -80,7 +80,11 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading invoices..." size="lg" />;
+    return (
+      <TableSkeleton
+        headers={['Invoice #', 'Client', 'Amount', 'Status', 'Issue Date', 'Due Date', 'Actions']}
+      />
+    );
   }
 
   if (!data || data.length === 0) {

@@ -19,7 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/loading';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import {
   AlertDialog,
@@ -85,7 +85,20 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading clients..." size="lg" />;
+    return (
+      <TableSkeleton
+        headers={[
+          'Client Name',
+          'Client Code',
+          'Products',
+          'Verification Types',
+          'Document Types',
+          'Created Date',
+          'Status',
+          'Actions',
+        ]}
+      />
+    );
   }
 
   if (!data || data.length === 0) {

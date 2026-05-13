@@ -8,7 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge, BadgeProps } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/loading';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { UserActivity } from '@/types/user';
 
@@ -19,7 +19,9 @@ interface UserActivitiesTableProps {
 
 export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProps) {
   if (isLoading) {
-    return <LoadingState message="Loading activities..." size="lg" />;
+    return (
+      <TableSkeleton headers={['User', 'Action', 'Description', 'IP Address', 'Timestamp']} />
+    );
   }
 
   if (!data || data.length === 0) {

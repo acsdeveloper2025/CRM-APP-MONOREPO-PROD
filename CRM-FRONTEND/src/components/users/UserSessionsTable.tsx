@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/loading';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { usersService } from '@/services/users';
 import { UserSession } from '@/types/user';
@@ -58,7 +58,19 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading sessions..." size="lg" />;
+    return (
+      <TableSkeleton
+        headers={[
+          'User',
+          'Device',
+          'IP Address',
+          'Status',
+          'Login Time',
+          'Expiry Time',
+          'Actions',
+        ]}
+      />
+    );
   }
 
   if (!data || data.length === 0) {

@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/loading';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import { billingService } from '@/services/billing';
@@ -83,7 +83,21 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading commissions..." size="lg" />;
+    return (
+      <TableSkeleton
+        headers={[
+          '',
+          'User',
+          'Case',
+          'Client',
+          'Amount',
+          'Percentage',
+          'Status',
+          'Calculated Date',
+          'Actions',
+        ]}
+      />
+    );
   }
 
   if (!data || data.length === 0) {

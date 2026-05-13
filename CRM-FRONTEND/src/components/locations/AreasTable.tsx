@@ -29,7 +29,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/loading';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { locationsService } from '@/services/locations';
 import { EditAreaDialog } from './EditAreaDialog';
 import { PincodeArea } from '@/types/location';
@@ -76,7 +76,9 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading areas..." size="lg" />;
+    return (
+      <TableSkeleton headers={['Area Name', 'Usage Count', 'Created Date', 'Actions']} />
+    );
   }
 
   if (!data || data.length === 0) {

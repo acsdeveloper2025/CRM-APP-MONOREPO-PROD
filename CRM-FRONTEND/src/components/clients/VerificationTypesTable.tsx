@@ -19,7 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/loading';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -77,7 +77,7 @@ export function VerificationTypesTable({ data, isLoading }: VerificationTypesTab
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading verification types..." size="lg" />;
+    return <TableSkeleton headers={['Type Name', 'Created Date', 'Status', 'Actions']} />;
   }
 
   if (!data || data.length === 0) {

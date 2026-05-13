@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/table';
 import { MobileTableCard, MobileTableField } from '@/components/ui/responsive-table';
 import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/loading';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -190,7 +190,21 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading users..." size="lg" />;
+    return (
+      <TableSkeleton
+        headers={[
+          '',
+          'User',
+          'Role',
+          'Department',
+          'Assignments',
+          'Status',
+          'Last Login',
+          'Created',
+          'Actions',
+        ]}
+      />
+    );
   }
 
   if (!data || data.length === 0) {

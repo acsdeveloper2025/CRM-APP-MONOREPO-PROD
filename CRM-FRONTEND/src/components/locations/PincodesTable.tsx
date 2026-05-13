@@ -19,7 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { LoadingState } from '@/components/ui/loading';
+import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
 import {
   AlertDialog,
@@ -76,7 +76,11 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
   };
 
   if (isLoading) {
-    return <LoadingState message="Loading pincodes..." size="lg" />;
+    return (
+      <TableSkeleton
+        headers={['Pincode', 'Areas', 'City', 'State', 'Created Date', 'Actions']}
+      />
+    );
   }
 
   if (!data || data.length === 0) {
