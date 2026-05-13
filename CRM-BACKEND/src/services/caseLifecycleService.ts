@@ -49,22 +49,3 @@ export const recordEntryHistory = async (
   );
 };
 
-/**
- * Transition a case to COMPLETED. Callers that need per-entry marking should
- * do that separately inside the same transaction.
- */
-export const markCaseCompleted = async (
-  client: PoolClient,
-  caseId: string
-): Promise<{ id: string; status: string; completedAt: Date }> => {
-  const result = await client.query(
-    `UPDATE cases
-        SET status = 'COMPLETED',
-            "completedAt" = NOW(),
-            updated_at = NOW()
-      WHERE id = $1
-      RETURNING id, status, "completedAt"`,
-    [caseId]
-  );
-  return result.rows[0];
-};
