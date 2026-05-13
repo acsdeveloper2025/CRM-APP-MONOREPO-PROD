@@ -345,7 +345,7 @@ export const CasesPage: React.FC = () => {
               <CardTitle>Cases</CardTitle>
               <CardDescription>
                 {paginationData.total > 0
-                  ? `Showing ${paginationData.total} case${paginationData.total === 1 ? '' : 's'}`
+                  ? `Showing ${(paginationData.page - 1) * paginationData.limit + 1} to ${Math.min(paginationData.page * paginationData.limit, paginationData.total)} of ${paginationData.total} case${paginationData.total === 1 ? '' : 's'}`
                   : 'No cases found'}
               </CardDescription>
             </div>

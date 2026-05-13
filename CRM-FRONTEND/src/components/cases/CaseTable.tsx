@@ -101,7 +101,9 @@ export const CaseTable: React.FC<CaseTableProps> = React.memo(({ cases, isLoadin
   if (cases.length === 0) {
     return (
       <div className="border rounded-lg p-8 text-center">
-        <p className="text-gray-600">No cases found matching your criteria.</p>
+        <p className="text-gray-600">
+          No cases found. Try adjusting your filters or create a new case.
+        </p>
       </div>
     );
   }

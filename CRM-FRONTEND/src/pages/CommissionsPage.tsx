@@ -91,7 +91,9 @@ export const CommissionsPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pendingCommissions}</div>
-            <p className="text-xs text-gray-600">₹{pendingAmount.toLocaleString()} pending</p>
+            <p className="text-xs text-gray-600">
+              ₹{Number(pendingAmount).toLocaleString()} pending
+            </p>
           </CardContent>
         </Card>
 

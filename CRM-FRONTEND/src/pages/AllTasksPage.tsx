@@ -276,8 +276,18 @@ export const AllTasksPage: React.FC = () => {
       {/* Tasks List */}
       {error && (
         <Card className="border-red-200 bg-red-50">
-          <CardContent className="py-4">
-            <p className="text-red-600">Error loading tasks: {error}</p>
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-red-600">
+              Could not load tasks. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refreshTasks()}
+              className="border-red-300 text-red-700 hover:bg-red-100"
+            >
+              Retry
+            </Button>
           </CardContent>
         </Card>
       )}

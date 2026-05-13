@@ -257,7 +257,7 @@ export function ClientsPage() {
                     </Button>
                     <Button size="sm" onClick={() => setShowCreateClient(true)}>
                       <Plus className="h-4 w-4 mr-2" />
-                      Add Client
+                      Create Client
                     </Button>
                   </div>
                 }
@@ -319,7 +319,7 @@ export function ClientsPage() {
                     </Button>
                     <Button size="sm" onClick={() => setShowCreateProduct(true)}>
                       <Plus className="h-4 w-4 mr-2" />
-                      Add Product
+                      Create Product
                     </Button>
                   </div>
                 }
@@ -372,7 +372,7 @@ export function ClientsPage() {
                 actions={
                   <Button size="sm" onClick={() => setShowCreateVerificationType(true)}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Type
+                    Create Verification Type
                   </Button>
                 }
               />
@@ -431,7 +431,7 @@ export function ClientsPage() {
                 actions={
                   <Button size="sm" onClick={() => setShowCreateDocumentType(true)}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Document Type
+                    Create Document Type
                   </Button>
                 }
               />

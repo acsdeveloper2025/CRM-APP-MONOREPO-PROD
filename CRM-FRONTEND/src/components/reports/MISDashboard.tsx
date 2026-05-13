@@ -419,7 +419,9 @@ export function MISDashboard() {
           ) : !isLoading ? (
             <div className="text-center py-8">
               <p className="text-gray-600">
-                No data available. Please adjust your filters and try again.
+                {hasActiveFilters
+                  ? 'No data matches your filters. Try clearing filters or adjusting the date range.'
+                  : 'No data available for the selected period.'}
               </p>
             </div>
           ) : (
