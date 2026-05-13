@@ -17,8 +17,6 @@ import {
   Eye,
   Image as ImageIcon,
   ExternalLink,
-  Clock,
-  Home,
 } from 'lucide-react';
 import { format } from 'date-fns';
 // 2026-05-05 (bug 60): swapped from `html2canvas` (v1.4.1) to
@@ -285,25 +283,145 @@ const AddressFullLine: React.FC<{
   return <span>{loading && !address ? 'Resolving address…' : display}</span>;
 };
 
-// Small presentational component so the hook can live inside each
-// image card and key off the attachment's id.
-const AddressLine: React.FC<{
-  attachmentId: number | string | null | undefined;
-  latitude: number | null | undefined;
-  longitude: number | null | undefined;
-  fallback?: string | null;
-}> = ({ attachmentId, latitude, longitude, fallback }) => {
-  const { address, loading } = useAttachmentAddress(attachmentId);
-  const display =
-    address ||
-    fallback ||
-    (typeof latitude === 'number' && typeof longitude === 'number'
-      ? `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
-      : 'Location unknown');
+// Convert a signed decimal degree to DMS string. Mirrors the mobile
+// watermark layout (WatermarkPreviewScreen.formatDMS) so the on-photo
+// baked watermark and the web overlay use the same notation.
+const formatDMS = (decimal: number, isLat: boolean): string => {
+  const abs = Math.abs(decimal);
+  const deg = Math.floor(abs);
+  const minFloat = (abs - deg) * 60;
+  const min = Math.floor(minFloat);
+  const sec = ((minFloat - min) * 60).toFixed(1);
+  const dir = isLat ? (decimal >= 0 ? 'N' : 'S') : decimal >= 0 ? 'E' : 'W';
+  return `${deg}°${min}'${sec}"${dir}`;
+};
+
+const formatCompass = (heading: number | null | undefined): string | null => {
+  if (heading == null || !Number.isFinite(heading)) return null;
+  const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const idx = Math.round(heading / 45) % 8;
+  return `${dirs[idx]} ${Math.round(heading)}°`;
+};
+
+// Unified metadata overlay used by both verification grid card, selfie
+// grid card, and the dialog popup. Layered on top of the photo at the
+// bottom; html2canvas snapshots include this strip so the downloaded
+// PNG matches what's on screen.
+interface OverlayLocation {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  altitude?: number;
+  speed?: number;
+  heading?: number;
+  timestamp?: string;
+  address?: string;
+}
+
+const MetadataOverlay: React.FC<{
+  attachmentId: number | string;
+  location: OverlayLocation | null;
+  uploadedAt: string;
+  submissionAddress?: string | null;
+  compact?: boolean;
+  mapSize?: '88x88' | '110x110' | '140x140';
+}> = ({ attachmentId, location, uploadedAt, submissionAddress, compact = true, mapSize = '88x88' }) => {
+  const headerCls = compact ? 'text-[13px]' : 'text-base';
+  const bodyCls = compact ? 'text-[10px]' : 'text-xs';
+  const monoCls = compact ? 'text-[10px]' : 'text-xs';
+  const mapBox =
+    mapSize === '140x140'
+      ? 'w-[140px] h-[140px]'
+      : mapSize === '110x110'
+        ? 'w-[110px] h-[110px]'
+        : 'w-[88px] h-[88px]';
+  const compass = formatCompass(location?.heading);
+  const tsSource = location?.timestamp || uploadedAt;
   return (
-    <p className="text-sm font-medium" data-address-line="true">
-      {loading && !address ? 'Resolving address…' : display}
-    </p>
+    <div className="absolute bottom-0 left-0 right-0 px-2.5 py-2 bg-black text-white">
+      <div className="flex gap-2 items-stretch">
+        <div className="flex-1 min-w-0 space-y-0.5">
+          <p className={`${headerCls} font-bold leading-tight uppercase`}>
+            <CityStateCountryLine attachmentId={attachmentId} />
+          </p>
+          <p
+            className={`${bodyCls} leading-snug text-white/90 line-clamp-2`}
+            data-address-line="true"
+          >
+            <AddressFullLine
+              attachmentId={attachmentId}
+              latitude={location?.latitude}
+              longitude={location?.longitude}
+              fallback={location?.address || submissionAddress || null}
+            />
+          </p>
+          {location && (
+            <>
+              <p className={`${monoCls} font-mono leading-tight`}>
+                {formatDMS(location.latitude, true)}&nbsp;&nbsp;
+                {formatDMS(location.longitude, false)}
+              </p>
+              <p className={`${monoCls} font-mono leading-tight`}>
+                Lat {location.latitude.toFixed(6)} / Long {location.longitude.toFixed(6)}
+              </p>
+              <p className={`${monoCls} font-mono leading-tight flex flex-wrap gap-x-2 gap-y-0`}>
+                {location.accuracy != null && <span>±{Math.round(location.accuracy)}m</span>}
+                {location.altitude != null && <span>⛰ {Math.round(location.altitude)}m</span>}
+                {location.speed != null && location.speed > 0 && (
+                  <span>↻ {location.speed.toFixed(1)} m/s</span>
+                )}
+                {compass && <span>↑ {compass}</span>}
+              </p>
+            </>
+          )}
+          <p className={`${bodyCls} leading-tight`}>
+            {tsSource ? format(new Date(tsSource), 'EEE d MMM yyyy, HH:mm:ss') : '—'}
+          </p>
+          <p
+            className="text-[9px] leading-tight tracking-wider uppercase text-white/65"
+            data-download-exclude="false"
+          >
+            CRM Verification · Geo-Tagged Evidence
+          </p>
+        </div>
+        {location &&
+          typeof location.latitude === 'number' &&
+          typeof location.longitude === 'number' && (
+            <div
+              className="shrink-0 flex items-center cursor-pointer hover:opacity-90 transition-opacity"
+              role="button"
+              tabIndex={0}
+              title="Open in Google Maps"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(
+                  `https://www.google.com/maps?q=${location.latitude},${location.longitude}`,
+                  '_blank',
+                  'noopener,noreferrer'
+                );
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  window.open(
+                    `https://www.google.com/maps?q=${location.latitude},${location.longitude}`,
+                    '_blank',
+                    'noopener,noreferrer'
+                  );
+                }
+              }}
+            >
+              <StaticMapImage
+                latitude={location.latitude}
+                longitude={location.longitude}
+                size={mapSize}
+                zoom={16}
+                className={`${mapBox} object-cover rounded border border-white/30`}
+              />
+            </div>
+          )}
+      </div>
+    </div>
   );
 };
 
@@ -520,46 +638,14 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
                 className="block w-full max-h-[70vh] object-contain"
               />
               {image && (
-                <div className="absolute bottom-0 left-0 right-0 px-4 py-3 bg-black/75 text-white">
-                  <div className="flex gap-3 items-stretch">
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <p className="text-base font-bold leading-tight uppercase">
-                        <CityStateCountryLine attachmentId={image.id} />
-                      </p>
-                      <p className="text-xs leading-snug text-white/90" data-address-line="true">
-                        <AddressFullLine
-                          attachmentId={image.id}
-                          latitude={location?.latitude}
-                          longitude={location?.longitude}
-                          fallback={location?.address || submissionAddress || null}
-                        />
-                      </p>
-                      {location && (
-                        <p className="text-xs font-mono">
-                          Lat {location.latitude.toFixed(7)} / Long {location.longitude.toFixed(7)}
-                        </p>
-                      )}
-                      <p className="text-xs">
-                        {location?.timestamp
-                          ? format(new Date(location.timestamp), 'EEEE d MMMM yyyy, HH:mm:ss')
-                          : format(new Date(image.uploadedAt), 'EEEE d MMMM yyyy, HH:mm:ss')}
-                      </p>
-                    </div>
-                    {location &&
-                      typeof location.latitude === 'number' &&
-                      typeof location.longitude === 'number' && (
-                        <div className="shrink-0 flex items-center">
-                          <StaticMapImage
-                            latitude={location.latitude}
-                            longitude={location.longitude}
-                            size="140x140"
-                            zoom={16}
-                            className="w-[140px] h-[140px] object-cover rounded border border-white/30"
-                          />
-                        </div>
-                      )}
-                  </div>
-                </div>
+                <MetadataOverlay
+                  attachmentId={image.id}
+                  location={location}
+                  uploadedAt={image.uploadedAt}
+                  submissionAddress={submissionAddress}
+                  compact={false}
+                  mapSize="140x140"
+                />
               )}
             </div>
             {image && (
@@ -880,69 +966,14 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                             </Badge>
                           </div>
 
-                          {/* 2026-05-05 (bug 62): metadata strip OVERLAYS the
-                              photo (matches user-provided sample). Position
-                              absolute at the bottom, semi-transparent black bg
-                              so the photo behind shows through. Snapshot
-                              captures the whole stack as a single layered
-                              PNG.
-                              2026-05-05 (bug 63): tightened sizes for the
-                              3-col grid (each card ~280px wide). Text-[10px]
-                              with line-clamp-2 on address keeps strip <40%
-                              of card height. Map dropped to 88x88 to leave
-                              room for the address text. Sample-match remains
-                              visually but everything fits without word-wrap
-                              chaos. */}
-                          <div className="absolute bottom-0 left-0 right-0 px-2.5 py-2 bg-black/75 text-white">
-                            <div className="flex gap-2 items-stretch">
-                              <div className="flex-1 min-w-0 space-y-0.5">
-                                <p className="text-[13px] font-bold leading-tight uppercase">
-                                  <CityStateCountryLine attachmentId={image.id} />
-                                </p>
-                                <p
-                                  className="text-[10px] leading-snug text-white/90 line-clamp-2"
-                                  data-address-line="true"
-                                >
-                                  <AddressFullLine
-                                    attachmentId={image.id}
-                                    latitude={location?.latitude}
-                                    longitude={location?.longitude}
-                                    fallback={location?.address || submissionAddress || null}
-                                  />
-                                </p>
-                                {location && (
-                                  <p className="text-[10px] font-mono leading-tight">
-                                    Lat {location.latitude.toFixed(6)} / Long{' '}
-                                    {location.longitude.toFixed(6)}
-                                  </p>
-                                )}
-                                <p className="text-[10px] leading-tight">
-                                  {location?.timestamp
-                                    ? format(
-                                        new Date(location.timestamp),
-                                        'EEE d MMM yyyy, HH:mm:ss'
-                                      )
-                                    : format(
-                                        new Date(image.uploadedAt),
-                                        'EEE d MMM yyyy, HH:mm:ss'
-                                      )}
-                                </p>
-                              </div>
-                              {location &&
-                                typeof location.latitude === 'number' &&
-                                typeof location.longitude === 'number' && (
-                                  <div className="shrink-0 flex items-center">
-                                    <StaticMapImage
-                                      latitude={location.latitude}
-                                      longitude={location.longitude}
-                                      size="88x88"
-                                      zoom={16}
-                                      className="w-[88px] h-[88px] object-cover rounded border border-white/30"
-                                    />
-                                  </div>
-                                )}
-                            </div>
-                          </div>
+                          <MetadataOverlay
+                            attachmentId={image.id}
+                            location={location}
+                            uploadedAt={image.uploadedAt}
+                            submissionAddress={submissionAddress}
+                            compact
+                            mapSize="88x88"
+                          />
                         </div>
 
                         {/* Action buttons — outside snapshot target, normal flow */}
@@ -992,112 +1023,71 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                         ? rawGeo
                         : null;
                     return (
-                      <div key={image.id} className="group relative" data-download-card={image.id}>
-                        {/* Attachment Card Format */}
-                        <Card className="border border-border hover:border-border transition-colors">
-                          <CardContent className="p-0">
-                            {/* Image with overlay */}
-                            <div className="relative aspect-square bg-slate-100 dark:bg-slate-800/60 rounded-t-lg overflow-hidden">
-                              <AsyncImage
-                                imageUrl={image.url}
-                                imageId={image.id}
-                                thumbnailUrl={image.thumbnailUrl}
-                                alt={image.originalName}
-                                className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                                onClick={() =>
-                                  handleImageClick(image.url, image.originalName, image.id, image)
-                                }
-                              />
+                      <div key={image.id} className="group relative">
+                        {/* Snapshot target = image + overlaid metadata strip
+                            ONLY. Action buttons live OUTSIDE this div so the
+                            html2canvas snapshot stays clean. Same pattern as
+                            verification photo grid card for visual parity. */}
+                        <div
+                          data-download-card={image.id}
+                          className="relative aspect-square bg-slate-100 dark:bg-slate-800/60 rounded-lg overflow-hidden"
+                        >
+                          <AsyncImage
+                            imageUrl={image.url}
+                            imageId={image.id}
+                            thumbnailUrl={image.thumbnailUrl}
+                            alt={image.originalName}
+                            className="absolute inset-0 w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() =>
+                              handleImageClick(image.url, image.originalName, image.id, image)
+                            }
+                          />
 
-                              {/* Photo type badge overlay */}
-                              <div className="absolute top-2 right-2">
-                                <Badge className={getPhotoTypeColor(image.photoType)}>
-                                  {image.photoType}
-                                </Badge>
-                              </div>
-                            </div>
+                          <div className="absolute top-2 right-2">
+                            <Badge className={getPhotoTypeColor(image.photoType)}>
+                              {image.photoType}
+                            </Badge>
+                          </div>
 
-                            {/* Metadata Section */}
-                            <div className="p-3 bg-slate-900 text-white space-y-3">
-                              {/* Capture Time */}
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-slate-400" />
-                                <div>
-                                  <p className="text-xs text-slate-400">Capture Time</p>
-                                  <p className="text-sm font-medium">
-                                    {location?.timestamp
-                                      ? format(new Date(location.timestamp), 'dd/MM/yyyy, HH:mm:ss')
-                                      : format(new Date(image.uploadedAt), 'dd/MM/yyyy, HH:mm:ss')}
-                                  </p>
-                                </div>
-                              </div>
+                          <MetadataOverlay
+                            attachmentId={image.id}
+                            location={location}
+                            uploadedAt={image.uploadedAt}
+                            submissionAddress={submissionAddress}
+                            compact
+                            mapSize="88x88"
+                          />
+                        </div>
 
-                              {/* Location */}
-                              {location && (
-                                <div className="flex items-center gap-2">
-                                  <MapPin className="h-4 w-4 text-slate-400" />
-                                  <div>
-                                    <p className="text-xs text-slate-400">Location</p>
-                                    <p className="text-sm font-medium font-mono">
-                                      {location.latitude.toFixed(6)},{' '}
-                                      {location.longitude.toFixed(6)}
-                                    </p>
-                                    {location.accuracy && (
-                                      <p className="text-xs text-slate-400">
-                                        Accuracy: ±{location.accuracy}m
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Address — resolved via backend Google proxy on demand */}
-                              <div className="flex items-center gap-2">
-                                <Home className="h-4 w-4 text-slate-400" />
-                                <div>
-                                  <p className="text-xs text-slate-400">Address</p>
-                                  <AddressLine
-                                    attachmentId={image.id}
-                                    latitude={location?.latitude}
-                                    longitude={location?.longitude}
-                                    fallback={location?.address || submissionAddress || null}
-                                  />
-                                </div>
-                              </div>
-
-                              {/* Action Buttons — excluded from the downloaded snapshot */}
-                              <div className="flex gap-2 pt-2" data-download-exclude="true">
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  className="flex-1 h-8 text-xs bg-slate-700 hover:bg-slate-600 text-white border-slate-600"
-                                  onClick={() =>
-                                    handleDownloadWithMetadata(
-                                      image,
-                                      verificationPhotos.length + index + 1
-                                    )
-                                  }
-                                >
-                                  <Download className="h-3 w-3 mr-1" />
-                                  Download
-                                </Button>
-                                {location && (
-                                  <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    className="flex-1 h-8 text-xs bg-slate-700 hover:bg-slate-600 text-white border-slate-600"
-                                    onClick={() =>
-                                      openInGoogleMaps(location.latitude, location.longitude)
-                                    }
-                                  >
-                                    <ExternalLink className="h-3 w-3 mr-1" />
-                                    Maps
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="flex-1 h-8 text-xs"
+                            onClick={() =>
+                              handleDownloadWithMetadata(
+                                image,
+                                verificationPhotos.length + index + 1
+                              )
+                            }
+                          >
+                            <Download className="h-3 w-3 mr-1" />
+                            Download
+                          </Button>
+                          {location && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="flex-1 h-8 text-xs"
+                              onClick={() =>
+                                openInGoogleMaps(location.latitude, location.longitude)
+                              }
+                            >
+                              <ExternalLink className="h-3 w-3 mr-1" />
+                              Maps
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

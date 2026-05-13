@@ -65,20 +65,6 @@ interface AssignmentHistory {
   taskStatusAfter: string;
 }
 
-interface TaskHistoryItem {
-  id: string;
-  details: {
-    to?: string;
-    from?: string;
-    comment?: string;
-    status?: string;
-  };
-  performedBy: {
-    name: string;
-  };
-  timestamp: string;
-}
-
 export const TaskDetailPage: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
@@ -153,16 +139,7 @@ export const TaskDetailPage: React.FC = () => {
       const response = await apiService.get(`/verification-tasks/${taskId}/assignment-history`);
 
       if (response.success) {
-        const history = (response.data as TaskHistoryItem[]).map((item: TaskHistoryItem) => ({
-          id: item.id,
-          assignedToName: item.details.to || 'N/A', // Assuming 'to' in details is the assignedToName
-          assignedByName: item.performedBy.name,
-          assignedFromName: item.details.from, // Assuming 'from' in details is the assignedFromName
-          assignedAt: item.timestamp,
-          assignmentReason: item.details.comment,
-          taskStatusAfter: item.details.status || 'N/A', // Assuming status is in details
-        }));
-        setAssignmentHistory(history);
+        setAssignmentHistory((response.data as AssignmentHistory[]) || []);
       }
     } catch (err) {
       logger.error('Failed to fetch assignment history:', err);

@@ -189,6 +189,15 @@ export const notificationService = {
 
   async validateNavigationTarget(notification: AppNotification): Promise<string | null> {
     try {
+      if (notification.caseId) {
+        const response = await apiService.get(`/cases/${notification.caseId}`, undefined, {
+          useCache: false,
+        });
+        return response.success
+          ? `/case-management/${notification.caseNumber || notification.caseId}`
+          : null;
+      }
+
       if (notification.taskId) {
         const response = await apiService.get(
           `/verification-tasks/${notification.taskId}`,
@@ -199,15 +208,6 @@ export const notificationService = {
         );
         return response.success
           ? `/task-management/${notification.taskNumber || notification.taskId}`
-          : null;
-      }
-
-      if (notification.caseId) {
-        const response = await apiService.get(`/cases/${notification.caseId}`, undefined, {
-          useCache: false,
-        });
-        return response.success
-          ? `/case-management/${notification.caseNumber || notification.caseId}`
           : null;
       }
 
