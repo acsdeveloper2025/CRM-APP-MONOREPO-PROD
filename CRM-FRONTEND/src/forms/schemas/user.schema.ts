@@ -30,8 +30,12 @@ export type CreateUserFormData = z.infer<typeof createUserFormSchema>;
 
 export const editUserFormSchema = z.object({
   ...baseUserShape,
-  designationId: z.string().min(1, 'Designation is required'),
-  departmentId: z.string().min(1, 'Department is required'),
+  // Match Create + backend semantics: BE accepts NULL for both
+  // (usersController.updateUser cleanDepartmentId / cleanDesignationId
+  // coerce empty strings to null). Forcing .min(1) here blocked Edit on
+  // legacy users with no dept/desig and bounced new admin assignments.
+  designationId: z.string().optional(),
+  departmentId: z.string().optional(),
   isActive: z.boolean(),
 });
 export type EditUserFormData = z.infer<typeof editUserFormSchema>;
