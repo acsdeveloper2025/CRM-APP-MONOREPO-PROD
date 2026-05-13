@@ -320,6 +320,17 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
       paramIndex++;
     }
 
+    // 2026-05-13: Field Executive Acknowledgement filter — compliance
+    // roll-out tool. 'accepted' = at least one row in user_consents
+    // for this user; 'pending' = zero rows. Per Q1.A there's a single
+    // global policy version so any row counts as "accepted" today.
+    const consentStatus = req.query.consentStatus as string | undefined;
+    if (consentStatus === 'accepted') {
+      conditions.push(`EXISTS (SELECT 1 FROM user_consents uc WHERE uc.user_id = u.id)`);
+    } else if (consentStatus === 'pending') {
+      conditions.push(`NOT EXISTS (SELECT 1 FROM user_consents uc WHERE uc.user_id = u.id)`);
+    }
+
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Validate sortBy to prevent SQL injection

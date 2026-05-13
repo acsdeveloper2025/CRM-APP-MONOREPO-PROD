@@ -41,6 +41,7 @@ import { logger } from '@/utils/logger';
 interface UserFilters extends Record<string, unknown> {
   role?: Role;
   status?: string;
+  consentStatus?: 'accepted' | 'pending';
 }
 
 // URL segment mapping — keep in module scope so hooks can depend on it safely.
@@ -382,7 +383,7 @@ export function UsersPage() {
                   </div>
                 }
                 filterContent={
-                  <FilterGrid columns={2}>
+                  <FilterGrid columns={3}>
                     <div className="space-y-2">
                       <Label>Role</Label>
                       <Select
@@ -423,6 +424,28 @@ export function UsersPage() {
                           <SelectItem value="all">All Status</SelectItem>
                           <SelectItem value="active">Active</SelectItem>
                           <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Consent</Label>
+                      <Select
+                        value={userFilters.filters.consentStatus || 'all'}
+                        onValueChange={(value) =>
+                          userFilters.setFilter(
+                            'consentStatus',
+                            value === 'all' ? undefined : (value as 'accepted' | 'pending')
+                          )
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All</SelectItem>
+                          <SelectItem value="accepted">Acknowledgement accepted</SelectItem>
+                          <SelectItem value="pending">Pending acceptance</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
