@@ -48,6 +48,14 @@ const tasks: Array<{ name: string; sql: string }> = [
     name: 'purge_stale_performance_metrics',
     sql: "SELECT purge_stale_performance_metrics('7 days'::interval) AS deleted",
   },
+  // 2026-05-13: 7-day rolling retention on field-monitoring location pings.
+  // Each ping (TASK or ADMIN_PING) is one row in `locations`; at 1000+
+  // agents × N pings/day this grows quickly. Keep just enough history
+  // for "what happened last week?" lookups; older rows are purged.
+  {
+    name: 'purge_stale_locations',
+    sql: "DELETE FROM locations WHERE recorded_at < now() - interval '7 days' RETURNING id",
+  },
 ];
 
 const runOnce = async (): Promise<void> => {

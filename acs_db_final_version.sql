@@ -465,6 +465,7 @@ DROP INDEX IF EXISTS public.idx_mobile_device_sync_user_id;
 DROP INDEX IF EXISTS public.idx_mobile_device_sync_platform;
 DROP INDEX IF EXISTS public.idx_mobile_device_sync_last_sync;
 DROP INDEX IF EXISTS public.idx_locations_task_id;
+DROP INDEX IF EXISTS public.idx_locations_recorded_by_recent;
 DROP INDEX IF EXISTS public.idx_locations_recordedby;
 DROP INDEX IF EXISTS public.idx_locations_case_uuid;
 DROP INDEX IF EXISTS public.idx_kyc_doc_verifications_document_details;
@@ -5264,9 +5265,11 @@ CREATE TABLE public.locations (
     recorded_by uuid NOT NULL,
     recorded_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     id bigint NOT NULL,
-    case_id uuid NOT NULL,
+    case_id uuid,
     verification_task_id uuid,
-    operation_id text
+    operation_id text,
+    source character varying(20) DEFAULT 'TASK'::character varying NOT NULL,
+    CONSTRAINT chk_locations_source CHECK ((source::text = ANY (ARRAY['TASK'::character varying, 'ADMIN_PING'::character varying]::text[])))
 );
 
 
@@ -23544,6 +23547,13 @@ CREATE INDEX idx_locations_case_uuid ON public.locations USING btree (case_id);
 --
 
 CREATE INDEX idx_locations_recordedby ON public.locations USING btree (recorded_by);
+
+
+--
+-- Name: idx_locations_recorded_by_recent; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_locations_recorded_by_recent ON public.locations USING btree (recorded_by, recorded_at DESC);
 
 
 --
