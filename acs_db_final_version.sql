@@ -5290,6 +5290,7 @@ CREATE TABLE public.locations (
     verification_task_id uuid,
     operation_id text,
     source character varying(20) DEFAULT 'TASK'::character varying NOT NULL,
+    requested_by_user_id uuid,
     CONSTRAINT chk_locations_source CHECK ((source::text = ANY (ARRAY['TASK'::character varying, 'ADMIN_PING'::character varying]::text[])))
 );
 

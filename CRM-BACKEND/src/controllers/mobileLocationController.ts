@@ -73,14 +73,24 @@ export class MobileLocationController {
           });
         }
 
+        // 2026-05-13: when mobile is responding to an admin-triggered
+        // FCM ping, the FCM data payload carries `requestedBy` (the
+        // admin's user-id). LocationPingHandler forwards it in the
+        // capture POST. Persisting it on the row lets the admin UI
+        // render "last ping triggered by Alice 5 min ago".
+        const requestedBy =
+          typeof req.body?.requestedBy === 'string' && req.body.requestedBy.trim()
+            ? req.body.requestedBy.trim()
+            : null;
+
         const adminPingRes = await query(
           `INSERT INTO locations (
-             latitude, longitude, accuracy, recorded_at, recorded_by, operation_id, source
-           ) VALUES ($1, $2, $3, $4, $5, $6, 'ADMIN_PING')
+             latitude, longitude, accuracy, recorded_at, recorded_by, operation_id, source, requested_by_user_id
+           ) VALUES ($1, $2, $3, $4, $5, $6, 'ADMIN_PING', $7)
            ON CONFLICT (operation_id) WHERE operation_id IS NOT NULL
            DO UPDATE SET operation_id = EXCLUDED.operation_id
            RETURNING id, recorded_at, latitude, longitude, accuracy`,
-          [latitude, longitude, accuracy, new Date(timestamp), userId, operationId]
+          [latitude, longitude, accuracy, new Date(timestamp), userId, operationId, requestedBy]
         );
         const row = adminPingRes.rows[0];
 
@@ -93,6 +103,7 @@ export class MobileLocationController {
             accuracy: row.accuracy != null ? Number(row.accuracy) : null,
             recordedAt: row.recorded_at.toISOString(),
             source: 'ADMIN_PING',
+            requestedByUserId: requestedBy,
           });
         }
 

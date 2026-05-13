@@ -344,6 +344,7 @@ export interface MobileLocationCaptureRequest {
   accuracy: number;
   timestamp: string;
   source: 'GPS' | 'NETWORK' | 'PASSIVE' | 'ADMIN_PING';
+  requestedBy?: string;
   caseId?: string;
   taskId?: string; // Stage-2: Dual Write support
   activityType?: 'CASE_START' | 'CASE_PROGRESS' | 'CASE_COMPLETE' | 'TRAVEL';

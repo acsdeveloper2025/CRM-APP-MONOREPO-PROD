@@ -38,6 +38,9 @@ type LocationRow = {
   lng: string | number | null;
   accuracy: string | number | null;
   recordedAt: Date | null;
+  source: 'TASK' | 'ADMIN_PING' | null;
+  requestedById: string | null;
+  requestedByName: string | null;
 };
 
 type SubmissionLocationRow = {
@@ -117,6 +120,12 @@ export type FieldUserLatestLocation = {
   accuracy: number | null;
   recordedAt: Date | null;
   source: 'locations' | 'formSubmissions' | 'verificationTasks';
+  // 2026-05-13: when the locations-row was an admin-triggered ping,
+  // these surface WHO triggered it. NULL for 'TASK'-source rows and
+  // for formSubmissions / verificationTasks fallbacks.
+  pingSource?: 'TASK' | 'ADMIN_PING' | null;
+  requestedById?: string | null;
+  requestedByName?: string | null;
 };
 
 export type FieldUserOperatingArea = {
@@ -191,6 +200,9 @@ export type MonitoringRosterItem = {
     time: NullableDate;
     freshness: 'fresh' | 'stale';
     source: FieldUserLatestLocation['source'];
+    pingSource?: 'TASK' | 'ADMIN_PING' | null;
+    requestedById?: string | null;
+    requestedByName?: string | null;
   } | null;
   operatingArea: string | null;
   operatingPincode: string | null;
@@ -435,6 +447,9 @@ export class FieldMonitoringService {
                 ? 'fresh'
                 : 'stale',
               source: latestLocation.source,
+              pingSource: latestLocation.pingSource ?? null,
+              requestedById: latestLocation.requestedById ?? null,
+              requestedByName: latestLocation.requestedByName ?? null,
             }
           : null,
         operatingArea: currentOperating?.areaName ?? null,
@@ -683,8 +698,12 @@ export class FieldMonitoringService {
             l.latitude as lat,
             l.longitude as lng,
             l.accuracy,
-            l.recorded_at as recorded_at
+            l.recorded_at as recorded_at,
+            l.source,
+            requester.id as "requested_by_id",
+            requester.name as "requested_by_name"
           FROM locations l
+          LEFT JOIN users requester ON requester.id = l.requested_by_user_id
           WHERE l.recorded_by = ANY($1::uuid[])
           ORDER BY l.recorded_by, l.recorded_at DESC, l.id DESC
         `,
@@ -749,6 +768,9 @@ export class FieldMonitoringService {
         accuracy: this.toNumber(row.accuracy),
         recordedAt: this.toDate(row.recordedAt),
         source: 'locations',
+        pingSource: row.source ?? null,
+        requestedById: row.requestedById ?? null,
+        requestedByName: row.requestedByName ?? null,
       });
     });
 

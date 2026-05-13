@@ -41,6 +41,9 @@ export type FieldMonitoringRosterItem = {
     time: string | null;
     freshness: 'fresh' | 'stale';
     source: 'locations' | 'formSubmissions' | 'verificationTasks';
+    pingSource?: 'TASK' | 'ADMIN_PING' | null;
+    requestedById?: string | null;
+    requestedByName?: string | null;
   } | null;
   operatingArea: string | null;
   operatingPincode: string | null;

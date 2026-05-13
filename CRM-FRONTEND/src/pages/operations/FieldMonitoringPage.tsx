@@ -114,12 +114,17 @@ const escapeHtml = (value: string): string =>
     .replaceAll("'", '&#039;');
 
 const createMarkerInfoWindowContent = (user: FieldMonitoringRosterItem): string => {
+  const lastPingedBy =
+    user.lastLocation?.pingSource === 'ADMIN_PING' && user.lastLocation?.requestedByName
+      ? `${user.lastLocation.requestedByName}`
+      : null;
   const infoRows = [
     ['Mobile', getMobileDisplay(user)],
     ['Live Status', user.liveStatus],
     ['Operating Pincode', user.operatingPincode || '-'],
     ['Last Activity', formatTimestamp(user.lastActivityAt)],
     ['Last Location', getLastLocationDisplayTime(user)],
+    ...(lastPingedBy ? [['Last ping by', lastPingedBy]] : []),
   ]
     .map(
       ([label, value]) =>
@@ -774,6 +779,7 @@ function FieldMonitoringRosterView() {
                           <TableHead>Operating Pincode</TableHead>
                           <TableHead>Last Activity Time</TableHead>
                           <TableHead>Last Location Time</TableHead>
+                          <TableHead>Last Pinged By</TableHead>
                           <TableHead>Active Assignments</TableHead>
                           <TableHead className="text-right">Action</TableHead>
                         </TableRow>
@@ -805,6 +811,12 @@ function FieldMonitoringRosterView() {
                             <TableCell>{user.operatingPincode || '-'}</TableCell>
                             <TableCell>{formatTimestamp(user.lastActivityAt)}</TableCell>
                             <TableCell>{getLastLocationDisplayTime(user)}</TableCell>
+                            <TableCell className="text-sm text-gray-600">
+                              {user.lastLocation?.pingSource === 'ADMIN_PING' &&
+                              user.lastLocation?.requestedByName
+                                ? user.lastLocation.requestedByName
+                                : '-'}
+                            </TableCell>
                             <TableCell>{user.activeAssignmentCount}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-2">
