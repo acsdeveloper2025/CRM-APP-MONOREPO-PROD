@@ -478,7 +478,7 @@ export function UsersPage() {
                 filterContent={
                   <FilterGrid columns={2}>
                     <div className="space-y-2">
-                      <Label>From Date</Label>
+                      <Label>Date From</Label>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
@@ -515,7 +515,7 @@ export function UsersPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>To Date</Label>
+                      <Label>Date To</Label>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button

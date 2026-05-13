@@ -183,7 +183,9 @@ export function MISDashboard() {
           <FilterGrid columns={4}>
             {/* Date From Filter */}
             <div className="space-y-2">
-              <Label htmlFor="dateFrom">Date From</Label>
+              <Label htmlFor="dateFrom">
+                Date From <span className="text-xs font-normal text-gray-500">(YYYY-MM-DD)</span>
+              </Label>
               <Input
                 id="dateFrom"
                 type="date"
@@ -194,7 +196,9 @@ export function MISDashboard() {
 
             {/* Date To Filter */}
             <div className="space-y-2">
-              <Label htmlFor="dateTo">Date To</Label>
+              <Label htmlFor="dateTo">
+                Date To <span className="text-xs font-normal text-gray-500">(YYYY-MM-DD)</span>
+              </Label>
               <Input
                 id="dateTo"
                 type="date"
