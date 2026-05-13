@@ -232,7 +232,7 @@ export const CasesPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{revokedCases}</div>
-            <p className="text-xs text-gray-600">Cancelled cases</p>
+            <p className="text-xs text-gray-600">Revoked cases</p>
           </CardContent>
         </Card>
       </div>
