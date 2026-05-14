@@ -10,12 +10,9 @@ import {
   getAttachmentsByCase,
   getAttachmentById,
   deleteAttachment,
-  updateAttachment,
   downloadAttachment,
   serveAttachment,
   getSupportedFileTypes,
-  bulkUploadAttachments,
-  bulkDeleteAttachments,
 } from '@/controllers/attachmentsController';
 
 const router = express.Router();
@@ -33,24 +30,13 @@ const caseAttachmentsValidation = [
     .withMessage('Limit must be between 1 and 500'),
 ];
 
-const updateAttachmentValidation = [
-  param('id').trim().notEmpty().withMessage('Attachment ID is required'),
-  body('description')
-    .optional()
-    .trim()
-    .isLength({ max: 500 })
-    .withMessage('Description must be less than 500 characters'),
-  body('category')
-    .optional()
-    .isIn(['PHOTO', 'DOCUMENT', 'VIDEO', 'AUDIO', 'OTHER'])
-    .withMessage('Category must be one of: PHOTO, DOCUMENT, VIDEO, AUDIO, OTHER'),
-  body('isPublic').optional().isBoolean().withMessage('isPublic must be a boolean'),
-];
-
-const bulkDeleteValidation = [
-  body('attachmentIds').isArray({ min: 1 }).withMessage('Attachment IDs array is required'),
-  body('attachmentIds.*').isString().withMessage('Each attachment ID must be a string'),
-];
+// P15.D-9/10/11: validators for bulkUpload / updateAttachment / bulkDelete
+// removed alongside their controllers. The dead handlers wrote to a
+// module-local `attachments[]` array and never touched the DB — the FE
+// "successful" response masked silent no-ops. If real bulk operations
+// are needed later, they should be implemented against the DB with
+// proper scope checks (see uploadAttachment + deleteAttachment as the
+// canonical single-row patterns).
 
 // File upload routes
 router.post(
@@ -61,13 +47,9 @@ router.post(
   uploadAttachment
 );
 
-router.post(
-  '/bulk-upload',
-  authenticateToken,
-  authorize('case.update'),
-  uploadRateLimit,
-  bulkUploadAttachments
-);
+// P15.D-9: POST /bulk-upload route + bulkUploadAttachments handler
+// removed (handler was in-memory-only — wrote to a JS array, never
+// persisted to DB; FE thought uploads succeeded).
 
 // File retrieval routes
 router.get(
@@ -123,14 +105,8 @@ router.get(
 );
 
 // File management routes
-router.put(
-  '/:id',
-  authenticateToken,
-  authorize('case.update'),
-  updateAttachmentValidation,
-  validate,
-  updateAttachment
-);
+// P15.D-10: PUT /:id (updateAttachment) removed — handler was an
+// in-memory-only stub that never touched the DB.
 
 router.delete(
   '/:id',
@@ -141,13 +117,7 @@ router.delete(
   deleteAttachment
 );
 
-router.post(
-  '/bulk-delete',
-  authenticateToken,
-  authorize('case.update'),
-  bulkDeleteValidation,
-  validate,
-  bulkDeleteAttachments
-);
+// P15.D-11: POST /bulk-delete (bulkDeleteAttachments) removed — same
+// in-memory-only pattern as the other dead handlers.
 
 export default router;

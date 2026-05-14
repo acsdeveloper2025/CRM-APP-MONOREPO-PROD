@@ -19,6 +19,48 @@ import {
 import { getScopedOperationalUserIds } from '@/security/userScope';
 import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
+import { enforceBackendUserCaseScope } from '@/controllers/attachmentsController';
+
+/**
+ * P15.M-6: row-level scope helper used by every KYC handler that
+ * resolves a `kyc_document_verifications.id` (route param :taskId on
+ * the KYC routes). Resolves the parent case id, then delegates to the
+ * shared `enforceBackendUserCaseScope` helper from attachmentsController
+ * — which itself enforces:
+ *   1. scoped-ops users only see cases in their assigned client/product
+ *   2. cases must be within `req.activeScope` if a lock is set
+ *   3. hierarchy / creator-based ownership rules
+ * Returns 404 (don't leak row existence) when either the kdv row is
+ * missing or the caller cannot access the parent case. Handlers should
+ * call this at the very top before any DB work.
+ */
+const requireKycRowAccess = async (
+  req: AuthenticatedRequest,
+  kdvId: string
+): Promise<{ ok: true; caseId: string } | { ok: false }> => {
+  const userId = req.user?.id;
+  if (!userId || !kdvId) {
+    return { ok: false };
+  }
+  const lookup = await query<{ caseId: string }>(
+    `SELECT case_id FROM kyc_document_verifications WHERE id = $1`,
+    [kdvId]
+  );
+  if (lookup.rows.length === 0) {
+    return { ok: false };
+  }
+  const caseId = lookup.rows[0].caseId;
+  const allowed = await enforceBackendUserCaseScope(
+    userId,
+    req.user,
+    caseId,
+    req.activeScope
+  );
+  if (!allowed) {
+    return { ok: false };
+  }
+  return { ok: true, caseId };
+};
 
 /**
  * KYC Document Verification Controller
@@ -406,6 +448,14 @@ export const getKYCTaskDetail = async (req: AuthenticatedRequest, res: Response)
   try {
     const { taskId } = req.params;
 
+    // P15.M-6 — row-level scope check. Without this, any user with
+    // kyc.view permission could read any KYC row globally by guessing
+    // the kdv id (P13.F closed list/stats only, not row-level).
+    const access = await requireKycRowAccess(req, taskId);
+    if (!access.ok) {
+      return res.status(404).json({ success: false, message: 'KYC task not found' });
+    }
+
     const result = await query(
       `SELECT
         kdv.*,
@@ -477,6 +527,12 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
         success: false,
         message: `Rejection reason is required for ${finalStatus} outcome`,
       });
+    }
+
+    // P15.M-6 — row-level scope check before any DB mutation.
+    const access = await requireKycRowAccess(req, taskId);
+    if (!access.ok) {
+      return res.status(404).json({ success: false, message: 'KYC task not found' });
     }
 
     const client = wrapClient(await pool.connect());
@@ -592,6 +648,12 @@ export const assignKYCTask = async (req: AuthenticatedRequest, res: Response) =>
       return res.status(400).json({ success: false, message: 'assignedTo is required' });
     }
 
+    // P15.M-6 — row-level scope check before reassignment.
+    const access = await requireKycRowAccess(req, taskId);
+    if (!access.ok) {
+      return res.status(404).json({ success: false, message: 'KYC task not found' });
+    }
+
     const result = await query(
       `UPDATE kyc_document_verifications
        SET assigned_to = $1, assigned_by = $2, assigned_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
@@ -649,6 +711,22 @@ export const uploadKYCDocument = async (req: AuthenticatedRequest, res: Response
         LIMIT 1`,
       [taskId]
     );
+
+    // P15.M-6 — scope check before file upload. The lookup above
+    // already covers row existence; we still need to verify the
+    // resolved case is in the user's scope (assigned + activeScope)
+    // before writing a 20MB file to disk under another tenant.
+    if (lookup.rows.length > 0) {
+      const allowed = await enforceBackendUserCaseScope(
+        req.user?.id,
+        req.user,
+        lookup.rows[0].caseId,
+        req.activeScope
+      );
+      if (!allowed) {
+        return res.status(404).json({ success: false, message: 'KYC task not found' });
+      }
+    }
     if (lookup.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'KYC task not found' });
     }
@@ -764,6 +842,75 @@ export const exportKYCToExcel = async (req: AuthenticatedRequest, res: Response)
     const params: QueryParams = [];
     let paramIndex = 1;
 
+    // P15.M-7: full three-tier scope identical to listKYCTasks (P13.F).
+    // Without this the Excel export was a global multi-tenant dump for
+    // anyone with the route permission. Order matters: scope conditions
+    // come BEFORE user filters so they always apply.
+    const isAdmin = hasSystemScopeBypass(req.user);
+    const isExecutionActor = isFieldExecutionActor(req.user);
+    const isScopedOps = isScopedOperationsUser(req.user);
+    if (req.user?.id && !isAdmin) {
+      const userId = req.user.id;
+      if (isExecutionActor) {
+        conditions.push(
+          `(kdv.assigned_to = $${paramIndex} OR vt.assigned_to = $${paramIndex})`
+        );
+        params.push(userId);
+        paramIndex++;
+      } else if (isScopedOps) {
+        const hierarchyUserIds = await getScopedOperationalUserIds(userId);
+        if (hierarchyUserIds) {
+          if (hierarchyUserIds.length === 0) {
+            conditions.push('FALSE');
+          } else {
+            conditions.push(
+              `(c.created_by_backend_user = ANY($${paramIndex}::uuid[]) OR vt.assigned_to = ANY($${paramIndex}::uuid[]))`
+            );
+            params.push(hierarchyUserIds);
+            paramIndex++;
+          }
+        } else {
+          let effectiveClientIds = await getAssignedClientIds(userId);
+          let effectiveProductIds = await getAssignedProductIds(userId);
+          if (req.activeScope?.clientId != null && effectiveClientIds) {
+            effectiveClientIds = effectiveClientIds.includes(req.activeScope.clientId)
+              ? [req.activeScope.clientId]
+              : [-1];
+          }
+          if (req.activeScope?.productId != null && effectiveProductIds) {
+            effectiveProductIds = effectiveProductIds.includes(req.activeScope.productId)
+              ? [req.activeScope.productId]
+              : [-1];
+          }
+          if (!effectiveClientIds || effectiveClientIds.length === 0) {
+            conditions.push('FALSE');
+          } else {
+            conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
+            params.push(effectiveClientIds);
+            paramIndex++;
+          }
+          if (!effectiveProductIds || effectiveProductIds.length === 0) {
+            conditions.push('FALSE');
+          } else {
+            conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
+            params.push(effectiveProductIds);
+            paramIndex++;
+          }
+        }
+        // Active scope still applies on top of hierarchy.
+        if (req.activeScope?.clientId != null) {
+          conditions.push(`c.client_id = $${paramIndex}`);
+          params.push(req.activeScope.clientId);
+          paramIndex++;
+        }
+        if (req.activeScope?.productId != null) {
+          conditions.push(`c.product_id = $${paramIndex}`);
+          params.push(req.activeScope.productId);
+          paramIndex++;
+        }
+      }
+    }
+
     if (status && status !== 'ALL') {
       conditions.push(`kdv.verification_status = $${paramIndex}`);
       params.push(status as string);
@@ -810,6 +957,7 @@ export const exportKYCToExcel = async (req: AuthenticatedRequest, res: Response)
         u_assigned.name as "Assigned To"
        FROM kyc_document_verifications kdv
        JOIN cases c ON c.id = kdv.case_id
+       JOIN verification_tasks vt ON vt.id = kdv.verification_task_id
        LEFT JOIN document_types kdt ON kdt.id = kdv.document_type_id
        LEFT JOIN users u_verified ON u_verified.id = kdv.verified_by
        LEFT JOIN users u_assigned ON u_assigned.id = kdv.assigned_to

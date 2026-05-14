@@ -700,6 +700,45 @@ export class VerificationAttachmentController {
       const caseUuid = caseResult.rows[0].id;
       logger.info('📋 Case UUID:', caseUuid);
 
+      // P15.D-8 — route uses validateCaseAccess + validateCaseProductAccess
+      // (baseline only); add activeScope intersection here so locked-scope
+      // users can't read images for cases outside their lock. Mirrors the
+      // P11.A.6 logic in verifyCaseLevelAccess (used by per-image serve
+      // endpoints) — applies the same check at the list endpoint.
+      const authReq = req as AuthenticatedRequest;
+      if (
+        authReq.activeScope?.clientId != null ||
+        authReq.activeScope?.productId != null
+      ) {
+        const caseScopeRes = await query<{ clientId: number; productId: number }>(
+          `SELECT client_id, product_id FROM cases WHERE id = $1`,
+          [caseUuid]
+        );
+        if (caseScopeRes.rows.length > 0) {
+          const c = caseScopeRes.rows[0];
+          if (
+            authReq.activeScope.clientId != null &&
+            authReq.activeScope.clientId !== Number(c.clientId)
+          ) {
+            return res.status(403).json({
+              success: false,
+              message: 'Case is outside your active scope',
+              error: { code: 'CASE_NOT_IN_ACTIVE_SCOPE' },
+            });
+          }
+          if (
+            authReq.activeScope.productId != null &&
+            authReq.activeScope.productId !== Number(c.productId)
+          ) {
+            return res.status(403).json({
+              success: false,
+              message: 'Case product is outside your active scope',
+              error: { code: 'CASE_NOT_IN_ACTIVE_SCOPE' },
+            });
+          }
+        }
+      }
+
       // First try to get images from verification_attachments table
       let whereClause = 'WHERE case_id = $1';
       const queryParams: QueryParams = [caseUuid];

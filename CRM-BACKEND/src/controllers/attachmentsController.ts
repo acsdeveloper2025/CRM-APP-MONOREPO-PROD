@@ -19,37 +19,12 @@ import sharp from 'sharp';
 import { generateRendition, requiresRendition } from '@/services/attachmentRenditionService';
 import { storage as objectStorage, StorageKeys } from '@/services/storage';
 
-// In-memory attachment index for update/delete operations (upload uses database)
-const attachments: Record<string, unknown>[] = [
-  {
-    id: 'attachment_1',
-    filename: 'residencePhoto1.jpg',
-    originalName: 'frontView.jpg',
-    mimeType: 'image/jpeg',
-    size: 1024000,
-    caseId: 'case_3',
-    uploadedBy: 'user_1',
-    uploadedAt: '2024-01-05T00:00:00.000Z',
-    filePath: '/uploads/attachments/attachment_1.jpg',
-    description: 'Front view of residence',
-    category: 'PHOTO',
-    isPublic: false,
-  },
-  {
-    id: 'attachment_2',
-    filename: 'verificationReport.pdf',
-    originalName: 'verificationReport.pdf',
-    mimeType: 'application/pdf',
-    size: 512000,
-    caseId: 'case_3',
-    uploadedBy: 'user_1',
-    uploadedAt: '2024-01-05T00:30:00.000Z',
-    filePath: '/uploads/attachments/attachment_2.pdf',
-    description: 'Verification report document',
-    category: 'DOCUMENT',
-    isPublic: false,
-  },
-];
+// P15.D-9/10/11: removed dead in-memory `attachments[]` array and its
+// three consumers (updateAttachment / bulkUploadAttachments /
+// bulkDeleteAttachments). Those handlers wrote to this array only —
+// the FE called them, got 200, and the data was lost on next restart.
+// All real attachment CRUD goes through the database via uploadAttachment
+// + deleteAttachment + downloadAttachment.
 
 // Supported file types — every extension the mobile client can preview
 // after the rendition pipeline runs. Office docs are converted to PDF
@@ -93,7 +68,13 @@ const ALL_SUPPORTED_EXTENSIONS = [
   ...SUPPORTED_FILE_TYPES.documents,
 ];
 
-const enforceBackendUserCaseScope = async (
+// P15: exported for reuse by kycVerificationController.ts and any
+// other handler that needs per-case scope enforcement. The helper
+// returns false when the caller cannot access the given case (out of
+// scope, not assigned, not in active scope) so handlers can map it to
+// either 404 (don't leak existence) or 403 (when access existence is
+// already known to the caller).
+export const enforceBackendUserCaseScope = async (
   userId: string | undefined,
   user: AuthenticatedRequest['user'] | undefined,
   caseUuid: string | undefined,
@@ -303,6 +284,28 @@ export const uploadAttachment = (req: AuthenticatedRequest, res: Response) => {
         }
 
         const caseUUID = caseResult.rows[0].id;
+
+        // P15.M-9: scope check for non-field-execution callers. Field
+        // agents are already constrained to assigned-task cases by the
+        // EXISTS predicate above. For admins / scoped-ops users we
+        // previously had only the "case exists" check — backend users
+        // could write 50 MB × 10 files onto any case row.
+        if (!isFieldExecutionActor(req.user)) {
+          const allowed = await enforceBackendUserCaseScope(
+            req.user?.id,
+            req.user,
+            caseUUID,
+            req.activeScope
+          );
+          if (!allowed) {
+            return res.status(404).json({
+              success: false,
+              message: 'Case not found',
+              error: { code: 'CASE_NOT_FOUND' },
+            });
+          }
+        }
+
         const uploadedAttachments = [];
 
         // Sanitize caseId to prevent path traversal (strip anything except alphanumeric, dash, underscore)
@@ -496,6 +499,26 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
         return;
       }
       resolvedCaseUuid = caseResult.rows[0].id;
+    }
+
+    // P15.M-8: scope check for non-field-execution callers. The
+    // isExecutionActor branch below already filters via the
+    // `EXISTS (… vt.assigned_to = $2)` predicate so field agents only
+    // see attachments for tasks assigned to them. For admins and
+    // scoped-ops users we previously returned the full attachment +
+    // KYC doc list with no scope filter at all — leaked file paths
+    // and metadata for any case the caller knew the id of.
+    if (!isExecutionActor) {
+      const allowed = await enforceBackendUserCaseScope(
+        userId,
+        req.user,
+        resolvedCaseUuid,
+        req.activeScope
+      );
+      if (!allowed) {
+        res.json({ success: true, data: [] });
+        return;
+      }
     }
 
     // Build query with proper access control and optional category filter
@@ -814,62 +837,6 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
   }
 };
 
-// PUT /api/attachments/:id - Update attachment metadata
-export const updateAttachment = (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { description, category, isPublic } = req.body;
-
-    const attachmentIndex = attachments.findIndex(att => att.id === id);
-    if (attachmentIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        message: 'Attachment not found',
-        error: { code: 'NOT_FOUND' },
-      });
-    }
-
-    const attachment = attachments[attachmentIndex];
-
-    // Check if user has permission to update (owner or admin)
-    if (attachment.uploadedBy !== req.user?.id && !hasSystemScopeBypass(req.user)) {
-      return res.status(403).json({
-        success: false,
-        message: 'You do not have permission to update this attachment',
-        error: { code: 'FORBIDDEN' },
-      });
-    }
-
-    // Update metadata
-    if (description !== undefined) {
-      attachment.description = description;
-    }
-    if (category !== undefined) {
-      attachment.category = category;
-    }
-    if (isPublic !== undefined) {
-      attachment.isPublic = isPublic;
-    }
-
-    logger.info(`Updated attachment metadata: ${id}`, {
-      userId: req.user?.id,
-      changes: { description, category, isPublic },
-    });
-
-    res.json({
-      success: true,
-      data: attachment,
-      message: 'Attachment updated successfully',
-    });
-  } catch (error) {
-    logger.error('Error updating attachment:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update attachment',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
-};
 
 // POST /api/attachments/:id/download - Download attachment
 export const downloadAttachment = async (req: AuthenticatedRequest, res: Response) => {
@@ -1148,182 +1115,4 @@ export const getSupportedFileTypes = (req: AuthenticatedRequest, res: Response) 
   }
 };
 
-// POST /api/attachments/bulk-upload - Bulk upload attachments
-export const bulkUploadAttachments = (req: AuthenticatedRequest, res: Response) => {
-  try {
-    // Use multer middleware for multiple files
-    upload.array('files', 50)(req, res, (err: unknown) => {
-      // Removed async wrapper as no await is used here
-      if (err) {
-        logger.error('Bulk upload error:', err);
-        return res.status(400).json({
-          success: false,
-          message: err instanceof Error ? err.message : 'Bulk upload failed',
-          error: { code: 'UPLOAD_ERROR' },
-        });
-      }
 
-      const files = req.files as Express.Multer.File[];
-      const { caseIds, descriptions, categories, isPublic = false } = req.body;
-
-      if (!files || files.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'No files uploaded',
-          error: { code: 'NO_FILES' },
-        });
-      }
-
-      // Parse arrays if they're strings
-      const caseIdArray = Array.isArray(caseIds) ? caseIds : [caseIds];
-      const descriptionArray = Array.isArray(descriptions) ? descriptions : [descriptions];
-      const categoryArray = Array.isArray(categories) ? categories : [categories];
-
-      const uploadedAttachments = [];
-      const errors = [];
-
-      for (let i = 0; i < files.length; i++) {
-        try {
-          const file = files[i];
-          const caseId = caseIdArray[i] || caseIdArray[0];
-          const description =
-            descriptionArray[i] || descriptionArray[0] || `Uploaded file: ${file.originalname}`;
-          const category = categoryArray[i] || categoryArray[0] || 'DOCUMENT';
-
-          if (!caseId) {
-            errors.push(`File ${file.originalname}: Case ID is required`);
-            continue;
-          }
-
-          const newAttachment = {
-            id: `attachment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            filename: file.filename,
-            originalName: file.originalname,
-            mimeType: file.mimetype,
-            size: file.size,
-            caseId,
-            uploadedBy: req.user?.id,
-            uploadedAt: new Date().toISOString(),
-            filePath: `/uploads/attachments/${file.filename}`,
-            description,
-            category,
-            isPublic: isPublic === 'true' || isPublic === true,
-          };
-
-          attachments.push(newAttachment);
-          uploadedAttachments.push(newAttachment);
-        } catch (error) {
-          errors.push(`File ${files[i].originalname}: ${errorMessage(error)}`);
-        }
-      }
-
-      logger.info(`Bulk uploaded ${uploadedAttachments.length} attachments`, {
-        userId: req.user?.id,
-        successCount: uploadedAttachments.length,
-        errorCount: errors.length,
-        totalSize: uploadedAttachments.reduce((sum, att) => sum + att.size, 0),
-      });
-
-      res.status(201).json({
-        success: true,
-        data: {
-          uploaded: uploadedAttachments,
-          errors,
-          summary: {
-            total: files.length,
-            successful: uploadedAttachments.length,
-            failed: errors.length,
-          },
-        },
-        message: `Bulk upload completed: ${uploadedAttachments.length} successful, ${errors.length} failed`,
-      });
-    });
-  } catch (error) {
-    logger.error('Error in bulk upload:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to bulk upload attachments',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
-};
-
-// POST /api/attachments/bulk-delete - Bulk delete attachments
-export const bulkDeleteAttachments = (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { attachmentIds } = req.body;
-
-    if (!attachmentIds || !Array.isArray(attachmentIds) || attachmentIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Attachment IDs array is required',
-        error: { code: 'MISSING_ATTACHMENT_IDS' },
-      });
-    }
-
-    const deletedAttachments = [];
-    const errors = [];
-
-    for (const id of attachmentIds) {
-      try {
-        const attachmentIndex = attachments.findIndex(att => att.id === id);
-        if (attachmentIndex === -1) {
-          errors.push(`Attachment ${id}: Not found`);
-          continue;
-        }
-
-        const attachment = attachments[attachmentIndex];
-
-        // Check permissions
-        if (attachment.uploadedBy !== req.user?.id && !hasSystemScopeBypass(req.user)) {
-          errors.push(`Attachment ${id}: Permission denied`);
-          continue;
-        }
-
-        // Delete file from filesystem
-        const filePath = path.join(
-          process.cwd(),
-          'uploads',
-          'attachments',
-          attachment.filename as string
-        );
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-
-        // Remove from array
-        attachments.splice(attachmentIndex, 1);
-        deletedAttachments.push(id);
-      } catch (error) {
-        errors.push(`Attachment ${id}: ${errorMessage(error)}`);
-      }
-    }
-
-    logger.info(`Bulk deleted ${deletedAttachments.length} attachments`, {
-      userId: req.user?.id,
-      successCount: deletedAttachments.length,
-      errorCount: errors.length,
-    });
-
-    res.json({
-      success: true,
-      data: {
-        deleted: deletedAttachments,
-        errors,
-        summary: {
-          total: attachmentIds.length,
-          successful: deletedAttachments.length,
-          failed: errors.length,
-        },
-      },
-      message: `Bulk delete completed: ${deletedAttachments.length} successful, ${errors.length} failed`,
-    });
-  } catch (error) {
-    logger.error('Error in bulk delete:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to bulk delete attachments',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
-};
