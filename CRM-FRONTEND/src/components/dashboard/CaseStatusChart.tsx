@@ -89,9 +89,18 @@ export const CaseStatusChart: React.FC<CaseStatusChartProps> = React.memo(({ dat
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={(props: { name?: string; percentage?: number }) =>
-                  `${props.name}: ${props.percentage}%`
-                }
+                // 2026-05-14: suppress inline label for slices below 3%
+                // — multiple near-zero slices collided at the same
+                // outer-edge position ("PENDING 0%" + "REJECTED 0%" +
+                // "REVOKED 1%" all stacked). Tiny categories remain
+                // visible in the legend below the chart.
+                label={(props: { name?: string; percentage?: number }) => {
+                  const pct = props.percentage ?? 0;
+                  if (pct < 3) {
+                    return null;
+                  }
+                  return `${props.name}: ${pct}%`;
+                }}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
