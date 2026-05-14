@@ -86,7 +86,7 @@ export const MonthlyTrendsChart: React.FC<MonthlyTrendsChartProps> = React.memo(
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
               <LineChart data={safeData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
