@@ -26,6 +26,7 @@ const clientScope = createScopeAccess({
   errorCodePrefix: 'CLIENT',
   humanLabel: 'client',
   getAssignedIdsFromUser: user => user.assignedClientIds,
+  getActiveScopeValue: req => req.activeScope?.clientId ?? null,
 });
 
 export const getAssignedClientIds = clientScope.getAssignedIds;

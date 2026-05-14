@@ -93,6 +93,18 @@ export interface ScopeAccessConfig {
    * (e.g. `"client"`, `"product"`).
    */
   humanLabel: string;
+  /**
+   * P14.M-1: function that pulls the currently locked active-scope value
+   * for this dimension off the request. clientAccess returns
+   * `req.activeScope?.clientId`; productAccess returns
+   * `req.activeScope?.productId`. Returns null/undefined when no scope
+   * lock is in effect. Used to enforce activeScope on write paths (case
+   * creation, update, sub-resource probes) — without this the read path
+   * narrows by activeScope while write paths only check baseline
+   * assignment, so a Demo-Mode-locked user can create cases or write
+   * data into a different (but assigned) tenant.
+   */
+  getActiveScopeValue: (req: AuthenticatedRequest) => number | null | undefined;
 }
 
 export interface ScopeAccessHelpers {
@@ -293,6 +305,35 @@ export function createScopeAccess(config: ScopeAccessConfig): ScopeAccessHelpers
           });
         }
 
+        // P14.M-1: activeScope intersection on the write path.
+        // The baseline `assignedIds.includes` check above only enforces
+        // that the user has the entity in their assignments; it does NOT
+        // enforce that the user is currently locked to THAT entity. A
+        // Demo-Mode-locked HDFC user POSTing /cases/create with
+        // body.clientId=ICICI would otherwise succeed (both clients are
+        // in her assigned set), creating a case in the wrong tenant
+        // that then "disappears" from her scoped list. Reject here with
+        // the same {prefix}_NOT_IN_ACTIVE_SCOPE error code shape the FE
+        // P8 reactive recovery already understands.
+        const activeValue = config.getActiveScopeValue(req);
+        if (activeValue != null && activeValue !== entityId) {
+          logger.warn(
+            `Scoped user ${userId} attempted ${config.humanLabel} ${entityId} outside active scope ${activeValue}`,
+            {
+              userId,
+              [`requested${config.errorCodePrefix}Id`]: entityId,
+              activeScopeValue: activeValue,
+              endpoint: req.originalUrl,
+              method: req.method,
+            }
+          );
+          return res.status(403).json({
+            success: false,
+            message: `Operation rejected — ${config.humanLabel} ${entityId} is outside your active scope`,
+            error: { code: `${config.errorCodePrefix}_NOT_IN_ACTIVE_SCOPE` },
+          });
+        }
+
         return next();
       } catch (error) {
         logger.error(`Error in ${config.dimension} access validation middleware:`, error);
@@ -384,6 +425,30 @@ export function createScopeAccess(config: ScopeAccessConfig): ScopeAccessHelpers
           success: false,
           message: `Access denied - case belongs to unassigned ${config.humanLabel}`,
           error: { code: `CASE_${config.errorCodePrefix}_ACCESS_DENIED` },
+        });
+      }
+
+      // P14.M-1: same activeScope intersection on the case-resolved path.
+      // Without this, scoped sub-resource writes (case-data-entries,
+      // attachments, kyc tasks etc.) succeed for cases that are in the
+      // user's baseline assignments but outside their active scope.
+      const activeValue = config.getActiveScopeValue(req);
+      if (activeValue != null && activeValue !== caseEntityId) {
+        logger.warn(
+          `Scoped user ${userId} attempted case ${caseId} (${config.humanLabel} ${caseEntityId}) outside active scope ${activeValue}`,
+          {
+            userId,
+            caseId,
+            [`case${config.errorCodePrefix}Id`]: caseEntityId,
+            activeScopeValue: activeValue,
+            endpoint: req.originalUrl,
+            method: req.method,
+          }
+        );
+        return res.status(403).json({
+          success: false,
+          message: `Case ${config.humanLabel} is outside your active scope`,
+          error: { code: `CASE_NOT_IN_ACTIVE_SCOPE` },
         });
       }
 

@@ -21,6 +21,7 @@ const productScope = createScopeAccess({
   errorCodePrefix: 'PRODUCT',
   humanLabel: 'product',
   getAssignedIdsFromUser: user => user.assignedProductIds,
+  getActiveScopeValue: req => req.activeScope?.productId ?? null,
 });
 
 export const getAssignedProductIds = productScope.getAssignedIds;
