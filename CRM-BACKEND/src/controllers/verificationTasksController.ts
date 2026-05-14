@@ -1148,6 +1148,36 @@ export class VerificationTasksController {
 
       const caseInfo = caseResult.rows[0];
 
+      // P11.A.4 — active-scope per-case access check
+      // (project_scope_control_audit_2026_05_14.md L-C site 2). Runs
+      // BEFORE the baseline isScopedOperationsUser check so it applies
+      // to ALL users (admins included). validateActiveScope (P1) has
+      // already authorized the header against assignedClientIds, so a
+      // non-null req.activeScope.clientId here is the user's chosen
+      // narrowing — if the case is outside it, reject.
+      if (
+        req.activeScope?.clientId != null &&
+        req.activeScope.clientId !== Number(caseInfo.clientId)
+      ) {
+        res.status(403).json({
+          success: false,
+          message: 'Case is outside your active scope',
+          error: { code: 'CASE_NOT_IN_ACTIVE_SCOPE' },
+        });
+        return;
+      }
+      if (
+        req.activeScope?.productId != null &&
+        req.activeScope.productId !== Number(caseInfo.productId)
+      ) {
+        res.status(403).json({
+          success: false,
+          message: 'Case product is outside your active scope',
+          error: { code: 'CASE_NOT_IN_ACTIVE_SCOPE' },
+        });
+        return;
+      }
+
       if (isScopedOperationsUser(req.user) && req.user?.id) {
         const scopedUserIds = await getScopedOperationalUserIds(req.user.id);
 
