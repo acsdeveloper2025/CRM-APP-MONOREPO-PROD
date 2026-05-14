@@ -145,6 +145,62 @@ export class VerificationAttachmentController {
       };
     }
 
+    // P11.A.6 — active-scope per-case access check
+    // (project_scope_control_audit_2026_05_14.md L-E). Runs BEFORE the
+    // existing role-branch checks so it applies to ALL users including
+    // admins (which otherwise fall through with no case-access check).
+    // validateActiveScope (P1) has already authorized the header
+    // against assignedClientIds, so a non-null req.activeScope.clientId
+    // here is the user's chosen narrowing — reject if the case is
+    // outside it. Fires only when active scope is set, so the
+    // duplicate case lookup is opt-in (demo-mode only).
+    if (authReq.activeScope?.clientId != null || authReq.activeScope?.productId != null) {
+      const scopeCaseRes = await query<{ clientId: number; productId: number }>(
+        `SELECT client_id, product_id FROM cases WHERE id = $1`,
+        [caseId]
+      );
+      if (scopeCaseRes.rows.length === 0) {
+        return {
+          ok: false,
+          status: 404,
+          body: {
+            success: false,
+            message: 'Case not found',
+            error: { code: 'CASE_NOT_FOUND' },
+          },
+        };
+      }
+      const c = scopeCaseRes.rows[0];
+      if (
+        authReq.activeScope.clientId != null &&
+        authReq.activeScope.clientId !== Number(c.clientId)
+      ) {
+        return {
+          ok: false,
+          status: 403,
+          body: {
+            success: false,
+            message: 'Case is outside your active scope',
+            error: { code: 'CASE_NOT_IN_ACTIVE_SCOPE' },
+          },
+        };
+      }
+      if (
+        authReq.activeScope.productId != null &&
+        authReq.activeScope.productId !== Number(c.productId)
+      ) {
+        return {
+          ok: false,
+          status: 403,
+          body: {
+            success: false,
+            message: 'Case product is outside your active scope',
+            error: { code: 'CASE_NOT_IN_ACTIVE_SCOPE' },
+          },
+        };
+      }
+    }
+
     if (isFieldExecutionActor(user)) {
       const taskAccess = await query(
         `SELECT 1 FROM verification_tasks WHERE case_id = $1 AND assigned_to = $2 LIMIT 1`,
