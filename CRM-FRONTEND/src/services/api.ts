@@ -5,7 +5,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios';
 import type { ApiResponse } from '@/types/api';
-import { triggerLogout } from '@/utils/events';
+import { triggerLogout, triggerActiveScopeInvalid } from '@/utils/events';
 import { STORAGE_KEYS, SYNC_KEYS } from '@/types/constants';
 import { logger } from '@/utils/logger';
 
@@ -250,6 +250,31 @@ class ApiService {
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
         const status = error.response?.status;
         const errorCode = getErrorCode(error);
+
+        // P8 — active-scope reactive recovery
+        // (project_scope_control_audit_2026_05_14.md). If the backend
+        // rejects the request because the active scope header points
+        // at a client/product the user no longer has access to
+        // (typically after an admin revocation that we discovered via
+        // 403 rather than the WS permission_changed event), drop the
+        // persisted scope and notify the React tree to clear local
+        // state. The original error still propagates so the caller's
+        // error UI runs unchanged.
+        if (
+          status === 403 &&
+          (errorCode === 'INVALID_ACTIVE_SCOPE_CLIENT' ||
+            errorCode === 'INVALID_ACTIVE_SCOPE_PRODUCT')
+        ) {
+          try {
+            sessionStorage.removeItem('acs.activeScope');
+          } catch {
+            // ignore — best-effort
+          }
+          triggerActiveScopeInvalid({
+            code: errorCode as 'INVALID_ACTIVE_SCOPE_CLIENT' | 'INVALID_ACTIVE_SCOPE_PRODUCT',
+          });
+          return Promise.reject(error);
+        }
 
         // Refresh only for real auth expiry cases, not generic permission/business 403s.
         if (shouldAttemptTokenRefresh(status, errorCode) && !originalRequest._retry) {

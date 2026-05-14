@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { ACTIVE_SCOPE_INVALID_EVENT } from '@/utils/events';
 import {
   ACTIVE_SCOPE_STORAGE_KEY,
   ActiveScopeContext,
@@ -96,6 +98,23 @@ export const ActiveScopeProvider: React.FC<ActiveScopeProviderProps> = ({ childr
     }
     queryClient.clear();
   }, [state.selectedClientId, state.selectedProductId, queryClient]);
+
+  // P8 — reactive recovery from a backend INVALID_ACTIVE_SCOPE_* 403.
+  // The axios response interceptor (services/api.ts) drops the
+  // sessionStorage entry and dispatches ACTIVE_SCOPE_INVALID_EVENT. Here
+  // we mirror that in React state so the ScopeSelector / DemoModeBanner
+  // re-render at baseline, and we toast the user so the reset isn't
+  // silent.
+  useEffect(() => {
+    const handler = () => {
+      setState(EMPTY_SCOPE);
+      toast.warning('Active scope reset — your access to that client/product was revoked.');
+    };
+    window.addEventListener(ACTIVE_SCOPE_INVALID_EVENT, handler);
+    return () => {
+      window.removeEventListener(ACTIVE_SCOPE_INVALID_EVENT, handler);
+    };
+  }, []);
 
   const setScope = useCallback(
     (next: Partial<Pick<ActiveScopeState, 'selectedClientId' | 'selectedProductId'>>) => {
