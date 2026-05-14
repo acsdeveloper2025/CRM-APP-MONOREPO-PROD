@@ -389,6 +389,24 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
       `;
     }
 
+    // P17.C-2: pagination total previously read result.rows.length (always
+    // ≤ LIMIT). Use a separate COUNT(*) query with the same WHERE so the
+    // FE pagination control reflects the true row count, not just the
+    // current page size. The data query keeps LIMIT/OFFSET.
+    const countQuery =
+      formType.toUpperCase() === 'RESIDENCE'
+        ? `SELECT COUNT(DISTINCT r.id)::int AS total
+           FROM verification_reports r
+           LEFT JOIN cases c ON r.case_id = c.id
+           ${whereClause}${whereClause ? ' AND' : 'WHERE'} r.verification_type_id = (SELECT id FROM verification_types WHERE code = 'RV')`
+        : `SELECT COUNT(DISTINCT o.id)::int AS total
+           FROM verification_reports o
+           LEFT JOIN cases c ON o.case_id = c.id
+           ${whereClause}${whereClause ? ' AND' : 'WHERE'} o.verification_type_id = (SELECT id FROM verification_types WHERE code = 'OV')`;
+
+    const totalResult = await dbQuery<{ total: number }>(countQuery, params);
+    const totalRows = totalResult.rows[0]?.total ?? 0;
+
     params.push(limit, offset);
     const result = await dbQuery(query, params);
 
@@ -400,7 +418,7 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
         pagination: {
           limit,
           offset,
-          total: result.rows.length,
+          total: totalRows,
         },
       },
       message: `${formType} form submissions retrieved successfully`,
@@ -440,13 +458,18 @@ export const getFormValidationStatus = async (req: AuthenticatedRequest, res: Re
       paramIndex++;
     }
 
+    // P17.C-1: column was `createdAt` (camelCase) which doesn't exist
+    // in `task_form_submissions` — psql `\d` shows `submitted_at` and
+    // `created_at` as the two relevant timestamps. Use submitted_at
+    // (matches the validation_status/validated_at semantics already
+    // queried below; also matches getFormSubmissions L168/172).
     if (dateFrom) {
-      conditions.push(`createdAt >= $${paramIndex}`);
+      conditions.push(`submitted_at >= $${paramIndex}`);
       params.push(dateFrom);
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`createdAt <= $${paramIndex}`);
+      conditions.push(`submitted_at <= $${paramIndex}`);
       params.push(dateTo);
       paramIndex++;
     }

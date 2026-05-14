@@ -15,7 +15,17 @@ export class DashboardKPIController {
    */
   static async getKPIs(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const { clientId, agentId, dateFrom, dateTo } = req.query;
+      // P17.C-5: dateFrom/dateTo were accepted at the controller but
+      // never threaded into DashboardKPIService.getKPIs — the service
+      // hard-codes a 7-day rolling window via Postgres INTERVAL in
+      // every CTE (date_ranges, perfQuery, kycQuery, casesQuery). Until
+      // the FE gains a date filter and the SQL gets parameterized
+      // ranges, accept-then-ignore was the silent failure shape audit
+      // C-5 flagged. Drop them from the destructure so callers see a
+      // clean contract — they were also missing from the service
+      // signature, so the previous code threaded them only to be
+      // stripped at the service call site (filters destructure).
+      const { clientId, agentId } = req.query;
       let clientIds: number[] | undefined;
       let productIds: number[] | undefined;
       const hierarchyAgentIds = req.user?.id
@@ -66,8 +76,6 @@ export class DashboardKPIController {
         creatorUserIds: isScoped ? hierarchyAgentIds : undefined,
         clientIds,
         productIds,
-        dateFrom: typeof dateFrom === 'string' ? dateFrom : undefined,
-        dateTo: typeof dateTo === 'string' ? dateTo : undefined,
       };
 
       const kpis = await DashboardKPIService.getKPIs(filters);

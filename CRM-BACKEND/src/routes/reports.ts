@@ -224,7 +224,34 @@ router.get(
   downloadInvoicesReport
 );
 
-router.post('/invoices/download', downloadInvoicesReport);
+// P17.C-7: POST variant mirrors the GET validators so a POST body
+// (or query) with bogus status / non-ISO dates / oversized search
+// term is rejected before the SQL runs. Previously the POST route
+// bypassed every validator and any value flowed into the SQL params.
+// Validators on POST read from body OR query (express-validator
+// `query()`/`body()` are independent — we add both so the route
+// works whether the FE sends params via query string or JSON body).
+router.post(
+  '/invoices/download',
+  [
+    ...dateRangeValidation,
+    body('clientId').optional().trim().notEmpty().withMessage('Client ID must not be empty'),
+    body('productId').optional().trim().notEmpty().withMessage('Product ID must not be empty'),
+    body('status')
+      .optional()
+      .isIn(['DRAFT', 'SENT', 'CANCELLED', 'OVERDUE'])
+      .withMessage('Invalid status'),
+    body('search')
+      .optional()
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('Search term must be less than 100 characters'),
+    body('dateFrom').optional().isISO8601().withMessage('Date from must be a valid date'),
+    body('dateTo').optional().isISO8601().withMessage('Date to must be a valid date'),
+  ],
+  validate,
+  downloadInvoicesReport
+);
 
 // ===== PHASE 1: NEW DATA VISUALIZATION & REPORTING ROUTES =====
 
