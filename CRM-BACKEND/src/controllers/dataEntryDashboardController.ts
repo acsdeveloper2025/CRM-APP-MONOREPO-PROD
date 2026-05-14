@@ -4,6 +4,8 @@ import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
 import { hasSystemScopeBypass } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
+import { getAssignedClientIds } from '@/middleware/clientAccess';
+import { getAssignedProductIds } from '@/middleware/productAccess';
 
 // ---------------------------------------------------------------------------
 // GET /api/case-data-entries/dashboard
@@ -47,6 +49,39 @@ export const getDataEntryDashboard = async (req: AuthenticatedRequest, res: Resp
     if (!isAdmin && scopedUserIds) {
       conditions.push(`c.created_by_backend_user = ANY($${paramIdx++}::uuid[])`);
       params.push(scopedUserIds);
+    }
+
+    // P13.D — baseline assigned-client/product narrowing + activeScope
+    // intersection. Without these, a creator could keep seeing cases for
+    // a client they're no longer assigned to, and the activeScope (Demo
+    // Mode / scope selector) was being silently ignored.
+    if (!isAdmin) {
+      const [assignedClientIds, assignedProductIds] = await Promise.all([
+        getAssignedClientIds(req.user!.id),
+        getAssignedProductIds(req.user!.id),
+      ]);
+
+      let effectiveClientIds = assignedClientIds;
+      let effectiveProductIds = assignedProductIds;
+      if (req.activeScope?.clientId != null && effectiveClientIds) {
+        effectiveClientIds = effectiveClientIds.includes(req.activeScope.clientId)
+          ? [req.activeScope.clientId]
+          : [-1];
+      }
+      if (req.activeScope?.productId != null && effectiveProductIds) {
+        effectiveProductIds = effectiveProductIds.includes(req.activeScope.productId)
+          ? [req.activeScope.productId]
+          : [-1];
+      }
+
+      if (effectiveClientIds && effectiveClientIds.length > 0) {
+        conditions.push(`c.client_id = ANY($${paramIdx++}::int[])`);
+        params.push(effectiveClientIds);
+      }
+      if (effectiveProductIds && effectiveProductIds.length > 0) {
+        conditions.push(`c.product_id = ANY($${paramIdx++}::int[])`);
+        params.push(effectiveProductIds);
+      }
     }
 
     if (search) {
