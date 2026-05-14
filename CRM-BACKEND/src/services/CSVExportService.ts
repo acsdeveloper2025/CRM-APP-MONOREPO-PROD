@@ -14,6 +14,16 @@ export interface CSVExportOptions {
   delimiter?: string;
   includeHeaders?: boolean;
   encoding?: 'utf8' | 'utf16le';
+  /**
+   * Active-scope context (project_scope_control_audit_2026_05_14.md P9).
+   * When `effectiveClientIds.length > 0`, the case-analytics fetch
+   * intersects `client_id = ANY(effectiveClientIds)` so the export
+   * cannot leak rows outside the caller's scope. Admin users without
+   * assignments leave this empty -> no intersection, current behaviour.
+   */
+  scopeCtx?: {
+    effectiveClientIds?: readonly number[];
+  };
 }
 
 export interface CSVExportResult {
@@ -76,13 +86,13 @@ export class CSVExportService {
   }
 
   private async fetchReportData(options: CSVExportOptions): Promise<Record<string, unknown>> {
-    const { reportType, dateFrom, dateTo, filters } = options;
+    const { reportType, dateFrom, dateTo, filters, scopeCtx } = options;
 
     switch (reportType) {
       case 'agent-performance':
         return this.fetchAgentPerformanceData(dateFrom, dateTo, filters);
       case 'case-analytics':
-        return this.fetchCaseAnalyticsData(dateFrom, dateTo, filters);
+        return this.fetchCaseAnalyticsData(dateFrom, dateTo, filters, scopeCtx);
       default:
         throw new Error(`Unsupported report type: ${String(reportType)}`);
     }
@@ -208,7 +218,8 @@ export class CSVExportService {
   private async fetchCaseAnalyticsData(
     dateFrom?: string,
     dateTo?: string,
-    filters?: Record<string, unknown>
+    filters?: Record<string, unknown>,
+    scopeCtx?: CSVExportOptions['scopeCtx']
   ): Promise<{
     headers: string[];
     data: unknown[];
@@ -216,8 +227,19 @@ export class CSVExportService {
     reportType: string;
   }> {
     const whereConditions = [];
-    const queryParams = [];
+    const queryParams: unknown[] = [];
     let paramIndex = 1;
+
+    // P9 — active-scope intersection. When the caller has a narrowed
+    // effective scope (a scoped-ops user, or any user with an active
+    // X-Active-Client-Id header), the export MUST be restricted to
+    // those clients regardless of what `filters.clientId` says.
+    const effectiveClientIds = scopeCtx?.effectiveClientIds ?? [];
+    if (effectiveClientIds.length > 0) {
+      whereConditions.push(`client_id = ANY($${paramIndex}::int[])`);
+      queryParams.push([...effectiveClientIds]);
+      paramIndex++;
+    }
 
     if (dateFrom) {
       whereConditions.push(`created_at >= $${paramIndex}`);

@@ -22,6 +22,13 @@ export interface PDFExportOptions {
   template?: 'standard' | 'detailed' | 'summary';
   includeCharts?: boolean;
   orientation?: 'portrait' | 'landscape';
+  /**
+   * Active-scope context (project_scope_control_audit_2026_05_14.md P9).
+   * Mirrors CSVExportOptions.scopeCtx — see there for semantics.
+   */
+  scopeCtx?: {
+    effectiveClientIds?: readonly number[];
+  };
 }
 
 export interface PDFExportResult {
@@ -104,13 +111,13 @@ export class PDFExportService {
   }
 
   private async fetchReportData(options: PDFExportOptions): Promise<ReportData> {
-    const { reportType, dateFrom, dateTo, filters } = options;
+    const { reportType, dateFrom, dateTo, filters, scopeCtx } = options;
 
     switch (reportType) {
       case 'agent-performance':
         return this.fetchAgentPerformanceData(dateFrom, dateTo, filters);
       case 'case-analytics':
-        return this.fetchCaseAnalyticsData(dateFrom, dateTo, filters);
+        return this.fetchCaseAnalyticsData(dateFrom, dateTo, filters, scopeCtx);
       default:
         throw new Error(`Unsupported report type: ${String(reportType)}`);
     }
@@ -180,11 +187,22 @@ export class PDFExportService {
   private async fetchCaseAnalyticsData(
     dateFrom?: string,
     dateTo?: string,
-    _filters?: Record<string, unknown>
+    _filters?: Record<string, unknown>,
+    scopeCtx?: PDFExportOptions['scopeCtx']
   ): Promise<CaseAnalyticsReportData> {
     const whereConditions = [];
-    const queryParams = [];
+    const queryParams: (string | number[])[] = [];
     let paramIndex = 1;
+
+    // P9 — active-scope intersection (see CSVExportService for the
+    // motivating audit note). When effectiveClientIds is set, the
+    // export view is restricted to those clients.
+    const effectiveClientIds = scopeCtx?.effectiveClientIds ?? [];
+    if (effectiveClientIds.length > 0) {
+      whereConditions.push(`client_id = ANY($${paramIndex}::int[])`);
+      queryParams.push([...effectiveClientIds]);
+      paramIndex++;
+    }
 
     if (dateFrom) {
       whereConditions.push(`created_at >= $${paramIndex}`);

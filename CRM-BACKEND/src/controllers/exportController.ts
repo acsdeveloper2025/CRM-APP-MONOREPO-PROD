@@ -62,6 +62,15 @@ interface ExportHistoryItem {
  * Handles all data export requests with multiple format support
  */
 
+// P9 — scope context passed end-to-end from the controller through the
+// helpers into the export services so the case-analytics fetch can apply
+// `client_id = ANY(effectiveClientIds)` regardless of whether the caller
+// explicitly set filters.clientId. See
+// project_scope_control_audit_2026_05_14.md.
+type ScopeCtx = {
+  effectiveClientIds?: readonly number[];
+};
+
 // Generate and download/email reports
 export const generateReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -80,20 +89,43 @@ export const generateReport = async (req: AuthenticatedRequest, res: Response) =
       });
     }
 
+    // P9 — extract effective scope from the authenticated request. The
+    // request has already passed through validateActiveScope (P1) and
+    // applyActiveScope (P1) so req.effectiveClientIds is populated.
+    const effectiveClientIds = req.effectiveClientIds ?? [];
+
+    // Reject explicit filters.clientId outside the user's effective
+    // scope. Mirrors the validateClientAccess('query') guard on the
+    // /api/reports list endpoints (P0). Admins with no assignments
+    // (effectiveClientIds.length === 0) pass through unchanged.
+    const filterClientIdRaw = exportRequest.filters?.clientId;
+    if (effectiveClientIds.length > 0 && filterClientIdRaw != null) {
+      const filterClientId = Number(filterClientIdRaw);
+      if (!Number.isFinite(filterClientId) || !effectiveClientIds.includes(filterClientId)) {
+        return res.status(403).json({
+          success: false,
+          message: 'filters.clientId is not in your active scope',
+          error: { code: 'CLIENT_ACCESS_DENIED' },
+        });
+      }
+    }
+
+    const scopeCtx: ScopeCtx = { effectiveClientIds };
+
     // Generate report based on format
     let result: ExportResult;
     switch (exportRequest.format) {
       case 'pdf':
-        result = await generatePDFReport(exportRequest);
+        result = await generatePDFReport(exportRequest, scopeCtx);
         break;
       case 'excel':
-        result = await generateExcelReport(exportRequest);
+        result = await generateExcelReport(exportRequest, scopeCtx);
         break;
       case 'csv':
-        result = await generateCSVReport(exportRequest);
+        result = await generateCSVReport(exportRequest, scopeCtx);
         break;
       case 'json':
-        result = await generateJSONReport(exportRequest);
+        result = await generateJSONReport(exportRequest, scopeCtx);
         break;
       default:
         return res.status(400).json({
@@ -348,7 +380,10 @@ function validateExportRequest(request: ExportRequest): { isValid: boolean; erro
   };
 }
 
-async function generatePDFReport(request: ExportRequest): Promise<ExportResult> {
+async function generatePDFReport(
+  request: ExportRequest,
+  scopeCtx: ScopeCtx
+): Promise<ExportResult> {
   const pdfService = PDFExportService.getInstance();
 
   const options = {
@@ -359,6 +394,7 @@ async function generatePDFReport(request: ExportRequest): Promise<ExportResult> 
     template: (request.options?.template as 'standard' | 'detailed' | 'summary') || 'standard',
     includeCharts: request.options?.includeCharts || false,
     orientation: request.options?.orientation || 'portrait',
+    scopeCtx,
   };
 
   const result = await pdfService.generatePDFReport(options);
@@ -367,7 +403,10 @@ async function generatePDFReport(request: ExportRequest): Promise<ExportResult> 
   return result as unknown as ExportResult;
 }
 
-async function generateExcelReport(request: ExportRequest): Promise<ExportResult> {
+async function generateExcelReport(
+  request: ExportRequest,
+  scopeCtx: ScopeCtx
+): Promise<ExportResult> {
   const excelService = ExcelExportService.getInstance();
 
   const options = {
@@ -377,13 +416,17 @@ async function generateExcelReport(request: ExportRequest): Promise<ExportResult
     filters: request.filters,
     includeCharts: request.options?.includeCharts || false,
     includeSummary: request.options?.includeSummary !== false,
+    scopeCtx,
   };
 
   const result = await excelService.generateExcelReport(options);
   return result as unknown as ExportResult;
 }
 
-async function generateCSVReport(request: ExportRequest): Promise<ExportResult> {
+async function generateCSVReport(
+  request: ExportRequest,
+  scopeCtx: ScopeCtx
+): Promise<ExportResult> {
   const csvService = CSVExportService.getInstance();
 
   const options = {
@@ -394,13 +437,17 @@ async function generateCSVReport(request: ExportRequest): Promise<ExportResult> 
     delimiter: request.options?.delimiter || ',',
     includeHeaders: true,
     encoding: request.options?.encoding || 'utf8',
+    scopeCtx,
   };
 
   const result = await csvService.generateCSVReport(options);
   return result as unknown as ExportResult;
 }
 
-async function generateJSONReport(request: ExportRequest): Promise<ExportResult> {
+async function generateJSONReport(
+  request: ExportRequest,
+  scopeCtx: ScopeCtx
+): Promise<ExportResult> {
   // For JSON, we'll use the CSV service to get the data and then format as JSON
   const csvService = CSVExportService.getInstance();
 
@@ -412,6 +459,7 @@ async function generateJSONReport(request: ExportRequest): Promise<ExportResult>
       dateTo: request.dateTo,
       filters: request.filters,
       includeHeaders: false, // We don't need headers for JSON
+      scopeCtx,
     });
 
     const typedResult = result as unknown as {
