@@ -18,6 +18,25 @@ export const getFieldMonitoringScopeHash = (req: AuthenticatedRequest): string =
   return crypto.createHash('md5').update(JSON.stringify(scopePayload)).digest('hex');
 };
 
+/**
+ * P11.C — append an active-scope suffix to any cache key so demo-mode
+ * scope switches yield cache misses + fresh narrowed data, instead of
+ * the previous scope's stale response. Empty string when no scope is
+ * set (key unchanged → 100% backward compatible with existing cache
+ * entries). Sits at the END of the key, so wildcard invalidation
+ * patterns like `users:list:*` still match scope-suffixed keys.
+ *
+ * See project_scope_control_audit_2026_05_14.md leak C-1.
+ */
+export const getActiveScopeKeySegment = (req: AuthenticatedRequest): string => {
+  const c = req.activeScope?.clientId;
+  const p = req.activeScope?.productId;
+  if (c == null && p == null) {
+    return '';
+  }
+  return `:as:c${c ?? '-'}:p${p ?? '-'}`;
+};
+
 export interface CacheConfig {
   ttl: number; // Time to live in seconds
   keyGenerator?: (req: Request) => string;
@@ -50,10 +69,15 @@ export class EnterpriseCache {
           return next();
         }
 
-        // Generate cache key
-        const cacheKey = config.keyGenerator
+        // Generate cache key. P11.C appends an active-scope suffix
+        // so two requests from the same user under different
+        // X-Active-Client-Id / X-Active-Product-Id headers land on
+        // distinct cache entries — without this, P5's FE cache wipe
+        // would be neutralised by a stale BE cache hit.
+        const baseCacheKey = config.keyGenerator
           ? config.keyGenerator(req)
           : this.defaultKeyGenerator(req, config.varyBy);
+        const cacheKey = baseCacheKey + getActiveScopeKeySegment(req as AuthenticatedRequest);
 
         // Try to get cached response
         const cached = await EnterpriseCacheService.get<{
