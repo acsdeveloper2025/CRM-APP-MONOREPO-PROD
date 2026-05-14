@@ -375,6 +375,13 @@ router.put(
   updateCaseValidation,
   validate,
   validateCaseAccess,
+  // P14.M-2: also gate body.clientId / body.productId. validateCaseAccess
+  // above only checks the CURRENT case's client/product — it does NOT
+  // prevent re-tenanting the case to a different (in-assigned) client by
+  // flipping the body fields. validateCaseCreationAccess is the same
+  // chain used by POST /create, so a scope-locked user can no longer
+  // migrate an existing case across tenants.
+  validateCaseCreationAccess,
   EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
   updateCase
 );
