@@ -260,48 +260,164 @@ export class DashboardKPIService {
     `;
 
     // ----------------------------------------------------------------------
-    // LEGACY: CASES QUERY
+    // P13.C — LEGACY CASES + CLIENTS + AGENTS QUERIES, SCOPE-AWARE
+    //
+    // These three legacy queries previously returned global counts even
+    // when the caller had locked scope, leaking cross-tenant case totals
+    // (Quick Actions tile), client counts and field-agent counts. We
+    // rebuild the WHERE clauses here to mirror the operational filters
+    // applied to coreQuery (clientIds, productIds, creatorUserIds, single
+    // clientId/agentId). agentId is honoured via an EXISTS subquery on
+    // verification_tasks so the cases table doesn't need an agent FK.
     // ----------------------------------------------------------------------
+    const casesConditions: string[] = ['1=1'];
+    const casesParams: QueryParams = [];
+    let casesIdx = 1;
+
+    if (creatorUserIds && creatorUserIds.length > 0) {
+      casesConditions.push(`(
+        c.created_by_backend_user = ANY($${casesIdx}::uuid[])
+        OR EXISTS (
+          SELECT 1 FROM verification_tasks vt_scope
+          WHERE vt_scope.case_id = c.id
+            AND vt_scope.assigned_to = ANY($${casesIdx}::uuid[])
+        )
+      )`);
+      casesParams.push(creatorUserIds);
+      casesIdx++;
+    }
+    if (clientId) {
+      casesConditions.push(`c.client_id = $${casesIdx++}`);
+      casesParams.push(clientId);
+    }
+    if (clientIds && clientIds.length > 0) {
+      casesConditions.push(`c.client_id = ANY($${casesIdx++}::int[])`);
+      casesParams.push(clientIds);
+    }
+    if (productIds && productIds.length > 0) {
+      casesConditions.push(`c.product_id = ANY($${casesIdx++}::int[])`);
+      casesParams.push(productIds);
+    }
+    if (agentId) {
+      casesConditions.push(`EXISTS (
+        SELECT 1 FROM verification_tasks vt_agent
+        WHERE vt_agent.case_id = c.id AND vt_agent.assigned_to = $${casesIdx++}
+      )`);
+      casesParams.push(agentId);
+    }
+    if (agentIds && agentIds.length > 0) {
+      casesConditions.push(`EXISTS (
+        SELECT 1 FROM verification_tasks vt_agent
+        WHERE vt_agent.case_id = c.id AND vt_agent.assigned_to = ANY($${casesIdx++}::uuid[])
+      )`);
+      casesParams.push(agentIds);
+    }
+    const casesWhereClause = casesConditions.join(' AND ');
+
     const casesQuery = `
       WITH date_ranges AS (
-        SELECT 
+        SELECT
           NOW() as cp_end,
           NOW() - INTERVAL '7 days' as cp_start,
           NOW() - INTERVAL '7 days' as pp_end,
           NOW() - INTERVAL '14 days' as pp_start
       )
-      SELECT 
-        -- TOTAL (Created)
+      SELECT
         COUNT(*) FILTER (WHERE created_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_total,
         COUNT(*) FILTER (WHERE created_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_total,
-
-        -- IN PROGRESS (Snapshot)
         COUNT(*) FILTER (WHERE status IN ('IN_PROGRESS', 'PENDING')) as cp_active,
-        COUNT(*) FILTER (WHERE created_at <= (SELECT pp_end FROM date_ranges) AND (status NOT IN ('COMPLETED', 'CLOSED') OR updated_at > (SELECT pp_end FROM date_ranges))) as pp_active, 
-
-        -- COMPLETED (Flow)
+        COUNT(*) FILTER (WHERE created_at <= (SELECT pp_end FROM date_ranges) AND (status NOT IN ('COMPLETED', 'CLOSED') OR updated_at > (SELECT pp_end FROM date_ranges))) as pp_active,
         COUNT(*) FILTER (WHERE status = 'COMPLETED' AND updated_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_completed,
         COUNT(*) FILTER (WHERE status = 'COMPLETED' AND updated_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_completed
-
       FROM cases c
-      -- We must apply filters if relevant (Agent filter might not apply to Cases directly if assigned at task level, implies Join)
-      -- Keeping simple based strictly on table 'cases' but respecting clientId
-      WHERE 1=1 ${clientId ? `AND client_id = $1` : ''}
+      WHERE ${casesWhereClause}
     `;
-    // Note: If agentId is provided, cases query might be inaccurate unless we join tasks or look at case assignment.
-    // Assuming for dashboard simplicity, Agent view focuses on Tasks.
 
-    // ----------------------------------------------------------------------
-    // ENTITY QUERIES (Clients & Agents)
-    // ----------------------------------------------------------------------
+    // Clients query: when the caller has a scoped client set, narrow to
+    // those ids; admin/global callers see all clients. clientId (singular)
+    // overrides clientIds when supplied.
+    const clientsConditions: string[] = ['1=1'];
+    const clientsParams: QueryParams = [];
+    let clientsIdx = 1;
+    if (clientId) {
+      clientsConditions.push(`id = $${clientsIdx++}`);
+      clientsParams.push(clientId);
+    } else if (clientIds && clientIds.length > 0) {
+      clientsConditions.push(`id = ANY($${clientsIdx++}::int[])`);
+      clientsParams.push(clientIds);
+    }
     const clientsQuery = `
-      SELECT 
+      SELECT
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE is_active = true) as active
       FROM clients
+      WHERE ${clientsConditions.join(' AND ')}
     `;
 
-    const agentsQuery = `
+    // Agents query: count distinct field agents with any task on cases
+    // in the caller's scope. active_today narrows the same set to tasks
+    // touched today. When no scope filters apply (admin/global), the
+    // EXISTS subquery is vacuous and counts every visit.submit user.
+    const agentsScopeConditions: string[] = [];
+    const agentsParams: QueryParams = [];
+    let agentsIdx = 1;
+    if (creatorUserIds && creatorUserIds.length > 0) {
+      agentsScopeConditions.push(`(
+        c.created_by_backend_user = ANY($${agentsIdx}::uuid[])
+        OR vt.assigned_to = ANY($${agentsIdx}::uuid[])
+      )`);
+      agentsParams.push(creatorUserIds);
+      agentsIdx++;
+    }
+    if (clientId) {
+      agentsScopeConditions.push(`c.client_id = $${agentsIdx++}`);
+      agentsParams.push(clientId);
+    }
+    if (clientIds && clientIds.length > 0) {
+      agentsScopeConditions.push(`c.client_id = ANY($${agentsIdx++}::int[])`);
+      agentsParams.push(clientIds);
+    }
+    if (productIds && productIds.length > 0) {
+      agentsScopeConditions.push(`c.product_id = ANY($${agentsIdx++}::int[])`);
+      agentsParams.push(productIds);
+    }
+    const hasAgentScope = agentsScopeConditions.length > 0;
+    const agentsScopeWhere = hasAgentScope ? ` AND ${agentsScopeConditions.join(' AND ')}` : '';
+    // Both subqueries reuse the same params. We append a second copy of
+    // the values to agentsParamsFull and rewrite each DISTINCT $N to a
+    // new index in the second subquery — a $N that appears twice in one
+    // condition (e.g. the creator OR clause) must point at the same new
+    // index in the rewritten copy.
+    const placeholderMap = new Map<string, string>();
+    let activeTodayIdx = agentsIdx;
+    const activeTodayConditions = agentsScopeConditions.map(cond =>
+      cond.replace(/\$\d+/g, match => {
+        if (!placeholderMap.has(match)) {
+          placeholderMap.set(match, `$${activeTodayIdx++}`);
+        }
+        return placeholderMap.get(match) as string;
+      })
+    );
+    const activeTodayWhere = hasAgentScope ? ` AND ${activeTodayConditions.join(' AND ')}` : '';
+    const agentsParamsFull = hasAgentScope ? [...agentsParams, ...agentsParams] : [];
+    const agentsQuery = hasAgentScope
+      ? `
+      SELECT
+        (
+          SELECT COUNT(DISTINCT vt.assigned_to)
+          FROM verification_tasks vt
+          LEFT JOIN cases c ON c.id = vt.case_id
+          WHERE vt.assigned_to IS NOT NULL${agentsScopeWhere}
+        ) as total_agents,
+        (
+          SELECT COUNT(DISTINCT vt.assigned_to)
+          FROM verification_tasks vt
+          LEFT JOIN cases c ON c.id = vt.case_id
+          WHERE vt.assigned_to IS NOT NULL
+            AND vt.updated_at >= CURRENT_DATE${activeTodayWhere}
+        ) as active_today
+    `
+      : `
       SELECT
         (
           SELECT COUNT(*)
@@ -315,9 +431,9 @@ export class DashboardKPIService {
           )
         ) as total_agents,
         (
-          SELECT COUNT(DISTINCT assigned_to) 
-          FROM verification_tasks 
-          WHERE assigned_to IS NOT NULL 
+          SELECT COUNT(DISTINCT assigned_to)
+          FROM verification_tasks
+          WHERE assigned_to IS NOT NULL
           AND updated_at >= CURRENT_DATE
         ) as active_today
     `;
@@ -351,9 +467,9 @@ export class DashboardKPIService {
 
     const [taskRes, casesRes, clientsRes, agentsRes, perfRes, kycRes] = await Promise.all([
       query(coreQuery, params),
-      query(casesQuery, clientId ? [clientId] : []),
-      query(clientsQuery),
-      query(agentsQuery),
+      query(casesQuery, casesParams),
+      query(clientsQuery, clientsParams),
+      query(agentsQuery, agentsParamsFull),
       query(
         `WITH date_ranges AS (
         SELECT
