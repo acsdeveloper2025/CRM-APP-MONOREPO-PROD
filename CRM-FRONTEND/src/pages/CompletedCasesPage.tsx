@@ -50,7 +50,7 @@ export const CompletedCasesPage: React.FC = () => {
     syncWithUrl: true,
   });
 
-  const { data: clientsData } = useClients({ limit: 1000 });
+  const { data: clientsData } = useClients({ limit: 500 });
   const clients = clientsData?.data || [];
   const activeFilterCount = Object.values(activeFilters).filter(Boolean).length;
 
