@@ -4,6 +4,8 @@ import path from 'path';
 import fs from 'fs/promises';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize, authorizeAny } from '@/middleware/authorize';
+import { validateClientAccess } from '@/middleware/clientAccess';
+import { validateProductAccess } from '@/middleware/productAccess';
 import {
   listDocumentTypes,
   listKYCTasks,
@@ -54,8 +56,18 @@ const upload = multer({
 
 router.use(authenticateToken);
 
-// Document types (public for dropdowns)
-router.get('/document-types', listDocumentTypes);
+// Document types (public for dropdowns).
+// When clientId+productId query params are present, scoped-ops users must
+// have those entities in their assignments — closes the R-1 query-param
+// bypass (project_scope_control_audit_2026_05_14.md). When the params are
+// absent, validators are no-ops and the original "all active doc types"
+// dropdown response is preserved.
+router.get(
+  '/document-types',
+  validateClientAccess('query'),
+  validateProductAccess('query'),
+  listDocumentTypes
+);
 
 // KYC task listing (dashboard)
 router.get('/tasks', authorize('kyc.view'), listKYCTasks);

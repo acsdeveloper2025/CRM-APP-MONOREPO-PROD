@@ -2,6 +2,7 @@ import express from 'express';
 import { body, param, query } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
+import { validateClientAccess } from '@/middleware/clientAccess';
 import { validate } from '@/middleware/validation';
 import { exportRateLimit, listRateLimit } from '@/middleware/rateLimiter';
 import {
@@ -256,7 +257,13 @@ router.get(
 router.get('/form-validation-status', dateRangeValidation, validate, getFormValidationStatus);
 
 // 1.2 Case Analytics APIs
-router.get('/case-analytics', caseAnalyticsValidation, validate, getCaseAnalytics);
+router.get(
+  '/case-analytics',
+  caseAnalyticsValidation,
+  validate,
+  validateClientAccess('query'),
+  getCaseAnalytics
+);
 
 // 1.3 Agent Performance APIs
 router.get('/agent-performance', agentPerformanceValidation, validate, getAgentPerformance);

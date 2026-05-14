@@ -3,8 +3,8 @@ import { body, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { handleValidationErrors } from '@/middleware/validation';
-import { validateCaseAccess } from '@/middleware/clientAccess';
-import { validateCaseProductAccess } from '@/middleware/productAccess';
+import { validateCaseAccess, validateClientAccess } from '@/middleware/clientAccess';
+import { validateCaseProductAccess, validateProductAccess } from '@/middleware/productAccess';
 import { chainMiddleware } from '@/middleware/scopeAccess';
 import {
   getEntry,
@@ -21,9 +21,32 @@ const router = express.Router();
 router.use(authenticateToken);
 
 // Static routes MUST be before :caseId param routes.
-router.get('/dashboard', authorize('case.view'), getDataEntryDashboard);
-router.get('/mis', authorize('case.view'), getMISData);
-router.get('/mis/export', authorize('case.view'), exportMISData);
+// clientId/productId query-param scope validation (closes R-1 query-param
+// bypass per project_scope_control_audit_2026_05_14.md): scoped-ops users
+// must have the requested clientId and productId in their assignments.
+// Validators are no-ops for system-bypass users and when the params are
+// absent.
+router.get(
+  '/dashboard',
+  authorize('case.view'),
+  validateClientAccess('query'),
+  validateProductAccess('query'),
+  getDataEntryDashboard
+);
+router.get(
+  '/mis',
+  authorize('case.view'),
+  validateClientAccess('query'),
+  validateProductAccess('query'),
+  getMISData
+);
+router.get(
+  '/mis/export',
+  authorize('case.view'),
+  validateClientAccess('query'),
+  validateProductAccess('query'),
+  exportMISData
+);
 
 // ---------------------------------------------------------------------------
 // Composed case access: validates that the authenticated user has both
