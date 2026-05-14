@@ -188,6 +188,26 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
+    // P13.E — activeScope intersection. validateClientAccess only
+    // ensures the requested ids fall inside the caller's baseline
+    // assignments. A user locked to one client could still query
+    // another assigned client via the FE dropdown; reject here so
+    // Demo Mode / scope-selector is enforced end-to-end.
+    if (req.activeScope?.clientId != null && req.activeScope.clientId !== clientId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Requested client is outside your active scope',
+        error: { code: 'CLIENT_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
+    if (req.activeScope?.productId != null && req.activeScope.productId !== productId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Requested product is outside your active scope',
+        error: { code: 'PRODUCT_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
+
     // Scope: creator-based. Non-admin users see only cases created by
     // themselves or their subordinates.
     const isAdmin = hasSystemScopeBypass(req.user);
@@ -286,6 +306,22 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
         success: false,
         message: 'clientId and productId are required',
         error: { code: 'MISSING_PARAMS' },
+      });
+    }
+
+    // P13.E — activeScope intersection. Same rationale as getMISData.
+    if (req.activeScope?.clientId != null && req.activeScope.clientId !== clientId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Requested client is outside your active scope',
+        error: { code: 'CLIENT_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
+    if (req.activeScope?.productId != null && req.activeScope.productId !== productId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Requested product is outside your active scope',
+        error: { code: 'PRODUCT_NOT_IN_ACTIVE_SCOPE' },
       });
     }
 
