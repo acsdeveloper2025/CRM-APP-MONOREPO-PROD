@@ -26,7 +26,7 @@ type MaxTimestampRow = {
 type TaskActivityRow = {
   userId: string;
   maxStartedAt: Date | null;
-  maxSubmittedAt: Date | null;
+  maxCompletedAt: Date | null;
   maxUpdatedAt: Date | null;
   maxCurrentAssignedAt: Date | null;
   maxAssignedAt: Date | null;
@@ -607,7 +607,7 @@ export class FieldMonitoringService {
           SELECT
             assigned_to as user_id,
             MAX(started_at) as "max_started_at",
-            MAX(submitted_at) as "max_submitted_at",
+            MAX(completed_at) as "max_completed_at",
             MAX(updated_at) as "max_updated_at",
             MAX(current_assigned_at) as "max_current_assigned_at",
             MAX(assigned_at) as "max_assigned_at"
@@ -656,7 +656,7 @@ export class FieldMonitoringService {
 
       current.lastTaskActivityAt = this.maxDate([
         row.maxStartedAt,
-        row.maxSubmittedAt,
+        row.maxCompletedAt,
         row.maxUpdatedAt,
         row.maxCurrentAssignedAt,
         row.maxAssignedAt,
