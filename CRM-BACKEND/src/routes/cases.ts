@@ -226,6 +226,13 @@ router.post(
       .withMessage('Rate type ID must be a positive integer'),
   ],
   validate,
+  // P11.B — validateCaseCreationAccess closes leak L-F. Reads
+  // body.clientId / body.productId and intersects against the user's
+  // assignedClientIds / assignedProductIds. Mirrors the /create route's
+  // scope guard so scoped users can't probe configuration for
+  // unassigned client/product pairs. Admin / settings.manage users
+  // continue to bypass via hasSystemScopeBypass.
+  validateCaseCreationAccess,
   validateCaseConfiguration
 );
 
