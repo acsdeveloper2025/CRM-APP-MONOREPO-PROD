@@ -3,6 +3,7 @@ import { body, param, query } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { validateClientAccess } from '@/middleware/clientAccess';
+import { validateProductAccess } from '@/middleware/productAccess';
 import { validate } from '@/middleware/validation';
 import { exportRateLimit, listRateLimit } from '@/middleware/rateLimiter';
 import {
@@ -309,7 +310,14 @@ const misDashboardValidation = [
 ];
 
 // MIS Dashboard Data
-router.get('/mis-dashboard-data', misDashboardValidation, validate, getMISData);
+router.get(
+  '/mis-dashboard-data',
+  misDashboardValidation,
+  validate,
+  validateClientAccess('query'),
+  validateProductAccess('query'),
+  getMISData
+);
 
 // MIS Dashboard Export
 router.get(
@@ -320,6 +328,8 @@ router.get(
   ],
   validate,
   exportRateLimit,
+  validateClientAccess('query'),
+  validateProductAccess('query'),
   exportMISData
 );
 
