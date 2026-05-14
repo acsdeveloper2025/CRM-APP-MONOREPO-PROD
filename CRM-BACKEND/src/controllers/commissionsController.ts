@@ -182,13 +182,22 @@ export const getCommissionById = async (req: AuthenticatedRequest, res: Response
     const { id } = req.params;
     const scope = await resolveDataScope(req);
 
+    // P14.M-10: scopeProductId expression must be SELECTed so that
+    // valueAllowedByScope below can run the product-scope check.
+    // Mirrors approveCommission (L261) and markCommissionPaid (L373).
+    // Without it the resolved row had productId=null, which
+    // valueAllowedByScope treats as "allowed" → product-scope check
+    // silently disabled, BACKEND_USER could read commission detail rows
+    // for products outside their assignedProductIds (clientId check
+    // still ran, so cross-client was still blocked).
     const sql = `
       SELECT
         cc.*,
         u.name as user_name,
         u.email as "user_email",
         u2.name as "approved_by_name",
-        u3.name as "paid_by_name"
+        u3.name as "paid_by_name",
+        ${COMMISSION_PRODUCT_SCOPE_EXPR} as "scopeProductId"
       FROM commission_calculations cc
       LEFT JOIN users u ON cc.user_id = u.id
       LEFT JOIN users u2 ON cc.approved_by = u2.id
