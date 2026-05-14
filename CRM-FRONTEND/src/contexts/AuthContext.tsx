@@ -61,15 +61,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isLoading: false,
       }));
 
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
-        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] }),
-        queryClient.invalidateQueries({ queryKey: ['reports-dashboard'] }),
-        queryClient.invalidateQueries({ queryKey: ['verification-tasks'] }),
-        queryClient.invalidateQueries({ queryKey: ['cases'] }),
-      ]);
-
-      void queryClient.refetchQueries({ queryKey: ['dashboard'], type: 'active' });
+      // P6 — full cache clear on permission change
+      // (project_scope_control_audit_2026_05_14.md R-3).
+      //
+      // The previous narrow invalidate of 5 hard-coded keys
+      // (dashboard, dashboard-stats, reports-dashboard,
+      // verification-tasks, cases) left every other resource tree
+      // (users, clients, products, rates, invoices, commissions,
+      // KYC, locations, notifications, …) stale for up to gcTime
+      // = 30min. After a revocation that bridged into a render of
+      // those screens, the user could still see data they no longer
+      // had access to.
+      //
+      // queryClient.clear() drops the entire QueryCache; every
+      // mounted query refetches on next render under the refreshed
+      // permission set + current active scope.
+      queryClient.clear();
     } catch (error) {
       logger.error('Permission refresh failed:', error);
     }
