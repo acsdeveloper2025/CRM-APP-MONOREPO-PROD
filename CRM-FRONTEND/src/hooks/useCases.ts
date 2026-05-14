@@ -78,29 +78,15 @@ export const usePendingCases = () => {
   });
 };
 
+// P20.A-06: useUpdateCaseStatus, useUpdateCasePriority,
+// useApproveCase, useRejectCase, useRequestRework removed — their
+// backing service methods on casesService POSTed to routes that don't
+// exist; the workflow audit (2026-05-13) made the underlying statuses
+// (APPROVED/REJECTED/REWORK_REQUIRED) non-statuses on cases. Zero
+// callers across the FE. Keep useCreateCase + useUpdateCase as the
+// canonical create/edit hooks.
+
 // Mutations
-export const useUpdateCaseStatus = () => {
-  return useMutationWithInvalidation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      casesService.updateCaseStatus(id, status),
-    invalidateKeys: [caseKeys.all, ['dashboard'], ['verification-tasks']],
-    successMessage: 'Case status updated successfully',
-    errorContext: 'Case Status Update',
-    errorFallbackMessage: 'Failed to update case status',
-  });
-};
-
-export const useUpdateCasePriority = () => {
-  return useMutationWithInvalidation({
-    mutationFn: ({ id, priority }: { id: string; priority: string }) =>
-      casesService.updateCasePriority(id, priority),
-    invalidateKeys: [caseKeys.all],
-    successMessage: 'Case priority updated successfully',
-    errorContext: 'Case Priority Update',
-    errorFallbackMessage: 'Failed to update case priority',
-  });
-};
-
 export const useUpdateCase = () => {
   return useMutationWithInvalidation({
     mutationFn: ({ id, data }: { id: string; data: CaseUpdateData }) =>
@@ -120,39 +106,6 @@ export const useCreateCase = () => {
     successMessage: 'Case created and assigned successfully',
     errorContext: 'Case Creation',
     errorFallbackMessage: 'Failed to create case',
-  });
-};
-
-export const useApproveCase = () => {
-  return useMutationWithInvalidation({
-    mutationFn: ({ id, feedback }: { id: string; feedback?: string }) =>
-      casesService.approveCase(id, feedback),
-    invalidateKeys: [caseKeys.all, ['dashboard'], ['verification-tasks']],
-    successMessage: 'Case approved successfully',
-    errorContext: 'Case Approval',
-    errorFallbackMessage: 'Failed to approve case',
-  });
-};
-
-export const useRejectCase = () => {
-  return useMutationWithInvalidation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
-      casesService.rejectCase(id, reason),
-    invalidateKeys: [caseKeys.all, ['dashboard'], ['verification-tasks']],
-    successMessage: 'Case rejected successfully',
-    errorContext: 'Case Rejection',
-    errorFallbackMessage: 'Failed to reject case',
-  });
-};
-
-export const useRequestRework = () => {
-  return useMutationWithInvalidation({
-    mutationFn: ({ id, feedback }: { id: string; feedback: string }) =>
-      casesService.requestRework(id, feedback),
-    invalidateKeys: [caseKeys.all, ['dashboard'], ['verification-tasks']],
-    successMessage: 'Rework requested successfully',
-    errorContext: 'Rework Request',
-    errorFallbackMessage: 'Failed to request rework',
   });
 };
 

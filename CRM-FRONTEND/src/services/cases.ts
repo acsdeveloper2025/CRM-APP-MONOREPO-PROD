@@ -116,24 +116,17 @@ export class CasesService extends BaseApiService {
     return this.put(`/${id}`, data);
   }
 
-  async updateCaseStatus(id: string, status: string): Promise<ApiResponse<Case>> {
-    return this.put(`/${id}/status`, { status });
-  }
-
-  async updateCasePriority(id: string, priority: string): Promise<ApiResponse<Case>> {
-    return this.put(`/${id}/priority`, { priority });
-  }
+  // P20.A-06: updateCaseStatus / updateCasePriority / addCaseNote /
+  // completeCase removed — they POST/PUT to routes that don't exist
+  // on the backend (/api/cases/:id/status, /priority, /notes, /complete
+  // are not mounted in routes/cases.ts). Zero callers across pages or
+  // components; the hooks/useCases.ts wrappers (useUpdateCaseStatus
+  // etc.) are removed in the same commit. updateCase remains — it's
+  // the canonical PUT /api/cases/:id used by CaseCreationStepper edit
+  // mode (and protected by the P14.M-2 body-side scope guard).
 
   async updateCase(id: string, data: CaseUpdateData): Promise<ApiResponse<Case>> {
     return this.put(`/${id}`, data);
-  }
-
-  async addCaseNote(id: string, note: string): Promise<ApiResponse<Case>> {
-    return this.post(`/${id}/notes`, { note });
-  }
-
-  async completeCase(id: string, data: CompleteCaseData): Promise<ApiResponse<Case>> {
-    return this.post(`/${id}/complete`, data);
   }
 
   async getCaseAttachments(id: string): Promise<ApiResponse<unknown[]>> {
@@ -201,17 +194,11 @@ export class CasesService extends BaseApiService {
     };
   }
 
-  async approveCase(id: string, feedback?: string): Promise<ApiResponse<Case>> {
-    return this.post(`/${id}/approve`, { feedback });
-  }
-
-  async rejectCase(id: string, reason: string): Promise<ApiResponse<Case>> {
-    return this.post(`/${id}/reject`, { reason });
-  }
-
-  async requestRework(id: string, feedback: string): Promise<ApiResponse<Case>> {
-    return this.post(`/${id}/rework`, { feedback });
-  }
+  // P20.A-06: approveCase / rejectCase / requestRework removed — the
+  // backend routes /api/cases/:id/approve, /reject, /rework do not
+  // exist; the workflow audit (2026-05-13) made REWORK/APPROVED/
+  // REJECTED non-statuses on cases. Zero callers across pages or
+  // components.
 
   async exportCases(
     params: {

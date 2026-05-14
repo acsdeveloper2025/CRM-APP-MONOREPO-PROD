@@ -30,7 +30,12 @@ const tasks: Array<{ name: string; sql: string }> = [
   },
   {
     name: 'ensure_performance_metrics_partitions',
-    sql: 'SELECT ensure_performance_metrics_partitions(30) AS created',
+    // P20.G-5: bump runway 30 → 60 days. Maintenance runs daily so a
+    // single-day blip won't blow through the buffer; matches the
+    // longer-horizon shape we already use for audit_logs (13 months)
+    // and notifications (7 months). Cheap — partitions are empty
+    // until the day they cover.
+    sql: 'SELECT ensure_performance_metrics_partitions(60) AS created',
   },
   {
     name: 'purge_stale_auto_saves',
