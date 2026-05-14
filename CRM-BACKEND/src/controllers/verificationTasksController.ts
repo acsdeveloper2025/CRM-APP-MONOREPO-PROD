@@ -750,6 +750,24 @@ export class VerificationTasksController {
         }
       }
 
+      // P11.A.3 — apply active-scope narrowing to verification-tasks
+      // list. Mirrors P11.A.1/A.2 in casesController — composes on top
+      // of the existing baseline scope filter (which uses raw
+      // getAssignedClientIds and does not honor resolveDataScope's P2
+      // narrowing). validateActiveScope (P1) has already authorized
+      // any non-null req.activeScope value. Closes leak L-C (site 1)
+      // from the post-P10 re-audit.
+      if (req.activeScope?.clientId != null) {
+        conditions.push(`c.client_id = $${paramIndex}`);
+        params.push(req.activeScope.clientId);
+        paramIndex++;
+      }
+      if (req.activeScope?.productId != null) {
+        conditions.push(`c.product_id = $${paramIndex}`);
+        params.push(req.activeScope.productId);
+        paramIndex++;
+      }
+
       if (!isExecutionActor && assignedTo) {
         conditions.push(`vt.assigned_to = $${paramIndex}`);
         params.push(assignedTo as string);
@@ -2491,6 +2509,20 @@ export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Respons
           paramIndex++;
         }
       }
+    }
+
+    // P11.A.3 — apply active-scope narrowing to tasks Excel export.
+    // Mirrors site 1 in this controller + P11.A.1/A.2 in cases.
+    // Closes leak L-C (site 3) from the post-P10 re-audit.
+    if (req.activeScope?.clientId != null) {
+      conditions.push(`c.client_id = $${paramIndex}`);
+      params.push(req.activeScope.clientId);
+      paramIndex++;
+    }
+    if (req.activeScope?.productId != null) {
+      conditions.push(`c.product_id = $${paramIndex}`);
+      params.push(req.activeScope.productId);
+      paramIndex++;
     }
 
     if (status && status !== 'all') {
