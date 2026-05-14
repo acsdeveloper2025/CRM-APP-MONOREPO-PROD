@@ -1534,6 +1534,23 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
       }
     }
 
+    // P11.A.2 — apply active-scope narrowing to cases export. Mirrors
+    // getCases (P11.A.1) — composes on top of the existing baseline
+    // filter rather than refactoring it. validateActiveScope (P1) has
+    // already verified header values against assignedClientIds, so any
+    // non-null req.activeScope value here is authorized. Closes leak
+    // L-B from the post-P10 re-audit.
+    if (req.activeScope?.clientId != null) {
+      whereConditions.push(`c.client_id = $${paramIndex}`);
+      queryParams.push(req.activeScope.clientId);
+      paramIndex++;
+    }
+    if (req.activeScope?.productId != null) {
+      whereConditions.push(`c.product_id = $${paramIndex}`);
+      queryParams.push(req.activeScope.productId);
+      paramIndex++;
+    }
+
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
     // Query to get cases data
