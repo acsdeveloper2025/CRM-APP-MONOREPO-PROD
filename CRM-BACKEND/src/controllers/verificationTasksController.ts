@@ -387,6 +387,36 @@ export class VerificationTasksController {
         return;
       }
 
+      // P14.M-5: activeScope intersection on the revisit write path. The
+      // route doesn't run validateTaskRecordAccess, so without this a
+      // Demo-Mode-locked HDFC user can revisit a task whose case lives
+      // in ICICI (both clients in her baseline).
+      const caseScopeRow = caseScopeResult.rows[0];
+      if (
+        req.activeScope?.clientId != null &&
+        req.activeScope.clientId !== Number(caseScopeRow.clientId)
+      ) {
+        await client.query('ROLLBACK');
+        res.status(403).json({
+          success: false,
+          message: 'Task case is outside your active scope',
+          error: { code: 'CASE_NOT_IN_ACTIVE_SCOPE' },
+        });
+        return;
+      }
+      if (
+        req.activeScope?.productId != null &&
+        req.activeScope.productId !== Number(caseScopeRow.productId)
+      ) {
+        await client.query('ROLLBACK');
+        res.status(403).json({
+          success: false,
+          message: 'Task product is outside your active scope',
+          error: { code: 'CASE_NOT_IN_ACTIVE_SCOPE' },
+        });
+        return;
+      }
+
       // Enforce territory integrity on child task creation
       const revisitedTerritory =
         await VerificationTaskCreationService.validateTerritoryAndFinancialConfig(client, {

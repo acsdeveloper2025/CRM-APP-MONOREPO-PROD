@@ -123,6 +123,35 @@ export const requireTaskAccess = async (
         return;
       }
 
+      // P14.M-3: activeScope intersection on per-task mutation paths.
+      // The baseline assigned-set checks above don't enforce the user's
+      // locked scope; without this a Demo-Mode-locked HDFC user could
+      // PUT / assign / revoke / start / cancel / complete a task whose
+      // case lives in ICICI (both clients in her baseline). Mirrors
+      // the M-1 fix on scopeAccess.validateEntityAccess.
+      if (
+        req.activeScope?.clientId != null &&
+        req.activeScope.clientId !== Number(row.clientId)
+      ) {
+        res.status(403).json({
+          success: false,
+          message: 'Task case is outside your active scope',
+          error: { code: 'CASE_NOT_IN_ACTIVE_SCOPE' },
+        });
+        return;
+      }
+      if (
+        req.activeScope?.productId != null &&
+        req.activeScope.productId !== Number(row.productId)
+      ) {
+        res.status(403).json({
+          success: false,
+          message: 'Task product is outside your active scope',
+          error: { code: 'CASE_NOT_IN_ACTIVE_SCOPE' },
+        });
+        return;
+      }
+
       next();
       return;
     }

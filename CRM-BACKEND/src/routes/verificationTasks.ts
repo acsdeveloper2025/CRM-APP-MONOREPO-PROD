@@ -415,7 +415,7 @@ router.post(
       }
 
       if (isScopedOperationsUser(req.user) && req.user?.id) {
-        const [assignedClientIds, assignedProductIds] = await Promise.all([
+        let [assignedClientIds, assignedProductIds] = await Promise.all([
           getAssignedClientIds(req.user.id),
           getAssignedProductIds(req.user.id),
         ]);
@@ -432,6 +432,21 @@ router.post(
             error: { code: 'TASK_SCOPE_ACCESS_DENIED' },
           });
           return;
+        }
+
+        // P14.M-4: narrow by req.activeScope using the same intersection
+        // pattern as P13.A. The bulk-assign scope check otherwise treats
+        // every assigned client/product as legal — a Demo-Mode-locked
+        // user could bulk-assign tasks across the scope boundary.
+        if (req.activeScope?.clientId != null) {
+          assignedClientIds = assignedClientIds.includes(req.activeScope.clientId)
+            ? [req.activeScope.clientId]
+            : [-1];
+        }
+        if (req.activeScope?.productId != null) {
+          assignedProductIds = assignedProductIds.includes(req.activeScope.productId)
+            ? [req.activeScope.productId]
+            : [-1];
         }
 
         const scopeCheck = await dbQuery(
