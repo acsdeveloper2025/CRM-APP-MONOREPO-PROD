@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { notificationService, type AppNotification } from '@/services/notifications';
 import { useLayout } from '@/contexts/LayoutContextDefinition';
+import { ScopeSelector } from './ScopeSelector';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -267,6 +268,10 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           </h1>
         </div>
 
+        {/* Active scope selector — auto-hides for users with <=1 client.
+            See project_scope_control_audit_2026_05_14.md P4. */}
+        <ScopeSelector />
+
         {/* Live Clock */}
         <div className="hidden md:flex items-center gap-2 text-white/90">
           <Clock className="h-4 w-4" />
@@ -379,7 +384,9 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">{user?.name}</p>
-                  <p className="text-xs leading-none text-gray-600 case-sensitive">{user?.email || '—'}</p>
+                  <p className="text-xs leading-none text-gray-600 case-sensitive">
+                    {user?.email || '—'}
+                  </p>
                   <p className="text-xs leading-none text-gray-600">
                     {user?.role} • {user?.designation}
                   </p>

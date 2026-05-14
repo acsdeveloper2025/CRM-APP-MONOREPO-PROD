@@ -5,6 +5,7 @@ import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
 import { addClientFiltering, validateClientAccess } from '@/middleware/clientAccess';
+import { markCrossTenant } from '@/middleware/activeScope';
 import {
   EnterpriseCache,
   EnterpriseCacheConfigs,
@@ -124,7 +125,13 @@ const updateClientValidation = [
     .withMessage('Each documentTypeId must be a positive integer'),
 ];
 
-// GET /api/clients - Get all clients (CACHED)
+// GET /api/clients - Get all clients (CACHED).
+// markCrossTenant: the clients list is METADATA (the user's catalogue of
+// accessible tenants), not tenant-scoped data. Narrowing it by activeScope
+// would make the global ScopeSelector dropdown unable to show alternatives
+// after the user picked a scope (the list would refetch to just the picked
+// client). hierarchy aggregation via addClientFiltering still applies.
+// See project_scope_control_audit_2026_05_14.md P4 chicken/egg note.
 router.get(
   '/',
   authenticateToken,
@@ -137,6 +144,7 @@ router.get(
       .withMessage('Limit must be between 1 and 500'),
     query('search').optional().trim().isLength({ max: 100 }).withMessage('Search term too long'),
   ]),
+  markCrossTenant,
   addClientFiltering,
   getClients
 );

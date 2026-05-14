@@ -4,6 +4,7 @@ import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { handleValidationErrors } from '@/middleware/validation';
 import { addProductFiltering, validateProductAccess } from '@/middleware/productAccess';
+import { markCrossTenant } from '@/middleware/activeScope';
 import {
   EnterpriseCache,
   EnterpriseCacheConfigs,
@@ -110,13 +111,17 @@ const _clientProductsValidation = [
   query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
-// Core CRUD routes (CACHED)
+// Core CRUD routes (CACHED).
+// markCrossTenant: products list is METADATA (the user's catalogue of
+// accessible products), not tenant-scoped data. Narrowing by activeScope
+// would break the global ScopeSelector dropdown. See clients.ts mirror.
 router.get(
   '/',
   authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.products),
   listProductsValidation,
   handleValidationErrors,
+  markCrossTenant,
   addProductFiltering,
   getProducts
 );
