@@ -11,6 +11,14 @@ import { TaskCompletionFinalizer } from '@/services/taskCompletionFinalizer';
 import { CaseStatusSyncService } from '@/services/caseStatusSyncService';
 import ExcelJS from 'exceljs';
 import { escapeFormulaRow } from '@/utils/formulaGuard';
+import {
+  hasSystemScopeBypass,
+  isFieldExecutionActor,
+  isScopedOperationsUser,
+} from '@/security/rbacAccess';
+import { getScopedOperationalUserIds } from '@/security/userScope';
+import { getAssignedClientIds } from '@/middleware/clientAccess';
+import { getAssignedProductIds } from '@/middleware/productAccess';
 
 /**
  * KYC Document Verification Controller
@@ -122,6 +130,83 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
     const params: QueryParams = [];
     let paramIndex = 1;
 
+    // P13.F — full scope enforcement. Previously this handler emitted
+    // every KYC record in the database to anyone with the route
+    // permission. We rebuild the WHERE here using the same three-tier
+    // pattern the rest of the operational controllers use:
+    //   1. SUPER_ADMIN / settings.manage → no scope filter
+    //   2. field-execution actors → kdv.assigned_to OR vt.assigned_to = self
+    //   3. scoped-operations users → either hierarchy (creator + team)
+    //      or baseline assigned-client/product narrowing, intersected
+    //      with req.activeScope.
+    const isAdmin = hasSystemScopeBypass(req.user);
+    const isExecutionActor = isFieldExecutionActor(req.user);
+    const isScopedOps = isScopedOperationsUser(req.user);
+    if (req.user?.id && !isAdmin) {
+      const userId = req.user.id;
+      if (isExecutionActor) {
+        conditions.push(
+          `(kdv.assigned_to = $${paramIndex} OR vt.assigned_to = $${paramIndex})`
+        );
+        params.push(userId);
+        paramIndex++;
+      } else if (isScopedOps) {
+        const hierarchyUserIds = await getScopedOperationalUserIds(userId);
+        if (hierarchyUserIds) {
+          if (hierarchyUserIds.length === 0) {
+            conditions.push('FALSE');
+          } else {
+            conditions.push(
+              `(c.created_by_backend_user = ANY($${paramIndex}::uuid[]) OR vt.assigned_to = ANY($${paramIndex}::uuid[]))`
+            );
+            params.push(hierarchyUserIds);
+            paramIndex++;
+          }
+        } else {
+          let effectiveClientIds = await getAssignedClientIds(userId);
+          let effectiveProductIds = await getAssignedProductIds(userId);
+          if (req.activeScope?.clientId != null && effectiveClientIds) {
+            effectiveClientIds = effectiveClientIds.includes(req.activeScope.clientId)
+              ? [req.activeScope.clientId]
+              : [-1];
+          }
+          if (req.activeScope?.productId != null && effectiveProductIds) {
+            effectiveProductIds = effectiveProductIds.includes(req.activeScope.productId)
+              ? [req.activeScope.productId]
+              : [-1];
+          }
+          if (!effectiveClientIds || effectiveClientIds.length === 0) {
+            conditions.push('FALSE');
+          } else {
+            conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
+            params.push(effectiveClientIds);
+            paramIndex++;
+          }
+          if (!effectiveProductIds || effectiveProductIds.length === 0) {
+            conditions.push('FALSE');
+          } else {
+            conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
+            params.push(effectiveProductIds);
+            paramIndex++;
+          }
+        }
+
+        // Active scope still applies on top of the hierarchy branch so
+        // that a creator who has access to multiple clients via their
+        // hierarchy cannot bypass Demo-Mode narrowing.
+        if (req.activeScope?.clientId != null) {
+          conditions.push(`c.client_id = $${paramIndex}`);
+          params.push(req.activeScope.clientId);
+          paramIndex++;
+        }
+        if (req.activeScope?.productId != null) {
+          conditions.push(`c.product_id = $${paramIndex}`);
+          params.push(req.activeScope.productId);
+          paramIndex++;
+        }
+      }
+    }
+
     if (status && status !== 'ALL') {
       conditions.push(`kdv.verification_status = $${paramIndex}`);
       params.push(status as string);
@@ -172,11 +257,13 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
     const sortCol = allowedSortColumns[sortBy as string] || 'kdv.created_at';
     const sortDir = (sortOrder as string)?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
-    // Count
+    // Count — JOIN vt added so scope conditions that reference
+    // vt.assigned_to resolve correctly.
     const countResult = await query(
       `SELECT COUNT(*) as total
        FROM kyc_document_verifications kdv
        JOIN cases c ON c.id = kdv.case_id
+       JOIN verification_tasks vt ON vt.id = kdv.verification_task_id
        ${whereClause}`,
       params
     );
@@ -227,19 +314,72 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
       [...params, limitNum, offset]
     );
 
-    // Stats
+    // Stats — same scope conditions as the list, applied via the
+    // joined whereClause. The stats query previously ran unscoped
+    // (`WHERE deleted_at IS NULL`) and leaked global KYC counts to
+    // every authorised user; now it mirrors the list scope so a HDFC
+    // scope sees only HDFC KYC totals. The status/documentType/etc.
+    // user filters are intentionally NOT applied to stats so the cards
+    // continue to show "ALL pending / completed" totals within scope
+    // (matches the FE expectation that switching the status filter
+    // leaves the stat cards unchanged).
+    const statsConditions = conditions.filter(
+      c =>
+        !c.startsWith('kdv.verification_status') &&
+        !c.startsWith('kdv.document_type_id') &&
+        !c.startsWith('kdv.case_id') &&
+        !c.startsWith('(c.customer_name') // search filter
+    );
+    const statsParamsCount: QueryParams = [];
+    // Rebuild params in the order they appear in statsConditions by
+    // replaying the same indexing logic — easier to just rerun the
+    // scope-only path. Since the filtered-out conditions are the
+    // tail of the conditions list (added after the scope block),
+    // statsParamsCount is simply the first N params consumed by the
+    // surviving conditions. We track this by counting how many of the
+    // ORIGINAL conditions (before the user filters) we added.
+    // Simplest: count the leading scope conditions vs the user
+    // filters. The scope block above pushes a contiguous prefix.
+    const userFilterStarted = conditions.findIndex(
+      c =>
+        c.startsWith('kdv.verification_status') ||
+        c.startsWith('kdv.document_type_id') ||
+        c.startsWith('kdv.case_id') ||
+        c.startsWith('(c.customer_name')
+    );
+    const scopeConditionCount =
+      userFilterStarted === -1 ? conditions.length : userFilterStarted;
+    // Walk conditions to count placeholders → maps to params length.
+    let scopeParamCount = 0;
+    for (let i = 0; i < scopeConditionCount; i++) {
+      const matches = conditions[i].match(/\$\d+/g);
+      if (matches) {
+        // De-duplicate $N references within a single condition (e.g.
+        // the execution-actor self-OR uses $N twice).
+        scopeParamCount += new Set(matches).size;
+      }
+    }
+    for (let i = 0; i < scopeParamCount; i++) {
+      statsParamsCount.push(params[i]);
+    }
+    const statsWhereClause =
+      statsConditions.length > 0 ? `WHERE ${statsConditions.join(' AND ')}` : '';
     const statsResult = await query(
-      // Workflow buckets read verification_status; outcome buckets read final_status.
       `SELECT
         COUNT(*) as total,
-        COUNT(*) FILTER (WHERE verification_status = 'PENDING') as pending,
-        COUNT(*) FILTER (WHERE verification_status = 'IN_PROGRESS') as in_progress,
-        COUNT(*) FILTER (WHERE verification_status = 'COMPLETED') as completed,
-        COUNT(*) FILTER (WHERE final_status = 'Positive') as positive,
-        COUNT(*) FILTER (WHERE final_status = 'Negative') as negative,
-        COUNT(*) FILTER (WHERE final_status = 'Refer') as referred,
-        COUNT(*) FILTER (WHERE final_status = 'Fraud') as fraud
-       FROM kyc_document_verifications WHERE deleted_at IS NULL`
+        COUNT(*) FILTER (WHERE kdv.verification_status = 'PENDING') as pending,
+        COUNT(*) FILTER (WHERE kdv.verification_status = 'IN_PROGRESS') as in_progress,
+        COUNT(*) FILTER (WHERE kdv.verification_status = 'COMPLETED') as completed,
+        COUNT(*) FILTER (WHERE kdv.final_status = 'Positive') as positive,
+        COUNT(*) FILTER (WHERE kdv.final_status = 'Negative') as negative,
+        COUNT(*) FILTER (WHERE kdv.final_status = 'Refer') as referred,
+        COUNT(*) FILTER (WHERE kdv.final_status = 'Fraud') as fraud
+       FROM kyc_document_verifications kdv
+       JOIN cases c ON c.id = kdv.case_id
+       JOIN verification_tasks vt ON vt.id = kdv.verification_task_id
+       ${statsWhereClause}
+       ${statsWhereClause ? 'AND' : 'WHERE'} kdv.deleted_at IS NULL`,
+      statsParamsCount
     );
 
     res.json({
