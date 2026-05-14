@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/logger';
 import {
   ACTIVE_SCOPE_STORAGE_KEY,
@@ -64,6 +65,8 @@ const persistToSessionStorage = (next: ActiveScopeState): void => {
 
 export const ActiveScopeProvider: React.FC<ActiveScopeProviderProps> = ({ children }) => {
   const [state, setState] = useState<ActiveScopeState>(() => hydrateFromSessionStorage());
+  const queryClient = useQueryClient();
+  const skipNextCacheClearRef = useRef(true);
 
   // Persist on every state change. Kept in an effect (rather than inline
   // inside setScope) so manual sessionStorage edits made from devtools or
@@ -71,6 +74,23 @@ export const ActiveScopeProvider: React.FC<ActiveScopeProviderProps> = ({ childr
   useEffect(() => {
     persistToSessionStorage(state);
   }, [state]);
+
+  // P5 — mandatory cache wipe on scope change
+  // (project_scope_control_audit_2026_05_14.md). Any narrowing change
+  // must invalidate ALL React Query state because in-flight queries
+  // memoise arrays of rows that would otherwise display data from the
+  // previous scope until staleTime / gcTime expires.
+  //
+  // Skip the very first run: hydration on mount sets the initial state
+  // from sessionStorage; there is nothing cached yet to clear, and a
+  // surprise clear on app boot would defeat queryClient warm-up.
+  useEffect(() => {
+    if (skipNextCacheClearRef.current) {
+      skipNextCacheClearRef.current = false;
+      return;
+    }
+    queryClient.clear();
+  }, [state.selectedClientId, state.selectedProductId, queryClient]);
 
   const setScope = useCallback((next: Partial<ActiveScopeState>) => {
     setState((prev) => ({
