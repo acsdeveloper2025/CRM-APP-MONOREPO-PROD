@@ -19,6 +19,7 @@
 
 import type { Response, NextFunction } from 'express';
 import { logger } from '@/config/logger';
+import { createAuditLog } from '@/utils/auditLogger';
 import type { AuthenticatedRequest } from './auth';
 
 export interface ActiveScope {
@@ -108,6 +109,24 @@ export const validateActiveScope = (
         endpoint: req.originalUrl,
         method: req.method,
       });
+      // P10 — persistent audit trail of scope-bypass attempts. Fire and
+      // forget; queue-backed createAuditLog falls back to direct insert
+      // if Redis is down, and we never want audit failure to mask the
+      // 403 response. See project_scope_control_audit_2026_05_14.md.
+      void createAuditLog({
+        userId: req.user.id,
+        action: 'SCOPE_VIOLATION_REJECTED',
+        entityType: 'SCOPE',
+        details: {
+          code: 'INVALID_ACTIVE_SCOPE_CLIENT',
+          requestedClientId: clientId,
+          assignedClientIds: [...assigned],
+          endpoint: req.originalUrl,
+          method: req.method,
+        },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+      }).catch(err => logger.warn('Failed to write SCOPE_VIOLATION_REJECTED audit log', { err }));
       res.status(403).json({
         success: false,
         message: 'Active client scope is not in your assigned clients',
@@ -127,6 +146,20 @@ export const validateActiveScope = (
         endpoint: req.originalUrl,
         method: req.method,
       });
+      void createAuditLog({
+        userId: req.user.id,
+        action: 'SCOPE_VIOLATION_REJECTED',
+        entityType: 'SCOPE',
+        details: {
+          code: 'INVALID_ACTIVE_SCOPE_PRODUCT',
+          requestedProductId: productId,
+          assignedProductIds: [...assigned],
+          endpoint: req.originalUrl,
+          method: req.method,
+        },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+      }).catch(err => logger.warn('Failed to write SCOPE_VIOLATION_REJECTED audit log', { err }));
       res.status(403).json({
         success: false,
         message: 'Active product scope is not in your assigned products',

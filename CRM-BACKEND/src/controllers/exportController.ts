@@ -9,6 +9,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { createReadStream } from 'fs';
 import { requireControllerPermission } from '@/security/controllerAuthorization';
+import { createAuditLog } from '@/utils/auditLogger';
 
 export interface ExportRequest {
   format: 'pdf' | 'excel' | 'csv' | 'json';
@@ -102,6 +103,26 @@ export const generateReport = async (req: AuthenticatedRequest, res: Response) =
     if (effectiveClientIds.length > 0 && filterClientIdRaw != null) {
       const filterClientId = Number(filterClientIdRaw);
       if (!Number.isFinite(filterClientId) || !effectiveClientIds.includes(filterClientId)) {
+        // P10 — persistent audit trail of export-path scope-bypass
+        // attempts. Fire-and-forget; audit failure must never mask the
+        // 403 response.
+        void createAuditLog({
+          userId: req.user?.id,
+          action: 'SCOPE_VIOLATION_REJECTED',
+          entityType: 'SCOPE',
+          details: {
+            code: 'CLIENT_ACCESS_DENIED',
+            source: 'export.filters.clientId',
+            requestedClientId: filterClientId,
+            effectiveClientIds: [...effectiveClientIds],
+            reportType: exportRequest.reportType,
+            format: exportRequest.format,
+            endpoint: req.originalUrl,
+            method: req.method,
+          },
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent'),
+        }).catch(err => logger.warn('Failed to write SCOPE_VIOLATION_REJECTED audit log', { err }));
         return res.status(403).json({
           success: false,
           message: 'filters.clientId is not in your active scope',
