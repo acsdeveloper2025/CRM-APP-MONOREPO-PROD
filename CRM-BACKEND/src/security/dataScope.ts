@@ -9,6 +9,17 @@ type RequestLike = {
     assignedClientIds?: number[];
     assignedProductIds?: number[];
   };
+  // Active scope contract (project_scope_control_audit_2026_05_14.md P2).
+  // Populated by middleware/activeScope.ts after validation. When set and
+  // the route is NOT cross-tenant, resolveDataScope narrows the
+  // hierarchy-aggregated scope to the chosen client / product.
+  activeScope?: {
+    clientId: number | null;
+    productId: number | null;
+  };
+  routeMeta?: {
+    crossTenant?: boolean;
+  };
 };
 
 export type ResolvedDataScope = {
@@ -48,12 +59,39 @@ const getAggregatedProductIds = async (userIds: string[]): Promise<number[]> => 
   return result.rows.map(r => r.productId);
 };
 
+/**
+ * Narrow a hierarchy-aggregated id set by the active scope, unless the
+ * route is explicitly cross-tenant. Pure helper — kept local since the
+ * narrowing semantics are intentionally identical for clientId / productId.
+ */
+const narrowByActiveScope = (
+  ids: number[] | undefined,
+  target: number | null | undefined,
+  isCrossTenant: boolean
+): number[] | undefined => {
+  if (isCrossTenant) {
+    return ids;
+  }
+  if (target == null) {
+    return ids;
+  }
+  if (!ids) {
+    // No hierarchy aggregate to narrow against; defer to downstream
+    // (controllers fall back to no-filter semantics).
+    return ids;
+  }
+  return ids.includes(target) ? [target] : [];
+};
+
 export const resolveDataScope = async (req: RequestLike): Promise<ResolvedDataScope> => {
   if (!req.user?.id || !isScopedOperationsUser(req.user as never)) {
     return { restricted: false };
   }
 
   const scopedUserIds = await getScopedOperationalUserIds(req.user.id);
+  const isCrossTenant = req.routeMeta?.crossTenant === true;
+  const targetClientId = req.activeScope?.clientId ?? null;
+  const targetProductId = req.activeScope?.productId ?? null;
 
   // For hierarchy users (Manager/TL), aggregate client/product access across all subordinates
   if (scopedUserIds && scopedUserIds.length > 0) {
@@ -70,8 +108,8 @@ export const resolveDataScope = async (req: RequestLike): Promise<ResolvedDataSc
     return {
       restricted: true,
       scopedUserIds,
-      assignedClientIds: cIds,
-      assignedProductIds: pIds,
+      assignedClientIds: narrowByActiveScope(cIds, targetClientId, isCrossTenant),
+      assignedProductIds: narrowByActiveScope(pIds, targetProductId, isCrossTenant),
     };
   }
 
@@ -79,8 +117,16 @@ export const resolveDataScope = async (req: RequestLike): Promise<ResolvedDataSc
   return {
     restricted: true,
     scopedUserIds,
-    assignedClientIds: req.user.assignedClientIds,
-    assignedProductIds: req.user.assignedProductIds,
+    assignedClientIds: narrowByActiveScope(
+      req.user.assignedClientIds,
+      targetClientId,
+      isCrossTenant
+    ),
+    assignedProductIds: narrowByActiveScope(
+      req.user.assignedProductIds,
+      targetProductId,
+      isCrossTenant
+    ),
   };
 };
 
