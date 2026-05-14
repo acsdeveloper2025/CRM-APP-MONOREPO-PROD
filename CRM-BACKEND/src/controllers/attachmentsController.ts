@@ -96,7 +96,8 @@ const ALL_SUPPORTED_EXTENSIONS = [
 const enforceBackendUserCaseScope = async (
   userId: string | undefined,
   user: AuthenticatedRequest['user'] | undefined,
-  caseUuid: string | undefined
+  caseUuid: string | undefined,
+  activeScope?: AuthenticatedRequest['activeScope']
 ): Promise<boolean> => {
   if (!userId || !user || !caseUuid) {
     return false;
@@ -114,6 +115,23 @@ const enforceBackendUserCaseScope = async (
   }>(`SELECT client_id, product_id, created_by_backend_user FROM cases WHERE id = $1`, [caseUuid]);
 
   if (caseResult.rows.length === 0) {
+    return false;
+  }
+
+  // P13.B — active scope intersection. When the user has locked scope to
+  // a client/product, reject access to cases outside that scope even when
+  // the case is otherwise in their baseline assigned set.
+  const row0 = caseResult.rows[0];
+  if (
+    activeScope?.clientId != null &&
+    activeScope.clientId !== Number(row0.clientId)
+  ) {
+    return false;
+  }
+  if (
+    activeScope?.productId != null &&
+    activeScope.productId !== Number(row0.productId)
+  ) {
     return false;
   }
 
@@ -653,7 +671,8 @@ export const getAttachmentById = async (req: AuthenticatedRequest, res: Response
     const backendScopeOk = await enforceBackendUserCaseScope(
       userId,
       req.user,
-      attachment.caseId as string | undefined
+      attachment.caseId as string | undefined,
+      req.activeScope
     );
     if (!backendScopeOk) {
       return res.status(403).json({
@@ -740,7 +759,8 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
     const backendScopeOk = await enforceBackendUserCaseScope(
       userId,
       req.user,
-      attachment.caseId as string | undefined
+      attachment.caseId as string | undefined,
+      req.activeScope
     );
     if (!backendScopeOk) {
       return res.status(403).json({
@@ -902,7 +922,8 @@ export const downloadAttachment = async (req: AuthenticatedRequest, res: Respons
     const backendScopeOk = await enforceBackendUserCaseScope(
       userId,
       req.user,
-      attachment.caseId as string | undefined
+      attachment.caseId as string | undefined,
+      req.activeScope
     );
     if (!backendScopeOk) {
       return res.status(403).json({
@@ -1004,7 +1025,8 @@ export const serveAttachment = async (req: AuthenticatedRequest, res: Response) 
     const backendScopeOk = await enforceBackendUserCaseScope(
       userId,
       req.user,
-      attachment.caseId as string | undefined
+      attachment.caseId as string | undefined,
+      req.activeScope
     );
     if (!backendScopeOk) {
       return res.status(403).json({

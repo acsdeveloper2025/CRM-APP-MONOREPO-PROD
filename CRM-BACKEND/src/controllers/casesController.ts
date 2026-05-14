@@ -945,8 +945,23 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
         const { getAssignedClientIds } = await import('@/middleware/clientAccess');
         const { getAssignedProductIds } = await import('@/middleware/productAccess');
 
-        const assignedClientIds = await getAssignedClientIds(userId);
-        const assignedProductIds = await getAssignedProductIds(userId);
+        let assignedClientIds = await getAssignedClientIds(userId);
+        let assignedProductIds = await getAssignedProductIds(userId);
+
+        // P13.B — narrow by active scope when the user has locked scope to
+        // a specific client/product. Same intersection pattern as P13.A:
+        // if the active scope value is not in the user's baseline assigned
+        // set, fall through to [-1] so the query returns no rows.
+        if (req.activeScope?.clientId != null && assignedClientIds) {
+          assignedClientIds = assignedClientIds.includes(req.activeScope.clientId)
+            ? [req.activeScope.clientId]
+            : [-1];
+        }
+        if (req.activeScope?.productId != null && assignedProductIds) {
+          assignedProductIds = assignedProductIds.includes(req.activeScope.productId)
+            ? [req.activeScope.productId]
+            : [-1];
+        }
 
         if (assignedClientIds && assignedClientIds.length > 0) {
           caseQuery += ` AND c.client_id = ANY($${queryParams.length + 1}::int[])`;
@@ -969,6 +984,19 @@ export const getCaseById = async (req: AuthenticatedRequest, res: Response) => {
             error: { code: 'NO_PRODUCT_ACCESS' },
           });
         }
+      }
+
+      // P13.B — active scope intersection applies regardless of which
+      // upstream branch (hierarchy vs baseline assigned-IDs) was taken.
+      // When the user has locked scope to a specific client/product,
+      // reject cases outside that scope.
+      if (req.activeScope?.clientId != null) {
+        caseQuery += ` AND c.client_id = $${queryParams.length + 1}`;
+        queryParams.push(req.activeScope.clientId);
+      }
+      if (req.activeScope?.productId != null) {
+        caseQuery += ` AND c.product_id = $${queryParams.length + 1}`;
+        queryParams.push(req.activeScope.productId);
       }
     }
 
@@ -1801,6 +1829,30 @@ export const getCaseSummaryWithTasks = async (req: AuthenticatedRequest, res: Re
     }
 
     const caseInfo = caseResult.rows[0];
+
+    // P13.B — active scope intersection. When the user has locked scope to
+    // a specific client/product, reject access to cases outside that scope
+    // before the baseline assignment check.
+    if (
+      req.activeScope?.clientId != null &&
+      req.activeScope.clientId !== Number(caseInfo.clientId)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Case is outside your active scope',
+        error: { code: 'CASE_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
+    if (
+      req.activeScope?.productId != null &&
+      req.activeScope.productId !== Number(caseInfo.productId)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Case product is outside your active scope',
+        error: { code: 'CASE_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
 
     if (isScopedOperationsUser(req.user) && req.user?.id) {
       const scopedUserIds = await getScopedOperationalUserIds(req.user.id);
