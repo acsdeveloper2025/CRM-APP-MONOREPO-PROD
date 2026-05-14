@@ -90,7 +90,8 @@ export const CasesPage: React.FC = () => {
     pending: 0,
     inProgress: 0,
     completed: 0,
-    onHold: 0,
+    // P16: onHold dropped (workflow-audit removed ON_HOLD status; BE
+    // never populated this field after the cleanup).
     revoked: 0,
     overdue: 0,
     highPriority: 0,
@@ -288,10 +289,10 @@ export const CasesPage: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Priorities</SelectItem>
-                  <SelectItem value="1">Low</SelectItem>
-                  <SelectItem value="2">Medium</SelectItem>
-                  <SelectItem value="3">High</SelectItem>
-                  <SelectItem value="4">Urgent</SelectItem>
+                  <SelectItem value="LOW">Low</SelectItem>
+                  <SelectItem value="MEDIUM">Medium</SelectItem>
+                  <SelectItem value="HIGH">High</SelectItem>
+                  <SelectItem value="URGENT">Urgent</SelectItem>
                 </SelectContent>
               </Select>
             </div>

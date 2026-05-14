@@ -1060,7 +1060,9 @@ export class VerificationTasksController {
             inProgress: parseInt(stats.inProgressCount || '0'),
             completed: parseInt(stats.completedCount || '0'),
             revoked: parseInt(stats.revokedCount || '0'),
-            onHold: parseInt(stats.onHoldCount || '0'),
+            // P16: onHold dropped per workflow-audit (ON_HOLD is not a
+            // valid status); SQL aggregate never computed onHoldCount
+            // either — was always 0. Field removed from FE type too.
             urgent: parseInt(stats.urgentCount || '0'),
             highPriority: parseInt(stats.highPriorityCount || '0'),
             totalAgents: parseInt(stats.totalAgents || '0'),

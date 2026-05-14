@@ -56,8 +56,9 @@ export class VerificationTasksService {
         assigned: number;
         inProgress: number;
         completed: number;
-        cancelled: number;
-        onHold: number;
+        // P16: cancelled + onHold dropped (BE never returned them
+        // post workflow-audit; both were always 0).
+        revoked: number;
         urgent: number;
         highPriority: number;
       };
@@ -136,8 +137,7 @@ export class VerificationTasksService {
           assigned: number;
           inProgress: number;
           completed: number;
-          cancelled: number;
-          onHold: number;
+          revoked: number;
           urgent: number;
           highPriority: number;
         };

@@ -87,7 +87,11 @@ const listCasesValidation = [
     .withMessage('Limit must be between 1 and 500'),
   query('status')
     .optional()
-    .isIn(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'APPROVED', 'REJECTED', 'REWORK_REQUIRED'])
+    // P16: align with workflow-audit canonical case status set
+    // (5 statuses; APPROVED/REJECTED/REWORK_REQUIRED were dropped).
+    // CasesPage status filter offers ASSIGNED + REVOKED, so they MUST
+    // be in this whitelist or the page 400s on those filter values.
+    .isIn(['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'REVOKED'])
     .withMessage('Invalid status'),
   query('priority')
     .optional()
@@ -104,7 +108,11 @@ const listCasesValidation = [
 
 const _statusUpdateValidation = [
   body('status')
-    .isIn(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'APPROVED', 'REJECTED', 'REWORK_REQUIRED'])
+    // P16: align with workflow-audit canonical case status set
+    // (5 statuses; APPROVED/REJECTED/REWORK_REQUIRED were dropped).
+    // CasesPage status filter offers ASSIGNED + REVOKED, so they MUST
+    // be in this whitelist or the page 400s on those filter values.
+    .isIn(['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'REVOKED'])
     .withMessage('Invalid status'),
 ];
 
