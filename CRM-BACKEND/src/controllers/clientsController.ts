@@ -295,6 +295,23 @@ export const getVerificationTypesForClientProduct = async (
   try {
     const clientId = Number(req.params.clientId);
     const productId = Number(req.params.productId);
+    // P11.A.5 — active-scope gate. Admins bypass validateClientAccess()
+    // route middleware via hasSystemScopeBypass; this check makes
+    // demo-mode locks reach client-sub-resource reads too.
+    if (req.activeScope?.clientId != null && req.activeScope.clientId !== clientId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Client is outside your active scope',
+        error: { code: 'CLIENT_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
+    if (req.activeScope?.productId != null && req.activeScope.productId !== productId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Product is outside your active scope',
+        error: { code: 'PRODUCT_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
     const r = await query(
       `SELECT vt.id, vt.name, vt.code, vt.description, vt.is_active
          FROM client_product_verifications cpv
@@ -324,6 +341,21 @@ export const getDocumentTypesForClientProduct = async (
   try {
     const clientId = Number(req.params.clientId);
     const productId = Number(req.params.productId);
+    // P11.A.5 — active-scope gate (see getVerificationTypesForClientProduct).
+    if (req.activeScope?.clientId != null && req.activeScope.clientId !== clientId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Client is outside your active scope',
+        error: { code: 'CLIENT_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
+    if (req.activeScope?.productId != null && req.activeScope.productId !== productId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Product is outside your active scope',
+        error: { code: 'PRODUCT_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
     const r = await query(
       `SELECT dt.id, dt.name, dt.code, dt.category, dt.sort_order, dt.custom_fields,
               cpd.is_mandatory, cpd.display_order
@@ -353,6 +385,21 @@ export const getPincodesForClientProduct = async (req: AuthenticatedRequest, res
   try {
     const clientId = Number(req.params.clientId);
     const productId = Number(req.params.productId);
+    // P11.A.5 — active-scope gate (see getVerificationTypesForClientProduct).
+    if (req.activeScope?.clientId != null && req.activeScope.clientId !== clientId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Client is outside your active scope',
+        error: { code: 'CLIENT_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
+    if (req.activeScope?.productId != null && req.activeScope.productId !== productId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Product is outside your active scope',
+        error: { code: 'PRODUCT_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
     const limit = Math.min(Number(req.query.limit) || 30, 200);
     // Phase 3 (refactor 2026-05-10): optional VT filter narrows pincodes
@@ -405,6 +452,21 @@ export const getAreasForClientProductPincode = async (req: AuthenticatedRequest,
     const clientId = Number(req.params.clientId);
     const productId = Number(req.params.productId);
     const pincodeId = Number(req.params.pincodeId);
+    // P11.A.5 — active-scope gate (see getVerificationTypesForClientProduct).
+    if (req.activeScope?.clientId != null && req.activeScope.clientId !== clientId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Client is outside your active scope',
+        error: { code: 'CLIENT_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
+    if (req.activeScope?.productId != null && req.activeScope.productId !== productId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Product is outside your active scope',
+        error: { code: 'PRODUCT_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
     // Phase 3 (refactor 2026-05-10): optional VT narrows to areas with
     // active SZR rows for (c,p,vt,pincode). Backwards compat — omit returns all.
     const verificationTypeId = req.query.verificationTypeId
@@ -1176,6 +1238,15 @@ export const getClientProducts = async (req: AuthenticatedRequest, res: Response
     const { id } = req.params;
     const { isActive } = req.query;
 
+    // P11.A.5 — active-scope gate (see getVerificationTypesForClientProduct).
+    if (req.activeScope?.clientId != null && req.activeScope.clientId !== Number(id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Client is outside your active scope',
+        error: { code: 'CLIENT_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
+
     // Check if client exists
     const clientRes = await query(`SELECT id FROM clients WHERE id = $1`, [id]);
     if (!clientRes.rows[0]) {
@@ -1246,6 +1317,15 @@ export const getClientVerificationTypes = async (req: AuthenticatedRequest, res:
   try {
     const { id } = req.params;
     const { isActive } = req.query;
+
+    // P11.A.5 — active-scope gate (see getVerificationTypesForClientProduct).
+    if (req.activeScope?.clientId != null && req.activeScope.clientId !== Number(id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Client is outside your active scope',
+        error: { code: 'CLIENT_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
 
     // Check if client exists
     const clientRes = await query(`SELECT id FROM clients WHERE id = $1`, [id]);
