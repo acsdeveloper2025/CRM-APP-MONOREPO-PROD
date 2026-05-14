@@ -21,12 +21,16 @@ export const CaseSchema = z
   })
   .passthrough();
 
+// PG aggregate COUNT(...) returns bigint which the `pg` driver surfaces as
+// a JS string (avoids precision loss). Use z.coerce.number() so the schema
+// matches the documented codebase convention (per project_e2e_live_test
+// 2026-05-02 bug 18: "PG NUMERIC always wrap in Number()").
 export const CaseStatisticsSchema = z
   .object({
-    totalCases: z.number().optional(),
-    pending: z.number().optional(),
-    inProgress: z.number().optional(),
-    completed: z.number().optional(),
+    totalCases: z.coerce.number().optional(),
+    pending: z.coerce.number().optional(),
+    inProgress: z.coerce.number().optional(),
+    completed: z.coerce.number().optional(),
   })
   .passthrough();
 
