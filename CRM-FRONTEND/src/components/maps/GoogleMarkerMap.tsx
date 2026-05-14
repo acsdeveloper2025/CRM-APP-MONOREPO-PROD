@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
-import { getGoogleMapsApiKey } from '@/config/googleMaps';
+import { getGoogleMapsApiKey, getGoogleMapsMapId } from '@/config/googleMaps';
 
 const GOOGLE_MAPS_SCRIPT_ID = 'crm-google-maps-script';
 const MARKERCLUSTERER_SCRIPT_ID = 'crm-markerclusterer-script';
 
-// Marker clustering for 200+ markers at enterprise scale
+// 2026-05-14: migrated from legacy google.maps.Marker (deprecated by
+// Google Feb 2024) + js-marker-clusterer to AdvancedMarkerElement +
+// @googlemaps/markerclusterer. The new clusterer library natively
+// supports AdvancedMarkerElement; the old js-marker-clusterer does not.
 const loadMarkerClustererScript = async (): Promise<void> => {
-  if ((window as unknown as Record<string, unknown>).MarkerClusterer) {
+  if ((window as unknown as Record<string, unknown>).markerClusterer) {
     return;
   }
   const existing = document.getElementById(MARKERCLUSTERER_SCRIPT_ID);
@@ -19,7 +22,7 @@ const loadMarkerClustererScript = async (): Promise<void> => {
     script.id = MARKERCLUSTERER_SCRIPT_ID;
     script.async = true;
     script.src =
-      'https://cdnjs.cloudflare.com/ajax/libs/js-marker-clusterer/1.0.0/markerclusterer_compiled.js';
+      'https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js';
     script.onload = () => resolve();
     script.onerror = () => reject(new Error('Failed to load MarkerClusterer'));
     document.head.appendChild(script);
@@ -30,10 +33,14 @@ type GoogleMapsWindow = Window & {
   google?: {
     maps: {
       Map: new (element: HTMLElement, options: Record<string, unknown>) => GoogleMapInstance;
-      Marker: new (options: Record<string, unknown>) => GoogleMarkerInstance;
       InfoWindow: new (options?: Record<string, unknown>) => GoogleInfoWindowInstance;
       LatLngBounds: new () => GoogleLatLngBoundsInstance;
-      SymbolPath: { CIRCLE: unknown };
+      marker: {
+        AdvancedMarkerElement: new (
+          options: Record<string, unknown>
+        ) => AdvancedMarkerInstance;
+        PinElement: new (options: Record<string, unknown>) => PinElementInstance;
+      };
       event: {
         clearInstanceListeners: (instance: unknown) => void;
       };
@@ -48,25 +55,31 @@ type GoogleMapInstance = {
   setZoom: (zoom: number) => void;
 };
 
-type GoogleMarkerInstance = {
-  setPosition: (latLng: { lat: number; lng: number }) => void;
-  setIcon: (icon: Record<string, unknown>) => void;
-  setTitle: (title: string) => void;
-  setMap: (map: GoogleMapInstance | null) => void;
+type PinElementInstance = {
+  element: HTMLElement;
+};
+
+// AdvancedMarkerElement uses property setters, not methods, for
+// position/map/title — DOM-element style mutation.
+type AdvancedMarkerInstance = {
+  position: { lat: number; lng: number } | null;
+  map: GoogleMapInstance | null;
+  title: string;
+  content: HTMLElement | null;
   addListener: (eventName: string, handler: () => void) => void;
 };
 
 type GoogleInfoWindowInstance = {
   close: () => void;
   setContent: (content: string) => void;
-  open: (options: { anchor: GoogleMarkerInstance; map: GoogleMapInstance }) => void;
+  open: (options: { anchor: AdvancedMarkerInstance; map: GoogleMapInstance }) => void;
 };
 
 type GoogleLatLngBoundsInstance = {
   extend: (latLng: { lat: number; lng: number }) => void;
 };
 
-type MarkerStore = Map<string, GoogleMarkerInstance>;
+type MarkerStore = Map<string, AdvancedMarkerInstance>;
 
 export type GoogleMarkerMapItem = {
   id: string;
@@ -124,7 +137,13 @@ const loadGoogleMapsScript = async (): Promise<void> => {
     script.id = GOOGLE_MAPS_SCRIPT_ID;
     script.async = true;
     script.defer = true;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
+    // loading=async is Google's documented best-practice loader pattern.
+    // libraries=marker is required so the `google.maps.marker` namespace
+    // (AdvancedMarkerElement, PinElement) is available — without it the
+    // map renders empty and console errors on every marker construction.
+    // See https://goo.gle/js-api-loading and
+    // https://developers.google.com/maps/documentation/javascript/advanced-markers/migration
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&loading=async&libraries=marker`;
     script.onload = () => resolve();
     script.onerror = () => reject(new Error('Failed to load Google Maps'));
     document.head.appendChild(script);
@@ -133,17 +152,20 @@ const loadGoogleMapsScript = async (): Promise<void> => {
   return mapsWindow.__crmGoogleMapsPromise;
 };
 
-const getMarkerIcon = (
+// AdvancedMarkerElement uses HTML content via PinElement instead of
+// the old SymbolPath.CIRCLE icon descriptor. PinElement renders a
+// Material-style pin with a colored circular glyph; `scale: 0.8`
+// matches the previous 8px circle visual weight.
+const createMarkerContent = (
   mapsApi: NonNullable<GoogleMapsWindow['google']>['maps'],
   color: string
-) => ({
-  path: mapsApi.SymbolPath.CIRCLE,
-  fillColor: color,
-  fillOpacity: 0.95,
-  strokeColor: '#ffffff',
-  strokeWeight: 2,
-  scale: 8,
-});
+): HTMLElement =>
+  new mapsApi.marker.PinElement({
+    background: color,
+    borderColor: '#ffffff',
+    glyphColor: '#ffffff',
+    scale: 0.8,
+  }).element;
 
 export function GoogleMarkerMap({
   items,
@@ -192,6 +214,10 @@ export function GoogleMarkerMap({
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: true,
+          // AdvancedMarkerElement requires a Map ID (vector or styled).
+          // DEMO_MAP_ID is a Google-provided default; prod should set
+          // VITE_GOOGLE_MAPS_MAP_ID to a Cloud Console Map Style.
+          mapId: getGoogleMapsMapId(),
         });
         infoWindowRef.current = new mapsApi.InfoWindow();
       } catch (error) {
@@ -217,9 +243,12 @@ export function GoogleMarkerMap({
 
     const activeIds = new Set<string>();
     const infoWindow = infoWindowRef.current;
+    // @googlemaps/markerclusterer exposes itself as a UMD global on
+    // `window.markerClusterer` (lowercase). Its `MarkerClusterer` ctor
+    // accepts an options object with `markers` and `map`.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const MarkerClusterer = (window as Record<string, any>).MarkerClusterer;
-    const useClusterer = normalizedItems.length > 50 && MarkerClusterer;
+    const clustererLib = (window as Record<string, any>).markerClusterer;
+    const useClusterer = normalizedItems.length > 50 && clustererLib;
 
     // Clear existing clusterer before rebuilding markers
     if (clustererRef.current) {
@@ -233,9 +262,10 @@ export function GoogleMarkerMap({
       const existingMarker = markersRef.current.get(item.id);
 
       if (existingMarker) {
-        existingMarker.setPosition(position);
-        existingMarker.setIcon(getMarkerIcon(mapsApi, item.color));
-        existingMarker.setTitle(item.title);
+        // AdvancedMarkerElement: property assignment, not setX() methods.
+        existingMarker.position = position;
+        existingMarker.content = createMarkerContent(mapsApi, item.color);
+        existingMarker.title = item.title;
         mapsApi.event.clearInstanceListeners(existingMarker);
         existingMarker.addListener('click', () => {
           if (!infoWindowRef.current || !mapRef.current) {
@@ -244,21 +274,17 @@ export function GoogleMarkerMap({
           infoWindowRef.current.setContent(item.infoHtml);
           infoWindowRef.current.open({ anchor: existingMarker, map: mapRef.current });
         });
-        // When clustering, remove direct map attachment — clusterer manages it
-        if (useClusterer) {
-          existingMarker.setMap(null);
-        } else {
-          existingMarker.setMap(map);
-        }
+        // When clustering, detach from map — clusterer manages placement.
+        existingMarker.map = useClusterer ? null : map;
         return;
       }
 
       // Create marker WITHOUT map when clustering (clusterer will manage placement)
-      const marker = new mapsApi.Marker({
-        map: useClusterer ? undefined : map,
+      const marker = new mapsApi.marker.AdvancedMarkerElement({
+        map: useClusterer ? null : map,
         position,
         title: item.title,
-        icon: getMarkerIcon(mapsApi, item.color),
+        content: createMarkerContent(mapsApi, item.color),
       });
 
       marker.addListener('click', () => {
@@ -275,19 +301,18 @@ export function GoogleMarkerMap({
     // Remove stale markers
     markersRef.current.forEach((marker, itemId) => {
       if (!activeIds.has(itemId)) {
-        marker.setMap(null);
+        marker.map = null;
         markersRef.current.delete(itemId);
       }
     });
 
-    // Initialize clusterer with all active markers
+    // Initialize clusterer with all active markers. The new library's
+    // MarkerClusterer ctor signature: ({ map, markers, ...options }).
     if (useClusterer) {
       const allMarkers = Array.from(markersRef.current.values());
-      clustererRef.current = new MarkerClusterer(map, allMarkers, {
-        maxZoom: 15,
-        gridSize: 60,
-        minimumClusterSize: 3,
-        styles: [{ textColor: '#fff', url: '', height: 40, width: 40, textSize: 12 }],
+      clustererRef.current = new clustererLib.MarkerClusterer({
+        map,
+        markers: allMarkers,
       });
     }
 

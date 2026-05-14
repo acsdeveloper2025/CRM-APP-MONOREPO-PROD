@@ -31,3 +31,20 @@
  */
 export const getGoogleMapsApiKey = (): string =>
   import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.trim() || '';
+
+/**
+ * Return the Map ID used to enable AdvancedMarkerElement.
+ *
+ * AdvancedMarkerElement (the replacement for the deprecated
+ * google.maps.Marker) requires the map to be associated with a Map ID
+ * — even an unstyled one. Without it, the marker library throws a
+ * runtime error and the map renders empty.
+ *
+ * Prefer setting `VITE_GOOGLE_MAPS_MAP_ID` to a Map ID configured in
+ * Google Cloud Console (Maps Platform → Map Styles). For dev/local
+ * builds with no env var, fall back to Google's well-known
+ * `DEMO_MAP_ID` — works out of the box but logs a console hint that
+ * prod should provision its own ID.
+ */
+export const getGoogleMapsMapId = (): string =>
+  import.meta.env.VITE_GOOGLE_MAPS_MAP_ID?.trim() || 'DEMO_MAP_ID';
