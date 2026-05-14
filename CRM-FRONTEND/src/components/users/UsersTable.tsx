@@ -297,7 +297,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                       <div className="text-sm text-gray-600">
                         <span className="case-sensitive">{user.username}</span> • {user.employeeId}
                       </div>
-                      <div className="text-sm text-gray-600 case-sensitive">{user.email}</div>
+                      <div className="text-sm text-gray-600 case-sensitive">{user.email || '—'}</div>
                     </div>
                   </div>
                 </TableCell>
@@ -449,7 +449,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                   <div className="text-sm text-gray-600 truncate">
                     <span className="case-sensitive">{user.username}</span> • {user.employeeId}
                   </div>
-                  <div className="text-sm text-gray-600 truncate case-sensitive">{user.email}</div>
+                  <div className="text-sm text-gray-600 truncate case-sensitive">{user.email || '—'}</div>
                 </div>
               </div>
               <DropdownMenu>

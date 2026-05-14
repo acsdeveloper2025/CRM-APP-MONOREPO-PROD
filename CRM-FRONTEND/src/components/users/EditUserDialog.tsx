@@ -48,7 +48,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
     resolver: zodResolver(editUserFormSchema),
     defaultValues: {
       name: user.name,
-      email: user.email,
+      email: user.email ?? '',
       roleId: user.roleId ? String(user.roleId) : '',
       employeeId: user.employeeId,
       designationId: user.designationId ? String(user.designationId) : '',
@@ -107,7 +107,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
     if (user) {
       form.reset({
         name: user.name,
-        email: user.email,
+        email: user.email ?? '',
         roleId: user.roleId ? String(user.roleId) : '',
         employeeId: user.employeeId,
         designationId: user.designationId ? String(user.designationId) : '',

@@ -98,7 +98,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
                 <div>
                   <h4 className="font-medium text-sm text-gray-600">Contact Information</h4>
                   <div className="mt-2 space-y-1">
-                    <p className="text-sm case-sensitive">{user.email}</p>
+                    <p className="text-sm case-sensitive">{user.email || '—'}</p>
                     <p className="text-sm">Employee ID: {user.employeeId}</p>
                   </div>
                 </div>

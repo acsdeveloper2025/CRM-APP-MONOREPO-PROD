@@ -241,7 +241,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
       ...(users || []).map((user) => ({
         value: String(user.id),
         label: user.name,
-        description: user.email,
+        description: user.email ?? '',
       })),
     ],
     [users]
@@ -530,7 +530,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                   options={(users || []).map((user) => ({
                     value: user.id,
                     label: user.name,
-                    description: user.email,
+                    description: user.email ?? '',
                   }))}
                   value={formData.userId}
                   onValueChange={(value) => setFormData({ ...formData, userId: value })}

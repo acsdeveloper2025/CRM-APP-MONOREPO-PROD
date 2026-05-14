@@ -124,7 +124,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                     Username: <span className="case-sensitive">{user.username}</span>
                   </p>
                   <p>
-                    Email: <span className="case-sensitive">{user.email}</span>
+                    Email: <span className="case-sensitive">{user.email || '—'}</span>
                   </p>
                   <p>Employee ID: {user.employeeId}</p>
                 </div>
@@ -160,8 +160,8 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                       <h5 className="font-medium">Send via Email</h5>
                     </div>
                     <p className="text-sm text-gray-600">
-                      Generate and automatically send the temporary password to {user.email} via
-                      email.
+                      Generate and automatically send the temporary password to{' '}
+                      {user.email || 'the user’s email address on file'} via email.
                     </p>
                     <Button
                       onClick={() => handleGeneratePassword('email')}
@@ -259,7 +259,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-green-800">
                   {resetMethod === 'email'
-                    ? `Password generated successfully! An email has been sent to ${user.email} with the new credentials.`
+                    ? `Password generated successfully! An email has been sent to ${user.email ?? 'the user'} with the new credentials.`
                     : 'Password generated successfully! You can now copy the password and share it with the user.'}
                 </AlertDescription>
               </Alert>
@@ -322,7 +322,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                     <>
                       <Mail className="h-4 w-4" />
                       <AlertDescription>
-                        The credentials have been sent to <strong>{user.email}</strong>. Please
+                        The credentials have been sent to <strong>{user.email || 'the user'}</strong>. Please
                         inform the user to check their email and change the password after logging
                         in.
                       </AlertDescription>

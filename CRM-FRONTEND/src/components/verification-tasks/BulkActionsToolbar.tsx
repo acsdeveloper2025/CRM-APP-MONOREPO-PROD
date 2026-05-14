@@ -165,7 +165,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
                             <div>
                               <div className="font-medium">{user.name}</div>
                               <div className="text-xs text-gray-500 case-sensitive">
-                                {user.email}
+                                {user.email || '—'}
                               </div>
                             </div>
                           </div>

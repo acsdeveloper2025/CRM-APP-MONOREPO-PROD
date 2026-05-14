@@ -8,7 +8,7 @@ export interface User {
   firstName?: string;
   lastName?: string;
   username: string;
-  email: string;
+  email: string | null;
   phone?: string;
   role: Role;
   roles?: string[];
@@ -31,7 +31,7 @@ export interface User {
   teamLeaderName?: string | null;
   managerId?: string | null;
   managerName?: string | null;
-  profilePhotoUrl?: string;
+  profilePhotoUrl?: string | null;
   isActive?: boolean;
   lastLogin?: string;
   lastLoginAt?: string; // Some views may still use lastLoginAt

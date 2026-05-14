@@ -556,7 +556,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
                             <SelectItem value="unassigned">Unassigned</SelectItem>
                             {fieldUsers.map((user) => (
                               <SelectItem key={user.id} value={user.id}>
-                                {user.name} (<span className="case-sensitive">{user.email}</span>)
+                                {user.name} (<span className="case-sensitive">{user.email || '—'}</span>)
                               </SelectItem>
                             ))}
                           </SelectContent>
