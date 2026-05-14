@@ -5,6 +5,7 @@ import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
+import { useScopePageReset } from '@/hooks/useScopePageReset';
 import {
   UnifiedSearchFilterLayout,
   FilterGrid,
@@ -64,6 +65,9 @@ export const PendingTasksPage: React.FC = () => {
     sortOrder: 'desc' as 'asc' | 'desc',
     status: 'PENDING,ASSIGNED',
   });
+
+  // P18.M-04: reset to page 1 on scope toggle.
+  useScopePageReset(() => setPaginationState((prev) => ({ ...prev, page: 1 })));
 
   // Reset pagination when search or filters change
   useEffect(() => {

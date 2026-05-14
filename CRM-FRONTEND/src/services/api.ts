@@ -88,6 +88,42 @@ const stampIdempotencyKey = (config?: AxiosRequestConfig): AxiosRequestConfig =>
   return cfg;
 };
 
+/**
+ * P18.H01: shared scope-header injector used by BOTH the axios request
+ * interceptor and `safeFetch`. Previously the axios path stamped
+ * `X-Active-Client-Id` / `X-Active-Product-Id` from sessionStorage but
+ * `safeFetch` built Headers from scratch and silently bypassed the
+ * scope lock — three blob-fetch consumers (CaseAttachmentsSection,
+ * VerificationImages, services/verificationImages.ts) read attachment
+ * blobs without the lock applying. Funnel both paths through one
+ * helper so future additions can't regress this.
+ *
+ * The setter callback abstracts away the underlying API shape so we
+ * can support `AxiosRequestConfig.headers[name] = value` AND
+ * `Headers.set(name, value)` from the same source of truth.
+ */
+const applyActiveScopeHeaders = (setHeader: (name: string, value: string) => void): void => {
+  try {
+    const rawScope = sessionStorage.getItem('acs.activeScope');
+    if (!rawScope) {
+      return;
+    }
+    const parsed = JSON.parse(rawScope) as {
+      selectedClientId?: number | null;
+      selectedProductId?: number | null;
+    };
+    if (typeof parsed.selectedClientId === 'number' && parsed.selectedClientId > 0) {
+      setHeader('X-Active-Client-Id', String(parsed.selectedClientId));
+    }
+    if (typeof parsed.selectedProductId === 'number' && parsed.selectedProductId > 0) {
+      setHeader('X-Active-Product-Id', String(parsed.selectedProductId));
+    }
+  } catch {
+    // Malformed sessionStorage entry — ignore and proceed without
+    // narrowing. Backend baseline scope applies.
+  }
+};
+
 class ApiService {
   private api: AxiosInstance;
   private activeRequestCount = 0;
@@ -209,24 +245,9 @@ class ApiService {
         // against the user's assignedClientIds / assignedProductIds —
         // see middleware/activeScope.ts. Sourced from sessionStorage so
         // the interceptor stays decoupled from React state.
-        try {
-          const rawScope = sessionStorage.getItem('acs.activeScope');
-          if (rawScope) {
-            const parsed = JSON.parse(rawScope) as {
-              selectedClientId?: number | null;
-              selectedProductId?: number | null;
-            };
-            if (typeof parsed.selectedClientId === 'number' && parsed.selectedClientId > 0) {
-              config.headers['X-Active-Client-Id'] = String(parsed.selectedClientId);
-            }
-            if (typeof parsed.selectedProductId === 'number' && parsed.selectedProductId > 0) {
-              config.headers['X-Active-Product-Id'] = String(parsed.selectedProductId);
-            }
-          }
-        } catch {
-          // Malformed sessionStorage entry — ignore and proceed without
-          // narrowing. Backend baseline scope applies.
-        }
+        applyActiveScopeHeaders((name, value) => {
+          config.headers[name] = value;
+        });
 
         return config;
       },
@@ -649,6 +670,9 @@ class ApiService {
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
       }
+
+      // P18.H01: scope-header parity with the axios interceptor.
+      applyActiveScopeHeaders((name, value) => headers.set(name, value));
 
       // Determine type of content
       const isMultipart = options.body instanceof FormData;

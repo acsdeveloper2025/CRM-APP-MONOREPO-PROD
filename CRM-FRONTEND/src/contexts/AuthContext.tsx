@@ -247,6 +247,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, isLoading: true }));
 
       try {
+        // P18.H02: symmetric with logout — wipe any stale active scope
+        // and React Query cache BEFORE setting the new user state. The
+        // tab may have been left with a previous user's locked scope
+        // (sessionStorage survives same-tab navigation) or a stale
+        // queryCache that would leak across users.
+        sessionStorage.removeItem('acs.activeScope');
+        queryClient.clear();
+
         const response = await authService.login(credentials);
 
         if (response.success && response.data) {
@@ -275,7 +283,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return false;
       }
     },
-    [normalizeUserPermissions]
+    [normalizeUserPermissions, queryClient]
   );
 
   const value = useMemo<AuthContextType>(

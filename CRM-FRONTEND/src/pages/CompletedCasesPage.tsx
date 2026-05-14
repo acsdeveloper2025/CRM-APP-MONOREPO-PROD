@@ -14,6 +14,7 @@ import { CasePagination } from '@/components/cases/CasePagination';
 import { useCases, useRefreshCases } from '@/hooks/useCases';
 import { useClients } from '@/hooks/useClients';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
+import { useScopePageReset } from '@/hooks/useScopePageReset';
 import {
   UnifiedSearchFilterLayout,
   FilterGrid,
@@ -60,6 +61,9 @@ export const CompletedCasesPage: React.FC = () => {
     sortBy: 'completedAt',
     sortOrder: 'desc' as const,
   });
+
+  // P18.M-04: reset to page 1 on scope toggle so users aren't stranded on an empty page.
+  useScopePageReset(() => setPagination((prev) => ({ ...prev, page: 1 })));
 
   // Build query with search and filters
   const query: CaseListQuery = {

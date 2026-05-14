@@ -234,6 +234,19 @@ class SessionManager {
     apiService.setAccessToken(null);
     localStorage.removeItem(STORAGE_KEYS.USER_DATA);
 
+    // P18.H03: wipe `acs.activeScope` BEFORE the redirect. Previously
+    // we relied on the AUTH_LOGOUT_EVENT listener in AuthContext to do
+    // it, but `window.location.href` below tears down React in the
+    // same microtask — the listener may not run, leaving the locked
+    // scope in sessionStorage. Next login on the same tab would inherit
+    // a previous user's lock. Wipe directly here to close the race.
+    try {
+      sessionStorage.removeItem('acs.activeScope');
+    } catch {
+      // Some private-mode browsers reject sessionStorage writes; the
+      // AuthContext listener will retry on its own pass.
+    }
+
     // Clean up our listeners
     this.destroy();
 

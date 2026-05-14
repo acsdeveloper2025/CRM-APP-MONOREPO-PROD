@@ -16,6 +16,7 @@ import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
 import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
+import { useScopePageReset } from '@/hooks/useScopePageReset';
 import {
   UnifiedSearchFilterLayout,
   FilterGrid,
@@ -63,6 +64,9 @@ export const AllTasksPage: React.FC = () => {
     sortBy: 'createdAt',
     sortOrder: 'desc' as 'asc' | 'desc',
   });
+
+  // P18.M-04: reset to page 1 on scope toggle.
+  useScopePageReset(() => setPaginationState((prev) => ({ ...prev, page: 1 })));
 
   // Build query with search and filters
   const queryFilters = {
