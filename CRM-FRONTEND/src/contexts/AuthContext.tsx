@@ -153,6 +153,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // users share a kiosk / browser, or when permissions change between
         // sessions.
         queryClient.clear();
+        // Drop persisted active scope so the next user starts at baseline.
+        // sessionStorage entry would otherwise survive the same tab.
+        sessionStorage.removeItem('acs.activeScope');
         setState({
           user: null,
           token: null,
@@ -163,6 +166,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (error) {
         logger.error('Logout error:', error);
         queryClient.clear();
+        sessionStorage.removeItem('acs.activeScope');
         setState({
           user: null,
           token: null,

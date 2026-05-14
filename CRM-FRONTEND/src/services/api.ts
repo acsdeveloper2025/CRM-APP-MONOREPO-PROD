@@ -204,6 +204,30 @@ class ApiService {
           config.headers.Authorization = `Bearer ${token}`;
         }
 
+        // Active scope headers (project_scope_control_audit_2026_05_14.md
+        // P3). Backend treats these as HINTS and validates each value
+        // against the user's assignedClientIds / assignedProductIds —
+        // see middleware/activeScope.ts. Sourced from sessionStorage so
+        // the interceptor stays decoupled from React state.
+        try {
+          const rawScope = sessionStorage.getItem('acs.activeScope');
+          if (rawScope) {
+            const parsed = JSON.parse(rawScope) as {
+              selectedClientId?: number | null;
+              selectedProductId?: number | null;
+            };
+            if (typeof parsed.selectedClientId === 'number' && parsed.selectedClientId > 0) {
+              config.headers['X-Active-Client-Id'] = String(parsed.selectedClientId);
+            }
+            if (typeof parsed.selectedProductId === 'number' && parsed.selectedProductId > 0) {
+              config.headers['X-Active-Product-Id'] = String(parsed.selectedProductId);
+            }
+          }
+        } catch {
+          // Malformed sessionStorage entry — ignore and proceed without
+          // narrowing. Backend baseline scope applies.
+        }
+
         return config;
       },
       (error) => {

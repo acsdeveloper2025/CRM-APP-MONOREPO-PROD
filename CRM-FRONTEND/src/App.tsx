@@ -3,6 +3,7 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ActiveScopeProvider } from '@/contexts/ActiveScopeContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AppRoutes } from '@/routes/AppRoutes';
@@ -81,17 +82,19 @@ function App() {
       <ThemeProvider defaultTheme="system" storageKey="acs-theme">
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <PermissionProvider>
-              <LayoutProvider>
-                <SessionHandler />
-                <Router>
-                  <div className="min-h-screen bg-background">
-                    <AppRoutes />
-                  </div>
-                </Router>
-                <Toaster position="top-right" richColors closeButton />
-              </LayoutProvider>
-            </PermissionProvider>
+            <ActiveScopeProvider>
+              <PermissionProvider>
+                <LayoutProvider>
+                  <SessionHandler />
+                  <Router>
+                    <div className="min-h-screen bg-background">
+                      <AppRoutes />
+                    </div>
+                  </Router>
+                  <Toaster position="top-right" richColors closeButton />
+                </LayoutProvider>
+              </PermissionProvider>
+            </ActiveScopeProvider>
           </AuthProvider>
         </QueryClientProvider>
       </ThemeProvider>
