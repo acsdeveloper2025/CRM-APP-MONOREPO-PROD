@@ -33,8 +33,8 @@ export interface User {
   managerName?: string | null;
   profilePhotoUrl?: string | null;
   isActive?: boolean;
-  lastLogin?: string;
-  lastLoginAt?: string; // Some views may still use lastLoginAt
+  lastLogin?: string | null;
+  lastLoginAt?: string | null; // Some views may still use lastLoginAt
   createdAt?: string;
   updatedAt?: string;
   createdBy?: string;

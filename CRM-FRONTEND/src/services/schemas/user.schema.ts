@@ -42,8 +42,10 @@ export const UserSchema = z
     managerName: z.string().nullable().optional(),
     profilePhotoUrl: z.string().nullable().optional(),
     isActive: z.boolean().optional(),
-    lastLogin: z.string().optional(),
-    lastLoginAt: z.string().optional(),
+    // BE returns null for users who have never logged in (lastLogin) and
+    // lastLoginAt is currently always-null in the API response shape.
+    lastLogin: z.string().nullable().optional(),
+    lastLoginAt: z.string().nullable().optional(),
     createdAt: z.string().optional(),
     updatedAt: z.string().optional(),
     createdBy: z.string().optional(),
