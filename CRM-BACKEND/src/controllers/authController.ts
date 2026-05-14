@@ -413,6 +413,64 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
   }
 };
 
+/**
+ * Verify the authenticated user's password — used by Demo Mode lock/unlock
+ * re-auth (project_scope_control_audit_2026_05_14.md P12). On success emits
+ * SCOPE_DEMO_LOCK or SCOPE_DEMO_UNLOCK audit events with the user's intent.
+ * On failure emits SCOPE_DEMO_VERIFY_FAILED for security telemetry. The
+ * password itself is never logged.
+ */
+export const verifyPassword = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const userId = req.user?.id;
+  if (!userId) {
+    throw createError('Authentication required', 401, 'UNAUTHORIZED');
+  }
+
+  const body = req.body as { password?: unknown; intent?: unknown };
+  const password = typeof body.password === 'string' ? body.password : '';
+  const intent = body.intent;
+
+  if (password.length === 0) {
+    throw createError('Password is required', 400, 'PASSWORD_REQUIRED');
+  }
+  if (intent !== 'lock' && intent !== 'unlock') {
+    throw createError("intent must be 'lock' or 'unlock'", 400, 'INVALID_INTENT');
+  }
+
+  const userRes = await query<{ passwordHash: string }>(
+    `SELECT password_hash FROM users WHERE id = $1 LIMIT 1`,
+    [userId]
+  );
+  const user = userRes.rows[0];
+  if (!user) {
+    throw createError('User not found', 404, 'USER_NOT_FOUND');
+  }
+
+  const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+  if (!isPasswordValid) {
+    void createAuditLog({
+      userId,
+      action: 'SCOPE_DEMO_VERIFY_FAILED',
+      entityType: 'SCOPE',
+      details: { intent },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    }).catch(err => logger.warn('SCOPE_DEMO_VERIFY_FAILED audit log failed', { err }));
+    throw createError('Invalid password', 401, 'INVALID_PASSWORD');
+  }
+
+  void createAuditLog({
+    userId,
+    action: intent === 'lock' ? 'SCOPE_DEMO_LOCK' : 'SCOPE_DEMO_UNLOCK',
+    entityType: 'SCOPE',
+    details: {},
+    ipAddress: req.ip,
+    userAgent: req.get('User-Agent') || undefined,
+  }).catch(err => logger.warn('SCOPE_DEMO audit log failed', { err }));
+
+  res.json({ success: true });
+};
+
 // Pre-login info to enable dynamic login form (public)
 export const preloginInfo = async (req: Request, res: Response): Promise<void> => {
   try {

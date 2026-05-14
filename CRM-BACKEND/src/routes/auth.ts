@@ -1,6 +1,12 @@
 import { Router, type Request, type Response } from 'express';
 import { body } from 'express-validator';
-import { login, logout, getCurrentUser, refreshToken } from '@/controllers/authController';
+import {
+  login,
+  logout,
+  getCurrentUser,
+  refreshToken,
+  verifyPassword,
+} from '@/controllers/authController';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
@@ -99,6 +105,19 @@ const resetUserRateLimit = (req: Request, res: Response) => {
 // Routes
 // ... (skip lines) ...
 router.post('/login', authRateLimit, validate(loginValidation), login);
+// P12 — Demo Mode lock/unlock password re-auth. Re-uses the login rate
+// limiter so brute-force attempts are throttled identically to login.
+// See project_scope_control_audit_2026_05_14.md.
+router.post(
+  '/verify-password',
+  authRateLimit,
+  authenticateToken,
+  validate([
+    body('password').isString().isLength({ min: 1 }).withMessage('Password is required'),
+    body('intent').isIn(['lock', 'unlock']).withMessage("intent must be 'lock' or 'unlock'"),
+  ]),
+  verifyPassword
+);
 // refreshCsrfGuard: only gates cookie-bearing (browser) callers — see
 // middleware/refreshCsrfGuard.ts. Mobile/body-token callers pass through.
 router.post('/refresh-token', refreshRateLimit, refreshCsrfGuard, refreshToken);

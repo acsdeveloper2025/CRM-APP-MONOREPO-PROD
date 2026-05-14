@@ -10,16 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { PasswordConfirmDialog } from './PasswordConfirmDialog';
 
 const ALL_VALUE = '__all__';
 
@@ -121,22 +112,15 @@ export const ScopeSelector: React.FC = () => {
           </Button>
         )}
       </div>
-      <AlertDialog open={lockConfirmOpen} onOpenChange={setLockConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Lock to {selectedClientName}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Demo Mode prevents accidental scope switching during live client demos. The dropdowns
-              will be disabled and a yellow banner will indicate the locked scope. You can unlock at
-              any time via the banner.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={lockScope}>Enter Demo Mode</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <PasswordConfirmDialog
+        open={lockConfirmOpen}
+        onOpenChange={setLockConfirmOpen}
+        intent="lock"
+        title={`Lock to ${selectedClientName}?`}
+        description="Demo Mode prevents accidental scope switching during live client demos. Enter your password to confirm. Dropdowns will be disabled and a yellow banner will indicate the locked scope until you unlock."
+        confirmLabel="Enter Demo Mode"
+        onSuccess={lockScope}
+      />
     </>
   );
 };

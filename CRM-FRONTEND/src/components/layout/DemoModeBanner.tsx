@@ -3,16 +3,7 @@ import { Lock, Unlock } from 'lucide-react';
 import { useActiveScope } from '@/hooks/useActiveScope';
 import { useClients, useProducts } from '@/hooks/useClients';
 import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { PasswordConfirmDialog } from './PasswordConfirmDialog';
 
 /**
  * Persistent yellow banner shown while Demo Mode is active. Surfaces the
@@ -60,21 +51,15 @@ export const DemoModeBanner: React.FC = () => {
           Unlock
         </Button>
       </div>
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Exit Demo Mode?</AlertDialogTitle>
-            <AlertDialogDescription>
-              You will be able to switch between clients and products again. The current scope (
-              {clientName}) stays selected.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={unlockScope}>Exit Demo Mode</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <PasswordConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        intent="unlock"
+        title="Exit Demo Mode?"
+        description={`Enter your password to exit Demo Mode. You will be able to switch between clients and products again. The current scope (${clientName}) stays selected.`}
+        confirmLabel="Exit Demo Mode"
+        onSuccess={unlockScope}
+      />
     </>
   );
 };
