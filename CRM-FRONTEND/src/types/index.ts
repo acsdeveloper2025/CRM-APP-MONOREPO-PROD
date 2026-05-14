@@ -127,7 +127,7 @@ export type { TerritoryAssignment } from './territoryAssignment';
 export type { InvoiceItem, CreateInvoiceData, UpdateInvoiceData } from './billing';
 
 // Reports Types
-export type { ReportFilters, FinancialReport, ReportSummary } from './reports';
+export type { ReportFilters, FinancialReport } from './reports';
 
 // Common Base Types
 export interface BaseEntity {

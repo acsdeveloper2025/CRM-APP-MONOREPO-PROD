@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { reportsService } from '@/services/reports';
 import { MISReportsTable } from '@/components/reports/MISReportsTable';
-import { ReportSummaryCards } from '@/components/reports/ReportSummaryCards';
 import { GenerateReportDialog } from '@/components/reports/GenerateReportDialog';
 import { TurnaroundTimeChart } from '@/components/reports/TurnaroundTimeChart';
 import { CompletionRateChart } from '@/components/reports/CompletionRateChart';
@@ -33,18 +32,6 @@ export function ReportsPage() {
         limit: pageSize,
       }),
     enabled: activeTab === 'mis-reports',
-  });
-
-  const { data: reportSummariesData } = useQuery({
-    queryKey: ['report-summaries'],
-    queryFn: () => reportsService.getReportSummaries(),
-    enabled: activeTab === 'overview',
-  });
-
-  const { data: dashboardData } = useQuery({
-    queryKey: ['reports-dashboard'],
-    queryFn: () => reportsService.getReportsDashboardData({}),
-    enabled: activeTab === 'overview',
   });
 
   const { data: turnaroundData } = useQuery({
@@ -147,25 +134,8 @@ export function ReportsPage() {
             </div>
 
             <TabsContent value="overview" className="space-y-4">
-              <ReportSummaryCards summaries={reportSummariesData?.data || []} />
-
               {/* Quick Stats */}
-              <div className="grid gap-4 md:grid-cols-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Generated Reports</CardTitle>
-                    <BarChart3 className="h-4 w-4 text-gray-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {(dashboardData?.data as { totalReports?: number } | undefined)?.totalReports || 0}
-                    </div>
-                    <p className="text-xs text-gray-600">
-                      {(dashboardData?.data as { recentReports?: number } | undefined)?.recentReports || 0} this week
-                    </p>
-                  </CardContent>
-                </Card>
-
+              <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">MIS Reports</CardTitle>
@@ -176,19 +146,6 @@ export function ReportsPage() {
                     <p className="text-xs text-gray-600">
                       {stats.misReports.recent} generated in the last 7 days
                     </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Avg Turnaround</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-gray-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {(dashboardData?.data as { averageTurnaround?: number } | undefined)?.averageTurnaround || 0}h
-                    </div>
-                    <p className="text-xs text-gray-600">Target: 24h</p>
                   </CardContent>
                 </Card>
 

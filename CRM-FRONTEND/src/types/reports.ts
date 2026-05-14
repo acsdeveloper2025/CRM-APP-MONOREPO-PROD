@@ -154,19 +154,6 @@ export interface FinancialReport {
   }[];
 }
 
-export interface ReportSummary {
-  reportType: string;
-  title: string;
-  description: string;
-  lastGenerated: string;
-  keyMetrics: {
-    label: string;
-    value: string | number;
-    trend?: 'up' | 'down' | 'stable';
-    trendPercentage?: number;
-  }[];
-}
-
 export interface GenerateReportData {
   reportType: string;
   title: string;

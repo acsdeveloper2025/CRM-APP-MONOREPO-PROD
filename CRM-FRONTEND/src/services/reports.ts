@@ -6,7 +6,6 @@ import type {
   ProductivityReport,
   QualityReport,
   FinancialReport,
-  ReportSummary,
   GenerateReportData,
   ReportFilters,
 } from '@/types/reports';
@@ -128,29 +127,6 @@ export class ReportsService {
     return response;
   }
 
-  // Report Summaries
-  async getReportSummaries(): Promise<ApiResponse<ReportSummary[]>> {
-    const response = await apiService.get<ReportSummary[]>('/reports/summaries');
-    if (response?.success && Array.isArray(response.data)) {
-      validateResponse(GenericEntityListSchema, response.data, {
-        service: 'reports',
-        endpoint: 'GET /reports/summaries',
-      });
-    }
-    return response;
-  }
-
-  async getReportSummary(reportType: string): Promise<ApiResponse<ReportSummary>> {
-    const response = await apiService.get<ReportSummary>(`/reports/summaries/${reportType}`);
-    if (response?.success && response.data && typeof response.data === 'object') {
-      validateResponse(GenericObjectSchema, response.data, {
-        service: 'reports',
-        endpoint: 'GET /reports/summaries/:type',
-      });
-    }
-    return response;
-  }
-
   // Bulk Operations
   async bulkGenerateReports(
     reportTypes: string[],
@@ -171,18 +147,6 @@ export class ReportsService {
       }
     );
     return response.data;
-  }
-
-  // Dashboard Data for Reports
-  async getReportsDashboardData(filters: ReportFilters = {}): Promise<ApiResponse<unknown>> {
-    const response = await apiService.get<unknown>('/reports/dashboard', filters);
-    if (response?.success && response.data && typeof response.data === 'object') {
-      validateResponse(GenericObjectSchema, response.data, {
-        service: 'reports',
-        endpoint: 'GET /reports/dashboard',
-      });
-    }
-    return response;
   }
 
   // Re-routes to the canonical MIS export endpoint. The previous
