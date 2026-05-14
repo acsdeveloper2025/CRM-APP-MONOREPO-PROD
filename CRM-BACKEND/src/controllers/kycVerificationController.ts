@@ -244,14 +244,16 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
 
     res.json({
       success: true,
-      data: dataResult.rows,
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total,
-        totalPages: Math.ceil(total / limitNum),
+      data: {
+        data: dataResult.rows,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          totalPages: Math.ceil(total / limitNum),
+        },
+        statistics: statsResult.rows[0],
       },
-      statistics: statsResult.rows[0],
     });
   } catch (error) {
     logger.error('Error listing KYC tasks:', error);
