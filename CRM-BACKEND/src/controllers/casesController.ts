@@ -410,6 +410,24 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       baseParamIndex++;
     }
 
+    // P11.A.1 — apply active-scope narrowing on top of the existing
+    // baseline scope filter (project_scope_control_audit_2026_05_14.md).
+    // validateActiveScope (P1) has already verified the header values
+    // against req.user.assignedClientIds, so any non-null value here is
+    // authorized. Composes with the pre-existing assignedClientIds
+    // intersection above to produce the effective narrowing for the
+    // cases list — closes leak L-A.
+    if (req.activeScope?.clientId != null) {
+      baseConditions.push(`c.client_id = $${baseParamIndex}`);
+      baseParams.push(req.activeScope.clientId);
+      baseParamIndex++;
+    }
+    if (req.activeScope?.productId != null) {
+      baseConditions.push(`c.product_id = $${baseParamIndex}`);
+      baseParams.push(req.activeScope.productId);
+      baseParamIndex++;
+    }
+
     // Search filter (customer name, case ID, address, phone, trigger, applicant type)
     if (search) {
       baseConditions.push(`(
