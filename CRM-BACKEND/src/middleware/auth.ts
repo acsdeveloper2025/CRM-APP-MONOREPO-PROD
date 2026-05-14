@@ -13,6 +13,7 @@ import {
   getPrimaryRoleNameFromRbac,
   isScopedOperationsUser,
 } from '@/security/rbacAccess';
+import { validateActiveScope, applyActiveScope } from './activeScope';
 
 // Phase C1: process-local TTL cache for the user auth context.
 //
@@ -347,6 +348,30 @@ const verifyTokenAndSetUser = async (
   }
 };
 
+/**
+ * Runs validateActiveScope + applyActiveScope after the base authenticator
+ * has set req.user. Kept inline (rather than via chainMiddleware) so we
+ * avoid the auth ↔ scopeAccess import cycle. See activeScope.ts for the
+ * scope contract (project_scope_control_audit_2026_05_14.md).
+ */
+const runActiveScopeChain = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  validateActiveScope(req, res, (err?: unknown) => {
+    if (err) {
+      next(err as Error);
+      return;
+    }
+    if (res.headersSent) {
+      // validateActiveScope already responded with 403.
+      return;
+    }
+    applyActiveScope(req, res, next);
+  });
+};
+
 export const authenticateToken = (
   req: AuthenticatedRequest,
   res: Response,
@@ -368,7 +393,12 @@ export const authenticateToken = (
     return;
   }
 
-  verifyTokenAndSetUser(token, req, res, next).catch(error => {
+  verifyTokenAndSetUser(token, req, res, () => {
+    if (res.headersSent || !req.user) {
+      return;
+    }
+    runActiveScopeChain(req, res, next);
+  }).catch(error => {
     logger.error('Unhandled authenticateToken error:', error);
     res.status(500).json({
       success: false,
@@ -402,7 +432,12 @@ export const authenticateTokenFlexible = (
     return;
   }
 
-  verifyTokenAndSetUser(token, req, res, next).catch(error => {
+  verifyTokenAndSetUser(token, req, res, () => {
+    if (res.headersSent || !req.user) {
+      return;
+    }
+    runActiveScopeChain(req, res, next);
+  }).catch(error => {
     logger.error('Unhandled authenticateTokenFlexible error:', error);
     res.status(500).json({
       success: false,
