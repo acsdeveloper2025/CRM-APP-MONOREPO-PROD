@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface CaseStatusData {
@@ -13,12 +13,20 @@ interface CaseStatusChartProps {
   isLoading?: boolean;
 }
 
-const COLORS = {
+// 2026-05-14: PENDING is red (urgency — agents must clear pending work),
+// per user spec. Keys are matched after `item.status.replace('_', ' ')`,
+// so use the rendered name (space-separated, upper-case) as the key.
+const COLORS: Record<string, string> = {
+  PENDING: '#ef4444',
   ASSIGNED: '#3b82f6',
-  IN_PROGRESS: '#f59e0b',
+  'IN PROGRESS': '#f59e0b',
   COMPLETED: '#10b981',
-  PENDING_REVIEW: '#8b5cf6',
+  REVOKED: '#8b5cf6',
+  'PENDING REVIEW': '#a855f7',
 };
+const DEFAULT_COLOR = '#94a3b8';
+
+const colorFor = (name: string) => COLORS[name] ?? DEFAULT_COLOR;
 
 // Custom Tooltip Types
 interface TooltipPayload {
@@ -74,6 +82,9 @@ export const CaseStatusChart: React.FC<CaseStatusChartProps> = React.memo(({ dat
     percentage: item.percentage,
   }));
 
+  // Sort so larger slices appear first in the data list — easier to scan.
+  const sortedList = [...chartData].sort((a, b) => b.value - a.value);
+
   return (
     <Card>
       <CardHeader>
@@ -81,41 +92,60 @@ export const CaseStatusChart: React.FC<CaseStatusChartProps> = React.memo(({ dat
         <CardDescription>Current status breakdown of all cases</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
-            <PieChart>
-              <Pie
-                data={chartData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                // 2026-05-14: suppress inline label for slices below 3%
-                // — multiple near-zero slices collided at the same
-                // outer-edge position ("PENDING 0%" + "REJECTED 0%" +
-                // "REVOKED 1%" all stacked). Tiny categories remain
-                // visible in the legend below the chart.
-                label={(props: { name?: string; percentage?: number }) => {
-                  const pct = props.percentage ?? 0;
-                  if (pct < 3) {
-                    return null;
-                  }
-                  return `${props.name}: ${pct}%`;
-                }}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {chartData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[entry.name.replace(' ', '_') as keyof typeof COLORS] || '#8884d8'}
+        {/* 2026-05-14: split into pie (left) + data list with explicit
+            counts + percentages (right). Inline pie labels removed —
+            when one slice dominates (e.g., 99% COMPLETED) the tiny
+            slice labels collided. Data list is the source of truth for
+            exact numbers; pie is the visual quick-scan. */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={colorFor(entry.name)} />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="flex flex-col justify-center gap-3 px-1">
+            {sortedList.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No data</p>
+            ) : (
+              sortedList.map((entry) => (
+                <div
+                  key={entry.name}
+                  className="flex items-center gap-3 rounded-md border border-border bg-background/40 px-3 py-2"
+                >
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-sm"
+                    style={{ backgroundColor: colorFor(entry.name) }}
+                    aria-hidden
                   />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+                  <span className="flex-1 truncate text-sm font-medium text-foreground">
+                    {entry.name}
+                  </span>
+                  <span className="tabular-nums text-sm text-muted-foreground">
+                    {entry.value}
+                  </span>
+                  <span className="w-12 text-right tabular-nums text-sm font-semibold text-foreground">
+                    {entry.percentage}%
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
