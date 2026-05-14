@@ -15,6 +15,7 @@ interface ActiveScopeProviderProps {
 const EMPTY_SCOPE: ActiveScopeState = {
   selectedClientId: null,
   selectedProductId: null,
+  isDemoMode: false,
 };
 
 /**
@@ -22,6 +23,9 @@ const EMPTY_SCOPE: ActiveScopeState = {
  * deploy or an unrelated key clash. We only trust positive integers;
  * anything else falls back to EMPTY_SCOPE so the user starts the tab in
  * the "all assigned" baseline.
+ *
+ * isDemoMode is force-disabled when no scope is set, otherwise locking
+ * an "all clients" baseline would be meaningless and confusing.
  */
 const hydrateFromSessionStorage = (): ActiveScopeState => {
   if (typeof sessionStorage === 'undefined') {
@@ -41,7 +45,8 @@ const hydrateFromSessionStorage = (): ActiveScopeState => {
       typeof parsed.selectedProductId === 'number' && parsed.selectedProductId > 0
         ? parsed.selectedProductId
         : null;
-    return { selectedClientId: clientId, selectedProductId: productId };
+    const isDemoMode = parsed.isDemoMode === true && clientId != null;
+    return { selectedClientId: clientId, selectedProductId: productId, isDemoMode };
   } catch (error) {
     logger.warn('Failed to hydrate active scope from sessionStorage:', error);
     return EMPTY_SCOPE;
@@ -53,7 +58,7 @@ const persistToSessionStorage = (next: ActiveScopeState): void => {
     return;
   }
   try {
-    if (next.selectedClientId == null && next.selectedProductId == null) {
+    if (next.selectedClientId == null && next.selectedProductId == null && !next.isDemoMode) {
       sessionStorage.removeItem(ACTIVE_SCOPE_STORAGE_KEY);
       return;
     }
@@ -92,22 +97,49 @@ export const ActiveScopeProvider: React.FC<ActiveScopeProviderProps> = ({ childr
     queryClient.clear();
   }, [state.selectedClientId, state.selectedProductId, queryClient]);
 
-  const setScope = useCallback((next: Partial<ActiveScopeState>) => {
-    setState((prev) => ({
-      selectedClientId:
-        next.selectedClientId !== undefined ? next.selectedClientId : prev.selectedClientId,
-      selectedProductId:
-        next.selectedProductId !== undefined ? next.selectedProductId : prev.selectedProductId,
-    }));
-  }, []);
+  const setScope = useCallback(
+    (next: Partial<Pick<ActiveScopeState, 'selectedClientId' | 'selectedProductId'>>) => {
+      setState((prev) => ({
+        ...prev,
+        selectedClientId:
+          next.selectedClientId !== undefined ? next.selectedClientId : prev.selectedClientId,
+        selectedProductId:
+          next.selectedProductId !== undefined ? next.selectedProductId : prev.selectedProductId,
+        // Locking an empty scope makes no sense — auto-disable demo mode
+        // when the user clears the scope entirely.
+        isDemoMode:
+          prev.isDemoMode &&
+          (next.selectedClientId !== null || prev.selectedClientId !== null) &&
+          (next.selectedClientId !== undefined ? next.selectedClientId : prev.selectedClientId) !=
+            null,
+      }));
+    },
+    []
+  );
 
   const clearScope = useCallback(() => {
     setState(EMPTY_SCOPE);
   }, []);
 
+  const lockScope = useCallback(() => {
+    setState((prev) => {
+      // Refuse to lock when no scope is set — locking the "all clients"
+      // baseline would just confuse the user with a banner that says
+      // nothing meaningful.
+      if (prev.selectedClientId == null && prev.selectedProductId == null) {
+        return prev;
+      }
+      return { ...prev, isDemoMode: true };
+    });
+  }, []);
+
+  const unlockScope = useCallback(() => {
+    setState((prev) => ({ ...prev, isDemoMode: false }));
+  }, []);
+
   const value = useMemo<ActiveScopeContextType>(
-    () => ({ ...state, setScope, clearScope }),
-    [state, setScope, clearScope]
+    () => ({ ...state, setScope, clearScope, lockScope, unlockScope }),
+    [state, setScope, clearScope, lockScope, unlockScope]
   );
 
   return <ActiveScopeContext.Provider value={value}>{children}</ActiveScopeContext.Provider>;

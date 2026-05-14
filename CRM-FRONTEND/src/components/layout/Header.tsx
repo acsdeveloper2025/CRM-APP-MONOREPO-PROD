@@ -31,6 +31,7 @@ import {
 import { notificationService, type AppNotification } from '@/services/notifications';
 import { useLayout } from '@/contexts/LayoutContextDefinition';
 import { ScopeSelector } from './ScopeSelector';
+import { DemoModeBanner } from './DemoModeBanner';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -236,6 +237,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
 
   return (
     <header className="bg-green-600 dark:bg-green-700 text-white shadow-sm border-b border-green-700 dark:border-green-800 backdrop-blur-sm sticky top-0 z-40">
+      <DemoModeBanner />
       <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-4 lg:px-6 xl:px-8">
         {/* Mobile menu button */}
         <Button

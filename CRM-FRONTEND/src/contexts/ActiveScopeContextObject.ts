@@ -15,11 +15,22 @@ import { createContext } from 'react';
 export interface ActiveScopeState {
   selectedClientId: number | null;
   selectedProductId: number | null;
+  /**
+   * Demo Mode — when true, the ScopeSelector dropdowns render disabled
+   * and a yellow banner shows the locked client/product. Prevents
+   * accidental scope switching during live client demos.
+   * (project_scope_control_audit_2026_05_14.md P7.)
+   */
+  isDemoMode: boolean;
 }
 
 export interface ActiveScopeContextType extends ActiveScopeState {
-  setScope: (next: Partial<ActiveScopeState>) => void;
+  setScope: (
+    next: Partial<Pick<ActiveScopeState, 'selectedClientId' | 'selectedProductId'>>
+  ) => void;
   clearScope: () => void;
+  lockScope: () => void;
+  unlockScope: () => void;
 }
 
 export const ACTIVE_SCOPE_STORAGE_KEY = 'acs.activeScope';
