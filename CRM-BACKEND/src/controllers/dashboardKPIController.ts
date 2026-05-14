@@ -34,6 +34,23 @@ export class DashboardKPIController {
           assignedProductIds && assignedProductIds.length > 0 ? assignedProductIds : [-1];
       }
 
+      // P13.A — apply active-scope narrowing on top of the baseline
+      // assigned-IDs filter (project_scope_control_audit_2026_05_14.md).
+      // validateActiveScope (P1) has already verified the header value
+      // against assignedClientIds, so any non-null req.activeScope value
+      // here is authorized. Without this block, dashboard cards aggregate
+      // across all assigned clients even when Demo Mode is locked to one.
+      if (req.activeScope?.clientId != null && clientIds) {
+        clientIds = clientIds.includes(req.activeScope.clientId)
+          ? [req.activeScope.clientId]
+          : [-1];
+      }
+      if (req.activeScope?.productId != null && productIds) {
+        productIds = productIds.includes(req.activeScope.productId)
+          ? [req.activeScope.productId]
+          : [-1];
+      }
+
       // For scoped-ops users (BACKEND_USER, TL, MANAGER), use creatorUserIds —
       // service's creator clause already covers (creator OR hierarchy-task-assignee)
       // via OR(c.created_by_backend_user, EXISTS task assigned in hierarchy).
