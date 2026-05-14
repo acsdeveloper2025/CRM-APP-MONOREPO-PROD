@@ -44,6 +44,7 @@ import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
 import { useScopedPincodeSearch } from '@/hooks/useLocations';
 import { useScopedAreasByPincode } from '@/hooks/useAreas';
 import { useAuth } from '@/hooks/useAuth';
+import { useActiveScope } from '@/hooks/useActiveScope';
 import { isBackendScopedUser } from '@/utils/userPermissionProfiles';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import type { CustomerInfoData } from './CustomerInfoStep';
@@ -254,6 +255,37 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
     return allProducts;
   }, [allProducts, user]);
 
+  // P14.A-10: when Demo Mode (or scope-selector) has locked a
+  // client/product, force the form to that value and disable the
+  // Selects. This is FE-side defense-in-depth on top of the M-1
+  // BE-side enforcement: stops the user from constructing a case
+  // create/edit payload that the BE would just 403 anyway, and
+  // surfaces the lock visibly.
+  // We include `selectedClientId` / `selectedProductId` (form.watch
+  // results) in deps so the effect re-fires when the initialData
+  // useEffect below calls form.reset() and clobbers our value — the
+  // `getValues !== locked` guard prevents an infinite loop because the
+  // next render observes the locked value already and skips setValue.
+  const { selectedClientId: scopeClientId, selectedProductId: scopeProductId } = useActiveScope();
+  const isClientScopeLocked = scopeClientId != null;
+  const isProductScopeLocked = scopeProductId != null;
+  useEffect(() => {
+    if (isClientScopeLocked) {
+      const lockedClient = String(scopeClientId);
+      if (form.getValues('clientId') !== lockedClient) {
+        form.setValue('clientId', lockedClient, { shouldValidate: true });
+      }
+    }
+  }, [isClientScopeLocked, scopeClientId, selectedClientId, form]);
+  useEffect(() => {
+    if (isProductScopeLocked) {
+      const lockedProduct = String(scopeProductId);
+      if (form.getValues('productId') !== lockedProduct) {
+        form.setValue('productId', lockedProduct, { shouldValidate: true });
+      }
+    }
+  }, [isProductScopeLocked, scopeProductId, selectedProductIdForVT, form]);
+
   // Reset product when client changes
   useEffect(() => {
     if (!didInitializeClientRef.current) {
@@ -454,13 +486,21 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                     name="clientId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Client *</FormLabel>
+                        <FormLabel>
+                          Client *
+                          {isClientScopeLocked ? (
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              (locked by active scope)
+                            </span>
+                          ) : null}
+                        </FormLabel>
                         <Select
                           onValueChange={(value) => {
                             field.onChange(value);
                             form.setValue('productId', '');
                           }}
                           value={field.value}
+                          disabled={isClientScopeLocked}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -491,11 +531,18 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                     name="productId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Product *</FormLabel>
+                        <FormLabel>
+                          Product *
+                          {isProductScopeLocked ? (
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              (locked by active scope)
+                            </span>
+                          ) : null}
+                        </FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           value={field.value}
-                          disabled={!selectedClientId}
+                          disabled={isProductScopeLocked || !selectedClientId}
                         >
                           <FormControl>
                             <SelectTrigger>
