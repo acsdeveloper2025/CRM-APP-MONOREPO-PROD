@@ -138,6 +138,15 @@ app.use(
       'X-Real-IP',
       'X-Forwarded-Proto',
       'Idempotency-Key',
+      // P11.D — active-scope headers
+      // (project_scope_control_audit_2026_05_14.md). FE attaches these
+      // when the user picks a client/product in ScopeSelector or has a
+      // persisted scope in sessionStorage; without them in the CORS
+      // allowlist, browser preflight blocks the request with
+      // net::ERR_FAILED and the entire active-scope feature is
+      // unreachable from any browser.
+      'X-Active-Client-Id',
+      'X-Active-Product-Id',
     ],
     exposedHeaders: ['Content-Disposition', 'Content-Type', 'Content-Length'],
   })
