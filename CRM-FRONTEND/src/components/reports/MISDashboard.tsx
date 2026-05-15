@@ -22,7 +22,7 @@ import {
 import type { MISFilters, MISDataResponse } from '@/types/mis';
 import { toast } from 'sonner';
 import type { VerificationType } from '@/types/client';
-import { useClients, useProducts } from '@/hooks/useClients';
+import { useClients, useProducts, useProductsByClient } from '@/hooks/useClients';
 import { useVerificationTypes } from '@/hooks/useVerificationTypes';
 import { useUsers } from '@/hooks/useUsers';
 import { isBackendScopedUser, isFieldAgentUser } from '@/utils/userPermissionProfiles';
@@ -71,14 +71,20 @@ export function MISDashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Load dropdown data (backend max limit is 100)
+  // Load dropdown data (backend max limit is 100). When the user picks
+  // a Client filter, narrow Product options to only the products mapped
+  // to that client via client_products. With no client picked, fall back
+  // to the global list.
   const { data: clientsData } = useClients({ page: 1, limit: 100 });
-  const { data: productsData } = useProducts({ page: 1, limit: 100 });
+  const { data: globalProductsData } = useProducts({ page: 1, limit: 100 });
+  const { data: clientProductsData } = useProductsByClient(activeFilters.clientId);
   const { data: verificationTypesData } = useVerificationTypes({ page: 1, limit: 100 });
   const { data: usersData } = useUsers({ page: 1, limit: 100 });
 
   const clients = clientsData?.data || [];
-  const products = productsData?.data || [];
+  const products = activeFilters.clientId
+    ? (clientProductsData?.data ?? [])
+    : (globalProductsData?.data ?? []);
   const verificationTypes = verificationTypesData?.data || [];
   const users = usersData || [];
   const fieldAgents = users.filter((u) => isFieldAgentUser(u));
@@ -212,9 +218,13 @@ export function MISDashboard() {
               <Label htmlFor="client">Client</Label>
               <Select
                 value={activeFilters.clientId || 'all'}
-                onValueChange={(value) =>
-                  setFilter('clientId', value === 'all' ? undefined : value)
-                }
+                onValueChange={(value) => {
+                  setFilter('clientId', value === 'all' ? undefined : value);
+                  // Reset product when client changes — the previously
+                  // selected product may not be mapped to the new client
+                  // and would surface an invalid client × product pair.
+                  setFilter('productId', undefined);
+                }}
               >
                 <SelectTrigger id="client">
                   <SelectValue placeholder="All clients" />

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Lock } from 'lucide-react';
 import { useActiveScope } from '@/hooks/useActiveScope';
-import { useClients, useProducts } from '@/hooks/useClients';
+import { useClients, useProducts, useProductsByClient } from '@/hooks/useClients';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -27,11 +27,21 @@ const ALL_VALUE = '__all__';
 export const ScopeSelector: React.FC = () => {
   const { selectedClientId, selectedProductId, isDemoMode, setScope, lockScope } = useActiveScope();
   const { data: clientsResponse } = useClients({ page: 1, limit: 100 });
-  const { data: productsResponse } = useProducts({ page: 1, limit: 100 });
+  // When a client is selected, narrow the Product dropdown to only the
+  // products mapped to that client via client_products. When no client
+  // is picked ("All clients"), keep the global list so the user can see
+  // every option before drilling in.
+  const { data: globalProductsResponse } = useProducts({ page: 1, limit: 100 });
+  const { data: clientProductsResponse } = useProductsByClient(
+    selectedClientId != null ? String(selectedClientId) : undefined
+  );
   const [lockConfirmOpen, setLockConfirmOpen] = useState(false);
 
   const clients = clientsResponse?.data ?? [];
-  const products = productsResponse?.data ?? [];
+  const products =
+    selectedClientId != null
+      ? (clientProductsResponse?.data ?? [])
+      : (globalProductsResponse?.data ?? []);
 
   // Hide the selector when the user has at most one accessible client —
   // there is nothing to narrow. Auto-pin happens implicitly via the
