@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -41,7 +41,11 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
   // Use the actual hook structure
   const { data, isLoading, error, refetch } = useVerificationTasks(caseId);
 
-  const tasks = data?.tasks || [];
+  // useMemo so `tasks` is referentially stable across renders — without
+  // it, the `|| []` short-circuit allocates a fresh array every render,
+  // which causes useCallback deps that include `tasks` (e.g.
+  // handleRevisitTask) to fire on every render.
+  const tasks = useMemo(() => data?.tasks || [], [data?.tasks]);
   const loading = isLoading;
 
   // Helper function to filter tasks by status
