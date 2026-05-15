@@ -328,6 +328,18 @@ export const validateAssignmentTargetScope = async (
       return;
     }
 
+    // Field execution actors are scoped by territory (pincode/area),
+    // NOT client/product. The controller's territory check downstream
+    // (user_pincode_assignments WHERE pincode_id = task.pincode_id) is
+    // the correct gate for field assignees — applying the
+    // client/product check here would fail closed against every field
+    // agent (their assigned_client_ids/product_ids are empty by
+    // design).
+    if (isFieldExecutionActor(targetUserShape)) {
+      next();
+      return;
+    }
+
     const targetClientIds = targetContext.assignedClientIds ?? [];
     const targetProductIds = targetContext.assignedProductIds ?? [];
 

@@ -2806,10 +2806,17 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
       createdHierarchy.push({ ...applicant, verifications: [] });
     }
 
-    // Backward compatibility: Set customerName on case from primary applicant
-    if (createdHierarchy.length > 0) {
+    // Backward compatibility: Set customerName on case from primary applicant.
+    // Guard against empty/whitespace applicant name — overwriting a valid
+    // INSERT value with '' was the source of the case-98 sync bug
+    // (mobile NOT NULL constraint on tasks.customer_name).
+    const primaryApplicantName =
+      createdHierarchy.length > 0 && typeof createdHierarchy[0].name === 'string'
+        ? createdHierarchy[0].name.trim()
+        : '';
+    if (primaryApplicantName.length > 0) {
       await client.query('UPDATE cases SET customer_name = $1 WHERE id = $2', [
-        createdHierarchy[0].name,
+        primaryApplicantName,
         newCase.id,
       ]);
     }

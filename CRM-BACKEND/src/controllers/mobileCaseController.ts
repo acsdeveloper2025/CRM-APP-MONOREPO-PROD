@@ -10,7 +10,7 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { QueryParams, VerificationAttachmentRow, WhereClause, CaseRow } from '../types/database';
 import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
-import { query } from '@/config/database';
+import { query, withTransaction } from '@/config/database';
 import {
   queueCaseRevocationNotification,
   queueTaskRevocationNotification,
@@ -377,7 +377,7 @@ export class MobileCaseController {
         // CRITICAL FIX: Show Task Number as title for field agents to distinguish Revisit tasks
         title: caseItem.verificationTaskNumber || caseItem.customerName || 'Verification Case',
         description: `${caseItem.verificationTypeName || 'Verification'} for ${caseItem.customerName}`,
-        customerName: caseItem.customerName || caseItem.applicantName, // Customer Name
+        customerName: caseItem.customerName, // Customer Name (trusted from cases.customer_name; guarded at creation in casesController)
         customerCallingCode: caseItem.customerCallingCode, // Customer Calling Code
         customerPhone: caseItem.customerPhone,
         // Use task-level address (from verification_tasks) instead of case-level address
@@ -614,7 +614,7 @@ export class MobileCaseController {
         // CRITICAL FIX: Show Task Number as title for field agents to distinguish Revisit tasks
         title: caseItem.verificationTaskNumber || caseItem.customerName || 'Verification Case',
         description: `${caseItem.verificationTypeName || 'Verification'} for ${caseItem.customerName}`,
-        customerName: caseItem.customerName || caseItem.applicantName, // Customer Name
+        customerName: caseItem.customerName, // Customer Name (trusted from cases.customer_name; guarded at creation in casesController)
         customerCallingCode: caseItem.customerCallingCode, // Customer Calling Code
         customerPhone: caseItem.customerPhone,
         // Use task-level address (from verification_tasks) instead of case-level address
@@ -1536,23 +1536,32 @@ export class MobileCaseController {
         });
       }
 
-      // Update task status to IN_PROGRESS and set started_at
-      const result = await query(
-        `
-        UPDATE verification_tasks
-        SET
-          status = 'IN_PROGRESS',
-          started_at = NOW(),
-          updated_at = NOW()
-        WHERE id = $1
-        RETURNING *
-      `,
-        [taskId]
-      );
+      // Update task + recalc case status atomically.
+      // Guard WHERE status='ASSIGNED' so a racing transition no-ops cleanly.
+      const updatedTask = await withTransaction(async client => {
+        const result = await client.query(
+          `
+          UPDATE verification_tasks
+          SET
+            status = 'IN_PROGRESS',
+            started_at = NOW(),
+            updated_at = NOW()
+          WHERE id = $1 AND status = 'ASSIGNED'
+          RETURNING *
+        `,
+          [taskId]
+        );
 
-      const updatedTask = result.rows[0];
+        if (result.rows.length === 0) {
+          throw new Error('TASK_NOT_IN_ASSIGNED_STATE');
+        }
 
-      // Create audit log
+        const row = result.rows[0];
+        await CaseStatusSyncService.recalculateCaseStatus(row.case_id, client);
+        return row;
+      });
+
+      // Create audit log (outside tx — non-critical)
       await createAuditLog({
         userId,
         action: 'START_TASK',
@@ -1563,15 +1572,22 @@ export class MobileCaseController {
 
       logger.info(`✅ Task ${updatedTask.task_number} started by user ${userId}`);
 
-      // Sync case status
-      await CaseStatusSyncService.recalculateCaseStatus(updatedTask.case_id);
-
       res.json({
         success: true,
         message: 'Task started successfully',
         data: updatedTask,
       });
     } catch (error) {
+      if (error instanceof Error && error.message === 'TASK_NOT_IN_ASSIGNED_STATE') {
+        return res.status(409).json({
+          success: false,
+          message: 'Task is not in ASSIGNED state — refresh and try again',
+          error: {
+            code: 'TASK_NOT_IN_ASSIGNED_STATE',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
       logger.error('Start task error:', error);
       res.status(500).json({
         success: false,

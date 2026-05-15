@@ -276,7 +276,7 @@ router.get(
 
       const result = await dbQuery(
         `
-        SELECT 
+        SELECT
           vt.*,
           vtype.name as verification_type_name,
           u_assigned.name as assigned_to_name,
@@ -286,7 +286,8 @@ router.get(
           c.case_id as case_number,
           c.customer_name as customer_name,
           cc.status as commission_status,
-          cc.calculated_commission
+          cc.calculated_commission,
+          p.code as pincode
         FROM verification_tasks vt
         LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
         LEFT JOIN users u_assigned ON vt.assigned_to = u_assigned.id
@@ -294,6 +295,7 @@ router.get(
         LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
         LEFT JOIN cases c ON vt.case_id = c.id
         LEFT JOIN commission_calculations cc ON vt.id = cc.verification_task_id
+        LEFT JOIN pincodes p ON p.id = vt.pincode_id
         WHERE vt.id = $1
       `,
         [taskId]

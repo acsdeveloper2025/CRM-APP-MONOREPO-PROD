@@ -17,6 +17,7 @@ import { requireControllerPermission } from '@/security/controllerAuthorization'
 import { resolveDataScope, valueAllowedByScope } from '@/security/dataScope';
 import { TaskRevocationService } from '@/services/taskRevocationService';
 import { TaskCompletionFinalizer } from '@/services/taskCompletionFinalizer';
+import { getSocketIO, emitCaseUpdate } from '@/websocket/server';
 
 type ReassignableTaskRecord = {
   id: string;
@@ -417,7 +418,13 @@ export class VerificationTasksController {
         return;
       }
 
-      // Enforce territory integrity on child task creation
+      // Enforce territory integrity on child task creation. The validator
+      // also returns a fresh `rateTypeId`/`amount` derived from current SZR
+      // + RTA + rates state — those are intentionally DISCARDED here: per
+      // business rule R2 (full-rate re-bill at the SAME rate as parent),
+      // the revisit copies parent's `rate_type_id` + `estimated_amount`
+      // verbatim. Only `pincodeDbId` + `areaId` from the validator are
+      // consumed below to enforce the territory revalidation.
       const revisitedTerritory =
         await VerificationTaskCreationService.validateTerritoryAndFinancialConfig(client, {
           clientId: Number(caseScopeResult.rows[0].clientId),
@@ -479,20 +486,16 @@ export class VerificationTasksController {
       const newTaskResult = await client.query(insertQuery, insertParams);
       const newTask = newTaskResult.rows[0];
 
-      // 3. Clone photos (attachments) if any
-      // We need to copy records from verificationAttachments where verificationTaskId = originalTask.id
-      // and set isHistorical = true (if we had that field) or just copy them.
-      // The requirement says "photos (but marked as historical—not counted toward mandatory 5 photos)".
-      // This implies we need a way to distinguish them.
-      // Checking verificationAttachments schema might be needed.
-      // For now, let's assume we just copy them and maybe the frontend filters them based on creation date vs task creation date?
-      // Or we add a 'isHistorical' flag to attachments?
-      // The requirement said "marked as historical".
-      // Let's check if we can add a metadata field or similar.
-      // For now, I will skip photo cloning in this step to keep it simple and because I don't want to change attachment schema yet without checking.
-      // Actually, I should check attachment schema.
+      // Photos are intentionally NOT cloned from parent — the revisit
+      // task captures fresh 5+1 photos on its own. Parent's photos remain
+      // attached to the parent task and can be viewed via the case detail
+      // page (parent + child tasks are both listed; clicking either shows
+      // its own attachments).
 
-      // 4. Create assignment history if assigned
+      // 4. Create assignment history if assigned. task_status_before is
+      // NULL — this is the first-ever assignment on a newly-created row,
+      // so there was no prior status to transition from. Hardcoding
+      // 'PENDING' would imply a transition that never happened.
       if (assignedTo) {
         await client.query(
           `
@@ -507,15 +510,15 @@ export class VerificationTasksController {
             assignedTo,
             userId,
             'Initial assignment for revisit task',
-            'PENDING',
+            null,
             'ASSIGNED',
           ]
         );
       }
 
-      // 5. Update case total tasks count and status
-      // When a revisit task is created, the case should no longer be COMPLETED
-      // Set it to IN_PROGRESS so it can be edited
+      // 5. Update case total tasks count.
+      // cases.status is owned by CaseStatusSyncService.recalculateCaseStatus
+      // (called below, inside this tx) — do NOT write status here.
       await client.query(
         `
         UPDATE cases
@@ -523,10 +526,6 @@ export class VerificationTasksController {
           total_tasks_count = (
             SELECT COUNT(*) FROM verification_tasks WHERE case_id = $1
           ),
-          status = CASE
-            WHEN status = 'COMPLETED' THEN 'IN_PROGRESS'
-            ELSE status
-          END,
           updated_at = NOW()
         WHERE id = $1
       `,
@@ -602,9 +601,28 @@ export class VerificationTasksController {
         },
       });
 
+      // 7. Sync case status inside tx so it's atomic with task insert.
+      // recalculateCaseStatus is the SINGLE authority on cases.status.
+      await CaseStatusSyncService.recalculateCaseStatus(newTask.caseId, client);
+
       await client.query('COMMIT');
 
-      // 7. Send notification (if assigned)
+      // 8. Emit case:updated WS event so other admin/team-lead clients
+      // subscribed to this case's room refresh in real time. Mirrors the
+      // assign/revoke paths' implicit refresh via the cache-invalidation
+      // middleware but also pushes to live dashboards.
+      const io = getSocketIO();
+      if (io) {
+        emitCaseUpdate(io, String(newTask.caseId), {
+          type: 'revisit-created',
+          taskId: newTask.id,
+          taskNumber: newTask.taskNumber,
+          parentTaskId: taskId,
+          assignedTo: assignedToValue,
+        });
+      }
+
+      // 9. Send notification (if assigned)
       if (assignedTo) {
         try {
           // Get case details for notifications
@@ -634,14 +652,12 @@ export class VerificationTasksController {
             assignmentType: 'assignment',
             assignedBy: userId,
             reason: 'Revisit task assigned',
+            isRevisit: true,
           });
         } catch (notifError) {
           logger.error('Failed to send revisit task notification:', notifError);
         }
       }
-
-      // Sync case status
-      await CaseStatusSyncService.recalculateCaseStatus(newTask.caseId);
 
       res.status(201).json({
         success: true,

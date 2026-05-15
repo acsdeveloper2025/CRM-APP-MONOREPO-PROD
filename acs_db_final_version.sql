@@ -3645,7 +3645,7 @@ COMMENT ON COLUMN public.verification_tasks.revocation_reason IS 'Reason provide
 -- Name: COLUMN verification_tasks.task_type; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.verification_tasks.task_type IS 'Type of the task: NORMAL or REVISIT';
+COMMENT ON COLUMN public.verification_tasks.task_type IS 'Type of the task: NORMAL, REVISIT, or KYC';
 
 
 --
@@ -19104,17 +19104,9 @@ PENDING	ASSIGNED
 PENDING	REVOKED
 ASSIGNED	IN_PROGRESS
 ASSIGNED	REVOKED
-ASSIGNED	SAVED
 IN_PROGRESS	COMPLETED
-IN_PROGRESS	ON_HOLD
 IN_PROGRESS	REVOKED
-IN_PROGRESS	SAVED
 IN_PROGRESS	ASSIGNED
-ON_HOLD	IN_PROGRESS
-ON_HOLD	REVOKED
-SAVED	IN_PROGRESS
-SAVED	REVOKED
-SAVED	ASSIGNED
 REVOKED	ASSIGNED
 \.
 
@@ -28334,7 +28326,7 @@ CREATE INDEX verification_reports_verified_by_idx ON public.verification_reports
 -- Name: verification_tasks_active_unique_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX verification_tasks_active_unique_idx ON public.verification_tasks USING btree (case_id, verification_type_id) WHERE ((status)::text = ANY (ARRAY[('PENDING'::character varying)::text, ('ASSIGNED'::character varying)::text, ('IN_PROGRESS'::character varying)::text, ('ON_HOLD'::character varying)::text, ('SAVED'::character varying)::text]));
+CREATE UNIQUE INDEX verification_tasks_active_unique_idx ON public.verification_tasks USING btree (case_id, verification_type_id) WHERE ((status)::text = ANY (ARRAY[('PENDING'::character varying)::text, ('ASSIGNED'::character varying)::text, ('IN_PROGRESS'::character varying)::text]));
 
 
 --

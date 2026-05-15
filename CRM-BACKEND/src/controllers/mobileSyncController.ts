@@ -553,7 +553,7 @@ export class MobileSyncController {
         caseId: caseItem.caseId, // User-friendly auto-incrementing case ID
         title: caseItem.verificationTaskNumber || caseItem.customerName || 'Verification Case',
         description: `${caseItem.verificationTypeName || 'Verification'} for ${caseItem.customerName}`,
-        customerName: caseItem.customerName || caseItem.applicantName, // Customer Name
+        customerName: caseItem.customerName, // Customer Name
         customerCallingCode: caseItem.customerCallingCode, // Customer Calling Code
         customerPhone: caseItem.customerPhone,
         customerEmail: caseItem.customerEmail,

@@ -47,6 +47,11 @@ export interface CaseAssignmentNotificationJobData {
   assignmentType: 'assignment' | 'reassignment';
   assignedBy?: string;
   reason?: string;
+  // When true, the source task was created via revisitTask (task_type='REVISIT').
+  // The worker uses this to render a distinct title prefix so the field
+  // agent immediately knows this is a re-visit (and that the parent task
+  // already has a prior submission they can reference).
+  isRevisit?: boolean;
 }
 
 export interface CaseCompletionNotificationJobData {
@@ -215,12 +220,19 @@ const handleCaseAssignmentNotification = async (job: Job<NotificationJobData>) =
     const identifierLine = data.taskNumber
       ? `Task ${data.taskNumber} (Case #${data.caseNumber})`
       : `Case #${data.caseNumber}`;
-    const titleVerb =
-      data.assignmentType === 'assignment'
+    // Revisit tasks get a distinct prefix so the field agent immediately
+    // sees this is a re-visit (and that the parent task has a prior
+    // submission for context). Falls through to the normal verb otherwise.
+    const titleVerb = data.isRevisit
+      ? `Revisit ${data.taskNumber ? 'Task' : 'Case'}`
+      : data.assignmentType === 'assignment'
         ? `New ${data.taskNumber ? 'Task' : 'Case'}`
         : `${data.taskNumber ? 'Task' : 'Case'} Reassigned`;
-    const messageVerb =
-      data.assignmentType === 'assignment' ? 'assigned to you' : 'reassigned to you';
+    const messageVerb = data.isRevisit
+      ? 'assigned to you for re-verification'
+      : data.assignmentType === 'assignment'
+        ? 'assigned to you'
+        : 'reassigned to you';
     const notification: NotificationData = {
       userId: data.userId,
       title: `${titleVerb} — ${data.customerName}`,
@@ -236,6 +248,7 @@ const handleCaseAssignmentNotification = async (job: Job<NotificationJobData>) =
         assignedBy: data.assignedBy,
         reason: data.reason,
         assignmentType: data.assignmentType,
+        isRevisit: data.isRevisit ?? false,
       },
       // Always land on case page — holistic view of all tasks/photos/submissions.
       actionUrl: `/case-management/${data.caseNumber || data.caseId}`,
