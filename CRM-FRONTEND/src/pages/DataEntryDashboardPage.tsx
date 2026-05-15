@@ -50,6 +50,12 @@ interface DataEntryDashboardRow {
 interface DashboardResponse {
   data: DataEntryDashboardRow[];
   pagination: { total: number; page: number; limit: number; totalPages: number };
+  statistics?: {
+    total: number;
+    notStarted: number;
+    inProgress: number;
+    completed: number;
+  };
 }
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
@@ -103,17 +109,25 @@ export function DataEntryDashboardPage() {
 
   const pagination = useMemo(() => {
     const raw = dashboardRes?.data;
-    if (raw && typeof raw === 'object' && 'pagination' in (raw as unknown as Record<string, unknown>)) {
+    if (
+      raw &&
+      typeof raw === 'object' &&
+      'pagination' in (raw as unknown as Record<string, unknown>)
+    ) {
       return (raw as DashboardResponse).pagination;
     }
     return { total: 0, page: 1, limit: pageSize, totalPages: 1 };
   }, [dashboardRes, pageSize]);
 
-  // Stats — derived from the current page. For a true count, the backend
-  // could expose /stats, but for MVP the page-local counts suffice.
-  const notStarted = rows.filter((r) => r.dataEntryStatus === 'not_started').length;
-  const inProgress = rows.filter((r) => r.dataEntryStatus === 'in_progress').length;
-  const completed = rows.filter((r) => r.dataEntryStatus === 'completed').length;
+  // Stat-card aggregates come from the BE statistics block (computed
+  // across the full filtered set, ignoring pagination + the current
+  // bucket filter). M-01 invariant: never derive stat cards from the
+  // paginated `rows` array — the value would mutate as the user
+  // paginates.
+  const stats = (dashboardRes?.data as DashboardResponse | undefined)?.statistics;
+  const notStarted = stats?.notStarted ?? 0;
+  const inProgress = stats?.inProgress ?? 0;
+  const completed = stats?.completed ?? 0;
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">

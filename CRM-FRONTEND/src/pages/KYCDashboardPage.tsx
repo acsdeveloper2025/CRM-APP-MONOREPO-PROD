@@ -32,6 +32,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useKYCTasks, useKYCDocumentTypes } from '@/hooks/useKYC';
+import { useScopePageReset } from '@/hooks/useScopePageReset';
 import { kycService } from '@/services/kyc';
 import { logger } from '@/utils/logger';
 import { format } from 'date-fns';
@@ -76,6 +77,10 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState(defaultStatus || 'ALL');
   const [docTypeFilter, setDocTypeFilter] = useState('ALL');
+
+  // Reset to page 1 when scope changes so a stale page index from the
+  // previous tenant can't leave the user on an empty page.
+  useScopePageReset(() => setPage(1));
 
   const { data: docTypes = [] } = useKYCDocumentTypes();
 

@@ -322,9 +322,9 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                     <>
                       <Mail className="h-4 w-4" />
                       <AlertDescription>
-                        The credentials have been sent to <strong>{user.email || 'the user'}</strong>. Please
-                        inform the user to check their email and change the password after logging
-                        in.
+                        The credentials have been sent to{' '}
+                        <strong>{user.email || 'the user'}</strong>. Please inform the user to check
+                        their email and change the password after logging in.
                       </AlertDescription>
                     </>
                   ) : (

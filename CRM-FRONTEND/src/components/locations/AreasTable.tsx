@@ -76,9 +76,7 @@ export function AreasTable({ data, isLoading }: AreasTableProps) {
   };
 
   if (isLoading) {
-    return (
-      <TableSkeleton headers={['Area Name', 'Usage Count', 'Created Date', 'Actions']} />
-    );
+    return <TableSkeleton headers={['Area Name', 'Usage Count', 'Created Date', 'Actions']} />;
   }
 
   if (!data || data.length === 0) {

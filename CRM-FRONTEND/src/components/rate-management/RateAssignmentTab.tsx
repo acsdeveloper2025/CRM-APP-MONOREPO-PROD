@@ -297,13 +297,15 @@ export function RateAssignmentTab() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(availableRateTypes as unknown as Array<{
-                      rateTypeId: number;
-                      rateTypeName: string;
-                      rateTypeDescription?: string;
-                      hasRate: boolean;
-                      currentAmount?: number;
-                    }>).map((rateType) => {
+                    {(
+                      availableRateTypes as unknown as Array<{
+                        rateTypeId: number;
+                        rateTypeName: string;
+                        rateTypeDescription?: string;
+                        hasRate: boolean;
+                        currentAmount?: number;
+                      }>
+                    ).map((rateType) => {
                       const rateInput = rateInputs[rateType.rateTypeId] || {
                         rateTypeId: rateType.rateTypeId,
                         amount: '',

@@ -77,9 +77,7 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
 
   if (isLoading) {
     return (
-      <TableSkeleton
-        headers={['Pincode', 'Areas', 'City', 'State', 'Created Date', 'Actions']}
-      />
+      <TableSkeleton headers={['Pincode', 'Areas', 'City', 'State', 'Created Date', 'Actions']} />
     );
   }
 

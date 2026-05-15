@@ -33,12 +33,7 @@ const SKELETON_WIDTHS = [
 ];
 const SKELETON_ROW_COUNT = 5;
 
-export function MISDataTable({
-  data,
-  pagination,
-  onPageChange,
-  isLoading,
-}: MISDataTableProps) {
+export function MISDataTable({ data, pagination, onPageChange, isLoading }: MISDataTableProps) {
   // Skeleton replaces the rows ONLY on initial load (no data yet). On refetch
   // we keep the existing rows so the user doesn't lose their place.
   const showSkeleton = isLoading === true && data.length === 0;
@@ -149,6 +144,7 @@ export function MISDataTable({
                 ? Array.from({ length: SKELETON_ROW_COUNT }).map((_, rowIdx) => (
                     <tr key={`mis-skeleton-${rowIdx}`} aria-hidden="true">
                       {SKELETON_WIDTHS.map((widthClass, colIdx) => (
+                        // eslint-disable-next-line jsx-a11y/control-has-associated-label -- row is aria-hidden, skeleton placeholders aren't exposed to AT
                         <td
                           key={`mis-skeleton-${rowIdx}-${colIdx}`}
                           className="px-4 py-4 whitespace-nowrap"
@@ -161,124 +157,127 @@ export function MISDataTable({
                     </tr>
                   ))
                 : null}
-              {!showSkeleton && data.map((taskRow) => (
-                <tr key={taskRow.taskId} className="hover:bg-green-50 transition-colors">
-                  {/* 1. Verification Task Column */}
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{taskRow.taskNumber}</div>
-                  </td>
+              {!showSkeleton &&
+                data.map((taskRow) => (
+                  <tr key={taskRow.taskId} className="hover:bg-green-50 transition-colors">
+                    {/* 1. Verification Task Column */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{taskRow.taskNumber}</div>
+                    </td>
 
-                  {/* 2. Case ID Column */}
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">#{taskRow.caseNumber}</div>
-                  </td>
+                    {/* 2. Case ID Column */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">#{taskRow.caseNumber}</div>
+                    </td>
 
-                  {/* 3. Customer Name Column */}
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{taskRow.customerName}</div>
-                  </td>
+                    {/* 3. Customer Name Column */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{taskRow.customerName}</div>
+                    </td>
 
-                  {/* 4. Pincode Column */}
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{taskRow.pincode || '-'}</div>
-                  </td>
+                    {/* 4. Pincode Column */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{taskRow.pincode || '-'}</div>
+                    </td>
 
-                  {/* 5. Area Column */}
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-600">{taskRow.areaName || '-'}</div>
-                  </td>
+                    {/* 5. Area Column */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600">{taskRow.areaName || '-'}</div>
+                    </td>
 
-                  {/* 6. Address Column */}
-                  <td className="px-4 py-4">
-                    <div className="text-sm text-gray-900 max-w-[200px] truncate">
-                      {taskRow.address || '-'}
-                    </div>
-                  </td>
-
-                  {/* 7. Client Column */}
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{taskRow.clientName}</div>
-                    <div className="text-xs text-gray-600">{taskRow.clientCode}</div>
-                  </td>
-
-                  {/* 8. Product Column */}
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{taskRow.productName}</div>
-                  </td>
-
-                  {/* 9. Verification Type Column */}
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{taskRow.verificationTypeName}</div>
-                  </td>
-
-                  {/* 10. Backend User Column */}
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{taskRow.backendUserName || '-'}</div>
-                    <div className="text-xs text-gray-600">
-                      {taskRow.backendUserEmployeeId || '-'}
-                    </div>
-                  </td>
-
-                  {/* 11. Field User Column */}
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{taskRow.assignedFieldUser || '-'}</div>
-                    <div className="text-xs text-gray-600">
-                      {taskRow.fieldUserEmployeeId || '-'}
-                    </div>
-                  </td>
-
-                  {/* 12. Rate Type Column */}
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{taskRow.rateType || '-'}</div>
-                  </td>
-
-                  {/* 13. Trigger Column */}
-                  <td className="px-4 py-4">
-                    <div className="text-sm text-gray-900 max-w-[150px] truncate">
-                      {taskRow.trigger || '-'}
-                    </div>
-                  </td>
-
-                  {/* 14. Report Column */}
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    {taskRow.formSubmissionId ? (
-                      <div className="text-sm">
-                        <Badge
-                          variant="outline"
-                          className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                        >
-                          {taskRow.formType || 'Submitted'}
-                        </Badge>
-                        {taskRow.formValidationStatus && (
-                          <div className="text-xs text-gray-600 mt-1">
-                            {taskRow.formValidationStatus}
-                          </div>
-                        )}
+                    {/* 6. Address Column */}
+                    <td className="px-4 py-4">
+                      <div className="text-sm text-gray-900 max-w-[200px] truncate">
+                        {taskRow.address || '-'}
                       </div>
-                    ) : (
-                      <div className="text-sm text-gray-600">-</div>
-                    )}
-                  </td>
+                    </td>
 
-                  {/* 15. Status Column */}
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="space-y-1">
-                      {getStatusBadge(taskRow.taskStatus)}
-                      {getPriorityBadge(taskRow.taskPriority)}
-                    </div>
-                  </td>
+                    {/* 7. Client Column */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{taskRow.clientName}</div>
+                      <div className="text-xs text-gray-600">{taskRow.clientCode}</div>
+                    </td>
 
-                  {/* 16. Created Column */}
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {formatDate(taskRow.taskCreatedDate)}
-                  </td>
+                    {/* 8. Product Column */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{taskRow.productName}</div>
+                    </td>
 
-                  {/* 17. Completed At Column */}
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {taskRow.taskCompletionDate ? formatDate(taskRow.taskCompletionDate) : '-'}
-                  </td>
-                </tr>
-              ))}
+                    {/* 9. Verification Type Column */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{taskRow.verificationTypeName}</div>
+                    </td>
+
+                    {/* 10. Backend User Column */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{taskRow.backendUserName || '-'}</div>
+                      <div className="text-xs text-gray-600">
+                        {taskRow.backendUserEmployeeId || '-'}
+                      </div>
+                    </td>
+
+                    {/* 11. Field User Column */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {taskRow.assignedFieldUser || '-'}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {taskRow.fieldUserEmployeeId || '-'}
+                      </div>
+                    </td>
+
+                    {/* 12. Rate Type Column */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{taskRow.rateType || '-'}</div>
+                    </td>
+
+                    {/* 13. Trigger Column */}
+                    <td className="px-4 py-4">
+                      <div className="text-sm text-gray-900 max-w-[150px] truncate">
+                        {taskRow.trigger || '-'}
+                      </div>
+                    </td>
+
+                    {/* 14. Report Column */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      {taskRow.formSubmissionId ? (
+                        <div className="text-sm">
+                          <Badge
+                            variant="outline"
+                            className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                          >
+                            {taskRow.formType || 'Submitted'}
+                          </Badge>
+                          {taskRow.formValidationStatus && (
+                            <div className="text-xs text-gray-600 mt-1">
+                              {taskRow.formValidationStatus}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-600">-</div>
+                      )}
+                    </td>
+
+                    {/* 15. Status Column */}
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <div className="space-y-1">
+                        {getStatusBadge(taskRow.taskStatus)}
+                        {getPriorityBadge(taskRow.taskPriority)}
+                      </div>
+                    </td>
+
+                    {/* 16. Created Column */}
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {formatDate(taskRow.taskCreatedDate)}
+                    </td>
+
+                    {/* 17. Completed At Column */}
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {taskRow.taskCompletionDate ? formatDate(taskRow.taskCompletionDate) : '-'}
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>

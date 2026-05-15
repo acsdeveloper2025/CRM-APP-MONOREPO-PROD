@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/table';
 import { useOverdueTasks, useTATStats } from '@/hooks/useDashboard';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
+import { useScopePageReset } from '@/hooks/useScopePageReset';
 import {
   UnifiedSearchFilterLayout,
   FilterGrid,
@@ -79,6 +80,14 @@ export const TATMonitoringPage: React.FC = () => {
     setCriticalPage(1);
     setAllPage(1);
   }, [debouncedSearchValue, activeFilters]);
+
+  // Reset both paginators when the user toggles the active scope so a
+  // stale page index from the previous scope can't strand them on an
+  // empty page.
+  useScopePageReset(() => {
+    setCriticalPage(1);
+    setAllPage(1);
+  });
 
   // Fetch TAT Statistics for the cards
   const { data: tatStatsData } = useTATStats();

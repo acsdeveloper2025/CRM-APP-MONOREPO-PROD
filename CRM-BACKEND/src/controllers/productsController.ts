@@ -390,17 +390,25 @@ export const getProductsByClient = async (req: AuthenticatedRequest, res: Respon
 // GET /api/products/stats - Get product statistics
 export const getProductStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // Get total count
-    const totalRes = await query(`SELECT COUNT(*)::int as total FROM products`);
-    const total = totalRes.rows[0]?.total || 0;
+    const statsRes = await query(`
+      SELECT
+        COUNT(*)::int as total,
+        COUNT(CASE WHEN is_active = true THEN 1 END)::int as active,
+        COUNT(CASE WHEN is_active = false THEN 1 END)::int as inactive,
+        COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END)::int as recently_added_count
+      FROM products
+    `);
+    const row = statsRes.rows[0] || {};
 
-    // For now, return basic stats since the products table doesn't have isActive or category columns
     const stats = {
-      total,
-      active: total, // Assuming all products are active since no isActive column
-      inactive: 0,
+      total: row.total ?? 0,
+      active: row.active ?? 0,
+      inactive: row.inactive ?? 0,
+      recentlyAddedCount: row.recently_added_count ?? 0,
       byCategory: {
-        OTHER: total, // Default category since no category column
+        // products table has no category column; keep the bucket so
+        // downstream FE/MIS that expect this shape doesn't break.
+        OTHER: row.total ?? 0,
       },
     };
 

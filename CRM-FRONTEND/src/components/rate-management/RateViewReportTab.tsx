@@ -73,6 +73,16 @@ export function RateViewReportTab() {
     errorFallbackMessage: 'Failed to load rates',
   });
 
+  // Stat-card aggregate. MUST come from /rates/stats not from the
+  // paginated `rates` array — otherwise Total/Active/Average/Unique
+  // mutate as the user paginates (M-01 invariant).
+  const { data: rateStatsData } = useStandardizedQuery({
+    queryKey: ['rate-stats'],
+    queryFn: () => ratesService.getRateStats(),
+    errorContext: 'Loading Rate Stats',
+    errorFallbackMessage: 'Failed to load rate stats',
+  });
+
   // Fetch filter options
   const { data: clientsData } = useStandardizedQuery({
     queryKey: ['clients'],
@@ -465,36 +475,33 @@ export function RateViewReportTab() {
         </CardContent>
       </Card>
 
-      {/* Summary Statistics */}
+      {/* Summary Statistics — sourced from /rates/stats aggregate, NOT
+          from the paginated `rates` array. Per M-01 invariant: stat
+          cards must never derive from the paginated current page. */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold">{rates.length}</div>
+            <div className="text-2xl font-bold">{rateStatsData?.data?.total ?? 0}</div>
             <p className="text-xs text-gray-600">Total Rates</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold">{rates.filter((r) => r.isActive).length}</div>
+            <div className="text-2xl font-bold">{rateStatsData?.data?.active ?? 0}</div>
             <p className="text-xs text-gray-600">Active Rates</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold">
-              ₹
-              {rates.length > 0
-                ? (rates.reduce((sum, r) => sum + Number(r.amount || 0), 0) / rates.length).toFixed(
-                    0
-                  )
-                : '0'}
+              ₹{Number(rateStatsData?.data?.averageAmount ?? 0).toFixed(0)}
             </div>
             <p className="text-xs text-gray-600">Average Rate</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold">{new Set(rates.map((r) => r.clientId)).size}</div>
+            <div className="text-2xl font-bold">{rateStatsData?.data?.uniqueClients ?? 0}</div>
             <p className="text-xs text-gray-600">Unique Clients</p>
           </CardContent>
         </Card>

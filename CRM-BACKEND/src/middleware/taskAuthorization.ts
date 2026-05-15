@@ -129,10 +129,7 @@ export const requireTaskAccess = async (
       // PUT / assign / revoke / start / cancel / complete a task whose
       // case lives in ICICI (both clients in her baseline). Mirrors
       // the M-1 fix on scopeAccess.validateEntityAccess.
-      if (
-        req.activeScope?.clientId != null &&
-        req.activeScope.clientId !== Number(row.clientId)
-      ) {
+      if (req.activeScope?.clientId != null && req.activeScope.clientId !== Number(row.clientId)) {
         res.status(403).json({
           success: false,
           message: 'Task case is outside your active scope',

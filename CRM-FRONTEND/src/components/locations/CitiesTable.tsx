@@ -82,9 +82,7 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
   };
 
   if (isLoading) {
-    return (
-      <TableSkeleton headers={['City Name', 'State', 'Country', 'Created Date', 'Actions']} />
-    );
+    return <TableSkeleton headers={['City Name', 'State', 'Country', 'Created Date', 'Actions']} />;
   }
 
   if (!data || data.length === 0) {

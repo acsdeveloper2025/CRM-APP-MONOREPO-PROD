@@ -379,13 +379,14 @@ export const deleteRate = async (req: AuthenticatedRequest, res: Response) => {
 export const getRateStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const statsRes = await query(`
-      SELECT 
+      SELECT
         COUNT(*)::int as total,
         COUNT(CASE WHEN is_active = true THEN 1 END)::int as active,
         COUNT(CASE WHEN is_active = false THEN 1 END)::int as inactive,
         AVG(amount)::numeric(10,2) as average_amount,
         MIN(amount)::numeric(10,2) as min_amount,
-        MAX(amount)::numeric(10,2) as max_amount
+        MAX(amount)::numeric(10,2) as max_amount,
+        COUNT(DISTINCT client_id)::int as unique_clients
       FROM rates
     `);
     const stats = statsRes.rows[0];

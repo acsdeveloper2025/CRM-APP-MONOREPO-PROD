@@ -488,7 +488,11 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                       <FormItem>
                         <FormLabel>
                           Client *
-                          {isClientScopeLocked ? (
+                          {editMode ? (
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              (cannot change after creation)
+                            </span>
+                          ) : isClientScopeLocked ? (
                             <span className="ml-2 text-xs text-muted-foreground">
                               (locked by active scope)
                             </span>
@@ -500,7 +504,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                             form.setValue('productId', '');
                           }}
                           value={field.value}
-                          disabled={isClientScopeLocked}
+                          disabled={editMode || isClientScopeLocked}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -533,7 +537,11 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                       <FormItem>
                         <FormLabel>
                           Product *
-                          {isProductScopeLocked ? (
+                          {editMode ? (
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              (cannot change after creation)
+                            </span>
+                          ) : isProductScopeLocked ? (
                             <span className="ml-2 text-xs text-muted-foreground">
                               (locked by active scope)
                             </span>
@@ -542,7 +550,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                         <Select
                           onValueChange={field.onChange}
                           value={field.value}
-                          disabled={isProductScopeLocked || !selectedClientId}
+                          disabled={editMode || isProductScopeLocked || !selectedClientId}
                         >
                           <FormControl>
                             <SelectTrigger>

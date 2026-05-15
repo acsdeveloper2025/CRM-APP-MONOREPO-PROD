@@ -114,6 +114,54 @@ export const getDataEntryDashboard = async (req: AuthenticatedRequest, res: Resp
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
+    // Stat-card aggregates. Same WHERE as the data query (scope, search,
+    // clientId, productId) but DELIBERATELY ignores `dataEntryStatus`
+    // so all 3 buckets always show their true totals across the full
+    // filtered set — not just the bucket the user is currently viewing.
+    // M-01 invariant: stat cards must never derive from a paginated
+    // array. Mirrors the pattern used by /api/cases statistics.
+    const statsParams = [...params];
+    const statsSql = `
+      WITH base AS (
+        SELECT
+          COALESCE(de.instance_count, 0) AS de_instances,
+          COALESCE(de.completed_count, 0) AS de_completed
+        FROM cases c
+        JOIN clients cl ON cl.id = c.client_id
+        JOIN products p ON p.id = c.product_id
+        LEFT JOIN (
+          SELECT case_id,
+                 COUNT(*)::int AS instance_count,
+                 COUNT(*) FILTER (WHERE is_completed)::int AS completed_count
+          FROM case_data_entries
+          GROUP BY case_id
+        ) de ON de.case_id = c.id
+        ${whereClause}
+      )
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE de_instances = 0)::int AS not_started,
+        COUNT(*) FILTER (WHERE de_instances > 0 AND de_completed < de_instances)::int AS in_progress,
+        COUNT(*) FILTER (WHERE de_instances > 0 AND de_completed = de_instances)::int AS completed
+      FROM base
+    `;
+    const statsResult = await query(statsSql, statsParams);
+    const statsRow = statsResult.rows[0] || {
+      total: 0,
+      not_started: 0,
+      in_progress: 0,
+      completed: 0,
+    };
+    // PG row uses snake_case via a literal column alias above; the
+    // app-wide camelize converter rewrites `not_started` → `notStarted`,
+    // etc. Read both shapes defensively just in case.
+    const statistics = {
+      total: Number(statsRow.total ?? 0),
+      notStarted: Number(statsRow.notStarted ?? statsRow.not_started ?? 0),
+      inProgress: Number(statsRow.inProgress ?? statsRow.in_progress ?? 0),
+      completed: Number(statsRow.completed ?? 0),
+    };
+
     const sql = `
       WITH base AS (
         SELECT
@@ -189,6 +237,7 @@ export const getDataEntryDashboard = async (req: AuthenticatedRequest, res: Resp
           limit,
           totalPages: Math.ceil(total / limit),
         },
+        statistics,
       },
     });
   } catch (error) {

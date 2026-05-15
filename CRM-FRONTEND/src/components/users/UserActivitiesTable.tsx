@@ -19,9 +19,7 @@ interface UserActivitiesTableProps {
 
 export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProps) {
   if (isLoading) {
-    return (
-      <TableSkeleton headers={['User', 'Action', 'Description', 'IP Address', 'Timestamp']} />
-    );
+    return <TableSkeleton headers={['User', 'Action', 'Description', 'IP Address', 'Timestamp']} />;
   }
 
   if (!data || data.length === 0) {

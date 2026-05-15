@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
+import { useActiveScope } from '@/hooks/useActiveScope';
 import { kycService, type KYCTaskListQuery } from '@/services/kyc';
 import { usePermissionContext } from '@/contexts/PermissionContext';
 
@@ -7,7 +8,8 @@ const kycKeys = {
   all: ['kyc'] as const,
   documentTypes: (filter?: { clientId?: number | null; productId?: number | null }) =>
     [...kycKeys.all, 'document-types', filter || {}] as const,
-  tasks: (query: KYCTaskListQuery) => [...kycKeys.all, 'tasks', query] as const,
+  tasks: (query: KYCTaskListQuery, scope: { c: number | null; p: number | null }) =>
+    [...kycKeys.all, 'tasks', query, scope] as const,
   task: (id: string) => [...kycKeys.all, 'task', id] as const,
   caseTasks: (caseId: string) => [...kycKeys.all, 'case', caseId] as const,
 };
@@ -36,8 +38,12 @@ export const useKYCDocumentTypes = (filter?: {
 };
 
 export const useKYCTasks = (query: KYCTaskListQuery = {}) => {
+  // Defense-in-depth: include the active scope tuple in the cache key so
+  // a scope flip cannot serve stale KYC data even if queryClient.clear()
+  // is missed somewhere in the chain. Mirrors useCases (P18.A-05).
+  const { selectedClientId, selectedProductId } = useActiveScope();
   return useQuery({
-    queryKey: kycKeys.tasks(query),
+    queryKey: kycKeys.tasks(query, { c: selectedClientId, p: selectedProductId }),
     queryFn: () => kycService.listTasks(query),
     select: (response) => {
       const payload = response.data;

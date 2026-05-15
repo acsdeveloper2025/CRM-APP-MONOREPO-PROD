@@ -10,14 +10,7 @@ import {
   useVerificationImagesBySubmission,
 } from '@/hooks/useVerificationImages';
 import { verificationImagesService, type VerificationImage } from '@/services/verificationImages';
-import {
-  Camera,
-  MapPin,
-  Download,
-  Eye,
-  Image as ImageIcon,
-  ExternalLink,
-} from 'lucide-react';
+import { Camera, MapPin, Download, Eye, Image as ImageIcon, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 // 2026-05-05 (bug 60): swapped from `html2canvas` (v1.4.1) to
 // `html2canvas-pro` — the original lib chokes on Tailwind v4's
@@ -327,7 +320,14 @@ const MetadataOverlay: React.FC<{
   submissionAddress?: string | null;
   compact?: boolean;
   mapSize?: '88x88' | '110x110' | '140x140';
-}> = ({ attachmentId, location, uploadedAt, submissionAddress, compact = true, mapSize = '88x88' }) => {
+}> = ({
+  attachmentId,
+  location,
+  uploadedAt,
+  submissionAddress,
+  compact = true,
+  mapSize = '88x88',
+}) => {
   const headerCls = compact ? 'text-[13px]' : 'text-base';
   const bodyCls = compact ? 'text-[10px]' : 'text-xs';
   const monoCls = compact ? 'text-[10px]' : 'text-xs';

@@ -21,8 +21,7 @@ const loadMarkerClustererScript = async (): Promise<void> => {
     const script = document.createElement('script');
     script.id = MARKERCLUSTERER_SCRIPT_ID;
     script.async = true;
-    script.src =
-      'https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js';
+    script.src = 'https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js';
     script.onload = () => resolve();
     script.onerror = () => reject(new Error('Failed to load MarkerClusterer'));
     document.head.appendChild(script);
@@ -36,9 +35,7 @@ type GoogleMapsWindow = Window & {
       InfoWindow: new (options?: Record<string, unknown>) => GoogleInfoWindowInstance;
       LatLngBounds: new () => GoogleLatLngBoundsInstance;
       marker: {
-        AdvancedMarkerElement: new (
-          options: Record<string, unknown>
-        ) => AdvancedMarkerInstance;
+        AdvancedMarkerElement: new (options: Record<string, unknown>) => AdvancedMarkerInstance;
         PinElement: new (options: Record<string, unknown>) => PinElementInstance;
       };
       event: {

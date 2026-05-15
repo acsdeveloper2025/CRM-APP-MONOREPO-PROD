@@ -82,9 +82,7 @@ export function StatesTable({ data, isLoading }: StatesTableProps) {
   };
 
   if (isLoading) {
-    return (
-      <TableSkeleton headers={['Name', 'Code', 'Country', 'Cities', 'Created', 'Actions']} />
-    );
+    return <TableSkeleton headers={['Name', 'Code', 'Country', 'Cities', 'Created', 'Actions']} />;
   }
 
   if (!data.length) {

@@ -18,14 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Clock,
-  AlertTriangle,
-  RefreshCw,
-  Package,
-  UserCheck,
-  Download,
-} from 'lucide-react';
+import { Clock, AlertTriangle, RefreshCw, Package, UserCheck, Download } from 'lucide-react';
 import { VerificationTasksService } from '@/services/verificationTasks';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';

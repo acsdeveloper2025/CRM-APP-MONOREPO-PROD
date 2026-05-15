@@ -706,10 +706,7 @@ export class VerificationAttachmentController {
       // P11.A.6 logic in verifyCaseLevelAccess (used by per-image serve
       // endpoints) — applies the same check at the list endpoint.
       const authReq = req as AuthenticatedRequest;
-      if (
-        authReq.activeScope?.clientId != null ||
-        authReq.activeScope?.productId != null
-      ) {
+      if (authReq.activeScope?.clientId != null || authReq.activeScope?.productId != null) {
         const caseScopeRes = await query<{ clientId: number; productId: number }>(
           `SELECT client_id, product_id FROM cases WHERE id = $1`,
           [caseUuid]

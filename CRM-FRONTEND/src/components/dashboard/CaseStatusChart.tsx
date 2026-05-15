@@ -99,7 +99,11 @@ export const CaseStatusChart: React.FC<CaseStatusChartProps> = React.memo(({ dat
             exact numbers; pie is the visual quick-scan. */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+              initialDimension={{ width: 1, height: 1 }}
+            >
               <PieChart>
                 <Pie
                   data={chartData}
@@ -136,9 +140,7 @@ export const CaseStatusChart: React.FC<CaseStatusChartProps> = React.memo(({ dat
                   <span className="flex-1 truncate text-sm font-medium text-foreground">
                     {entry.name}
                   </span>
-                  <span className="tabular-nums text-sm text-muted-foreground">
-                    {entry.value}
-                  </span>
+                  <span className="tabular-nums text-sm text-muted-foreground">{entry.value}</span>
                   <span className="w-12 text-right tabular-nums text-sm font-semibold text-foreground">
                     {entry.percentage}%
                   </span>

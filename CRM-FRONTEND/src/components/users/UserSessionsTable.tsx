@@ -60,15 +60,7 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
   if (isLoading) {
     return (
       <TableSkeleton
-        headers={[
-          'User',
-          'Device',
-          'IP Address',
-          'Status',
-          'Login Time',
-          'Expiry Time',
-          'Actions',
-        ]}
+        headers={['User', 'Device', 'IP Address', 'Status', 'Login Time', 'Expiry Time', 'Actions']}
       />
     );
   }

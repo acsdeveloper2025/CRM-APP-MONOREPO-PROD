@@ -298,10 +298,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
       )}
 
       {showAssignModal && selectedTaskId && (
-        <TaskAssignmentModal
-          taskId={selectedTaskId}
-          onClose={handleCloseAssignModal}
-        />
+        <TaskAssignmentModal taskId={selectedTaskId} onClose={handleCloseAssignModal} />
       )}
 
       {showCompleteModal && selectedTaskId && (

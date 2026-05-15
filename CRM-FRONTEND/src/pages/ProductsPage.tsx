@@ -42,7 +42,13 @@ export function ProductsPage() {
   });
 
   const products = productsData?.data || [];
-  const stats = statsData?.data || { total: 0, active: 0, inactive: 0, byCategory: {} };
+  const stats = statsData?.data || {
+    total: 0,
+    active: 0,
+    inactive: 0,
+    recentlyAddedCount: 0,
+    byCategory: {},
+  };
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
@@ -102,19 +108,7 @@ export function ProductsPage() {
             <Calendar className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {
-                products.filter((p) => {
-                  if (!p.createdAt) {
-                    return false;
-                  }
-                  const created = new Date(p.createdAt);
-                  const thirtyDaysAgo = new Date();
-                  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                  return created >= thirtyDaysAgo;
-                }).length
-              }
-            </div>
+            <div className="text-2xl font-bold">{stats.recentlyAddedCount}</div>
             <p className="text-xs text-gray-600">Last 30 days</p>
           </CardContent>
         </Card>

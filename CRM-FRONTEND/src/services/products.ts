@@ -87,6 +87,7 @@ export class ProductsService {
       total: number;
       active: number;
       inactive: number;
+      recentlyAddedCount: number;
       byCategory: Record<string, number>;
     }>
   > {
@@ -94,6 +95,7 @@ export class ProductsService {
       total: number;
       active: number;
       inactive: number;
+      recentlyAddedCount: number;
       byCategory: Record<string, number>;
     }>('/products/stats');
     if (response?.success && response.data && typeof response.data === 'object') {

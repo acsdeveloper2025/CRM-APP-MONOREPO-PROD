@@ -2,7 +2,6 @@ import type { Request, Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import type { QueryParams } from '@/types/database';
-import { errorMessage } from '@/utils/errorMessage';
 import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
 import {
@@ -103,16 +102,10 @@ export const enforceBackendUserCaseScope = async (
   // a client/product, reject access to cases outside that scope even when
   // the case is otherwise in their baseline assigned set.
   const row0 = caseResult.rows[0];
-  if (
-    activeScope?.clientId != null &&
-    activeScope.clientId !== Number(row0.clientId)
-  ) {
+  if (activeScope?.clientId != null && activeScope.clientId !== Number(row0.clientId)) {
     return false;
   }
-  if (
-    activeScope?.productId != null &&
-    activeScope.productId !== Number(row0.productId)
-  ) {
+  if (activeScope?.productId != null && activeScope.productId !== Number(row0.productId)) {
     return false;
   }
 
@@ -837,7 +830,6 @@ export const deleteAttachment = async (req: AuthenticatedRequest, res: Response)
   }
 };
 
-
 // POST /api/attachments/:id/download - Download attachment
 export const downloadAttachment = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -1114,5 +1106,3 @@ export const getSupportedFileTypes = (req: AuthenticatedRequest, res: Response) 
     });
   }
 };
-
-

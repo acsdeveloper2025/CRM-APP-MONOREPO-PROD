@@ -86,7 +86,7 @@ export const notificationService = {
     }
     const response = (await apiService.get<AppNotification[]>(
       '/notifications',
-      queryParams,
+      queryParams
     )) as unknown as NotificationListApiResponse;
 
     if (Array.isArray(response.data)) {
@@ -150,7 +150,7 @@ export const notificationService = {
   async getCaseTimeline(caseUuid: string) {
     return apiService.get<CaseNotificationTimelineRow[]>(
       `/cases/${caseUuid}/notifications/timeline`,
-      undefined,
+      undefined
     );
   },
 
@@ -192,7 +192,7 @@ export const notificationService = {
       if (notification.taskId) {
         const response = await apiService.get(
           `/verification-tasks/${notification.taskId}`,
-          undefined,
+          undefined
         );
         return response.success
           ? `/task-management/${notification.taskNumber || notification.taskId}`

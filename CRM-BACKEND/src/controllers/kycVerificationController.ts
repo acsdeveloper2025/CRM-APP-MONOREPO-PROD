@@ -50,12 +50,7 @@ const requireKycRowAccess = async (
     return { ok: false };
   }
   const caseId = lookup.rows[0].caseId;
-  const allowed = await enforceBackendUserCaseScope(
-    userId,
-    req.user,
-    caseId,
-    req.activeScope
-  );
+  const allowed = await enforceBackendUserCaseScope(userId, req.user, caseId, req.activeScope);
   if (!allowed) {
     return { ok: false };
   }
@@ -187,9 +182,7 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
     if (req.user?.id && !isAdmin) {
       const userId = req.user.id;
       if (isExecutionActor) {
-        conditions.push(
-          `(kdv.assigned_to = $${paramIndex} OR vt.assigned_to = $${paramIndex})`
-        );
+        conditions.push(`(kdv.assigned_to = $${paramIndex} OR vt.assigned_to = $${paramIndex})`);
         params.push(userId);
         paramIndex++;
       } else if (isScopedOps) {
@@ -389,8 +382,7 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
         c.startsWith('kdv.case_id') ||
         c.startsWith('(c.customer_name')
     );
-    const scopeConditionCount =
-      userFilterStarted === -1 ? conditions.length : userFilterStarted;
+    const scopeConditionCount = userFilterStarted === -1 ? conditions.length : userFilterStarted;
     // Walk conditions to count placeholders → maps to params length.
     let scopeParamCount = 0;
     for (let i = 0; i < scopeConditionCount; i++) {
@@ -852,9 +844,7 @@ export const exportKYCToExcel = async (req: AuthenticatedRequest, res: Response)
     if (req.user?.id && !isAdmin) {
       const userId = req.user.id;
       if (isExecutionActor) {
-        conditions.push(
-          `(kdv.assigned_to = $${paramIndex} OR vt.assigned_to = $${paramIndex})`
-        );
+        conditions.push(`(kdv.assigned_to = $${paramIndex} OR vt.assigned_to = $${paramIndex})`);
         params.push(userId);
         paramIndex++;
       } else if (isScopedOps) {

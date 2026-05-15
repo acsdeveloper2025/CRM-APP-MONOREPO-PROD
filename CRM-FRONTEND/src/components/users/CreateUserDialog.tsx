@@ -299,7 +299,6 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                   </FormItem>
                 )}
               />
-
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

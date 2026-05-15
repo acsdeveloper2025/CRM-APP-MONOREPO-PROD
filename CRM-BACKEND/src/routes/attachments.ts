@@ -1,5 +1,5 @@
 import express from 'express';
-import { body, query, param } from 'express-validator';
+import { query, param } from 'express-validator';
 import { authenticateToken, authenticateTokenFlexible } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { GeocodeController } from '@/controllers/geocodeController';

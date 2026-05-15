@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
+import { useActiveScope } from '@/hooks/useActiveScope';
 import { apiService as api } from '@/services/api';
 import { VerificationTasksService } from '@/services/verificationTasks';
 import type {
@@ -60,8 +61,7 @@ const normalizeTaskForUi = (task: Record<string, unknown>): VerificationTask => 
     assignedByName: str(task.assignedByName),
     assignedAt: str(task.assignedAt),
     // Task type — preserve all values, not just REVISIT
-    taskType:
-      typeof task.taskType === 'string' ? (task.taskType as 'REVISIT' | null) : null,
+    taskType: typeof task.taskType === 'string' ? (task.taskType as 'REVISIT' | null) : null,
     parentTaskId: str(task.parentTaskId) ?? null,
     // Financial
     rateTypeId: num(task.rateTypeId),
@@ -172,7 +172,15 @@ export const useAllVerificationTasks = (filters: Record<string, unknown> = {}) =
   // Exclude KYC tasks from all field-verification task pages.
   // KYC has its own sidebar section and hooks (useKYCTasks).
   const mergedFilters = { excludeTaskType: 'KYC', ...filters };
-  const queryKey = ['all-verification-tasks', mergedFilters];
+  // Defense-in-depth: include the active scope tuple in the cache key
+  // so a scope flip cannot serve stale data even if queryClient.clear()
+  // is missed somewhere in the chain. Mirrors useCases (P18.A-05).
+  const { selectedClientId, selectedProductId } = useActiveScope();
+  const queryKey = [
+    'all-verification-tasks',
+    mergedFilters,
+    { c: selectedClientId, p: selectedProductId },
+  ];
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey,

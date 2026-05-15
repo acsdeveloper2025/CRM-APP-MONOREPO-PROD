@@ -33,6 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { useAreas } from '@/hooks/useAreas';
 import { usePincodes } from '@/hooks/useLocations';
+import { useScopePageReset } from '@/hooks/useScopePageReset';
 import { GoogleMarkerMap, type GoogleMarkerMapItem } from '@/components/maps/GoogleMarkerMap';
 import {
   fieldMonitoringService,
@@ -323,6 +324,9 @@ function FieldMonitoringRosterView() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+  // Reset roster pagination when scope toggles so a stale page index
+  // from the prior tenant can't strand the user on an empty page.
+  useScopePageReset(() => setPage(1));
   const [activeView, setActiveView] = useState<'table' | 'map'>('table');
   // Set of userIds with an in-flight location-ping request. UI shows
   // the row's Refresh button as a spinning loader while pending; cleared

@@ -1115,12 +1115,19 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const rawId = req.params.id;
     const id = Array.isArray(rawId) ? String(rawId[0]) : String(rawId || '');
+    // Cases are bound to their client/product at creation. Re-tenanting
+    // an existing case has no legitimate business flow and was a
+    // cross-tenant data-integrity exploit (audit P23 commit, 2026-05-15:
+    // a multi-client BACKEND_USER could PUT body={clientId:<other_assigned>}
+    // with no active scope and silently move a case between her assigned
+    // banks). The FE edit form pre-fills clientId/productId and re-sends
+    // them only because the same component renders both create and edit;
+    // they're noise on PUT. Strip them here so even a malicious or
+    // mis-built client cannot mutate the tenancy of an existing case.
     const {
       customerName,
       customerPhone,
       customerCallingCode,
-      clientId,
-      productId,
       verificationTypeId,
       pincode,
       priority,
@@ -1142,8 +1149,6 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
         rateTypeId,
         address,
         customerName,
-        clientId,
-        productId,
       },
     });
 
@@ -1167,16 +1172,7 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
       values.push(customerCallingCode);
       paramIndex++;
     }
-    if (clientId !== undefined) {
-      updateFields.push(`client_id = $${paramIndex}`);
-      values.push(clientId);
-      paramIndex++;
-    }
-    if (productId !== undefined) {
-      updateFields.push(`product_id = $${paramIndex}`);
-      values.push(productId);
-      paramIndex++;
-    }
+    // (clientId / productId intentionally NOT applied — see strip note above.)
     if (verificationTypeId !== undefined) {
       updateFields.push(`verification_type_id = $${paramIndex}`);
       values.push(verificationTypeId);

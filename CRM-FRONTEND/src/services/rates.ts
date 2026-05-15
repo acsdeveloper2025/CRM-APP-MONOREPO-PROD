@@ -46,6 +46,7 @@ export interface RateStats {
   averageAmount: number;
   minAmount: number;
   maxAmount: number;
+  uniqueClients: number;
 }
 
 export class RatesService {
