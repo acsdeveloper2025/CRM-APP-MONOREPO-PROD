@@ -4,7 +4,6 @@ import { attachmentsService } from './attachments';
 import type { Case, CaseListResponse } from '@/types/case';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
 import type {
-  CompleteCaseData,
   CreateCaseWithMultipleTasksPayload,
   CreateCaseWithMultipleTasksResponse,
 } from '@/types/dto/case.dto';

@@ -1,5 +1,5 @@
 import { apiService } from './api';
-import type { ApiResponse, PaginationQuery } from '@/types/api';
+import type { PaginationQuery } from '@/types/api';
 import type { MISFilters, MISDataResponse, ExportFormat } from '@/types/mis';
 // P19/C-6: stripped unused imports — ReportMetaSchema, ReportListSchema,
 // GenericEntityListSchema, GenericObjectSchema, the MISReport /
@@ -77,14 +77,6 @@ export class ReportsService {
       `/reports/mis-dashboard-data?${params.toString()}`
     );
 
-    if (response && typeof response === 'object') {
-      validateResponse(GenericObjectSchema, response, {
-        service: 'reports',
-        endpoint: 'GET /reports/mis-dashboard-data',
-      });
-    }
-
-    // apiService.get already returns response.data, so we return it directly
     return response as unknown as MISDataResponse;
   }
 

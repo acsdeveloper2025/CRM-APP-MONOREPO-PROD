@@ -24,7 +24,6 @@ import {
   RefreshCw,
   Package,
   UserCheck,
-  TrendingUp,
   Download,
 } from 'lucide-react';
 import { VerificationTasksService } from '@/services/verificationTasks';

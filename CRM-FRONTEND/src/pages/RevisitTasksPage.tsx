@@ -21,8 +21,6 @@ import {
 import {
   RefreshCw,
   Copy,
-  TrendingUp,
-  Calendar,
   AlertTriangle,
   Clock,
   Download,

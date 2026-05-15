@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, FileCheck, CheckCircle, XCircle, Layers, TrendingUp } from 'lucide-react';
+import { Plus, FileCheck, CheckCircle, XCircle, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { verificationTypesService } from '@/services/verificationTypes';
