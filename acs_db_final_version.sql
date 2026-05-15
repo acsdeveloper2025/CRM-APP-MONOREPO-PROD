@@ -22935,6 +22935,19 @@ CREATE INDEX idx_cases_customer_name_trgm ON public.cases USING gin (customer_na
 
 
 --
+-- Name: idx_cases_customer_name_btree; Type: INDEX; Schema: public; Owner: -
+-- P25 (2026-05-15): supports the strict-equality dedupe lookup
+-- `customer_name = $1` (criteria input is upper-trimmed in JS before binding).
+-- Partial WHERE NOT NULL because legacy rows may have NULL customer_name.
+-- The GIN trigram idx_cases_customer_name_trgm already exists for ILIKE
+-- pattern searches (used by /api/cases/dedupe/global-search); this btree
+-- is for the exact-equality path used by the case-creation dedupe service.
+--
+
+CREATE INDEX idx_cases_customer_name_btree ON public.cases USING btree (customer_name) WHERE (customer_name IS NOT NULL);
+
+
+--
 -- Name: idx_cases_customer_phone; Type: INDEX; Schema: public; Owner: -
 --
 

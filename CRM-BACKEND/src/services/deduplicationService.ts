@@ -45,33 +45,53 @@ export class DeduplicationService {
    * Search for potential duplicate cases based on provided criteria
    */
   async searchDuplicates(criteria: DeduplicationCriteria): Promise<DeduplicationResult> {
+    const start = Date.now();
     try {
-      logger.info('Starting deduplication search', { criteria });
+      // P25 (2026-05-15): strict exact-equality on PAN / phone / name.
+      // Old behaviour used `customer_name ILIKE '%X%' OR 'X' ILIKE
+      // '%customer_name%'` which matched any substring overlap (entering
+      // "A" returned every case whose name contained the letter A) and
+      // pushed those score-0 rows back to the FE, opening the dedupe
+      // dialog on every case-creation regardless of real matches.
+      // The contract is now: a row is a duplicate only when ONE of PAN /
+      // phone / name is an EXACT match. Returned rows always have
+      // matchScore = 100 and at least one entry in matchType.
+      //
+      // Inputs are normalised in JS so the SQL can hit B-tree indexes
+      // (idx_cases_pan_number, idx_cases_customer_phone,
+      // idx_cases_customer_name_btree). Customer names are stored
+      // UPPERCASE by project convention (verified 94/94 on prod), so
+      // a plain `customer_name = $X` after upper-trimming the input is
+      // sufficient — no functional index needed.
+
+      const normalizedPan = criteria.panNumber?.trim().toUpperCase() || null;
+      const normalizedPhone = criteria.customerPhone?.trim() || null;
+      const normalizedName = criteria.customerName?.trim().toUpperCase() || null;
+
+      logger.info('Starting deduplication search', {
+        criteria,
+        normalizedPan,
+        normalizedPhone,
+        normalizedName,
+      });
 
       const searchConditions: string[] = [];
       const searchParams: (string | number)[] = [];
       let paramIndex = 1;
 
-      // Exact matches for structured data
-      if (criteria.panNumber) {
+      if (normalizedPan) {
         searchConditions.push(`c.pan_number = $${paramIndex}`);
-        searchParams.push(criteria.panNumber.toUpperCase());
+        searchParams.push(normalizedPan);
         paramIndex++;
       }
-
-      if (criteria.customerPhone) {
+      if (normalizedPhone) {
         searchConditions.push(`c.customer_phone = $${paramIndex}`);
-        searchParams.push(criteria.customerPhone);
+        searchParams.push(normalizedPhone);
         paramIndex++;
       }
-
-      // Fuzzy matching for names (using ILIKE for pattern matching)
-      if (criteria.customerName) {
-        searchConditions.push(`
-          (c.customer_name ILIKE '%' || $${paramIndex} || '%'
-           OR $${paramIndex} ILIKE '%' || c.customer_name || '%')
-        `);
-        searchParams.push(criteria.customerName);
+      if (normalizedName) {
+        searchConditions.push(`c.customer_name = $${paramIndex}`);
+        searchParams.push(normalizedName);
         paramIndex++;
       }
 
@@ -111,25 +131,18 @@ export class DeduplicationService {
       const result = await this.db.query(query, searchParams);
 
       const duplicatesFound: DuplicateCase[] = result.rows.map(row => {
+        // Every returned row is guaranteed to be an exact match on at
+        // least one of the three criteria (per the WHERE clause above).
+        // Build matchType from whichever field actually matched.
         const matchTypes: string[] = [];
-        let matchScore = 0;
-
-        // Calculate match types and score
-        if (criteria.panNumber && row.pan_number === criteria.panNumber?.toUpperCase()) {
+        if (normalizedPan && row.pan_number === normalizedPan) {
           matchTypes.push('PAN');
-          matchScore += 100;
         }
-        if (criteria.customerPhone && row.customer_phone === criteria.customerPhone) {
+        if (normalizedPhone && row.customer_phone === normalizedPhone) {
           matchTypes.push('Phone');
-          matchScore += 80;
         }
-        if (criteria.customerName) {
-          // Simple name similarity check
-          const nameMatch = this.calculateNameSimilarity(criteria.customerName, row.customer_name);
-          if (nameMatch > 0.6) {
-            matchTypes.push('Name');
-            matchScore += Math.floor(nameMatch * 60);
-          }
+        if (normalizedName && row.customer_name === normalizedName) {
+          matchTypes.push('Name');
         }
 
         return {
@@ -146,15 +159,13 @@ export class DeduplicationService {
           pincode: row.pincode,
           verificationOutcome: row.verification_outcome,
           matchType: matchTypes,
-          matchScore,
+          matchScore: 100,
         };
       });
 
-      // Sort by match score (highest first)
-      duplicatesFound.sort((a, b) => b.matchScore - a.matchScore);
-
       logger.info('Deduplication search completed', {
         totalMatches: duplicatesFound.length,
+        latencyMs: Date.now() - start,
         criteria,
       });
 
