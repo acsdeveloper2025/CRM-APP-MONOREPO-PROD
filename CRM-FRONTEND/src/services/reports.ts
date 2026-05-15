@@ -1,20 +1,13 @@
 import { apiService } from './api';
-import type {
-  MISReport,
-  TurnaroundTimeReport,
-  CompletionRateReport,
-  ProductivityReport,
-  QualityReport,
-  FinancialReport,
-  GenerateReportData,
-  ReportFilters,
-} from '@/types/reports';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
 import type { MISFilters, MISDataResponse, ExportFormat } from '@/types/mis';
-import type { ScheduledReport, ScheduledReportData } from '@/types/dto/report.dto';
-import { validateResponse } from './schemas/runtime';
-import { ReportMetaSchema, ReportListSchema } from './schemas/notification.schema';
-import { GenericEntityListSchema, GenericObjectSchema } from './schemas/generic.schema';
+// P19/C-6: stripped unused imports — ReportMetaSchema, ReportListSchema,
+// GenericEntityListSchema, GenericObjectSchema, the MISReport /
+// TurnaroundTimeReport / CompletionRateReport / ProductivityReport /
+// QualityReport / FinancialReport / GenerateReportData / ReportFilters
+// types from @/types/reports, ScheduledReport / ScheduledReportData
+// from @/types/dto/report.dto, validateResponse from ./schemas/runtime.
+// All were used only by the dead methods removed below.
 
 export interface ReportQuery extends PaginationQuery {
   reportType?: string;
@@ -24,167 +17,19 @@ export interface ReportQuery extends PaginationQuery {
 }
 
 export class ReportsService {
-  // MIS Reports Management
-  async getMISReports(query: ReportQuery = {}): Promise<ApiResponse<MISReport[]>> {
-    const response = await apiService.get<MISReport[]>('/mis-reports', query);
-    if (response?.success && Array.isArray(response.data)) {
-      validateResponse(ReportListSchema, response.data, {
-        service: 'reports',
-        endpoint: 'GET /mis-reports',
-      });
-    }
-    return response;
-  }
-
-  async getMISReportById(id: string): Promise<ApiResponse<MISReport>> {
-    const response = await apiService.get<MISReport>(`/mis-reports/${id}`);
-    if (response?.success && response.data) {
-      validateResponse(ReportMetaSchema, response.data, {
-        service: 'reports',
-        endpoint: 'GET /mis-reports/:id',
-      });
-    }
-    return response;
-  }
-
-  async generateMISReport(data: GenerateReportData): Promise<ApiResponse<MISReport>> {
-    return apiService.post('/mis-reports/generate', data);
-  }
-
-  async deleteMISReport(id: string): Promise<ApiResponse<void>> {
-    return apiService.delete(`/mis-reports/${id}`);
-  }
-
-  async downloadMISReport(id: string, format: 'PDF' | 'EXCEL' | 'CSV' = 'PDF'): Promise<Blob> {
-    return apiService.getBlob(`/mis-reports/${id}/download`, { format });
-  }
-
-  // Specific Report Types
-  async getTurnaroundTimeReport(
-    filters: ReportFilters = {}
-  ): Promise<ApiResponse<TurnaroundTimeReport>> {
-    const response = await apiService.get<TurnaroundTimeReport>(
-      '/reports/turnaround-time',
-      filters
-    );
-    if (response?.success && response.data && typeof response.data === 'object') {
-      validateResponse(GenericObjectSchema, response.data, {
-        service: 'reports',
-        endpoint: 'GET /reports/turnaround-time',
-      });
-    }
-    return response;
-  }
-
-  async getCompletionRateReport(
-    filters: ReportFilters = {}
-  ): Promise<ApiResponse<CompletionRateReport>> {
-    const response = await apiService.get<CompletionRateReport>(
-      '/reports/completion-rate',
-      filters
-    );
-    if (response?.success && response.data && typeof response.data === 'object') {
-      validateResponse(GenericObjectSchema, response.data, {
-        service: 'reports',
-        endpoint: 'GET /reports/completion-rate',
-      });
-    }
-    return response;
-  }
-
-  async getProductivityReport(
-    filters: ReportFilters = {}
-  ): Promise<ApiResponse<ProductivityReport>> {
-    const response = await apiService.get<ProductivityReport>('/reports/productivity', filters);
-    if (response?.success && response.data && typeof response.data === 'object') {
-      validateResponse(GenericObjectSchema, response.data, {
-        service: 'reports',
-        endpoint: 'GET /reports/productivity',
-      });
-    }
-    return response;
-  }
-
-  async getQualityReport(filters: ReportFilters = {}): Promise<ApiResponse<QualityReport>> {
-    const response = await apiService.get<QualityReport>('/reports/quality', filters);
-    if (response?.success && response.data && typeof response.data === 'object') {
-      validateResponse(GenericObjectSchema, response.data, {
-        service: 'reports',
-        endpoint: 'GET /reports/quality',
-      });
-    }
-    return response;
-  }
-
-  async getFinancialReport(filters: ReportFilters = {}): Promise<ApiResponse<FinancialReport>> {
-    const response = await apiService.get<FinancialReport>('/reports/financial', filters);
-    if (response?.success && response.data && typeof response.data === 'object') {
-      validateResponse(GenericObjectSchema, response.data, {
-        service: 'reports',
-        endpoint: 'GET /reports/financial',
-      });
-    }
-    return response;
-  }
-
-  // Bulk Operations
-  async bulkGenerateReports(
-    reportTypes: string[],
-    filters: ReportFilters
-  ): Promise<ApiResponse<MISReport[]>> {
-    return apiService.post('/mis-reports/bulk-generate', { reportTypes, filters });
-  }
-
-  async bulkDownloadReports(
-    reportIds: string[],
-    format: 'PDF' | 'EXCEL' | 'CSV' = 'PDF'
-  ): Promise<Blob> {
-    const response = await apiService.postRaw<Blob>(
-      `/mis-reports/bulk-download?format=${format}`,
-      { reportIds },
-      {
-        responseType: 'blob',
-      }
-    );
-    return response.data;
-  }
-
-  // Re-routes to the canonical MIS export endpoint. The previous
-  // POST /mis-reports/export had no backend wiring (404).
-  async exportMISReports(
-    _query: ReportQuery = {},
-    format: 'PDF' | 'EXCEL' | 'CSV' = 'EXCEL'
-  ): Promise<Blob> {
-    const exportFormat = format === 'PDF' ? 'EXCEL' : format;
-    return this.exportMISDashboardData({}, exportFormat as ExportFormat);
-  }
-
-  // Scheduled Reports
-  async getScheduledReports(): Promise<ApiResponse<ScheduledReport[]>> {
-    const response = await apiService.get<ScheduledReport[]>('/reports/scheduled');
-    if (response?.success && Array.isArray(response.data)) {
-      validateResponse(GenericEntityListSchema, response.data, {
-        service: 'reports',
-        endpoint: 'GET /reports/scheduled',
-      });
-    }
-    return response;
-  }
-
-  async createScheduledReport(data: ScheduledReportData): Promise<ApiResponse<ScheduledReport>> {
-    return apiService.post('/reports/scheduled', data);
-  }
-
-  async updateScheduledReport(
-    id: string,
-    data: ScheduledReportData
-  ): Promise<ApiResponse<ScheduledReport>> {
-    return apiService.put(`/reports/scheduled/${id}`, data);
-  }
-
-  async deleteScheduledReport(id: string): Promise<ApiResponse<void>> {
-    return apiService.delete(`/reports/scheduled/${id}`);
-  }
+  // P19/C-6: removed dead methods that POSTed/GETd routes the backend
+  // never registered (silent 404s):
+  //   getMISReports, getMISReportById, generateMISReport,
+  //   deleteMISReport, downloadMISReport, exportMISReports,
+  //   bulkGenerateReports, bulkDownloadReports
+  //   getTurnaroundTimeReport, getCompletionRateReport,
+  //   getProductivityReport, getQualityReport, getFinancialReport
+  //   getScheduledReports, createScheduledReport, updateScheduledReport,
+  //   deleteScheduledReport
+  // The associated UI consumers (ReportsPage tabs, MISReportsTable,
+  // GenerateReportDialog, TurnaroundTimeChart, CompletionRateChart)
+  // were removed in the same commit. See audit
+  // project_full_app_audit_2026_05_14.md C-6.
 
   // ===== MIS DASHBOARD APIs =====
 

@@ -178,31 +178,12 @@ export const PendingTasksPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <TrendingUp className="h-8 w-8 text-purple-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Avg Age</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {tasks.length > 0
-                    ? Math.round(
-                        tasks.reduce((acc, t) => {
-                          const created = new Date(t.createdAt);
-                          const now = new Date();
-                          const ageInDays = Math.floor(
-                            (now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24)
-                          );
-                          return acc + ageInDays;
-                        }, 0) / tasks.length
-                      )
-                    : 0}{' '}
-                  days
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* P19.B-09: removed "Avg Age" stat card. It computed off the
+            current paginated array (tasks.length, page-bounded) so the
+            value oscillated as the user paginated and was never the
+            true average across all pending tasks. Add a BE-side
+            avgAgeDays aggregate to the statistics block in
+            verificationTasksController if this number is needed. */}
       </div>
 
       {/* Unified Search & Filter */}

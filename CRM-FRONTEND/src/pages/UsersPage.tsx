@@ -220,6 +220,14 @@ export function UsersPage() {
           active: Number(usersStats.active || 0),
           inactive: Number(usersStats.inactive || 0),
         },
+        // P19.E-3: activities + sessions stats below derive from the
+        // paginated `safeActivities` / `safeSessions` arrays so they
+        // shift as the user paginates the tabs. Until /api/users/stats
+        // exposes aggregate `today` and `active_session` counts, the
+        // displayed numbers are page-bounded approximations — accurate
+        // only when total ≤ pageSize. UI keeps showing them rather
+        // than going blank; consumers should treat as "current page"
+        // counts not "global today/active".
         activities: {
           total: safeActivities.length,
           today: safeActivities.filter((activity) => {

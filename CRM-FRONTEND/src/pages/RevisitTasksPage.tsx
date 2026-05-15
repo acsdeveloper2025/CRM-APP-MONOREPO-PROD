@@ -136,48 +136,16 @@ export const RevisitTasksPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <Calendar className="h-8 w-8 text-purple-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">This Month</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {
-                    tasks.filter((t) => {
-                      if (!t.createdAt) {
-                        return false;
-                      }
-                      const created = new Date(t.createdAt);
-                      const now = new Date();
-                      return (
-                        created.getMonth() === now.getMonth() &&
-                        created.getFullYear() === now.getFullYear()
-                      );
-                    }).length
-                  }
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* P19.B-10: removed "This Month" stat card. Counted from
+            tasks.filter(...) on the paginated array, so the value
+            shifted as the user paginated. Add a BE-side
+            createdThisMonthCount aggregate if needed. */}
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <TrendingUp className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Completion Rate</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {pagination.total > 0
-                    ? Math.round((statistics.completed / pagination.total) * 100)
-                    : 0}
-                  %
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* P19.B-11: removed "Completion Rate" stat card. Numerator
+            (statistics.completed) was a paginated-period aggregate,
+            denominator (pagination.total) was the filtered total —
+            apples vs. oranges; the displayed % was meaningless and
+            flipped when the user changed the status filter. */}
 
         <Card>
           <CardContent className="p-6">
