@@ -3,7 +3,7 @@ import { Bell, RefreshCw, Search, Trash2, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -490,8 +490,10 @@ export function NotificationHistoryPage() {
                     <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
                       {notification.caseNumber && <span>Case: {notification.caseNumber}</span>}
                       {notification.taskNumber && <span>Task: {notification.taskNumber}</span>}
-                      <span>
+                      <span title={new Date(notification.createdAt).toISOString()}>
                         {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                        {' · '}
+                        {format(new Date(notification.createdAt), 'd MMM yyyy, h:mm a')}
                       </span>
                       {notification.deliveryStatus && <span>{notification.deliveryStatus}</span>}
                     </div>

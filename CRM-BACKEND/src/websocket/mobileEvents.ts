@@ -213,11 +213,13 @@ export class MobileWebSocketEvents {
     const notificationId = `case_removed_${caseData.id || caseData.caseId}_${Date.now()}`;
     const timestamp = new Date().toISOString();
 
+    // P24: customer-first title; case # in body for cross-reference.
+    const customer = caseData.customerName || 'Unknown';
     const notificationData = {
       type: 'CASE_REMOVED',
       id: notificationId,
-      title: 'Case Removed',
-      message: `Case ${caseData.caseId} has been removed from your assignment`,
+      title: `Removed — ${customer}`,
+      message: `Case #${caseData.caseId} removed from your assignment`,
       caseId: caseData.id,
       caseNumber: caseData.caseId,
       customerName: caseData.customerName,
@@ -253,11 +255,14 @@ export class MobileWebSocketEvents {
     const notificationId = `case_completed_${caseData.id || caseData.caseId}_${Date.now()}`;
     const timestamp = new Date().toISOString();
 
+    // P24: customer-first title; outcome suffix when known.
+    const customer = caseData.customerName || 'Unknown';
+    const outcomeSuffix = caseData.outcome ? ` — ${caseData.outcome}` : '';
     const notificationData = {
       type: 'CASE_COMPLETED',
       id: notificationId,
-      title: 'Case Completed',
-      message: `Case ${caseData.caseNumber} has been completed by ${fieldUserData.name}`,
+      title: `Verification Completed — ${customer}`,
+      message: `Case #${caseData.caseNumber} completed by ${fieldUserData.name}${outcomeSuffix}`,
       caseId: caseData.id,
       caseNumber: caseData.caseNumber,
       customerName: caseData.customerName,
@@ -302,11 +307,16 @@ export class MobileWebSocketEvents {
     const notificationId = `case_revoked_${caseData.id || caseData.caseId}_${Date.now()}`;
     const timestamp = new Date().toISOString();
 
+    // P24: customer-first title; reason suffix when supplied.
+    const customer = caseData.customerName || 'Unknown';
+    const reasonSuffix = caseData.revocationReason
+      ? ` — Reason: ${caseData.revocationReason}`
+      : '';
     const notificationData = {
       type: 'CASE_REVOKED',
       id: notificationId,
-      title: 'Case Revoked',
-      message: `Case ${caseData.caseNumber} has been revoked by ${fieldUserData.name}`,
+      title: `Case Revoked — ${customer}`,
+      message: `Case #${caseData.caseNumber} revoked by ${fieldUserData.name}${reasonSuffix}`,
       caseId: caseData.id,
       caseNumber: caseData.caseNumber,
       customerName: caseData.customerName,

@@ -209,19 +209,22 @@ const handleCaseAssignmentNotification = async (job: Job<NotificationJobData>) =
     assignmentType: data.assignmentType,
   });
   try {
-    // Use task number if available, otherwise fall back to case number
-    const displayNumber = data.taskNumber || data.caseNumber;
-    const displayType = data.taskNumber ? 'task' : 'case';
+    // P24: customer name first in title (scannable for reviewers); both
+    // task and case identifiers preserved in body so users can locate
+    // either via the inbox row OR a dashboard search.
+    const identifierLine = data.taskNumber
+      ? `Task ${data.taskNumber} (Case #${data.caseNumber})`
+      : `Case #${data.caseNumber}`;
+    const titleVerb =
+      data.assignmentType === 'assignment'
+        ? `New ${data.taskNumber ? 'Task' : 'Case'}`
+        : `${data.taskNumber ? 'Task' : 'Case'} Reassigned`;
+    const messageVerb =
+      data.assignmentType === 'assignment' ? 'assigned to you' : 'reassigned to you';
     const notification: NotificationData = {
       userId: data.userId,
-      title:
-        data.assignmentType === 'assignment'
-          ? `New ${displayType === 'task' ? 'Task' : 'Case'} Assigned`
-          : `${displayType === 'task' ? 'Task' : 'Case'} Reassigned`,
-      message:
-        data.assignmentType === 'assignment'
-          ? `You have been assigned ${displayType} ${displayNumber} for ${data.customerName}`
-          : `${displayType === 'task' ? 'Task' : 'Case'} ${displayNumber} has been reassigned to you`,
+      title: `${titleVerb} — ${data.customerName}`,
+      message: `${identifierLine} ${messageVerb}`,
       type: data.assignmentType === 'assignment' ? 'CASE_ASSIGNED' : 'CASE_REASSIGNED',
       caseId: data.caseId,
       caseNumber: data.caseNumber,
@@ -267,11 +270,17 @@ const handleCaseCompletionNotification = async (job: Job<NotificationJobData>) =
     backendUserCount: data.backendUserIds.length,
   });
   try {
+    // P24: customer-first title, identifier+actor in body, outcome at the
+    // end of the body if known (Positive/Negative/NSP/Refer). The
+    // outcome is the most-scanned field for backend reviewers and lets
+    // them triage at a glance.
+    const identifierLine = data.taskNumber
+      ? `Task ${data.taskNumber} (Case #${data.caseNumber})`
+      : `Case #${data.caseNumber}`;
+    const outcomeSuffix = data.outcome ? ` — ${data.outcome}` : '';
     const notificationTemplate: Omit<NotificationData, 'userId'> = {
-      title: 'Task Completed',
-      message: data.taskNumber
-        ? `Task ${data.taskNumber} for case ${data.caseNumber} (${data.customerName}) completed by ${data.fieldUserName}`
-        : `Task for case ${data.caseNumber} has been completed by ${data.fieldUserName}`,
+      title: `Verification Completed — ${data.customerName}`,
+      message: `${identifierLine} completed by ${data.fieldUserName}${outcomeSuffix}`,
       type: 'TASK_COMPLETED',
       caseId: data.caseId,
       caseNumber: data.caseNumber,
@@ -321,9 +330,12 @@ const handleCaseRevocationNotification = async (job: Job<NotificationJobData>) =
     backendUserCount: data.backendUserIds.length,
   });
   try {
+    // P24: customer-first title; reason appended to body when supplied
+    // (reviewers care most about WHY the field agent revoked).
+    const reasonSuffix = data.revocationReason ? ` — Reason: ${data.revocationReason}` : '';
     const notificationTemplate: Omit<NotificationData, 'userId'> = {
-      title: 'Case Revoked',
-      message: `Case ${data.caseNumber} has been revoked by ${data.fieldUserName}`,
+      title: `Case Revoked — ${data.customerName}`,
+      message: `Case #${data.caseNumber} revoked by ${data.fieldUserName}${reasonSuffix}`,
       type: 'CASE_REVOKED',
       caseId: data.caseId,
       caseNumber: data.caseNumber,
@@ -367,9 +379,11 @@ const handleTaskRevocationNotification = async (job: Job<NotificationJobData>) =
     backendUserCount: data.backendUserIds.length,
   });
   try {
+    // P24: customer-first title; reason appended to body when supplied.
+    const reasonSuffix = data.revocationReason ? ` — Reason: ${data.revocationReason}` : '';
     const notificationTemplate: Omit<NotificationData, 'userId'> = {
-      title: 'Task Revoked',
-      message: `Task ${data.taskNumber} (Case ${data.caseNumber}) has been revoked by ${data.fieldUserName}`,
+      title: `Task Revoked — ${data.customerName}`,
+      message: `Task ${data.taskNumber} (Case #${data.caseNumber}) revoked by ${data.fieldUserName}${reasonSuffix}`,
       type: 'TASK_REVOKED',
       caseId: data.caseId,
       caseNumber: data.caseNumber,
