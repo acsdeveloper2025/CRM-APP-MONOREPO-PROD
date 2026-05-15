@@ -309,9 +309,7 @@ export class MobileWebSocketEvents {
 
     // P24: customer-first title; reason suffix when supplied.
     const customer = caseData.customerName || 'Unknown';
-    const reasonSuffix = caseData.revocationReason
-      ? ` — Reason: ${caseData.revocationReason}`
-      : '';
+    const reasonSuffix = caseData.revocationReason ? ` — Reason: ${caseData.revocationReason}` : '';
     const notificationData = {
       type: 'CASE_REVOKED',
       id: notificationId,
