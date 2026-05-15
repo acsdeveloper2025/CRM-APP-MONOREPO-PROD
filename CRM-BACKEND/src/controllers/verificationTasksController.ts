@@ -396,7 +396,11 @@ export class VerificationTasksController {
           message: `An active revisit for this verification type already exists (${sibling.task_number} — ${sibling.status}). Complete or revoke it before creating another revisit.`,
           error: {
             code: 'REVISIT_BLOCKED_BY_ACTIVE_SIBLING',
-            details: { siblingTaskId: sibling.id, siblingTaskNumber: sibling.task_number, siblingStatus: sibling.status },
+            details: {
+              siblingTaskId: sibling.id,
+              siblingTaskNumber: sibling.task_number,
+              siblingStatus: sibling.status,
+            },
           },
         });
         return;
