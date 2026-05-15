@@ -226,18 +226,23 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
     params.push(limit, offset);
     const result = await dbQuery(query, params);
 
-    // Get summary statistics (using snakeCase)
+    // Summary stats must keep the same JOIN context as the data query —
+    // scope conditions reference c.* / vt_scope.case_id = c.id, so the
+    // FROM clause has to include cases. Stripping `tfs.` from the WHERE
+    // and dropping the JOIN was the old bug ("missing FROM-clause entry
+    // for table c").
     const summaryQuery = `
       SELECT
         COUNT(*) as total_submissions,
-        COUNT(CASE WHEN validation_status = 'VALID' THEN 1 END) as valid_submissions,
-        COUNT(CASE WHEN validation_status = 'PENDING' THEN 1 END) as pending_submissions,
-        COUNT(CASE WHEN validation_status = 'INVALID' THEN 1 END) as invalid_submissions,
-        COUNT(CASE WHEN form_type = 'RESIDENCE' THEN 1 END) as residence_forms,
-        COUNT(CASE WHEN form_type = 'OFFICE' THEN 1 END) as office_forms,
-        COUNT(CASE WHEN form_type = 'BUSINESS' THEN 1 END) as business_forms
-      FROM task_form_submissions
-      ${whereClause.replace(/tfs\./g, '')}
+        COUNT(CASE WHEN tfs.validation_status = 'VALID' THEN 1 END) as valid_submissions,
+        COUNT(CASE WHEN tfs.validation_status = 'PENDING' THEN 1 END) as pending_submissions,
+        COUNT(CASE WHEN tfs.validation_status = 'INVALID' THEN 1 END) as invalid_submissions,
+        COUNT(CASE WHEN tfs.form_type = 'RESIDENCE' THEN 1 END) as residence_forms,
+        COUNT(CASE WHEN tfs.form_type = 'OFFICE' THEN 1 END) as office_forms,
+        COUNT(CASE WHEN tfs.form_type = 'BUSINESS' THEN 1 END) as business_forms
+      FROM task_form_submissions tfs
+      LEFT JOIN cases c ON tfs.case_id = c.id
+      ${whereClause}
     `;
 
     const summaryParams = params.slice(0, -2); // Remove limit and offset

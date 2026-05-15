@@ -365,8 +365,8 @@ export const getFieldUserCommissionAssignments = async (
       scope,
       conditions: scopeConditions,
       params: queryParams as unknown as Array<string | number | boolean | string[] | number[]>,
-      userExpr: 'fuca.userId',
-      clientExpr: 'fuca.clientId',
+      userExpr: 'fuca.user_id',
+      clientExpr: 'fuca.client_id',
     });
     whereClause = scopeConditions.join(' AND ');
     paramCount = queryParams.length;
@@ -798,9 +798,9 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
       scope,
       conditions: scopeConditions,
       params: queryParams as unknown as Array<string | number | boolean | string[] | number[]>,
-      userExpr: 'cc.userId',
-      clientExpr: 'cc.clientId',
-      productExpr: 'cases.productId',
+      userExpr: 'cc.user_id',
+      clientExpr: 'cc.client_id',
+      productExpr: 'cases.product_id',
     });
     whereClause = scopeConditions.join(' AND ');
     paramCount = queryParams.length;
@@ -1091,9 +1091,9 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       scope,
       conditions: calcConditions,
       params: calcParams,
-      userExpr: 'cc.userId',
-      clientExpr: 'cc.clientId',
-      productExpr: 'cases.productId',
+      userExpr: 'cc.user_id',
+      clientExpr: 'cc.client_id',
+      productExpr: 'cases.product_id',
     });
     const calcWhere = calcConditions.length ? `WHERE ${calcConditions.join(' AND ')}` : '';
 
@@ -1121,8 +1121,8 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       scope,
       conditions: assignmentConditions,
       params: assignmentParams,
-      userExpr: 'userId',
-      clientExpr: 'clientId',
+      userExpr: 'user_id',
+      clientExpr: 'client_id',
     });
     const assignmentWhere = assignmentConditions.length
       ? `AND ${assignmentConditions.join(' AND ')}`
