@@ -18,10 +18,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CheckCircle, RefreshCw, TrendingUp, Calendar, Clock, Award, Download } from 'lucide-react';
-import { VerificationTasksService } from '@/services/verificationTasks';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { useNavigate } from 'react-router-dom';
+import { useRevisitTaskAction } from '@/hooks/useRevisitTaskAction';
 
 interface CompletedTaskFilters {
   priority?: string;
@@ -101,30 +101,11 @@ export const CompletedTasksPage: React.FC = () => {
     }
   };
 
-  const handleRevisitTask = async (taskId: string) => {
-    try {
-      await VerificationTasksService.revisitTask(taskId);
+  const { requestRevisit, dialog: revisitDialog } = useRevisitTaskAction({ navigateAfter: true });
 
-      // Show success notification
-      toast.success(
-        'Revisit task created successfully! The task has been moved to the Revisit tab.',
-        {
-          duration: 5000,
-          // icon: '✅', // Removed icon as Sonner handles success icons well
-        }
-      );
-
-      // Refresh tasks to remove the completed task from the list
-      refreshTasks();
-
-      // Optionally navigate to revisit tasks page after a short delay
-      setTimeout(() => {
-        navigate('/task-management/revisit-tasks');
-      }, 1500);
-    } catch (error) {
-      logger.error('Error creating revisit task:', error);
-      toast.error('Failed to create revisit task. Please try again.');
-    }
+  const handleRevisitTask = (taskId: string) => {
+    const task = tasks.find((t) => t.id === taskId);
+    requestRevisit({ id: taskId, taskNumber: task?.taskNumber });
   };
 
   // Count active filters
@@ -337,6 +318,7 @@ export const CompletedTasksPage: React.FC = () => {
           </CardContent>
         </Card>
       )}
+      {revisitDialog}
     </div>
   );
 };

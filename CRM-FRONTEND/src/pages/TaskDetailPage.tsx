@@ -14,6 +14,7 @@ import {
   History,
   XCircle,
   Edit,
+  RefreshCw,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -21,6 +22,7 @@ import { apiService } from '@/services/api';
 import { LoadingState } from '@/components/ui/loading';
 import { EditTaskDetailsModal } from '@/components/verification-tasks/EditTaskDetailsModal';
 import { KYCTaskVerificationSection } from '@/components/kyc/KYCTaskVerificationSection';
+import { useRevisitTaskAction } from '@/hooks/useRevisitTaskAction';
 import { logger } from '@/utils/logger';
 
 interface TaskDetail {
@@ -73,6 +75,9 @@ export const TaskDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const { requestRevisit, dialog: revisitDialog } = useRevisitTaskAction({
+    navigateAfter: true,
+  });
 
   useEffect(() => {
     if (taskId) {
@@ -257,6 +262,16 @@ export const TaskDetailPage: React.FC = () => {
             <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit Task
+            </Button>
+          )}
+          {task.status === 'COMPLETED' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => requestRevisit({ id: task.id, taskNumber: task.taskNumber })}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Revisit Task
             </Button>
           )}
           {task.taskType && (
@@ -557,6 +572,7 @@ export const TaskDetailPage: React.FC = () => {
           )}
         </div>
       </div>
+      {revisitDialog}
     </div>
   );
 };

@@ -14,6 +14,7 @@ import { BulkActionsToolbar } from './BulkActionsToolbar';
 import { Plus, Filter, RefreshCw, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useRevisitTaskAction } from '@/hooks/useRevisitTaskAction';
 
 interface VerificationTasksManagerProps {
   caseId: string;
@@ -125,6 +126,15 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
       navigate(`/task-management/${taskId}`);
     },
     [navigate]
+  );
+
+  const { requestRevisit, dialog: revisitDialog } = useRevisitTaskAction();
+  const handleRevisitTask = useCallback(
+    (taskId: string) => {
+      const task = tasks.find((t) => t.id === taskId);
+      requestRevisit({ id: taskId, taskNumber: task?.taskNumber });
+    },
+    [tasks, requestRevisit]
   );
 
   const handleRefresh = useCallback(() => {
@@ -284,9 +294,12 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
             onStartTask={handleStartTask}
             onCancelTask={handleCancelTask}
             onViewTask={handleViewTask}
+            onRevisitTask={handleRevisitTask}
           />
         </CardContent>
       </Card>
+
+      {revisitDialog}
 
       {/* Modals */}
       {showCreateModal && (

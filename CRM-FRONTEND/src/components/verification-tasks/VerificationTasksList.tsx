@@ -37,6 +37,7 @@ interface VerificationTasksListProps {
   onStartTask?: (taskId: string) => void;
   onCancelTask?: (taskId: string) => void;
   onViewTask?: (taskId: string) => void;
+  onRevisitTask?: (taskId: string) => void;
 }
 
 export const VerificationTasksList: React.FC<VerificationTasksListProps> = React.memo(
@@ -52,6 +53,7 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
     onStartTask,
     onCancelTask,
     onViewTask,
+    onRevisitTask,
   }) => {
     // Status icon helper
     const getStatusIcon = (status: TaskStatus) => {
@@ -280,6 +282,13 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
                                 Revoke Task
                               </DropdownMenuItem>
                             )}
+
+                          {task.status === 'COMPLETED' && onRevisitTask && (
+                            <DropdownMenuItem onClick={() => onRevisitTask(task.id)}>
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              Revisit Task
+                            </DropdownMenuItem>
+                          )}
                         </>
                       )}
                     </DropdownMenuContent>
