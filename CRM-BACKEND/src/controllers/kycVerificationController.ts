@@ -438,7 +438,7 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
 // Get single KYC task detail
 export const getKYCTaskDetail = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { taskId } = req.params;
+    const taskId = String(req.params.taskId || '');
 
     // P15.M-6 — row-level scope check. Without this, any user with
     // kyc.view permission could read any KYC row globally by guessing
@@ -491,7 +491,7 @@ export const getKYCTaskDetail = async (req: AuthenticatedRequest, res: Response)
 // outcome lands in `final_status` (mirror of verification_reports.final_status).
 export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { taskId } = req.params;
+    const taskId = String(req.params.taskId || '');
     // Accept `finalStatus` (canonical) and fall back to legacy `status` for
     // older callers — the legacy values PASS/FAIL/REFER are mapped onto the
     // canonical enum so existing clients don't 400 mid-deploy.
@@ -632,7 +632,7 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
 // Assign KYC task to verifier
 export const assignKYCTask = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { taskId } = req.params;
+    const taskId = String(req.params.taskId || '');
     const { assignedTo } = req.body;
     const userId = req.user!.id;
 
@@ -680,7 +680,7 @@ export const assignKYCTask = async (req: AuthenticatedRequest, res: Response) =>
 // production S3 cutover, when document_file_path is dropped.
 export const uploadKYCDocument = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { taskId } = req.params;
+    const taskId = String(req.params.taskId || '');
     const file = req.file;
 
     if (!file) {
