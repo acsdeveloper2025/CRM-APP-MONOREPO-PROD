@@ -374,6 +374,34 @@ export class VerificationTasksController {
         return;
       }
 
+      // Bug 144 (2026-05-15): parent is COMPLETED but the case may already
+      // have an ACTIVE sibling for the same verification type (e.g. a prior
+      // revisit child still PENDING/ASSIGNED/IN_PROGRESS). Inserting another
+      // would 23505 against verification_tasks_active_unique_idx. Pre-check
+      // so we return a clear 409 instead of an opaque 500.
+      const activeSiblingResult = await client.query(
+        `SELECT id, task_number, status
+           FROM verification_tasks
+          WHERE case_id = $1
+            AND verification_type_id = $2
+            AND status IN ('PENDING','ASSIGNED','IN_PROGRESS')
+          LIMIT 1`,
+        [originalTask.caseId, originalTask.verificationTypeId]
+      );
+      if (activeSiblingResult.rows.length > 0) {
+        const sibling = activeSiblingResult.rows[0];
+        await client.query('ROLLBACK');
+        res.status(409).json({
+          success: false,
+          message: `An active revisit for this verification type already exists (${sibling.task_number} — ${sibling.status}). Complete or revoke it before creating another revisit.`,
+          error: {
+            code: 'REVISIT_BLOCKED_BY_ACTIVE_SIBLING',
+            details: { siblingTaskId: sibling.id, siblingTaskNumber: sibling.task_number, siblingStatus: sibling.status },
+          },
+        });
+        return;
+      }
+
       const caseScopeResult = await client.query(
         'SELECT client_id, product_id FROM cases WHERE id = $1',
         [originalTask.caseId]

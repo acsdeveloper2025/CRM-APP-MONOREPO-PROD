@@ -30,6 +30,12 @@ const mapRevisitError = (err: unknown): string => {
     if (code === 'REVISIT_REQUIRES_COMPLETED_PARENT') {
       return 'Cannot create a revisit — the task must be COMPLETED first.';
     }
+    if (code === 'REVISIT_BLOCKED_BY_ACTIVE_SIBLING') {
+      return (
+        body?.message ||
+        'A revisit already exists for this case + verification type. Complete or revoke it before creating another.'
+      );
+    }
     if (code === 'CASE_NOT_IN_ACTIVE_SCOPE') {
       return 'This case is outside your active scope. Switch scope and try again.';
     }
