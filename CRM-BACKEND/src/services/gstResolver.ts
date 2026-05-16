@@ -71,7 +71,11 @@ export class GstConfigError extends Error {
   }
 }
 
-const round2 = (n: number): number => Math.round(n * 100) / 100;
+// NEW-MED-1 (AUDIT 2026-05-16): FP-safe rounding. Plain Math.round(n*100)/100
+// mis-rounds .xx5 boundaries (e.g. 1.005 → 1.00 instead of 1.01) due to
+// IEEE754 representation. EPSILON nudge fixes this for CGST/SGST/IGST splits
+// which need deterministic precision per GST CGST Rule 46.
+const round2 = (n: number): number => Math.round((n + Number.EPSILON) * 100) / 100;
 
 const GST_STATE_CODE_RE = /^[0-9]{2}$/;
 

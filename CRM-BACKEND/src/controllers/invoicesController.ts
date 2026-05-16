@@ -16,7 +16,12 @@ import { resolveInvoiceGst, GstConfigError } from '@/services/gstResolver';
 import { createAuditLog } from '@/utils/auditLogger';
 
 // Single 2dp rounder shared with gstResolver for arithmetic parity.
-const round2 = (n: number): number => Math.round(n * 100) / 100;
+// NEW-MED-1 (AUDIT 2026-05-16): Math.round(n*100)/100 is FP-unsafe — e.g.
+// 1.005*100 evaluates to 100.49999999999999, rounding to 100 instead of 101.
+// EPSILON nudge pushes the FP representation past the boundary so Math.round
+// picks the intended side. Off-by-0.01 invoice lines accumulate to CA
+// reconciliation tickets over time; this is GST-relevant precision.
+const round2 = (n: number): number => Math.round((n + Number.EPSILON) * 100) / 100;
 
 interface InvoiceItem {
   id: string;
