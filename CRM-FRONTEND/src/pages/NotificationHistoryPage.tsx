@@ -23,9 +23,7 @@ const PAGE_SIZE = 20;
  */
 const getNotificationCardClass = (type: string | undefined, isRead: boolean): string => {
   if (type === 'TASK_REVOKED' || type === 'CASE_REVOKED') {
-    return isRead
-      ? 'border-red-200 bg-red-50/40'
-      : 'border-red-300 bg-red-50 ring-1 ring-red-200';
+    return isRead ? 'border-red-200 bg-red-50/40' : 'border-red-300 bg-red-50 ring-1 ring-red-200';
   }
   if (type === 'TASK_COMPLETED' || type === 'CASE_COMPLETED') {
     return isRead
@@ -483,7 +481,7 @@ export function NotificationHistoryPage() {
                     onClick={() => void handleOpenNotification(notification)}
                     className={`w-full rounded-xl border p-4 text-left transition ${getNotificationCardClass(
                       notification.type,
-                      notification.isRead,
+                      notification.isRead
                     )}`}
                   >
                     <div className="mb-2 flex items-start justify-between gap-3">

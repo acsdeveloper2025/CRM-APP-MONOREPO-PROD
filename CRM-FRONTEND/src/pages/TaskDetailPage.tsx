@@ -460,16 +460,12 @@ export const TaskDetailPage: React.FC = () => {
           {task.status === 'REVOKED' && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base text-red-700">
-                  Revocation Details
-                </CardTitle>
+                <CardTitle className="text-base text-red-700">Revocation Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Reason</p>
-                  <p className="text-sm mt-1 whitespace-pre-wrap">
-                    {task.revocationReason || '—'}
-                  </p>
+                  <p className="text-sm mt-1 whitespace-pre-wrap">{task.revocationReason || '—'}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">Revoked By</p>
@@ -491,9 +487,7 @@ export const TaskDetailPage: React.FC = () => {
           {task.taskType === 'REVISIT' && task.parentTaskNumber && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base text-purple-700">
-                  Revisit Info
-                </CardTitle>
+                <CardTitle className="text-base text-purple-700">Revisit Info</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
@@ -501,9 +495,7 @@ export const TaskDetailPage: React.FC = () => {
                   {task.parentTaskId ? (
                     <button
                       type="button"
-                      onClick={() =>
-                        navigate(`/task-management/${task.parentTaskNumber}`)
-                      }
+                      onClick={() => navigate(`/task-management/${task.parentTaskNumber}`)}
                       className="text-sm mt-1 text-purple-700 underline hover:text-purple-900"
                     >
                       {task.parentTaskNumber}
@@ -514,20 +506,15 @@ export const TaskDetailPage: React.FC = () => {
                 </div>
                 {task.parentCompletedAt && (
                   <div>
-                    <p className="text-sm font-medium text-gray-600">
-                      Parent Completed
-                    </p>
+                    <p className="text-sm font-medium text-gray-600">Parent Completed</p>
                     <p className="text-sm mt-1">
-                      {format(
-                        new Date(task.parentCompletedAt),
-                        'dd MMM yyyy, HH:mm',
-                      )}
+                      {format(new Date(task.parentCompletedAt), 'dd MMM yyyy, HH:mm')}
                     </p>
                   </div>
                 )}
                 <p className="text-xs text-gray-500">
-                  Created as a re-verification of the parent task. Billed at
-                  the same rate as the original.
+                  Created as a re-verification of the parent task. Billed at the same rate as the
+                  original.
                 </p>
               </CardContent>
             </Card>

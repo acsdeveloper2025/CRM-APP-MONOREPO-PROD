@@ -114,10 +114,7 @@ import { errorMessage } from '@/utils/errorMessage';
  * sentinel to a 409 response which the mobile uploader treats as
  * already-done success (no retry storm).
  */
-async function completeTaskOrThrowIfRevoked(
-  client: PoolClient,
-  taskId: string
-): Promise<void> {
+async function completeTaskOrThrowIfRevoked(client: PoolClient, taskId: string): Promise<void> {
   const result = await client.query(
     `UPDATE verification_tasks
         SET status = 'COMPLETED',

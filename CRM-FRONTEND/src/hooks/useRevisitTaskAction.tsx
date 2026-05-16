@@ -138,10 +138,9 @@ export const useRevisitTaskAction = (options: UseRevisitTaskActionOptions = {}) 
           <AlertDialogTitle>Create Revisit Task?</AlertDialogTitle>
           <AlertDialogDescription>
             This creates a NEW verification task linked to{' '}
-            <strong>{pendingTask?.label || 'this task'}</strong>. The original task stays
-            COMPLETED unchanged. The revisit will be billed at the same rate as the parent
-            and will appear in the Revisit Tasks page where you can assign it to a field
-            agent.
+            <strong>{pendingTask?.label || 'this task'}</strong>. The original task stays COMPLETED
+            unchanged. The revisit will be billed at the same rate as the parent and will appear in
+            the Revisit Tasks page where you can assign it to a field agent.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

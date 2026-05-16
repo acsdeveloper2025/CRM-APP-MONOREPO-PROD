@@ -18,7 +18,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RefreshCw, AlertTriangle, Clock, Download, UserCheck, Play, CheckCircle } from 'lucide-react';
+import {
+  RefreshCw,
+  AlertTriangle,
+  Clock,
+  Download,
+  UserCheck,
+  Play,
+  CheckCircle,
+} from 'lucide-react';
 import { VerificationTasksService } from '@/services/verificationTasks';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -126,9 +134,7 @@ export const RevisitTasksPage: React.FC = () => {
               <Clock className="h-8 w-8 text-orange-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">Pending Assignment</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {statistics.pending}
-                </p>
+                <p className="text-2xl font-bold text-foreground">{statistics.pending}</p>
               </div>
             </div>
           </CardContent>
@@ -140,9 +146,7 @@ export const RevisitTasksPage: React.FC = () => {
               <UserCheck className="h-8 w-8 text-blue-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">Assigned</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {statistics.assigned}
-                </p>
+                <p className="text-2xl font-bold text-foreground">{statistics.assigned}</p>
               </div>
             </div>
           </CardContent>
@@ -154,9 +158,7 @@ export const RevisitTasksPage: React.FC = () => {
               <Play className="h-8 w-8 text-purple-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">In Progress</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {statistics.inProgress}
-                </p>
+                <p className="text-2xl font-bold text-foreground">{statistics.inProgress}</p>
               </div>
             </div>
           </CardContent>
@@ -168,9 +170,7 @@ export const RevisitTasksPage: React.FC = () => {
               <CheckCircle className="h-8 w-8 text-green-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">Completed</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {statistics.completed}
-                </p>
+                <p className="text-2xl font-bold text-foreground">{statistics.completed}</p>
               </div>
             </div>
           </CardContent>

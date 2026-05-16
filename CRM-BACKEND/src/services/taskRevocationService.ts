@@ -38,10 +38,18 @@ export class TaskRevocationService {
       return 'FE';
     }
     const role = user?.primaryRole?.toUpperCase() || '';
-    if (role === 'SUPER_ADMIN') return 'SUPER_ADMIN';
-    if (role === 'MANAGER') return 'MANAGER';
-    if (role === 'TEAM_LEADER') return 'TEAM_LEADER';
-    if (role === 'BACKEND_USER') return 'BACKEND_USER';
+    if (role === 'SUPER_ADMIN') {
+      return 'SUPER_ADMIN';
+    }
+    if (role === 'MANAGER') {
+      return 'MANAGER';
+    }
+    if (role === 'TEAM_LEADER') {
+      return 'TEAM_LEADER';
+    }
+    if (role === 'BACKEND_USER') {
+      return 'BACKEND_USER';
+    }
     return 'ADMIN'; // generic fallback for unknown non-FE actor
   }
 

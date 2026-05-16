@@ -787,9 +787,7 @@ export class MobileCaseController {
 
       // Emit WebSocket events to notify frontend about case status change
       try {
-        const { emitCaseStatusChanged, emitCaseUpdate, getSocketIO } = await import(
-          '../websocket/server'
-        );
+        const { emitCaseStatusChanged } = await import('../websocket/server');
         const username = req.user?.id ? `User ${req.user.id}` : 'Mobile User';
 
         // Emit case status change notification
@@ -1858,11 +1856,7 @@ export class MobileCaseController {
       // C-9: ownership check — a field execution actor may only revoke
       // tasks currently assigned to themselves. Admin / team-lead actors
       // (non-execution) can revoke any task they have permission to see.
-      if (
-        isExecutionActor &&
-        taskData.assigned_to &&
-        taskData.assigned_to !== userId
-      ) {
+      if (isExecutionActor && taskData.assigned_to && taskData.assigned_to !== userId) {
         return res.status(403).json({
           success: false,
           message: 'You can only revoke tasks assigned to you.',

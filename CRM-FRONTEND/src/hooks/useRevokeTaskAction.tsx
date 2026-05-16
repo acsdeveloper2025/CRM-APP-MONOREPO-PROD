@@ -132,8 +132,7 @@ export const useRevokeTaskAction = () => {
     if (!pendingTask) {
       return;
     }
-    const reason =
-      selectedReason === 'Other' ? otherReason.trim() : selectedReason;
+    const reason = selectedReason === 'Other' ? otherReason.trim() : selectedReason;
     if (!reason) {
       toast.error('Please pick or enter a revoke reason.');
       return;
@@ -172,10 +171,9 @@ export const useRevokeTaskAction = () => {
         <DialogHeader>
           <DialogTitle>Revoke Task?</DialogTitle>
           <DialogDescription>
-            This sends <strong>{pendingTask?.label || 'this task'}</strong> back
-            to the Revoke Tasks queue. The field agent&apos;s assignment is cleared.
-            A backend user must review, optionally edit the task, and reassign
-            it. Revoked tasks are NOT billed.
+            This sends <strong>{pendingTask?.label || 'this task'}</strong> back to the Revoke Tasks
+            queue. The field agent&apos;s assignment is cleared. A backend user must review,
+            optionally edit the task, and reassign it. Revoked tasks are NOT billed.
           </DialogDescription>
         </DialogHeader>
 
@@ -215,11 +213,7 @@ export const useRevokeTaskAction = () => {
           <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          <Button
-            variant="destructive"
-            onClick={handleConfirm}
-            disabled={submitDisabled}
-          >
+          <Button variant="destructive" onClick={handleConfirm} disabled={submitDisabled}>
             {mutation.isPending ? 'Revoking…' : 'Revoke Task'}
           </Button>
         </DialogFooter>
