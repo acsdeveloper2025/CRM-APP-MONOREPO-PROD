@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
+import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
 import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { useScopePageReset } from '@/hooks/useScopePageReset';
@@ -22,7 +23,6 @@ import { VerificationTasksService } from '@/services/verificationTasks';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { useNavigate } from 'react-router-dom';
-import { VerificationTask } from '@/types/verificationTask';
 
 interface RevokedTaskFilters {
   [key: string]: unknown;
@@ -56,6 +56,8 @@ export const RevokedTasksPage: React.FC = () => {
     status: 'REVOKED',
   });
 
+  const [reassignTaskId, setReassignTaskId] = useState<string | null>(null);
+
   // P18.M-04: reset to page 1 on scope toggle.
   useScopePageReset(() => setPaginationState((prev) => ({ ...prev, page: 1 })));
 
@@ -72,12 +74,15 @@ export const RevokedTasksPage: React.FC = () => {
     (key) => activeFilters[key as keyof RevokedTaskFilters] !== undefined
   ).length;
 
+  // B-153 (2026-05-16): card metrics from BE statistics aggregate scoped to
+  // status=REVOKED. Replaced the previous broken "Unique Cases" + "Field
+  // Agents" cards (page-paginated array counts; field-agent card was 0
+  // because revoke nulls assigned_to). Standard 5-card layout per design.
   const totalRevoked = statistics?.revoked || pagination?.total || 0;
   const highPriorityCount = (statistics?.highPriority || 0) + (statistics?.urgent || 0);
-  const uniqueCases = new Set(tasks.map((t: VerificationTask) => t.caseId)).size;
-  const uniqueFieldAgents = new Set(
-    tasks.map((t: VerificationTask) => t.assignedTo).filter(Boolean)
-  ).size;
+  const revokedToday = statistics?.revokedToday || 0;
+  const reassigned = statistics?.reassigned || 0;
+  const awaitingReassignment = statistics?.awaitingReassignment || 0;
 
   const handleViewTask = (taskId: string) => {
     navigate(`/task-management/${taskId}`);
@@ -110,8 +115,8 @@ export const RevokedTasksPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {/* Statistics Cards — 5-card standard layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
@@ -119,6 +124,30 @@ export const RevokedTasksPage: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">Total Revoked</p>
                 <p className="text-2xl font-bold text-foreground">{totalRevoked}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <AlertTriangle className="h-8 w-8 text-amber-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Awaiting Reassignment</p>
+                <p className="text-2xl font-bold text-foreground">{awaitingReassignment}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <UserCheck className="h-8 w-8 text-green-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Reassigned</p>
+                <p className="text-2xl font-bold text-foreground">{reassigned}</p>
               </div>
             </div>
           </CardContent>
@@ -141,20 +170,8 @@ export const RevokedTasksPage: React.FC = () => {
             <div className="flex items-center">
               <Package className="h-8 w-8 text-blue-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Unique Cases</p>
-                <p className="text-2xl font-bold text-foreground">{uniqueCases}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <UserCheck className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Field Agents</p>
-                <p className="text-2xl font-bold text-foreground">{uniqueFieldAgents}</p>
+                <p className="text-sm font-medium text-muted-foreground">Revoked Today</p>
+                <p className="text-2xl font-bold text-foreground">{revokedToday}</p>
               </div>
             </div>
           </CardContent>
@@ -242,8 +259,19 @@ export const RevokedTasksPage: React.FC = () => {
         onViewTask={handleViewTask}
         onViewCase={handleViewCase}
         onEditCase={handleEditCase}
-        onAssignTask={() => {}}
+        onAssignTask={(taskId) => setReassignTaskId(taskId)}
+        showRevokeMetadata
       />
+
+      {reassignTaskId && (
+        <TaskAssignmentModal
+          taskId={reassignTaskId}
+          onClose={() => {
+            setReassignTaskId(null);
+            refreshTasks();
+          }}
+        />
+      )}
 
       {/* Pagination - Always show for better UX */}
       {pagination.total > 0 && (

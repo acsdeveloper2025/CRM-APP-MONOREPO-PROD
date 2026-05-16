@@ -15,6 +15,7 @@ import { Plus, Filter, RefreshCw, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useRevisitTaskAction } from '@/hooks/useRevisitTaskAction';
+import { useRevokeTaskAction } from '@/hooks/useRevokeTaskAction';
 
 interface VerificationTasksManagerProps {
   caseId: string;
@@ -115,15 +116,14 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
     }
   };
 
-  const handleCancelTask = async (taskId: string) => {
-    try {
-      await VerificationTasksService.cancelTask(taskId, 'Revoked from case view');
-      toast.success('Task revoked successfully');
-      refetch();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to revoke task');
-    }
-  };
+  const { requestRevoke, dialog: revokeDialog } = useRevokeTaskAction();
+  const handleCancelTask = useCallback(
+    (taskId: string) => {
+      const task = tasks.find((t) => t.id === taskId);
+      requestRevoke({ id: taskId, taskNumber: task?.taskNumber });
+    },
+    [tasks, requestRevoke]
+  );
 
   const handleViewTask = useCallback(
     (taskId: string) => {
@@ -304,6 +304,7 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
       </Card>
 
       {revisitDialog}
+      {revokeDialog}
 
       {/* Modals */}
       {showCreateModal && (

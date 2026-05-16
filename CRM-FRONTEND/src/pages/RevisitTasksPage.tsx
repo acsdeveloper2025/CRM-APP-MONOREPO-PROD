@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { RefreshCw, Copy, AlertTriangle, Clock, Download } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Clock, Download, UserCheck, Play, CheckCircle } from 'lucide-react';
 import { VerificationTasksService } from '@/services/verificationTasks';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -56,8 +56,9 @@ export const RevisitTasksPage: React.FC = () => {
     sortBy: 'createdAt',
     sortOrder: 'desc' as 'asc' | 'desc',
     taskType: 'REVISIT',
-    // Exclude completed tasks - they should only show in Completed Tasks page
-    status: activeFilters.status || 'PENDING',
+    // B-154 (2026-05-16): dropped default status='PENDING'. Page now
+    // shows ALL revisit tasks; cards break down by status. Operator
+    // can narrow via the Status filter in the Filters panel.
   });
 
   // P18.M-04: reset to page 1 on scope toggle.
@@ -72,8 +73,8 @@ export const RevisitTasksPage: React.FC = () => {
     ...paginationState,
     search: debouncedSearchValue || undefined,
     priority: activeFilters.priority || undefined,
-    // Override status if user has a specific filter, otherwise use the default from paginationState
-    status: activeFilters.status || paginationState.status,
+    // Status filter only applied when user explicitly picks one.
+    status: activeFilters.status || undefined,
   };
 
   const { tasks, loading, error, pagination, statistics, refreshTasks } =
@@ -114,39 +115,61 @@ export const RevisitTasksPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Statistics Cards */}
+      {/* Statistics Cards — 5-card standard layout. Stats are BE
+          aggregates over the current filter (taskType=REVISIT plus any
+          user-applied filters). Default = no status filter, so cards
+          show a full lifecycle breakdown. */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <Copy className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Total Revisit Tasks</p>
-                <p className="text-2xl font-bold text-foreground">{pagination.total}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* P19.B-10: removed "This Month" stat card. Counted from
-            tasks.filter(...) on the paginated array, so the value
-            shifted as the user paginated. Add a BE-side
-            createdThisMonthCount aggregate if needed. */}
-
-        {/* P19.B-11: removed "Completion Rate" stat card. Numerator
-            (statistics.completed) was a paginated-period aggregate,
-            denominator (pagination.total) was the filtered total —
-            apples vs. oranges; the displayed % was meaningless and
-            flipped when the user changed the status filter. */}
-
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
               <Clock className="h-8 w-8 text-orange-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Pending</p>
+                <p className="text-sm font-medium text-muted-foreground">Pending Assignment</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {statistics.pending + statistics.assigned}
+                  {statistics.pending}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <UserCheck className="h-8 w-8 text-blue-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Assigned</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {statistics.assigned}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Play className="h-8 w-8 text-purple-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">In Progress</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {statistics.inProgress}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Completed</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {statistics.completed}
                 </p>
               </div>
             </div>

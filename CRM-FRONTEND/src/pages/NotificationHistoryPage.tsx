@@ -14,6 +14,27 @@ import { notificationService, type AppNotification } from '@/services/notificati
 
 const PAGE_SIZE = 20;
 
+/**
+ * B-149 (2026-05-16): card color by notification type so operations
+ * teams can scan the inbox at a glance — red for revocations, green
+ * for completions, default white/green for everything else.
+ * Type wins over read-state for the load-bearing colors; for neutral
+ * types we fall back to the prior read-state palette.
+ */
+const getNotificationCardClass = (type: string | undefined, isRead: boolean): string => {
+  if (type === 'TASK_REVOKED' || type === 'CASE_REVOKED') {
+    return isRead
+      ? 'border-red-200 bg-red-50/40'
+      : 'border-red-300 bg-red-50 ring-1 ring-red-200';
+  }
+  if (type === 'TASK_COMPLETED' || type === 'CASE_COMPLETED') {
+    return isRead
+      ? 'border-green-200 bg-green-50/40'
+      : 'border-green-300 bg-green-50 ring-1 ring-green-200';
+  }
+  return isRead ? 'border-gray-200 bg-white' : 'border-blue-200 bg-blue-50';
+};
+
 export function NotificationHistoryPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -460,11 +481,10 @@ export function NotificationHistoryPage() {
                     key={notification.id}
                     type="button"
                     onClick={() => void handleOpenNotification(notification)}
-                    className={`w-full rounded-xl border p-4 text-left transition ${
-                      notification.isRead
-                        ? 'border-gray-200 bg-white'
-                        : 'border-green-200 bg-green-50'
-                    }`}
+                    className={`w-full rounded-xl border p-4 text-left transition ${getNotificationCardClass(
+                      notification.type,
+                      notification.isRead,
+                    )}`}
                   >
                     <div className="mb-2 flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">

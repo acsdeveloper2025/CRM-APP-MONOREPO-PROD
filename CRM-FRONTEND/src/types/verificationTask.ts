@@ -33,6 +33,7 @@ export interface VerificationTask {
   status: TaskStatus;
   taskType?: 'REVISIT' | null; // null or undefined = NEW task
   parentTaskId?: string | null;
+  parentTaskNumber?: string; // B-150: populated by single-task GET + getTasksForCase
   verificationOutcome?: string;
 
   // Billing Information
@@ -344,6 +345,9 @@ export interface VerificationTaskListResponse {
     avgDuration?: number;
     avgTurnaround?: number;
     completedToday?: number;
+    revokedToday?: number;
+    reassigned?: number;
+    awaitingReassignment?: number;
   };
 }
 

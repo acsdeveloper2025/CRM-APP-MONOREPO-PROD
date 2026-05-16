@@ -53,6 +53,13 @@ interface TaskDetail {
   commissionStatus?: string;
   calculatedCommission?: number;
   taskType?: 'REVISIT' | 'KYC' | null;
+  parentTaskId?: string;
+  parentTaskNumber?: string;
+  parentCompletedAt?: string;
+  revokedAt?: string;
+  revokedBy?: string;
+  revokedByName?: string;
+  revocationReason?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -124,6 +131,13 @@ export const TaskDetailPage: React.FC = () => {
           commissionStatus: taskData.commissionStatus,
           calculatedCommission: taskData.calculatedCommission,
           taskType: taskData.taskType || null,
+          parentTaskId: taskData.parentTaskId,
+          parentTaskNumber: taskData.parentTaskNumber,
+          parentCompletedAt: taskData.parentCompletedAt,
+          revokedAt: taskData.revokedAt,
+          revokedBy: taskData.revokedBy,
+          revokedByName: taskData.revokedByName,
+          revocationReason: taskData.revocationReason || taskData.revokeReason,
           createdAt: taskData.createdAt,
           updatedAt: taskData.updatedAt,
         });
@@ -441,6 +455,83 @@ export const TaskDetailPage: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Revocation Details — only when status='REVOKED' */}
+          {task.status === 'REVOKED' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base text-red-700">
+                  Revocation Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Reason</p>
+                  <p className="text-sm mt-1 whitespace-pre-wrap">
+                    {task.revocationReason || '—'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Revoked By</p>
+                  <p className="text-sm mt-1">{task.revokedByName || '—'}</p>
+                </div>
+                {task.revokedAt && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Revoked At</p>
+                    <p className="text-sm mt-1">
+                      {format(new Date(task.revokedAt), 'dd MMM yyyy, HH:mm')}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Revisit Info — only when task_type='REVISIT' */}
+          {task.taskType === 'REVISIT' && task.parentTaskNumber && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base text-purple-700">
+                  Revisit Info
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Revisit of</p>
+                  {task.parentTaskId ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(`/task-management/${task.parentTaskNumber}`)
+                      }
+                      className="text-sm mt-1 text-purple-700 underline hover:text-purple-900"
+                    >
+                      {task.parentTaskNumber}
+                    </button>
+                  ) : (
+                    <p className="text-sm mt-1">{task.parentTaskNumber}</p>
+                  )}
+                </div>
+                {task.parentCompletedAt && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">
+                      Parent Completed
+                    </p>
+                    <p className="text-sm mt-1">
+                      {format(
+                        new Date(task.parentCompletedAt),
+                        'dd MMM yyyy, HH:mm',
+                      )}
+                    </p>
+                  </div>
+                )}
+                <p className="text-xs text-gray-500">
+                  Created as a re-verification of the parent task. Billed at
+                  the same rate as the original.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Assignment Details */}
           <Card>

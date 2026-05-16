@@ -145,9 +145,20 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
                   </TableCell>
                 )}
 
-                {/* Task Number */}
+                {/* Task Number — clickable opens TaskDetailPage. */}
                 <TableCell>
-                  <div className="font-medium">#{task.taskNumber}</div>
+                  {onViewTask ? (
+                    <button
+                      type="button"
+                      onClick={() => onViewTask(task.taskNumber || task.id)}
+                      className="font-medium text-primary hover:underline"
+                      title="Open task details"
+                    >
+                      #{task.taskNumber}
+                    </button>
+                  ) : (
+                    <div className="font-medium">#{task.taskNumber}</div>
+                  )}
                 </TableCell>
 
                 {/* Case Number */}
@@ -173,11 +184,26 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
                 {/* Pincode */}
                 <TableCell>{task.pincode || '-'}</TableCell>
 
-                {/* Address */}
+                {/* Address — plus inline revoke reason / revisit-of metadata
+                    so operators don't have to drill into the detail page to
+                    see WHY a task is REVOKED or which parent it revisits. */}
                 <TableCell>
                   <div className="max-w-xs truncate text-sm text-gray-600" title={task.address}>
                     {task.address || '-'}
                   </div>
+                  {task.status === 'REVOKED' && task.revokeReason && (
+                    <div
+                      className="mt-1 max-w-xs truncate text-xs text-red-700"
+                      title={task.revokeReason}
+                    >
+                      Revoked: {task.revokeReason}
+                    </div>
+                  )}
+                  {task.taskType === 'REVISIT' && task.parentTaskNumber && (
+                    <div className="mt-1 text-xs text-purple-700">
+                      Revisit of {task.parentTaskNumber}
+                    </div>
+                  )}
                 </TableCell>
 
                 {/* Rate Type */}

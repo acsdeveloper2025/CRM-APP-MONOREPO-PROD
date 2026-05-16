@@ -40,6 +40,13 @@ interface TasksListFlatProps {
   onViewCase?: (caseId: string) => void;
   onRevisitTask?: (taskId: string) => void;
   onEditCase?: (caseId: string, taskId?: string) => void;
+  /**
+   * When true, render two extra columns (Revoke Reason + Revoked By) so
+   * the revoke queue table surfaces operational metadata without forcing
+   * the operator to click into each row. Other pages omit this prop;
+   * columns hide entirely.
+   */
+  showRevokeMetadata?: boolean;
 }
 
 export const TasksListFlat: React.FC<TasksListFlatProps> = ({
@@ -50,6 +57,7 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
   onViewCase,
   onRevisitTask,
   onEditCase,
+  showRevokeMetadata = false,
 }) => {
   const getStatusIcon = (status: TaskStatus) => {
     const icons = {
@@ -155,6 +163,16 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Assigned By
                 </th>
+                {showRevokeMetadata && (
+                  <>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Revoke Reason
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Revoked By
+                    </th>
+                  </>
+                )}
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Date
                 </th>
@@ -172,11 +190,25 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
 
                 return (
                   <tr key={task.id} className="hover:bg-green-50 transition-colors">
-                    {/* Task Number */}
+                    {/* Task Number — clickable opens TaskDetailPage,
+                        mirroring the Case Number link behavior. Falls
+                        back to a non-interactive badge if onViewTask
+                        is not wired by the parent. */}
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <Badge className="bg-green-600 text-white hover:bg-green-700 uppercase font-medium text-xs">
-                        {task.taskNumber}
-                      </Badge>
+                      {onViewTask ? (
+                        <button
+                          type="button"
+                          onClick={() => onViewTask(task.taskNumber || task.id)}
+                          className="inline-flex items-center rounded-md bg-green-600 px-2.5 py-0.5 text-xs font-medium uppercase text-white hover:bg-green-700 transition-colors"
+                          title="Open task details"
+                        >
+                          {task.taskNumber}
+                        </button>
+                      ) : (
+                        <Badge className="bg-green-600 text-white uppercase font-medium text-xs">
+                          {task.taskNumber}
+                        </Badge>
+                      )}
                     </td>
 
                     {/* Case Number */}
@@ -299,6 +331,22 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                       <div className="text-sm text-gray-900">{task.assignedByName || '-'}</div>
                     </td>
 
+                    {showRevokeMetadata && (
+                      <>
+                        {/* Revoke Reason */}
+                        <td
+                          className="px-4 py-4 text-sm text-gray-900 max-w-xs truncate"
+                          title={task.revokeReason || ''}
+                        >
+                          {task.revokeReason || '-'}
+                        </td>
+                        {/* Revoked By */}
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {task.revokedByName || '-'}
+                        </td>
+                      </>
+                    )}
+
                     {/* Date */}
                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
                       {task.assignedAt ? formatDate(task.assignedAt) : formatDate(task.createdAt)}
@@ -320,10 +368,18 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          {!task.assignedTo && task.status === 'PENDING' && (
+                          {/* Assign / Reassign:
+                              - PENDING + unassigned → first assignment
+                              - REVOKED → reassign-after-revoke (BE
+                                createReplacementTask path creates a NEW
+                                row; preserves the REVOKED row + audit).
+                              Both flows use the same TaskAssignmentModal;
+                              backend branches on previousStatus internally. */}
+                          {((!task.assignedTo && task.status === 'PENDING') ||
+                            task.status === 'REVOKED') && (
                             <DropdownMenuItem onClick={() => onAssignTask(task.id)}>
                               <UserCheck className="h-4 w-4 mr-2" />
-                              Assign Task
+                              {task.status === 'REVOKED' ? 'Reassign Task' : 'Assign Task'}
                             </DropdownMenuItem>
                           )}
                           {onViewTask && (
