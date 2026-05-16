@@ -1,6 +1,7 @@
 import type { Server as SocketIOServer, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { config } from '@/config';
+import { verifyJwtWithRotation } from '@/utils/jwtRotation';
 import { logger } from '@/config/logger';
 import type { JwtPayload } from '@/types/auth';
 import { loadUserAuthContext } from '@/middleware/auth';
@@ -178,7 +179,11 @@ export const initializeWebSocket = (io: SocketIOServer): void => {
     }
 
     try {
-      const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
+      const decoded = verifyJwtWithRotation<JwtPayload>(
+        token,
+        config.jwtSecret,
+        config.oldJwtSecret
+      );
 
       // Connection-attempt rate limit — bounds reconnect storms from
       // an exfiltrated token or a client bug. 10/min per userId is

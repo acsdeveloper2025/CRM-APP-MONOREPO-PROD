@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import { verifyJwtWithRotation } from '../utils/jwtRotation';
 import { query } from '@/config/database';
 import { config } from '../config';
 import type {
@@ -277,10 +278,11 @@ export class MobileAuthController {
       // refresh secret AND assert payload.type === 'refresh'. Previously
       // any JWT signed with `config.jwtSecret` (including access tokens)
       // could POST here.
-      const decoded = jwt.verify(
+      const decoded = verifyJwtWithRotation<JwtPayload & { type?: string }>(
         refreshToken,
-        config.jwtRefreshSecret as jwt.Secret
-      ) as JwtPayload & { type?: string };
+        config.jwtRefreshSecret as jwt.Secret,
+        config.oldJwtRefreshSecret as jwt.Secret | undefined
+      );
 
       if (decoded.type !== 'refresh') {
         return res.status(401).json({

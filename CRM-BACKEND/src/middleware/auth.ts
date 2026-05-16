@@ -2,6 +2,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '@/config';
+import { verifyJwtWithRotation } from '@/utils/jwtRotation';
 import type { JwtPayload } from '@/types/auth';
 import type { ApiResponse } from '@/types/api';
 import { logger } from '@/config/logger';
@@ -289,7 +290,11 @@ const verifyTokenAndSetUser = async (
 ): Promise<void> => {
   let decoded: JwtPayload;
   try {
-    decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
+    decoded = verifyJwtWithRotation<JwtPayload>(
+      token,
+      config.jwtSecret,
+      config.oldJwtSecret
+    );
   } catch (error) {
     logger.error('Token verification failed:', error);
     const response: ApiResponse = {

@@ -51,6 +51,13 @@ export const config = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1d',
   jwtRefreshSecret: requireEnv('JWT_REFRESH_SECRET'),
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
+  // NEW-HIGH-2 (AUDIT 2026-05-17): optional fallback secrets to enable
+  // zero-downtime rotation. During rotation: deploy with NEW + OLD set
+  // for 24h (longer than access TTL), then remove OLD. Tokens signed
+  // with the OLD secret still verify; new tokens sign with NEW only.
+  // See utils/jwtRotation.ts for the verify-with-fallback helper.
+  oldJwtSecret: process.env.OLD_JWT_SECRET || undefined,
+  oldJwtRefreshSecret: process.env.OLD_JWT_REFRESH_SECRET || undefined,
 
   // Redis. REDIS_PASSWORD is optional — many environments (incl. local dev
   // server, Docker compose with bridge-isolated Redis, ElastiCache with IAM)

@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { verifyJwtWithRotation } from '../utils/jwtRotation';
 import { query, withTransaction } from '@/config/database';
 import { config } from '@/config';
 import { logger } from '@/config/logger';
@@ -710,7 +711,11 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     // Verify token signature
     let decoded: RefreshTokenPayload;
     try {
-      decoded = jwt.verify(token, config.jwtRefreshSecret) as RefreshTokenPayload;
+      decoded = verifyJwtWithRotation<RefreshTokenPayload>(
+        token,
+        config.jwtRefreshSecret,
+        config.oldJwtRefreshSecret
+      );
     } catch (_err) {
       res.status(401).json({
         success: false,
