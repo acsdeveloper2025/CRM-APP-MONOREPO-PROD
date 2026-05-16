@@ -559,8 +559,10 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
           'kyc' as source
         FROM kyc_document_verifications kdv
         LEFT JOIN document_types dt ON dt.id = kdv.document_type_id
+        -- NEW-CRIT-1 (AUDIT 2026-05-17): hide soft-deleted KYC docs from attachment list.
         WHERE kdv.case_id = $1
           AND kdv.document_file_path IS NOT NULL
+          AND kdv.deleted_at IS NULL
           AND EXISTS (
             SELECT 1 FROM verification_tasks vt
             WHERE vt.case_id = kdv.case_id AND vt.assigned_to = $2
@@ -599,8 +601,10 @@ export const getAttachmentsByCase = async (req: AuthenticatedRequest, res: Respo
           'kyc' as source
         FROM kyc_document_verifications kdv
         LEFT JOIN document_types dt ON dt.id = kdv.document_type_id
+        -- NEW-CRIT-1 (AUDIT 2026-05-17): hide soft-deleted KYC docs from admin view.
         WHERE kdv.case_id = $1
           AND kdv.document_file_path IS NOT NULL
+          AND kdv.deleted_at IS NULL
       `;
       queryParams = [resolvedCaseUuid];
     }

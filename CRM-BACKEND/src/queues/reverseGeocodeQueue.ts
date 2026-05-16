@@ -106,7 +106,9 @@ export const startReverseGeocodeProcessor = (): void => {
       // calls when both the upload-time enqueue + the backfill script
       // queued the same attachment.
       const existing = await query<{ reverse_geocoded_address: string | null }>(
-        `SELECT reverse_geocoded_address FROM verification_attachments WHERE id = $1`,
+        // NEW-CRIT-1 (AUDIT 2026-05-17): skip soft-deleted attachments —
+        // no point burning Google quota geocoding photos nobody can see.
+        `SELECT reverse_geocoded_address FROM verification_attachments WHERE id = $1 AND deleted_at IS NULL`,
         [attachmentId]
       );
       if (existing.rows.length === 0) {

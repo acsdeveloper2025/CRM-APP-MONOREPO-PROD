@@ -151,10 +151,12 @@ export class TaskCompletionValidator {
 
     try {
       const result = await query(
+        // NEW-CRIT-1 (AUDIT 2026-05-17): soft-deleted attachments must
+        // not count toward task-completion photo threshold.
         `
         SELECT COUNT(*) as count, array_agg(DISTINCT attachment_type) as types
         FROM verification_attachments
-        WHERE verification_task_id = $1
+        WHERE verification_task_id = $1 AND deleted_at IS NULL
       `,
         [taskId]
       );

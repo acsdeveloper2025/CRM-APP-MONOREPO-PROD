@@ -43,7 +43,9 @@ const requireKycRowAccess = async (
     return { ok: false };
   }
   const lookup = await query<{ caseId: string }>(
-    `SELECT case_id FROM kyc_document_verifications WHERE id = $1`,
+    // NEW-CRIT-1 (AUDIT 2026-05-17): soft-deleted KYC docs must not surface in
+    // permission lookups — DPDP erasure intent. Returns NOT_FOUND.
+    `SELECT case_id FROM kyc_document_verifications WHERE id = $1 AND deleted_at IS NULL`,
     [kdvId]
   );
   if (lookup.rows.length === 0) {
@@ -278,7 +280,10 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
       paramIndex++;
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    // NEW-CRIT-1 (AUDIT 2026-05-17): soft-delete filter is unconditional —
+    // hide deleted KYC docs from list + count + stats.
+    conditions.unshift('kdv.deleted_at IS NULL');
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
     // API contract: sortBy is sent as camelCase by the frontend; we map it to
     // the snake_case DB column here.
@@ -411,8 +416,9 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
        FROM kyc_document_verifications kdv
        JOIN cases c ON c.id = kdv.case_id
        JOIN verification_tasks vt ON vt.id = kdv.verification_task_id
-       ${statsWhereClause}
-       ${statsWhereClause ? 'AND' : 'WHERE'} kdv.deleted_at IS NULL`,
+       ${statsWhereClause}`,
+      // NEW-CRIT-1 (AUDIT 2026-05-17): deleted_at filter now propagates via
+      // conditions.unshift at line 285 → statsConditions filter preserves it.
       statsParamsCount
     );
 
@@ -552,8 +558,9 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
 
       // Check if ALL KYC docs for this task are verified
       const pendingDocs = await client.query(
+        // NEW-CRIT-1 (AUDIT 2026-05-17): soft-deleted must not count toward pending.
         `SELECT COUNT(*) as pending FROM kyc_document_verifications
-         WHERE verification_task_id = $1 AND verification_status = 'PENDING'`,
+         WHERE verification_task_id = $1 AND verification_status = 'PENDING' AND deleted_at IS NULL`,
         [verificationTaskId]
       );
 
@@ -694,12 +701,14 @@ export const uploadKYCDocument = async (req: AuthenticatedRequest, res: Response
     // verification_tasks.id and 404'd here. Accept either ID — the
     // (verification_task_id, case_id) pair is unique for KYC tasks anyway.
     const lookup = await query<{ id: string; caseId: string; docCode: string | null }>(
+      // NEW-CRIT-1 (AUDIT 2026-05-17): hide soft-deleted from doc-code lookup.
       `SELECT kdv.id,
               kdv.case_id AS "caseId",
               dt.code AS "docCode"
          FROM kyc_document_verifications kdv
          LEFT JOIN document_types dt ON dt.id = kdv.document_type_id
-        WHERE kdv.id = $1 OR kdv.verification_task_id = $1
+        WHERE (kdv.id = $1 OR kdv.verification_task_id = $1)
+          AND kdv.deleted_at IS NULL
         LIMIT 1`,
       [taskId]
     );
@@ -813,7 +822,8 @@ export const getKYCTasksForCase = async (req: AuthenticatedRequest, res: Respons
        LEFT JOIN document_types kdt ON kdt.id = kdv.document_type_id
        LEFT JOIN users u_verified ON u_verified.id = kdv.verified_by
        LEFT JOIN users u_assigned ON u_assigned.id = kdv.assigned_to
-       WHERE kdv.case_id = $1
+       -- NEW-CRIT-1 (AUDIT 2026-05-17): hide soft-deleted from case-doc list.
+       WHERE kdv.case_id = $1 AND kdv.deleted_at IS NULL
        ORDER BY kdt.sort_order, kdv.created_at`,
       [resolvedCaseUuid]
     );
@@ -925,7 +935,10 @@ export const exportKYCToExcel = async (req: AuthenticatedRequest, res: Response)
       paramIndex++;
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    // NEW-CRIT-1 (AUDIT 2026-05-17): soft-delete filter is unconditional —
+    // hide deleted KYC docs from list + count + stats.
+    conditions.unshift('kdv.deleted_at IS NULL');
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
     const result = await query(
       `SELECT

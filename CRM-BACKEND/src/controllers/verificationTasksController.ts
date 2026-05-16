@@ -2401,7 +2401,8 @@ export class VerificationTasksController {
 
       // B) At least 5 photos must exist
       const photoResult = await client.query(
-        `SELECT COUNT(*) FROM verification_attachments WHERE verification_task_id = $1`,
+        // NEW-CRIT-1 (AUDIT 2026-05-17): soft-deleted must not count toward completion threshold.
+        `SELECT COUNT(*) FROM verification_attachments WHERE verification_task_id = $1 AND deleted_at IS NULL`,
         [taskId]
       );
       const photoCount = parseInt(photoResult.rows[0].count);

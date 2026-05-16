@@ -95,7 +95,7 @@ export async function generateTemplateReport(req: AuthenticatedRequest, res: Res
       LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
       WHERE vt.case_id = $1 AND (
         vt.id IN (SELECT verification_task_id FROM task_form_submissions WHERE form_submission_id::text = $2)
-        OR vt.id IN (SELECT verification_task_id FROM verification_attachments WHERE submission_id = $2)
+        OR vt.id IN (SELECT verification_task_id FROM verification_attachments WHERE submission_id = $2 AND deleted_at IS NULL)
       )
       LIMIT 1
     `;

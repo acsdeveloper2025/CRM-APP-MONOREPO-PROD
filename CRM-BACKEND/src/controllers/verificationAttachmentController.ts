@@ -782,12 +782,14 @@ export class VerificationAttachmentController {
 
       const runImagesQuery = async (where: string, params: QueryParams) =>
         query(
+          // NEW-CRIT-1 (AUDIT 2026-05-17): hide soft-deleted from image listings.
           `SELECT
             id, filename, original_name, mime_type, file_size_bytes, file_path,
             thumbnail_path, uploaded_by, geo_location, photo_type,
             submission_id, verification_type, created_at
           FROM verification_attachments
           ${where}
+          ${where.trim() ? 'AND' : 'WHERE'} deleted_at IS NULL
           ORDER BY created_at ASC`,
           params
         );
@@ -908,8 +910,9 @@ export class VerificationAttachmentController {
 
       // Get image details from database
       const imageResult = await query(
+        // NEW-CRIT-1 (AUDIT 2026-05-17): 404 on soft-deleted (DPDP erasure intent).
         `SELECT filename, original_name, mime_type, file_size_bytes, file_path, case_id, verification_type
-         FROM verification_attachments WHERE id = $1`,
+         FROM verification_attachments WHERE id = $1 AND deleted_at IS NULL`,
         [imageId]
       );
 
@@ -1004,8 +1007,9 @@ export class VerificationAttachmentController {
 
       // Get image details from database
       const imageResult = await query(
+        // NEW-CRIT-1 (AUDIT 2026-05-17): 404 on soft-deleted (DPDP erasure intent).
         `SELECT filename, original_name, mime_type, file_size_bytes, thumbnail_path, case_id, verification_type
-         FROM verification_attachments WHERE id = $1`,
+         FROM verification_attachments WHERE id = $1 AND deleted_at IS NULL`,
         [imageId]
       );
 

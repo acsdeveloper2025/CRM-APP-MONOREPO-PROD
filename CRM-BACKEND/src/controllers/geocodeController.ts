@@ -135,6 +135,7 @@ export class GeocodeController {
                 reverse_geocoded_address
            FROM verification_attachments
           WHERE id = $1
+            AND deleted_at IS NULL
           LIMIT 1`,
         [attachmentId]
       );

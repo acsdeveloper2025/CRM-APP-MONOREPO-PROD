@@ -571,10 +571,13 @@ export class MobileFormController {
     // attachment IDs from mobile are UUIDs but may also be stored as submissionId or filename references.
     // Query by submissionId (UUID) which is what the mobile sends, falling back to string match.
     const attachmentResult = await query(
+      // NEW-CRIT-1 (AUDIT 2026-05-17): soft-deleted attachments must not
+      // surface in form-data responses — DPDP erasure intent.
       `SELECT id, filename, file_path, thumbnail_path, created_at, photo_type, geo_location
        FROM verification_attachments
-       WHERE submission_id = ANY($1::text[])
-          OR filename = ANY($1::text[])
+       WHERE (submission_id = ANY($1::text[])
+              OR filename = ANY($1::text[]))
+         AND deleted_at IS NULL
        ORDER BY created_at ASC`,
       [attachmentIds]
     );
@@ -605,10 +608,11 @@ export class MobileFormController {
     taskId: string
   ): Promise<{ totalImages: number; totalSelfies: number }> {
     const result = await query(
+      // NEW-CRIT-1 (AUDIT 2026-05-17): soft-deleted must not count.
       `SELECT
         COUNT(*) FILTER (WHERE photo_type = 'verification') as total_images,
         COUNT(*) FILTER (WHERE photo_type = 'selfie') as total_selfies
-       FROM verification_attachments WHERE verification_task_id = $1`,
+       FROM verification_attachments WHERE verification_task_id = $1 AND deleted_at IS NULL`,
       [taskId]
     );
     return {
@@ -2069,8 +2073,9 @@ export class MobileFormController {
 
           // FIXED: Get verification images for THIS SPECIFIC TASK only
           const imagesSql = `
+            -- NEW-CRIT-1 (AUDIT 2026-05-17): mobile sync must hide soft-deleted.
             SELECT id, verification_task_id, filename, file_path, file_size_bytes, mime_type, photo_type, thumbnail_path, geo_location, submission_id, created_at FROM verification_attachments
-            WHERE case_id = $1 AND verification_task_id = $2
+            WHERE case_id = $1 AND verification_task_id = $2 AND deleted_at IS NULL
             ORDER BY created_at
           `;
           const imagesRes = await query(imagesSql, [caseData.id, task.taskId]);
