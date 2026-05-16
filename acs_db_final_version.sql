@@ -34058,7 +34058,7 @@ ALTER TABLE ONLY public.commission_calculations
 --
 
 ALTER TABLE ONLY public.commission_calculations
-    ADD CONSTRAINT commission_calculations_case_id_fkey FOREIGN KEY (case_id) REFERENCES public.cases(id) ON DELETE CASCADE;
+    ADD CONSTRAINT commission_calculations_case_id_fkey FOREIGN KEY (case_id) REFERENCES public.cases(id) ON DELETE RESTRICT;
 
 
 --
@@ -34066,7 +34066,7 @@ ALTER TABLE ONLY public.commission_calculations
 --
 
 ALTER TABLE ONLY public.commission_calculations
-    ADD CONSTRAINT commission_calculations_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE;
+    ADD CONSTRAINT commission_calculations_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE RESTRICT;
 
 
 --
@@ -34082,7 +34082,7 @@ ALTER TABLE ONLY public.commission_calculations
 --
 
 ALTER TABLE ONLY public.commission_calculations
-    ADD CONSTRAINT commission_calculations_rate_type_id_fkey FOREIGN KEY (rate_type_id) REFERENCES public.rate_types(id) ON DELETE CASCADE;
+    ADD CONSTRAINT commission_calculations_rate_type_id_fkey FOREIGN KEY (rate_type_id) REFERENCES public.rate_types(id) ON DELETE RESTRICT;
 
 
 --
@@ -34090,7 +34090,7 @@ ALTER TABLE ONLY public.commission_calculations
 --
 
 ALTER TABLE ONLY public.commission_calculations
-    ADD CONSTRAINT commission_calculations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT commission_calculations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE RESTRICT;
 
 
 --
@@ -34138,7 +34138,7 @@ ALTER TABLE ONLY public.designations
 --
 
 ALTER TABLE ONLY public.document_type_rates
-    ADD CONSTRAINT "documentTypeRates_clientId_fkey" FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE;
+    ADD CONSTRAINT "documentTypeRates_clientId_fkey" FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE RESTRICT;
 
 
 --
@@ -34154,7 +34154,7 @@ ALTER TABLE ONLY public.document_type_rates
 --
 
 ALTER TABLE ONLY public.document_type_rates
-    ADD CONSTRAINT "documentTypeRates_productId_fkey" FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE CASCADE;
+    ADD CONSTRAINT "documentTypeRates_productId_fkey" FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE RESTRICT;
 
 
 --
@@ -34170,7 +34170,7 @@ ALTER TABLE ONLY public.document_types
 --
 
 ALTER TABLE ONLY public.document_type_rates
-    ADD CONSTRAINT document_type_rates_document_type_fkey FOREIGN KEY (document_type_id) REFERENCES public.document_types(id) ON DELETE CASCADE;
+    ADD CONSTRAINT document_type_rates_document_type_fkey FOREIGN KEY (document_type_id) REFERENCES public.document_types(id) ON DELETE RESTRICT;
 
 
 --
@@ -34178,7 +34178,7 @@ ALTER TABLE ONLY public.document_type_rates
 --
 
 ALTER TABLE ONLY public.field_user_commission_assignments
-    ADD CONSTRAINT field_user_commission_assignments_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE;
+    ADD CONSTRAINT field_user_commission_assignments_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE RESTRICT;
 
 
 --
@@ -34194,7 +34194,7 @@ ALTER TABLE ONLY public.field_user_commission_assignments
 --
 
 ALTER TABLE ONLY public.field_user_commission_assignments
-    ADD CONSTRAINT field_user_commission_assignments_rate_type_id_fkey FOREIGN KEY (rate_type_id) REFERENCES public.rate_types(id) ON DELETE CASCADE;
+    ADD CONSTRAINT field_user_commission_assignments_rate_type_id_fkey FOREIGN KEY (rate_type_id) REFERENCES public.rate_types(id) ON DELETE RESTRICT;
 
 
 --
@@ -34202,7 +34202,7 @@ ALTER TABLE ONLY public.field_user_commission_assignments
 --
 
 ALTER TABLE ONLY public.field_user_commission_assignments
-    ADD CONSTRAINT field_user_commission_assignments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT field_user_commission_assignments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE RESTRICT;
 
 
 --
@@ -34250,7 +34250,7 @@ ALTER TABLE ONLY public.auto_saves
 --
 
 ALTER TABLE ONLY public.case_deduplication_audit
-    ADD CONSTRAINT fk_casededuplicationaudit_case_uuid FOREIGN KEY (case_id) REFERENCES public.cases(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_casededuplicationaudit_case_uuid FOREIGN KEY (case_id) REFERENCES public.cases(id) ON DELETE RESTRICT;
 
 
 --
@@ -34738,7 +34738,7 @@ ALTER TABLE ONLY public.users
 --
 
 ALTER TABLE ONLY public.verification_attachments
-    ADD CONSTRAINT fk_verification_attachments_case_id FOREIGN KEY (case_id) REFERENCES public.cases(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_verification_attachments_case_id FOREIGN KEY (case_id) REFERENCES public.cases(id) ON DELETE RESTRICT;
 
 
 --
@@ -34802,7 +34802,7 @@ ALTER TABLE ONLY public.verification_tasks
 --
 
 ALTER TABLE ONLY public.form_submissions
-    ADD CONSTRAINT form_submissions_case_id_fkey FOREIGN KEY (case_id) REFERENCES public.cases(id) ON DELETE CASCADE;
+    ADD CONSTRAINT form_submissions_case_id_fkey FOREIGN KEY (case_id) REFERENCES public.cases(id) ON DELETE RESTRICT;
 
 
 --
@@ -34826,7 +34826,7 @@ ALTER TABLE ONLY public.form_submissions
 --
 
 ALTER TABLE ONLY public.form_submissions
-    ADD CONSTRAINT form_submissions_verification_task_id_fkey FOREIGN KEY (verification_task_id) REFERENCES public.verification_tasks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT form_submissions_verification_task_id_fkey FOREIGN KEY (verification_task_id) REFERENCES public.verification_tasks(id) ON DELETE RESTRICT;
 
 
 --
@@ -35010,7 +35010,7 @@ ALTER TABLE ONLY public.kyc_document_verifications
 --
 
 ALTER TABLE ONLY public.kyc_document_verifications
-    ADD CONSTRAINT kyc_document_verifications_case_id_fkey FOREIGN KEY (case_id) REFERENCES public.cases(id) ON DELETE CASCADE;
+    ADD CONSTRAINT kyc_document_verifications_case_id_fkey FOREIGN KEY (case_id) REFERENCES public.cases(id) ON DELETE RESTRICT;
 
 
 --
@@ -35034,7 +35034,7 @@ ALTER TABLE ONLY public.kyc_document_verifications
 --
 
 ALTER TABLE ONLY public.kyc_document_verifications
-    ADD CONSTRAINT kyc_document_verifications_verification_task_id_fkey FOREIGN KEY (verification_task_id) REFERENCES public.verification_tasks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT kyc_document_verifications_verification_task_id_fkey FOREIGN KEY (verification_task_id) REFERENCES public.verification_tasks(id) ON DELETE RESTRICT;
 
 
 --
@@ -35290,7 +35290,7 @@ ALTER TABLE ONLY public.task_revocations
 --
 
 ALTER TABLE ONLY public.task_revocations
-    ADD CONSTRAINT task_revocations_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.verification_tasks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT task_revocations_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.verification_tasks(id) ON DELETE RESTRICT;
 
 
 --
@@ -35362,7 +35362,7 @@ ALTER TABLE ONLY public.verification_attachments
 --
 
 ALTER TABLE ONLY public.verification_attachments
-    ADD CONSTRAINT verification_attachments_verification_task_id_fkey FOREIGN KEY (verification_task_id) REFERENCES public.verification_tasks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT verification_attachments_verification_task_id_fkey FOREIGN KEY (verification_task_id) REFERENCES public.verification_tasks(id) ON DELETE RESTRICT;
 
 
 --
@@ -35370,7 +35370,7 @@ ALTER TABLE ONLY public.verification_attachments
 --
 
 ALTER TABLE ONLY public.verification_reports
-    ADD CONSTRAINT verification_reports_case_id_fkey FOREIGN KEY (case_id) REFERENCES public.cases(id) ON DELETE CASCADE;
+    ADD CONSTRAINT verification_reports_case_id_fkey FOREIGN KEY (case_id) REFERENCES public.cases(id) ON DELETE RESTRICT;
 
 
 --
@@ -35378,7 +35378,7 @@ ALTER TABLE ONLY public.verification_reports
 --
 
 ALTER TABLE ONLY public.verification_reports
-    ADD CONSTRAINT verification_reports_verification_task_id_fkey FOREIGN KEY (verification_task_id) REFERENCES public.verification_tasks(id) ON DELETE CASCADE;
+    ADD CONSTRAINT verification_reports_verification_task_id_fkey FOREIGN KEY (verification_task_id) REFERENCES public.verification_tasks(id) ON DELETE RESTRICT;
 
 
 --
