@@ -604,6 +604,35 @@ export const emitPermissionsUpdated = (io: SocketIOServer, userIds: string[] | s
   });
 };
 
+// A-CRIT-1 chunk 4 (AUDIT 2026-05-17): notify the affected user that
+// one of their device sessions was revoked (admin force-logout or
+// self-revoke). The mobile client (chunk 5) listens on
+// `auth:session_revoked` and — if its current sessionId matches —
+// wipes Keychain + navigates to login. Web FE can do the same with a
+// stable client-cookie session id.
+//
+// Fire-and-forget: WS is best-effort. The durable signal is the
+// refresh_tokens row (revoked_at non-null) + the SESSION_REVOKED
+// audit log. Mobile that misses the push still gets evicted on next
+// refresh-token attempt (401).
+export const emitSessionRevoked = (
+  userId: string,
+  sessionId: string,
+  deviceLabel: string | null
+): void => {
+  const io = globalSocketIO;
+  if (!io) {
+    return;
+  }
+  io.to(`user:${userId}`).emit('auth:session_revoked', {
+    type: 'SESSION_REVOKED',
+    userId,
+    sessionId,
+    deviceLabel,
+    timestamp: new Date().toISOString(),
+  });
+};
+
 // Export functions to access global WebSocket instance from controllers
 export const getSocketIO = (): SocketIOServer | null => globalSocketIO;
 

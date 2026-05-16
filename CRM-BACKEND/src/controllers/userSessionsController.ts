@@ -27,6 +27,7 @@ import { logger } from '@/config/logger';
 import { errorMessage } from '@/utils/errorMessage';
 import { userHasPermission } from '@/security/rbacAccess';
 import { createAuditLog } from '@/utils/auditLogger';
+import { emitSessionRevoked } from '@/websocket/server';
 
 interface SessionRow {
   id: string;
@@ -162,8 +163,7 @@ export const revokeUserSession = async (
       return;
     }
 
-    // Audit the revocation. Critical record — chunk 4 WS push will
-    // reference this row to notify the affected device.
+    // Audit the revocation.
     void createAuditLog({
       action: 'SESSION_REVOKED',
       entityType: 'REFRESH_TOKEN',
@@ -177,6 +177,12 @@ export const revokeUserSession = async (
       ipAddress: req.ip,
       userAgent: req.get('User-Agent'),
     });
+
+    // A-CRIT-1 chunk 4 (AUDIT 2026-05-17): real-time WS push to the
+    // affected user's room. Mobile client matches its current sessionId
+    // and wipes Keychain immediately. Fire-and-forget; durable signal
+    // is the refresh_tokens row (will 401 on next refresh anyway).
+    emitSessionRevoked(targetUserId, sessionId, result.rows[0].device_label);
 
     logger.info('User session revoked', {
       sessionId,
