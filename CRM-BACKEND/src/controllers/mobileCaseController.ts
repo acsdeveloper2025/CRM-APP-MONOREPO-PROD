@@ -1815,6 +1815,18 @@ export class MobileCaseController {
 
       const taskData = taskQuery.rows[0];
 
+      // NM-10: KYC tasks use a separate workflow + status mirror.
+      if (taskData.task_type === 'KYC') {
+        return res.status(400).json({
+          success: false,
+          message: 'KYC tasks use a separate workflow and cannot be revoked via this endpoint.',
+          error: {
+            code: 'KYC_USES_SEPARATE_WORKFLOW',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
       // Check if task can be revoked (not already completed)
       if (taskData.status === 'COMPLETED') {
         return res.status(400).json({
@@ -1866,13 +1878,31 @@ export class MobileCaseController {
       // (orphan task_revocations row, stale cases.status). recalc gets
       // the tx client so it's part of the same atomic write.
       await withTransaction(async client => {
+        // NM-11 (2026-05-16): re-fetch the row under FOR UPDATE to lock
+        // it for the duration of this tx. Web revoke (verificationTasks
+        // Controller.ts:2049) does this; mobile previously relied only on
+        // the UPDATE's WHERE-not-revoked guard for idempotency. Locking
+        // here also prevents two concurrent mobile revokes from
+        // double-inserting into task_revocations.
+        const lockResult = await client.query(
+          `SELECT status FROM verification_tasks WHERE id = $1 FOR UPDATE`,
+          [taskId]
+        );
+        const lockedStatus = lockResult.rows[0]?.status;
+        if (!lockedStatus || lockedStatus === 'REVOKED' || lockedStatus === 'COMPLETED') {
+          // Concurrent revoke / completion won the race — bail out silently
+          // and let the outer handler return the already-revoked idempotent
+          // 200 response on next call.
+          throw new Error('TASK_NO_LONGER_REVOKABLE');
+        }
+
         await TaskRevocationService.recordRevocation(client, {
           taskId,
           revokedByUserId: userId,
           revokedByRole: TaskRevocationService.deriveRevokedByRole(req.user),
           revokedFromUserId: taskData.assigned_to,
           revokeReason: reason,
-          previousStatus: taskData.status,
+          previousStatus: lockedStatus,
         });
 
         // WHERE status NOT IN ('REVOKED','COMPLETED') guard: defense-in-depth
@@ -2008,6 +2038,16 @@ export class MobileCaseController {
         },
       });
     } catch (error) {
+      // NM-11: concurrent revoke / completion won the race under FOR UPDATE
+      // lock. Treat as idempotent success (the task is already in a
+      // terminal-for-revoke state); FE doesn't need to retry.
+      if (error instanceof Error && error.message === 'TASK_NO_LONGER_REVOKABLE') {
+        return res.status(200).json({
+          success: true,
+          message: 'Task is no longer revokable (already revoked or completed)',
+          data: { taskId: req.params.taskId, status: 'REVOKED' },
+        });
+      }
       logger.error('Revoke task error:', error);
       res.status(500).json({
         success: false,

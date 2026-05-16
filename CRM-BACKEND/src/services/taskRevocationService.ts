@@ -9,21 +9,40 @@ type Queryable = {
 type RecordRevocationInput = {
   taskId: string;
   revokedByUserId: string;
-  revokedByRole: 'ADMIN' | 'FE';
+  revokedByRole: string;
   revokedFromUserId: string | null;
   revokeReason: string;
   previousStatus: string;
 };
 
 export class TaskRevocationService {
+  /**
+   * NM-12 (2026-05-16): broadened from 'FE' | 'ADMIN' to the full role
+   * enum so `task_revocations.revoked_by_role` audit analytics can
+   * distinguish SUPER_ADMIN vs MANAGER vs TEAM_LEADER vs BACKEND_USER
+   * vs FE. Falls back to 'ADMIN' for any non-FE role we don't recognize
+   * by name. Column is varchar(16) — all values fit.
+   */
   static deriveRevokedByRole(
-    user: Pick<NonNullable<AuthenticatedRequest['user']>, 'permissionCodes'> | undefined
-  ): 'ADMIN' | 'FE' {
-    return isFieldExecutionActor(
-      user ? ({ permissionCodes: user.permissionCodes } as AuthenticatedRequest['user']) : undefined
-    )
-      ? 'FE'
-      : 'ADMIN';
+    user:
+      | Pick<NonNullable<AuthenticatedRequest['user']>, 'permissionCodes' | 'primaryRole'>
+      | undefined
+  ): string {
+    if (
+      isFieldExecutionActor(
+        user
+          ? ({ permissionCodes: user.permissionCodes } as AuthenticatedRequest['user'])
+          : undefined
+      )
+    ) {
+      return 'FE';
+    }
+    const role = user?.primaryRole?.toUpperCase() || '';
+    if (role === 'SUPER_ADMIN') return 'SUPER_ADMIN';
+    if (role === 'MANAGER') return 'MANAGER';
+    if (role === 'TEAM_LEADER') return 'TEAM_LEADER';
+    if (role === 'BACKEND_USER') return 'BACKEND_USER';
+    return 'ADMIN'; // generic fallback for unknown non-FE actor
   }
 
   static async recordRevocation(db: Queryable, input: RecordRevocationInput): Promise<number> {

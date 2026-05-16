@@ -543,6 +543,12 @@ export const CacheInvalidationPatterns = {
     CacheKeys.fieldAgentWorkload(),
     'user:*:cases:page:*',
     'case:*',
+    // NM-8 (2026-05-16): explicit `cases:*` pattern so cache-warming
+    // pre-fills like `cases:recent:pending` and `cases:recent:in-progress`
+    // (cacheWarmingService.ts) actually get invalidated on
+    // revoke/revisit/assign. Redis SCAN MATCH on `case:*` does NOT match
+    // `cases:*` due to the missing terminal `s` — separate pattern needed.
+    'cases:*',
     'dashboard:*',
     'mobile:sync:*',
     'field-monitoring:*',
@@ -563,6 +569,10 @@ export const CacheInvalidationPatterns = {
     'mobile:sync:*',
     'user:*:cases:page:*',
     'case:*',
+    // NM-8: separate pattern for `cases:*` keys (recent-pending /
+    // recent-in-progress cache-warming). `case:*` doesn't match
+    // `cases:*` under Redis SCAN.
+    'cases:*',
     'dashboard:*',
     'users:*', // Invalidate user lists to update assignment counts
     'field-monitoring:*',

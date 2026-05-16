@@ -104,7 +104,11 @@ router.put(
   '/verification-tasks/:taskId',
   authenticateToken,
   authorize('case.update'),
-  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate),
+  // NM-7 (2026-05-16): synchronous to match all sibling task-mutating
+  // routes. Async invalidation had a race window where an immediate
+  // re-fetch after PUT could hit stale cache before the setImmediate
+  // callback fired.
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
   validateTaskRecordAccess,
   validateTaskUpdate,
   VerificationTasksController.updateTask.bind(VerificationTasksController)
@@ -171,6 +175,11 @@ router.post(
   '/verification-tasks/:taskId/start',
   authenticateToken,
   authorize('visit.start', { ownership: 'task' }),
+  // NM-6: cache invalidation so case detail / dashboard reflect the
+  // ASSIGNED → IN_PROGRESS flip immediately. Without this, the handler
+  // calls updateTask internally which bypasses the PUT route's
+  // middleware → case detail stayed stale until TTL.
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
   async (req: AuthenticatedRequest, res) => {
     try {
       const { taskId } = req.params;

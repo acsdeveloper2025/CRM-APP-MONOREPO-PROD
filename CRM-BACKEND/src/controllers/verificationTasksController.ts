@@ -359,6 +359,19 @@ export class VerificationTasksController {
 
       const originalTask = originalTaskResult.rows[0];
 
+      // NM-10 (2026-05-16): KYC tasks use a separate workflow + status
+      // mirror (kyc_document_verifications). Revisiting via this endpoint
+      // would flip verification_tasks.status but leave the mirror stale.
+      if (originalTask.taskType === 'KYC' || originalTask.task_type === 'KYC') {
+        await client.query('ROLLBACK');
+        res.status(400).json({
+          success: false,
+          message: 'KYC tasks use a separate workflow and cannot be revisited via this endpoint.',
+          error: { code: 'KYC_USES_SEPARATE_WORKFLOW' },
+        });
+        return;
+      }
+
       // H-3 (audit 2026-05-11): revisit is only meaningful on a COMPLETED parent.
       // Block revisit on ASSIGNED/IN_PROGRESS (use reassignment instead) and on
       // REVOKED (use reassign-after-revoke). Without this guard, revisit on a
@@ -2062,6 +2075,19 @@ export class VerificationTasksController {
       }
 
       const task = taskResult.rows[0];
+
+      // NM-10: KYC tasks use a separate workflow + status mirror —
+      // revoking via this endpoint would leave kyc_document_verifications
+      // stale.
+      if (task.taskType === 'KYC' || task.task_type === 'KYC') {
+        await client.query('ROLLBACK');
+        res.status(400).json({
+          success: false,
+          message: 'KYC tasks use a separate workflow and cannot be revoked via this endpoint.',
+          error: { code: 'KYC_USES_SEPARATE_WORKFLOW' },
+        });
+        return;
+      }
 
       const hasScopeAccess = await VerificationTasksController.ensureTaskRevokeAccess(req, task);
       if (!hasScopeAccess) {
