@@ -5376,6 +5376,51 @@ CREATE TABLE public.mobile_idempotency_keys (
 
 
 --
+-- Name: reverse_geocode_dlq; Type: TABLE; Schema: public; Owner: -
+--
+-- G-HIGH-3 (AUDIT 2026-05-17): dead-letter queue for reverseGeocodeQueue
+-- jobs that exhausted BullMQ retries. Replayable via admin endpoint.
+--
+
+CREATE TABLE public.reverse_geocode_dlq (
+    id bigint NOT NULL,
+    attachment_id bigint NOT NULL,
+    latitude numeric(10,7) NOT NULL,
+    longitude numeric(11,7) NOT NULL,
+    error text NOT NULL,
+    attempts smallint DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    replayed_at timestamp with time zone
+);
+
+CREATE SEQUENCE public.reverse_geocode_dlq_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.reverse_geocode_dlq_id_seq OWNED BY public.reverse_geocode_dlq.id;
+
+ALTER TABLE ONLY public.reverse_geocode_dlq ALTER COLUMN id SET DEFAULT nextval('public.reverse_geocode_dlq_id_seq'::regclass);
+
+ALTER TABLE ONLY public.reverse_geocode_dlq
+    ADD CONSTRAINT reverse_geocode_dlq_pkey PRIMARY KEY (id);
+
+ALTER TABLE ONLY public.reverse_geocode_dlq
+    ADD CONSTRAINT reverse_geocode_dlq_attachment_id_fkey FOREIGN KEY (attachment_id) REFERENCES public.verification_attachments(id) ON DELETE CASCADE;
+
+CREATE INDEX idx_reverse_geocode_dlq_unreplayed
+  ON public.reverse_geocode_dlq USING btree (created_at DESC)
+  WHERE (replayed_at IS NULL);
+
+CREATE INDEX idx_reverse_geocode_dlq_attachment
+  ON public.reverse_geocode_dlq USING btree (attachment_id);
+
+COMMENT ON TABLE public.reverse_geocode_dlq IS 'G-HIGH-3 (AUDIT 2026-05-17): dead-letter queue for reverseGeocodeQueue jobs that exhausted BullMQ retries. Replayable via admin endpoint.';
+
+
+--
 -- Name: mobile_notification_audit; Type: TABLE; Schema: public; Owner: -
 --
 

@@ -159,6 +159,31 @@ export const startReverseGeocodeProcessor = (): void => {
       attachmentId: job.data.attachmentId,
       error: err.message,
     });
+
+    // G-HIGH-3 (AUDIT 2026-05-17): on FINAL failure (retries exhausted),
+    // persist to reverse_geocode_dlq so the attachment can be replayed
+    // via admin endpoint. Without this, the job vanished silently —
+    // any Google outage / billing lapse left attachments permanently
+    // address-less because the freeze-trigger blocks future re-resolve.
+    if (job.attemptsMade >= maxAttempts) {
+      void query(
+        `INSERT INTO reverse_geocode_dlq (attachment_id, latitude, longitude, error, attempts)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          job.data.attachmentId,
+          job.data.latitude,
+          job.data.longitude,
+          err.message,
+          job.attemptsMade,
+        ]
+      ).catch(dlqErr => {
+        logger.error('Failed to write reverse-geocode DLQ entry', {
+          attachmentId: job.data.attachmentId,
+          jobError: err.message,
+          dlqError: errorMessage(dlqErr),
+        });
+      });
+    }
   });
 
   worker.on('error', err => {
