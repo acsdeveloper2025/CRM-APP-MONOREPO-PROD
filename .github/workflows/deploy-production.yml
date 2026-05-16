@@ -324,10 +324,20 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
 
-      - name: 🔐 Pin host key (TOFU on first deploy, reject on mismatch after)
+      # 2026-05-16: replaced the prior `ssh-keyscan`-at-deploy-time step
+      # with a static pin from KNOWN_HOSTS_PIN secret. The earlier step
+      # actually re-scanned every run (its name was aspirational) — any
+      # transient packet loss between the GH runner and the prod
+      # datacenter caused partial / empty keyscan output → `exit 1` and
+      # the deploy never reached the file transfer. A pinned secret
+      # removes the network dependency entirely AND restores the
+      # MITM-detection that the step name claimed to provide.
+      - name: 🔐 Pin host key (from KNOWN_HOSTS_PIN secret)
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -p ${{ secrets.PRODUCTION_SSH_PORT || '2232' }} -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+          chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.KNOWN_HOSTS_PIN }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
       - name: 📋 Create Deployment Info
         env:
