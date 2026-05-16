@@ -106,6 +106,24 @@ class FrontendSocketService {
     };
   }
 
+  /**
+   * NM-4 (2026-05-16): subscribe to BE `case:updated` events emitted to
+   * `case:{caseId}` room on assign / revisit / revoke. Used to invalidate
+   * React Query caches so a second admin tab refreshes immediately
+   * instead of waiting on polling tick.
+   */
+  onCaseUpdated(
+    handler: (payload: { caseId: string; type?: string; [k: string]: unknown }) => void
+  ): (() => void) | null {
+    if (!this.socket) {
+      return null;
+    }
+    this.socket.on('case:updated', handler);
+    return () => {
+      this.socket?.off('case:updated', handler);
+    };
+  }
+
   onFieldMonitoringLocationUpdated(
     handler: (payload: FieldMonitoringLocationUpdatedPayload) => void
   ): (() => void) | null {

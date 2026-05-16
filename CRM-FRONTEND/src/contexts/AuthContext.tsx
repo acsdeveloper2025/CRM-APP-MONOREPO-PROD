@@ -226,6 +226,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         ]);
       }) || undefined;
 
+    // NM-4 (2026-05-16): BE emits `case:updated` to room `case:{caseId}`
+    // on assign / revisit / revoke. Without a listener, a second admin
+    // tab stayed stale until polling tick. Invalidate the case/task
+    // query keys so live data refetches.
+    const unsubscribeCaseUpdated =
+      frontendSocketService.onCaseUpdated(async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['verification-tasks'] }),
+          queryClient.invalidateQueries({ queryKey: ['all-verification-tasks'] }),
+          queryClient.invalidateQueries({ queryKey: ['cases'] }),
+          queryClient.invalidateQueries({ queryKey: ['case'] }),
+          queryClient.invalidateQueries({ queryKey: ['verification-tasks-for-case'] }),
+        ]);
+      }) || undefined;
+
     socket.on('connect_error', (error) => {
       logger.warn('Socket connect error:', error.message);
     });
@@ -236,6 +251,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       if (unsubscribeNotifications) {
         unsubscribeNotifications();
+      }
+      if (unsubscribeCaseUpdated) {
+        unsubscribeCaseUpdated();
       }
       socket.off('connect_error');
       frontendSocketService.disconnect();
