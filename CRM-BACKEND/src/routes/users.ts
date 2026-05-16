@@ -15,6 +15,7 @@ import { profilePhotoUpload } from '@/middleware/profilePhotoUpload';
 import { getUserConsents } from '@/controllers/userConsentsController';
 import { getUserAuditLog } from '@/controllers/userAuditLogController';
 import { exportUserData } from '@/controllers/userDataExportController';
+import { eraseUserData } from '@/controllers/userErasureController';
 import {
   getUsers,
   getUserById,
@@ -390,6 +391,12 @@ router.get('/:id/audit-log', authenticateToken, getUserAuditLog);
 // right to access a copy of all personal data the system holds about
 // them. Auth handled inside controller (self OR settings.manage admin).
 router.get('/:id/data-export', authenticateToken, exportUserData);
+
+// C-HIGH-1 (AUDIT 2026-05-17): DPDP §15 erasure right. Redacts the user
+// row + hard-deletes session/device/notification records. Statutory
+// retention (RBI 7yr commission, audit logs, KYC business records)
+// honors the §15 carve-out. Auth: self OR settings.manage admin.
+router.delete('/:id/data', authenticateToken, eraseUserData);
 
 // POST /api/users/import - CSV or XLSX bulk insert
 router.post(
