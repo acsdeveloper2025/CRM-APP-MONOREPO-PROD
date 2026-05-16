@@ -11,6 +11,7 @@ import { QueryParams, VerificationAttachmentRow, WhereClause, CaseRow } from '..
 import { createAuditLog } from '../utils/auditLogger';
 import { config } from '../config';
 import { query, withTransaction } from '@/config/database';
+import { getSocketIO, emitCaseUpdate, emitNotification } from '@/websocket/server';
 import {
   queueCaseRevocationNotification,
   queueTaskRevocationNotification,
@@ -1842,37 +1843,58 @@ export class MobileCaseController {
         });
       }
 
-      await TaskRevocationService.recordRevocation(
-        { query },
-        {
+      // C-9: ownership check — a field execution actor may only revoke
+      // tasks currently assigned to themselves. Admin / team-lead actors
+      // (non-execution) can revoke any task they have permission to see.
+      if (
+        isExecutionActor &&
+        taskData.assigned_to &&
+        taskData.assigned_to !== userId
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can only revoke tasks assigned to you.',
+          error: {
+            code: 'TASK_NOT_ASSIGNED_TO_USER',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      // C-3 + M-1: wrap recordRevocation + UPDATE + recalc in a single
+      // transaction so a crash between any pair cannot leave drift
+      // (orphan task_revocations row, stale cases.status). recalc gets
+      // the tx client so it's part of the same atomic write.
+      await withTransaction(async client => {
+        await TaskRevocationService.recordRevocation(client, {
           taskId,
           revokedByUserId: userId,
-          revokedByRole: 'FE',
+          revokedByRole: TaskRevocationService.deriveRevokedByRole(req.user),
           revokedFromUserId: taskData.assigned_to,
           revokeReason: reason,
           previousStatus: taskData.status,
-        }
-      );
+        });
 
-      // Update task status to revoked and detach assignment.
-      // WHERE status NOT IN ('REVOKED','COMPLETED') guard: defense-in-depth
-      // against re-revoking terminal tasks. The earlier read may race a
-      // concurrent revoke; this clause makes the UPDATE itself idempotent.
-      await query(
-        `
-        UPDATE verification_tasks
-        SET status = 'REVOKED',
-            revoked_at = CURRENT_TIMESTAMP,
-            revoked_by = $1,
-            revocation_reason = $2,
-            assigned_to = NULL,
-            current_assigned_at = NULL,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = $3
-          AND status NOT IN ('REVOKED', 'COMPLETED')
-      `,
-        [userId, reason, taskId]
-      );
+        // WHERE status NOT IN ('REVOKED','COMPLETED') guard: defense-in-depth
+        // against re-revoking terminal tasks under concurrent calls.
+        await client.query(
+          `
+          UPDATE verification_tasks
+          SET status = 'REVOKED',
+              revoked_at = CURRENT_TIMESTAMP,
+              revoked_by = $1,
+              revocation_reason = $2,
+              assigned_to = NULL,
+              current_assigned_at = NULL,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = $3
+            AND status NOT IN ('REVOKED', 'COMPLETED')
+        `,
+          [userId, reason, taskId]
+        );
+
+        await CaseStatusSyncService.recalculateCaseStatus(taskData.case_id, client);
+      });
 
       // Get field user information
       const fieldUserQuery = await query(
@@ -1945,13 +1967,33 @@ export class MobileCaseController {
 
       logger.info(`✅ Task ${taskData.task_number} revoked successfully by ${fieldUserName}`);
 
-      // Sync case status
-      try {
-        await CaseStatusSyncService.recalculateCaseStatus(taskData.case_id);
-        logger.info(`🔄 Case status synced for case ${taskData.case_id}`);
-      } catch (syncError) {
-        logger.error(`❌ Failed to sync case status for case ${taskData.case_id}:`, syncError);
-        // Don't fail the request if sync fails, but log it as error
+      // C-8: emit case:updated WS event so admin/team-lead clients in the
+      // case room see the status flip in real time. Mirrors revisit-create.
+      const io = getSocketIO();
+      if (io) {
+        emitCaseUpdate(io, String(taskData.case_id), {
+          type: 'task-revoked',
+          taskId: taskData.id,
+          taskNumber: taskData.task_number,
+          revokedBy: userId,
+          reason,
+        });
+        // B-146: if revoke was triggered by an admin/team-lead via the
+        // mobile route (rare but allowed by permission gate) for a task
+        // assigned to a different FE, push the same `TASK_REVOKED`
+        // event to that FE so their app cleans up. Skip when the
+        // revoker IS the assignee (their local app already wiped via
+        // RevokeTaskUseCase → TaskRepository.wipeLocalTaskArtifacts).
+        if (taskData.assigned_to && taskData.assigned_to !== userId) {
+          emitNotification(io, String(taskData.assigned_to), {
+            type: 'TASK_REVOKED',
+            taskId: taskData.id,
+            taskNumber: taskData.task_number,
+            caseId: taskData.case_id,
+            reason,
+            previousStatus: taskData.status,
+          });
+        }
       }
 
       res.json({

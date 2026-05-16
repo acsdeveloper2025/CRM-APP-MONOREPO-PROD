@@ -282,20 +282,26 @@ router.get(
           u_assigned.name as assigned_to_name,
           u_assigned.employee_id as assigned_to_employee_id,
           u_created.name as assigned_by_name,
+          u_revoker.name as "revokedByName",
+          vt.revocation_reason as "revokeReason",
           rt.name as rate_type_name,
           c.case_id as case_number,
           c.customer_name as customer_name,
           cc.status as commission_status,
           cc.calculated_commission,
-          p.code as pincode
+          p.code as pincode,
+          parent_vt.task_number as "parentTaskNumber",
+          parent_vt.completed_at as "parentCompletedAt"
         FROM verification_tasks vt
         LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
         LEFT JOIN users u_assigned ON vt.assigned_to = u_assigned.id
         LEFT JOIN users u_created ON vt.assigned_by = u_created.id
+        LEFT JOIN users u_revoker ON vt.revoked_by = u_revoker.id
         LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
         LEFT JOIN cases c ON vt.case_id = c.id
         LEFT JOIN commission_calculations cc ON vt.id = cc.verification_task_id
         LEFT JOIN pincodes p ON p.id = vt.pincode_id
+        LEFT JOIN verification_tasks parent_vt ON parent_vt.id = vt.parent_task_id
         WHERE vt.id = $1
       `,
         [taskId]
@@ -325,65 +331,14 @@ router.get(
   }
 );
 
-/**
- * Cancel a verification task
- * POST /api/verification-tasks/:taskId/cancel
- */
-router.post(
-  '/verification-tasks/:taskId/cancel',
-  authenticateToken,
-  authorize('visit.revoke', { ownership: 'task' }),
-  validateTaskRecordAccess,
-  async (req: AuthenticatedRequest, res) => {
-    try {
-      const { taskId } = req.params;
-      const { cancellationReason } = req.body;
-      const userId = req.user!.id;
-
-      // Defense-in-depth: REVOKED + COMPLETED are terminal — block re-revoke.
-      const current = await dbQuery<{ status: string }>(
-        'SELECT status FROM verification_tasks WHERE id = $1',
-        [taskId]
-      );
-      const currentStatus = current.rows[0]?.status;
-      if (!currentStatus) {
-        res.status(404).json({
-          success: false,
-          message: 'Task not found',
-          error: { code: 'TASK_NOT_FOUND' },
-        });
-        return;
-      }
-      if (!TaskCompletionValidator.canTransition(currentStatus, 'REVOKED')) {
-        res.status(409).json({
-          success: false,
-          message: `Cannot revoke task in status ${currentStatus}`,
-          error: { code: 'INVALID_STATUS_TRANSITION' },
-        });
-        return;
-      }
-
-      await VerificationTasksController.updateTask(
-        {
-          ...req,
-          body: {
-            status: 'REVOKED',
-            revocationReason: cancellationReason,
-            revokedAt: new Date().toISOString(),
-            revokedBy: userId,
-          },
-        } as AuthenticatedRequest,
-        res
-      );
-    } catch (_error) {
-      res.status(500).json({
-        success: false,
-        message: 'Failed to cancel task',
-        error: { code: 'INTERNAL_ERROR' },
-      });
-    }
-  }
-);
+// M-7: `/verification-tasks/:taskId/cancel` route deleted 2026-05-16.
+// It was a back-door revoke that called updateTask with generic dynamic
+// SQL, bypassing TaskRevocationService.recordRevocation entirely — no
+// task_revocations audit row, no ADMIN_TASK_REVOKED audit log, no
+// reason-required validation. FE and mobile only use the canonical
+// /revoke route, so this endpoint was dead code that risked an
+// audit-trail leak if hit via curl. The /revoke route at line 131 is
+// the only supported revocation entry point.
 
 /**
  * Bulk assign multiple tasks

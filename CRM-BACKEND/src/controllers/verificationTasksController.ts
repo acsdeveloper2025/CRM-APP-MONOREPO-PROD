@@ -17,7 +17,7 @@ import { requireControllerPermission } from '@/security/controllerAuthorization'
 import { resolveDataScope, valueAllowedByScope } from '@/security/dataScope';
 import { TaskRevocationService } from '@/services/taskRevocationService';
 import { TaskCompletionFinalizer } from '@/services/taskCompletionFinalizer';
-import { getSocketIO, emitCaseUpdate } from '@/websocket/server';
+import { getSocketIO, emitCaseUpdate, emitNotification } from '@/websocket/server';
 
 type ReassignableTaskRecord = {
   id: string;
@@ -985,6 +985,8 @@ export class VerificationTasksController {
           u_assigned.name as "assignedToName",
           u_assigned.employee_id as "assignedToEmployeeId",
           u_created.name as "assignedByName",
+          u_revoker.name as "revokedByName",
+          vt.revocation_reason as "revokeReason",
           rt.name as rate_type_name,
           cc.status as commission_status,
           cc.calculated_commission
@@ -996,6 +998,7 @@ export class VerificationTasksController {
         LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
         LEFT JOIN users u_assigned ON vt.assigned_to = u_assigned.id
         LEFT JOIN users u_created ON vt.assigned_by = u_created.id
+        LEFT JOIN users u_revoker ON vt.revoked_by = u_revoker.id
         LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
         LEFT JOIN commission_calculations cc ON vt.id = cc.verification_task_id
         ${whereClause}
@@ -1063,6 +1066,10 @@ export class VerificationTasksController {
         estimatedCompletionDate: row.estimatedCompletionDate,
         commissionStatus: row.commissionStatus,
         calculatedCommission: parseFloat(row.calculatedCommission || '0'),
+        revokedAt: row.revokedAt,
+        revokedBy: row.revokedBy,
+        revokedByName: row.revokedByName,
+        revokeReason: row.revokeReason,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
       }));
@@ -1082,7 +1089,27 @@ export class VerificationTasksController {
           COUNT(*) FILTER (WHERE vt.status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED') AND vt.created_at < NOW() - INTERVAL '24 hours') as long_running_count,
           AVG(CASE WHEN vt.status = 'IN_PROGRESS' AND vt.started_at IS NOT NULL THEN EXTRACT(EPOCH FROM (NOW() - vt.started_at)) / 3600 END) as avg_duration_hours,
           AVG(CASE WHEN vt.status = 'COMPLETED' AND vt.completed_at IS NOT NULL THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.created_at)) / 3600 END) as avg_turnaround_hours,
-          COUNT(*) FILTER (WHERE vt.status = 'COMPLETED' AND vt.completed_at >= CURRENT_DATE) as completed_today_count
+          COUNT(*) FILTER (WHERE vt.status = 'COMPLETED' AND vt.completed_at >= CURRENT_DATE) as completed_today_count,
+          -- Revoke-page aggregates (B-152): scoped by whereClause so when
+          -- the caller filters status='REVOKED', these reflect that subset.
+          -- "Reassigned" = revoked task whose task_revocations row was
+          -- subsequently markReassigned'd. "Awaiting reassignment" = the
+          -- opposite (revoked but no successor task yet).
+          COUNT(*) FILTER (WHERE vt.status = 'REVOKED' AND vt.revoked_at >= CURRENT_DATE) as revoked_today_count,
+          COUNT(*) FILTER (
+            WHERE vt.status = 'REVOKED'
+              AND EXISTS (
+                SELECT 1 FROM task_revocations tr
+                 WHERE tr.task_id = vt.id AND tr.reassigned = TRUE
+              )
+          ) as reassigned_count,
+          COUNT(*) FILTER (
+            WHERE vt.status = 'REVOKED'
+              AND NOT EXISTS (
+                SELECT 1 FROM task_revocations tr
+                 WHERE tr.task_id = vt.id AND tr.reassigned = TRUE
+              )
+          ) as awaiting_reassignment_count
         FROM verification_tasks vt
         LEFT JOIN cases c ON vt.case_id = c.id
         ${whereClause}
@@ -1118,6 +1145,9 @@ export class VerificationTasksController {
             avgDuration: parseFloat(stats.avgDurationHours || '0'),
             avgTurnaround: parseFloat(stats.avgTurnaroundHours || '0'),
             completedToday: parseInt(stats.completedTodayCount || '0'),
+            revokedToday: parseInt(stats.revokedTodayCount || '0'),
+            reassigned: parseInt(stats.reassignedCount || '0'),
+            awaitingReassignment: parseInt(stats.awaitingReassignmentCount || '0'),
           },
         },
         message: 'Verification tasks retrieved successfully',
@@ -1323,6 +1353,9 @@ export class VerificationTasksController {
           u_assigned.name as assigned_to_name,
           u_assigned.employee_id as assigned_to_employee_id,
           u_created.name as assigned_by_name,
+          u_revoker.name as "revokedByName",
+          vt.revocation_reason as "revokeReason",
+          parent_vt.task_number as "parentTaskNumber",
           rt.name as rate_type_name,
           cc.status as commission_status,
           cc.calculated_commission
@@ -1331,8 +1364,10 @@ export class VerificationTasksController {
         LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
         LEFT JOIN users u_assigned ON vt.assigned_to = u_assigned.id
         LEFT JOIN users u_created ON vt.assigned_by = u_created.id
+        LEFT JOIN users u_revoker ON vt.revoked_by = u_revoker.id
         LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
         LEFT JOIN commission_calculations cc ON vt.id = cc.verification_task_id
+        LEFT JOIN verification_tasks parent_vt ON parent_vt.id = vt.parent_task_id
         WHERE ${whereClause}
         ORDER BY vt.created_at ASC
       `,
@@ -1372,9 +1407,14 @@ export class VerificationTasksController {
         completedAt: row.completedAt,
         taskType: row.taskType,
         parentTaskId: row.parentTaskId,
+        parentTaskNumber: row.parentTaskNumber,
         estimatedCompletionDate: row.estimatedCompletionDate,
         commissionStatus: row.commissionStatus,
         calculatedCommission: parseFloat(row.calculatedCommission || '0'),
+        revokedAt: row.revokedAt,
+        revokedBy: row.revokedBy,
+        revokedByName: row.revokedByName,
+        revokeReason: row.revokeReason,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
       }));
@@ -2063,12 +2103,18 @@ export class VerificationTasksController {
       await TaskRevocationService.recordRevocation(client, {
         taskId,
         revokedByUserId: userId,
-        revokedByRole: 'ADMIN',
+        // M-2: derive role from the caller's permissions instead of
+        // hardcoding 'ADMIN' — supports team-lead / scoped-ops with
+        // task.revoke without misattributing the audit trail.
+        revokedByRole: TaskRevocationService.deriveRevokedByRole(req.user),
         revokedFromUserId: task.assignedTo,
         revokeReason: reason,
         previousStatus: task.status,
       });
 
+      // M-4: do NOT overwrite assigned_by — that's the historical record
+      // of who first assigned the task and shouldn't change on revoke.
+      // M-5: defense-in-depth WHERE status NOT IN ('REVOKED','COMPLETED').
       await client.query(
         `
           UPDATE verification_tasks
@@ -2078,17 +2124,20 @@ export class VerificationTasksController {
             revoked_by = $1,
             revocation_reason = $2,
             assigned_to = NULL,
-            assigned_by = $1,
             current_assigned_at = NULL,
             updated_at = NOW()
           WHERE id = $3
+            AND status NOT IN ('REVOKED', 'COMPLETED')
         `,
         [userId, reason, taskId]
       );
 
       await createAuditLog({
         userId,
-        action: 'ADMIN_TASK_REVOKED',
+        // M-3: unify action name across web + mobile so KPI dashboards
+        // can filter on a single string. The role dimension comes from
+        // task_revocations.revoked_by_role instead.
+        action: 'TASK_REVOKED',
         entityType: 'VERIFICATION_TASK',
         entityId: taskId,
         details: {
@@ -2099,9 +2148,41 @@ export class VerificationTasksController {
         },
       });
 
+      // M-1: recalc inside the same tx so cases.status update is atomic
+      // with the task UPDATE. Drift window between COMMIT and recalc
+      // closed.
+      await CaseStatusSyncService.recalculateCaseStatus(task.caseId, client);
+
       await client.query('COMMIT');
 
-      await CaseStatusSyncService.recalculateCaseStatus(task.caseId);
+      // C-8: emit case:updated WS event so admin clients in the case
+      // room see the status flip in real time.
+      const io = getSocketIO();
+      if (io) {
+        emitCaseUpdate(io, String(task.caseId), {
+          type: 'task-revoked',
+          taskId: task.id,
+          taskNumber: task.taskNumber,
+          revokedBy: userId,
+          reason,
+        });
+        // B-146: also push to the FE assignee's user room so the mobile
+        // app drops the task + wipes local attachments / form drafts in
+        // real time. Without this push, an FE actively in the form
+        // would only discover the revoke on next sync tick (or by
+        // hitting an opaque 409 on submit). Skip if the task had no
+        // assignee (revoke on a PENDING/unassigned task).
+        if (task.assignedTo && task.assignedTo !== userId) {
+          emitNotification(io, String(task.assignedTo), {
+            type: 'TASK_REVOKED',
+            taskId: task.id,
+            taskNumber: task.taskNumber,
+            caseId: task.caseId,
+            reason,
+            previousStatus: task.status,
+          });
+        }
+      }
 
       res.json({
         success: true,
