@@ -139,14 +139,18 @@ export const revokeUserSession = async (
     // Atomic claim: revoke only if still active. Returning row count
     // distinguishes "revoked just now" from "already revoked" /
     // "not found" / "belongs to different user".
-    const result = await query<{ id: string; device_label: string | null }>(
+    const result = await query<{
+      id: string;
+      device_id: string | null;
+      device_label: string | null;
+    }>(
       `UPDATE refresh_tokens
           SET revoked_at = CURRENT_TIMESTAMP,
               revoked_reason = $3
         WHERE id = $1
           AND user_id = $2
           AND revoked_at IS NULL
-        RETURNING id::text, device_label`,
+        RETURNING id::text, device_id, device_label`,
       [
         sessionId,
         targetUserId,
@@ -179,10 +183,16 @@ export const revokeUserSession = async (
     });
 
     // A-CRIT-1 chunk 4 (AUDIT 2026-05-17): real-time WS push to the
-    // affected user's room. Mobile client matches its current sessionId
-    // and wipes Keychain immediately. Fire-and-forget; durable signal
-    // is the refresh_tokens row (will 401 on next refresh anyway).
-    emitSessionRevoked(targetUserId, sessionId, result.rows[0].device_label);
+    // affected user's room. Mobile client matches the incoming deviceId
+    // to its own getDeviceId() and wipes Keychain if equal. Fire-and-
+    // forget; durable signal is the refresh_tokens row (will 401 on
+    // next refresh anyway).
+    emitSessionRevoked(
+      targetUserId,
+      sessionId,
+      result.rows[0].device_id,
+      result.rows[0].device_label
+    );
 
     logger.info('User session revoked', {
       sessionId,

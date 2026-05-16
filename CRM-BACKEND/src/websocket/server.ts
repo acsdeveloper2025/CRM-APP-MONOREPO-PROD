@@ -618,6 +618,7 @@ export const emitPermissionsUpdated = (io: SocketIOServer, userIds: string[] | s
 export const emitSessionRevoked = (
   userId: string,
   sessionId: string,
+  deviceId: string | null,
   deviceLabel: string | null
 ): void => {
   const io = globalSocketIO;
@@ -628,6 +629,7 @@ export const emitSessionRevoked = (
     type: 'SESSION_REVOKED',
     userId,
     sessionId,
+    deviceId,
     deviceLabel,
     timestamp: new Date().toISOString(),
   });
