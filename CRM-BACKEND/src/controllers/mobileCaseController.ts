@@ -66,13 +66,15 @@ export class MobileCaseController {
           return MobileCaseController.startTask(req, res);
         }
         case 'TASK_COMPLETED': {
+          // NEW-HIGH-4 (AUDIT 2026-05-16): explicit picks only — never
+          // spread `...payload` so a future mass-assignment in completeTask
+          // can't be triggered by mobile clients setting arbitrary keys.
           const completionPayload = payload as {
             verificationOutcome?: string;
             actualAmount?: number;
           };
           req.body = {
             ...req.body,
-            ...completionPayload,
             verificationOutcome:
               completionPayload.verificationOutcome ?? req.body?.verificationOutcome,
             actualAmount: completionPayload.actualAmount ?? req.body?.actualAmount,

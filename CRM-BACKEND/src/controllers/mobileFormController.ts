@@ -2386,14 +2386,22 @@ export class MobileFormController {
       });
     }
 
+    // NEW-HIGH-4 (AUDIT 2026-05-16): explicit picks from `data` — never
+    // spread the whole untrusted payload. The 9 submit* handlers below
+    // only read `req.body.{formData, outcome, verificationOutcome}` (grep
+    // verified). Forwarding anything else is dead weight + mass-assignment
+    // landmine.
+    const typedData = data as {
+      formData?: unknown;
+      outcome?: unknown;
+      verificationOutcome?: unknown;
+    };
     req.body = {
       ...req.body,
-      ...(data as Record<string, unknown>),
+      outcome: typedData.outcome,
+      verificationOutcome: typedData.verificationOutcome,
       formData:
-        (data as { formData?: unknown }).formData &&
-        typeof (data as { formData?: unknown }).formData === 'object'
-          ? (data as { formData: unknown }).formData
-          : data,
+        typedData.formData && typeof typedData.formData === 'object' ? typedData.formData : data,
     };
 
     switch (formType) {
