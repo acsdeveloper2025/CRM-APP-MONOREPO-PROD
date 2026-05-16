@@ -17,6 +17,10 @@ import { getUserAuditLog } from '@/controllers/userAuditLogController';
 import { exportUserData } from '@/controllers/userDataExportController';
 import { eraseUserData } from '@/controllers/userErasureController';
 import {
+  listUserSessions,
+  revokeUserSession,
+} from '@/controllers/userSessionsController';
+import {
   getUsers,
   getUserById,
   createUser,
@@ -397,6 +401,12 @@ router.get('/:id/data-export', authenticateToken, exportUserData);
 // retention (RBI 7yr commission, audit logs, KYC business records)
 // honors the §15 carve-out. Auth: self OR settings.manage admin.
 router.delete('/:id/data', authenticateToken, eraseUserData);
+
+// A-CRIT-1 chunk 3 (AUDIT 2026-05-17): per-device session management.
+// List active sessions / revoke ONE without nuking other devices.
+// Auth handled inside controllers (self OR settings.manage admin).
+router.get('/:id/sessions', authenticateToken, listUserSessions);
+router.delete('/:id/sessions/:sessionId', authenticateToken, revokeUserSession);
 
 // POST /api/users/import - CSV or XLSX bulk insert
 router.post(
