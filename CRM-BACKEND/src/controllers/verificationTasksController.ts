@@ -1796,11 +1796,17 @@ export class VerificationTasksController {
       // verification_type_id). The partial unique index added in
       // migration 013 is the belt; this is the suspenders.
       // F5.1.2 Phase B: source pincode text via FK
+      // 2026-05-16: include task_title / task_description / estimated_amount
+      // / task_type. createReplacementTask reuses these in the new-task INSERT
+      // and `task_title` is NOT NULL — omitting it was throwing PG 23502 on
+      // every "Reassign Revoked Task" path. estimated_amount + task_type were
+      // silently NULL'd on the replacement too (billing/enum drift).
       const taskResult = await client.query(
         `SELECT vt.id, vt.case_id, vt.verification_type_id, vt.status, vt.assigned_to,
                 vt.address, p.code AS pincode, vt.pincode_id,
                 vt.latitude, vt.longitude, vt.priority, vt.area_id,
-                vt.rate_type_id, vt.started_at, vt.completed_at, vt.created_at, vt.updated_at
+                vt.rate_type_id, vt.started_at, vt.completed_at, vt.created_at, vt.updated_at,
+                vt.task_title, vt.task_description, vt.estimated_amount, vt.task_type
          FROM verification_tasks vt
          LEFT JOIN pincodes p ON p.id = vt.pincode_id
          WHERE vt.id = $1
