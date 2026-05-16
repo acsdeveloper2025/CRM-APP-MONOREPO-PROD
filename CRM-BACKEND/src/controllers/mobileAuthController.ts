@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { verifyJwtWithRotation } from '../utils/jwtRotation';
-import { query } from '@/config/database';
+import { issueRefreshTokenForDevice } from '../utils/refreshTokenIssue';
+import { query, withTransaction } from '@/config/database';
 import { config } from '../config';
 import type {
   MobileLoginRequest,
@@ -173,16 +174,19 @@ export class MobileAuthController {
 
       const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-      // Store refresh token HASH (not the raw JWT).
-      await query(
-        `INSERT INTO refresh_tokens (token, user_id, expires_at, created_at, ip_address, user_agent) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)`,
-        [
-          refreshTokenHash,
-          user.id,
-          new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          req.ip,
-          req.get('User-Agent') || null,
-        ]
+      // A-CRIT-1 chunk 2 (AUDIT 2026-05-17): mobile login carries the
+      // platform deviceId. Wrapped in withTransaction so revoke-prior +
+      // insert pair is atomic.
+      await withTransaction(async client =>
+        issueRefreshTokenForDevice(client, {
+          userId: user.id,
+          tokenHash: refreshTokenHash,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent') || null,
+          deviceId:
+            typeof req.body?.deviceId === 'string' ? req.body.deviceId : null,
+        })
       );
 
       // Fetch role-based assignments for FIELD_AGENT users (mobile app is primarily for field agents)
@@ -360,31 +364,39 @@ export class MobileAuthController {
       );
       const newRefreshHash = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
 
-      await query('BEGIN');
-      try {
+      // A-CRIT-1 chunk 2 (AUDIT 2026-05-17): wrapped in withTransaction
+      // (was a bare BEGIN/COMMIT pair on the pool — that doesn't pin
+      // the connection across statements, so the prior pattern was
+      // racy under load). withTransaction acquires a single PoolClient
+      // for the whole block + handles ROLLBACK on throw automatically.
+      await withTransaction(async client => {
+        // Carry forward device_id from the rotated row so the rotation
+        // preserves the device binding. Read BEFORE the revoke.
+        const prior = await client.query<{ device_id: string | null }>(
+          `SELECT device_id FROM refresh_tokens
+            WHERE token = $1 AND user_id = $2 AND revoked_at IS NULL
+            LIMIT 1`,
+          [incomingHash, decoded.userId]
+        );
+        const carriedDeviceId = prior.rows[0]?.device_id ?? null;
+
         // 2026-04-28 F1.7.2: soft-delete the rotated token (keeps forensic
         // trail showing when the token was last used + rotated).
-        await query(
+        await client.query(
           `UPDATE refresh_tokens
            SET revoked_at = CURRENT_TIMESTAMP, revoked_reason = 'rotated'
            WHERE token = $1 AND user_id = $2 AND revoked_at IS NULL`,
           [incomingHash, decoded.userId]
         );
-        await query(
-          `INSERT INTO refresh_tokens (token, user_id, expires_at, created_at, ip_address, user_agent) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)`,
-          [
-            newRefreshHash,
-            storedToken.userId,
-            new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-            req.ip,
-            req.get('User-Agent') || null,
-          ]
-        );
-        await query('COMMIT');
-      } catch (rotationErr) {
-        await query('ROLLBACK');
-        throw rotationErr;
-      }
+        await issueRefreshTokenForDevice(client, {
+          userId: storedToken.userId,
+          tokenHash: newRefreshHash,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent') || null,
+          deviceId: carriedDeviceId,
+        });
+      });
 
       return res.json({
         success: true,

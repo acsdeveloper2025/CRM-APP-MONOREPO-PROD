@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { verifyJwtWithRotation } from '../utils/jwtRotation';
+import { issueRefreshTokenForDevice } from '../utils/refreshTokenIssue';
 import { query, withTransaction } from '@/config/database';
 import { config } from '@/config';
 import { logger } from '@/config/logger';
@@ -253,9 +254,20 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
     const expiresAt = new Date(Date.now() + parseDurationMs(config.jwtRefreshExpiresIn));
 
-    await query(
-      `INSERT INTO refresh_tokens (token, user_id, expires_at, created_at, ip_address, user_agent) VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)`,
-      [tokenHash, user.id, expiresAt, req.ip, req.get('User-Agent') || null]
+    // A-CRIT-1 chunk 2 (AUDIT 2026-05-17): accept optional deviceId from
+    // request body. wrapped in withTransaction so the revoke-prior +
+    // insert pair is atomic. If deviceId absent, helper falls back to
+    // plain INSERT (no prior-revoke needed) — legacy clients unchanged.
+    await withTransaction(async client =>
+      issueRefreshTokenForDevice(client, {
+        userId: user.id,
+        tokenHash,
+        expiresAt,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent') || null,
+        deviceId:
+          typeof req.body?.deviceId === 'string' ? req.body.deviceId : null,
+      })
     );
 
     // Update user's lastLogin timestamp
@@ -808,6 +820,17 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     const newExpiresAt = new Date(Date.now() + parseDurationMs(config.jwtRefreshExpiresIn));
 
     await withTransaction(async client => {
+      // A-CRIT-1 chunk 2 (AUDIT 2026-05-17): carry forward the device_id
+      // from the rotated row so the new token stays bound to the same
+      // device. Read BEFORE the revoke UPDATE so we see the live row.
+      const prior = await client.query<{ device_id: string | null }>(
+        `SELECT device_id FROM refresh_tokens
+          WHERE token = $1 AND user_id = $2 AND revoked_at IS NULL
+          LIMIT 1`,
+        [tokenHash, decoded.userId]
+      );
+      const carriedDeviceId = prior.rows[0]?.device_id ?? null;
+
       // Soft-delete the rotated token (keeps forensic trail per F1.7.2).
       await client.query(
         `UPDATE refresh_tokens
@@ -815,11 +838,14 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
          WHERE token = $1 AND user_id = $2 AND revoked_at IS NULL`,
         [tokenHash, decoded.userId]
       );
-      await client.query(
-        `INSERT INTO refresh_tokens (token, user_id, expires_at, created_at, ip_address, user_agent)
-         VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)`,
-        [newRefreshHash, user.id, newExpiresAt, req.ip, req.get('User-Agent') || null]
-      );
+      await issueRefreshTokenForDevice(client, {
+        userId: user.id,
+        tokenHash: newRefreshHash,
+        expiresAt: newExpiresAt,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent') || null,
+        deviceId: carriedDeviceId,
+      });
     });
 
     // Phase E5 + F-B3.1: re-issue cookie with the NEW token value so
