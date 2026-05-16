@@ -100,6 +100,38 @@ import { TaskCompletionFinalizer } from '../services/taskCompletionFinalizer';
 import { errorMessage } from '@/utils/errorMessage';
 // Enhanced services temporarily disabled for debugging
 
+/**
+ * NC-2 (2026-05-16): shared helper for the IN_PROGRESS → COMPLETED
+ * UPDATE that every form-submit path runs. The `WHERE status='IN_PROGRESS'`
+ * guard makes the UPDATE a no-op if the task was revoked between the
+ * validate step and this UPDATE (race against BE-initiated revoke or
+ * WS push). All 9 prior call sites silently ignored that no-op and
+ * continued to snapshot financials, recalc case, and INSERT
+ * verification_reports — creating orphan data tied to a REVOKED task.
+ *
+ * Throws TASK_REVOKED_DURING_SUBMIT when 0 rows updated. The outer
+ * `withTransaction` will rollback; the handler's catch maps the
+ * sentinel to a 409 response which the mobile uploader treats as
+ * already-done success (no retry storm).
+ */
+async function completeTaskOrThrowIfRevoked(
+  client: PoolClient,
+  taskId: string
+): Promise<void> {
+  const result = await client.query(
+    `UPDATE verification_tasks
+        SET status = 'COMPLETED',
+            completed_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+        AND status = 'IN_PROGRESS'`,
+    [taskId]
+  );
+  if (result.rowCount === 0) {
+    throw new Error('TASK_REVOKED_DURING_SUBMIT');
+  }
+}
+
 export class MobileFormController {
   /**
    * Combines composite Value+Unit field pairs into single fields.
@@ -2648,18 +2680,10 @@ export class MobileFormController {
       // single transaction so the task-completed state cannot exist without
       // the corresponding verification report + form-submission link.
       const updatedCase = await withTransaction(async client => {
-        // a. Update verification task status to COMPLETED
-        await client.query(
-          `
-        UPDATE verification_tasks
-        SET status = 'COMPLETED',
-            completed_at = CURRENT_TIMESTAMP,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1
-          AND status = 'IN_PROGRESS'
-      `,
-          [taskId || verificationTaskId]
-        );
+        // a. Update verification task status to COMPLETED (NC-2: aborts
+        // tx with TASK_REVOKED_DURING_SUBMIT if the task was revoked
+        // between validate and now — prevents orphan downstream writes).
+        await completeTaskOrThrowIfRevoked(client, taskId || verificationTaskId);
 
         // Snapshot financial state via shared finalizer (frozen actual_amount).
         await TaskCompletionFinalizer.snapshotFinancials(client, taskId || verificationTaskId);
@@ -2860,6 +2884,20 @@ export class MobileFormController {
       });
     } catch (error) {
       logger.error('Submit residence verification error:', error);
+      // NC-2: tx aborted because task was revoked mid-submit → 409 instead
+      // of generic 500 so the mobile uploader treats it as already-done
+      // (no retry storm) and the FE can show a clear message.
+      if (error instanceof Error && error.message === 'TASK_REVOKED_DURING_SUBMIT') {
+        res.status(409).json({
+          success: false,
+          message: 'Task was revoked while you were submitting — your local data has been cleared.',
+          error: {
+            code: 'TASK_REVOKED_DURING_SUBMIT',
+            timestamp: new Date().toISOString(),
+          },
+        });
+        return;
+      }
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -3131,18 +3169,10 @@ export class MobileFormController {
 
       // Finding #3: wrap writes + consistent re-read in a single transaction.
       const updatedCase = await withTransaction(async client => {
-        // a. Update verification task status to COMPLETED
-        await client.query(
-          `
-        UPDATE verification_tasks
-        SET status = 'COMPLETED',
-            completed_at = CURRENT_TIMESTAMP,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1
-          AND status = 'IN_PROGRESS'
-      `,
-          [taskId || verificationTaskId]
-        );
+        // a. Update verification task status to COMPLETED (NC-2: aborts
+        // tx with TASK_REVOKED_DURING_SUBMIT if the task was revoked
+        // between validate and now — prevents orphan downstream writes).
+        await completeTaskOrThrowIfRevoked(client, taskId || verificationTaskId);
 
         // Snapshot financial state via shared finalizer (frozen actual_amount).
         await TaskCompletionFinalizer.snapshotFinancials(client, taskId || verificationTaskId);
@@ -3300,6 +3330,20 @@ export class MobileFormController {
       });
     } catch (error) {
       logger.error('Submit office verification error:', error);
+      // NC-2: tx aborted because task was revoked mid-submit → 409 instead
+      // of generic 500 so the mobile uploader treats it as already-done
+      // (no retry storm) and the FE can show a clear message.
+      if (error instanceof Error && error.message === 'TASK_REVOKED_DURING_SUBMIT') {
+        res.status(409).json({
+          success: false,
+          message: 'Task was revoked while you were submitting — your local data has been cleared.',
+          error: {
+            code: 'TASK_REVOKED_DURING_SUBMIT',
+            timestamp: new Date().toISOString(),
+          },
+        });
+        return;
+      }
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -3582,16 +3626,9 @@ export class MobileFormController {
 
       // Finding #3: wrap writes + consistent re-read in a single transaction.
       const updatedCase = await withTransaction(async client => {
-        // a. Update verification task status to COMPLETED
-        await client.query(
-          `
-        UPDATE verification_tasks
-        SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1
-          AND status = 'IN_PROGRESS'
-      `,
-          [taskId || verificationTaskId]
-        );
+        // a. Update verification task status to COMPLETED (NC-2 sentinel
+        // throws TASK_REVOKED_DURING_SUBMIT on race-with-revoke).
+        await completeTaskOrThrowIfRevoked(client, taskId || verificationTaskId);
 
         // Snapshot financial state via shared finalizer (frozen actual_amount).
         await TaskCompletionFinalizer.snapshotFinancials(client, taskId || verificationTaskId);
@@ -3772,6 +3809,20 @@ export class MobileFormController {
       });
     } catch (error) {
       logger.error('Submit business verification error:', error);
+      // NC-2: tx aborted because task was revoked mid-submit → 409 instead
+      // of generic 500 so the mobile uploader treats it as already-done
+      // (no retry storm) and the FE can show a clear message.
+      if (error instanceof Error && error.message === 'TASK_REVOKED_DURING_SUBMIT') {
+        res.status(409).json({
+          success: false,
+          message: 'Task was revoked while you were submitting — your local data has been cleared.',
+          error: {
+            code: 'TASK_REVOKED_DURING_SUBMIT',
+            timestamp: new Date().toISOString(),
+          },
+        });
+        return;
+      }
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -4018,16 +4069,9 @@ export class MobileFormController {
 
       // Finding #3: wrap writes + consistent re-read in a single transaction.
       const updatedCase = await withTransaction(async client => {
-        // a. Update verification task status to COMPLETED
-        await client.query(
-          `
-        UPDATE verification_tasks
-        SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1
-          AND status = 'IN_PROGRESS'
-      `,
-          [taskId || verificationTaskId]
-        );
+        // a. Update verification task status to COMPLETED (NC-2 sentinel
+        // throws TASK_REVOKED_DURING_SUBMIT on race-with-revoke).
+        await completeTaskOrThrowIfRevoked(client, taskId || verificationTaskId);
 
         // Snapshot financial state via shared finalizer (frozen actual_amount).
         await TaskCompletionFinalizer.snapshotFinancials(client, taskId || verificationTaskId);
@@ -4184,6 +4228,20 @@ export class MobileFormController {
       });
     } catch (error) {
       logger.error('Submit builder verification error:', error);
+      // NC-2: tx aborted because task was revoked mid-submit → 409 instead
+      // of generic 500 so the mobile uploader treats it as already-done
+      // (no retry storm) and the FE can show a clear message.
+      if (error instanceof Error && error.message === 'TASK_REVOKED_DURING_SUBMIT') {
+        res.status(409).json({
+          success: false,
+          message: 'Task was revoked while you were submitting — your local data has been cleared.',
+          error: {
+            code: 'TASK_REVOKED_DURING_SUBMIT',
+            timestamp: new Date().toISOString(),
+          },
+        });
+        return;
+      }
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -4289,16 +4347,9 @@ export class MobileFormController {
 
       // Finding #3: wrap writes + consistent re-read in a single transaction.
       const updatedCase = await withTransaction(async client => {
-        // a. Update verification task status to COMPLETED
-        await client.query(
-          `UPDATE verification_tasks
-         SET status = 'COMPLETED',
-             completed_at = CURRENT_TIMESTAMP,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = $1
-           AND status = 'IN_PROGRESS'`,
-          [taskId]
-        );
+        // a. Update verification task status to COMPLETED (NC-2 sentinel
+        // throws TASK_REVOKED_DURING_SUBMIT on race-with-revoke).
+        await completeTaskOrThrowIfRevoked(client, taskId);
 
         // Snapshot financial state via shared finalizer (frozen actual_amount).
         await TaskCompletionFinalizer.snapshotFinancials(client, taskId);
@@ -4423,6 +4474,20 @@ export class MobileFormController {
       });
     } catch (error) {
       logger.error('Submit residence-cum-office verification error:', error);
+      // NC-2: tx aborted because task was revoked mid-submit → 409 instead
+      // of generic 500 so the mobile uploader treats it as already-done
+      // (no retry storm) and the FE can show a clear message.
+      if (error instanceof Error && error.message === 'TASK_REVOKED_DURING_SUBMIT') {
+        res.status(409).json({
+          success: false,
+          message: 'Task was revoked while you were submitting — your local data has been cleared.',
+          error: {
+            code: 'TASK_REVOKED_DURING_SUBMIT',
+            timestamp: new Date().toISOString(),
+          },
+        });
+        return;
+      }
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -4691,16 +4756,9 @@ export class MobileFormController {
 
       // Finding #3: wrap writes + consistent re-read in a single transaction.
       const updatedCase = await withTransaction(async client => {
-        // a. Update verification task status to COMPLETED
-        await client.query(
-          `
-        UPDATE verification_tasks
-        SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1
-          AND status = 'IN_PROGRESS'
-      `,
-          [taskId || verificationTaskId]
-        );
+        // a. Update verification task status to COMPLETED (NC-2 sentinel
+        // throws TASK_REVOKED_DURING_SUBMIT on race-with-revoke).
+        await completeTaskOrThrowIfRevoked(client, taskId || verificationTaskId);
 
         // Snapshot financial state via shared finalizer (frozen actual_amount).
         await TaskCompletionFinalizer.snapshotFinancials(client, taskId || verificationTaskId);
@@ -4860,6 +4918,20 @@ export class MobileFormController {
       });
     } catch (error) {
       logger.error('Submit DSA/DST Connector verification error:', error);
+      // NC-2: tx aborted because task was revoked mid-submit → 409 instead
+      // of generic 500 so the mobile uploader treats it as already-done
+      // (no retry storm) and the FE can show a clear message.
+      if (error instanceof Error && error.message === 'TASK_REVOKED_DURING_SUBMIT') {
+        res.status(409).json({
+          success: false,
+          message: 'Task was revoked while you were submitting — your local data has been cleared.',
+          error: {
+            code: 'TASK_REVOKED_DURING_SUBMIT',
+            timestamp: new Date().toISOString(),
+          },
+        });
+        return;
+      }
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -4965,16 +5037,9 @@ export class MobileFormController {
 
       // Finding #3: wrap writes + consistent re-read in a single transaction.
       const updatedCase = await withTransaction(async client => {
-        // a. Update verification task status to COMPLETED
-        await client.query(
-          `UPDATE verification_tasks
-         SET status = 'COMPLETED',
-             completed_at = CURRENT_TIMESTAMP,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = $1
-           AND status = 'IN_PROGRESS'`,
-          [taskId]
-        );
+        // a. Update verification task status to COMPLETED (NC-2 sentinel
+        // throws TASK_REVOKED_DURING_SUBMIT on race-with-revoke).
+        await completeTaskOrThrowIfRevoked(client, taskId);
 
         // Snapshot financial state via shared finalizer (frozen actual_amount).
         await TaskCompletionFinalizer.snapshotFinancials(client, taskId);
@@ -5099,6 +5164,20 @@ export class MobileFormController {
       });
     } catch (error) {
       logger.error('Submit property individual verification error:', error);
+      // NC-2: tx aborted because task was revoked mid-submit → 409 instead
+      // of generic 500 so the mobile uploader treats it as already-done
+      // (no retry storm) and the FE can show a clear message.
+      if (error instanceof Error && error.message === 'TASK_REVOKED_DURING_SUBMIT') {
+        res.status(409).json({
+          success: false,
+          message: 'Task was revoked while you were submitting — your local data has been cleared.',
+          error: {
+            code: 'TASK_REVOKED_DURING_SUBMIT',
+            timestamp: new Date().toISOString(),
+          },
+        });
+        return;
+      }
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -5440,16 +5519,9 @@ export class MobileFormController {
 
       // Finding #3: wrap writes + consistent re-read in a single transaction.
       const updatedCase = await withTransaction(async client => {
-        // a. Update verification task status to COMPLETED
-        await client.query(
-          `
-        UPDATE verification_tasks
-        SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1
-          AND status = 'IN_PROGRESS'
-      `,
-          [taskId || verificationTaskId]
-        );
+        // a. Update verification task status to COMPLETED (NC-2 sentinel
+        // throws TASK_REVOKED_DURING_SUBMIT on race-with-revoke).
+        await completeTaskOrThrowIfRevoked(client, taskId || verificationTaskId);
 
         // Snapshot financial state via shared finalizer (frozen actual_amount).
         await TaskCompletionFinalizer.snapshotFinancials(client, taskId || verificationTaskId);
@@ -5606,6 +5678,20 @@ export class MobileFormController {
       });
     } catch (error) {
       logger.error('Submit Property APF verification error:', error);
+      // NC-2: tx aborted because task was revoked mid-submit → 409 instead
+      // of generic 500 so the mobile uploader treats it as already-done
+      // (no retry storm) and the FE can show a clear message.
+      if (error instanceof Error && error.message === 'TASK_REVOKED_DURING_SUBMIT') {
+        res.status(409).json({
+          success: false,
+          message: 'Task was revoked while you were submitting — your local data has been cleared.',
+          error: {
+            code: 'TASK_REVOKED_DURING_SUBMIT',
+            timestamp: new Date().toISOString(),
+          },
+        });
+        return;
+      }
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -5860,16 +5946,9 @@ export class MobileFormController {
 
       // Finding #3: wrap writes + consistent re-read in a single transaction.
       const updatedCase = await withTransaction(async client => {
-        // a. Update verification task status to COMPLETED
-        await client.query(
-          `
-        UPDATE verification_tasks
-        SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1
-          AND status = 'IN_PROGRESS'
-      `,
-          [taskId || verificationTaskId]
-        );
+        // a. Update verification task status to COMPLETED (NC-2 sentinel
+        // throws TASK_REVOKED_DURING_SUBMIT on race-with-revoke).
+        await completeTaskOrThrowIfRevoked(client, taskId || verificationTaskId);
 
         // Snapshot financial state via shared finalizer (frozen actual_amount).
         await TaskCompletionFinalizer.snapshotFinancials(client, taskId || verificationTaskId);
@@ -6023,6 +6102,20 @@ export class MobileFormController {
       });
     } catch (error) {
       logger.error('Submit NOC verification error:', error);
+      // NC-2: tx aborted because task was revoked mid-submit → 409 instead
+      // of generic 500 so the mobile uploader treats it as already-done
+      // (no retry storm) and the FE can show a clear message.
+      if (error instanceof Error && error.message === 'TASK_REVOKED_DURING_SUBMIT') {
+        res.status(409).json({
+          success: false,
+          message: 'Task was revoked while you were submitting — your local data has been cleared.',
+          error: {
+            code: 'TASK_REVOKED_DURING_SUBMIT',
+            timestamp: new Date().toISOString(),
+          },
+        });
+        return;
+      }
       res.status(500).json({
         success: false,
         message: 'Internal server error',
