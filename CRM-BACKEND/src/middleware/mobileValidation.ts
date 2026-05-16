@@ -46,8 +46,9 @@ export const validateMobileVersion = (req: Request, res: Response, next: NextFun
           requiredVersion: config.mobile.forceUpdateVersion,
           downloadUrl:
             platform === 'IOS'
-              ? 'https://apps.apple.com/app/caseflow'
-              : 'https://play.google.com/store/apps/details?id=com.caseflow',
+              ? // TODO: replace slug with real App Store URL once iOS app is published
+                'https://apps.apple.com/app/crmmobilenative'
+              : 'https://play.google.com/store/apps/details?id=com.crmmobilenative',
         },
       });
     }
@@ -66,8 +67,9 @@ export const validateMobileVersion = (req: Request, res: Response, next: NextFun
           minSupportedVersion: config.mobile.minSupportedVersion,
           downloadUrl:
             platform === 'IOS'
-              ? 'https://apps.apple.com/app/caseflow'
-              : 'https://play.google.com/store/apps/details?id=com.caseflow',
+              ? // TODO: replace slug with real App Store URL once iOS app is published
+                'https://apps.apple.com/app/crmmobilenative'
+              : 'https://play.google.com/store/apps/details?id=com.crmmobilenative',
         },
       });
     }

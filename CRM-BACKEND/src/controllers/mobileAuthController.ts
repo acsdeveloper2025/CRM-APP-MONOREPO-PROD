@@ -519,8 +519,9 @@ export class MobileAuthController {
         currentVersion,
         downloadUrl:
           platform === 'IOS'
-            ? 'https://apps.apple.com/app/caseflow'
-            : 'https://play.google.com/store/apps/details?id=com.caseflow',
+            ? // TODO: replace slug with real App Store URL once iOS app is published
+              'https://apps.apple.com/app/crmmobilenative'
+            : 'https://play.google.com/store/apps/details?id=com.crmmobilenative',
         releaseNotes: hasUpdate ? releaseInfo.releaseNotes : '',
         features: hasUpdate ? releaseInfo.features : [],
         bugFixes: hasUpdate ? releaseInfo.bugFixes : [],
