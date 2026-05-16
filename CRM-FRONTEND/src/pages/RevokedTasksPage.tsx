@@ -54,6 +54,11 @@ export const RevokedTasksPage: React.FC = () => {
     sortBy: 'revokedAt',
     sortOrder: 'desc' as 'asc' | 'desc',
     status: 'REVOKED',
+    // 2026-05-16: filter out revoked tasks that have already been
+    // reassigned — their replacement task now lives in the
+    // Assigned / In Progress tabs and there is no longer an action
+    // to take on the original revoked row.
+    reassignedFilter: 'awaiting' as 'awaiting' | 'reassigned' | 'all',
   });
 
   const [reassignTaskId, setReassignTaskId] = useState<string | null>(null);

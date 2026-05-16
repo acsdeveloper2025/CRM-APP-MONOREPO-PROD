@@ -874,6 +874,28 @@ export class VerificationTasksController {
         paramIndex += statuses.length;
       }
 
+      // 2026-05-16: reassignedFilter narrows REVOKED-list views by
+      // whether a `task_revocations.reassigned=TRUE` row exists.
+      //   awaiting   → only revoked tasks that have NOT been reassigned
+      //                yet (the work the admin still needs to do).
+      //   reassigned → only revoked tasks already reassigned (audit view).
+      //   all / unset → no narrowing.
+      // Revoke Tasks page sends `awaiting` so successfully-reassigned
+      // revocations drop off the queue; the new task lives in the
+      // Assigned / In-Progress tabs as usual.
+      const reassignedFilter = req.query.reassignedFilter as string | undefined;
+      if (reassignedFilter === 'awaiting') {
+        conditions.push(`NOT EXISTS (
+          SELECT 1 FROM task_revocations tr
+          WHERE tr.task_id = vt.id AND tr.reassigned = TRUE
+        )`);
+      } else if (reassignedFilter === 'reassigned') {
+        conditions.push(`EXISTS (
+          SELECT 1 FROM task_revocations tr
+          WHERE tr.task_id = vt.id AND tr.reassigned = TRUE
+        )`);
+      }
+
       // Priority filter
       if (priority) {
         conditions.push(`vt.priority = $${paramIndex}`);
@@ -1880,6 +1902,40 @@ export class VerificationTasksController {
           error: { code: 'MUST_REVOKE_TASK_FIRST' },
         });
         return;
+      }
+
+      // 2026-05-16: precheck — if this REVOKED task has already been
+      // reassigned, don't try to create another replacement (the partial
+      // unique index `verification_tasks_active_unique_idx` would trip
+      // PG 23505 and we'd 500). Return 409 with the existing successor
+      // task id so the FE can navigate the admin to it.
+      if (isRevoked) {
+        const reassignedCheck = await client.query(
+          `SELECT tr.reassigned_to_user_id, tr.reassigned_at,
+                  (SELECT id FROM verification_tasks
+                   WHERE parent_task_id = $1
+                   ORDER BY created_at DESC
+                   LIMIT 1) AS successor_task_id
+           FROM task_revocations tr
+           WHERE tr.task_id = $1 AND tr.reassigned = TRUE
+           ORDER BY tr.revoked_at DESC
+           LIMIT 1`,
+          [taskId]
+        );
+        if (reassignedCheck.rows.length > 0) {
+          await client.query('ROLLBACK');
+          const row = reassignedCheck.rows[0];
+          res.status(409).json({
+            success: false,
+            message: 'This task has already been reassigned. Refresh the list to see the new task.',
+            error: {
+              code: 'TASK_ALREADY_REASSIGNED',
+              successorTaskId: row.successorTaskId || row.successor_task_id,
+              reassignedAt: row.reassignedAt || row.reassigned_at,
+            },
+          });
+          return;
+        }
       }
 
       if (!isRevoked) {
