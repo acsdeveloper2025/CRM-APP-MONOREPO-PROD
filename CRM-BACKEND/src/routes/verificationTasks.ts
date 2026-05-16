@@ -21,6 +21,8 @@ import { authorize } from '@/middleware/authorize';
 import { isScopedOperationsUser } from '@/security/rbacAccess';
 import { EnterpriseCache, CacheInvalidationPatterns } from '@/middleware/enterpriseCache';
 import { TaskCompletionValidator } from '@/services/taskCompletionValidator';
+import { CaseStatusSyncService } from '@/services/caseStatusSyncService';
+import { createAuditLog } from '@/utils/auditLogger';
 
 const router = express.Router();
 
@@ -348,6 +350,10 @@ router.post(
   '/verification-tasks/bulk-assign',
   authenticateToken,
   authorize('case.reassign'),
+  // NC-3 (2026-05-16): invalidate cache so cases-list / dashboard /
+  // case-detail / mobile-sync don't serve stale data for up to 5min
+  // TTL after a bulk-assign. Same pattern as single-task /assign.
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   async (req: AuthenticatedRequest, res) => {
     try {
       const { taskIds, assignedTo, assignmentReason } = req.body;
@@ -485,7 +491,35 @@ router.post(
                 task.status,
               ]
             );
+
+            // NC-3: audit-log entry per task in the bulk (compliance trail —
+            // who bulk-assigned what, for which case, under what reason).
+            await createAuditLog({
+              userId,
+              action: 'BULK_ASSIGN_TASK',
+              entityType: 'VERIFICATION_TASK',
+              entityId: taskId,
+              details: {
+                taskNumber: task.taskNumber,
+                caseId: task.caseId,
+                assignedTo,
+                assignmentReason: assignmentReason || 'Bulk assignment',
+                bulkSize: taskIds.length,
+              },
+            });
           }
+        }
+
+        // NC-3: recalc cases.status per distinct case touched. Without
+        // this, every affected case stays at its pre-bulk-assign status
+        // until any single-task action elsewhere triggers recalc. Runs
+        // INSIDE the tx with client arg per the locked rule
+        // "caseStatusSyncService is the SINGLE authority on cases.status".
+        const distinctCaseIds = Array.from(
+          new Set(updatedTasks.map((t: { caseId?: string }) => t.caseId).filter(Boolean))
+        );
+        for (const caseId of distinctCaseIds) {
+          await CaseStatusSyncService.recalculateCaseStatus(String(caseId), client);
         }
 
         await client.query('COMMIT');
