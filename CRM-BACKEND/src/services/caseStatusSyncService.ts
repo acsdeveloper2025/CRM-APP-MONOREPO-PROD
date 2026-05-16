@@ -1,13 +1,6 @@
 import { PoolClient } from 'pg';
-import { query } from '../config/database';
+import { withTransaction } from '../config/db';
 import { logger } from '../utils/logger';
-
-interface DbClient {
-  query: (
-    text: string,
-    params?: (string | number | Date | null)[]
-  ) => Promise<{ rows: Record<string, unknown>[] }>;
-}
 
 export class CaseStatusSyncService {
   /**
@@ -31,22 +24,27 @@ export class CaseStatusSyncService {
    * @param client Optional PoolClient for transaction support
    */
   static async recalculateCaseStatus(caseId: string, client?: PoolClient): Promise<void> {
-    try {
-      const db: DbClient = client || {
-        query: (text: string, params?: (string | number | Date | null)[]) =>
-          query(text, params || []),
-      };
+    // R-CRIT-1 follow-up (AUDIT 2026-05-17): if no caller-supplied tx,
+    // open a fresh one so the FOR UPDATE lock below actually spans the
+    // SELECT + UPDATE window. Without the wrap, FOR UPDATE on the bare
+    // pool runs in auto-commit mode and the lock releases per statement
+    // — no phantom-read protection. This guard fixes the 6 post-commit
+    // callers (createTasksForCase, assignTask, updateTask, mobile
+    // updateCaseStatus / completeTask / completeVerificationTask) without
+    // touching their call sites.
+    if (!client) {
+      return withTransaction(async (txClient) => {
+        return CaseStatusSyncService.recalculateCaseStatus(caseId, txClient);
+      });
+    }
 
-      // R-CRIT-1 (AUDIT 2026-05-16): lock the case row so concurrent
-      // task mutations can't slip a new row in between the SELECT below
-      // and the UPDATE further down (phantom-read drift). Only effective
-      // inside a caller-supplied transaction; no-op on bare pool calls.
-      if (client) {
-        await client.query(`SELECT id FROM cases WHERE id = $1 FOR UPDATE`, [caseId]);
-      }
+    try {
+      // Lock the case row so concurrent task INSERT/UPDATE can't slip in
+      // between the SELECT below and the UPDATE further down.
+      await client.query(`SELECT id FROM cases WHERE id = $1 FOR UPDATE`, [caseId]);
 
       // Fetch all tasks for this case
-      const tasksResult = await db.query(
+      const tasksResult = await client.query(
         `SELECT status FROM verification_tasks WHERE case_id = $1`,
         [caseId]
       );
@@ -102,7 +100,7 @@ export class CaseStatusSyncService {
       // Update the case
       // Use COALESCE to preserve the original completed_at if it was already set
       // (prevents overwriting historical completion dates on re-sync)
-      await db.query(
+      await client.query(
         `UPDATE cases
          SET status = $1::varchar,
              completed_at = CASE
