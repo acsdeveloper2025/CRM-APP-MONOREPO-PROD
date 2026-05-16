@@ -7,6 +7,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
 import * as fsSync from 'fs';
+import crypto from 'crypto';
 import sharp from 'sharp';
 import { config } from '@/config';
 import { logger } from '@/config/logger';
@@ -501,6 +502,31 @@ export class VerificationAttachmentController {
           // (when active) gets bytes. LocalFs backend writes to same disk
           // location as multer; storage_key column populated for future cutover.
           const photoFileBuffer = await fs.readFile(file.path);
+
+          // G-HIGH-2 (AUDIT 2026-05-17): server-side SHA-256 wires the
+          // previously-empty `server_sha256_hash` + `hash_verified` columns.
+          // Server hash is the PRIMARY evidence hash (legal admissibility
+          // under IT Act §65B). Client hash is transit verification only.
+          // Mismatch is logged but NOT yet a rejection — rollout safety;
+          // tighten to reject in a follow-up once field deployment is
+          // shown to produce clean matches at scale.
+          const serverSha256Hash = crypto
+            .createHash('sha256')
+            .update(photoFileBuffer)
+            .digest('hex');
+          const hashVerified = clientSha256
+            ? clientSha256.toLowerCase() === serverSha256Hash.toLowerCase()
+            : false;
+          if (clientSha256 && !hashVerified) {
+            logger.warn('verification_attachments hash mismatch', {
+              caseId: targetCaseId,
+              taskId: targetTaskId,
+              filename: file.originalname,
+              clientSha256: clientSha256.slice(0, 16) + '…',
+              serverSha256: serverSha256Hash.slice(0, 16) + '…',
+            });
+          }
+
           const photoIdResult = await query<{ id: string }>(
             `SELECT nextval('verification_attachments_id_seq')::text AS id`
           );
@@ -517,8 +543,8 @@ export class VerificationAttachmentController {
               id, case_id, verification_type, filename, original_name,
               mime_type, file_size_bytes, file_path, thumbnail_path, storage_key, uploaded_by,
               geo_location, photo_type, submission_id, verification_task_id, operation_id,
-              sha256_hash
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+              sha256_hash, server_sha256_hash, hash_verified
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
             ON CONFLICT (operation_id) WHERE operation_id IS NOT NULL
             DO UPDATE SET operation_id = EXCLUDED.operation_id
             RETURNING id, filename, original_name, mime_type, file_size_bytes, file_path, storage_key,
@@ -542,12 +568,15 @@ export class VerificationAttachmentController {
               submissionId,
               targetTaskId, // Dual-write: Task ID or NULL
               fileOperationId,
-              // 2026-04-28 deep-audit fix (D6/D17): client-side SHA-256 of
-              // file bytes from mobile capture. Wires the previously-dead
-              // `sha256_hash` column. Companion `server_sha256_hash` and
-              // `hash_verified` are not yet populated (server-side re-hash
-              // is a follow-up — adds compare-on-receive + boolean flag).
+              // sha256_hash: client-computed pre-upload (transit check).
               clientSha256,
+              // server_sha256_hash: PRIMARY evidence hash, computed above
+              // from photoFileBuffer (post-multer write).
+              serverSha256Hash,
+              // hash_verified: true only if client provided a hash AND it
+              // matches server hash. false if no client hash supplied OR
+              // mismatch detected (logged in warn).
+              hashVerified,
             ]
           );
 

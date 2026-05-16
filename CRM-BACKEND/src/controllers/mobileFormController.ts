@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import type { PoolClient } from 'pg';
+import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import type { MobileFormSubmissionRequest, FormSubmissionData, FormSection } from '../types/mobile';
 import type {
@@ -707,12 +708,21 @@ export class MobileFormController {
         );
         await objectStorage.put(photoStorageKey, imageBuffer, 'image/jpeg');
 
+        // G-HIGH-2 (AUDIT 2026-05-17): server-side SHA-256 evidence hash.
+        // No client hash here (mobile form path sends decoded base64), so
+        // hash_verified=false. Server hash remains the PRIMARY evidence
+        // value per IT Act §65B.
+        const serverSha256Hash = crypto
+          .createHash('sha256')
+          .update(imageBuffer)
+          .digest('hex');
+
         const attachmentResult = await query(
           `INSERT INTO verification_attachments (
             id, case_id, verification_type, verification_task_id, filename, original_name,
             mime_type, file_size_bytes, file_path, thumbnail_path, storage_key, uploaded_by,
-            geo_location, photo_type, submission_id
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            geo_location, photo_type, submission_id, server_sha256_hash, hash_verified
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
           RETURNING id, filename, file_path, thumbnail_path, storage_key, created_at`,
           [
             photoInsId,
@@ -730,6 +740,8 @@ export class MobileFormController {
             image.geoLocation ? JSON.stringify(image.geoLocation) : null,
             photoType,
             submissionId,
+            serverSha256Hash,
+            false, // hash_verified — no client-supplied hash to compare against
           ]
         );
 
