@@ -392,14 +392,6 @@ export class CacheWarmingService {
   }
 
   /**
-   * Refresh cache periodically (call this from a scheduled job)
-   */
-  static async refreshCaches(): Promise<void> {
-    logger.info('🔄 Refreshing caches...');
-    await this.warmAllCaches();
-  }
-
-  /**
    * Invalidate specific cache patterns
    */
   static async invalidateCasesCaches(): Promise<void> {

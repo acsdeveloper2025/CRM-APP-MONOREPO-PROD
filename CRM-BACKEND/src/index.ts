@@ -39,9 +39,6 @@ const server = createServer(app);
 let socketPubClient: ReturnType<typeof createClient> | null = null;
 let socketSubClient: ReturnType<typeof createClient> | null = null;
 
-// Cache refresh interval — stored for cleanup on shutdown
-let cacheRefreshInterval: ReturnType<typeof setInterval> | null = null;
-
 logger.info('🚀 [LOADED] src/index.ts IS RUNNING!');
 
 // Initialize Socket.IO with security limits
@@ -144,22 +141,12 @@ const startServer = async (): Promise<void> => {
       // into _default and stale notifications/auto_saves accumulate.
       startDbMaintenance();
 
-      // Schedule periodic cache refresh (every 10 minutes)
-      cacheRefreshInterval = setInterval(
-        () => {
-          if (!EnterpriseCacheService.isAvailable()) {
-            return;
-          }
-          void (async () => {
-            try {
-              await CacheWarmingService.refreshCaches();
-            } catch (error) {
-              logger.error('Periodic cache refresh failed:', error);
-            }
-          })();
-        },
-        10 * 60 * 1000
-      ); // 10 minutes
+      // C-HIGH-1 (AUDIT 2026-05-16): periodic cache refresh removed.
+      // Mutation-time invalidation (EnterpriseCache.invalidate patterns,
+      // memory NM-8) keeps cached data correct; 5-min default TTL on every
+      // key (EnterpriseCacheService.set) handles natural staleness. The
+      // 10-min refresh was firing ~1,000 redundant DB queries/day/node.
+      // Cold-read penalty (one user, ~200ms) accepted as trade-off.
     });
 
     // Handle port already in use error
@@ -193,10 +180,6 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
     // Stop all monitoring intervals before closing connections
     stopMonitoringIntervals();
     stopDbMaintenance();
-    if (cacheRefreshInterval) {
-      clearInterval(cacheRefreshInterval);
-      cacheRefreshInterval = null;
-    }
 
     // Notify WebSocket clients before closing
     io.emit('server:shutdown', { message: 'Server is restarting, please reconnect shortly' });
