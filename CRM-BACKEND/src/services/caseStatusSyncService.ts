@@ -37,6 +37,14 @@ export class CaseStatusSyncService {
           query(text, params || []),
       };
 
+      // R-CRIT-1 (AUDIT 2026-05-16): lock the case row so concurrent
+      // task mutations can't slip a new row in between the SELECT below
+      // and the UPDATE further down (phantom-read drift). Only effective
+      // inside a caller-supplied transaction; no-op on bare pool calls.
+      if (client) {
+        await client.query(`SELECT id FROM cases WHERE id = $1 FOR UPDATE`, [caseId]);
+      }
+
       // Fetch all tasks for this case
       const tasksResult = await db.query(
         `SELECT status FROM verification_tasks WHERE case_id = $1`,
