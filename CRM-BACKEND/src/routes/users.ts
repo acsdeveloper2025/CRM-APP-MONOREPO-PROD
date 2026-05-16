@@ -13,6 +13,7 @@ import {
 import { ProfilePhotoController } from '@/controllers/profilePhotoController';
 import { profilePhotoUpload } from '@/middleware/profilePhotoUpload';
 import { getUserConsents } from '@/controllers/userConsentsController';
+import { getUserAuditLog } from '@/controllers/userAuditLogController';
 import {
   getUsers,
   getUserById,
@@ -379,6 +380,10 @@ router.get(
 
 // Export users route
 router.post('/export', authenticateToken, authorize('user.view'), exportUsers);
+
+// C-HIGH-3 (AUDIT 2026-05-17): DPDP §9(4) self-service audit-log access.
+// Authorization handled inside the controller (self OR settings.manage admin).
+router.get('/:id/audit-log', authenticateToken, getUserAuditLog);
 
 // POST /api/users/import - CSV or XLSX bulk insert
 router.post(
