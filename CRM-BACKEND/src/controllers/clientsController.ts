@@ -1178,22 +1178,45 @@ export const deleteClient = async (req: AuthenticatedRequest, res: Response) => 
       [id]
     );
 
-    // Delete client and related records in a transaction
+    // NEW-CRIT-2 Part B (AUDIT 2026-05-17): SOFT-DELETE the client instead
+    // of hard-DELETE. The previous flow explicitly DELETEd commission_calculations
+    // + field_user_commission_assignments — that destroyed RBI 7-yr retained
+    // financial history. After the Part-A FK flip to RESTRICT, hard-delete
+    // also required pre-deleting those rows, so the flip alone could not
+    // protect the data.
+    //
+    // Now:
+    //   KEEP (statutory retention / audit trail):
+    //     commission_calculations         — RBI 7-yr
+    //     field_user_commission_assignments — assignment history
+    //   DROP (operational pricing / scope config; recoverable from grants):
+    //     rates, document_type_rates, rate_type_assignments,
+    //     client_products (cascades to client_product_documents +
+    //     client_product_verifications via existing FKs),
+    //     user_client_assignments
+    //   SOFT-DELETE:
+    //     clients (deleted_at = now(), is_active = false)
+    //
+    // Reads everywhere should already filter clients.deleted_at IS NULL
+    // (partial indexes `clients_active_idx` + `clients_deleted_at_idx`
+    // exist for both states).
     await withTransaction(async cx => {
-      // Delete related records first (foreign keys with NO ACTION or RESTRICT need manual deletion)
-      // Order matters: delete child records before parent records
+      // Drop operational config — these are user/client-scope mappings and
+      // pricing configs, not financial history.
       await cx.query(`DELETE FROM rates WHERE client_id = $1`, [id]);
       await cx.query(`DELETE FROM document_type_rates WHERE client_id = $1`, [id]);
       await cx.query(`DELETE FROM rate_type_assignments WHERE client_id = $1`, [id]);
       await cx.query(`DELETE FROM client_products WHERE client_id = $1`, [id]);
-
-      // (client_product_documents + client_product_verifications cascade-delete via client_products FK)
       await cx.query(`DELETE FROM user_client_assignments WHERE client_id = $1`, [id]);
-      await cx.query(`DELETE FROM commission_calculations WHERE client_id = $1`, [id]);
-      await cx.query(`DELETE FROM field_user_commission_assignments WHERE client_id = $1`, [id]);
 
-      // Finally delete the client
-      await cx.query(`DELETE FROM clients WHERE id = $1`, [id]);
+      // commission_calculations + field_user_commission_assignments
+      // INTENTIONALLY RETAINED. RESTRICT FK from Part A prevents
+      // hard-DELETE FROM clients; soft-delete is the supported path.
+
+      await cx.query(
+        `UPDATE clients SET deleted_at = now(), is_active = false, updated_at = now() WHERE id = $1`,
+        [id]
+      );
     });
 
     // Invalidate scope caches for every user that lost this assignment.
