@@ -19,7 +19,16 @@ module.exports = {
       max_restarts: 10,
       env: {
         NODE_ENV: 'production',
-        PORT: 3000
+        PORT: 3000,
+        // NEW-HIGH-3 (AUDIT 2026-05-16): pin Node timezone to IST so
+        // Node-side date math (`new Date()`, locale formats, PM2 log
+        // timestamps) is consistent with the business operating zone.
+        // NOTE: Postgres GST `compute_fiscal_year()` uses `extract()`
+        // on timestamptz — that respects the Postgres session TZ, NOT
+        // this Node pin. Ensure DB is also IST (set in postgresql.conf
+        // or via `SET TIMEZONE = 'Asia/Kolkata'` per session) to close
+        // the full GST CGST Rule 46(b) drift surface.
+        TZ: 'Asia/Kolkata'
       },
       // Log rotation — prevent unbounded log growth
       error_file: './logs/backend-error.log',
