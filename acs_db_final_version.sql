@@ -7833,8 +7833,14 @@ CREATE TABLE public.refresh_tokens (
     ip_address character varying(50),
     user_agent text,
     revoked_at timestamp with time zone,
-    revoked_reason text
+    revoked_reason text,
+    device_id character varying(255),
+    device_fingerprint_hash character varying(64),
+    device_label character varying(200)
 );
+COMMENT ON COLUMN public.refresh_tokens.device_id IS 'A-CRIT-1 (AUDIT 2026-05-17): opaque client-generated device identifier. Mobile=platform deviceId; web=stable random in HttpOnly cookie. Together with user_id forms the partial-unique active-session key for selective revocation.';
+COMMENT ON COLUMN public.refresh_tokens.device_fingerprint_hash IS 'A-CRIT-1: sha256 hex of (user-agent + accept-language + screen + tz). Helps detect device drift / session theft when device_id matches but fingerprint changes.';
+COMMENT ON COLUMN public.refresh_tokens.device_label IS 'A-CRIT-1: human-friendly device name shown in admin force-logout UI (e.g. "Pixel 7 Pro · Mumbai"). Derived from user_agent at issue time.';
 
 
 --
@@ -28215,6 +28221,26 @@ CREATE INDEX products_name_trgm ON public.products USING gin (name public.gin_tr
 --
 
 CREATE INDEX refresh_tokens_revoked_at_idx ON public.refresh_tokens USING btree (revoked_at) WHERE (revoked_at IS NOT NULL);
+
+
+--
+-- Name: uq_refresh_tokens_user_device_active; Type: INDEX; Schema: public; Owner: -
+-- A-CRIT-1 (AUDIT 2026-05-17): one active token per (user, device).
+--
+
+CREATE UNIQUE INDEX uq_refresh_tokens_user_device_active
+  ON public.refresh_tokens USING btree (user_id, device_id)
+  WHERE (revoked_at IS NULL AND device_id IS NOT NULL);
+
+
+--
+-- Name: idx_refresh_tokens_user_active_recent; Type: INDEX; Schema: public; Owner: -
+-- A-CRIT-1: lookup index for admin force-logout list queries.
+--
+
+CREATE INDEX idx_refresh_tokens_user_active_recent
+  ON public.refresh_tokens USING btree (user_id, created_at DESC)
+  WHERE (revoked_at IS NULL);
 
 
 --
