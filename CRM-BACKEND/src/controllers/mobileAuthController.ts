@@ -435,12 +435,14 @@ export class MobileAuthController {
            WHERE user_id = $1 AND revoked_at IS NULL`,
           [userId]
         );
-        // F-B3.4: bump tokenVersion so all in-flight access tokens
-        // are immediately rejected. Single-token logout doesn't bump
-        // (other devices' sessions stay alive).
-        await query(`UPDATE users SET token_version = token_version + 1 WHERE id = $1`, [userId]);
-        invalidateAuthContextCache(userId);
       }
+      // A-CRIT-2 (AUDIT 2026-05-16): always bump token_version on logout,
+      // including the single-device branch. Otherwise a stolen access token
+      // survives the user's logout for the full 24h TTL. The trade-off
+      // (sibling-device sessions also get evicted) is acceptable; re-login
+      // is one tap. Web logout already bumps unconditionally.
+      await query(`UPDATE users SET token_version = token_version + 1 WHERE id = $1`, [userId]);
+      invalidateAuthContextCache(userId);
 
       await createAuditLog({
         action: 'MOBILE_LOGOUT',
