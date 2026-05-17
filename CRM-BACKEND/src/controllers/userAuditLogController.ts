@@ -56,8 +56,12 @@ export const getUserAuditLog = async (req: AuthenticatedRequest, res: Response):
     return;
   }
 
-  const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? '50'), 10) || 50, 1), 200);
-  const page = Math.max(parseInt(String(req.query.page ?? '1'), 10) || 1, 1);
+  // `req.query.X` is `string | ParsedQs | string[] | ParsedQs[] | undefined` —
+  // ESLint no-base-to-string forbids String(...) on the union.
+  const limitRaw = typeof req.query.limit === 'string' ? req.query.limit : '50';
+  const pageRaw = typeof req.query.page === 'string' ? req.query.page : '1';
+  const limit = Math.min(Math.max(parseInt(limitRaw, 10) || 50, 1), 200);
+  const page = Math.max(parseInt(pageRaw, 10) || 1, 1);
   const offset = (page - 1) * limit;
 
   try {
