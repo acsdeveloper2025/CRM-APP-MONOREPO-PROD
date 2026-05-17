@@ -1,5 +1,4 @@
 import type { Server as SocketIOServer, Socket } from 'socket.io';
-import jwt from 'jsonwebtoken';
 import { config } from '@/config';
 import { verifyJwtWithRotation } from '@/utils/jwtRotation';
 import { logger } from '@/config/logger';

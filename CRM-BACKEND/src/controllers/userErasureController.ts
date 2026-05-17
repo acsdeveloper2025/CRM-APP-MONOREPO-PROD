@@ -41,13 +41,12 @@
 // is redacted.
 
 import type { Response } from 'express';
-import type { AuthenticatedRequest } from '@/middleware/auth';
+import { invalidateAuthContextCache, type AuthenticatedRequest } from '@/middleware/auth';
 import { withTransaction } from '@/config/db';
 import { logger } from '@/config/logger';
 import { errorMessage } from '@/utils/errorMessage';
 import { userHasPermission } from '@/security/rbacAccess';
 import { createAuditLog } from '@/utils/auditLogger';
-import { invalidateAuthContextCache } from '@/middleware/auth';
 
 export const eraseUserData = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const targetUserId = String(req.params.id ?? '');
