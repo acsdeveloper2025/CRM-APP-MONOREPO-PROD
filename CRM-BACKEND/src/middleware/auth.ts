@@ -290,11 +290,7 @@ const verifyTokenAndSetUser = async (
 ): Promise<void> => {
   let decoded: JwtPayload;
   try {
-    decoded = verifyJwtWithRotation<JwtPayload>(
-      token,
-      config.jwtSecret,
-      config.oldJwtSecret
-    );
+    decoded = verifyJwtWithRotation<JwtPayload>(token, config.jwtSecret, config.oldJwtSecret);
   } catch (error) {
     logger.error('Token verification failed:', error);
     const response: ApiResponse = {

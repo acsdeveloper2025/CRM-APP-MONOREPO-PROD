@@ -33,7 +33,7 @@ export class CaseStatusSyncService {
     // updateCaseStatus / completeTask / completeVerificationTask) without
     // touching their call sites.
     if (!client) {
-      return withTransaction(async (txClient) => {
+      return withTransaction(async txClient => {
         return CaseStatusSyncService.recalculateCaseStatus(caseId, txClient);
       });
     }

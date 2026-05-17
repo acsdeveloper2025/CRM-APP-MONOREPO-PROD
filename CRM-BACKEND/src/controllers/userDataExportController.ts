@@ -39,10 +39,7 @@ import { logger } from '@/config/logger';
 import { errorMessage } from '@/utils/errorMessage';
 import { userHasPermission } from '@/security/rbacAccess';
 
-export const exportUserData = async (
-  req: AuthenticatedRequest,
-  res: Response
-): Promise<void> => {
+export const exportUserData = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const targetUserId = String(req.params.id ?? '');
   const requesterId = req.user?.id;
 
@@ -105,18 +102,15 @@ export const exportUserData = async (
 
     // 4. Scope assignments — what they've been given access to
     const [clientsRes, productsRes, pincodesRes, areasRes] = await Promise.all([
-      query(
-        `SELECT client_id, created_at FROM user_client_assignments WHERE user_id = $1`,
-        [targetUserId]
-      ),
-      query(
-        `SELECT product_id, created_at FROM user_product_assignments WHERE user_id = $1`,
-        [targetUserId]
-      ),
-      query(
-        `SELECT pincode_id, created_at FROM user_pincode_assignments WHERE user_id = $1`,
-        [targetUserId]
-      ),
+      query(`SELECT client_id, created_at FROM user_client_assignments WHERE user_id = $1`, [
+        targetUserId,
+      ]),
+      query(`SELECT product_id, created_at FROM user_product_assignments WHERE user_id = $1`, [
+        targetUserId,
+      ]),
+      query(`SELECT pincode_id, created_at FROM user_pincode_assignments WHERE user_id = $1`, [
+        targetUserId,
+      ]),
       query(
         `SELECT pincode_id, user_pincode_assignment_id, created_at FROM user_area_assignments WHERE user_id = $1`,
         [targetUserId]
@@ -153,10 +147,9 @@ export const exportUserData = async (
     );
 
     // 7. Notification preferences (single row)
-    const notifPrefRes = await query(
-      `SELECT * FROM notification_preferences WHERE user_id = $1`,
-      [targetUserId]
-    );
+    const notifPrefRes = await query(`SELECT * FROM notification_preferences WHERE user_id = $1`, [
+      targetUserId,
+    ]);
 
     const bundle = {
       exportedAt: new Date().toISOString(),

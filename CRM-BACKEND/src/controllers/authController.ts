@@ -265,8 +265,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         expiresAt,
         ipAddress: req.ip,
         userAgent: req.get('User-Agent') || null,
-        deviceId:
-          typeof req.body?.deviceId === 'string' ? req.body.deviceId : null,
+        deviceId: typeof req.body?.deviceId === 'string' ? req.body.deviceId : null,
       })
     );
 

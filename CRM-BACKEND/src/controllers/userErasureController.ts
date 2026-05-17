@@ -49,10 +49,7 @@ import { userHasPermission } from '@/security/rbacAccess';
 import { createAuditLog } from '@/utils/auditLogger';
 import { invalidateAuthContextCache } from '@/middleware/auth';
 
-export const eraseUserData = async (
-  req: AuthenticatedRequest,
-  res: Response
-): Promise<void> => {
+export const eraseUserData = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const targetUserId = String(req.params.id ?? '');
   const requesterId = req.user?.id;
 
@@ -189,8 +186,7 @@ export const eraseUserData = async (
         userId: targetUserId,
         erasedAt: new Date().toISOString(),
         retainedRecords: {
-          reason:
-            'Per DPDP §15 statutory exceptions + RBI/IT Act retention obligations',
+          reason: 'Per DPDP §15 statutory exceptions + RBI/IT Act retention obligations',
           tables: [
             'audit_logs',
             'commission_calculations',

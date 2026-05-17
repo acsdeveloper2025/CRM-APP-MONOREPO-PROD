@@ -184,8 +184,7 @@ export class MobileAuthController {
           expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           ipAddress: req.ip,
           userAgent: req.get('User-Agent') || null,
-          deviceId:
-            typeof req.body?.deviceId === 'string' ? req.body.deviceId : null,
+          deviceId: typeof req.body?.deviceId === 'string' ? req.body.deviceId : null,
         })
       );
 

@@ -16,10 +16,7 @@ import { getUserConsents } from '@/controllers/userConsentsController';
 import { getUserAuditLog } from '@/controllers/userAuditLogController';
 import { exportUserData } from '@/controllers/userDataExportController';
 import { eraseUserData } from '@/controllers/userErasureController';
-import {
-  listUserSessions,
-  revokeUserSession,
-} from '@/controllers/userSessionsController';
+import { listUserSessions, revokeUserSession } from '@/controllers/userSessionsController';
 import {
   getUsers,
   getUserById,

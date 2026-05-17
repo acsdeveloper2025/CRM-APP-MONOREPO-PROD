@@ -58,9 +58,7 @@ export const issueRefreshTokenForDevice = async (
   params: IssueParams
 ): Promise<void> => {
   const deviceId =
-    typeof params.deviceId === 'string' && params.deviceId.length > 0
-      ? params.deviceId
-      : null;
+    typeof params.deviceId === 'string' && params.deviceId.length > 0 ? params.deviceId : null;
   const deviceLabel = params.deviceLabel ?? deriveDeviceLabel(params.userAgent);
 
   if (deviceId) {

@@ -716,10 +716,7 @@ export class MobileFormController {
         // No client hash here (mobile form path sends decoded base64), so
         // hash_verified=false. Server hash remains the PRIMARY evidence
         // value per IT Act §65B.
-        const serverSha256Hash = crypto
-          .createHash('sha256')
-          .update(imageBuffer)
-          .digest('hex');
+        const serverSha256Hash = crypto.createHash('sha256').update(imageBuffer).digest('hex');
 
         const attachmentResult = await query(
           `INSERT INTO verification_attachments (

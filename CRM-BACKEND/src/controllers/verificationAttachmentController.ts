@@ -522,8 +522,8 @@ export class VerificationAttachmentController {
               caseId: targetCaseId,
               taskId: targetTaskId,
               filename: file.originalname,
-              clientSha256: clientSha256.slice(0, 16) + '…',
-              serverSha256: serverSha256Hash.slice(0, 16) + '…',
+              clientSha256: `${clientSha256.slice(0, 16)}…`,
+              serverSha256: `${serverSha256Hash.slice(0, 16)}…`,
             });
           }
 

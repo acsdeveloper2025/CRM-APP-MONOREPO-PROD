@@ -31,10 +31,7 @@ interface AuditLogRow {
   details: unknown;
 }
 
-export const getUserAuditLog = async (
-  req: AuthenticatedRequest,
-  res: Response
-): Promise<void> => {
+export const getUserAuditLog = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const targetUserId = String(req.params.id ?? '');
   const requesterId = req.user?.id;
 
@@ -59,10 +56,7 @@ export const getUserAuditLog = async (
     return;
   }
 
-  const limit = Math.min(
-    Math.max(parseInt(String(req.query.limit ?? '50'), 10) || 50, 1),
-    200
-  );
+  const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? '50'), 10) || 50, 1), 200);
   const page = Math.max(parseInt(String(req.query.page ?? '1'), 10) || 1, 1);
   const offset = (page - 1) * limit;
 

@@ -59,10 +59,7 @@ const checkAuthorized = (
   return true;
 };
 
-export const listUserSessions = async (
-  req: AuthenticatedRequest,
-  res: Response
-): Promise<void> => {
+export const listUserSessions = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const targetUserId = String(req.params.id ?? '');
   if (!targetUserId) {
     res.status(400).json({
