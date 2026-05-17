@@ -874,25 +874,32 @@ export class VerificationTasksController {
         paramIndex += statuses.length;
       }
 
-      // 2026-05-16: reassignedFilter narrows REVOKED-list views by
-      // whether a `task_revocations.reassigned=TRUE` row exists.
-      //   awaiting   → only revoked tasks that have NOT been reassigned
-      //                yet (the work the admin still needs to do).
-      //   reassigned → only revoked tasks already reassigned (audit view).
+      // 2026-05-16 (+2026-05-17 fix): reassignedFilter narrows REVOKED
+      // list views by whether an ACTIVE REPLACEMENT TASK exists. A
+      // replacement is a verification_tasks row with
+      //   parent_task_id = vt.id AND status NOT IN ('REVOKED','COMPLETED').
+      // This is the canonical signal — the admin's queue is "revoked
+      // tasks that still need a successor". Looking at
+      // verification_tasks directly also handles historical revocations
+      // from before TaskRevocationService.recordRevocation was wired
+      // (revoked May 3 etc) and any case where the
+      // `task_revocations.reassigned` flag was never flipped — the
+      // audit-row state is not the authority on whether work is done.
+      //   awaiting   → no active replacement exists yet.
+      //   reassigned → an active replacement already exists.
       //   all / unset → no narrowing.
-      // Revoke Tasks page sends `awaiting` so successfully-reassigned
-      // revocations drop off the queue; the new task lives in the
-      // Assigned / In-Progress tabs as usual.
       const reassignedFilter = req.query.reassignedFilter as string | undefined;
       if (reassignedFilter === 'awaiting') {
         conditions.push(`NOT EXISTS (
-          SELECT 1 FROM task_revocations tr
-          WHERE tr.task_id = vt.id AND tr.reassigned = TRUE
+          SELECT 1 FROM verification_tasks repl
+          WHERE repl.parent_task_id = vt.id
+            AND repl.status NOT IN ('REVOKED', 'COMPLETED')
         )`);
       } else if (reassignedFilter === 'reassigned') {
         conditions.push(`EXISTS (
-          SELECT 1 FROM task_revocations tr
-          WHERE tr.task_id = vt.id AND tr.reassigned = TRUE
+          SELECT 1 FROM verification_tasks repl
+          WHERE repl.parent_task_id = vt.id
+            AND repl.status NOT IN ('REVOKED', 'COMPLETED')
         )`);
       }
 
@@ -1125,24 +1132,29 @@ export class VerificationTasksController {
           AVG(CASE WHEN vt.status = 'IN_PROGRESS' AND vt.started_at IS NOT NULL THEN EXTRACT(EPOCH FROM (NOW() - vt.started_at)) / 3600 END) as avg_duration_hours,
           AVG(CASE WHEN vt.status = 'COMPLETED' AND vt.completed_at IS NOT NULL THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.created_at)) / 3600 END) as avg_turnaround_hours,
           COUNT(*) FILTER (WHERE vt.status = 'COMPLETED' AND vt.completed_at >= CURRENT_DATE) as completed_today_count,
-          -- Revoke-page aggregates (B-152): scoped by whereClause so when
-          -- the caller filters status='REVOKED', these reflect that subset.
-          -- "Reassigned" = revoked task whose task_revocations row was
-          -- subsequently markReassigned'd. "Awaiting reassignment" = the
-          -- opposite (revoked but no successor task yet).
+          -- Revoke-page aggregates (B-152, fixed 2026-05-17): scoped by
+          -- whereClause so when the caller filters status='REVOKED', these
+          -- reflect that subset. "Reassigned" = revoked task that has an
+          -- ACTIVE REPLACEMENT (verification_tasks.parent_task_id = vt.id
+          -- with status NOT IN ('REVOKED','COMPLETED')). "Awaiting" =
+          -- revoked task with no successor yet. Looking at
+          -- verification_tasks directly handles historical revocations
+          -- where task_revocations.reassigned was never flipped.
           COUNT(*) FILTER (WHERE vt.status = 'REVOKED' AND vt.revoked_at >= CURRENT_DATE) as revoked_today_count,
           COUNT(*) FILTER (
             WHERE vt.status = 'REVOKED'
               AND EXISTS (
-                SELECT 1 FROM task_revocations tr
-                 WHERE tr.task_id = vt.id AND tr.reassigned = TRUE
+                SELECT 1 FROM verification_tasks repl
+                 WHERE repl.parent_task_id = vt.id
+                   AND repl.status NOT IN ('REVOKED', 'COMPLETED')
               )
           ) as reassigned_count,
           COUNT(*) FILTER (
             WHERE vt.status = 'REVOKED'
               AND NOT EXISTS (
-                SELECT 1 FROM task_revocations tr
-                 WHERE tr.task_id = vt.id AND tr.reassigned = TRUE
+                SELECT 1 FROM verification_tasks repl
+                 WHERE repl.parent_task_id = vt.id
+                   AND repl.status NOT IN ('REVOKED', 'COMPLETED')
               )
           ) as awaiting_reassignment_count
         FROM verification_tasks vt
@@ -1904,34 +1916,36 @@ export class VerificationTasksController {
         return;
       }
 
-      // 2026-05-16: precheck — if this REVOKED task has already been
-      // reassigned, don't try to create another replacement (the partial
-      // unique index `verification_tasks_active_unique_idx` would trip
-      // PG 23505 and we'd 500). Return 409 with the existing successor
-      // task id so the FE can navigate the admin to it.
+      // 2026-05-16 (+2026-05-17 fix): precheck — if this REVOKED task
+      // already has an ACTIVE REPLACEMENT, don't try to create another
+      // (the partial unique index `verification_tasks_active_unique_idx`
+      // would trip PG 23505 and we'd 500). Return 409 with the existing
+      // successor task id so the FE can navigate the admin to it. Look at
+      // verification_tasks directly (not task_revocations.reassigned) so
+      // historical revocations where the audit flag was never flipped
+      // are still handled.
       if (isRevoked) {
-        const reassignedCheck = await client.query(
-          `SELECT tr.reassigned_to_user_id, tr.reassigned_at,
-                  (SELECT id FROM verification_tasks
-                   WHERE parent_task_id = $1
-                   ORDER BY created_at DESC
-                   LIMIT 1) AS successor_task_id
-           FROM task_revocations tr
-           WHERE tr.task_id = $1 AND tr.reassigned = TRUE
-           ORDER BY tr.revoked_at DESC
-           LIMIT 1`,
+        const successorCheck = await client.query(
+          `SELECT id, task_number, status, assigned_to, created_at
+             FROM verification_tasks
+            WHERE parent_task_id = $1
+              AND status NOT IN ('REVOKED', 'COMPLETED')
+            ORDER BY created_at DESC
+            LIMIT 1`,
           [taskId]
         );
-        if (reassignedCheck.rows.length > 0) {
+        if (successorCheck.rows.length > 0) {
           await client.query('ROLLBACK');
-          const row = reassignedCheck.rows[0];
+          const row = successorCheck.rows[0];
           res.status(409).json({
             success: false,
             message: 'This task has already been reassigned. Refresh the list to see the new task.',
             error: {
               code: 'TASK_ALREADY_REASSIGNED',
-              successorTaskId: row.successorTaskId || row.successor_task_id,
-              reassignedAt: row.reassignedAt || row.reassigned_at,
+              successorTaskId: row.id,
+              successorTaskNumber: row.taskNumber || row.task_number,
+              successorStatus: row.status,
+              successorAssignedTo: row.assignedTo || row.assigned_to,
             },
           });
           return;
