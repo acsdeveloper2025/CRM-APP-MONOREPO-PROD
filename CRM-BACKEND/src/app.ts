@@ -9,6 +9,7 @@ import morgan from 'morgan';
 // /auth/refresh-token can read it. The primary auth for API calls
 // is still JWT Bearer — only the refresh channel uses the cookie.
 import cookieParser from 'cookie-parser';
+import { requireAssetAuth } from '@/middleware/auth';
 import { config } from '@/config';
 import { logger } from '@/config/logger';
 import { errorHandler, notFoundHandler } from '@/middleware/errorHandler';
@@ -49,7 +50,6 @@ import reportsRoutes from '@/routes/reports';
 import exportsRoutes from '@/routes/exports';
 import auditLogsRoutes from '@/routes/audit-logs';
 import reverseGeocodeDlqRoutes from '@/routes/reverse-geocode-dlq';
-import storageRoutes from '@/routes/storage';
 import formRoutes from '@/routes/forms';
 import notificationRoutes from '@/routes/notifications';
 import mobileRoutes from '@/routes/mobile';
@@ -167,15 +167,21 @@ app.use(
 // Gzip compression — reduces response size by 60-80% for JSON/text payloads
 app.use(compression());
 
-// Serve uploaded files (verification photos, attachments)
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
-
 // Body parsing middleware — 5MB default for JSON (mobile file uploads use Multer multipart, not JSON body)
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 // Phase E5: parse cookies so the auth refresh flow can read the
 // HttpOnly refresh-token cookie. Non-auth routes ignore it.
+// MUST run before the /uploads mount so requireAssetAuth can read
+// the asset cookie (audit T0-2 fix).
 app.use(cookieParser());
+
+// Serve uploaded files (verification photos, attachments).
+// Gated by requireAssetAuth which accepts EITHER Authorization bearer
+// (mobile + fetch reads) OR the crm_asset_token httpOnly cookie (FE
+// <img> tags). Closes the unauthenticated /uploads exposure flagged
+// in AUDIT_2026_05_17_CODE_QUALITY.md T0-2.
+app.use('/uploads', requireAssetAuth, express.static(path.join(process.cwd(), 'uploads')));
 
 // Input sanitization — strip XSS from request body and query strings
 import { sanitizeInput } from '@/middleware/sanitize';
@@ -241,7 +247,6 @@ apiRouter.use('/clients', clientDocumentTypesRoutes);
 // take longer than the global 30s defaultTimeout on slow networks or
 // large images. Use the extended 120s budget like /mobile and /exports.
 apiRouter.use('/attachments', extendedTimeout, attachmentRoutes);
-apiRouter.use('/storage', storageRoutes);
 apiRouter.use('/user', userRoutes);
 apiRouter.use('/users', usersRoutes);
 apiRouter.use('/users', userTerritoryRoutes);

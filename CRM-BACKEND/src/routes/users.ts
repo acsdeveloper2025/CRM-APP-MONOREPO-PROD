@@ -12,7 +12,7 @@ import {
 } from '../middleware/enterpriseCache';
 import { ProfilePhotoController } from '@/controllers/profilePhotoController';
 import { profilePhotoUpload } from '@/middleware/profilePhotoUpload';
-import { getUserConsents } from '@/controllers/userConsentsController';
+import { acceptConsent, getUserConsents } from '@/controllers/userConsentsController';
 import { getUserAuditLog } from '@/controllers/userAuditLogController';
 import { exportUserData } from '@/controllers/userDataExportController';
 import { eraseUserData } from '@/controllers/userErasureController';
@@ -581,10 +581,15 @@ router.get(
 // Acknowledgement audit trail). Returned on user-detail page for
 // compliance/dispute review. UNIQUE (user_id, policy_version) means
 // rows ≤ number of policy versions ever bumped.
+//
+// Phase D Option B (2026-05-17): dropped authorize('user.view') so
+// regular users can read their OWN consent history (needed by the
+// PolicyAcceptanceGuard on every protected route). Cross-user reads
+// are now restricted by the in-controller self-or-admin check inside
+// getUserConsents (mirrors userDataExportController pattern).
 router.get(
   '/:id/consents',
   authenticateToken,
-  authorize('user.view'),
   [param('id').trim().notEmpty().withMessage('User ID is required')],
   validate,
   getUserConsents
@@ -648,10 +653,13 @@ router.post(
   generateTemporaryPassword
 );
 
+// Phase D-3 (audit 2026-05-17): drop authorize('user.update') so regular
+// users CAN change their own password from the profile page. Cross-user
+// changes are still blocked by the in-controller self-check at
+// usersController.changePassword:2400 (id !== callerId && !hasSystemScopeBypass).
 router.post(
   '/:id/change-password',
   authenticateToken,
-  authorize('user.update'),
   [
     param('id').trim().notEmpty().withMessage('User ID is required'),
     body('currentPassword').notEmpty().withMessage('Current password is required'),
@@ -697,6 +705,22 @@ router.delete(
   authenticateToken,
   authorize('user.update'),
   ProfilePhotoController.deleteForUser
+);
+
+// Phase D-7 (2026-05-17): web-side self-service consent acceptance.
+// Mirrors the mobile mount at /api/mobile/consents/accept — same
+// controller, same idempotent UPSERT on (user_id, policy_version).
+// Source is supplied by caller body (defaults 'MOBILE' in controller;
+// FE web sends 'WEB').
+router.post(
+  '/me/consents/accept',
+  authenticateToken,
+  [
+    body('policyVersion').isInt({ gt: 0 }).withMessage('policyVersion must be a positive integer'),
+    body('source').optional().isIn(['MOBILE', 'WEB']).withMessage('source must be MOBILE or WEB'),
+  ],
+  validate,
+  acceptConsent
 );
 
 export default router;

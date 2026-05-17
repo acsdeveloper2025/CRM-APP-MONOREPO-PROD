@@ -74,6 +74,32 @@ const clearRefreshTokenCookie = (res: Response): void => {
   });
 };
 
+// Asset cookie — paired with the /uploads requireAssetAuth middleware.
+// Path=/uploads so the cookie only rides on asset requests. Value is the
+// current access token (same JWT) — middleware verifies via the same
+// rotation-aware path as Authorization headers. Lifetime matches access
+// token TTL (24h) so a stolen cookie isn't usable past natural expiry.
+const ASSET_COOKIE_NAME = 'crm_asset_token';
+const ASSET_COOKIE_PATH = '/uploads';
+const ASSET_COOKIE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+const setAssetTokenCookie = (res: Response, token: string): void => {
+  const isProd = config.nodeEnv === 'production';
+  res.cookie(ASSET_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'strict' : 'lax',
+    path: ASSET_COOKIE_PATH,
+    maxAge: ASSET_COOKIE_MAX_AGE_MS,
+  });
+};
+
+const clearAssetTokenCookie = (res: Response): void => {
+  res.clearCookie(ASSET_COOKIE_NAME, {
+    path: ASSET_COOKIE_PATH,
+  });
+};
+
 // Account lockout — 5 failed attempts per username in 15 minutes.
 // Uses Redis for fast lookup + auto-expiry. Separate from IP-based
 // rate limiting so an attacker can't bypass by switching IPs.
@@ -372,6 +398,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     //     ever sent to the one endpoint that needs it
     //   - maxAge: matches refresh token TTL
     setRefreshTokenCookie(res, refreshToken);
+    setAssetTokenCookie(res, accessToken);
     res.json(response);
   } catch (error) {
     throw error;
@@ -417,6 +444,7 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
     // browser stops sending it on subsequent requests. Cookie path
     // must match the one used at set time.
     clearRefreshTokenCookie(res);
+    clearAssetTokenCookie(res);
 
     logger.info(`User ${req.user.id} logged out successfully`);
     res.json(response);
@@ -852,6 +880,9 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     if (cookieToken) {
       setRefreshTokenCookie(res, newRefreshToken);
     }
+    // Asset cookie rotates alongside the access token so /uploads stays
+    // reachable from <img> tags after token rotation.
+    setAssetTokenCookie(res, accessToken);
 
     res.json({
       success: true,

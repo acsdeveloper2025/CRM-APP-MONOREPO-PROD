@@ -18,7 +18,6 @@ import {
   HeadObjectCommand,
   CopyObjectCommand,
 } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Readable } from 'stream';
 import { logger } from '@/utils/logger';
 import {
@@ -98,13 +97,6 @@ export class S3Storage implements StorageService {
       size: out.ContentLength ?? 0,
       mimeType: out.ContentType ?? 'application/octet-stream',
     };
-  }
-
-  async getSignedUrl(key: string, ttlSeconds = 900): Promise<string> {
-    const safe = sanitizeStorageKey(key);
-    return getSignedUrl(this.client, new GetObjectCommand({ Bucket: this.bucket, Key: safe }), {
-      expiresIn: ttlSeconds,
-    });
   }
 
   async delete(key: string): Promise<void> {

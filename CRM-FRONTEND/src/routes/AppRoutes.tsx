@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { PolicyAcceptanceGuard } from '@/components/PolicyAcceptanceGuard';
 import { Layout } from '@/components/layout/Layout';
 
 // Import all page components using React.lazy for code splitting
@@ -73,6 +74,8 @@ const NotificationHistoryPage = React.lazy(() =>
     default: module.NotificationHistoryPage,
   }))
 );
+const ProfilePage = React.lazy(() => import('@/pages/ProfilePage'));
+const AcceptPolicyPage = React.lazy(() => import('@/pages/AcceptPolicyPage'));
 const ReportsPage = React.lazy(() =>
   import('@/pages/ReportsPage').then((module) => ({ default: module.ReportsPage }))
 );
@@ -204,11 +207,16 @@ const DefaultRoute: React.FC = () => {
 };
 
 // Layout wrapper that persists across routes
+// Phase D Option B (2026-05-17): wraps Outlet with PolicyAcceptanceGuard
+// so every protected route requires a current-version policy acceptance.
+// /accept-policy is mounted OUTSIDE this layout to break the redirect loop.
 const AuthenticatedLayout = () => {
   return (
     <ProtectedRoute>
       <Layout>
-        <Outlet />
+        <PolicyAcceptanceGuard>
+          <Outlet />
+        </PolicyAcceptanceGuard>
       </Layout>
     </ProtectedRoute>
   );
@@ -237,6 +245,11 @@ export const AppRoutes: React.FC = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
+        {/* Phase D Option B (2026-05-17): hard policy gate. Sits OUTSIDE
+            AuthenticatedLayout so PolicyAcceptanceGuard's redirect does
+            not loop. Still requires auth via the page's own check. */}
+        <Route path="/accept-policy" element={<AcceptPolicyPage />} />
+
         {/* ... rest of the routes remain same but lazy loaded components need Suspense up the tree or here ... */}
         {/* Protected routes with persistent layout */}
         <Route element={<AuthenticatedLayout />}>
@@ -245,6 +258,22 @@ export const AppRoutes: React.FC = () => {
             element={
               <ProtectedRoute>
                 <NotificationHistoryPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/:tab"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
               </ProtectedRoute>
             }
           />

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermission } from '@/hooks/usePermissions';
 import { useTheme } from '@/hooks/useTheme';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -45,6 +46,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { clearCache } = useCacheClearer();
+  const canViewSettings = usePermission('page.settings');
   const notificationsQuery = useQuery({
     queryKey: ['notifications', 'header'],
     queryFn: () => notificationService.list({ limit: 8, offset: 0 }),
@@ -395,14 +397,16 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/profile')}>
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
-              </DropdownMenuItem>
+              {canViewSettings && (
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={handleClearCache}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 <span>Clear Cache</span>

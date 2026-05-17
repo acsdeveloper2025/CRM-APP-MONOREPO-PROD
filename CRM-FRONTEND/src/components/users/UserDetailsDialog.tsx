@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { User, Shield, Calendar, Activity, Award, FileCheck } from 'lucide-react';
+import { User, Shield, Calendar, Activity, Award, FileCheck, Camera } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -9,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -17,6 +19,8 @@ import { User as UserType } from '@/types/user';
 import { getRoleBadge } from '@/utils/roleUtils';
 import { getPrimaryRoleLabel } from '@/utils/userPermissionProfiles';
 import { resolveAssetUrl } from '@/utils/assetUrl';
+import { usePermission } from '@/hooks/usePermissions';
+import { ProfilePhotoUploadDialog } from './ProfilePhotoUploadDialog';
 
 interface UserDetailsDialogProps {
   user: UserType;
@@ -25,6 +29,9 @@ interface UserDetailsDialogProps {
 }
 
 export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialogProps) {
+  const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
+  const canManagePhoto = usePermission('user.update');
+
   const { data: userProfileData, isLoading: _isLoading } = useQuery({
     queryKey: ['user-profile', user.id],
     queryFn: () => usersService.getUserById(user.id),
@@ -70,16 +77,30 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
             </CardHeader>
             <CardContent>
               <div className="flex items-start space-x-4">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={resolveAssetUrl(user.profilePhotoUrl)} alt={user.name} />
-                  <AvatarFallback className="text-lg">
-                    {user.name
-                      .split(' ')
-                      .map((n) => n[0])
-                      .join('')
-                      .toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative group">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={resolveAssetUrl(user.profilePhotoUrl)} alt={user.name} />
+                    <AvatarFallback className="text-lg">
+                      {user.name
+                        .split(' ')
+                        .map((n) => n[0])
+                        .join('')
+                        .toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  {canManagePhoto && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full p-0 shadow"
+                      aria-label="Change photo"
+                      onClick={() => setPhotoDialogOpen(true)}
+                    >
+                      <Camera className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
                 <div className="flex-1 space-y-2">
                   <div>
                     <h3 className="text-lg font-semibold">{user.name}</h3>
@@ -289,6 +310,14 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
           )}
         </div>
       </DialogContent>
+      <ProfilePhotoUploadDialog
+        userId={user.id}
+        userName={user.name}
+        currentPhotoUrl={user.profilePhotoUrl}
+        isSelf={false}
+        open={photoDialogOpen}
+        onOpenChange={setPhotoDialogOpen}
+      />
     </Dialog>
   );
 }

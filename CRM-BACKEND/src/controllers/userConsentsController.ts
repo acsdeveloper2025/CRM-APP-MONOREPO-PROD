@@ -17,6 +17,7 @@ import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { createAuditLog } from '@/utils/auditLogger';
 import { errorMessage } from '@/utils/errorMessage';
+import { userHasPermission } from '@/security/rbacAccess';
 
 interface UserConsentRow {
   id: string;
@@ -143,6 +144,21 @@ export const getUserConsents = async (req: AuthenticatedRequest, res: Response):
         success: false,
         message: 'User id is required',
         error: { code: 'MISSING_USER_ID' },
+      });
+      return;
+    }
+
+    // Phase D Option B (2026-05-17): self OR settings.manage admin only.
+    // Mirrors userDataExportController + userAuditLogController guards.
+    // Required so the PolicyAcceptanceGuard can fetch the caller's own
+    // consent history without admin perm.
+    const requesterId = req.user?.id;
+    const isSelf = requesterId === targetUserId;
+    if (!isSelf && !userHasPermission(req.user, 'settings.manage')) {
+      res.status(403).json({
+        success: false,
+        message: 'You may only view your own consent history',
+        error: { code: 'CONSENTS_FORBIDDEN' },
       });
       return;
     }

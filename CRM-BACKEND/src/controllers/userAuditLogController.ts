@@ -69,11 +69,16 @@ export const getUserAuditLog = async (req: AuthenticatedRequest, res: Response):
     // SUBJECT (entity_type='USER' AND entity_id = target). Both lenses
     // matter for DPDP transparency: "what did I do?" + "what was done
     // to my account?".
+    //
+    // 2026-05-17: cast $1 to text in the entity_id comparison — the
+    // column is TEXT (holds IDs across heterogeneous entity types),
+    // node-pg infers UUID for the parameter, and `text = uuid` has no
+    // operator. Cast keeps user_id (uuid column) untouched.
     const dataRes = await query<AuditLogRow>(
       `SELECT id, user_id, action, entity_type, entity_id, ip_address, user_agent, created_at, details
          FROM audit_logs
         WHERE user_id = $1
-           OR (entity_type = 'USER' AND entity_id = $1)
+           OR (entity_type = 'USER' AND entity_id = $1::text)
         ORDER BY created_at DESC
         LIMIT $2 OFFSET $3`,
       [targetUserId, limit, offset]
@@ -82,7 +87,7 @@ export const getUserAuditLog = async (req: AuthenticatedRequest, res: Response):
       `SELECT COUNT(*)::text AS total
          FROM audit_logs
         WHERE user_id = $1
-           OR (entity_type = 'USER' AND entity_id = $1)`,
+           OR (entity_type = 'USER' AND entity_id = $1::text)`,
       [targetUserId]
     );
 

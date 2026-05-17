@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { useNavigate } from 'react-router-dom';
 import { useRevisitTaskAction } from '@/hooks/useRevisitTaskAction';
+import { VerificationTasksService } from '@/services/verificationTasks';
 
 interface CompletedTaskFilters {
   priority?: string;

@@ -57,20 +57,6 @@ export interface StorageService {
    */
   get(key: string): Promise<GetResult>;
 
-  /**
-   * Generate a time-limited URL the caller can use to fetch the object directly.
-   *
-   * Local backend: returns an in-app `/api/storage/{key}` URL that goes through
-   * the auth-gated streaming controller (NOT the static `/uploads` mount, which
-   * is unauthenticated and a DPDP exposure).
-   *
-   * S3 backend: returns a signed S3 presigned URL valid for `ttlSeconds`.
-   *
-   * @param key         Storage key.
-   * @param ttlSeconds  How long the URL stays valid. Default per config.
-   */
-  getSignedUrl(key: string, ttlSeconds?: number): Promise<string>;
-
   /** Permanently remove the object. Idempotent — does not throw on missing. */
   delete(key: string): Promise<void>;
 

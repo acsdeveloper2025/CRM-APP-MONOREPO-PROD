@@ -33,11 +33,197 @@
 //   - else → 403
 
 import type { Response } from 'express';
+import puppeteer from 'puppeteer';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
 import { errorMessage } from '@/utils/errorMessage';
 import { userHasPermission } from '@/security/rbacAccess';
+
+// HTML entity-escape for any value that will land inside a tag body.
+// Numbers / booleans / null / undefined coerced to string first.
+// We deliberately stringify primitives via JSON for objects/arrays so a
+// Postgres row value that lands here as `{}` doesn't render literal
+// "[object Object]" (caught by @typescript-eslint/no-base-to-string).
+const esc = (raw: unknown): string => {
+  let str: string;
+  if (raw === null || raw === undefined) {
+    str = '';
+  } else if (typeof raw === 'object') {
+    str = JSON.stringify(raw);
+  } else if (typeof raw === 'string') {
+    str = raw;
+  } else if (typeof raw === 'number' || typeof raw === 'boolean' || typeof raw === 'bigint') {
+    str = String(raw);
+  } else {
+    str = '';
+  }
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
+// Render the export bundle to a print-ready HTML document. Inline CSS only —
+// puppeteer's setContent({ waitUntil: 'load' }) has no network fetcher for
+// our pipeline, so external stylesheets / fonts won't load.
+const bundleToHtml = (bundle: Record<string, unknown>, targetUserId: string): string => {
+  const subject = (bundle.subject as Record<string, unknown>) || {};
+  const roles = (bundle.roles as Array<Record<string, unknown>>) || [];
+  const consents = (bundle.consents as Array<Record<string, unknown>>) || [];
+  const assignments = (bundle.assignments as Record<string, Array<Record<string, unknown>>>) || {};
+  const commissions = (bundle.commissions as Record<string, Array<Record<string, unknown>>>) || {};
+  const devices = (bundle.devices as Array<Record<string, unknown>>) || [];
+
+  const kv = (label: string, value: unknown): string =>
+    `<tr><th scope="row">${esc(label)}</th><td>${esc(value)}</td></tr>`;
+
+  const rowsTable = (headers: string[], rows: Array<Record<string, unknown>>): string => {
+    if (rows.length === 0) {
+      return `<p class="empty">No records.</p>`;
+    }
+    return `<table class="data"><thead><tr>${headers
+      .map(h => `<th>${esc(h)}</th>`)
+      .join('')}</tr></thead><tbody>${rows
+      .map(r => `<tr>${headers.map(h => `<td>${esc(r[h])}</td>`).join('')}</tr>`)
+      .join('')}</tbody></table>`;
+  };
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>DPDP §11 Data Export — ${esc(subject.name)}</title>
+  <style>
+    @page { size: A4; margin: 16mm 14mm; }
+    * { box-sizing: border-box; }
+    body { font-family: Helvetica, Arial, sans-serif; font-size: 10.5pt; color: #1f2937; margin: 0; line-height: 1.45; }
+    h1 { font-size: 18pt; margin: 0 0 4pt 0; color: #047857; }
+    h2 { font-size: 13pt; margin: 14pt 0 6pt 0; padding-bottom: 3pt; border-bottom: 1.5pt solid #047857; color: #064e3b; }
+    .header { border-bottom: 2pt solid #047857; padding-bottom: 8pt; margin-bottom: 12pt; }
+    .meta { font-size: 9pt; color: #6b7280; margin-top: 4pt; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 6pt; font-size: 9.5pt; }
+    table.kv th { text-align: left; width: 38%; padding: 4pt 6pt; background: #f3f4f6; border: 0.5pt solid #d1d5db; font-weight: 600; }
+    table.kv td { padding: 4pt 6pt; border: 0.5pt solid #d1d5db; word-break: break-word; }
+    table.data th { background: #047857; color: #ffffff; text-align: left; padding: 4pt 6pt; font-size: 8.5pt; font-weight: 600; }
+    table.data td { padding: 3pt 6pt; border-bottom: 0.5pt solid #e5e7eb; word-break: break-word; vertical-align: top; font-size: 8.5pt; }
+    .empty { color: #9ca3af; font-style: italic; font-size: 9pt; margin: 4pt 0 8pt 0; }
+    .pre { font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 8pt; background: #f9fafb; padding: 6pt; border-left: 2pt solid #047857; white-space: pre-wrap; word-break: break-word; }
+    .footer { margin-top: 18pt; padding-top: 6pt; border-top: 0.5pt solid #d1d5db; font-size: 8pt; color: #6b7280; }
+    .pill { display: inline-block; padding: 1pt 6pt; border-radius: 8pt; background: #d1fae5; color: #047857; font-size: 8pt; font-weight: 600; margin-right: 4pt; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Personal Data Export</h1>
+    <div class="meta">
+      <strong>${esc(subject.name)}</strong>
+      &nbsp;·&nbsp; ${esc(subject.username)}
+      &nbsp;·&nbsp; ID ${esc(targetUserId)}
+    </div>
+    <div class="meta">
+      ${esc(bundle.dpdpSection)} &nbsp;·&nbsp;
+      Generated ${esc(bundle.exportedAt)} &nbsp;·&nbsp;
+      Requested by ${esc(bundle.exportedBy)}
+    </div>
+  </div>
+
+  <h2>1. Identity &amp; profile</h2>
+  <table class="kv">
+    ${kv('Full name', subject.name)}
+    ${kv('Username', subject.username)}
+    ${kv('Employee ID', subject.employee_id)}
+    ${kv('Email', subject.email)}
+    ${kv('Phone', subject.phone)}
+    ${kv('Active', subject.is_active)}
+    ${kv('Last login', subject.last_login)}
+    ${kv('Created at', subject.created_at)}
+    ${kv('Updated at', subject.updated_at)}
+    ${kv('Profile photo URL', subject.profile_photo_url)}
+    ${kv('Department ID', subject.department_id)}
+    ${kv('Designation ID', subject.designation_id)}
+    ${kv('Team leader ID', subject.team_leader_id)}
+    ${kv('Manager ID', subject.manager_id)}
+  </table>
+
+  <h2>2. Roles</h2>
+  ${rowsTable(['id', 'name', 'description', 'assigned_at'], roles)}
+
+  <h2>3. Policy acceptances (consents)</h2>
+  ${rowsTable(['policy_version', 'accepted_at', 'source', 'ip_address', 'user_agent'], consents)}
+
+  <h2>4. Scope assignments</h2>
+  <h3 style="font-size:10pt;margin:6pt 0 4pt 0;">Clients</h3>
+  ${rowsTable(['client_id', 'created_at'], assignments.clients || [])}
+  <h3 style="font-size:10pt;margin:6pt 0 4pt 0;">Products</h3>
+  ${rowsTable(['product_id', 'created_at'], assignments.products || [])}
+  <h3 style="font-size:10pt;margin:6pt 0 4pt 0;">Pincodes</h3>
+  ${rowsTable(['pincode_id', 'created_at'], assignments.pincodes || [])}
+  <h3 style="font-size:10pt;margin:6pt 0 4pt 0;">Areas</h3>
+  ${rowsTable(['pincode_id', 'user_pincode_assignment_id', 'created_at'], assignments.areas || [])}
+
+  <h2>5. Commissions</h2>
+  <h3 style="font-size:10pt;margin:6pt 0 4pt 0;">Rate assignments</h3>
+  ${rowsTable(['client_id', 'rate_type_id', 'created_at'], commissions.assignments || [])}
+  <h3 style="font-size:10pt;margin:6pt 0 4pt 0;">Earned</h3>
+  ${rowsTable(
+    [
+      'case_id',
+      'client_id',
+      'base_amount',
+      'commission_amount',
+      'status',
+      'case_completed_at',
+      'paid_at',
+    ],
+    commissions.earned || []
+  )}
+
+  <h2>6. Devices</h2>
+  ${rowsTable(['device_id', 'platform', 'app_version', 'sync_count', 'last_sync_at'], devices)}
+
+  <h2>7. Notification preferences</h2>
+  <div class="pre">${esc(JSON.stringify(bundle.notificationPreferences ?? null, null, 2))}</div>
+
+  <h2>8. Cross-references</h2>
+  <p>${esc(bundle.auditLogReference)}</p>
+
+  <h2>9. Fields excluded from this export</h2>
+  <p class="meta">${esc((bundle.excludedFields as { reason?: string })?.reason)}</p>
+
+  <div class="footer">
+    <span class="pill">DPDP §11</span>
+    Generated by All Check Services CRM &nbsp;·&nbsp;
+    Document ID: ${esc(targetUserId)}-${esc(bundle.exportedAt)}
+  </div>
+</body>
+</html>`;
+};
+
+// Render HTML → PDF via puppeteer. Uses a one-shot Browser instance per
+// call. For higher-throughput exports we'd reuse a pool (see
+// PDFExportService.ts); for self-service §11 access this is rare enough.
+const htmlToPdf = async (html: string): Promise<Buffer> => {
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'load' });
+    const pdf = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: { top: '16mm', right: '14mm', bottom: '16mm', left: '14mm' },
+    });
+    return Buffer.from(pdf);
+  } finally {
+    await browser.close();
+  }
+};
 
 export const exportUserData = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const targetUserId = String(req.params.id ?? '');
@@ -83,13 +269,13 @@ export const exportUserData = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // 2. Roles
+    // 2. Roles — user_roles uses assigned_at (not created_at) per schema.
     const rolesRes = await query(
-      `SELECT rv.id, rv.name, rv.description, ur.created_at AS assigned_at
+      `SELECT rv.id, rv.name, rv.description, ur.assigned_at
          FROM user_roles ur
          JOIN roles_v2 rv ON rv.id = ur.role_id
         WHERE ur.user_id = $1
-        ORDER BY ur.created_at DESC`,
+        ORDER BY ur.assigned_at DESC`,
       [targetUserId]
     );
 
@@ -185,13 +371,21 @@ export const exportUserData = async (req: AuthenticatedRequest, res: Response): 
       isSelf,
     });
 
+    // 2026-05-17: format changed from JSON to PDF per user request. The
+    // bundle assembly above is unchanged — it's still the authoritative
+    // data source — but the response now renders it through puppeteer
+    // into a print-ready A4 document so the data principal receives a
+    // single signed-looking artifact (better DPDP §11 UX).
+    const html = bundleToHtml(bundle, targetUserId);
+    const pdfBuffer = await htmlToPdf(html);
     const filename = `user-${targetUserId}-data-export-${new Date()
       .toISOString()
       .replace(/[:.]/g, '-')
-      .slice(0, 19)}.json`;
-    res.setHeader('Content-Type', 'application/json');
+      .slice(0, 19)}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Length', String(pdfBuffer.length));
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.json(bundle);
+    res.end(pdfBuffer);
   } catch (err) {
     logger.error('exportUserData failed', {
       targetUserId,

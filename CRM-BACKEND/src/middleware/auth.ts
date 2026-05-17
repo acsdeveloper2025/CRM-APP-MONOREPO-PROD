@@ -452,6 +452,56 @@ export const authenticateTokenFlexible = (
 // wrapper just forwards to authenticateToken for backwards compatibility.
 export const auth = authenticateToken;
 
+// Asset cookie name used by /uploads static mount auth.
+// Set at login (alongside refresh cookie) and at refresh-token rotation.
+// HttpOnly so XSS can't read it; SameSite=Strict to block CSRF; Path=/uploads
+// so the cookie only ever rides on asset-serving requests.
+export const ASSET_COOKIE_NAME = 'crm_asset_token';
+
+// requireAssetAuth — middleware for /uploads static serving.
+// Accepts EITHER Authorization: Bearer header (mobile + fetch-based reads)
+// OR the crm_asset_token httpOnly cookie (FE <img src> tags). Either way
+// the value is treated as a JWT and verified via verifyJwtWithRotation.
+//
+// This closes the unauthenticated /uploads/* exposure (audit T0-2) without
+// forcing FE <img> consumers to switch to fetch+blob. The cookie travels
+// with same-origin <img> requests automatically; mobile keeps using bearer.
+export const requireAssetAuth = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  const rawAuthHeader = req.headers.authorization;
+  const authHeader = Array.isArray(rawAuthHeader) ? rawAuthHeader[0] : rawAuthHeader;
+  const bearer = authHeader && authHeader.split(' ')[1];
+
+  // express may parse cookies via cookie-parser middleware (mounted globally
+  // in app.ts). If not present we fall through cleanly to 401.
+  const cookieToken =
+    (req.cookies && (req.cookies as Record<string, string>)[ASSET_COOKIE_NAME]) || undefined;
+
+  const token = bearer || cookieToken;
+  if (!token) {
+    res.status(401).json({
+      success: false,
+      message: 'Authentication required',
+      error: { code: 'NO_TOKEN' },
+    });
+    return;
+  }
+
+  try {
+    verifyJwtWithRotation<JwtPayload>(token, config.jwtSecret, config.oldJwtSecret);
+    next();
+  } catch (_err) {
+    res.status(401).json({
+      success: false,
+      message: 'Invalid or expired token',
+      error: { code: 'INVALID_TOKEN' },
+    });
+  }
+};
+
 // Permission-based access control middleware
 export const requirePermission = (resource: string, action: string) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {

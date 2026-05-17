@@ -39,3 +39,28 @@ export const editUserFormSchema = z.object({
   isActive: z.boolean(),
 });
 export type EditUserFormData = z.infer<typeof editUserFormSchema>;
+
+// Phase D-3: self-service password change from Profile page.
+// Server-side regex mirrors the BE validator at routes/users.ts (the
+// /change-password route validator). Client-side first; BE re-validates.
+export const changePasswordFormSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z
+      .string()
+      .min(8, 'New password must be at least 8 characters')
+      .regex(
+        PASSWORD_POLICY_REGEX,
+        'Must include uppercase, lowercase, number, and special character'
+      ),
+    confirmPassword: z.string().min(1, 'Confirm your new password'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'New password and confirmation do not match',
+  })
+  .refine((data) => data.newPassword !== data.currentPassword, {
+    path: ['newPassword'],
+    message: 'New password must differ from current password',
+  });
+export type ChangePasswordFormData = z.infer<typeof changePasswordFormSchema>;

@@ -159,6 +159,18 @@ export class UsersService {
     return apiService.get<UserConsentRecord[]>(`/users/${userId}/consents`);
   }
 
+  // Phase D-7 (2026-05-17): self-service consent acceptance from the web
+  // Profile → Privacy tab. Reuses the same acceptConsent controller as
+  // mobile; BE accepts source='WEB' (controller default 'MOBILE').
+  async acceptConsent(
+    policyVersion: number
+  ): Promise<ApiResponse<{ id: string; policyVersion: number; acceptedAt: string }>> {
+    return apiService.post<{ id: string; policyVersion: number; acceptedAt: string }>(
+      '/users/me/consents/accept',
+      { policyVersion, source: 'WEB' }
+    );
+  }
+
   // User sessions
   async getUserSessions(query: SessionQuery = {}): Promise<ApiResponse<UserSession[]>> {
     return apiService.get<UserSession[]>('/users/sessions', query);

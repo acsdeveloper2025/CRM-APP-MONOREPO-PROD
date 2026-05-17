@@ -3,9 +3,10 @@
  *
  * Default in dev. Stores files under `<uploadRoot>/<key>`.
  *
- * `getSignedUrl` returns `/api/storage/<key>` (not `/uploads/<key>`) so reads
- * always go through the auth-gated streaming controller. This closes the F-B1.1
- * audit finding (unauthenticated `/uploads` static serving = DPDP exposure).
+ * Reads must go through entity-aware controllers (e.g.,
+ * attachmentsController.serveAttachment) that enforce per-row scope checks.
+ * The audit T0-2 fix (2026-05-17) gates the `/uploads` static mount behind
+ * requireAssetAuth so legacy reads via the static path remain protected.
  */
 
 import { promises as fs, createReadStream } from 'fs';
@@ -91,15 +92,6 @@ export class LocalFsStorage implements StorageService {
       size: stat.size,
       mimeType: mimeFromExt(path.extname(fullPath)),
     };
-  }
-
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async getSignedUrl(key: string, _ttlSeconds?: number): Promise<string> {
-    // Return an in-app URL that goes through the auth-gated controller.
-    // `_ttlSeconds` ignored for local — every read is per-request authenticated.
-    // Async signature kept for interface symmetry with S3Storage (which IS async).
-    const safe = sanitizeStorageKey(key);
-    return `/api/storage/${safe}`;
   }
 
   async delete(key: string): Promise<void> {
