@@ -1,14 +1,40 @@
 import { z } from 'zod';
 import { PASSWORD_POLICY_REGEX } from '@/lib/passwordPolicy';
 
+// Phone validation mirrors the BE validator at routes/users.ts
+// (E.164: `^\+?[1-9]\d{1,14}$`). Empty string allowed; BE coerces '' → NULL.
+// No dashes / spaces / parens — keep both sides identical so the FE never
+// passes something the BE rejects.
+const phoneFieldSchema = z
+  .string()
+  .max(16, 'Phone too long')
+  .regex(/^$|^\+?[1-9]\d{1,14}$/, 'Use E.164 format, e.g. +919876543210')
+  .optional();
+
 const baseUserShape = {
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
   email: z.string().email('Invalid email address'),
+  phone: phoneFieldSchema,
   roleId: z.string().min(1, 'Role is required'),
   employeeId: z.string().min(1, 'Employee ID is required'),
   teamLeaderId: z.string().optional(),
   managerId: z.string().optional(),
 };
+
+// Self-service contact update (Profile page Identity tab). Standalone
+// schema so the dialog can update either / both fields without
+// dragging the full user object. Email is optional + nullable here
+// (empty string allowed = "clear my email"); the BE re-validates and
+// enforces uniqueness against other users.
+export const updateMyContactFormSchema = z.object({
+  email: z
+    .string()
+    .max(100, 'Email too long')
+    .refine((v) => v === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Invalid email address')
+    .optional(),
+  phone: phoneFieldSchema,
+});
+export type UpdateMyContactFormData = z.infer<typeof updateMyContactFormSchema>;
 
 export const createUserFormSchema = z.object({
   ...baseUserShape,

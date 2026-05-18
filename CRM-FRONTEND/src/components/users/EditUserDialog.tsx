@@ -16,6 +16,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -49,6 +50,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
     defaultValues: {
       name: user.name,
       email: user.email ?? '',
+      phone: user.phone ?? '',
       roleId: user.roleId ? String(user.roleId) : '',
       employeeId: user.employeeId,
       designationId: user.designationId ? String(user.designationId) : '',
@@ -108,6 +110,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
       form.reset({
         name: user.name,
         email: user.email ?? '',
+        phone: user.phone ?? '',
         roleId: user.roleId ? String(user.roleId) : '',
         employeeId: user.employeeId,
         designationId: user.designationId ? String(user.designationId) : '',
@@ -215,6 +218,28 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                   <FormControl>
                     <Input type="email" placeholder="Enter email address" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="tel"
+                      placeholder="+919876543210"
+                      className="case-sensitive"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Optional. E.164 format (country code, digits only).
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

@@ -17,6 +17,7 @@ import { getUserAuditLog } from '@/controllers/userAuditLogController';
 import { exportUserData } from '@/controllers/userDataExportController';
 import { eraseUserData } from '@/controllers/userErasureController';
 import { listUserSessions, revokeUserSession } from '@/controllers/userSessionsController';
+import { updateMyProfile } from '@/controllers/userSelfProfileController';
 import {
   getUsers,
   getUserById,
@@ -721,6 +722,35 @@ router.post(
   ],
   validate,
   acceptConsent
+);
+
+// D2 (audit 2026-05-18): tightly-scoped self-edit endpoint. Today only
+// `email` and `phone` are accepted; admins manage every other field via
+// PUT /users/:id. Express-validator chain mirrors the regex / format
+// rules used by the controller; controller re-validates as the source
+// of truth.
+router.patch(
+  '/me/profile',
+  authenticateToken,
+  [
+    body('email')
+      .optional({ values: 'falsy' })
+      .isString()
+      .trim()
+      .isLength({ max: 100 })
+      .withMessage('Email too long')
+      .isEmail()
+      .withMessage('Email must be a valid address')
+      .normalizeEmail(),
+    body('phone')
+      .optional({ values: 'falsy' })
+      .isString()
+      .trim()
+      .custom((v: string) => v === '' || /^\+?[1-9]\d{1,14}$/.test(v))
+      .withMessage('Phone must be valid E.164 (e.g. +919876543210)'),
+  ],
+  validate,
+  updateMyProfile
 );
 
 export default router;

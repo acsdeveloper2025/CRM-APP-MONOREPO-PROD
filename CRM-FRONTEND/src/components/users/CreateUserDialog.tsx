@@ -51,6 +51,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
       name: '',
       username: '',
       email: '',
+      phone: '',
       password: '',
       roleId: '',
       departmentId: '',
@@ -220,6 +221,28 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                   <FormControl>
                     <Input type="email" placeholder="Enter email address" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="tel"
+                      placeholder="+919876543210"
+                      className="case-sensitive"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Optional. E.164 format (country code, digits only).
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

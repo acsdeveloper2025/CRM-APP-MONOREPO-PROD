@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { usePermission } from '@/hooks/usePermissions';
 import { useTheme } from '@/hooks/useTheme';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -46,7 +45,6 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { clearCache } = useCacheClearer();
-  const canViewSettings = usePermission('page.settings');
   const notificationsQuery = useQuery({
     queryKey: ['notifications', 'header'],
     queryFn: () => notificationService.list({ limit: 8, offset: 0 }),
@@ -107,9 +105,6 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     }
     if (path === '/security-ux') {
       return 'Security & UX';
-    }
-    if (path === '/settings') {
-      return 'Settings';
     }
     if (path === '/notifications') {
       return 'Notifications';
@@ -388,10 +383,10 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">{user?.name}</p>
-                  <p className="text-xs leading-none text-gray-600 case-sensitive">
+                  <p className="text-xs leading-none text-muted-foreground case-sensitive">
                     {user?.email || '—'}
                   </p>
-                  <p className="text-xs leading-none text-gray-600">
+                  <p className="text-xs leading-none text-muted-foreground">
                     {user?.role} • {user?.designation}
                   </p>
                 </div>
@@ -401,12 +396,6 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
-              {canViewSettings && (
-                <DropdownMenuItem onClick={() => navigate('/settings')}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-              )}
               <DropdownMenuItem onClick={handleClearCache}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 <span>Clear Cache</span>

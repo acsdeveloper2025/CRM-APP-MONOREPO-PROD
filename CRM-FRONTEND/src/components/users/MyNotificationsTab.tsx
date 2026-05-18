@@ -9,18 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingState } from '@/components/ui/loading';
-import { toast } from 'sonner';
 import { Save, RefreshCw } from 'lucide-react';
 
-/**
- * Phase 1.3 (2026-05-04) — replaces the stub mock toggles with a real
- * wire-up to backend `/notifications/preferences`. Mirrors the
- * `notification_preferences` table: 5 event types × 3 channels
- * (enabled / push / websocket) + quiet hours (HH:MM start + end).
- *
- * Backend auto-creates the row with safe defaults on first GET, so a
- * brand-new user opens this screen and sees toggles already populated.
- */
+// T0 (audit 2026-05-18): SettingsPage retired. NotificationPreferencesSection
+// renamed and moved here to sit beside the other ProfilePage tabs
+// (MySessionsTab / MyActivityTab / PrivacyTab). Logic unchanged from the
+// 2026-05-04 implementation; mutation pattern unified to errorContext (was
+// double-toasting via onErrorCallback + handleError).
 const EVENT_TYPES: Array<{
   key:
     | 'caseAssignment'
@@ -65,7 +60,7 @@ const fieldName = (
   suffix: 'Enabled' | 'Push' | 'Websocket'
 ): FieldName => `${prefix}${suffix}` as FieldName;
 
-export const NotificationPreferencesSection: React.FC = () => {
+export const MyNotificationsTab: React.FC = () => {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['notification-preferences'],
     queryFn: () => notificationService.getPreferences(),
@@ -87,12 +82,8 @@ export const NotificationPreferencesSection: React.FC = () => {
     mutationFn: (payload: Partial<NotificationPreferences>) =>
       notificationService.updatePreferences(payload),
     invalidateKeys: [['notification-preferences']],
-    onSuccess: () => {
-      toast.success('Notification preferences saved');
-    },
-    onErrorCallback: () => {
-      toast.error('Failed to save notification preferences');
-    },
+    successMessage: 'Notification preferences saved',
+    errorContext: 'Notification Preferences',
   });
 
   if (isLoading || !prefs) {

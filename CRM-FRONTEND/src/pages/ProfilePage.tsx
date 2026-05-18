@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   Camera,
   Mail,
@@ -16,14 +16,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
+import { usePermission } from '@/hooks/usePermissions';
 import { resolveAssetUrl } from '@/utils/assetUrl';
 import { ProfilePhotoUploadDialog } from '@/components/users/ProfilePhotoUploadDialog';
+import { EditMyContactDialog } from '@/components/users/EditMyContactDialog';
 import { ChangePasswordTab } from '@/components/users/ChangePasswordTab';
 import { MySessionsTab } from '@/components/users/MySessionsTab';
 import { MyActivityTab } from '@/components/users/MyActivityTab';
+import { MyNotificationsTab } from '@/components/users/MyNotificationsTab';
 import { PrivacyTab } from '@/components/users/PrivacyTab';
 
-type ProfileTab = 'identity' | 'password' | 'sessions' | 'activity' | 'privacy';
+type ProfileTab = 'identity' | 'password' | 'sessions' | 'activity' | 'notifications' | 'privacy';
 
 // Mirror UsersPage URL-tab sync (project_nav_url_h1_alignment.md).
 const TAB_TO_SEGMENT: Record<ProfileTab, string> = {
@@ -31,6 +34,7 @@ const TAB_TO_SEGMENT: Record<ProfileTab, string> = {
   password: 'password',
   sessions: 'sessions',
   activity: 'activity',
+  notifications: 'notifications',
   privacy: 'privacy',
 };
 
@@ -39,15 +43,18 @@ const isProfileTab = (value: string | undefined): value is ProfileTab =>
   value === 'password' ||
   value === 'sessions' ||
   value === 'activity' ||
+  value === 'notifications' ||
   value === 'privacy';
 
 export default function ProfilePage() {
   const { user } = useAuth();
+  const canEditUsers = usePermission('user.update');
   const navigate = useNavigate();
   const params = useParams<{ tab?: string }>();
   const initialTab: ProfileTab = isProfileTab(params.tab) ? params.tab : 'identity';
   const [activeTab, setActiveTab] = useState<ProfileTab>(initialTab);
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
   // Keep URL in sync with active tab on direct navigation.
   useEffect(() => {
@@ -113,6 +120,7 @@ export default function ProfilePage() {
             <TabsTrigger value="password">Password</TabsTrigger>
             <TabsTrigger value="sessions">Sessions</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="privacy">Privacy</TabsTrigger>
           </TabsList>
         </div>
@@ -145,10 +153,39 @@ export default function ProfilePage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
-              <CardDescription>
-                Read-only. Contact your administrator to update these fields.
-              </CardDescription>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <CardTitle>Personal Information</CardTitle>
+                  <CardDescription>
+                    {/* D2 (audit 2026-05-18): you can self-edit Email + Phone
+                        here (Edit Contact Info) and Password on the Password
+                        tab. Other fields stay admin-managed. */}
+                    {canEditUsers ? (
+                      <>
+                        Update your contact info below.{' '}
+                        <Link
+                          to="/user-management/users"
+                          className="text-primary underline-offset-4 hover:underline"
+                        >
+                          Edit other fields in User Management
+                        </Link>
+                        .
+                      </>
+                    ) : (
+                      'You can update your email and phone here. Contact your administrator to change other fields.'
+                    )}
+                  </CardDescription>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="self-start"
+                  onClick={() => setContactDialogOpen(true)}
+                >
+                  Edit Contact Info
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
@@ -193,24 +230,31 @@ export default function ProfilePage() {
           </Card>
         </TabsContent>
 
-        {/* ============ Password tab ============ */}
+        {/*
+          Lazy-mount heavy panels (T0 audit 2026-05-18): Radix Tabs renders
+          all <TabsContent> children eagerly, which would fire 4 useQuery
+          hooks on every ProfilePage entry. Gating each panel on activeTab
+          defers the query until the user actually opens that tab. Identity
+          (no query) stays eager so the default landing is instant.
+        */}
         <TabsContent value="password">
-          <ChangePasswordTab userId={user.id} />
+          {activeTab === 'password' && <ChangePasswordTab userId={user.id} />}
         </TabsContent>
 
-        {/* ============ Sessions tab ============ */}
         <TabsContent value="sessions">
-          <MySessionsTab userId={user.id} />
+          {activeTab === 'sessions' && <MySessionsTab userId={user.id} />}
         </TabsContent>
 
-        {/* ============ Activity tab ============ */}
         <TabsContent value="activity">
-          <MyActivityTab userId={user.id} />
+          {activeTab === 'activity' && <MyActivityTab userId={user.id} />}
         </TabsContent>
 
-        {/* ============ Privacy tab ============ */}
+        <TabsContent value="notifications">
+          {activeTab === 'notifications' && <MyNotificationsTab />}
+        </TabsContent>
+
         <TabsContent value="privacy">
-          <PrivacyTab userId={user.id} userName={user.name} />
+          {activeTab === 'privacy' && <PrivacyTab userId={user.id} userName={user.name} />}
         </TabsContent>
       </Tabs>
 
@@ -221,6 +265,13 @@ export default function ProfilePage() {
         isSelf
         open={photoDialogOpen}
         onOpenChange={setPhotoDialogOpen}
+      />
+
+      <EditMyContactDialog
+        open={contactDialogOpen}
+        onOpenChange={setContactDialogOpen}
+        currentEmail={user.email}
+        currentPhone={user.phone}
       />
     </div>
   );

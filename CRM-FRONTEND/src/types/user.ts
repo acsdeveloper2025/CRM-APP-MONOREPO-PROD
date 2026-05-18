@@ -71,6 +71,7 @@ export interface CreateUserData {
   name: string;
   username: string;
   email: string;
+  phone?: string;
   password: string;
   role?: Role; // Legacy display only
   roleId?: number | string; // New role system (legacy int or RBAC UUID)
@@ -87,6 +88,7 @@ export interface CreateUserData {
 export interface UpdateUserData {
   name?: string;
   email?: string;
+  phone?: string | null;
   role?: Role; // Legacy display only
   roleId?: number | string; // New role system (legacy int or RBAC UUID)
   employeeId?: string;

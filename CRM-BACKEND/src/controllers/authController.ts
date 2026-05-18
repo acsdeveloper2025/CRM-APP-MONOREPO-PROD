@@ -572,25 +572,37 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    // Get user details with role and department information
+    // Get user details with role and department information.
+    // 2026-05-18: surfaces phone + joined designation/team-leader/manager
+    // names so ProfilePage Personal Information no longer renders blank
+    // rows. See project_profile_page_phase_d_2026_05_17.md follow-up.
     const userQuery = `
       SELECT
         u.id,
         u.name,
         u.username,
         u.email,
+        u.phone,
         u.department_id,
         u.employee_id,
+        u.designation_id,
         desig.name as designation,
+        desig.name as "designation_name",
         d.name as department,
+        d.name as "department_name",
+        u.team_leader_id,
+        tl.name  as "team_leader_name",
+        u.manager_id,
+        mgr.name as "manager_name",
         u.profile_photo_url,
         u.is_active,
         u.last_login,
-        u.created_at,
-        d.name as "department_name"
+        u.created_at
       FROM users u
-      LEFT JOIN departments d ON u.department_id = d.id
-      LEFT JOIN designations desig ON desig.id = u.designation_id
+      LEFT JOIN departments  d     ON u.department_id  = d.id
+      LEFT JOIN designations desig ON desig.id         = u.designation_id
+      LEFT JOIN users tl  ON tl.id  = u.team_leader_id
+      LEFT JOIN users mgr ON mgr.id = u.manager_id
       WHERE u.id = $1
     `;
 
@@ -691,6 +703,7 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
         name: userData.name,
         username: userData.username,
         email: userData.email,
+        phone: userData.phone,
         role: derivedRole,
         roleId: primaryRoleId,
         roleName: derivedRole,
@@ -699,8 +712,14 @@ export const getCurrentUser = async (req: AuthenticatedRequest, res: Response): 
         departmentId: userData.departmentId,
         departmentName: userData.departmentName,
         employeeId: userData.employeeId,
+        designationId: userData.designationId,
         designation: userData.designation,
+        designationName: userData.designationName,
         department: userData.department, // Legacy field
+        teamLeaderId: userData.teamLeaderId,
+        teamLeaderName: userData.teamLeaderName,
+        managerId: userData.managerId,
+        managerName: userData.managerName,
         profilePhotoUrl: userData.profilePhotoUrl,
         isActive: userData.isActive,
         lastLogin: userData.lastLogin,

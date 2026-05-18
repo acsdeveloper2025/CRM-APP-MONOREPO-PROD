@@ -103,9 +103,9 @@ const LocationsPage = React.lazy(() =>
 const SecurityUXPage = React.lazy(() =>
   import('@/pages/SecurityUXPage').then((module) => ({ default: module.SecurityUXPage }))
 );
-const SettingsPage = React.lazy(() =>
-  import('@/pages/SettingsPage').then((module) => ({ default: module.SettingsPage }))
-);
+// SettingsPage retired (T0 audit 2026-05-18) — Notifications folded into
+// /profile/notifications; Profile/Security tabs duplicated ProfilePage;
+// Preferences/Admin tabs were dead. Bookmarks redirected below.
 const ProductsPage = React.lazy(() =>
   import('@/pages/ProductsPage').then((module) => ({ default: module.ProductsPage }))
 );
@@ -170,7 +170,6 @@ const resolveFirstAccessibleRoute = (permissionSet: Set<string>): string => {
     { permission: 'page.kyc', path: '/kyc-verification/all-kyc' },
     { permission: 'page.field_monitoring', path: '/user-management/field-monitoring' },
     { permission: 'page.rbac', path: '/user-management/rbac-administration' },
-    { permission: 'page.settings', path: '/settings' },
   ];
 
   const accessible = candidates.find((candidate) => permissionSet.has(candidate.permission));
@@ -673,14 +672,10 @@ export const AppRoutes: React.FC = () => {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute permission="page.settings">
-                <SettingsPage />
-              </ProtectedRoute>
-            }
-          />
+          {/* /settings retired (T0 audit 2026-05-18). Notifications moved
+              to /profile/notifications. Redirect preserves bookmarks. */}
+          <Route path="/settings" element={<Navigate to="/profile/notifications" replace />} />
+          <Route path="/settings/*" element={<Navigate to="/profile/notifications" replace />} />
           <Route
             path="/client-management/data-entry-templates"
             element={
