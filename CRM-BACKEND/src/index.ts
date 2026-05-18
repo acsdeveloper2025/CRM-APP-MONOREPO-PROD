@@ -18,7 +18,6 @@ import { connectRedis, disconnectRedis } from '@/config/redis';
 import { initAuthCachePubSub } from '@/middleware/auth';
 import { initializeWebSocket } from '@/websocket/server';
 import { EnterpriseCacheService } from './services/enterpriseCacheService';
-import { CacheWarmingService } from './services/cacheWarmingService';
 import {
   startMetricsCleanup,
   startMetricsBatchFlush,
@@ -94,11 +93,16 @@ const startServer = async (): Promise<void> => {
     // Best-effort — if Redis is down, single-worker invalidation still works.
     await initAuthCachePubSub();
 
-    if (EnterpriseCacheService.isAvailable()) {
-      await CacheWarmingService.warmAllCaches();
-    } else {
-      logger.warn('Enterprise cache unavailable, skipping cache warming');
-    }
+    // T0-4 (audit 2026-05-17): CacheWarmingService removed.
+    // Every warmer key it wrote (clients:list, cases:recent:*,
+    // users:list:*, analytics:*, verification-types:list, products:list,
+    // rate-types:list) was UN-suffixed. Every reader keyGenerator in
+    // enterpriseCache.ts emits `${prefix}:${userId}:${md5(query)}` —
+    // a different shape that never matched a warmer write. The whole
+    // service was dead code burning ~10 heavy joins on every PM2 worker
+    // boot AND holding cross-tenant data in Redis (PII risk if any
+    // future reader ever hit those keys). Deleted in commit deleting
+    // services/cacheWarmingService.ts.
 
     // Start the server with strict port enforcement - bind to all interfaces for mobile access
     server.listen(config.port, '0.0.0.0', () => {
