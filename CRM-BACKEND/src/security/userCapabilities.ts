@@ -81,3 +81,12 @@ export const loadExecutionEligibleUser = async (
   }
   return profile;
 };
+
+// T0-3 (audit 2026-05-17): symmetric eligibility check for the
+// "backend operations" half of the user dichotomy. A user gets client
+// / product assignments only if they're operationally scoped (Backend
+// User, Manager, Admin, Super Admin) — assigning clients to a Field
+// Agent created orphan rows that the rest of the app couldn't honour.
+export const isOperationsEligibleUser = (
+  profile: Pick<UserCapabilityProfile, 'isActive' | 'capabilities'>
+): boolean => profile.isActive && profile.capabilities.operationalScope;

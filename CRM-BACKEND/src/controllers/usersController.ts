@@ -17,6 +17,7 @@ import {
   userHasPermission,
 } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
+import { isOperationsEligibleUser, loadUserCapabilityProfile } from '@/security/userCapabilities';
 import { createAuditLog } from '@/utils/auditLogger';
 
 const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
@@ -1886,14 +1887,24 @@ export const assignClientsToUser = async (req: AuthenticatedRequest, res: Respon
       });
     }
 
-    // Validate user exists
-    const userResult = await query('SELECT id FROM users WHERE id = $1', [userId]);
-
-    if (userResult.rows.length === 0) {
+    // T0-3 (audit 2026-05-17): verify the target user is operations-eligible
+    // (Backend User / Manager / Admin / Super Admin) — assigning clients to
+    // a Field Agent created orphan rows the rest of the app couldn't honour.
+    // Mirrors the isExecutionEligibleUser gate on territoryAssignmentsController.
+    const targetProfile = await loadUserCapabilityProfile(String(userId));
+    if (!targetProfile) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
         error: { code: 'NOT_FOUND' },
+      });
+    }
+    if (!isOperationsEligibleUser(targetProfile)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'This user role cannot receive client assignments. Use Territory Assignments for field agents.',
+        error: { code: 'ROLE_BOUNDARY_VIOLATED' },
       });
     }
 
@@ -1912,67 +1923,57 @@ export const assignClientsToUser = async (req: AuthenticatedRequest, res: Respon
       }
     }
 
-    // Start transaction to replace all assignments
-    await query('BEGIN');
-
-    try {
-      // First, delete all existing assignments for this user
-      const deleteResult = await query(
+    // T0-3 (audit 2026-05-17): real transaction via withTransaction.
+    // Prior `query('BEGIN')` ran on a pool checkout released before the
+    // DELETE/INSERT statements — partial writes persisted on mid-tx failure.
+    const { deletedCount, insertedCount } = await withTransaction(async client => {
+      const deleteResult = await client.query(
         'DELETE FROM user_client_assignments WHERE user_id = $1 RETURNING id',
         [userId]
       );
-      const deletedCount = deleteResult.rows.length;
 
-      let insertedCount = 0;
-
-      // Then, insert new assignments (only if clientIds is not empty)
+      let inserted = 0;
       if (clientIds.length > 0) {
-        const insertPromises = clientIds.map(clientId =>
-          query(
-            `
-            INSERT INTO user_client_assignments (user_id, client_id)
-            VALUES ($1, $2)
-            RETURNING id
-          `,
+        for (const clientId of clientIds) {
+          await client.query(
+            `INSERT INTO user_client_assignments (user_id, client_id)
+             VALUES ($1, $2)
+             RETURNING id`,
             [userId, clientId]
-          )
-        );
-
-        const results = await Promise.all(insertPromises);
-        insertedCount = results.length;
+          );
+          inserted++;
+        }
       }
 
-      // Commit transaction
-      await query('COMMIT');
+      return {
+        deletedCount: deleteResult.rows.length,
+        insertedCount: inserted,
+      };
+    });
 
-      logger.info(`Replaced client assignments for user ${userId}`, {
-        userId: req.user?.id,
-        targetUserId: userId,
-        clientIds,
-        deletedCount,
-        insertedCount,
-      });
+    logger.info(`Replaced client assignments for user ${userId}`, {
+      userId: req.user?.id,
+      targetUserId: userId,
+      clientIds,
+      deletedCount,
+      insertedCount,
+    });
 
-      // Invalidate user's auth + client-scope cache so the new assignments
-      // take effect immediately on next request.
-      invalidateAuthContextCache(String(userId));
-      invalidateClientScopeCache(String(userId));
+    // Invalidate user's auth + client-scope cache so the new assignments
+    // take effect immediately on next request.
+    invalidateAuthContextCache(String(userId));
+    invalidateClientScopeCache(String(userId));
 
-      res.status(200).json({
-        success: true,
-        data: {
-          userId,
-          deletedAssignments: deletedCount,
-          newAssignments: insertedCount,
-          totalRequested: clientIds.length,
-        },
-        message: `Successfully updated client assignments for user`,
-      });
-    } catch (transactionError) {
-      // Rollback transaction on error
-      await query('ROLLBACK');
-      throw transactionError;
-    }
+    res.status(200).json({
+      success: true,
+      data: {
+        userId,
+        deletedAssignments: deletedCount,
+        newAssignments: insertedCount,
+        totalRequested: clientIds.length,
+      },
+      message: `Successfully updated client assignments for user`,
+    });
   } catch (error) {
     logger.error('Error updating client assignments for user:', error);
     res.status(500).json({
@@ -2113,14 +2114,21 @@ export const assignProductsToUser = async (req: AuthenticatedRequest, res: Respo
       });
     }
 
-    // Validate user exists
-    const userResult = await query('SELECT id FROM users WHERE id = $1', [userId]);
-
-    if (userResult.rows.length === 0) {
+    // T0-3 (audit 2026-05-17): same role-boundary check as assignClientsToUser.
+    const targetProfile = await loadUserCapabilityProfile(String(userId));
+    if (!targetProfile) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
         error: { code: 'NOT_FOUND' },
+      });
+    }
+    if (!isOperationsEligibleUser(targetProfile)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'This user role cannot receive product assignments. Use Territory Assignments for field agents.',
+        error: { code: 'ROLE_BOUNDARY_VIOLATED' },
       });
     }
 
@@ -2140,24 +2148,18 @@ export const assignProductsToUser = async (req: AuthenticatedRequest, res: Respo
       }
     }
 
-    // Start transaction to replace all assignments
-    await query('BEGIN');
-
-    try {
-      // First, delete all existing assignments for this user
-      const deleteResult = await query(
+    // T0-3 (audit 2026-05-17): real transaction via withTransaction.
+    const { deletedCount, insertedCount } = await withTransaction(async client => {
+      const deleteResult = await client.query(
         'DELETE FROM user_product_assignments WHERE user_id = $1 RETURNING id',
         [userId]
       );
-      const deletedCount = deleteResult.rows.length;
 
-      let insertedCount = 0;
-
-      // Then, insert new assignments (only if productIds is not empty)
+      let inserted = 0;
       if (productIds.length > 0) {
         const insertValues = productIds
           .map(
-            (productId, index) =>
+            (_productId: number, index: number) =>
               `($1, $${index + 2}, $${productIds.length + 2}, CURRENT_TIMESTAMP)`
           )
           .join(', ');
@@ -2169,39 +2171,37 @@ export const assignProductsToUser = async (req: AuthenticatedRequest, res: Respo
         `;
 
         const insertParams = [userId, ...productIds, req.user?.id];
-        const insertResult = await query(insertQuery, insertParams);
-        insertedCount = insertResult.rows.length;
+        const insertResult = await client.query(insertQuery, insertParams);
+        inserted = insertResult.rows.length;
       }
 
-      // Commit transaction
-      await query('COMMIT');
+      return {
+        deletedCount: deleteResult.rows.length,
+        insertedCount: inserted,
+      };
+    });
 
-      logger.info(`Replaced product assignments for user ${userId}`, {
-        userId: req.user?.id,
-        targetUserId: userId,
-        productIds,
-        deletedCount,
-        insertedCount,
-      });
+    logger.info(`Replaced product assignments for user ${userId}`, {
+      userId: req.user?.id,
+      targetUserId: userId,
+      productIds,
+      deletedCount,
+      insertedCount,
+    });
 
-      invalidateAuthContextCache(String(userId));
-      invalidateProductScopeCache(String(userId));
+    invalidateAuthContextCache(String(userId));
+    invalidateProductScopeCache(String(userId));
 
-      res.status(200).json({
-        success: true,
-        data: {
-          userId,
-          deletedAssignments: deletedCount,
-          newAssignments: insertedCount,
-          totalRequested: productIds.length,
-        },
-        message: `Successfully updated product assignments for user`,
-      });
-    } catch (transactionError) {
-      // Rollback transaction on error
-      await query('ROLLBACK');
-      throw transactionError;
-    }
+    res.status(200).json({
+      success: true,
+      data: {
+        userId,
+        deletedAssignments: deletedCount,
+        newAssignments: insertedCount,
+        totalRequested: productIds.length,
+      },
+      message: `Successfully updated product assignments for user`,
+    });
   } catch (error) {
     logger.error('Error updating product assignments for user:', error);
     res.status(500).json({
