@@ -27,6 +27,7 @@ import {
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
 import { requireControllerPermission } from '@/security/controllerAuthorization';
+import { createAuditLog } from '../utils/auditLogger';
 
 interface DatabaseError extends Error {
   code?: string;
@@ -1385,6 +1386,21 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
     // Invalidate stale cache entries for this case
     void invalidateCachePatterns(CacheKeys.invalidateCase(id));
 
+    // T0-7 (audit 2026-05-17): DPDP §11 audit trail on case PII update.
+    void createAuditLog({
+      action: 'CASE_UPDATED',
+      entityType: 'CASE',
+      entityId: String(id),
+      userId: req.user?.id,
+      details: {
+        taskId: taskId || null,
+        updatedCaseFields: updateFields.filter(field => !field.includes('updatedAt')),
+        updatedTaskFields: { assignedToId, rateTypeId, address: address ? 'changed' : null },
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
+
     res.json({
       success: true,
       data: { id },
@@ -1765,6 +1781,32 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    // T0-7 (audit 2026-05-17): DPDP §11 audit trail on bulk PII export.
+    // Logged BEFORE response stream starts so the audit row exists even
+    // if the network write fails partway. rowCount is what matched the
+    // filters; the operator may have got a partial download but the
+    // intent + filter set is recorded.
+    void createAuditLog({
+      action: 'CASE_EXPORTED',
+      entityType: 'CASE',
+      entityId: undefined,
+      userId,
+      details: {
+        rowCount: cases.length,
+        filename,
+        exportType: typeof exportType === 'string' ? exportType : 'all',
+        filters: {
+          status: typeof status === 'string' ? status : null,
+          search: typeof search === 'string' ? search : null,
+          clientId: typeof clientId === 'string' ? clientId : null,
+          productId: typeof productId === 'string' ? productId : null,
+        },
+        scoped: isScopedOps,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
 
     // Write to response
     await workbook.xlsx.write(res);
@@ -3150,6 +3192,25 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
     } catch (notifError) {
       logger.error('Failed to queue case-assignment notifications (non-fatal):', notifError);
     }
+
+    // T0-7 (audit 2026-05-17): DPDP §11 audit trail on case PII create.
+    void createAuditLog({
+      action: 'CASE_CREATED',
+      entityType: 'CASE',
+      entityId: String(newCase.id),
+      userId,
+      details: {
+        caseId: newCase.caseId,
+        clientId: resolvedClientId,
+        productId: resolvedProductId,
+        priority: newCase.priority,
+        applicantsCount: applicantsData.length,
+        tasksCount: taskCreationResult.createdTasks?.length || 0,
+        kycTasksCount: kycTasksCreated.length,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
 
     // ========== RESPONSE ==========
     // Phase 1.5 (2026-05-04): expose `kycTasks` so frontend can fan out
