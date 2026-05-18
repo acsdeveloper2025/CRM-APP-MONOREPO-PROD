@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
-import { query } from '@/config/database';
+import { query, withTransaction } from '@/config/database';
 import type { QueryParams, DatabaseError } from '@/types/database';
 import { sendError, errors } from '@/utils/apiResponse';
 
@@ -317,34 +317,28 @@ export const createPincode = async (req: AuthenticatedRequest, res: Response) =>
       }
     }
 
-    // Start transaction for pincode creation and area associations
-    await query('BEGIN');
-
-    let newPincode;
-    try {
-      // Create pincode in database
-      const pincodeResult = await query(
+    // T0-3 (audit 2026-05-17): real transaction via withTransaction helper.
+    // Previously `query('BEGIN')` ran on a pool checkout that was released
+    // before the INSERTs — there was no transaction; a mid-flight failure
+    // left a half-linked pincode row in the DB. Helper also auto-retries
+    // on 40P01/40001 deadlock.
+    const newPincode = await withTransaction(async client => {
+      const pincodeResult = await client.query(
         'INSERT INTO pincodes (code, city_id) VALUES ($1, $2) RETURNING id, code, city_id as city_id, created_at as created_at, updated_at as updated_at',
         [code, cityId]
       );
+      const created = pincodeResult.rows[0];
 
-      newPincode = pincodeResult.rows[0];
-
-      // Associate pincode with areas
+      // Associate pincode with areas (preserve original display_order)
       for (let i = 0; i < areaIds.length; i++) {
-        await query(
+        await client.query(
           'INSERT INTO pincode_areas (pincode_id, area_id, display_order) VALUES ($1, $2, $3)',
-          [newPincode.id, areaIds[i], i + 1]
+          [created.id, areaIds[i], i + 1]
         );
       }
 
-      // Commit transaction
-      await query('COMMIT');
-    } catch (error) {
-      // Rollback transaction on error
-      await query('ROLLBACK');
-      throw error;
-    }
+      return created;
+    });
 
     // Get complete pincode data with areas and city information
     const completeResult = await query(
