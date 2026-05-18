@@ -80,10 +80,7 @@ const parsePatch = (
   return { ok: true, patch };
 };
 
-export const updateMyProfile = async (
-  req: AuthenticatedRequest,
-  res: Response
-): Promise<void> => {
+export const updateMyProfile = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const userId = req.user?.id;
   if (!userId) {
     res.status(401).json({
