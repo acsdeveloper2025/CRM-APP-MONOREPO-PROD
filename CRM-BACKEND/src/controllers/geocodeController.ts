@@ -5,6 +5,7 @@ import { config } from '@/config';
 import { redisClient, isRedisHealthy } from '@/config/redis';
 import type { AuthenticatedRequest } from '../middleware/auth';
 import { MobileLocationController } from './mobileLocationController';
+import { circuitBreakers } from '@/utils/circuitBreaker';
 
 // Server-side cache for the Static Maps proxy. Without this every fresh
 // browser session re-fetches the PNG from Google for each photo card
@@ -291,7 +292,14 @@ export class GeocodeController {
         `&markers=color:red%7C${latitude},${longitude}` +
         `&key=${encodeURIComponent(apiKey)}`;
 
-      const upstream = await fetch(url);
+      // T0-5 + T0-6 (audit 2026-05-17): circuit-breaker + 10s timeout.
+      // Without these, a slow Google response holds the request thread
+      // and a DB connection for as long as Google takes; under a Google
+      // outage the pool would exhaust. circuitBreakers.geocoding opens
+      // after 5 consecutive failures and fast-fails subsequent calls.
+      const upstream = await circuitBreakers.geocoding.execute(() =>
+        fetch(url, { signal: AbortSignal.timeout(10_000) })
+      );
       if (!upstream.ok) {
         // Capture Google's error body so the failure cause is visible
         // in pm2 logs without a tcpdump. Google encodes "API key not

@@ -12,6 +12,7 @@ import type { AuthenticatedRequest } from '../middleware/auth';
 import type { QueryParams } from '../types/database';
 import { isFieldExecutionActor } from '@/security/rbacAccess';
 import { getSocketIO } from '@/websocket/server';
+import { circuitBreakers } from '@/utils/circuitBreaker';
 
 export class MobileLocationController {
   private static getOperationId(req: AuthenticatedRequest): string | null {
@@ -572,7 +573,13 @@ export class MobileLocationController {
     const timeoutId = setTimeout(() => controller.abort(), 10_000);
 
     try {
-      const response = await fetch(url, { signal: controller.signal });
+      // T0-5 (audit 2026-05-17): circuit-breaker on Google geocoding.
+      // Existing 10s AbortController stays for per-call timeout; breaker
+      // adds aggregate protection — opens after 5 consecutive failures
+      // and fast-fails subsequent calls until the half-open probe succeeds.
+      const response = await circuitBreakers.geocoding.execute(() =>
+        fetch(url, { signal: controller.signal })
+      );
       if (!response.ok) {
         logger.warn(`Google Geocoding HTTP ${response.status} for (${latitude},${longitude})`);
         return null;
