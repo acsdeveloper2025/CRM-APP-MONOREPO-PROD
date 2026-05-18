@@ -12,6 +12,7 @@ import type {
 import type { QueryParams } from '../types/database';
 import { isExecutionEligibleUser, loadUserCapabilityProfile } from '../security/userCapabilities';
 import { requireControllerPermission } from '@/security/controllerAuthorization';
+import { createAuditLog } from '../utils/auditLogger';
 import {
   appendOperationalScopeConditions,
   resolveDataScope,
@@ -154,6 +155,17 @@ export const createCommissionRateType = async (req: AuthenticatedRequest, res: R
       commissionAmount,
     });
 
+    // T0-8 (audit 2026-05-17): RBI money-path audit trail.
+    void createAuditLog({
+      action: 'COMMISSION_RATE_TYPE_CREATED',
+      entityType: 'COMMISSION_RATE_TYPE',
+      entityId: String(newCommissionRateType.id),
+      userId: req.user?.id,
+      details: { rateTypeId, commissionAmount, currency, isActive },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
+
     res.status(201).json({
       success: true,
       data: newCommissionRateType,
@@ -249,6 +261,23 @@ export const updateCommissionRateType = async (req: AuthenticatedRequest, res: R
       isActive,
     });
 
+    // T0-8 (audit 2026-05-17): RBI money-path audit trail.
+    void createAuditLog({
+      action: 'COMMISSION_RATE_TYPE_UPDATED',
+      entityType: 'COMMISSION_RATE_TYPE',
+      entityId: String(id),
+      userId: req.user?.id,
+      details: {
+        changedFields: {
+          commissionAmount: commissionAmount !== undefined ? commissionAmount : null,
+          currency: currency !== undefined ? currency : null,
+          isActive: isActive !== undefined ? isActive : null,
+        },
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
+
     res.json({
       success: true,
       data: updatedCommissionRateType,
@@ -271,10 +300,18 @@ export const deleteCommissionRateType = async (req: AuthenticatedRequest, res: R
     }
     const { id } = req.params;
 
-    // Check if commission rate type exists
-    const existingCheck = await query('SELECT id FROM commission_rate_types WHERE id = $1', [
-      Number(id),
-    ]);
+    // T0-8 (audit 2026-05-17): capture row BEFORE delete so the audit
+    // log shows what was lost (commission_amount, rate_type_id, etc.).
+    const existingCheck = await query<{
+      id: number;
+      rate_type_id: number;
+      commission_amount: string;
+      currency: string;
+      is_active: boolean;
+    }>(
+      'SELECT id, rate_type_id, commission_amount, currency, is_active FROM commission_rate_types WHERE id = $1',
+      [Number(id)]
+    );
     if (existingCheck.rows.length === 0) {
       return res.status(404).json({
         success: false,
@@ -282,6 +319,7 @@ export const deleteCommissionRateType = async (req: AuthenticatedRequest, res: R
         error: { code: 'NOT_FOUND' },
       });
     }
+    const priorRow = existingCheck.rows[0];
 
     // Check if there are any active assignments using this commission rate type
     const assignmentCheck = await query(
@@ -301,6 +339,26 @@ export const deleteCommissionRateType = async (req: AuthenticatedRequest, res: R
 
     logger.info(`Deleted commission rate type: ${id}`, {
       userId: req.user?.id,
+    });
+
+    // T0-8 (audit 2026-05-17): RBI money-path audit trail. Delete is the
+    // MOST important to audit — without this, a removed high-value rate
+    // would have zero trail.
+    void createAuditLog({
+      action: 'COMMISSION_RATE_TYPE_DELETED',
+      entityType: 'COMMISSION_RATE_TYPE',
+      entityId: String(id),
+      userId: req.user?.id,
+      details: {
+        priorRow: {
+          rateTypeId: priorRow.rate_type_id,
+          commissionAmount: priorRow.commission_amount,
+          currency: priorRow.currency,
+          isActive: priorRow.is_active,
+        },
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
     });
 
     res.json({
@@ -547,6 +605,25 @@ export const createFieldUserCommissionAssignment = async (
       commissionAmount,
     });
 
+    // T0-8 (audit 2026-05-17): RBI money-path audit trail.
+    void createAuditLog({
+      action: 'FIELD_USER_COMMISSION_ASSIGNMENT_CREATED',
+      entityType: 'COMMISSION_ASSIGNMENT',
+      entityId: String(newAssignment.rows[0].id),
+      userId: req.user?.id,
+      details: {
+        targetUserId: userId,
+        rateTypeId,
+        commissionAmount,
+        currency,
+        clientId: clientId || null,
+        effectiveFrom: effectiveFrom || null,
+        effectiveTo: effectiveTo || null,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
+
     res.status(201).json({
       success: true,
       data: newAssignment.rows[0],
@@ -655,6 +732,25 @@ export const updateFieldUserCommissionAssignment = async (
       commissionAmount,
     });
 
+    // T0-8 (audit 2026-05-17): RBI money-path audit trail.
+    void createAuditLog({
+      action: 'FIELD_USER_COMMISSION_ASSIGNMENT_UPDATED',
+      entityType: 'COMMISSION_ASSIGNMENT',
+      entityId: String(id),
+      userId: req.user?.id,
+      details: {
+        targetUserId: userId,
+        rateTypeId,
+        commissionAmount,
+        currency,
+        clientId: clientId || null,
+        effectiveFrom: effectiveFrom || null,
+        effectiveTo: effectiveTo || null,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
+
     res.status(200).json({
       success: true,
       data: result.rows[0],
@@ -681,9 +777,24 @@ export const deleteFieldUserCommissionAssignment = async (
     const scope = await resolveDataScope(req as never);
     const { id } = req.params;
 
-    // Check if assignment exists
-    const existingAssignment = await query(
-      'SELECT id, user_id, client_id FROM field_user_commission_assignments WHERE id = $1',
+    // T0-8 (audit 2026-05-17): capture full row BEFORE delete so the audit
+    // log shows what was lost — including commission_amount, rate_type_id,
+    // and the target user. Without this, removed money-flow rows leave no
+    // trail.
+    const existingAssignment = await query<{
+      id: number;
+      user_id: string;
+      client_id: number | null;
+      rate_type_id: number;
+      commission_amount: string;
+      currency: string;
+      effective_from: Date | null;
+      effective_to: Date | null;
+      is_active: boolean;
+    }>(
+      `SELECT id, user_id, client_id, rate_type_id, commission_amount, currency,
+              effective_from, effective_to, is_active
+         FROM field_user_commission_assignments WHERE id = $1`,
       [Number(id)]
     );
 
@@ -694,11 +805,12 @@ export const deleteFieldUserCommissionAssignment = async (
         error: { code: 'NOT_FOUND' },
       });
     }
+    const priorRow = existingAssignment.rows[0];
     if (
       !valueAllowedByScope(
         {
-          userId: existingAssignment.rows[0].userId,
-          clientId: existingAssignment.rows[0].clientId ?? null,
+          userId: priorRow.user_id,
+          clientId: priorRow.client_id ?? null,
         },
         scope
       )
@@ -716,6 +828,28 @@ export const deleteFieldUserCommissionAssignment = async (
     logger.info('Deleted field user commission assignment', {
       userId: req.user?.id,
       assignmentId: id,
+    });
+
+    // T0-8 (audit 2026-05-17): RBI money-path audit trail with prior values.
+    void createAuditLog({
+      action: 'FIELD_USER_COMMISSION_ASSIGNMENT_DELETED',
+      entityType: 'COMMISSION_ASSIGNMENT',
+      entityId: String(id),
+      userId: req.user?.id,
+      details: {
+        priorRow: {
+          targetUserId: priorRow.user_id,
+          rateTypeId: priorRow.rate_type_id,
+          commissionAmount: priorRow.commission_amount,
+          currency: priorRow.currency,
+          clientId: priorRow.client_id,
+          effectiveFrom: priorRow.effective_from,
+          effectiveTo: priorRow.effective_to,
+          isActive: priorRow.is_active,
+        },
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
     });
 
     res.status(200).json({
