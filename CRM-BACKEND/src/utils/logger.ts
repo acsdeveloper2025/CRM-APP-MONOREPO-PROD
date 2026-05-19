@@ -1,30 +1,9 @@
-import winston from 'winston';
-import { config } from '../config';
+// T1-9 (audit 2026-05-17): unify on the redacted logger. The standalone
+// winston instance previously defined here had no PII redaction, leaving
+// ~39 importers (cases, mobile*, exports, deduplication, etc.) emitting
+// raw PII into logs/combined.log. Re-export the canonical instance from
+// `@/config/logger` so all importers go through `piiRedactionFormat`.
+import { logger } from '@/config/logger';
 
-// Create logger instance
-export const logger = winston.createLogger({
-  level: config.logLevel,
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.errors({ stack: true }),
-    winston.format.json()
-  ),
-  defaultMeta: { service: 'crm-backend' },
-  transports: [
-    // Write all logs with level 'error' and below to error.log
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    // Write all logs with level 'info' and below to combined.log
-    new winston.transports.File({ filename: 'logs/combined.log' }),
-  ],
-});
-
-// If we're not in production, log to the console as well
-if (config.nodeEnv !== 'production') {
-  logger.add(
-    new winston.transports.Console({
-      format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
-    })
-  );
-}
-
+export { logger };
 export default logger;

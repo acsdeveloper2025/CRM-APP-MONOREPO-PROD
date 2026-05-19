@@ -17,6 +17,12 @@ const PII_PATTERNS: [RegExp, string][] = [
   [/\b\d{4}\s?\d{4}\s?\d{4}\b/g, '[AADHAAR_REDACTED]'],
   // Email addresses
   [/\b[\w.+-]+@[\w-]+\.[\w.-]+\b/g, '[EMAIL_REDACTED]'],
+  // T1-9: Coord pairs in free-text messages, e.g. "(19.0760,72.8777)" or
+  // "lat=19.0760 lng=72.8777". Two-decimal minimum on each side so we
+  // don't match version strings like "v1.0,2.3".
+  [/\(-?\d{1,2}\.\d{2,},\s*-?\d{1,3}\.\d{2,}\)/g, '[COORD_REDACTED]'],
+  [/\blat(?:itude)?\s*[:=]\s*-?\d{1,2}\.\d{2,}\b/gi, 'lat=[REDACTED]'],
+  [/\b(?:lng|long|longitude|lon)\s*[:=]\s*-?\d{1,3}\.\d{2,}\b/gi, 'lng=[REDACTED]'],
 ];
 
 /** Apply the regex patterns above to a single string value. */

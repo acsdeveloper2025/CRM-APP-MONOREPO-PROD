@@ -581,7 +581,7 @@ export class MobileLocationController {
         fetch(url, { signal: controller.signal })
       );
       if (!response.ok) {
-        logger.warn(`Google Geocoding HTTP ${response.status} for (${latitude},${longitude})`);
+        logger.warn(`Google Geocoding HTTP ${response.status}`);
         return null;
       }
 
@@ -593,7 +593,7 @@ export class MobileLocationController {
       };
 
       if (body.status !== 'OK' || !body.results || body.results.length === 0) {
-        logger.warn(`Google Geocoding status=${body.status} for (${latitude},${longitude})`);
+        logger.warn(`Google Geocoding status=${body.status}`);
         return null;
       }
 

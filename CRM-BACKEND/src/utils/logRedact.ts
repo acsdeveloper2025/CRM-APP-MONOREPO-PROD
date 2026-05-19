@@ -9,6 +9,9 @@
  */
 
 // Field names whose values are always redacted (case-insensitive, substring).
+// Keep entries here narrow enough that the substring match cannot fire on
+// benign field names. e.g. `address` would mask `addressId` / `ipAddress`,
+// so address-family keys live in `SENSITIVE_KEYS_EXACT` below instead.
 const SENSITIVE_KEYS = [
   'password',
   'passwordhash',
@@ -35,13 +38,60 @@ const SENSITIVE_KEYS = [
   'accountnumber',
   'ifsc',
   'bankaccount',
+  // T1-9 (audit 2026-05-17): DPDP §11 / §8 PII expansion.
+  // Narrow enough to substring-match without false positives.
+  'dateofbirth',
+  'date_of_birth',
+  'coordinates',
+  'geo_location',
+  'geolocation',
+  'ipaddress',
+  'ip_address',
 ];
+
+// Field names redacted only on EXACT match (case-insensitive). Used for
+// short tokens whose substring would alias common identifiers
+// (`name` → `fileName`, `phone` → `phoneCountryCode`, etc.).
+const SENSITIVE_KEYS_EXACT = new Set([
+  'name',
+  'fullname',
+  'full_name',
+  'firstname',
+  'first_name',
+  'lastname',
+  'last_name',
+  'middlename',
+  'middle_name',
+  'phone',
+  'phonenumber',
+  'phone_number',
+  'mobile',
+  'mobilenumber',
+  'mobile_number',
+  'email',
+  'emailaddress',
+  'email_address',
+  'dob',
+  'address',
+  'addressline',
+  'address_line',
+  'address1',
+  'address2',
+  'street',
+  'lat',
+  'lng',
+  'latitude',
+  'longitude',
+]);
 
 const MASK = '[REDACTED]';
 const MAX_STRING_LEN = 500;
 
 const isSensitiveKey = (key: string): boolean => {
   const lower = key.toLowerCase();
+  if (SENSITIVE_KEYS_EXACT.has(lower)) {
+    return true;
+  }
   return SENSITIVE_KEYS.some(s => lower.includes(s));
 };
 
