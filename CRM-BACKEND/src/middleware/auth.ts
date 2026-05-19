@@ -303,6 +303,18 @@ const verifyTokenAndSetUser = async (
     return;
   }
 
+  // T1-2: mfaChallenge tokens are only accepted at /auth/mfa/verify. Any
+  // other route MUST reject them — without this check, the challenge
+  // would be a usable bearer token for the entire session.
+  if ((decoded as { mfaChallenge?: boolean }).mfaChallenge === true) {
+    res.status(401).json({
+      success: false,
+      message: 'MFA verification required',
+      error: { code: 'MFA_REQUIRED' },
+    });
+    return;
+  }
+
   try {
     const userContext = await loadUserAuthContext(decoded.userId);
     if (!userContext) {

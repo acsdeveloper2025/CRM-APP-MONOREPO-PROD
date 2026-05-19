@@ -10,7 +10,14 @@ import { logger } from '@/config/logger';
 import { createError } from '@/middleware/errorHandler';
 import { invalidateAuthContextCache, type AuthenticatedRequest } from '@/middleware/auth';
 import { createAuditLog } from '@/utils/auditLogger';
-import type { LoginRequest, LoginResponse, JwtPayload, RefreshTokenPayload } from '@/types/auth';
+import type {
+  LoginRequest,
+  LoginResponse,
+  JwtPayload,
+  MfaChallengePayload,
+  RefreshTokenPayload,
+} from '@/types/auth';
+import { verifyUserCode } from '@/controllers/mfaController';
 import type { ApiResponse } from '@/types/api';
 import {
   getPrimaryRoleNameFromRbac,
@@ -161,6 +168,157 @@ const clearLoginLockout = async (username: string): Promise<void> => {
   }
 };
 
+/**
+ * T1-2: short-lived JWT lifetime for the MFA challenge token. Long
+ * enough for a user to fish their phone out and type a code, short
+ * enough that a stolen challenge token has minimal value.
+ */
+const MFA_CHALLENGE_TTL = '5m';
+
+interface CompleteWebLoginContext {
+  user: {
+    id: string;
+    name: string;
+    username: string;
+    email: string;
+    password_hash?: string;
+    employeeId?: string;
+    designation: string | null;
+    department: string;
+    profilePhotoUrl?: string;
+    tokenVersion: number;
+  };
+  rbacRoles: string[];
+  rbacPermissionCodes: string[];
+  derivedRole: string | null;
+  authProfile: AuthenticatedRequest['user'];
+  auditAction: 'WEB_LOGIN_SUCCESS' | 'WEB_MFA_VERIFY_SUCCESS';
+}
+
+/**
+ * T1-2: shared "issue tokens + write last_login + send response" tail
+ * of the login flow. Called once from the password-only path inside
+ * login(), and once from mfaVerify() after the second factor checks
+ * out. Extracted so the two callers cannot drift.
+ */
+const completeWebLogin = async (
+  req: Request,
+  res: Response,
+  ctx: CompleteWebLoginContext
+): Promise<void> => {
+  const { user, rbacRoles, rbacPermissionCodes, derivedRole, authProfile, auditAction } = ctx;
+
+  const accessTokenPayload: JwtPayload = {
+    userId: user.id,
+    authMethod: 'PASSWORD',
+    tokenVersion: user.tokenVersion,
+  };
+  const refreshTokenPayload: RefreshTokenPayload = {
+    userId: user.id,
+    authMethod: 'PASSWORD',
+    tokenVersion: user.tokenVersion,
+    jti: crypto.randomUUID(),
+  };
+
+  const accessToken = jwt.sign(accessTokenPayload, config.jwtSecret, {
+    expiresIn: config.jwtExpiresIn as string & jwt.SignOptions['expiresIn'],
+  });
+  const refreshToken = jwt.sign(refreshTokenPayload, config.jwtRefreshSecret, {
+    expiresIn: config.jwtRefreshExpiresIn as string & jwt.SignOptions['expiresIn'],
+  });
+
+  const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+  const expiresAt = new Date(Date.now() + parseDurationMs(config.jwtRefreshExpiresIn));
+
+  await withTransaction(async client =>
+    issueRefreshTokenForDevice(client, {
+      userId: user.id,
+      tokenHash,
+      expiresAt,
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || null,
+      deviceId: typeof req.body?.deviceId === 'string' ? req.body.deviceId : null,
+    })
+  );
+
+  await query(`UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1`, [user.id]);
+
+  let assignedClients: number[] = [];
+  let assignedProducts: number[] = [];
+  let assignedPincodes: number[] = [];
+  let assignedAreas: number[] = [];
+
+  if (isScopedOperationsUser(authProfile)) {
+    const clientsRes = await query(
+      'SELECT client_id FROM user_client_assignments WHERE user_id = $1',
+      [user.id]
+    );
+    assignedClients = clientsRes.rows.map(row => row.clientId);
+    const productsRes = await query(
+      'SELECT product_id FROM user_product_assignments WHERE user_id = $1',
+      [user.id]
+    );
+    assignedProducts = productsRes.rows.map(row => row.productId);
+  } else if (isFieldExecutionActor(authProfile)) {
+    const pincodesRes = await query(
+      'SELECT pincode_id FROM user_pincode_assignments WHERE user_id = $1 AND is_active = true',
+      [user.id]
+    );
+    assignedPincodes = pincodesRes.rows.map(row => row.pincodeId);
+    const areasRes = await query(
+      'SELECT area_id FROM user_area_assignments WHERE user_id = $1 AND is_active = true',
+      [user.id]
+    );
+    assignedAreas = areasRes.rows.map(row => row.areaId);
+  }
+
+  await createAuditLog({
+    action: auditAction,
+    entityType: 'USER',
+    entityId: user.id,
+    userId: user.id,
+    details: { role: derivedRole },
+    ipAddress: req.ip,
+    userAgent: req.get('User-Agent') || undefined,
+  });
+
+  const response: LoginResponse = {
+    success: true,
+    message: 'Login successful',
+    data: {
+      user: {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        role: (derivedRole || 'BACKEND_USER') as NonNullable<LoginResponse['data']>['user']['role'],
+        employeeId: user.employeeId ?? '',
+        designation: user.designation,
+        department: user.department,
+        ...(user.profilePhotoUrl && { profilePhotoUrl: user.profilePhotoUrl }),
+        permissions: rbacPermissionCodes,
+        roles: rbacRoles,
+        ...(isScopedOperationsUser(authProfile) && {
+          assignedClients,
+          assignedProducts,
+        }),
+        ...(isFieldExecutionActor(authProfile) && {
+          assignedPincodes,
+          assignedAreas,
+        }),
+      },
+      tokens: {
+        accessToken,
+        refreshToken,
+      },
+    },
+  };
+
+  setRefreshTokenCookie(res, refreshToken);
+  setAssetTokenCookie(res, accessToken);
+  res.json(response);
+};
+
 export const login = async (req: Request, res: Response): Promise<void> => {
   // eslint-disable-next-line no-useless-catch
   try {
@@ -253,156 +411,154 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       permissionCodes: rbacPermissionCodes,
     } as unknown as AuthenticatedRequest['user'];
 
-    // Generate tokens. F-B3.4: embed tokenVersion so any future bump
-    // (password change / logout-all) invalidates this token.
-    const accessTokenPayload: JwtPayload = {
-      userId: user.id,
-      authMethod: 'PASSWORD', // Mark as password authentication
-      tokenVersion: user.tokenVersion,
-    };
-
-    const refreshTokenPayload: RefreshTokenPayload = {
-      userId: user.id,
-      authMethod: 'PASSWORD', // Mark as password authentication
-      tokenVersion: user.tokenVersion,
-      jti: crypto.randomUUID(),
-    };
-
-    const accessToken = jwt.sign(accessTokenPayload, config.jwtSecret, {
-      expiresIn: config.jwtExpiresIn as string & jwt.SignOptions['expiresIn'],
-    });
-
-    const refreshToken = jwt.sign(refreshTokenPayload, config.jwtRefreshSecret, {
-      expiresIn: config.jwtRefreshExpiresIn as string & jwt.SignOptions['expiresIn'],
-    });
-
-    // Store refresh token hash — parse config duration for DB expiry
-    const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-    const expiresAt = new Date(Date.now() + parseDurationMs(config.jwtRefreshExpiresIn));
-
-    // A-CRIT-1 chunk 2 (AUDIT 2026-05-17): accept optional deviceId from
-    // request body. wrapped in withTransaction so the revoke-prior +
-    // insert pair is atomic. If deviceId absent, helper falls back to
-    // plain INSERT (no prior-revoke needed) — legacy clients unchanged.
-    await withTransaction(async client =>
-      issueRefreshTokenForDevice(client, {
-        userId: user.id,
-        tokenHash,
-        expiresAt,
-        ipAddress: req.ip,
-        userAgent: req.get('User-Agent') || null,
-        deviceId: typeof req.body?.deviceId === 'string' ? req.body.deviceId : null,
-      })
+    // T1-2: MFA gate. If the user holds any role with mfa_required=true
+    // AND they are enrolled, short-circuit with a challenge token. The
+    // client exchanges it at /api/auth/mfa/verify for the real access +
+    // refresh pair. If mfa_required but NOT enrolled, fall through to a
+    // normal login — first-time enrollment grace period. The intended
+    // ops flow is: (1) enrollment campaign, (2) flip roles_v2.mfa_required
+    // for users who completed (1).
+    const mfaStatus = await query<{ mfa_required: boolean; enrolled: boolean }>(
+      `SELECT
+         EXISTS (
+           SELECT 1 FROM user_roles ur
+           JOIN roles_v2 rv2 ON rv2.id = ur.role_id
+           WHERE ur.user_id = $1 AND rv2.mfa_required = true
+         ) AS mfa_required,
+         EXISTS (
+           SELECT 1 FROM user_mfa_secrets WHERE user_id = $1
+         ) AS enrolled`,
+      [user.id]
     );
-
-    // Update user's lastLogin timestamp
-    await query(`UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1`, [user.id]);
-
-    // Fetch role-based assignments for BACKEND_USER and FIELD_AGENT users
-    let assignedClients: number[] = [];
-    let assignedProducts: number[] = [];
-    let assignedPincodes: number[] = [];
-    let assignedAreas: number[] = [];
-
-    if (isScopedOperationsUser(authProfile)) {
-      // Fetch assigned clients
-      const clientsRes = await query(
-        'SELECT client_id FROM user_client_assignments WHERE user_id = $1',
-        [user.id]
-      );
-      assignedClients = clientsRes.rows.map(row => row.clientId);
-
-      // Fetch assigned products
-      const productsRes = await query(
-        'SELECT product_id FROM user_product_assignments WHERE user_id = $1',
-        [user.id]
-      );
-      assignedProducts = productsRes.rows.map(row => row.productId);
-    } else if (isFieldExecutionActor(authProfile)) {
-      // Fetch assigned pincodes
-      const pincodesRes = await query(
-        'SELECT pincode_id FROM user_pincode_assignments WHERE user_id = $1 AND is_active = true',
-        [user.id]
-      );
-      assignedPincodes = pincodesRes.rows.map(row => row.pincodeId);
-
-      // Fetch assigned areas
-      const areasRes = await query(
-        'SELECT area_id FROM user_area_assignments WHERE user_id = $1 AND is_active = true',
-        [user.id]
-      );
-      assignedAreas = areasRes.rows.map(row => row.areaId);
+    if (mfaStatus.rows[0]?.mfa_required && mfaStatus.rows[0]?.enrolled) {
+      const challengePayload: MfaChallengePayload = {
+        userId: user.id,
+        mfaChallenge: true,
+      };
+      const challengeToken = jwt.sign(challengePayload, config.jwtSecret, {
+        expiresIn: MFA_CHALLENGE_TTL as string & jwt.SignOptions['expiresIn'],
+      });
+      await createAuditLog({
+        action: 'WEB_MFA_CHALLENGE_ISSUED',
+        entityType: 'USER',
+        entityId: user.id,
+        userId: user.id,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent') || undefined,
+      });
+      res.json({
+        success: true,
+        message: 'MFA required',
+        data: {
+          mfaRequired: true,
+          mfaChallenge: challengeToken,
+        },
+      });
+      return;
     }
 
-    // Audit success
-    await createAuditLog({
-      action: 'WEB_LOGIN_SUCCESS',
-      entityType: 'USER',
-      entityId: user.id,
-      userId: user.id,
-      details: { role: derivedRole },
-      ipAddress: req.ip,
-      userAgent: req.get('User-Agent') || undefined,
+    await completeWebLogin(req, res, {
+      user,
+      rbacRoles,
+      rbacPermissionCodes,
+      derivedRole,
+      authProfile,
+      auditAction: 'WEB_LOGIN_SUCCESS',
     });
-
-    const response: LoginResponse = {
-      success: true,
-      message: 'Login successful',
-      data: {
-        user: {
-          id: user.id,
-          name: user.name,
-          username: user.username,
-          email: user.email,
-          role: (derivedRole || 'BACKEND_USER') as NonNullable<
-            LoginResponse['data']
-          >['user']['role'],
-          employeeId: user.employeeId,
-          designation: user.designation,
-          department: user.department,
-          ...(user.profilePhotoUrl && { profilePhotoUrl: user.profilePhotoUrl }),
-          // 2026-05-06: ship rbac perms + roles in the login response so the
-          // FE has them before /auth/me refresh fires. Closes a race where
-          // permission-gated UI (e.g. KYC dashboard cards) was hidden because
-          // the post-login /auth/me refresh hadn't populated state yet.
-          permissions: rbacPermissionCodes,
-          roles: rbacRoles,
-          // Include role-based assignments
-          ...(isScopedOperationsUser(authProfile) && {
-            assignedClients,
-            assignedProducts,
-          }),
-          ...(isFieldExecutionActor(authProfile) && {
-            assignedPincodes,
-            assignedAreas,
-          }),
-        },
-        tokens: {
-          accessToken,
-          refreshToken,
-        },
-      },
-    };
-
-    // Phase E5: dual-write the refresh token to an HttpOnly cookie
-    // in addition to the JSON body. The frontend can migrate to
-    // cookie-only at its own pace; the mobile client keeps reading
-    // from the body (cookies don't work the same on RN). Cookie
-    // attributes:
-    //   - httpOnly: JS can't read it (XSS-resistant)
-    //   - secure: only over HTTPS in prod (dev keeps cleartext so
-    //     localhost still works)
-    //   - sameSite: 'strict' in prod to block cross-site CSRF;
-    //     'lax' in dev for cross-origin Vite dev server
-    //   - path: '/api/auth/refresh-token' so the cookie is only
-    //     ever sent to the one endpoint that needs it
-    //   - maxAge: matches refresh token TTL
-    setRefreshTokenCookie(res, refreshToken);
-    setAssetTokenCookie(res, accessToken);
-    res.json(response);
   } catch (error) {
     throw error;
   }
+};
+
+/**
+ * POST /api/auth/mfa/verify
+ *
+ * T1-2 commit 2: takes the short-lived mfaChallenge token issued by
+ * /auth/login plus a TOTP code or recovery code; on success, completes
+ * the login flow exactly as if MFA had not been required.
+ */
+export const mfaVerify = async (req: Request, res: Response): Promise<void> => {
+  const { challenge, code } = req.body as { challenge?: string; code?: string };
+  if (!challenge || !code) {
+    res.status(400).json({ success: false, message: 'challenge and code are required' });
+    return;
+  }
+
+  let decoded: MfaChallengePayload;
+  try {
+    decoded = jwt.verify(challenge, config.jwtSecret) as MfaChallengePayload;
+  } catch {
+    res.status(401).json({ success: false, message: 'Invalid or expired challenge' });
+    return;
+  }
+  if (decoded.mfaChallenge !== true || !decoded.userId) {
+    res.status(401).json({ success: false, message: 'Invalid challenge' });
+    return;
+  }
+
+  const verified = await verifyUserCode(decoded.userId, code);
+  if (!verified) {
+    await createAuditLog({
+      action: 'WEB_MFA_VERIFY_FAILED',
+      entityType: 'USER',
+      entityId: decoded.userId,
+      userId: decoded.userId,
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
+    res.status(401).json({ success: false, message: 'Invalid code' });
+    return;
+  }
+
+  // Re-fetch the user + RBAC + assignments fresh so the response shape
+  // is identical to a non-MFA login. Cost is a few small queries on a
+  // path that runs once per login session.
+  const userRes = await query(
+    `SELECT u.id, u.name, u.username, u.email, u.password_hash, u.employee_id, d.name as designation, dept.name as department, u.profile_photo_url, u.token_version
+       FROM users u
+       LEFT JOIN designations d ON d.id = u.designation_id
+       LEFT JOIN departments dept ON dept.id = u.department_id
+      WHERE u.id = $1`,
+    [decoded.userId]
+  );
+  const user = userRes.rows[0];
+  if (!user) {
+    res.status(401).json({ success: false, message: 'User not found' });
+    return;
+  }
+
+  const rbacRes = await query<{ roles: string[] | null; permissions: string[] | null }>(
+    `SELECT
+         COALESCE((
+           SELECT array_agg(DISTINCT rv2.name)
+           FROM user_roles ur
+           JOIN roles_v2 rv2 ON rv2.id = ur.role_id
+           WHERE ur.user_id = $1
+         ), ARRAY[]::varchar[]) as roles,
+         COALESCE((
+           SELECT array_agg(DISTINCT p.code)
+           FROM user_roles ur
+           JOIN role_permissions rp ON rp.role_id = ur.role_id AND rp.allowed = true
+           JOIN permissions p ON p.id = rp.permission_id
+           WHERE ur.user_id = $1
+         ), ARRAY[]::varchar[]) as permissions`,
+    [user.id]
+  );
+  const rbacRoles = rbacRes.rows[0]?.roles || [];
+  const rbacPermissionCodes = rbacRes.rows[0]?.permissions || [];
+  const derivedRole = getPrimaryRoleNameFromRbac(rbacRoles) || null;
+  const authProfile = {
+    permissionCodes: rbacPermissionCodes,
+  } as unknown as AuthenticatedRequest['user'];
+
+  await completeWebLogin(req, res, {
+    user,
+    rbacRoles,
+    rbacPermissionCodes,
+    derivedRole,
+    authProfile,
+    auditAction: 'WEB_MFA_VERIFY_SUCCESS',
+  });
 };
 
 export const logout = async (req: AuthenticatedRequest, res: Response): Promise<void> => {

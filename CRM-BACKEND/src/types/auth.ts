@@ -69,6 +69,19 @@ export interface JwtPayload {
   exp?: number;
 }
 
+// T1-2: short-lived JWT issued by /auth/login when MFA is required.
+// Carries only the userId so the holder can submit a TOTP/recovery
+// code to /auth/mfa/verify and exchange the challenge for a real
+// access + refresh token pair. NEVER accepted by the regular
+// authenticateToken middleware (no `mfaChallenge` claim is allowed
+// past the auth gate).
+export interface MfaChallengePayload {
+  userId: string;
+  mfaChallenge: true;
+  iat?: number;
+  exp?: number;
+}
+
 export interface RefreshTokenPayload {
   userId: string;
   deviceId?: string;

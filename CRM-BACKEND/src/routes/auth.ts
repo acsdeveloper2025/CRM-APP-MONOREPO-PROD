@@ -4,6 +4,7 @@ import {
   login,
   logout,
   getCurrentUser,
+  mfaVerify,
   refreshToken,
   verifyPassword,
 } from '@/controllers/authController';
@@ -136,10 +137,22 @@ router.post(
   resetUserRateLimit
 );
 
-// T1-2: MFA enrollment endpoints. Login-flow integration (challenge +
-// verify) lands in a follow-up commit; this commit ships enrollment +
-// admin break-glass disable only.
+// T1-2: MFA enrollment endpoints.
 router.post('/mfa/enroll/start', authenticateToken, mfaStartEnrollment);
+// T1-2 commit 2: exchange the mfaChallenge token from /auth/login for a
+// real access + refresh pair. Uses the challenge token as its credential;
+// no authenticateToken middleware (challenge tokens are rejected there).
+// Same rate-limiter as login so brute-forcing the 6-digit TOTP code is
+// throttled identically.
+router.post(
+  '/mfa/verify',
+  authRateLimit,
+  validate([
+    body('challenge').isString().notEmpty().withMessage('challenge is required'),
+    body('code').isString().notEmpty().withMessage('code is required'),
+  ]),
+  mfaVerify
+);
 router.post(
   '/mfa/enroll/verify',
   authenticateToken,
