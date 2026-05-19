@@ -186,6 +186,28 @@ export const config = {
     return secret || 'dev-only-audit-log-hmac-secret';
   })(),
 
+  // T1-2 (audit 2026-05-17): MFA TOTP secret encryption key.
+  // 32-byte AES-256-GCM key, base64-encoded. Used to encrypt/decrypt
+  // `user_mfa_secrets.secret_encrypted`. Rotation: requires a re-enroll
+  // sweep — every existing user has to re-enroll because we cannot
+  // decrypt the old ciphertext with the new key. Do not rotate without
+  // a documented user-comms + grace-window plan.
+  mfaEncryptionKey: (() => {
+    const raw = process.env.MFA_ENCRYPTION_KEY;
+    if (!raw && process.env.NODE_ENV === 'production') {
+      throw new Error('MFA_ENCRYPTION_KEY environment variable is required in production');
+    }
+    const b64 = raw || 'ZGV2LW9ubHktbWZhLWtleS0zMmJ5dGUtcGxhY2Vob2xkZXJfXw=='; // dev only
+    const key = Buffer.from(b64, 'base64');
+    if (key.length !== 32) {
+      throw new Error(
+        `MFA_ENCRYPTION_KEY must decode to exactly 32 bytes; got ${key.length}. ` +
+          "Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\""
+      );
+    }
+    return key;
+  })(),
+
   // Mobile App Configuration
   mobile: {
     apiVersion: process.env.MOBILE_API_VERSION || '1.0.0',

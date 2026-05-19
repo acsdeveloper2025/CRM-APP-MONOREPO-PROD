@@ -7,6 +7,11 @@ import {
   refreshToken,
   verifyPassword,
 } from '@/controllers/authController';
+import {
+  adminDisable as mfaAdminDisable,
+  startEnrollment as mfaStartEnrollment,
+  verifyEnrollment as mfaVerifyEnrollment,
+} from '@/controllers/mfaController';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
@@ -129,6 +134,29 @@ router.post(
   authenticateToken,
   authorize('settings.manage'),
   resetUserRateLimit
+);
+
+// T1-2: MFA enrollment endpoints. Login-flow integration (challenge +
+// verify) lands in a follow-up commit; this commit ships enrollment +
+// admin break-glass disable only.
+router.post('/mfa/enroll/start', authenticateToken, mfaStartEnrollment);
+router.post(
+  '/mfa/enroll/verify',
+  authenticateToken,
+  validate([
+    body('secret').isString().notEmpty().withMessage('secret is required'),
+    body('code')
+      .isString()
+      .matches(/^\d{6}$/)
+      .withMessage('code must be 6 digits'),
+  ]),
+  mfaVerifyEnrollment
+);
+router.post(
+  '/mfa/disable/:userId',
+  authenticateToken,
+  authorize('settings.manage'),
+  mfaAdminDisable
 );
 
 export default router;

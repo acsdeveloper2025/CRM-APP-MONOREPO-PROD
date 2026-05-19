@@ -7984,8 +7984,32 @@ CREATE TABLE public.roles_v2 (
     parent_role_id uuid,
     is_system boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    mfa_required boolean DEFAULT false NOT NULL
 );
+
+
+--
+-- Name: user_mfa_secrets; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_mfa_secrets (
+    user_id uuid NOT NULL,
+    secret_encrypted bytea NOT NULL,
+    enrolled_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    last_used_at timestamp with time zone,
+    recovery_code_hashes bytea[] NOT NULL,
+    recovery_code_used_at timestamp with time zone[] DEFAULT ARRAY[NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL]::timestamp with time zone[] NOT NULL,
+    CONSTRAINT user_mfa_secrets_recovery_code_hashes_check CHECK ((array_length(recovery_code_hashes, 1) = 10))
+);
+
+ALTER TABLE ONLY public.user_mfa_secrets
+    ADD CONSTRAINT user_mfa_secrets_pkey PRIMARY KEY (user_id);
+
+ALTER TABLE ONLY public.user_mfa_secrets
+    ADD CONSTRAINT user_mfa_secrets_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+CREATE INDEX idx_user_mfa_secrets_enrolled ON public.user_mfa_secrets USING btree (enrolled_at);
 
 
 --
