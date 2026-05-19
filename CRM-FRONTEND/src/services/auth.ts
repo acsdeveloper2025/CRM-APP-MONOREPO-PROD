@@ -36,10 +36,30 @@ export class AuthService {
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     const response = await apiService.post<LoginResponse['data']>('/auth/login', credentials);
 
-    if (response.success && response.data) {
+    if (response.success && response.data && 'tokens' in response.data) {
       // Access token is in memory only (XSS hazard); user profile is the
       // localStorage "is there a session?" hint. Refresh token is the
       // backend-set HttpOnly cookie.
+      apiService.setAccessToken(response.data.tokens.accessToken);
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.user));
+    }
+
+    return {
+      success: response.success,
+      message: response.message,
+      data: response.data,
+    };
+  }
+
+  // T1-2: exchange an MFA challenge token + code for the real
+  // access/refresh tokens. Same response shape as login() success.
+  async verifyMfa(challenge: string, code: string): Promise<LoginResponse> {
+    const response = await apiService.post<LoginResponse['data']>('/auth/mfa/verify', {
+      challenge,
+      code,
+    });
+
+    if (response.success && response.data && 'tokens' in response.data) {
       apiService.setAccessToken(response.data.tokens.accessToken);
       localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(response.data.user));
     }

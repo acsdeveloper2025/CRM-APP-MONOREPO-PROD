@@ -16,13 +16,36 @@ export interface LoginRequest {
 export interface LoginResponse {
   success: boolean;
   message: string;
-  data?: {
-    user: User;
-    tokens: {
-      accessToken: string;
-      refreshToken: string;
-    };
-  };
+  data?:
+    | {
+        user: User;
+        tokens: {
+          accessToken: string;
+          refreshToken: string;
+        };
+      }
+    // T1-2: MFA-required branch. When the user must satisfy a second
+    // factor, the backend returns a short-lived challenge token instead
+    // of the normal access+refresh pair. The FE swaps to a code-entry
+    // screen and posts to /auth/mfa/verify.
+    | {
+        mfaRequired: true;
+        mfaChallenge: string;
+      };
+}
+
+export interface MfaStatusResponse {
+  enrolled: boolean;
+  mfaRequiredForUser: boolean;
+}
+
+export interface MfaEnrollStartResponse {
+  secret: string;
+  otpauthUri: string;
+}
+
+export interface MfaEnrollVerifyResponse {
+  recoveryCodes: string[];
 }
 
 export interface AuthState {

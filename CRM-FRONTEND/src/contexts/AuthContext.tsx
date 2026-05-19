@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AuthState, LoginRequest } from '@/types/auth';
 import { authService } from '@/services/auth';
 import { toast } from 'sonner';
-import { AuthContext, AuthContextType } from './AuthContextObject';
+import { AuthContext, AuthContextType, LoginAttemptResult } from './AuthContextObject';
 import { AUTH_LOGOUT_EVENT } from '@/utils/events';
 import { frontendSocketService } from '@/services/socket';
 import { useQueryClient } from '@tanstack/react-query';
@@ -260,8 +260,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, [state.isAuthenticated, state.token, refreshUserPermissions, queryClient]);
 
+  // T1-2: shared "post-tokens" success path — runs after either
+  // password-only login OR completed MFA verification. Extracted so the
+  // two callers cannot drift.
+  const applyAuthenticatedSession = useCallback(
+    async (
+      user: NonNullable<Awaited<ReturnType<typeof authService.login>>['data']> & {
+        user: import('@/types/auth').User;
+        tokens: { accessToken: string };
+      }
+    ) => {
+      const refreshedUser = await authService.refreshUserData();
+      setState({
+        user: normalizeUserPermissions(refreshedUser || user.user),
+        token: user.tokens.accessToken,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      toast.success('Login successful!');
+    },
+    [normalizeUserPermissions]
+  );
+
   const login = useCallback(
-    async (credentials: LoginRequest): Promise<boolean> => {
+    async (credentials: LoginRequest): Promise<LoginAttemptResult> => {
       setState((prev) => ({ ...prev, isLoading: true }));
 
       try {
@@ -275,38 +297,58 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         const response = await authService.login(credentials);
 
-        if (response.success && response.data) {
-          // Refresh user data to get latest permissions
-          const refreshedUser = await authService.refreshUserData();
-
-          setState({
-            user: normalizeUserPermissions(refreshedUser || response.data.user),
-            token: response.data.tokens.accessToken,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-
-          toast.success('Login successful!');
-          return true;
-        } else {
-          toast.error(response.message || 'Login failed');
+        // T1-2: MFA branch. BE returned a challenge token, not session
+        // tokens. Surface to the caller so the LoginPage can swap to
+        // the code-entry screen; do NOT mark the user authenticated.
+        if (response.success && response.data && 'mfaRequired' in response.data) {
           setState((prev) => ({ ...prev, isLoading: false }));
-          return false;
+          return { status: 'mfa-required', mfaChallenge: response.data.mfaChallenge };
         }
+
+        if (response.success && response.data && 'tokens' in response.data) {
+          await applyAuthenticatedSession(response.data);
+          return { status: 'ok' };
+        }
+
+        toast.error(response.message || 'Login failed');
+        setState((prev) => ({ ...prev, isLoading: false }));
+        return { status: 'failed' };
       } catch (error) {
         const err = error as { response?: { data?: { message?: string } } };
         const message = err.response?.data?.message || 'Login failed';
         toast.error(message);
         setState((prev) => ({ ...prev, isLoading: false }));
+        return { status: 'failed' };
+      }
+    },
+    [applyAuthenticatedSession, queryClient]
+  );
+
+  const completeMfaLogin = useCallback(
+    async (challenge: string, code: string): Promise<boolean> => {
+      setState((prev) => ({ ...prev, isLoading: true }));
+      try {
+        const response = await authService.verifyMfa(challenge, code);
+        if (response.success && response.data && 'tokens' in response.data) {
+          await applyAuthenticatedSession(response.data);
+          return true;
+        }
+        toast.error(response.message || 'MFA verification failed');
+        setState((prev) => ({ ...prev, isLoading: false }));
+        return false;
+      } catch (error) {
+        const err = error as { response?: { data?: { message?: string } } };
+        toast.error(err.response?.data?.message || 'MFA verification failed');
+        setState((prev) => ({ ...prev, isLoading: false }));
         return false;
       }
     },
-    [normalizeUserPermissions, queryClient]
+    [applyAuthenticatedSession]
   );
 
   const value = useMemo<AuthContextType>(
-    () => ({ ...state, login, logout, refreshUserPermissions }),
-    [state, login, logout, refreshUserPermissions]
+    () => ({ ...state, login, completeMfaLogin, logout, refreshUserPermissions }),
+    [state, login, completeMfaLogin, logout, refreshUserPermissions]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

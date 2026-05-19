@@ -24,14 +24,23 @@ import { ChangePasswordTab } from '@/components/users/ChangePasswordTab';
 import { MySessionsTab } from '@/components/users/MySessionsTab';
 import { MyActivityTab } from '@/components/users/MyActivityTab';
 import { MyNotificationsTab } from '@/components/users/MyNotificationsTab';
+import { MyMfaTab } from '@/components/users/MyMfaTab';
 import { PrivacyTab } from '@/components/users/PrivacyTab';
 
-type ProfileTab = 'identity' | 'password' | 'sessions' | 'activity' | 'notifications' | 'privacy';
+type ProfileTab =
+  | 'identity'
+  | 'password'
+  | 'mfa'
+  | 'sessions'
+  | 'activity'
+  | 'notifications'
+  | 'privacy';
 
 // Mirror UsersPage URL-tab sync (project_nav_url_h1_alignment.md).
 const TAB_TO_SEGMENT: Record<ProfileTab, string> = {
   identity: 'identity',
   password: 'password',
+  mfa: 'mfa',
   sessions: 'sessions',
   activity: 'activity',
   notifications: 'notifications',
@@ -41,6 +50,7 @@ const TAB_TO_SEGMENT: Record<ProfileTab, string> = {
 const isProfileTab = (value: string | undefined): value is ProfileTab =>
   value === 'identity' ||
   value === 'password' ||
+  value === 'mfa' ||
   value === 'sessions' ||
   value === 'activity' ||
   value === 'notifications' ||
@@ -118,6 +128,7 @@ export default function ProfilePage() {
           <TabsList className="inline-flex w-max sm:w-auto">
             <TabsTrigger value="identity">Identity</TabsTrigger>
             <TabsTrigger value="password">Password</TabsTrigger>
+            <TabsTrigger value="mfa">Two-Factor</TabsTrigger>
             <TabsTrigger value="sessions">Sessions</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
@@ -240,6 +251,8 @@ export default function ProfilePage() {
         <TabsContent value="password">
           {activeTab === 'password' && <ChangePasswordTab userId={user.id} />}
         </TabsContent>
+
+        <TabsContent value="mfa">{activeTab === 'mfa' && <MyMfaTab />}</TabsContent>
 
         <TabsContent value="sessions">
           {activeTab === 'sessions' && <MySessionsTab userId={user.id} />}

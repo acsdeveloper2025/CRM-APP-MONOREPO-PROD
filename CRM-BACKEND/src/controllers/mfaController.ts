@@ -140,6 +140,40 @@ export const verifyEnrollment = async (req: AuthenticatedRequest, res: Response)
 };
 
 /**
+ * GET /api/auth/mfa/status
+ *
+ * Returns the current user's MFA enrollment + requirement state.
+ * `mfaRequiredForUser` = true means at least one of the caller's roles
+ * has mfa_required=true on roles_v2; the FE uses this to decide whether
+ * to nag the user about enrollment.
+ */
+export const getStatus = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  if (!req.user) {
+    res.status(401).json({ success: false, message: 'Not authenticated' });
+    return;
+  }
+
+  const result = await query<{ enrolled: boolean; mfa_required_for_user: boolean }>(
+    `SELECT
+       EXISTS (SELECT 1 FROM user_mfa_secrets WHERE user_id = $1) AS enrolled,
+       EXISTS (
+         SELECT 1 FROM user_roles ur
+         JOIN roles_v2 rv2 ON rv2.id = ur.role_id
+         WHERE ur.user_id = $1 AND rv2.mfa_required = true
+       ) AS mfa_required_for_user`,
+    [req.user.id]
+  );
+  const row = result.rows[0];
+  res.json({
+    success: true,
+    data: {
+      enrolled: row?.enrolled ?? false,
+      mfaRequiredForUser: row?.mfa_required_for_user ?? false,
+    },
+  });
+};
+
+/**
  * POST /api/auth/mfa/disable/:userId
  *
  * Admin-only break-glass (authorize('settings.manage')). Removes a

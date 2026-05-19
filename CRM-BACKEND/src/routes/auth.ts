@@ -10,6 +10,7 @@ import {
 } from '@/controllers/authController';
 import {
   adminDisable as mfaAdminDisable,
+  getStatus as mfaGetStatus,
   startEnrollment as mfaStartEnrollment,
   verifyEnrollment as mfaVerifyEnrollment,
 } from '@/controllers/mfaController';
@@ -138,6 +139,7 @@ router.post(
 );
 
 // T1-2: MFA enrollment endpoints.
+router.get('/mfa/status', authenticateToken, mfaGetStatus);
 router.post('/mfa/enroll/start', authenticateToken, mfaStartEnrollment);
 // T1-2 commit 2: exchange the mfaChallenge token from /auth/login for a
 // real access + refresh pair. Uses the challenge token as its credential;
