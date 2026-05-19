@@ -169,6 +169,23 @@ export const config = {
   // Logging
   logLevel: process.env.LOG_LEVEL || 'info',
 
+  // T1-1 (audit 2026-05-17): audit-log tamper-evidence.
+  // HMAC secret used to sign every audit_logs row's hash chain.
+  // - In production: REQUIRED. Missing => fail-fast at boot so we never
+  //   silently emit unsigned rows that would break the chain.
+  // - In dev: defaults to a stable string so devs do not need to set
+  //   the env to boot the server. Rotation of this secret invalidates
+  //   the existing chain (verifier will report break) — rotate only
+  //   alongside a documented "chain restart" event with prior signed
+  //   archive captured first.
+  auditLogHmacSecret: (() => {
+    const secret = process.env.AUDIT_LOG_HMAC_SECRET;
+    if (!secret && process.env.NODE_ENV === 'production') {
+      throw new Error('AUDIT_LOG_HMAC_SECRET environment variable is required in production');
+    }
+    return secret || 'dev-only-audit-log-hmac-secret';
+  })(),
+
   // Mobile App Configuration
   mobile: {
     apiVersion: process.env.MOBILE_API_VERSION || '1.0.0',

@@ -37,10 +37,66 @@
 import { Queue, Worker, type Job } from 'bullmq';
 import { config } from '@/config';
 import { logger } from '@/config/logger';
-import { query } from '@/config/database';
+import { withTransaction } from '@/config/db';
 import type { AuditLogData } from '@/utils/auditLogger';
+import { computeRowHash } from '@/utils/auditChain';
 import { errorMessage } from '@/utils/errorMessage';
 import { writeAuditDeadLetter, recoverAuditDeadLetter } from './auditLogDeadLetter';
+
+// T1-1 (audit 2026-05-17): single canonical insert path for the hash
+// chain. Both the worker and the Redis-down fallback funnel through
+// this so the hash logic cannot drift.
+//
+// Per-INSERT we take a transaction-scoped pg advisory lock to serialize
+// the "read latest row_hash + compute new hash + INSERT" critical
+// section across all worker concurrency slots and across all PM2
+// workers. The lock auto-releases at COMMIT/ROLLBACK.
+//
+// `hashtext('audit_logs_chain')` is a stable int4. Postgres advisory
+// locks take a bigint, so we sign-extend via bigint cast in SQL.
+const ADVISORY_LOCK_KEY_SQL = "hashtext('audit_logs_chain')::bigint";
+
+const insertAuditLogRow = async (data: AuditLogData): Promise<void> => {
+  await withTransaction(async client => {
+    await client.query(`SELECT pg_advisory_xact_lock(${ADVISORY_LOCK_KEY_SQL})`);
+
+    // Pin created_at at the application clock so the value we feed to
+    // computeRowHash matches the value the DB stores. (Reading
+    // CURRENT_TIMESTAMP from the DB after insert would race; pinning
+    // is the only way to keep sign-time = verify-time identical.)
+    const createdAt = new Date();
+
+    const prevRes = await client.query<{ row_hash: Buffer | null }>(
+      `SELECT row_hash FROM audit_logs
+        WHERE row_hash IS NOT NULL
+        ORDER BY id DESC
+        LIMIT 1`
+    );
+    const prevHash = prevRes.rows[0]?.row_hash ?? null;
+
+    const rowHash = computeRowHash(prevHash, data, createdAt, config.auditLogHmacSecret);
+
+    await client.query(
+      `INSERT INTO audit_logs (
+         action, entity_type, entity_id, user_id, details,
+         ip_address, user_agent, created_at, prev_hash, row_hash
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [
+        data.action,
+        data.entityType,
+        data.entityId ?? null,
+        data.userId ?? null,
+        data.details ? JSON.stringify(data.details) : null,
+        data.ipAddress ?? null,
+        data.userAgent ?? null,
+        createdAt,
+        prevHash,
+        rowHash,
+      ]
+    );
+  });
+};
 
 const QUEUE_NAME = 'audit-log-processing';
 const JOB_NAME = 'audit-log';
@@ -101,19 +157,7 @@ export const enqueueAuditLog = async (data: AuditLogData): Promise<void> => {
     //      (auditLogDeadLetter.ts) so the cluster's startup recovery
     //      sweep can replay it once Redis/DB are back.
     try {
-      await query(
-        `INSERT INTO audit_logs (action, entity_type, entity_id, user_id, details, ip_address, user_agent, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)`,
-        [
-          data.action,
-          data.entityType,
-          data.entityId ?? null,
-          data.userId ?? null,
-          data.details ? JSON.stringify(data.details) : null,
-          data.ipAddress ?? null,
-          data.userAgent ?? null,
-        ]
-      );
+      await insertAuditLogRow(data);
     } catch (directError) {
       logger.error('Direct audit log fallback insert failed; writing to DLQ file', {
         error: errorMessage(directError),
@@ -135,20 +179,7 @@ export const startAuditLogProcessor = (): void => {
   worker = new Worker<AuditLogData>(
     QUEUE_NAME,
     async (job: Job<AuditLogData>) => {
-      const data = job.data;
-      await query(
-        `INSERT INTO audit_logs (action, entity_type, entity_id, user_id, details, ip_address, user_agent, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)`,
-        [
-          data.action,
-          data.entityType,
-          data.entityId ?? null,
-          data.userId ?? null,
-          data.details ? JSON.stringify(data.details) : null,
-          data.ipAddress ?? null,
-          data.userAgent ?? null,
-        ]
-      );
+      await insertAuditLogRow(job.data);
     },
     {
       connection,

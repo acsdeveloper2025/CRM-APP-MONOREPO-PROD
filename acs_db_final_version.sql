@@ -2746,7 +2746,9 @@ CREATE TABLE public.audit_logs (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 )
 PARTITION BY RANGE (created_at);
 
@@ -2766,7 +2768,9 @@ CREATE TABLE public.audit_logs_2025_10 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -2785,7 +2789,9 @@ CREATE TABLE public.audit_logs_2025_11 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -2804,7 +2810,9 @@ CREATE TABLE public.audit_logs_2025_12 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -2823,7 +2831,9 @@ CREATE TABLE public.audit_logs_2026_01 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -2842,7 +2852,9 @@ CREATE TABLE public.audit_logs_2026_02 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -2861,7 +2873,9 @@ CREATE TABLE public.audit_logs_2026_03 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -2880,7 +2894,9 @@ CREATE TABLE public.audit_logs_2026_04 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -2899,7 +2915,9 @@ CREATE TABLE public.audit_logs_2026_05 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -2918,7 +2936,9 @@ CREATE TABLE public.audit_logs_2026_06 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -2937,7 +2957,9 @@ CREATE TABLE public.audit_logs_2026_07 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -2956,7 +2978,9 @@ CREATE TABLE public.audit_logs_2026_08 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -2975,7 +2999,9 @@ CREATE TABLE public.audit_logs_2026_09 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -2994,7 +3020,9 @@ CREATE TABLE public.audit_logs_2026_10 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -3013,7 +3041,9 @@ CREATE TABLE public.audit_logs_2026_11 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -3032,7 +3062,9 @@ CREATE TABLE public.audit_logs_2026_12 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -3051,7 +3083,9 @@ CREATE TABLE public.audit_logs_2027_01 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -3070,7 +3104,9 @@ CREATE TABLE public.audit_logs_2027_02 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -3089,7 +3125,9 @@ CREATE TABLE public.audit_logs_2027_03 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -3108,7 +3146,9 @@ CREATE TABLE public.audit_logs_2027_04 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -3127,7 +3167,9 @@ CREATE TABLE public.audit_logs_2027_05 (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
@@ -3146,7 +3188,9 @@ CREATE TABLE public.audit_logs_default (
     user_agent text,
     created_at timestamp with time zone DEFAULT now() CONSTRAINT audit_logs_created_at_not_null1 NOT NULL,
     id bigint CONSTRAINT audit_logs_id_not_null1 NOT NULL,
-    details jsonb
+    details jsonb,
+    prev_hash bytea,
+    row_hash bytea
 );
 
 
