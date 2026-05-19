@@ -330,7 +330,7 @@ function EnrollDialog({ open, onOpenChange, onCompleted }: EnrollDialogProps) {
               {recoveryCodes.map((rc) => (
                 <code
                   key={rc}
-                  className="case-sensitive rounded-md bg-muted px-2 py-1.5 text-center text-xs font-mono"
+                  className="case-sensitive rounded-md border border-border bg-white px-2 py-1.5 text-center text-xs font-mono text-foreground"
                 >
                   {rc}
                 </code>
