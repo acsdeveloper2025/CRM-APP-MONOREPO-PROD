@@ -1,9 +1,10 @@
 import React from 'react';
-import { Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { PolicyAcceptanceGuard } from '@/components/PolicyAcceptanceGuard';
 import { Layout } from '@/components/layout/Layout';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Import all page components using React.lazy for code splitting
 const LoginPage = React.lazy(() =>
@@ -209,12 +210,20 @@ const DefaultRoute: React.FC = () => {
 // Phase D Option B (2026-05-17): wraps Outlet with PolicyAcceptanceGuard
 // so every protected route requires a current-version policy acceptance.
 // /accept-policy is mounted OUTSIDE this layout to break the redirect loop.
+//
+// T1-13 (audit 2026-05-17): per-route ErrorBoundary so a render crash
+// inside one page does not blank the entire shell. Keyed on the URL
+// pathname so navigating to a different route remounts the boundary
+// (clears any error state from the previous page).
 const AuthenticatedLayout = () => {
+  const location = useLocation();
   return (
     <ProtectedRoute>
       <Layout>
         <PolicyAcceptanceGuard>
-          <Outlet />
+          <ErrorBoundary key={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </PolicyAcceptanceGuard>
       </Layout>
     </ProtectedRoute>
