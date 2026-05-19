@@ -21,12 +21,21 @@ const router = express.Router();
  * reject non-UUIDs at the edge.
  */
 
+// 2026-05-19 revision: :caseId accepts UUID OR integer business case_id.
+// :submissionId and :reportId remain UUID-only (form_submissions.id +
+// template_reports.id are both gen_random_uuid).
+const UUID_OR_INT_RE =
+  /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[1-9]\d*)$/i;
+const caseIdParam = param('caseId')
+  .matches(UUID_OR_INT_RE)
+  .withMessage('caseId must be a UUID or positive integer');
+
 const caseAndSubmissionValidation = [
-  param('caseId').isUUID().withMessage('caseId must be a UUID'),
+  caseIdParam,
   param('submissionId').isUUID().withMessage('submissionId must be a UUID'),
 ];
 
-const caseOnlyValidation = [param('caseId').isUUID().withMessage('caseId must be a UUID')];
+const caseOnlyValidation = [caseIdParam];
 
 const reportIdValidation = [param('reportId').isUUID().withMessage('reportId must be a UUID')];
 

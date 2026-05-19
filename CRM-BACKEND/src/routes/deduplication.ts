@@ -49,9 +49,14 @@ router.post(
 );
 
 // GET /api/cases/:caseId/deduplication/history - Get deduplication history for a case
+// 2026-05-19 revision: caseId accepts UUID OR integer business case_id.
 router.get(
   '/:caseId/history',
-  validate([param('caseId').isUUID().withMessage('caseId must be a UUID')]),
+  validate([
+    param('caseId')
+      .matches(/^(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[1-9]\d*)$/i)
+      .withMessage('caseId must be a UUID or positive integer'),
+  ]),
   getDeduplicationHistory
 );
 
