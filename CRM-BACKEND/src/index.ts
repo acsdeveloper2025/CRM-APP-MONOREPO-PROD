@@ -188,18 +188,41 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
     // Notify WebSocket clients before closing
     io.emit('server:shutdown', { message: 'Server is restarting, please reconnect shortly' });
 
-    // Close HTTP server (stop accepting new connections)
-    server.close(() => {
-      logger.info('HTTP server closed');
+    // T1-12 (audit 2026-05-17): drain HTTP + WS BEFORE shutting down
+    // bullmq workers. The previous code fired server.close() and
+    // io.close() without awaiting them, so the last in-flight HTTP
+    // request could still be trying to enqueue an audit_log row AFTER
+    // we'd already called stopAuditLogProcessor() — racing the worker
+    // shutdown and either dropping the row or hitting "queue closed".
+    //
+    // Sequence: stop-accepting → drain in-flight → close workers →
+    //           close data layer → flush traces.
+    await new Promise<void>((resolve) => {
+      // closeIdleConnections nudges keep-alive sockets that are not
+      // actively serving a request to close immediately. Without it,
+      // server.close() hangs until each keep-alive socket's idle
+      // timeout fires (default 5s; we don't want to wait).
+      server.closeIdleConnections?.();
+      server.close((err) => {
+        if (err) {
+          logger.warn('HTTP server close emitted error', { error: err.message });
+        } else {
+          logger.info('HTTP server closed');
+        }
+        resolve();
+      });
     });
 
-    // Close WebSocket connections
-    void io.close(() => {
-      logger.info('WebSocket server closed');
+    await new Promise<void>((resolve) => {
+      void io.close(() => {
+        logger.info('WebSocket server closed');
+        resolve();
+      });
     });
 
     // Close the audit log bullmq queue — drains in-flight jobs before
-    // shutting the worker down (Phase D3 + Medium Fix 7).
+    // shutting the worker down (Phase D3 + Medium Fix 7). Now safe to
+    // call: the HTTP layer has drained, no new createAuditLog can fire.
     await stopAuditLogProcessor();
 
     // Close the notification bullmq queue + worker.
