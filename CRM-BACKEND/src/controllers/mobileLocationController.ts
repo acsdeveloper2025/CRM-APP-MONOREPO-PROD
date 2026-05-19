@@ -13,6 +13,18 @@ import type { QueryParams } from '../types/database';
 import { isFieldExecutionActor } from '@/security/rbacAccess';
 import { getSocketIO } from '@/websocket/server';
 import { circuitBreakers } from '@/utils/circuitBreaker';
+import { redisClient, isRedisHealthy } from '@/config/redis';
+
+// T1-14 (audit 2026-05-17): cache reverse-geocode results in Redis.
+// At 10K field agents × ~50 lookups/day, uncached spend is projected
+// $9-12K/month; clustering on common coordinates (an agent revisits
+// the same building) typically yields a 60-80% hit rate at this TTL.
+// Key shape mirrors the existing static-map cache (`gmap:{lat6}:{lng6}`)
+// for operational symmetry.
+const REVERSE_GEOCODE_TTL_SECONDS = parseInt(
+  process.env.REVERSE_GEOCODE_CACHE_TTL_SECONDS || '2592000', // 30 days
+  10
+);
 
 export class MobileLocationController {
   private static getOperationId(req: AuthenticatedRequest): string | null {
@@ -565,6 +577,23 @@ export class MobileLocationController {
       return null;
     }
 
+    // T1-14: Redis-backed cache. 6dp ≈ 11cm precision — finer than
+    // Google's own response varies for the same building. Cache only
+    // successful resolutions; failures / nulls retry next call.
+    const cacheKey = `revgeo:${latitude.toFixed(6)}:${longitude.toFixed(6)}`;
+    if (isRedisHealthy()) {
+      try {
+        const cached = await redisClient.get(cacheKey);
+        if (cached) {
+          return cached;
+        }
+      } catch (cacheErr) {
+        logger.warn('Reverse-geocode cache lookup failed', {
+          error: cacheErr instanceof Error ? cacheErr.message : String(cacheErr),
+        });
+      }
+    }
+
     const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${encodeURIComponent(
       `${latitude},${longitude}`
     )}&key=${encodeURIComponent(apiKey)}&language=en`;
@@ -605,7 +634,23 @@ export class MobileLocationController {
       // and already chooses the right segments per region; FE-side
       // deriveCityStateCountry strips remaining admin-region noise via
       // SKIP_TOKENS for the 3-line header derivation.
-      return body.results[0].formatted_address || null;
+      const address = body.results[0].formatted_address || null;
+
+      // T1-14: populate cache. Best-effort — cache write failure must
+      // not break the response. Only successful resolutions are cached
+      // (null addresses are NOT cached so a transient Google return of
+      // no-results doesn't poison the key for 30 days).
+      if (address && isRedisHealthy()) {
+        try {
+          await redisClient.set(cacheKey, address, { EX: REVERSE_GEOCODE_TTL_SECONDS });
+        } catch (cacheErr) {
+          logger.warn('Reverse-geocode cache write failed', {
+            error: cacheErr instanceof Error ? cacheErr.message : String(cacheErr),
+          });
+        }
+      }
+
+      return address;
     } catch (error) {
       logger.error('Google reverse geocoding error:', error);
       return null;
