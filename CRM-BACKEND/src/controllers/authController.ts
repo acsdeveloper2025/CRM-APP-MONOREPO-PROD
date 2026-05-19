@@ -568,12 +568,17 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
       throw createError('User not authenticated', 401, 'UNAUTHORIZED');
     }
 
-    // Log logout
-    await query(
-      `INSERT INTO audit_logs (user_id, action, entity_type, new_values, ip_address, user_agent, created_at)
-       VALUES ($1, 'LOGOUT', 'USER', $2, $3, $4, CURRENT_TIMESTAMP)`,
-      [req.user.id, JSON.stringify({}), req.ip, req.get('User-Agent')]
-    );
+    // T1-1 don't-regress: every audit-log INSERT MUST go through
+    // createAuditLog so the row gets signed into the hash chain. The
+    // previous raw INSERT here bypassed the chain (NULL row_hash).
+    await createAuditLog({
+      action: 'LOGOUT',
+      entityType: 'USER',
+      entityId: req.user.id,
+      userId: req.user.id,
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
 
     // Invalidate ALL refresh tokens for this user — match mobile logout behavior.
     // Without this, an attacker holding a leaked refresh token could continue
