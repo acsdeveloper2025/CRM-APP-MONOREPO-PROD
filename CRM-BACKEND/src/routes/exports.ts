@@ -1,6 +1,8 @@
 import express from 'express';
+import { body, param, query } from 'express-validator';
 import { authenticateToken, type AuthenticatedRequest } from '../middleware/auth';
 import { authorize } from '../middleware/authorize';
+import { validate } from '../middleware/validation';
 import {
   generateReport,
   downloadReport,
@@ -20,6 +22,48 @@ import {
 } from '../controllers/scheduledReportsController';
 
 const router = express.Router();
+
+// T1-5 (audit 2026-05-17): edge validation for the exports surface.
+// Most importantly :fileName guards against directory traversal —
+// the downloadReport handler reads the literal param into a fs read.
+const FILENAME_SAFE = /^[A-Za-z0-9._-]+$/;
+const DATE_YYYY_MM_DD = /^\d{4}-\d{2}-\d{2}$/;
+const reportFormats = ['pdf', 'excel', 'csv', 'json'] as const;
+
+const generateBodyValidation = [
+  body('format')
+    .isIn(reportFormats)
+    .withMessage(`format must be one of: ${reportFormats.join(', ')}`),
+  body('reportType').isString().notEmpty().withMessage('reportType is required'),
+  body('dateFrom').optional().matches(DATE_YYYY_MM_DD).withMessage('dateFrom must be YYYY-MM-DD'),
+  body('dateTo').optional().matches(DATE_YYYY_MM_DD).withMessage('dateTo must be YYYY-MM-DD'),
+  body('delivery.method').optional().isIn(['download', 'email']),
+  body('delivery.recipients').optional().isArray(),
+  body('delivery.recipients.*').optional().isEmail(),
+];
+
+const fileNameValidation = [
+  param('fileName').matches(FILENAME_SAFE).withMessage('fileName must contain only [A-Za-z0-9._-]'),
+];
+
+const historyQueryValidation = [
+  query('limit').optional().isInt({ min: 1, max: 500 }),
+  query('offset').optional().isInt({ min: 0 }),
+  query('reportType').optional().isString().isLength({ max: 50 }),
+  query('format').optional().isIn(reportFormats),
+];
+
+const quickBodyValidation = [
+  body('dateFrom').optional().matches(DATE_YYYY_MM_DD),
+  body('dateTo').optional().matches(DATE_YYYY_MM_DD),
+];
+
+const emailBodyValidation = [
+  body('recipients').isArray({ min: 1 }).withMessage('recipients must be a non-empty array'),
+  body('recipients.*').isEmail().withMessage('each recipient must be a valid email'),
+];
+
+const scheduledIdValidation = [param('id').isUUID().withMessage('id must be a UUID')];
 
 /**
  * Export Routes
@@ -55,13 +99,24 @@ router.use(authenticateToken);
  *   }
  * }
  */
-router.post('/generate', exportRateLimit, authorize('report.generate'), generateReport);
+router.post(
+  '/generate',
+  exportRateLimit,
+  authorize('report.generate'),
+  validate(generateBodyValidation),
+  generateReport
+);
 
 /**
  * GET /api/exports/download/:fileName
  * Download a generated report file
  */
-router.get('/download/:fileName', authorize('report.download'), downloadReport);
+router.get(
+  '/download/:fileName',
+  authorize('report.download'),
+  validate(fileNameValidation),
+  downloadReport
+);
 
 /**
  * GET /api/exports/history
@@ -73,13 +128,23 @@ router.get('/download/:fileName', authorize('report.download'), downloadReport);
  * - reportType: string (optional filter)
  * - format: string (optional filter)
  */
-router.get('/history', authorize('report.download'), getExportHistory);
+router.get(
+  '/history',
+  authorize('report.download'),
+  validate(historyQueryValidation),
+  getExportHistory
+);
 
 /**
  * POST /api/exports/test-email
  * Test email configuration
  */
-router.post('/test-email', authorize('report.generate'), testEmailConfig);
+router.post(
+  '/test-email',
+  authorize('report.generate'),
+  validate(emailBodyValidation),
+  testEmailConfig
+);
 
 /**
  * POST /api/exports/quick/agent-performance
@@ -89,6 +154,7 @@ router.post(
   '/quick/agent-performance',
   exportRateLimit,
   authorize('report.generate'),
+  validate(quickBodyValidation),
   (req: AuthenticatedRequest, res, next) => {
     req.body = {
       format: 'excel',
@@ -112,6 +178,7 @@ router.post(
   '/quick/case-analytics',
   exportRateLimit,
   authorize('report.generate'),
+  validate(quickBodyValidation),
   (req: AuthenticatedRequest, res, next) => {
     req.body = {
       format: 'pdf',
@@ -134,6 +201,7 @@ router.post(
 router.post(
   '/email/monthly-performance',
   authorize('report.generate'),
+  validate(emailBodyValidation),
   (req: AuthenticatedRequest, res, next) => {
     const monthAgo = new Date();
     monthAgo.setMonth(monthAgo.getMonth() - 1);
@@ -299,36 +367,66 @@ router.get('/scheduled', authorize('report.download'), getScheduledReports);
  * GET /api/exports/scheduled/:id
  * Get a specific scheduled report
  */
-router.get('/scheduled/:id', authorize('report.download'), getScheduledReport);
+router.get(
+  '/scheduled/:id',
+  authorize('report.download'),
+  validate(scheduledIdValidation),
+  getScheduledReport
+);
 
 /**
  * PUT /api/exports/scheduled/:id
  * Update a scheduled report
  */
-router.put('/scheduled/:id', authorize('report.generate'), updateScheduledReport);
+router.put(
+  '/scheduled/:id',
+  authorize('report.generate'),
+  validate(scheduledIdValidation),
+  updateScheduledReport
+);
 
 /**
  * DELETE /api/exports/scheduled/:id
  * Delete a scheduled report
  */
-router.delete('/scheduled/:id', authorize('report.generate'), deleteScheduledReport);
+router.delete(
+  '/scheduled/:id',
+  authorize('report.generate'),
+  validate(scheduledIdValidation),
+  deleteScheduledReport
+);
 
 /**
  * PATCH /api/exports/scheduled/:id/toggle
  * Toggle scheduled report active status
  */
-router.patch('/scheduled/:id/toggle', authorize('report.generate'), toggleScheduledReport);
+router.patch(
+  '/scheduled/:id/toggle',
+  authorize('report.generate'),
+  validate(scheduledIdValidation),
+  toggleScheduledReport
+);
 
 /**
  * GET /api/exports/scheduled/:id/history
  * Get execution history for a scheduled report
  */
-router.get('/scheduled/:id/history', authorize('report.generate'), getScheduledReportHistory);
+router.get(
+  '/scheduled/:id/history',
+  authorize('report.generate'),
+  validate(scheduledIdValidation),
+  getScheduledReportHistory
+);
 
 /**
  * POST /api/exports/scheduled/:id/test
  * Test a scheduled report (execute immediately)
  */
-router.post('/scheduled/:id/test', authorize('report.generate'), testScheduledReport);
+router.post(
+  '/scheduled/:id/test',
+  authorize('report.generate'),
+  validate(scheduledIdValidation),
+  testScheduledReport
+);
 
 export default router;
