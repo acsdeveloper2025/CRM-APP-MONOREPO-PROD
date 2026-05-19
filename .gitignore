@@ -20,6 +20,7 @@ pids
 *.pid
 *.seed
 *.pid.lock
+.claude/scheduled_tasks.lock
 .grunt
 
 # =====================================================
