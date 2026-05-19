@@ -303,7 +303,7 @@ function EnrollDialog({ open, onOpenChange, onCompleted }: EnrollDialogProps) {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Manual entry secret</Label>
-              <code className="case-sensitive block break-all rounded-md bg-muted px-3 py-2 text-xs font-mono">
+              <code className="case-sensitive block break-all rounded-md border border-border bg-white px-3 py-2 text-xs font-mono text-foreground">
                 {secret}
               </code>
             </div>
