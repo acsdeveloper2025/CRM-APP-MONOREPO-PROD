@@ -45,8 +45,21 @@ export const startEnrollment = async (req: AuthenticatedRequest, res: Response):
   // Block re-enrollment of an already-enrolled user; require explicit
   // disable first. Prevents a leaked session from silently rotating
   // the second-factor away from the legitimate user.
-  const existing = await query('SELECT 1 FROM user_mfa_secrets WHERE user_id = $1', [req.user.id]);
-  if (existing.rows.length > 0) {
+  //
+  // Same query also fetches `username` for the otpauth label —
+  // authenticateToken's req.user only carries id/perm/capabilities,
+  // not username, so we can't read it from there.
+  const userRow = await query<{ username: string; enrolled: boolean }>(
+    `SELECT u.username,
+            EXISTS (SELECT 1 FROM user_mfa_secrets WHERE user_id = u.id) AS enrolled
+       FROM users u WHERE u.id = $1`,
+    [req.user.id]
+  );
+  if (userRow.rows.length === 0) {
+    res.status(401).json({ success: false, message: 'User not found' });
+    return;
+  }
+  if (userRow.rows[0].enrolled) {
     res.status(409).json({
       success: false,
       message: 'MFA already enrolled. Disable existing enrollment before re-enrolling.',
@@ -56,7 +69,7 @@ export const startEnrollment = async (req: AuthenticatedRequest, res: Response):
 
   const secret = generateTotpSecret();
   const secretBase32 = base32Encode(secret);
-  const uri = otpauthUri(secretBase32, req.user.username, ISSUER);
+  const uri = otpauthUri(secretBase32, userRow.rows[0].username, ISSUER);
 
   res.json({
     success: true,
