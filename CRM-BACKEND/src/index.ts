@@ -197,13 +197,13 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
     //
     // Sequence: stop-accepting → drain in-flight → close workers →
     //           close data layer → flush traces.
-    await new Promise<void>((resolve) => {
+    await new Promise<void>(resolve => {
       // closeIdleConnections nudges keep-alive sockets that are not
       // actively serving a request to close immediately. Without it,
       // server.close() hangs until each keep-alive socket's idle
       // timeout fires (default 5s; we don't want to wait).
       server.closeIdleConnections?.();
-      server.close((err) => {
+      server.close(err => {
         if (err) {
           logger.warn('HTTP server close emitted error', { error: err.message });
         } else {
@@ -213,7 +213,7 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
       });
     });
 
-    await new Promise<void>((resolve) => {
+    await new Promise<void>(resolve => {
       void io.close(() => {
         logger.info('WebSocket server closed');
         resolve();
