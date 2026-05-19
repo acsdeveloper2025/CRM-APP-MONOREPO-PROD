@@ -64,9 +64,9 @@ interface RequestMetrics {
 }
 
 interface RetryConfig {
-  retries: number;
-  retryDelay: number;
-  retryCondition: (error: unknown) => boolean;
+  retries?: number;
+  retryDelay?: number;
+  retryCondition?: (error: unknown) => boolean;
 }
 
 interface AugmentedAxiosRequestConfig extends InternalAxiosRequestConfig {
@@ -532,7 +532,15 @@ class ApiService {
     }
 
     const stampedConfig = stampIdempotencyKey(axiosConfig);
-    return this.executeWithRetry(() => this.api.post<T>(url, data, stampedConfig), retryConfig);
+    // T1-6 (audit 2026-05-17): POST is non-idempotent — auto-retry on
+    // 5xx duplicates writes. Default to retries=0; caller can opt-in
+    // explicitly via retryConfig if the endpoint is known-idempotent
+    // (e.g. POST that wraps an UPSERT). Combined with BE deadlock-retry
+    // 6× the prior 3× retry default was a 24× write amplification.
+    return this.executeWithRetry(
+      () => this.api.post<T>(url, data, stampedConfig),
+      retryConfig ?? { retries: 0 }
+    );
   }
 
   async putRaw<T>(
@@ -567,7 +575,12 @@ class ApiService {
   ): Promise<AxiosResponse<T>> {
     const { retryConfig, ...axiosConfig } = config || {};
     const stampedConfig = stampIdempotencyKey(axiosConfig);
-    return this.executeWithRetry(() => this.api.patch<T>(url, data, stampedConfig), retryConfig);
+    // T1-6: PATCH is non-idempotent in the general case (counter
+    // increments, append-to-array). Same retries=0 default as POST.
+    return this.executeWithRetry(
+      () => this.api.patch<T>(url, data, stampedConfig),
+      retryConfig ?? { retries: 0 }
+    );
   }
 
   // Standard convenience methods returning just data
