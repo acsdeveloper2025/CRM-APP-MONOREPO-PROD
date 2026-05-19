@@ -200,7 +200,11 @@ export const adminDisable = async (req: AuthenticatedRequest, res: Response): Pr
     return;
   }
 
-  const targetId = req.params.userId;
+  // express-augmented params resolve as `string | string[]` in some build
+  // configs; coerce to string for the audit-log writes downstream.
+  const targetId = Array.isArray(req.params.userId)
+    ? req.params.userId[0]
+    : String(req.params.userId || '');
   if (!targetId) {
     res.status(400).json({ success: false, message: 'userId is required' });
     return;
