@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type Request, type Response, type NextFunction } from 'express';
 import { pool, query } from '@/config/database';
 import { redisClient, isRedisHealthy } from '@/config/redis';
 import { logger } from '@/config/logger';
@@ -9,8 +9,9 @@ import { authenticateToken, getAuthContextCacheStats } from '@/middleware/auth';
 import { getClientScopeCacheStats } from '@/middleware/clientAccess';
 import { getProductScopeCacheStats } from '@/middleware/productAccess';
 import { errorMessage } from '@/utils/errorMessage';
-import { runHealthCheck, VALID_LEVELS_PHASE_1 } from '@/health';
+import { runHealthCheck, VALID_LEVELS } from '@/health';
 import type { HealthLevel } from '@/health/types';
+import { authorize } from '@/middleware/authorize';
 
 const router = Router();
 
@@ -44,26 +45,32 @@ interface ServiceHealth {
  * Single health endpoint with level query param.
  *   ?level=basic (default) — static, no dependencies, public, uptime-checker friendly
  *   ?level=ready           — DB + Redis + worker heartbeat, public
- *   ?level=full            — Phase 2; rejected with 400 in Phase 1
+ *   ?level=full            — api + db + redis + worker + queues + storage. SUPER_ADMIN only
+ *                            (requires `system.health` permission).
  *
- * GET /api/health[?level=basic|ready]
+ * GET /api/health[?level=basic|ready|full]
  */
-router.get('/health', async (req, res) => {
-  const rawLevel = (req.query.level as string | undefined) ?? 'basic';
-
-  if (rawLevel === 'full') {
-    res.status(400).json({
-      status: 'unhealthy',
-      level: 'full',
-      message: `level=full not yet available. Valid levels: ${VALID_LEVELS_PHASE_1.join(', ')}`,
-    });
+const conditionalHealthAuth = (req: Request, res: Response, next: NextFunction): void => {
+  if (req.query.level !== 'full') {
+    next();
     return;
   }
+  authenticateToken(req, res, (err?: unknown) => {
+    if (err) {
+      next(err);
+      return;
+    }
+    authorize('system.health')(req, res, next);
+  });
+};
 
-  if (!(VALID_LEVELS_PHASE_1 as readonly string[]).includes(rawLevel)) {
+router.get('/health', conditionalHealthAuth, async (req, res) => {
+  const rawLevel = (req.query.level as string | undefined) ?? 'basic';
+
+  if (!(VALID_LEVELS as readonly string[]).includes(rawLevel)) {
     res.status(400).json({
       status: 'unhealthy',
-      message: `Invalid level. Valid levels: ${VALID_LEVELS_PHASE_1.join(', ')}`,
+      message: `Invalid level. Valid levels: ${VALID_LEVELS.join(', ')}`,
     });
     return;
   }

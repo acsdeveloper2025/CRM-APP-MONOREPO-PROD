@@ -2,9 +2,15 @@ import { performance } from 'perf_hooks';
 import { probeDatabase } from '@/health/probes/database';
 import { probeRedis } from '@/health/probes/redis';
 import { probeWorker } from '@/health/probes/worker';
+import { probeApi } from '@/health/probes/api';
+import { probeQueues } from '@/health/probes/queues';
+import { probeStorage } from '@/health/probes/storage';
 import type { HealthLevel, HealthResponse, HealthStatus, ServiceHealth } from '@/health/types';
 
-export const VALID_LEVELS_PHASE_1: ReadonlyArray<HealthLevel> = ['basic', 'ready'];
+export const VALID_LEVELS: ReadonlyArray<HealthLevel> = ['basic', 'ready', 'full'];
+
+/** @deprecated kept for backward compatibility with Phase 1 imports. */
+export const VALID_LEVELS_PHASE_1 = VALID_LEVELS;
 
 function rollup(services: Record<string, ServiceHealth>): HealthStatus {
   let degraded = false;
@@ -62,8 +68,26 @@ export async function runHealthCheck(level: HealthLevel): Promise<HealthResponse
     return envelope('ready', services, t0);
   }
 
-  // 'full' is rejected at the route layer in Phase 1; defensive fallback.
-  return envelope('basic', undefined, t0);
+  // level === 'full'
+  const [database, redis, worker, queues, storage] = await Promise.allSettled([
+    probeDatabase(),
+    probeRedis(true),
+    probeWorker(),
+    probeQueues(),
+    probeStorage(),
+  ]);
+  const api = probeApi();
+
+  const services: Record<string, ServiceHealth> = {
+    api,
+    database: settle(database, 'database probe rejected'),
+    redis: settle(redis, 'redis probe rejected'),
+    worker: settle(worker, 'worker probe rejected'),
+    queues: settle(queues, 'queues probe rejected'),
+    storage: settle(storage, 'storage probe rejected'),
+  };
+
+  return envelope('full', services, t0);
 }
 
 function settle(
