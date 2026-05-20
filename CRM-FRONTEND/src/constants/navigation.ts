@@ -20,6 +20,7 @@ import {
   Copy,
   FileCheck,
   ClipboardList,
+  Stethoscope,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -498,6 +499,14 @@ export const navigationItems: NavigationItem[] = [
     href: '/security-ux',
     icon: Shield,
     permissionCode: 'page.settings',
+    permission: { resource: 'settings', action: 'read' },
+  },
+  {
+    id: 'system-health',
+    label: 'System Health',
+    href: '/admin/system-health',
+    icon: Stethoscope,
+    permissionCode: 'system.health',
     permission: { resource: 'settings', action: 'read' },
   },
 ];

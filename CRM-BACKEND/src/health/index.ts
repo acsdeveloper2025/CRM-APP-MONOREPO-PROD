@@ -5,6 +5,7 @@ import { probeWorker } from '@/health/probes/worker';
 import { probeApi } from '@/health/probes/api';
 import { probeQueues } from '@/health/probes/queues';
 import { probeStorage } from '@/health/probes/storage';
+import { probeContainers } from '@/health/probes/containers';
 import type { HealthLevel, HealthResponse, HealthStatus, ServiceHealth } from '@/health/types';
 
 export const VALID_LEVELS: ReadonlyArray<HealthLevel> = ['basic', 'ready', 'full'];
@@ -69,12 +70,13 @@ export async function runHealthCheck(level: HealthLevel): Promise<HealthResponse
   }
 
   // level === 'full'
-  const [database, redis, worker, queues, storage] = await Promise.allSettled([
+  const [database, redis, worker, queues, storage, containers] = await Promise.allSettled([
     probeDatabase(),
     probeRedis(true),
     probeWorker(),
     probeQueues(),
     probeStorage(),
+    probeContainers(),
   ]);
   const api = probeApi();
 
@@ -85,6 +87,7 @@ export async function runHealthCheck(level: HealthLevel): Promise<HealthResponse
     worker: settle(worker, 'worker probe rejected'),
     queues: settle(queues, 'queues probe rejected'),
     storage: settle(storage, 'storage probe rejected'),
+    containers: settle(containers, 'containers probe rejected'),
   };
 
   return envelope('full', services, t0);

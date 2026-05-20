@@ -212,6 +212,24 @@ services:
       - ./CRM-FRONTEND/tsconfig.app.json:/app/tsconfig.app.json
       - ./CRM-FRONTEND/tsconfig.node.json:/app/tsconfig.node.json
 
+  # ---- docker-socket-proxy (Phase 3 system-health: container stats) --------
+  # tecnativa/docker-socket-proxy — security proxy in front of /var/run/docker.sock.
+  # Whitelists ONLY the Docker API endpoints we need (containers list + stats).
+  # No EXEC, no IMAGES write, no VOLUMES, no NETWORKS write — even if the api
+  # container is compromised, attacker can only read container info, not run code.
+  # Reachable only on the compose internal network as http://docker-socket-proxy:2375.
+  # Not published to host. Not exposed through nginx.
+  docker-socket-proxy:
+    profiles: ["full"]
+    image: tecnativa/docker-socket-proxy:0.3.0
+    container_name: crm_docker_socket_proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: "1"
+      # Everything else stays default (0 = denied).
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
 volumes:
   pgdata:
     name: crm_pgdata

@@ -37,4 +37,16 @@ export const THRESHOLDS = {
     probe_timeout_ms: 800,
     probe_key: 'healthcheck/_probe',
   },
+  containers: {
+    // Docker stats?stream=false samples for ~1s per container; 6 containers
+    // in parallel still totals ~1.2s + http overhead. Cache below makes
+    // this slow path hit only once per 10s window.
+    probe_timeout_ms: 3000,
+    cache_ttl_ms: 10_000,
+    socket_proxy_host: process.env.DOCKER_SOCKET_PROXY_HOST || 'docker-socket-proxy',
+    socket_proxy_port: Number(process.env.DOCKER_SOCKET_PROXY_PORT) || 2375,
+    // One-shot containers that are EXPECTED to exit (e.g. migrations) —
+    // excluded from the response AND from the degraded-rollup.
+    ignore_name_patterns: ['migrate'] as ReadonlyArray<string>,
+  },
 } as const;

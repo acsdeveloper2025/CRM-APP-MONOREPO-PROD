@@ -249,6 +249,20 @@ services:
           memory: 256M
           cpus: "0.5"
 
+  # ---- docker-socket-proxy (Phase 3 system-health: container stats) --------
+  # See docker-compose.yml at repo root for the security rationale.
+  # Only the api container needs to reach it (internal compose network).
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    container_name: crm_docker_socket_proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: "1"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    mem_limit: 64m
+    cpus: "0.1"
+
 volumes:
   pgdata:
     name: crm_pgdata

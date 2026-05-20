@@ -104,6 +104,9 @@ const LocationsPage = React.lazy(() =>
 const SecurityUXPage = React.lazy(() =>
   import('@/pages/SecurityUXPage').then((module) => ({ default: module.SecurityUXPage }))
 );
+const SystemHealthPage = React.lazy(() =>
+  import('@/pages/SystemHealthPage').then((module) => ({ default: module.SystemHealthPage }))
+);
 // SettingsPage retired (T0 audit 2026-05-18) — Notifications folded into
 // /profile/notifications; Profile/Security tabs duplicated ProfilePage;
 // Preferences/Admin tabs were dead. Bookmarks redirected below.
@@ -678,6 +681,14 @@ export const AppRoutes: React.FC = () => {
             element={
               <ProtectedRoute permission="page.settings">
                 <SecurityUXPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/system-health"
+            element={
+              <ProtectedRoute permission="system.health">
+                <SystemHealthPage />
               </ProtectedRoute>
             }
           />
