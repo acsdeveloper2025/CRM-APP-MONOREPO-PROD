@@ -218,7 +218,7 @@ export function SystemHealthPage() {
             if (!list) {
               return [];
             }
-            return list.slice(0, 4).map((c) => ({
+            return list.map((c) => ({
               label: c.name,
               value: `${c.cpu_pct}% / ${c.mem_mb}MB`,
             }));
