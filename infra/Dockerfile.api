@@ -1,0 +1,128 @@
+# =============================================================================
+# CRM-BACKEND container — same image runs as api OR worker OR all (via ROLE
+# env var set in Compose). PR3 of Docker migration.
+#
+# Build context: REPO ROOT (so we can COPY both CRM-BACKEND/ and the
+# shared migrations dir). Build with `docker build -f infra/Dockerfile.api .`
+# from the repo root, or via docker-compose which sets context to `.`.
+#
+# Stages:
+#   base      → node:20-bookworm-slim + system Chromium + Poppler + LibreOffice
+#               + fonts. Shared by both dev and runtime.
+#   deps      → install full deps (prod + dev) — used by dev target + by
+#               the build stage of runtime.
+#   build     → tsc compile to dist/.
+#   runtime   → SLIM. Prod deps only, compiled dist. Used by staging.
+#   dev       → FULL deps (including ts-node, ts-node-dev). Used by local
+#               compose AND by `migrate` service in every environment
+#               (migrations script is .ts, ts-node is a devDep).
+# =============================================================================
+
+# ---- base: native deps shared across dev + runtime --------------------------
+FROM node:20-bookworm-slim AS base
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PUPPETEER_SKIP_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
+    TZ=Asia/Kolkata \
+    NODE_ENV=production
+
+# - chromium             → headless PDF render via Puppeteer (skip Puppeteer's
+#                          own download via the env var above to save ~250 MB)
+# - poppler-utils        → pdftohtml subprocess in pdfLocalExtractor.ts
+# - libreoffice-core     → headless office-to-pdf in attachmentRenditionService.ts
+#   + writer/calc/impress  (split packages so we get only the converters needed)
+# - fonts-*              → Chromium + LibreOffice need real fonts to render
+# - tini is NOT installed; Compose `init: true` provides PID 1 reaper
+# - dumb-init alt also skipped for same reason
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates \
+      chromium \
+      poppler-utils \
+      libreoffice-core \
+      libreoffice-writer \
+      libreoffice-calc \
+      libreoffice-impress \
+      fonts-liberation \
+      fonts-noto \
+      fonts-noto-cjk \
+      fonts-dejavu \
+      wget \
+      tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set timezone explicitly (matches ecosystem.config.js + GST audit requirement)
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo "$TZ" > /etc/timezone
+
+WORKDIR /app
+
+# Run as the unprivileged `node` user (UID 1000) shipped in the base image.
+# The /app dir and uploads volume mount need to be writeable by that user.
+RUN mkdir -p /app/uploads && chown -R node:node /app
+
+# ---- deps: install FULL dependency tree (prod + dev) ------------------------
+# Used by `dev` target directly and by `build` for the typecheck/compile.
+FROM base AS deps
+
+# Layer caching: copy only manifests first so node_modules cache hits when
+# only source changes.
+COPY --chown=node:node CRM-BACKEND/package.json CRM-BACKEND/package-lock.json ./
+USER node
+RUN npm ci --include=dev
+
+# ---- build: tsc compile to dist/ -------------------------------------------
+FROM deps AS build
+
+COPY --chown=node:node CRM-BACKEND/tsconfig.json ./
+COPY --chown=node:node CRM-BACKEND/src ./src
+RUN npm run build
+
+# ---- runtime: SLIM prod image (staging / future AWS) -----------------------
+# Used by api / worker services in staging Compose (PR4). Compiled dist
+# only, no ts-node, no source.
+FROM base AS runtime
+
+COPY --chown=node:node CRM-BACKEND/package.json CRM-BACKEND/package-lock.json ./
+USER node
+RUN npm ci --omit=dev && npm cache clean --force
+
+# Compiled output + migrations (migrations are NOT compiled — they're raw SQL
+# files loaded by the migration runner at runtime).
+COPY --from=build --chown=node:node /app/dist ./dist
+COPY --chown=node:node CRM-BACKEND/migrations ./migrations
+
+# Healthcheck targets the API path. Worker containers override this via
+# Compose `healthcheck:` block (worker probe lives on WORKER_HEALTH_PORT).
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
+    CMD wget -qO- "http://localhost:${PORT:-3000}/health" || exit 1
+
+# Default CMD — ROLE env in Compose selects api / worker / all behaviour.
+# `module-alias/register` resolves the `@/...` path aliases used across src.
+CMD ["node", "-r", "module-alias/register", "dist/index.js"]
+
+# ---- dev: FULL deps + source + ts-node-dev (hot reload) --------------------
+# Used by api / worker / migrate services in dev Compose. Source mounted as
+# a bind volume so file edits trigger ts-node-dev restart inside the
+# container without rebuilding the image.
+FROM deps AS dev
+
+ENV NODE_ENV=development \
+    NODE_OPTIONS="--max-old-space-size=512"
+
+# Source baked in for the case where someone runs the image WITHOUT a bind
+# mount (e.g. `docker run` for one-off debug). Bind mount in Compose
+# overrides this layer.
+COPY --chown=node:node CRM-BACKEND/tsconfig.json ./
+COPY --chown=node:node CRM-BACKEND/src ./src
+COPY --chown=node:node CRM-BACKEND/scripts ./scripts
+COPY --chown=node:node CRM-BACKEND/migrations ./migrations
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=3 \
+    CMD wget -qO- "http://localhost:${PORT:-3000}/health" || exit 1
+
+# Default CMD — ts-node-dev watches src/ and respawns on change (true hot
+# reload inside the container, paired with the Compose bind-mount).
+# `-r tsconfig-paths/register` makes the `@/...` path aliases resolve
+# (plain ts-node v10 handles them natively, but ts-node-dev's transpile-
+# only path does not — verified locally).
+CMD ["npx", "ts-node-dev", "-r", "tsconfig-paths/register", "--respawn", "--transpile-only", "src/index.ts"]

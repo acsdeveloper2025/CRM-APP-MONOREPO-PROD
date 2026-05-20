@@ -1,0 +1,73 @@
+# Root-level dockerignore. Each subproject also has its own .dockerignore
+# for when a Dockerfile is built with that subproject as context, but the
+# Compose builds here use the repo root as context so this file matters most.
+
+# Version control & local tooling
+.git
+.gitignore
+.github
+.husky
+.claude
+.vscode
+.idea
+*.swp
+.DS_Store
+
+# Local node_modules (rebuilt inside the image)
+node_modules
+**/node_modules
+
+# Local env — secrets land via Compose env_file / environment, never baked
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Build outputs (rebuilt inside the image)
+dist
+**/dist
+build
+**/build
+*.tsbuildinfo
+
+# Logs & local data
+logs
+*.log
+**/logs
+.npm
+
+# Test artifacts
+coverage
+**/coverage
+playwright-report
+test-results
+
+# Uploads / generated files (mounted via volume, never baked)
+CRM-BACKEND/uploads
+CRM-BACKEND/temp
+CRM-BACKEND/tmp
+
+# Mobile repo — never goes into server images
+crm-mobile-native
+
+# Audit + planning docs (not needed at runtime)
+*.md
+!README.md
+docs
+
+# Docker files themselves (no recursion)
+docker-compose*.yml
+infra/Dockerfile*
+.dockerignore
+**/.dockerignore
+
+# Large local fixtures
+acs_db_final_version.sql
+*.dump
+*.sql.gz
+*.tar.gz
+*.zip
+release-artifacts
+release-downloads

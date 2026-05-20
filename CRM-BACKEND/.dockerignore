@@ -1,0 +1,33 @@
+# Used when CRM-BACKEND is the build context (not our default — Compose
+# uses repo root — but kept in sync so a direct `docker build CRM-BACKEND`
+# also produces a clean image).
+
+.git
+.gitignore
+.github
+.vscode
+.idea
+*.swp
+.DS_Store
+
+node_modules
+dist
+*.tsbuildinfo
+
+.env
+.env.*
+!.env.example
+
+logs
+*.log
+coverage
+.npm
+
+uploads
+temp
+tmp
+
+*.md
+*.dump
+*.sql.gz
+*.tar.gz

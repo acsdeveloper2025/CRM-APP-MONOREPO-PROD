@@ -1,0 +1,215 @@
+# =============================================================================
+# Local development Compose. Two usage modes:
+#
+#   docker compose up
+#       → Brings up postgres + redis only. The 80% pain reliever — devs run
+#         `npm run dev` natively on the host against these containers.
+#         No image builds required (uses official postgres + redis images).
+#
+#   docker compose --profile full up
+#       → Adds migrate + api + worker + fe. The whole stack inside Docker
+#         with hot reload via bind-mounted source. Slower first boot (image
+#         builds Chromium + LibreOffice). Skip the host npm run dev.
+#
+# Staging (PR4) lives in infra/staging/docker-compose.yml and adds an
+# `edge` (nginx) container + uses the `runtime` Dockerfile target.
+# =============================================================================
+
+services:
+  # ---- Postgres -------------------------------------------------------------
+  postgres:
+    image: postgres:18-alpine
+    container_name: crm_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: acs_user
+      POSTGRES_PASSWORD: acs_password
+      POSTGRES_DB: acs_db
+      TZ: Asia/Kolkata
+      PGTZ: Asia/Kolkata
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # First-run-only schema baseline. Postgres official image runs files
+      # in /docker-entrypoint-initdb.d the first time the data directory is
+      # empty (subsequent boots are no-ops). The `migrate` service handles
+      # incremental migrations on every boot.
+      - ./acs_db_final_version.sql:/docker-entrypoint-initdb.d/00-baseline.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U acs_user -d acs_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ---- Redis ---------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: crm_redis
+    restart: unless-stopped
+    # AOF on for BullMQ durability across container restarts.
+    # noeviction is REQUIRED by BullMQ — don't change.
+    # No password in dev to keep .env defaults working. Staging adds one.
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - "everysec"
+      - --maxmemory
+      - "256mb"
+      - --maxmemory-policy
+      - "noeviction"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ---- Migrate (one-shot, runs before api + worker) ------------------------
+  # Same image as api/worker but uses the `dev` target because migrations
+  # are TS files invoked via ts-node (ts-node is a devDep, omitted in
+  # `runtime` target).
+  migrate:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.api
+      target: dev
+    container_name: crm_migrate
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://acs_user:acs_password@postgres:5432/acs_db
+      TZ: Asia/Kolkata
+    env_file:
+      # All non-overridden values from .env still load. Connection URLs are
+      # explicitly re-set above to use container DNS instead of localhost.
+      - CRM-BACKEND/.env
+    command: ["npx", "ts-node", "scripts/run-migrations.ts", "run"]
+    restart: "no"
+
+  # ---- API (HTTP + Socket.IO; ROLE=api) ------------------------------------
+  api:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.api
+      target: dev
+    container_name: crm_api
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      ROLE: api
+      NODE_ENV: development
+      PORT: "3000"
+      DATABASE_URL: postgresql://acs_user:acs_password@postgres:5432/acs_db
+      REDIS_URL: redis://redis:6379
+      STORAGE_BACKEND: local
+      UPLOAD_PATH: /app/uploads
+      TZ: Asia/Kolkata
+    env_file:
+      - CRM-BACKEND/.env
+    ports:
+      - "3000:3000"
+    volumes:
+      # Hot reload — source mounted over the image's baked copy.
+      - ./CRM-BACKEND/src:/app/src
+      - ./CRM-BACKEND/tsconfig.json:/app/tsconfig.json
+      - ./CRM-BACKEND/migrations:/app/migrations
+      # Uploads bind-mounted to host so devs can see files
+      - ./CRM-BACKEND/uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  # ---- Worker (BullMQ + intervals; ROLE=worker) ----------------------------
+  worker:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.api
+      target: dev
+    container_name: crm_worker
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      ROLE: worker
+      NODE_ENV: development
+      WORKER_HEALTH_PORT: "3001"
+      DATABASE_URL: postgresql://acs_user:acs_password@postgres:5432/acs_db
+      REDIS_URL: redis://redis:6379
+      STORAGE_BACKEND: local
+      UPLOAD_PATH: /app/uploads
+      TZ: Asia/Kolkata
+    env_file:
+      - CRM-BACKEND/.env
+    ports:
+      # Worker health probe exposed to host for easy curl debugging.
+      - "3001:3001"
+    volumes:
+      - ./CRM-BACKEND/src:/app/src
+      - ./CRM-BACKEND/tsconfig.json:/app/tsconfig.json
+      - ./CRM-BACKEND/migrations:/app/migrations
+      - ./CRM-BACKEND/uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  # ---- Frontend (vite dev server, HMR) -------------------------------------
+  fe:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.fe
+      target: dev
+    container_name: crm_fe
+    init: true
+    environment:
+      NODE_ENV: development
+    env_file:
+      - CRM-FRONTEND/.env
+    ports:
+      - "5173:5173"
+    volumes:
+      # Bind-mount source for HMR; exclude node_modules so the
+      # container's installed deps stay isolated from host's.
+      - ./CRM-FRONTEND/src:/app/src
+      - ./CRM-FRONTEND/public:/app/public
+      - ./CRM-FRONTEND/index.html:/app/index.html
+      - ./CRM-FRONTEND/vite.config.ts:/app/vite.config.ts
+      - ./CRM-FRONTEND/tsconfig.json:/app/tsconfig.json
+      - ./CRM-FRONTEND/tsconfig.app.json:/app/tsconfig.app.json
+      - ./CRM-FRONTEND/tsconfig.node.json:/app/tsconfig.node.json
+
+volumes:
+  pgdata:
+    name: crm_pgdata
+  redisdata:
+    name: crm_redisdata

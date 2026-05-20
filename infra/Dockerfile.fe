@@ -1,0 +1,79 @@
+# =============================================================================
+# CRM-FRONTEND container — two targets:
+#   dev      → vite dev server (HMR). Used by local Compose `--profile full`.
+#   runtime  → nginx:alpine serving built static dist/. Used by staging `edge`
+#              container in PR4 (combined static-FE + reverse-proxy role).
+#
+# PR3 ships both targets; only `dev` is exercised by the local compose.
+# `runtime` is verified-buildable in PR3 but not deployed until PR4.
+#
+# Build context: REPO ROOT.
+# =============================================================================
+
+# ---- deps: install FULL dep tree (vite is a devDep) ------------------------
+FROM node:20-bookworm-slim AS deps
+
+WORKDIR /app
+COPY --chown=node:node CRM-FRONTEND/package.json CRM-FRONTEND/package-lock.json ./
+USER node
+RUN npm ci --include=dev
+
+# ---- dev: vite dev server with HMR ------------------------------------------
+FROM deps AS dev
+
+ENV NODE_ENV=development
+
+# Source baked in for run-without-mount case. Compose bind-mounts CRM-FRONTEND/
+# over /app so live edits trigger HMR.
+COPY --chown=node:node CRM-FRONTEND ./
+
+EXPOSE 5173
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
+    CMD wget -qO- http://localhost:5173/ || exit 1
+
+# Same command as the `dev` script in CRM-FRONTEND/package.json
+# (vite --host 0.0.0.0 --port 5173). Bind to all interfaces so the host
+# can reach the dev server.
+CMD ["npx", "vite", "--host", "0.0.0.0", "--port", "5173"]
+
+# ---- build: produce production dist/ ----------------------------------------
+FROM deps AS build
+
+# Build-time env. VITE_API_BASE_URL etc are baked into the bundle by Vite,
+# so they MUST be passed at image build time, not container run time.
+# Defaults shown below match the staging hostname; override via
+# `docker build --build-arg VITE_API_BASE_URL=...` for other envs.
+ARG VITE_API_BASE_URL=https://staging.crm.allcheckservices.com/api
+ARG VITE_API_TIMEOUT=30000
+ARG VITE_GOOGLE_MAPS_API_KEY=
+ARG VITE_GOOGLE_MAPS_MAP_ID=
+
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
+    VITE_API_TIMEOUT=$VITE_API_TIMEOUT \
+    VITE_GOOGLE_MAPS_API_KEY=$VITE_GOOGLE_MAPS_API_KEY \
+    VITE_GOOGLE_MAPS_MAP_ID=$VITE_GOOGLE_MAPS_MAP_ID
+
+COPY --chown=node:node CRM-FRONTEND ./
+RUN npm run build
+
+# ---- runtime: nginx + static dist/ (used by staging in PR4) ----------------
+FROM nginx:alpine AS runtime
+
+# Drop default nginx config; staging compose mounts the real one at
+# /etc/nginx/conf.d/default.conf. Keeping the directive ensures the image
+# fails fast if the config is missing rather than serving 403s silently.
+RUN rm -f /etc/nginx/conf.d/default.conf
+
+# Static FE bundle. Nginx serves from /usr/share/nginx/html (its default).
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Tiny health endpoint that doesn't require the SPA index — orchestrator
+# can probe this without false-positives during nginx config reload.
+RUN printf 'server {\n  listen 80 default_server;\n  location = /_edge_health { return 200 "ok\\n"; add_header Content-Type text/plain; }\n}\n' \
+      > /etc/nginx/conf.d/_health.conf
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -qO- http://localhost/_edge_health || exit 1
+
+# nginx:alpine default CMD already runs nginx in the foreground.

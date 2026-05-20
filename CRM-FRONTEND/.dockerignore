@@ -1,0 +1,26 @@
+# Used when CRM-FRONTEND is the build context. Mirrors root + BE patterns
+# but scoped to the FE subproject.
+
+.git
+.gitignore
+.github
+.vscode
+.idea
+*.swp
+.DS_Store
+
+node_modules
+dist
+
+.env
+.env.*
+!.env.example
+
+logs
+*.log
+coverage
+playwright-report
+test-results
+.npm
+
+*.md
