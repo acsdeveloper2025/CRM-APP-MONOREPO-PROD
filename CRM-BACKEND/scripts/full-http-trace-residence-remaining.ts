@@ -27,7 +27,7 @@ const CASE_ID = '5f814068-34d8-4679-a7ac-76c872211042';
 const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
-    'postgresql://acs_user:acs_password@localhost:5432/acs_db',
+    process.env.DATABASE_URL!,
 });
 
 const TOKEN =

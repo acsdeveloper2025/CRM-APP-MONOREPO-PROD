@@ -13,7 +13,7 @@ import { templateReportService } from '../src/services/TemplateReportService';
 const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
-    'postgresql://acs_user:acs_password@localhost:5432/acs_db',
+    process.env.DATABASE_URL!,
 });
 
 const TASK_ID = '877da91d-3a95-42cc-90c9-193be02bb4f6';

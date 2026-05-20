@@ -51,7 +51,7 @@ const USER_ID = 'c9a680d9-cca9-4cd1-b500-54f301c11c7a';
 const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
-    'postgresql://acs_user:acs_password@localhost:5432/acs_db',
+    process.env.DATABASE_URL!,
 });
 
 // Generated with: jwt.sign({userId}, JWT_SECRET, {expiresIn:'24h'})

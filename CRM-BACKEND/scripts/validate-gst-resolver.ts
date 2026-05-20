@@ -1,7 +1,8 @@
+import 'dotenv/config';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Throwaway one-shot validator for gstResolver. Run via:
- *   PGPASSWORD=acs_password npx ts-node --transpile-only scripts/validate-gst-resolver.ts
+ *   PGPASSWORD=<your-local-pg-password> npx ts-node --transpile-only scripts/validate-gst-resolver.ts
  *
  * Exercises all 4 scenarios per ops decision (A1+B1+C2). Rolls back any
  * synthetic data. NOT a regression test — delete after the audit closes.
@@ -12,7 +13,7 @@ import { wrapClient } from '../src/config/database';
 
 const pool = new Pool({
   connectionString:
-    process.env.DATABASE_URL || 'postgresql://acs_user:acs_password@localhost:5432/acs_db',
+    process.env.DATABASE_URL || process.env.DATABASE_URL!,
 });
 
 const run = async () => {

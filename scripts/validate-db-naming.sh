@@ -7,7 +7,7 @@
 
 set -e
 
-DB_URL="${1:-${DATABASE_URL:-postgresql://acs_user:acs_password@localhost:5432/acs_db}}"
+DB_URL="${1:-${DATABASE_URL:?DATABASE_URL must be set or passed as arg 1}}"
 
 echo "🔍 Validating database naming conventions..."
 

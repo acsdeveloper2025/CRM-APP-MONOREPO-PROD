@@ -126,7 +126,7 @@ Future AWS work lives on the `aws` branch — see [`docs/aws-migration-notes.md`
 ## Troubleshooting
 
 - **Port already in use**: ensure `3000` (BE), `3001` (worker probe), `5173` (FE), `5432` (Postgres), `6379` (Redis) are free.
-- **`npm run setup` fails on DB connect**: verify Postgres is running and `acs_user` exists with the password in `CRM-BACKEND/.env`. Default: `acs_user / acs_password / acs_db`.
+- **`npm run setup` fails on DB connect**: verify Postgres is running and that your `CRM-BACKEND/.env` matches: a role + password that can connect to a database named `acs_db`.
 - **Redis connection refused**: `brew services start redis` (macOS) or `systemctl start redis-server` (Linux).
 - **Build errors after dep changes**: `rm -rf */node_modules && npm install`.
 - **Docker stack on macOS won't build**: ensure `docker-buildx` plugin is installed (`brew install docker-buildx`) — without it, multi-stage `--target` builds OOM during tsc. See [docs/local-docker.md](docs/local-docker.md).

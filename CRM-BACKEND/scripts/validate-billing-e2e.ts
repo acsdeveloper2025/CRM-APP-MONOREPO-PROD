@@ -1,3 +1,4 @@
+import 'dotenv/config';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * End-to-end financial regression — exercises invoice generation across
@@ -10,7 +11,7 @@
  *   - invoice regeneration (must preserve frozen amount)
  *
  * Uses synthetic data inside a single transaction; rolls back at the end.
- * Run with: PGPASSWORD=acs_password npx ts-node -r tsconfig-paths/register \
+ * Run with: PGPASSWORD=<your-local-pg-password> npx ts-node -r tsconfig-paths/register \
  *           --transpile-only scripts/validate-billing-e2e.ts
  */
 import { Pool } from 'pg';
@@ -19,7 +20,7 @@ import { resolveInvoiceGst } from '../src/services/gstResolver';
 
 const pool = new Pool({
   connectionString:
-    process.env.DATABASE_URL || 'postgresql://acs_user:acs_password@localhost:5432/acs_db',
+    process.env.DATABASE_URL || process.env.DATABASE_URL!,
 });
 
 const run = async () => {

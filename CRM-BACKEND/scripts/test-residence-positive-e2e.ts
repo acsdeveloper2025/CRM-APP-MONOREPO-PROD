@@ -26,7 +26,7 @@ import { templateReportService } from '../src/services/TemplateReportService';
 const pool = new Pool({
   connectionString:
     process.env.DATABASE_URL ||
-    'postgresql://acs_user:acs_password@localhost:5432/acs_db',
+    process.env.DATABASE_URL!,
 });
 
 // Use an existing task that already has image files on disk
