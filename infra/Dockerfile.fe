@@ -14,6 +14,9 @@
 FROM node:20-bookworm-slim AS deps
 
 WORKDIR /app
+# /app is owned by root after WORKDIR; chown so the unprivileged `node`
+# user can create node_modules. (Without this: EACCES on mkdir.)
+RUN chown node:node /app
 COPY --chown=node:node CRM-FRONTEND/package.json CRM-FRONTEND/package-lock.json ./
 USER node
 RUN npm ci --include=dev
