@@ -37,10 +37,51 @@ const requireEnv = (name: string): string => {
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 
+/**
+ * Process role — split the same image into independently scalable
+ * processes for the Docker migration (PR2). Default 'all' preserves
+ * today's PM2 fork behaviour byte-for-byte; containerized deploys
+ * override via ROLE env to api OR worker.
+ *
+ *   ROLE=api     → HTTP + Socket.IO; no BullMQ workers, no DB-maintenance.
+ *   ROLE=worker  → BullMQ workers + interval jobs; no HTTP listener.
+ *   ROLE=all     → everything (current behaviour).
+ *
+ * Anything else (unset, typo, empty) falls open to 'all' rather than
+ * crash-looping the container on a misconfigured env var.
+ */
+const resolveRole = (): 'api' | 'worker' | 'all' => {
+  const raw = (process.env.ROLE || '').trim().toLowerCase();
+  if (raw === 'api' || raw === 'worker' || raw === 'all') {
+    return raw;
+  }
+  if (raw !== '') {
+    process.stderr.write(`Unknown ROLE env value "${raw}", defaulting to "all".\n`);
+  }
+  return 'all';
+};
+
+const resolveWorkerHealthPort = (): number => {
+  const raw = process.env.WORKER_HEALTH_PORT;
+  if (!raw) {
+    return 3001;
+  }
+  const parsed = parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 65535) {
+    process.stderr.write(`Invalid WORKER_HEALTH_PORT env var: "${raw}". Falling back to 3001.\n`);
+    return 3001;
+  }
+  return parsed;
+};
+
 export const config = {
   // Server — port resolved from PORT env var (defaults to 3000 in dev)
   port: resolvedPort,
   nodeEnv,
+
+  // PR2 (Docker migration): which slice of the process this instance runs.
+  role: resolveRole(),
+  workerHealthPort: resolveWorkerHealthPort(),
 
   // Database
   databaseUrl: requireEnv('DATABASE_URL'),

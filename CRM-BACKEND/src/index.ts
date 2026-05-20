@@ -6,7 +6,7 @@
 // shutdown path.
 import { shutdownTracing } from './tracing';
 
-import { createServer } from 'http';
+import { createServer, Server as HttpServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient } from 'redis';
@@ -32,27 +32,40 @@ import {
 import { startDbMaintenance, stopDbMaintenance } from '@/services/dbMaintenanceService';
 // Migrations removed for production - use database import instead
 
+// PR2 (Docker migration): role gating. Default 'all' preserves today's
+// PM2 fork behaviour byte-for-byte. ROLE=api skips BullMQ workers +
+// interval jobs; ROLE=worker skips HTTP + Socket.IO.
+const { role } = config;
+const isApi = role === 'api' || role === 'all';
+const isWorker = role === 'worker' || role === 'all';
+
 const server = createServer(app);
 
 // Socket.IO Redis adapter clients — stored at module scope for cleanup on shutdown
 let socketPubClient: ReturnType<typeof createClient> | null = null;
 let socketSubClient: ReturnType<typeof createClient> | null = null;
 
-logger.info('🚀 [LOADED] src/index.ts IS RUNNING!');
+// Worker-only HTTP health probe (only when ROLE=worker; ROLE=all keeps using :3000/health).
+let workerHealthServer: HttpServer | null = null;
 
-// Initialize Socket.IO with security limits
-const io = new SocketIOServer(server, {
-  cors: {
-    origin: config.corsOrigin,
-    methods: ['GET', 'POST'],
-  },
-  maxHttpBufferSize: 1e6, // 1MB max payload — prevents memory spikes from large binary data
-  pingTimeout: 60000,
-  pingInterval: 25000,
-});
+logger.info(`🚀 [LOADED] src/index.ts IS RUNNING! role=${role}`);
 
-// Initialize WebSocket handlers
-initializeWebSocket(io);
+// Initialize Socket.IO with security limits — only on instances that serve HTTP.
+let io: SocketIOServer | null = null;
+if (isApi) {
+  io = new SocketIOServer(server, {
+    cors: {
+      origin: config.corsOrigin,
+      methods: ['GET', 'POST'],
+    },
+    maxHttpBufferSize: 1e6, // 1MB max payload — prevents memory spikes from large binary data
+    pingTimeout: 60000,
+    pingInterval: 25000,
+  });
+
+  // Initialize WebSocket handlers
+  initializeWebSocket(io);
+}
 
 const startServer = async (): Promise<void> => {
   try {
@@ -69,29 +82,36 @@ const startServer = async (): Promise<void> => {
       logger.warn('Redis connection unavailable, continuing without Redis client', { error });
     }
 
-    // Socket.IO Redis adapter for PM2 cluster mode broadcasting
-    // Creates dedicated pub/sub clients so Socket.IO events propagate across all instances
-    try {
-      const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-      const redisPassword = process.env.REDIS_PASSWORD || undefined;
-      socketPubClient = createClient({ url: redisUrl, password: redisPassword });
-      socketSubClient = socketPubClient.duplicate();
+    // Socket.IO Redis adapter for multi-instance broadcasting — only on
+    // api-role instances (worker has no Socket.IO server to attach to).
+    if (isApi && io) {
+      try {
+        const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+        const redisPassword = process.env.REDIS_PASSWORD || undefined;
+        socketPubClient = createClient({ url: redisUrl, password: redisPassword });
+        socketSubClient = socketPubClient.duplicate();
 
-      await Promise.all([socketPubClient.connect(), socketSubClient.connect()]);
-      io.adapter(createAdapter(socketPubClient, socketSubClient));
-      logger.info('Socket.IO Redis adapter attached (PM2 cluster broadcasting enabled)');
-    } catch (error) {
-      logger.warn(
-        'Socket.IO Redis adapter unavailable, falling back to in-memory (single-instance only)',
-        { error }
-      );
+        await Promise.all([socketPubClient.connect(), socketSubClient.connect()]);
+        io.adapter(createAdapter(socketPubClient, socketSubClient));
+        logger.info('Socket.IO Redis adapter attached (multi-instance broadcasting enabled)');
+      } catch (error) {
+        logger.warn(
+          'Socket.IO Redis adapter unavailable, falling back to in-memory (single-instance only)',
+          { error }
+        );
+      }
     }
 
+    // Cache layer initializes regardless of role — worker code paths
+    // transitively read through EnterpriseCacheService and depend on it
+    // being ready before any job handler runs.
     await EnterpriseCacheService.initialize();
 
     // F-B9.1: subscribe to cross-worker auth-cache invalidation channel.
-    // Best-effort — if Redis is down, single-worker invalidation still works.
-    await initAuthCachePubSub();
+    // Api-side only — workers don't carry an auth cache to invalidate.
+    if (isApi) {
+      await initAuthCachePubSub();
+    }
 
     // T0-4 (audit 2026-05-17): CacheWarmingService removed.
     // Every warmer key it wrote (clients:list, cases:recent:*,
@@ -104,20 +124,42 @@ const startServer = async (): Promise<void> => {
     // future reader ever hit those keys). Deleted in commit deleting
     // services/cacheWarmingService.ts.
 
-    // Start the server with strict port enforcement - bind to all interfaces for mobile access
-    server.listen(config.port, '0.0.0.0', () => {
-      logger.info(`Server running on port ${config.port}`);
-      logger.info(`Server accessible on all network interfaces (0.0.0.0:${config.port})`);
-      logger.info(`Environment: ${config.nodeEnv}`);
-      logger.info(`WebSocket server running on port ${config.port}`);
+    // PR2: api-side starts (HTTP listener + request-path metrics flush).
+    if (isApi) {
+      // Start the server with strict port enforcement - bind to all interfaces for mobile access
+      server.listen(config.port, '0.0.0.0', () => {
+        logger.info(`Server running on port ${config.port}`);
+        logger.info(`Server accessible on all network interfaces (0.0.0.0:${config.port})`);
+        logger.info(`Environment: ${config.nodeEnv}`);
+        logger.info(`WebSocket server running on port ${config.port}`);
 
-      // Start periodic cleanup of performance_metrics (every 6h, 7-day retention)
+        // Phase C3: drain the performance_metrics in-memory buffer into
+        // the DB on a 2-second cadence. Request-path bound — runs on
+        // api-role instances that actually serve requests.
+        startMetricsBatchFlush();
+      });
+
+      // Handle port already in use error
+      server.on('error', (error: NodeJS.ErrnoException) => {
+        if (error.code === 'EADDRINUSE') {
+          logger.error(
+            `Port ${config.port} is already in use. Please free the port or stop the conflicting service.`
+          );
+          process.exit(1);
+        } else {
+          logger.error('Server error:', error);
+          process.exit(1);
+        }
+      });
+    }
+
+    // PR2: worker-side starts. Previously these lived inside the
+    // server.listen() callback above; pulled out so ROLE=worker (no
+    // HTTP) still drains queues and runs interval housekeeping.
+    if (isWorker) {
+      // Start periodic cleanup of performance_metrics (every 6h, 7-day retention).
+      // Pure DB housekeeping — does not need request context.
       startMetricsCleanup();
-
-      // Phase C3: drain the performance_metrics in-memory buffer into
-      // the DB on a 2-second cadence. Replaces the prior one-INSERT-
-      // per-request hot path.
-      startMetricsBatchFlush();
 
       // Phase D3 (2026-04-28: migrated bull→bullmq, see Medium Fix 7).
       // Attach the bullmq worker that drains the audit log queue onto
@@ -145,26 +187,34 @@ const startServer = async (): Promise<void> => {
       // into _default and stale notifications/auto_saves accumulate.
       startDbMaintenance();
 
-      // C-HIGH-1 (AUDIT 2026-05-16): periodic cache refresh removed.
-      // Mutation-time invalidation (EnterpriseCache.invalidate patterns,
-      // memory NM-8) keeps cached data correct; 5-min default TTL on every
-      // key (EnterpriseCacheService.set) handles natural staleness. The
-      // 10-min refresh was firing ~1,000 redundant DB queries/day/node.
-      // Cold-read penalty (one user, ~200ms) accepted as trade-off.
-    });
+      logger.info(`Worker started (role=${role}) — BullMQ + interval jobs attached`);
+    }
 
-    // Handle port already in use error
-    server.on('error', (error: NodeJS.ErrnoException) => {
-      if (error.code === 'EADDRINUSE') {
-        logger.error(
-          `Port ${config.port} is already in use. Please free the port or stop the conflicting service.`
-        );
-        process.exit(1);
-      } else {
-        logger.error('Server error:', error);
-        process.exit(1);
-      }
-    });
+    // PR2: dedicated health probe for ROLE=worker containers (orchestrator
+    // can't probe :3000 since worker doesn't bind HTTP). ROLE=all keeps
+    // using :3000/health via the Express app.
+    if (role === 'worker') {
+      const { createServer: createHealthServer } = await import('http');
+      workerHealthServer = createHealthServer((req, res) => {
+        if (req.url === '/health') {
+          res.writeHead(200, { 'Content-Type': 'text/plain' });
+          res.end('ok');
+          return;
+        }
+        res.writeHead(404);
+        res.end();
+      });
+      workerHealthServer.listen(config.workerHealthPort, '0.0.0.0', () => {
+        logger.info(`Worker health probe listening on :${config.workerHealthPort}/health`);
+      });
+    }
+
+    // C-HIGH-1 (AUDIT 2026-05-16): periodic cache refresh removed.
+    // Mutation-time invalidation (EnterpriseCache.invalidate patterns,
+    // memory NM-8) keeps cached data correct; 5-min default TTL on every
+    // key (EnterpriseCacheService.set) handles natural staleness. The
+    // 10-min refresh was firing ~1,000 redundant DB queries/day/node.
+    // Cold-read penalty (one user, ~200ms) accepted as trade-off.
   } catch (error) {
     logger.error('Failed to start server:', error);
     process.exit(1);
@@ -181,12 +231,17 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
   }, 30000);
 
   try {
-    // Stop all monitoring intervals before closing connections
-    stopMonitoringIntervals();
-    stopDbMaintenance();
-
-    // Notify WebSocket clients before closing
-    io.emit('server:shutdown', { message: 'Server is restarting, please reconnect shortly' });
+    // PR2: only stop what this role started.
+    if (isApi) {
+      // Phase C3 batch flush is api-side; metrics cleanup is worker-side.
+      // stopMonitoringIntervals() clears both; harmless to call on api
+      // because the cleanup interval handle is null when not started.
+      stopMonitoringIntervals();
+    }
+    if (isWorker) {
+      stopMonitoringIntervals();
+      stopDbMaintenance();
+    }
 
     // T1-12 (audit 2026-05-17): drain HTTP + WS BEFORE shutting down
     // bullmq workers. The previous code fired server.close() and
@@ -197,56 +252,78 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
     //
     // Sequence: stop-accepting → drain in-flight → close workers →
     //           close data layer → flush traces.
-    await new Promise<void>(resolve => {
-      // closeIdleConnections nudges keep-alive sockets that are not
-      // actively serving a request to close immediately. Without it,
-      // server.close() hangs until each keep-alive socket's idle
-      // timeout fires (default 5s; we don't want to wait).
-      server.closeIdleConnections?.();
-      server.close(err => {
-        if (err) {
-          logger.warn('HTTP server close emitted error', { error: err.message });
-        } else {
-          logger.info('HTTP server closed');
-        }
-        resolve();
+    if (isApi) {
+      // Notify WebSocket clients before closing
+      io?.emit('server:shutdown', { message: 'Server is restarting, please reconnect shortly' });
+
+      await new Promise<void>(resolve => {
+        // closeIdleConnections nudges keep-alive sockets that are not
+        // actively serving a request to close immediately. Without it,
+        // server.close() hangs until each keep-alive socket's idle
+        // timeout fires (default 5s; we don't want to wait).
+        server.closeIdleConnections?.();
+        server.close(err => {
+          if (err) {
+            logger.warn('HTTP server close emitted error', { error: err.message });
+          } else {
+            logger.info('HTTP server closed');
+          }
+          resolve();
+        });
       });
-    });
 
-    await new Promise<void>(resolve => {
-      void io.close(() => {
-        logger.info('WebSocket server closed');
-        resolve();
-      });
-    });
-
-    // Close the audit log bullmq queue — drains in-flight jobs before
-    // shutting the worker down (Phase D3 + Medium Fix 7). Now safe to
-    // call: the HTTP layer has drained, no new createAuditLog can fire.
-    await stopAuditLogProcessor();
-
-    // Close the notification bullmq queue + worker.
-    await stopNotificationProcessor();
-
-    // Close reverse-geocode backfill queue + worker.
-    await stopReverseGeocodeProcessor();
-
-    // Close enterprise cache service
-    await EnterpriseCacheService.close();
-
-    // Close Socket.IO Redis adapter pub/sub clients
-    if (socketPubClient) {
-      try {
-        await socketPubClient.quit();
-      } catch {
-        /* already closed */
+      if (io) {
+        const ioRef = io;
+        await new Promise<void>(resolve => {
+          void ioRef.close(() => {
+            logger.info('WebSocket server closed');
+            resolve();
+          });
+        });
       }
     }
-    if (socketSubClient) {
-      try {
-        await socketSubClient.quit();
-      } catch {
-        /* already closed */
+
+    // Close the worker health probe (only started when ROLE=worker).
+    if (workerHealthServer) {
+      await new Promise<void>(resolve => {
+        workerHealthServer!.close(() => {
+          logger.info('Worker health probe closed');
+          resolve();
+        });
+      });
+    }
+
+    if (isWorker) {
+      // Close the audit log bullmq queue — drains in-flight jobs before
+      // shutting the worker down (Phase D3 + Medium Fix 7). Now safe to
+      // call: the HTTP layer has drained, no new createAuditLog can fire.
+      await stopAuditLogProcessor();
+
+      // Close the notification bullmq queue + worker.
+      await stopNotificationProcessor();
+
+      // Close reverse-geocode backfill queue + worker.
+      await stopReverseGeocodeProcessor();
+    }
+
+    // Close enterprise cache service (initialized on every role)
+    await EnterpriseCacheService.close();
+
+    // Close Socket.IO Redis adapter pub/sub clients (only created when api).
+    if (isApi) {
+      if (socketPubClient) {
+        try {
+          await socketPubClient.quit();
+        } catch {
+          /* already closed */
+        }
+      }
+      if (socketSubClient) {
+        try {
+          await socketSubClient.quit();
+        } catch {
+          /* already closed */
+        }
       }
     }
 
