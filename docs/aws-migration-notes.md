@@ -7,7 +7,7 @@ Scaffolding for the `aws` branch that will host the real prod stack on `acscrm.a
 | Question | Likely answer | Decide before |
 |---|---|---|
 | Orchestrator | ECS Fargate (vs EKS) | Start of AWS sprint |
-| Postgres | RDS for PostgreSQL 18 (or 17 if 18 not yet GA) | Bootstrap |
+| Postgres | RDS for PostgreSQL **17** (matches staging; 18 image broke the data-dir mount during PR4 cutover, see Lessons below) | Bootstrap |
 | Redis | ElastiCache (single-shard, AOF enabled) | Bootstrap |
 | Object storage | S3 (vs R2) — pick S3 for AWS-native IAM | Bootstrap |
 | Image registry | ECR (with ECR pull-through cache to GHCR for first cut) | Bootstrap |
@@ -87,3 +87,16 @@ If we ever break this contract in a hot-path, the AWS migration cost balloons. T
 - Do we want a separate prod-like staging on AWS (`acscrm-staging.allcheckservices.com`)? Cost vs safety trade-off.
 - Multi-region? Current single-region (ap-south-1) is fine for India-only ops.
 - Secrets rotation cadence — set policy before going live.
+
+## Lessons from PR4 staging cutover (carry forward to AWS)
+
+These bit us during the staging Docker bring-up; same images will run on AWS so the fixes carry over but the environment specifics may resurface.
+
+1. **PG18 image broke the data-dir mount layout** (docker-library/postgres#1259). Use `postgres:17-alpine` or RDS for Postgres 17. PG18 wants `/var/lib/postgresql/` mounted (parent dir) instead of `/var/lib/postgresql/data/`. Revisit when RDS PG18 GA and we have time to migrate.
+2. **`npm ci --omit=dev` runs husky's `prepare` script and explodes** because husky is a devDep. Fix: `npm pkg delete scripts.prepare` BEFORE `npm ci` in the runtime stage of the Dockerfile. Same fix applies to ECS task definition builds.
+3. **Compose `--env-file` does NOT populate shell env for interpolation in v2.** ECS doesn't have this problem (env vars come from task definition `environment:`/`secrets:`), but if you ever shim Compose-on-EC2 for testing: `set -a && source .env && set +a` before `docker compose up`.
+4. **`pg_isready` defaults to unix socket which is open during initdb.d**. For container healthchecks, force TCP: `pg_isready -h localhost`. RDS doesn't expose this — its healthchecks are AWS-managed. But initial DB seed (load `acs_db_final_version.sql` via `psql`) must complete before `migrate` runs. RDS bootstrap script needs to block on data load completion.
+5. **`pg_dump` output ordering matters.** The pre-cutover dump had a forward FK reference (FK statement at line 5455, referenced CREATE TABLE at line 9468). Use `--no-owner --no-acl --clean --if-exists` and trust pg_dump's native ordering. AWS RDS imports via standard `psql` so same rules apply.
+6. **nginx baked-in `default_server` collides with mounted overlay.** Either don't bake a fallback OR don't declare `default_server` in either layer. Same applies if ECS uses a sidecar nginx with a config volume.
+7. **GHCR auth on ECS**: the workflow's `GITHUB_TOKEN`-based login doesn't translate. ECR pull-through cache to GHCR is the cleanest path; alternative is a long-lived GHCR deploy token in Secrets Manager (rotate quarterly).
+8. **TZ=Asia/Kolkata must be set on every container that does time math** (api/worker/migrate/postgres). RDS exposes a parameter group for timezone — set it. ECS task definitions inherit container ENV settings — bake `TZ=Asia/Kolkata` into the api image base or explicitly set in task def.
