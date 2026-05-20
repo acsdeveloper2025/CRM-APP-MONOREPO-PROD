@@ -71,10 +71,10 @@ RUN rm -f /etc/nginx/conf.d/default.conf
 # Static FE bundle. Nginx serves from /usr/share/nginx/html (its default).
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Tiny health endpoint that doesn't require the SPA index — orchestrator
-# can probe this without false-positives during nginx config reload.
-RUN printf 'server {\n  listen 80 default_server;\n  location = /_edge_health { return 200 "ok\\n"; add_header Content-Type text/plain; }\n}\n' \
-      > /etc/nginx/conf.d/_health.conf
+# Health endpoint comes from the mounted infra/staging/nginx.conf at deploy
+# time (its /_edge_health location block). We deliberately don't bake a
+# fallback config — it would collide with the mounted file on
+# `listen 80 default_server`.
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
     CMD wget -qO- http://localhost/_edge_health || exit 1
