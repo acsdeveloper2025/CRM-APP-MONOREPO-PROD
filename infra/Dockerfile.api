@@ -82,6 +82,11 @@ RUN npm run build
 # only, no ts-node, no source.
 FROM base AS runtime
 
+# HUSKY=0 disables husky's prepare hook — husky is a devDep that --omit=dev
+# excludes, but `npm ci` still runs the "prepare" script and would fail
+# with "husky: not found". HUSKY=0 makes husky a no-op (husky v8+).
+ENV HUSKY=0
+
 COPY --chown=node:node CRM-BACKEND/package.json CRM-BACKEND/package-lock.json ./
 USER node
 RUN npm ci --omit=dev && npm cache clean --force
