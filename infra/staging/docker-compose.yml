@@ -53,7 +53,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
-      start_period: 60s
+      # Larger baseline dump (50k lines, 6.8 MB) needs ~30-90s of initdb
+      # load before TCP opens. 120s start_period leaves headroom.
+      start_period: 120s
     mem_limit: 4g
     cpus: "4.0"
     deploy:
