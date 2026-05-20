@@ -3,8 +3,19 @@
   "version": "1.0.0",
   "description": "CRM Application",
   "scripts": {
-    "start": "node start-all-services.sh",
+    "postinstall": "npm --prefix CRM-BACKEND install && npm --prefix CRM-FRONTEND install",
+    "setup": "node scripts/setup-local.mjs",
+    "dev": "concurrently -n be,fe -c blue,green --kill-others-on-fail \"npm --prefix CRM-BACKEND run dev\" \"npm --prefix CRM-FRONTEND run dev\"",
+    "dev:be": "npm --prefix CRM-BACKEND run dev",
+    "dev:fe": "npm --prefix CRM-FRONTEND run dev",
+    "db:reset": "npm --prefix CRM-BACKEND run db:reset-local",
+    "db:migrate": "npm --prefix CRM-BACKEND run migrate",
+    "lint": "npm --prefix CRM-BACKEND run lint && npm --prefix CRM-FRONTEND run lint",
+    "typecheck": "npm --prefix CRM-BACKEND run typecheck && npm --prefix CRM-FRONTEND run type-check",
     "prepare": "husky"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "dependencies": {
     "axios": "^1.11.0",
@@ -14,6 +25,7 @@
     "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
+    "concurrently": "^9.1.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.6"
   },

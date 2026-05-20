@@ -1,8 +1,8 @@
 # 🚀 CRM Application Monorepo (Production Ready)
 
-[![Node.js](https://img.shields.io/badge/Node.js-22.19.0-green.svg)](https://nodejs.org/)
-[![React](https://img.shields.io/badge/React-19.1.1-blue.svg)](https://reactjs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17.6-blue.svg)](https://postgresql.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20%20LTS-green.svg)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-19-blue.svg)](https://reactjs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-blue.svg)](https://postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7.0.15-red.svg)](https://redis.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://typescriptlang.org/)
 
@@ -45,77 +45,51 @@ This repository contains a comprehensive CRM (Customer Relationship Management) 
 
 ## 📋 Prerequisites
 
-- **Node.js 22.19.0+** (Latest LTS)
-- **npm 10.9.3+** (Latest)
-- **PostgreSQL 17.6+** (Latest)
-- **Redis 7.0.15+** (Latest)
-- **Git** for version control
+- **Node.js ≥ 20** (canonical version pinned in `.nvmrc` to `20`; any Node ≥ 20 satisfies the engines floor — use `nvm use` / `fnm use` if you have a version manager, else just ensure `node --version` reports 20 or higher)
+- **PostgreSQL 18**
+- **Redis 7**
+- **Git**
+
+Optional (only needed if exercising PDF / Office rendition code paths locally):
+
+- **Poppler** (`pdftohtml`) — `brew install poppler` / `apt install poppler-utils`
+- **LibreOffice** — `brew install libreoffice` / `apt install libreoffice-core libreoffice-writer libreoffice-calc libreoffice-impress`
 
 ## 🚀 Quick Start
 
-### Option 1: Automated Setup (Recommended)
-
-Use the comprehensive launcher script that handles everything automatically:
+From a fresh clone:
 
 ```bash
-# Clone the repository
-git clone https://github.com/acsdeveloper2025/CRM-APP-MONOREPO-PROD.git
-cd CRM-APP-MONOREPO-PROD
-
-# Make the launcher executable
-chmod +x crm-network-launcher.sh
-
-# Run the automated setup and launch
-./crm-network-launcher.sh
+nvm use                  # picks Node 20 from .nvmrc
+npm install              # installs root + backend + frontend deps
+npm run setup            # one-shot: copies .env files, creates DB, loads schema, runs migrations
+npm run dev              # starts backend (:3000) + frontend (:5173) in one terminal
 ```
 
-This script will:
+That's it. Backend health at <http://localhost:3000/health>, frontend at <http://localhost:5173>.
 
-- ✅ Check and install all dependencies
-- ✅ Configure network access (localhost + IP)
-- ✅ Set up database connections
-- ✅ Start all three applications simultaneously
-- ✅ Configure CORS and WebSocket origins
-- ✅ Provide access URLs for all services
+### Useful repo-root scripts
 
-### Option 2: Manual Setup
+| Command | What it does |
+|---|---|
+| `npm run dev` | Start backend + frontend together (color-coded logs) |
+| `npm run dev:be` | Backend only |
+| `npm run dev:fe` | Frontend only |
+| `npm run db:reset` | Wipe + reload local DB from `acs_db_final_version.sql` |
+| `npm run db:migrate` | Apply pending migrations |
+| `npm run lint` | Lint backend + frontend |
+| `npm run typecheck` | TypeScript check backend + frontend |
 
-#### 1. Database Setup
-
-```bash
-# Import the complete database
-sudo -u postgres psql -d acs_db -f crm_database_complete.sql
-
-# Or use the import script
-cd scripts
-./import_database.sh acs_db example_db_user localhost 5432
-```
-
-#### 2. Backend API Setup
+### Manual setup (if `npm run setup` fails)
 
 ```bash
 cd CRM-BACKEND
-npm install
-cp .env.example .env
-
-# Configure your .env file:
-# DATABASE_URL="postgresql://DB_USER:DB_PASSWORD@DB_HOST:5432/acs_db"
-# REDIS_URL="redis://localhost:6379"
-
-npm run dev
-```
-
-#### 3. Frontend Web App Setup
-
-```bash
-cd CRM-FRONTEND
-npm install
-cp .env.example .env
-
-# Configure your .env file:
-# VITE_API_URL="http://localhost:3000/api"
-# VITE_WS_URL="ws://localhost:3001"
-
+cp .env.example .env       # edit DATABASE_URL, REDIS_URL as needed
+npm run db:reset-local
+npm run migrate
+cd ../CRM-FRONTEND
+cp .env.example .env       # edit VITE_API_BASE_URL if backend is on a non-default host
+cd ..
 npm run dev
 ```
 

@@ -17,6 +17,9 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
     "@opentelemetry/api": "^1.9.1",
