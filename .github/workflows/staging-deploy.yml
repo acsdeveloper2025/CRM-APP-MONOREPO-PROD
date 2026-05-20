@@ -159,6 +159,14 @@ jobs:
             trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
+            # Fast-forward the box repo BEFORE invoking deploy.sh so the
+            # script itself is at the version this workflow run shipped.
+            # Without this, first-bootstrap or post-bootstrap-repo-clone
+            # races could leave deploy.sh missing or stale.
+            cd /opt/crm-app/docker
+            git fetch --quiet origin
+            git reset --hard origin/main
+
             export IMAGE_TAG="$IMAGE_TAG"
             bash /opt/crm-app/docker/infra/staging/deploy.sh
           EOF
