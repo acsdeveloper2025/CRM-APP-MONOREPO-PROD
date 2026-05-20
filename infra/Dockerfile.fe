@@ -32,8 +32,10 @@ COPY --chown=node:node CRM-FRONTEND ./
 
 EXPOSE 5173
 
+# node:20-bookworm-slim doesn't ship wget; runtime target (nginx:alpine)
+# does. Use node's built-in http to probe — always present in this image.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
-    CMD wget -qO- http://localhost:5173/ || exit 1
+    CMD node -e "require('http').get('http://localhost:5173/', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
 # Same command as the `dev` script in CRM-FRONTEND/package.json
 # (vite --host 0.0.0.0 --port 5173). Bind to all interfaces so the host
