@@ -1,0 +1,177 @@
+# =============================================================================
+# Staging deploy workflow — PR4 of Docker migration.
+#
+# On push to main (or manual dispatch):
+#   1. Build `crm-api` image (target=runtime) + `crm-api:tag-dev` (target=dev,
+#      for the migrate one-shot)
+#   2. Build `crm-edge` image (target=runtime, with VITE_* build args)
+#   3. Push both to GHCR (private, GITHUB_TOKEN auth)
+#   4. SSH to staging box, `cd /opt/crm-app/docker`, run `infra/staging/deploy.sh`
+#   5. Smoke external HTTPS endpoint
+#
+# Memory hardening rules honoured:
+#   * webfactory/ssh-agent@v0.9.0 (no raw key material in env)
+#   * KNOWN_HOSTS_PIN from repo secret (no ssh-keyscan at deploy time)
+#   * StrictHostKeyChecking=accept-new on the SSH call (defence-in-depth)
+# =============================================================================
+
+name: staging-deploy
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'crm-mobile-native/**'
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy (default: github.sha)"
+        required: false
+        default: ""
+
+concurrency:
+  # Serialize staging deploys — never two compose ups racing.
+  group: staging-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+  # ---- Build & push images -------------------------------------------------
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.resolve_tag.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve image tag
+        id: resolve_tag
+        run: |
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            echo "tag=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ---- crm-api (runtime target — slim, prod deps + compiled dist) -----
+      - name: Build & push crm-api (runtime)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: infra/Dockerfile.api
+          target: runtime
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAMESPACE }}/crm-api:${{ steps.resolve_tag.outputs.tag }}
+            ${{ env.IMAGE_NAMESPACE }}/crm-api:latest
+          cache-from: type=gha,scope=api-runtime
+          cache-to: type=gha,scope=api-runtime,mode=max
+
+      # ---- crm-api (dev target — used by the `migrate` one-shot only) ------
+      # Needed because run-migrations.ts is .ts and ts-node is a devDep,
+      # which the slim runtime target omits.
+      - name: Build & push crm-api (dev — for migrate)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: infra/Dockerfile.api
+          target: dev
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAMESPACE }}/crm-api:${{ steps.resolve_tag.outputs.tag }}-dev
+            ${{ env.IMAGE_NAMESPACE }}/crm-api:latest-dev
+          cache-from: type=gha,scope=api-dev
+          cache-to: type=gha,scope=api-dev,mode=max
+
+      # ---- crm-edge (nginx + static FE) ------------------------------------
+      - name: Build & push crm-edge (runtime)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: infra/Dockerfile.fe
+          target: runtime
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAMESPACE }}/crm-edge:${{ steps.resolve_tag.outputs.tag }}
+            ${{ env.IMAGE_NAMESPACE }}/crm-edge:latest
+          build-args: |
+            VITE_API_BASE_URL=https://crm.allcheckservices.com/api
+            VITE_API_TIMEOUT=30000
+            VITE_GOOGLE_MAPS_API_KEY=${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+            VITE_GOOGLE_MAPS_MAP_ID=${{ secrets.VITE_GOOGLE_MAPS_MAP_ID }}
+          cache-from: type=gha,scope=edge-runtime
+          cache-to: type=gha,scope=edge-runtime,mode=max
+
+  # ---- Deploy on staging box ----------------------------------------------
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
+    steps:
+      - name: Install SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          # Reuses existing repo secret (memory: no rename until AWS prod
+          # comes up). Same key, same box.
+          ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
+
+      - name: Pin known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.KNOWN_HOSTS_PIN }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          HOST: ${{ secrets.PRODUCTION_HOST }}
+          PORT: ${{ secrets.PRODUCTION_SSH_PORT }}
+          USER: ${{ secrets.PRODUCTION_USER }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          # Workflow's GITHUB_TOKEN has packages:write — sufficient for pulls.
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: |
+          set -e
+          ssh -o StrictHostKeyChecking=accept-new -p "$PORT" "$USER@$HOST" bash -s <<EOF
+            set -e
+            # Ephemeral GHCR login (logout in trap so token doesn't persist).
+            trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+            export IMAGE_TAG="$IMAGE_TAG"
+            bash /opt/crm-app/docker/infra/staging/deploy.sh
+          EOF
+
+      - name: Smoke test external HTTPS
+        run: |
+          # Give the stack a moment after deploy.sh's internal wait.
+          for i in 1 2 3 4 5 6; do
+            if curl -fsS --max-time 10 https://crm.allcheckservices.com/_edge_health; then
+              echo "smoke OK"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "smoke FAILED" >&2
+          exit 1

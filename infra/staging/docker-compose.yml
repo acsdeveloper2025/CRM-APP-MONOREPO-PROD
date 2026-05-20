@@ -1,0 +1,252 @@
+# =============================================================================
+# Staging Compose. Same image as dev (CI builds it once, both use the
+# `runtime` Dockerfile target instead of `dev`). Runs on the staging box
+# at 49.50.119.155 behind crm.allcheckservices.com (DNS already in place).
+#
+# Run from repo root:
+#   docker compose -f infra/staging/docker-compose.yml --env-file .env.staging up -d
+#
+# CI runs the wrapper script `infra/staging/deploy.sh` which sets that up.
+#
+# Memory rules honoured:
+#   #3  Images stay environment-neutral — all env arrives at runtime
+#   #4  migrate is a mandatory gate (service_completed_successfully)
+#   #6  nginx config in the repo, NEVER deploy-mutated
+#   #10 firebase-service-account mounted on `worker` only
+#   #11 healthchecks split: shallow /health + deep /api/health/ready
+#   #12 Puppeteer container hygiene (init: true, --no-sandbox via app flags)
+#   #13 TZ=Asia/Kolkata on api/worker/postgres
+# =============================================================================
+
+services:
+  # ---- Postgres -----------------------------------------------------------
+  postgres:
+    image: postgres:18-alpine
+    container_name: crm_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      TZ: Asia/Kolkata
+      PGTZ: Asia/Kolkata
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # First-run-only schema baseline — postgres official image runs files
+      # in /docker-entrypoint-initdb.d only when the data volume is empty.
+      # Subsequent boots are no-ops. The `migrate` service handles
+      # incremental migrations on every deploy.
+      - ../../acs_db_final_version.sql:/docker-entrypoint-initdb.d/00-baseline.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    mem_limit: 4g
+    cpus: "4.0"
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: "4.0"
+
+  # ---- Redis --------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: crm_redis
+    restart: unless-stopped
+    # noeviction is REQUIRED by BullMQ — DO NOT CHANGE (memory rule #7).
+    # AOF on for durability across container restarts.
+    # CONFIG command renamed away to prevent runtime reconfiguration.
+    command:
+      - sh
+      - -c
+      - >-
+        exec redis-server
+        --requirepass "$$REDIS_PASSWORD"
+        --appendonly yes
+        --appendfsync everysec
+        --maxmemory 1gb
+        --maxmemory-policy noeviction
+        --rename-command CONFIG ""
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 1500m
+    cpus: "1.0"
+    deploy:
+      resources:
+        limits:
+          memory: 1500M
+          cpus: "1.0"
+
+  # ---- Migrate one-shot --------------------------------------------------
+  # Uses the `dev` image target because run-migrations.ts requires ts-node
+  # (a devDependency that's omitted from the `runtime` target). The image
+  # is built+pushed by CI as a separate tag.
+  migrate:
+    image: ${IMAGE_REGISTRY:-ghcr.io/acsdeveloper2025}/crm-api:${IMAGE_TAG:-latest}-dev
+    container_name: crm_migrate
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      TZ: Asia/Kolkata
+    command: ["npx", "ts-node", "-r", "tsconfig-paths/register", "scripts/run-migrations.ts", "run"]
+    restart: "no"
+
+  # ---- API (HTTP + Socket.IO; ROLE=api) ----------------------------------
+  api:
+    image: ${IMAGE_REGISTRY:-ghcr.io/acsdeveloper2025}/crm-api:${IMAGE_TAG:-latest}
+    container_name: crm_api
+    init: true
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      ROLE: api
+      NODE_ENV: production
+      PORT: "3000"
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      STORAGE_BACKEND: local
+      UPLOAD_PATH: /app/uploads
+      TZ: Asia/Kolkata
+      # Container-side Puppeteer hygiene (memory rule #12)
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+    env_file:
+      - ../../.env.staging
+    volumes:
+      - uploads:/app/uploads
+    healthcheck:
+      # Liveness — shallow. Readiness lives at /api/health/ready.
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    stop_grace_period: 35s
+    shm_size: 1gb
+    mem_limit: 1500m
+    cpus: "2.0"
+    deploy:
+      resources:
+        limits:
+          memory: 1500M
+          cpus: "2.0"
+
+  # ---- Worker (BullMQ + intervals; ROLE=worker) --------------------------
+  worker:
+    image: ${IMAGE_REGISTRY:-ghcr.io/acsdeveloper2025}/crm-api:${IMAGE_TAG:-latest}
+    container_name: crm_worker
+    init: true
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      ROLE: worker
+      NODE_ENV: production
+      WORKER_HEALTH_PORT: "3001"
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      STORAGE_BACKEND: local
+      UPLOAD_PATH: /app/uploads
+      TZ: Asia/Kolkata
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+      # Firebase service account path — file mounted via secrets block below
+      FIREBASE_SERVICE_ACCOUNT_PATH: /run/secrets/firebase-service-account
+    env_file:
+      - ../../.env.staging
+    volumes:
+      - uploads:/app/uploads
+    secrets:
+      - firebase-service-account
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    stop_grace_period: 35s
+    shm_size: 1gb
+    mem_limit: 4g
+    cpus: "4.0"
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: "4.0"
+
+  # ---- Edge (nginx + TLS + static FE + reverse proxy) --------------------
+  edge:
+    image: ${IMAGE_REGISTRY:-ghcr.io/acsdeveloper2025}/crm-edge:${IMAGE_TAG:-latest}
+    container_name: crm_edge
+    init: true
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Declarative nginx config — memory rule #6 — never mutate at deploy.
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # TLS cert from host certbot. Mounted read-only.
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      # Webroot for certbot --webroot ACME challenges (renewal path).
+      - certbot_webroot:/var/www/certbot
+      # Serve /uploads passthrough? No — proxy to api so storage abstraction
+      # stays in charge. The `uploads` volume isn't mounted on edge.
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/_edge_health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    mem_limit: 256m
+    cpus: "0.5"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+volumes:
+  pgdata:
+    name: crm_pgdata
+  redisdata:
+    name: crm_redisdata
+  uploads:
+    name: crm_uploads
+  certbot_webroot:
+    name: crm_certbot_webroot
+
+secrets:
+  firebase-service-account:
+    # Real file on the host, NEVER committed. Bootstrap drops it here.
+    file: ../../secrets/firebase-service-account.json
