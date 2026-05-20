@@ -46,11 +46,22 @@ git fetch --quiet origin
 git reset --hard origin/main
 ok "repo at $(git rev-parse --short HEAD)"
 
+# ---- Load .env.staging into shell env --------------------------------------
+# Compose v2's --env-file doesn't recursively expand ${VAR} references
+# within the env file itself. Sourcing in bash with `set -a` exports all
+# parsed values, which Compose then sees via shell environment (its
+# highest-priority interpolation source).
+log "sourcing $ENV_FILE into shell env"
+set -a
+# shellcheck disable=SC1090
+source "$ENV_FILE"
+set +a
+ok "env loaded"
+
 # ---- Pull images -----------------------------------------------------------
 log "docker compose pull"
 IMAGE_TAG="$IMAGE_TAG" docker compose \
   -f "$COMPOSE_FILE" \
-  --env-file "$ENV_FILE" \
   pull
 ok "images pulled"
 
@@ -58,7 +69,6 @@ ok "images pulled"
 log "docker compose up -d --remove-orphans"
 IMAGE_TAG="$IMAGE_TAG" docker compose \
   -f "$COMPOSE_FILE" \
-  --env-file "$ENV_FILE" \
   up -d --remove-orphans
 ok "stack up"
 

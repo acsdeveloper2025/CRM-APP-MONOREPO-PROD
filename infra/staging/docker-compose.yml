@@ -21,7 +21,12 @@
 services:
   # ---- Postgres -----------------------------------------------------------
   postgres:
-    image: postgres:18-alpine
+    # Pinned to 17-alpine: PG18's container image changed the canonical
+    # data-dir mount point (issue docker-library/postgres#1259), which
+    # the existing pgdata volume layout doesn't match. 17-alpine also
+    # matches the bare-metal version this staging replaces, and is what
+    # AWS RDS will offer at migration time.
+    image: postgres:17-alpine
     container_name: crm_postgres
     restart: unless-stopped
     environment:
