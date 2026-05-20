@@ -1,61 +1,33 @@
-# 🚀 CRM Application Monorepo (Production Ready)
+# 🚀 CRM Application Monorepo
 
 [![Node.js](https://img.shields.io/badge/Node.js-20%20LTS-green.svg)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-19-blue.svg)](https://reactjs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-blue.svg)](https://postgresql.org/)
-[![Redis](https://img.shields.io/badge/Redis-7.0.15-red.svg)](https://redis.io/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://typescriptlang.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue.svg)](https://postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-7-red.svg)](https://redis.io/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)](https://typescriptlang.org/)
 
-## 📋 Overview
+CRM (Customer Relationship Management) platform for field-execution workflows: case management, client tracking, verification capture, PDF report generation, push notifications. Deployed at <https://crm.allcheckservices.com>.
 
-This repository contains a comprehensive CRM (Customer Relationship Management) system built as a monorepo with two main applications:
+## Workspaces
 
-- **🔧 Backend API**: `CRM-BACKEND` - Node.js/Express + PostgreSQL + Redis
-- **💻 Web Frontend**: `CRM-FRONTEND` - React 19 + Vite + TypeScript
+- **`CRM-BACKEND/`** — Node.js + Express 5 + TypeScript REST API. PostgreSQL via `pg`. Redis (cache, BullMQ, Socket.IO pub/sub, rate-limit). Puppeteer + Poppler + LibreOffice for PDF/Office rendering. Socket.IO for realtime. JWT auth + TOTP MFA. Three queue workers (audit-log, notification, reverse-geocode).
+- **`CRM-FRONTEND/`** — React 19 + Vite 7 + TypeScript SPA. Tailwind + shadcn/ui. TanStack Query. Socket.IO client. Served as static `dist/` behind nginx in production.
 
-## ✨ Features
+The companion mobile app (`crm-mobile-native`, React Native) lives in a separate repository and consumes this backend.
 
-- **Complete CRM System** with case management, client tracking, and verification workflows
-- **Real-time Updates** via WebSocket connections
-- **Responsive Web Design** with modern UI/UX
-- **Advanced Security** with JWT authentication, role-based access control
-- **Comprehensive Database** with 34+ tables and complete data relationships
-- **Network Access** configured for both localhost and network IP access
-- **Production Ready** with latest stable versions of all dependencies
+## Prerequisites
 
-## 🛠️ Technology Stack
-
-### Backend
-
-- **Node.js 22.19.0** (Latest LTS)
-- **Express.js** with TypeScript
-- **PostgreSQL 17.6** (Latest)
-- **Redis 7.0.15** for caching and sessions
-- **JWT Authentication** with refresh tokens
-- **WebSocket** for real-time updates
-
-### Frontend
-
-- **React 19.1.1** (Latest)
-- **Vite** for fast development and building
-- **TypeScript** for type safety
-- **Tailwind CSS** for styling
-- **React Query** for data fetching
-- **React Router** for navigation
-
-## 📋 Prerequisites
-
-- **Node.js ≥ 20** (canonical version pinned in `.nvmrc` to `20`; any Node ≥ 20 satisfies the engines floor — use `nvm use` / `fnm use` if you have a version manager, else just ensure `node --version` reports 20 or higher)
-- **PostgreSQL 18**
+- **Node.js ≥ 20** (canonical version pinned in `.nvmrc` to `20`; use `nvm use` / `fnm use` if you have a version manager)
+- **PostgreSQL 17**
 - **Redis 7**
 - **Git**
 
-Optional (only needed if exercising PDF / Office rendition code paths locally):
+Optional (only needed if exercising PDF / Office rendition paths locally):
 
 - **Poppler** (`pdftohtml`) — `brew install poppler` / `apt install poppler-utils`
 - **LibreOffice** — `brew install libreoffice` / `apt install libreoffice-core libreoffice-writer libreoffice-calc libreoffice-impress`
 
-## 🚀 Quick Start
+## Quick start
 
 From a fresh clone:
 
@@ -66,19 +38,19 @@ npm run setup            # one-shot: copies .env files, creates DB, loads schema
 npm run dev              # starts backend (:3000) + frontend (:5173) in one terminal
 ```
 
-That's it. Backend health at <http://localhost:3000/health>, frontend at <http://localhost:5173>.
+Backend health: <http://localhost:3000/health>. Frontend: <http://localhost:5173>.
+
+Prefer Docker for local dev? See **[`docs/local-docker.md`](docs/local-docker.md)** — `docker compose up` brings up Postgres + Redis (the 80% pain reliever), or `docker compose --profile full up` runs the whole stack inside Docker.
 
 ### Useful repo-root scripts
 
 | Command | What it does |
 |---|---|
-| `npm run dev` | Start backend + frontend together (color-coded logs) |
-| `npm run dev:be` | Backend only |
-| `npm run dev:fe` | Frontend only |
+| `npm run dev` | Backend + frontend together (color-coded logs) |
+| `npm run dev:be` / `npm run dev:fe` | One side only |
 | `npm run db:reset` | Wipe + reload local DB from `acs_db_final_version.sql` |
 | `npm run db:migrate` | Apply pending migrations |
-| `npm run lint` | Lint backend + frontend |
-| `npm run typecheck` | TypeScript check backend + frontend |
+| `npm run lint` / `npm run typecheck` | Code quality gates across BE + FE |
 
 ### Manual setup (if `npm run setup` fails)
 
@@ -93,129 +65,69 @@ cd ..
 npm run dev
 ```
 
-## 🌐 Access URLs
+## Architecture
 
-After successful setup, access the applications at:
+```
+                  ┌─────────────┐
+                  │   Browser   │
+                  └──────┬──────┘
+                         │ HTTPS
+                  ┌──────▼──────┐
+       ┌──────────│    edge     │  nginx + TLS + static FE + reverse proxy
+       │          └──────┬──────┘
+       │     /api        │      /socket.io
+       │                 ▼
+       │          ┌─────────────┐         ┌─────────────┐
+       │          │     api     │◄────────│   worker    │
+       │          │ ROLE=api    │  Redis  │ ROLE=worker │
+       │          │ HTTP+WS     │  (pub/  │ BullMQ ×3   │
+       │          │             │   sub)  │ intervals   │
+       │          └──────┬──────┘         └──────┬──────┘
+       │                 │                       │
+       │          ┌──────▼───────────────────────▼──────┐
+       │          │           postgres + redis           │
+       │          └──────────────────────────────────────┘
+       │
+       └─→ /uploads → api → storage (local volume → S3 on AWS)
+```
 
-### Localhost Access
+- **`api`** serves HTTP requests + Socket.IO. No background work — keeps the request path responsive.
+- **`worker`** drains the three BullMQ queues (audit-log, notification, reverse-geocode) + runs interval jobs (DB maintenance, metrics cleanup). Push delivery (FCM, APNS) lives here.
+- Same Docker image runs as either, gated by the `ROLE` env var. `ROLE=all` (the default) preserves native-dev behaviour.
 
-- **Frontend Web App**: http://localhost:5173
-- **Backend API**: http://localhost:3000
-- **API Health Check**: http://localhost:3000/api/health
+## Documentation
 
-### Network Access (when using launcher script)
+Local-facing docs live in **`docs/`**:
 
-- **Frontend Web App**: http://YOUR_IP:5173
-- **Backend API**: http://YOUR_IP:3000
+| File | What |
+|---|---|
+| **[docs/local-docker.md](docs/local-docker.md)** | Local Docker setup — daily commands, profiles, hot reload, troubleshooting |
+| **[docs/staging.md](docs/staging.md)** | Staging deploy runbook — bootstrap, redeploy, rollback, TLS |
+| **[docs/postgres-upgrade-runbook.md](docs/postgres-upgrade-runbook.md)** | PG major-version upgrade procedure |
+| **[docs/aws-migration-notes.md](docs/aws-migration-notes.md)** | Parking lot for the future AWS sprint |
+| **[docs/SECURITY.md](docs/SECURITY.md)** | Security guidelines |
+| **[docs/API_CATALOG.md](docs/API_CATALOG.md)** | API endpoint catalog |
+| **[CRM-FRONTEND/README.md](CRM-FRONTEND/README.md)** | Frontend-specific notes (HTTP client policy, etc.) |
 
-## 🔐 Admin Account Setup
+## Deployment
 
-- Create a local admin account through your seed or bootstrap workflow.
-- Keep credentials in local environment variables or a private password manager.
-- Do not commit usernames, passwords, or seeded production-like accounts to the repository.
+`main` branch auto-deploys to staging via `.github/workflows/staging-deploy.yml`:
 
-## 📊 Database Information
+1. Builds api + edge Docker images, tagged `:<sha>` + `:latest`
+2. Pushes to GitHub Container Registry (`ghcr.io/acsdeveloper2025/`)
+3. SSHes into the staging box, runs `infra/staging/deploy.sh`
+4. Smoke-tests `https://crm.allcheckservices.com/_edge_health`
 
-- **Database Name**: `acs_db`
-- **Tables**: 34+ comprehensive tables
-- **Sample Data**: Pre-loaded with users, roles, clients, and test cases
-- **Admin User**: Configured and ready to use
-- **Relationships**: Complete foreign key relationships and constraints
+Manual trigger: `gh workflow run staging-deploy --ref main`.
+Rollback to any past commit: `gh workflow run staging-deploy --ref main -f image_tag=<sha>`.
 
-## 🏗️ Architecture
-
-This monorepo contains three interconnected applications:
-
-### 🔧 Backend (`CRM-BACKEND/`)
-
-- **REST API** with comprehensive endpoints
-- **WebSocket Server** for real-time updates
-- **Authentication** with JWT and refresh tokens
-- **Database ORM** with PostgreSQL
-- **Redis Caching** for performance
-- **Audit Logging** for security compliance
-
-### 💻 Frontend (`CRM-FRONTEND/`)
-
-- **React 19** with modern hooks and features
-- **Vite** for fast development and building
-- **TypeScript** for type safety
-- **Tailwind CSS** for responsive design
-- **React Query** for efficient data fetching
-- **Real-time Updates** via WebSocket
-
-## 🛠️ Development Scripts
-
-### Backend Scripts
-
-- `npm run dev` — Start in development (ts-node + nodemon)
-- `npm run build && npm start` — Compile TypeScript and run Node.js
-- `npm run db:generate` — Generate Prisma client
-- `npm run db:migrate` — Apply Prisma migrations (development)
-- `npm run db:seed` — Seed the database
-- `npm run db:reset` — Reset database and re-apply migrations
-- `npm run test` — Run backend tests
-
-### Frontend Scripts
-
-- `npm run dev` — Start development server
-- `npm run build` — Build for production
-- `npm run preview` — Preview production build
-- `npm run lint` — Run ESLint
-- `npm run type-check` — Run TypeScript checks
-
-## 📚 Documentation
-
-Comprehensive project documentation is organized in the `project-documentation/` directory:
-
-- **[Project Documentation Index](project-documentation/README.md)** - Complete documentation overview
-- **API Documentation** - API implementation, testing, and gap analysis reports
-- **Database Reports** - Schema changes, migrations, and audit reports
-- **System Reports** - Rate limiting, WebSocket, Docker, and port configuration
-- **Audit Reports** - Codebase fixes, security audits, and compliance reports
-- **Setup Guides** - Detailed setup instructions and troubleshooting guides
+Future AWS work lives on the `aws` branch — see [`docs/aws-migration-notes.md`](docs/aws-migration-notes.md).
 
 ## Troubleshooting
 
-- **Port conflicts**: Ensure ports 3000, 5173, 5174, 5432, 6379 are available
-- **Database connection**: Verify PostgreSQL is running and credentials are correct
-- **Redis connection**: Ensure Redis server is running on localhost:6379
-- **Build errors**: Clear node_modules and reinstall dependencies
-
-## Notes
-
-- If Prisma type errors appear in dev, run `npm run db:generate` and restart `npm run dev`.
-- Ensure PostgreSQL is reachable on `localhost:5432` and Redis on `localhost:6379`.
-- PostgreSQL can be installed via Homebrew on macOS, apt on Linux, or downloaded from postgresql.org on Windows.
-- For detailed setup instructions, see individual app README files and the [project documentation](project-documentation/README.md).
-
-## 📚 Documentation
-
-### Quick Start
-
-- [Local Setup Guide](docs/LOCAL_SETUP.md) - Development environment setup
-- [Project Documentation](project-documentation/README.md) - Complete documentation index
-
-### Organized Documentation Structure
-
-All project documentation has been organized into categories:
-
-- **📊 [Comprehensive Reports](project-documentation/comprehensive-reports/)** - Major project overviews and audit reports
-- **🔧 [Cleanup Scripts](project-documentation/scripts/cleanup/)** - Data maintenance and cleanup tools
-- **🚀 [Deployment](project-documentation/deployment/)** - Production deployment guides
-- **🗄️ [Database](project-documentation/database-reports/)** - Schema documentation and migration reports
-- **🔌 [API Documentation](project-documentation/api-docs/)** - API endpoints and testing reports
-- **🔍 [Audit Reports](project-documentation/audit-reports/)** - Code quality and fix reports
-- **⚙️ [System Reports](project-documentation/system-reports/)** - Infrastructure and configuration
-- **🚀 [Setup Guides](project-documentation/setup-guides/)** - Installation and configuration guides
-
-### Quick Access
-
-- **[Complete Documentation Index](project-documentation/DOCUMENTATION_INDEX.md)** - Full file listing with descriptions
-- **[Cleanup Summary](project-documentation/scripts/cleanup/cleanup-summary.md)** - Recent data cleanup documentation
-
-# Git-based deployment test - Tue Dec 2 23:50:20 IST 2025
-
-# Git deployment test 2 - Tue Dec 2 23:52:42 IST 2025
-
-# Final git deployment test - Wed Dec 3 00:46:31 IST 2025
+- **Port already in use**: ensure `3000` (BE), `3001` (worker probe), `5173` (FE), `5432` (Postgres), `6379` (Redis) are free.
+- **`npm run setup` fails on DB connect**: verify Postgres is running and `acs_user` exists with the password in `CRM-BACKEND/.env`. Default: `acs_user / acs_password / acs_db`.
+- **Redis connection refused**: `brew services start redis` (macOS) or `systemctl start redis-server` (Linux).
+- **Build errors after dep changes**: `rm -rf */node_modules && npm install`.
+- **Docker stack on macOS won't build**: ensure `docker-buildx` plugin is installed (`brew install docker-buildx`) — without it, multi-stage `--target` builds OOM during tsc. See [docs/local-docker.md](docs/local-docker.md).
+- **Migrations failed**: `npm run db:reset` resets the DB to the schema baseline and re-applies migrations cleanly.
