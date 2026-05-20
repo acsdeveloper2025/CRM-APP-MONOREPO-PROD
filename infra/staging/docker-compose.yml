@@ -43,11 +43,17 @@ services:
       # incremental migrations on every deploy.
       - ../../acs_db_final_version.sql:/docker-entrypoint-initdb.d/00-baseline.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      # -h localhost forces TCP probe. Default unix-socket check returns
+      # healthy while /docker-entrypoint-initdb.d/*.sql is still being
+      # loaded (postgres listens on the socket during init); TCP only
+      # opens AFTER init complete. Without this, the migrate container
+      # raced the baseline load and hit "relation does not exist" on
+      # tables that the baseline hadn't yet created.
+      test: ["CMD-SHELL", "pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 12
+      start_period: 60s
     mem_limit: 4g
     cpus: "4.0"
     deploy:
