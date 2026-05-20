@@ -45,9 +45,10 @@ FROM deps AS build
 
 # Build-time env. VITE_API_BASE_URL etc are baked into the bundle by Vite,
 # so they MUST be passed at image build time, not container run time.
-# Defaults shown below match the staging hostname; override via
+# Defaults shown below match the live staging hostname (per session lock
+# 2026-05-20 decision B — `staging.*` DNS is not yet added); override via
 # `docker build --build-arg VITE_API_BASE_URL=...` for other envs.
-ARG VITE_API_BASE_URL=https://staging.crm.allcheckservices.com/api
+ARG VITE_API_BASE_URL=https://crm.allcheckservices.com/api
 ARG VITE_API_TIMEOUT=30000
 ARG VITE_GOOGLE_MAPS_API_KEY=
 ARG VITE_GOOGLE_MAPS_MAP_ID=

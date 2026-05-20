@@ -37,11 +37,15 @@ services:
       # incremental migrations on every boot.
       - ./acs_db_final_version.sql:/docker-entrypoint-initdb.d/00-baseline.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U acs_user -d acs_db"]
+      # -h localhost forces TCP probe. Default socket probe returns
+      # healthy DURING /docker-entrypoint-initdb.d/*.sql load (postgres
+      # listens on socket during init); TCP only opens AFTER init. Same
+      # race that bit staging — fix verified live there (PR4 commit 3bd0a6f0).
+      test: ["CMD-SHELL", "pg_isready -h localhost -U acs_user -d acs_db"]
       interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 12
+      start_period: 120s
 
   # ---- Redis ---------------------------------------------------------------
   redis:
@@ -94,7 +98,7 @@ services:
       # All non-overridden values from .env still load. Connection URLs are
       # explicitly re-set above to use container DNS instead of localhost.
       - CRM-BACKEND/.env
-    command: ["npx", "ts-node", "scripts/run-migrations.ts", "run"]
+    command: ["npx", "ts-node", "-r", "tsconfig-paths/register", "scripts/run-migrations.ts", "run"]
     restart: "no"
 
   # ---- API (HTTP + Socket.IO; ROLE=api) ------------------------------------
