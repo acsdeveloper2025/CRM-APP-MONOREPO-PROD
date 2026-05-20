@@ -263,3 +263,12 @@ secrets:
   firebase-service-account:
     # Real file on the host, NEVER committed. Bootstrap drops it here.
     file: ../../secrets/firebase-service-account.json
+  # apns:
+  #   # Apple Push Notification key (.p8). Enable when iOS distribution
+  #   # is provisioned ($99/yr Apple Developer enrollment). Then:
+  #   #   1. Drop the .p8 at /opt/crm-app/docker/secrets/apns.p8 (root:600)
+  #   #   2. Uncomment this block + the `secrets: - apns` line under the
+  #   #      worker service above + APNS_* env vars
+  #   #   3. Set APNS_KEY_ID, APNS_TEAM_ID, APNS_BUNDLE_ID in .env.staging
+  #   #      (or via scripts/staging-env-set.sh)
+  #   file: ../../secrets/apns.p8
