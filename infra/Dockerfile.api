@@ -82,14 +82,16 @@ RUN npm run build
 # only, no ts-node, no source.
 FROM base AS runtime
 
-# HUSKY=0 disables husky's prepare hook — husky is a devDep that --omit=dev
-# excludes, but `npm ci` still runs the "prepare" script and would fail
-# with "husky: not found". HUSKY=0 makes husky a no-op (husky v8+).
-ENV HUSKY=0
-
 COPY --chown=node:node CRM-BACKEND/package.json CRM-BACKEND/package-lock.json ./
 USER node
-RUN npm ci --omit=dev && npm cache clean --force
+# `npm pkg delete scripts.prepare` strips the husky lifecycle hook from
+# the in-image package.json BEFORE install. The hook would otherwise run
+# `husky` on every `npm ci`, and `--omit=dev` excludes husky → exit 127
+# "husky: not found". The change is scoped to the image only; host
+# package.json is untouched, dev installs still run husky normally.
+RUN npm pkg delete scripts.prepare \
+    && npm ci --omit=dev \
+    && npm cache clean --force
 
 # Compiled output + migrations (migrations are NOT compiled — they're raw SQL
 # files loaded by the migration runner at runtime).
