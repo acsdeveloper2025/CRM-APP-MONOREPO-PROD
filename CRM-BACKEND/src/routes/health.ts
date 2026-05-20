@@ -9,6 +9,8 @@ import { authenticateToken, getAuthContextCacheStats } from '@/middleware/auth';
 import { getClientScopeCacheStats } from '@/middleware/clientAccess';
 import { getProductScopeCacheStats } from '@/middleware/productAccess';
 import { errorMessage } from '@/utils/errorMessage';
+import { runHealthCheck, VALID_LEVELS_PHASE_1 } from '@/health';
+import type { HealthLevel } from '@/health/types';
 
 const router = Router();
 
@@ -39,23 +41,36 @@ interface ServiceHealth {
 }
 
 /**
- * Basic health check endpoint
- * GET /api/health
+ * Single health endpoint with level query param.
+ *   ?level=basic (default) — static, no dependencies, public, uptime-checker friendly
+ *   ?level=ready           — DB + Redis + worker heartbeat, public
+ *   ?level=full            — Phase 2; rejected with 400 in Phase 1
+ *
+ * GET /api/health[?level=basic|ready]
  */
-router.get('/health', (req, res) => {
-  const healthCheck: HealthCheckResult = {
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: Math.floor(process.uptime()),
-    version: process.env.npm_package_version || '1.0.0',
-    environment: process.env.NODE_ENV || 'development',
-  };
+router.get('/health', async (req, res) => {
+  const rawLevel = (req.query.level as string | undefined) ?? 'basic';
 
-  res.json({
-    success: true,
-    message: 'Health check successful',
-    data: healthCheck,
-  });
+  if (rawLevel === 'full') {
+    res.status(400).json({
+      status: 'unhealthy',
+      level: 'full',
+      message: `level=full not yet available. Valid levels: ${VALID_LEVELS_PHASE_1.join(', ')}`,
+    });
+    return;
+  }
+
+  if (!(VALID_LEVELS_PHASE_1 as readonly string[]).includes(rawLevel)) {
+    res.status(400).json({
+      status: 'unhealthy',
+      message: `Invalid level. Valid levels: ${VALID_LEVELS_PHASE_1.join(', ')}`,
+    });
+    return;
+  }
+
+  const response = await runHealthCheck(rawLevel as HealthLevel);
+  const statusCode = response.status === 'unhealthy' ? 503 : 200;
+  res.status(statusCode).json(response);
 });
 
 /**
@@ -466,42 +481,22 @@ router.get('/health/deep', authenticateToken, async (_req, res) => {
 });
 
 /**
- * Readiness probe - checks if application is ready to serve traffic
+ * Readiness probe — thin alias for /health?level=ready (k8s/docker convention).
  * GET /api/health/ready
  */
-router.get('/health/ready', async (req, res) => {
-  try {
-    // Check critical dependencies
-    await pool.query('SELECT 1');
-    await redisClient.ping();
-
-    res.json({
-      status: 'READY',
-      timestamp: new Date().toISOString(),
-      message: 'Application is ready to serve traffic',
-    });
-  } catch (error) {
-    logger.error('Readiness check failed:', error);
-    res.status(503).json({
-      status: 'NOT_READY',
-      timestamp: new Date().toISOString(),
-      message: 'Application is not ready to serve traffic',
-      error: errorMessage(error),
-    });
-  }
+router.get('/health/ready', async (_req, res) => {
+  const response = await runHealthCheck('ready');
+  const statusCode = response.status === 'unhealthy' ? 503 : 200;
+  res.status(statusCode).json(response);
 });
 
 /**
- * Liveness probe - checks if application is alive
+ * Liveness probe — thin alias for /health?level=basic (k8s/docker convention).
  * GET /api/health/live
  */
-router.get('/health/live', (req, res) => {
-  res.json({
-    status: 'ALIVE',
-    timestamp: new Date().toISOString(),
-    uptime: Math.floor(process.uptime()),
-    message: 'Application is alive',
-  });
+router.get('/health/live', async (_req, res) => {
+  const response = await runHealthCheck('basic');
+  res.status(200).json(response);
 });
 
 /**

@@ -30,6 +30,7 @@ import {
   stopReverseGeocodeProcessor,
 } from '@/queues/reverseGeocodeQueue';
 import { startDbMaintenance, stopDbMaintenance } from '@/services/dbMaintenanceService';
+import { startWorkerHeartbeat, stopWorkerHeartbeat } from '@/health/workerHeartbeat';
 // Migrations removed for production - use database import instead
 
 // PR2 (Docker migration): role gating. Default 'all' preserves today's
@@ -187,6 +188,11 @@ const startServer = async (): Promise<void> => {
       // into _default and stale notifications/auto_saves accumulate.
       startDbMaintenance();
 
+      // Phase 1 health system: worker writes a Redis heartbeat key
+      // (crm:worker:heartbeat, TTL 30s) every 10s. API reads it on
+      // /api/health?level=ready to surface worker liveness.
+      startWorkerHeartbeat();
+
       logger.info(`Worker started (role=${role}) — BullMQ + interval jobs attached`);
     }
 
@@ -304,6 +310,10 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
 
       // Close reverse-geocode backfill queue + worker.
       await stopReverseGeocodeProcessor();
+
+      // Stop worker heartbeat writer + drop the key (Redis TTL would
+      // expire it anyway, but explicit del flips status faster).
+      await stopWorkerHeartbeat();
     }
 
     // Close enterprise cache service (initialized on every role)
