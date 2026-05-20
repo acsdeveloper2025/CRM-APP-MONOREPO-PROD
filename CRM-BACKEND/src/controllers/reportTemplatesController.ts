@@ -954,7 +954,7 @@ export const getContextPreview = async (req: AuthenticatedRequest, res: Response
 // ---------------------------------------------------------------------------
 // POST /api/report-templates/convert-from-pdf
 // Multipart upload: { file: PDF, clientId, productId }
-// Calls Claude to convert the PDF layout into a Handlebars template bound
+// Calls the configured AI provider to convert the PDF layout into a Handlebars template bound
 // to the client+product's data-entry fields. Returns the draft HTML plus
 // compile-check status + token usage. Admin reviews in the editor and
 // saves via the normal create endpoint.

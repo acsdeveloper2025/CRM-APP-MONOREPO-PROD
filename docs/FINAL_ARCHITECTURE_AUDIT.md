@@ -1,7 +1,7 @@
 # COMPREHENSIVE CRM MONOREPO AUDIT REPORT
 
 **Date:** 2026-04-16
-**Auditor:** Claude (Staff-level Engineering Audit)
+**Auditor:** Internal engineering audit
 **Codebase:** CRM-APP-MONOREPO-PROD
 
 ---

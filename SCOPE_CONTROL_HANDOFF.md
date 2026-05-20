@@ -74,7 +74,7 @@ Verify each via `grep -n "getAssignedClientIds" CRM-BACKEND/src/controllers/*.ts
 User feedback: "do page by page navigaion check each page each card maksure all filter properly currently dashboard card showing both even after filter also data entry page".
 
 Dashboard ✓ verified (PENDING TASKS card 2→1 when scoped to HDFC via P13.A).
-Remaining pages to check via Claude Preview console:
+Remaining pages to check via the in-browser dev console:
 - `/case-management/all-cases` (started, navigation eval failed last time — try `preview_eval` with `window.location.href = '…'`)
 - `/case-management/in-progress`, `/case-management/completed`, `/case-management/pending`
 - All Task Management pages (6 of them — `/task-management/*`)
@@ -123,7 +123,7 @@ For each: lock scope to one client → walk every card + list + filter → verif
 
 1. Start BE: in `CRM-BACKEND/`, `npm run dev` (ts-node-dev/nodemon).
 2. Start FE: in `CRM-FRONTEND/`, `npm run dev`.
-3. Use `mcp__Claude_Preview__preview_start` against FE URL.
+3. Open the FE URL in a browser tab with devtools console open.
 4. Login as `pradnya.mohite`.
 5. Set scope via UI ScopeSelector OR directly:
    ```js

@@ -268,7 +268,7 @@ router.get(
   getContextPreview
 );
 
-// Convert a PDF layout into a Handlebars template via Claude / Gemini.
+// Convert a PDF layout into a Handlebars template via the configured AI provider.
 // Returns a draft HTML string the admin can review + save via the normal
 // create endpoint. Gated on the same manage permission as other write ops.
 //
