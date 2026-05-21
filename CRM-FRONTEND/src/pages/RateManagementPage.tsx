@@ -89,7 +89,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               } as Record<string, string>
             )[activeTab] || 'Rate Management'}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Manage rate types, assignments, and pricing for verification services
           </p>
         </div>
@@ -141,7 +141,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.documentTypeRates?.totalRates || 0}</div>
-            <p className="text-xs text-gray-600 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               {stats.documentTypeRates?.totalDocumentTypes || 0} document types
             </p>
           </CardContent>
@@ -155,7 +155,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
             <div className="text-2xl font-bold">
               ₹{Number(stats.rates.averageAmount || 0).toFixed(0)}
             </div>
-            <p className="text-xs text-gray-600 mt-2">Verification services</p>
+            <p className="text-xs text-muted-foreground mt-2">Verification services</p>
           </CardContent>
         </Card>
 
@@ -168,7 +168,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               <div className="w-2 h-2 bg-green-500 rounded-full" />
               <span className="text-sm font-medium">Operational</span>
             </div>
-            <p className="text-xs text-gray-600 mt-2">All systems running</p>
+            <p className="text-xs text-muted-foreground mt-2">All systems running</p>
           </CardContent>
         </Card>
       </div>
@@ -211,7 +211,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               <TabsContent value="rate-types" className="space-y-4">
                 <div className="border rounded-lg p-4">
                   <h3 className="text-lg font-semibold mb-2">Rate Types Management</h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Create and manage rate types: Local, Local1, Local2, OGL, OGL1, OGL2, Outstation
                   </p>
                   <RateTypesTab />
@@ -221,7 +221,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               <TabsContent value="rate-type-assignment" className="space-y-4">
                 <div className="border rounded-lg p-4">
                   <h3 className="text-lg font-semibold mb-2">Rate Type Assignment</h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Assign rate types to Client → Product → Verification Type combinations
                   </p>
                   <RateTypeAssignmentTab />
@@ -231,7 +231,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               <TabsContent value="rate-assignment" className="space-y-4">
                 <div className="border rounded-lg p-4">
                   <h3 className="text-lg font-semibold mb-2">Rate Assignment</h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Set actual rate amounts for assigned rate types
                   </p>
                   <RateAssignmentTab />
@@ -241,7 +241,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               <TabsContent value="service-zone-rules" className="space-y-4">
                 <div className="border rounded-lg p-4">
                   <h3 className="text-lg font-semibold mb-2">Rate Type Rules</h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Map client, product, verification type, pincode, and area combinations to a rate
                     type before pricing is applied
                   </p>
@@ -252,7 +252,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               <TabsContent value="document-type-rates" className="space-y-4">
                 <div className="border rounded-lg p-4">
                   <h3 className="text-lg font-semibold mb-2">KYC Rates</h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Configure pricing for KYC document verification per client and product
                   </p>
                   <DocumentTypeRatesTab />
@@ -262,7 +262,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               <TabsContent value="rate-view-report" className="space-y-4">
                 <div className="border rounded-lg p-4">
                   <h3 className="text-lg font-semibold mb-2">Rate View & Reports</h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     View and manage all configured rates with comprehensive filtering and reporting
                   </p>
                   <RateViewReportTab />
@@ -290,7 +290,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               </div>
               <div>
                 <h4 className="font-semibold">Rate Types</h4>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Master list — Local, Local1, OGL, Outstation, etc.
                 </p>
               </div>
@@ -302,7 +302,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               </div>
               <div>
                 <h4 className="font-semibold">Rate Type Assignment</h4>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Eligibility — pick allowed rate types per client + product + verification type
                 </p>
               </div>
@@ -314,7 +314,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               </div>
               <div>
                 <h4 className="font-semibold">Rate Amounts</h4>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Pricing — set actual amount per client + product + verification type + rate type
                 </p>
               </div>
@@ -326,7 +326,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               </div>
               <div>
                 <h4 className="font-semibold">Service Zone Rules</h4>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Geography — map client + product + verification type + pincode + area to a rate
                   type
                 </p>
@@ -339,7 +339,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               </div>
               <div>
                 <h4 className="font-semibold">KYC Rates</h4>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Separate pricing for KYC document verification per client + product + document
                   type
                 </p>
@@ -352,7 +352,7 @@ export function RateManagementPage({ defaultTab }: RateManagementPageProps = {})
               </div>
               <div>
                 <h4 className="font-semibold">Rate Report</h4>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   View, search, and export all configured rates in one place
                 </p>
               </div>

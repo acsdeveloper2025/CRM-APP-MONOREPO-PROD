@@ -65,7 +65,7 @@ const statusBadgeClassNames: Record<FieldMonitoringLiveStatus, string> = {
   Travelling: 'bg-amber-100 text-amber-700 border-amber-200',
   'At Location': 'bg-green-100 text-green-700 border-green-200',
   Submitted: 'bg-purple-100 text-purple-700 border-purple-200',
-  Offline: 'bg-gray-100 text-gray-700 border-gray-200',
+  Offline: 'bg-muted text-foreground border-border',
 };
 
 const markerColors: Record<FieldMonitoringLiveStatus, string> = {
@@ -178,7 +178,9 @@ function FieldMonitoringDetailView({ userId }: { userId: string }) {
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
               Field Executive Detail
             </h1>
-            <p className="text-gray-600">Current operational snapshot and recent field activity</p>
+            <p className="text-muted-foreground">
+              Current operational snapshot and recent field activity
+            </p>
           </div>
         </div>
       </div>
@@ -190,7 +192,9 @@ function FieldMonitoringDetailView({ userId }: { userId: string }) {
       ) : !detail ? (
         <Card>
           <CardContent className="flex min-h-[240px] items-center justify-center">
-            <p className="text-sm text-gray-600">No monitoring detail available for this user.</p>
+            <p className="text-sm text-muted-foreground">
+              No monitoring detail available for this user.
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -199,8 +203,8 @@ function FieldMonitoringDetailView({ userId }: { userId: string }) {
             <CardContent className="p-6">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">{detail.user.name}</h2>
-                  <p className="text-sm text-gray-600">
+                  <h2 className="text-lg font-semibold text-foreground">{detail.user.name}</h2>
+                  <p className="text-sm text-muted-foreground">
                     {getMobileDisplay({
                       phone: detail.user.phone,
                       employeeId: detail.user.employeeId,
@@ -221,7 +225,7 @@ function FieldMonitoringDetailView({ userId }: { userId: string }) {
               <CardHeader>
                 <CardTitle className="text-base">Last Known Location</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm text-gray-700">
+              <CardContent className="space-y-2 text-sm text-foreground">
                 <p>Latitude: {detail.lastKnownLocation?.lat ?? '-'}</p>
                 <p>Longitude: {detail.lastKnownLocation?.lng ?? '-'}</p>
                 <p>
@@ -237,7 +241,7 @@ function FieldMonitoringDetailView({ userId }: { userId: string }) {
               <CardHeader>
                 <CardTitle className="text-base">Activity Timeline</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm text-gray-700">
+              <CardContent className="space-y-2 text-sm text-foreground">
                 <p>Last Heartbeat: {formatTimestamp(detail.activity.lastHeartbeatAt)}</p>
                 <p>Last Task Activity: {formatTimestamp(detail.activity.lastTaskActivityAt)}</p>
                 <p>
@@ -254,7 +258,7 @@ function FieldMonitoringDetailView({ userId }: { userId: string }) {
               <CardHeader>
                 <CardTitle className="text-base">Operating Territory</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm text-gray-700">
+              <CardContent className="space-y-2 text-sm text-foreground">
                 <p>Current Area: {detail.operatingTerritory.currentArea.name || '-'}</p>
                 <p>Current Pincode: {detail.operatingTerritory.currentOperatingPincode || '-'}</p>
                 <p>
@@ -282,26 +286,23 @@ function FieldMonitoringDetailView({ userId }: { userId: string }) {
               </CardHeader>
               <CardContent>
                 {detail.openAssignments.length === 0 ? (
-                  <p className="text-sm text-gray-600">No open assignments.</p>
+                  <p className="text-sm text-muted-foreground">No open assignments.</p>
                 ) : (
                   <div className="space-y-3">
                     {detail.openAssignments.map((assignment) => (
-                      <div
-                        key={assignment.task.id}
-                        className="rounded-lg border border-gray-200 p-3"
-                      >
+                      <div key={assignment.task.id} className="rounded-lg border border-border p-3">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                           <div>
-                            <p className="font-medium text-gray-900">
+                            <p className="font-medium text-foreground">
                               Task {assignment.task.taskNumber}
                             </p>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-muted-foreground">
                               Case #{assignment.case.caseNumber} · {assignment.case.customerName}
                             </p>
                           </div>
                           <Badge variant="outline">{assignment.task.status}</Badge>
                         </div>
-                        <div className="mt-2 grid gap-2 text-sm text-gray-700 sm:grid-cols-2">
+                        <div className="mt-2 grid gap-2 text-sm text-foreground sm:grid-cols-2">
                           <p>Priority: {assignment.task.priority || '-'}</p>
                           <p>Pincode: {assignment.task.pincode || '-'}</p>
                           <p>Assigned At: {formatTimestamp(assignment.task.assignedAt)}</p>
@@ -594,7 +595,7 @@ function FieldMonitoringRosterView() {
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             Field Executive Monitoring
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Monitor field activity, territory coverage, and live operational status
           </p>
         </div>
@@ -765,14 +766,14 @@ function FieldMonitoringRosterView() {
                   <LoadingState message="Loading field monitoring roster..." size="lg" />
                 </div>
               ) : roster.length === 0 ? (
-                <div className="flex min-h-[240px] items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50">
-                  <p className="text-sm text-gray-600">
+                <div className="flex min-h-[240px] items-center justify-center rounded-lg border border-dashed border-input bg-muted">
+                  <p className="text-sm text-muted-foreground">
                     No field executives matched the current filters.
                   </p>
                 </div>
               ) : (
                 <>
-                  <div className="rounded-lg border border-gray-200">
+                  <div className="rounded-lg border border-border">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -795,7 +796,7 @@ function FieldMonitoringRosterView() {
                               <div className="space-y-1">
                                 <div className="font-medium">{user.name}</div>
                                 {user.currentCaseSummary && (
-                                  <div className="text-xs text-gray-500">
+                                  <div className="text-xs text-muted-foreground">
                                     Case #{user.currentCaseSummary.caseNumber} ·{' '}
                                     {user.currentCaseSummary.customerName}
                                   </div>
@@ -815,7 +816,7 @@ function FieldMonitoringRosterView() {
                             <TableCell>{user.operatingPincode || '-'}</TableCell>
                             <TableCell>{formatTimestamp(user.lastActivityAt)}</TableCell>
                             <TableCell>{getLastLocationDisplayTime(user)}</TableCell>
-                            <TableCell className="text-sm text-gray-600">
+                            <TableCell className="text-sm text-muted-foreground">
                               {user.lastLocation?.pingSource === 'ADMIN_PING' &&
                               user.lastLocation?.requestedByName
                                 ? user.lastLocation.requestedByName
@@ -857,7 +858,7 @@ function FieldMonitoringRosterView() {
                   </div>
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       Showing {roster.length} of {pagination.total} field executives
                     </p>
                     <div className="flex items-center gap-2">
@@ -869,7 +870,7 @@ function FieldMonitoringRosterView() {
                       >
                         Previous
                       </Button>
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-muted-foreground">
                         Page {pagination.page} of {Math.max(pagination.totalPages, 1)}
                       </span>
                       <Button

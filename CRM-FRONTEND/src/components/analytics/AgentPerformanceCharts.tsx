@@ -191,7 +191,7 @@ export const AgentPerformanceCharts: React.FC = () => {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <XCircle className="h-12 w-12 text-red-500 mb-4" />
             <h3 className="text-lg font-semibold mb-2">Failed to Load Performance Data</h3>
-            <p className="text-gray-600 text-center">
+            <p className="text-muted-foreground text-center">
               There was an error loading agent performance data. Please try again later.
             </p>
           </CardContent>
@@ -205,10 +205,10 @@ export const AgentPerformanceCharts: React.FC = () => {
       {/* Header with Controls */}
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">
             Agent Performance Analytics
           </h2>
-          <p className="mt-1 text-sm sm:text-base text-gray-600">
+          <p className="mt-1 text-sm sm:text-base text-muted-foreground">
             Comprehensive performance metrics and productivity analysis
           </p>
         </div>
@@ -262,11 +262,11 @@ export const AgentPerformanceCharts: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Agents</CardTitle>
-            <Users className="h-4 w-4 text-gray-600" />
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{summary?.totalAgents || 0}</div>
-            <p className="text-xs text-gray-600">Active agents</p>
+            <p className="text-xs text-muted-foreground">Active agents</p>
           </CardContent>
         </Card>
 
@@ -279,7 +279,7 @@ export const AgentPerformanceCharts: React.FC = () => {
             <div className="text-2xl font-bold text-green-600">
               {summary?.avgCasesPerAgent ? summary.avgCasesPerAgent.toFixed(1) : '0'}
             </div>
-            <p className="text-xs text-gray-600">Per agent</p>
+            <p className="text-xs text-muted-foreground">Per agent</p>
           </CardContent>
         </Card>
 
@@ -292,7 +292,7 @@ export const AgentPerformanceCharts: React.FC = () => {
             <div className="text-2xl font-bold text-green-600">
               {summary?.avgCompletionRate ? `${summary.avgCompletionRate.toFixed(1)}%` : '0%'}
             </div>
-            <p className="text-xs text-gray-600">Average rate</p>
+            <p className="text-xs text-muted-foreground">Average rate</p>
           </CardContent>
         </Card>
 
@@ -303,7 +303,7 @@ export const AgentPerformanceCharts: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">{topPerformers.length}</div>
-            <p className="text-xs text-gray-600">High achievers</p>
+            <p className="text-xs text-muted-foreground">High achievers</p>
           </CardContent>
         </Card>
 
@@ -314,7 +314,7 @@ export const AgentPerformanceCharts: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{summary?.activeAgents || 0}</div>
-            <p className="text-xs text-gray-600">Currently working</p>
+            <p className="text-xs text-muted-foreground">Currently working</p>
           </CardContent>
         </Card>
       </div>
@@ -436,15 +436,15 @@ export const AgentPerformanceCharts: React.FC = () => {
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="p-4 border rounded-lg">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-gray-600">Cases Assigned</span>
+                            <span className="text-sm text-muted-foreground">Cases Assigned</span>
                             <span className="font-bold">{agent.totalCasesAssigned}</span>
                           </div>
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-gray-600">Cases Completed</span>
+                            <span className="text-sm text-muted-foreground">Cases Completed</span>
                             <span className="font-bold text-green-600">{agent.casesCompleted}</span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Completion Rate</span>
+                            <span className="text-sm text-muted-foreground">Completion Rate</span>
                             <Badge
                               className={getPerformanceBadge(
                                 getPerformanceLevel(agent.formQualityScore, completionRate)
@@ -457,11 +457,11 @@ export const AgentPerformanceCharts: React.FC = () => {
 
                         <div className="p-4 border rounded-lg">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-gray-600">Quality Score</span>
+                            <span className="text-sm text-muted-foreground">Quality Score</span>
                             <span className="font-bold">{agent.formQualityScore.toFixed(1)}</span>
                           </div>
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-gray-600">Avg Completion</span>
+                            <span className="text-sm text-muted-foreground">Avg Completion</span>
                             <span className="font-bold">
                               {agent.avgCompletionDays
                                 ? `${agent.avgCompletionDays.toFixed(1)}d`
@@ -469,7 +469,7 @@ export const AgentPerformanceCharts: React.FC = () => {
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-gray-600">Forms Submitted</span>
+                            <span className="text-sm text-muted-foreground">Forms Submitted</span>
                             <span className="font-bold">
                               {agent.residenceFormsSubmitted + agent.officeFormsSubmitted}
                             </span>
@@ -499,9 +499,9 @@ export const AgentPerformanceCharts: React.FC = () => {
                 })()
               ) : (
                 <div className="text-center py-8">
-                  <Users className="mx-auto h-12 w-12 text-gray-600" />
+                  <Users className="mx-auto h-12 w-12 text-muted-foreground" />
                   <h3 className="mt-4 text-lg font-semibold">Select an Agent</h3>
-                  <p className="text-gray-600">Choose an agent to view detailed metrics</p>
+                  <p className="text-muted-foreground">Choose an agent to view detailed metrics</p>
                 </div>
               )}
             </CardContent>

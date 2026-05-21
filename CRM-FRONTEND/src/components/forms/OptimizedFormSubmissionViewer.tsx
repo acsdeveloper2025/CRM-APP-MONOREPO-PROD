@@ -169,17 +169,17 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
           {/* Key Information Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
             <div className="flex items-center space-x-2">
-              <User className="h-4 w-4 text-gray-600" />
+              <User className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-xs text-gray-600">Agent</p>
+                <p className="text-xs text-muted-foreground">Agent</p>
                 <p className="text-sm font-medium">{agentName}</p>
               </div>
             </div>
 
             <div className="flex items-center space-x-2">
-              <Clock className="h-4 w-4 text-gray-600" />
+              <Clock className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-xs text-gray-600">Submitted</p>
+                <p className="text-xs text-muted-foreground">Submitted</p>
                 <p className="text-sm font-medium">
                   {submissionDate
                     ? formatDistanceToNow(submissionDate, { addSuffix: true })
@@ -189,17 +189,17 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
             </div>
 
             <div className="flex items-center space-x-2">
-              <Camera className="h-4 w-4 text-gray-600" />
+              <Camera className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-xs text-gray-600">Photos</p>
+                <p className="text-xs text-muted-foreground">Photos</p>
                 <p className="text-sm font-medium">{submission.photos?.length || 0} captured</p>
               </div>
             </div>
 
             <div className="flex items-center space-x-2">
-              <FileText className="h-4 w-4 text-gray-600" />
+              <FileText className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-xs text-gray-600">Form Data</p>
+                <p className="text-xs text-muted-foreground">Form Data</p>
                 <p className="text-sm font-medium">
                   {formSections.length} sections, {totalFields} fields
                 </p>
@@ -210,9 +210,9 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
           {/* Submission Details */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
             <div className="flex items-center space-x-2">
-              <Calendar className="h-4 w-4 text-gray-600" />
+              <Calendar className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-xs text-gray-600">Full Date & Time</p>
+                <p className="text-xs text-muted-foreground">Full Date & Time</p>
                 <p className="text-sm font-medium">
                   {submissionDate ? format(submissionDate, 'MMM dd, yyyy HH:mm') : 'Unknown date'}
                 </p>
@@ -220,9 +220,9 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
             </div>
 
             <div className="flex items-center space-x-2">
-              <Smartphone className="h-4 w-4 text-gray-600" />
+              <Smartphone className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-xs text-gray-600">Platform</p>
+                <p className="text-xs text-muted-foreground">Platform</p>
                 <p className="text-sm font-medium">
                   {submission.metadata?.deviceInfo?.platform || 'Unknown'}
                 </p>
@@ -251,14 +251,14 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
                   {formSections.map((section, sectionIndex) => (
                     <div
                       key={sectionIndex}
-                      className={sectionIndex > 0 ? 'pt-6 border-t border-gray-200' : ''}
+                      className={sectionIndex > 0 ? 'pt-6 border-t border-border' : ''}
                     >
                       {/* Section Header - Compact */}
                       <div className="flex items-center space-x-2 mb-3">
                         <div className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
                           {sectionIndex + 1}
                         </div>
-                        <h4 className="text-base font-semibold text-gray-900">{section.title}</h4>
+                        <h4 className="text-base font-semibold text-foreground">{section.title}</h4>
                         <Badge className={baseBadgeStyle}>
                           {section.fields?.length || 0} FIELDS
                         </Badge>
@@ -269,12 +269,12 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
                         {section.fields?.map((field, fieldIndex) => (
                           <div key={fieldIndex} className="flex items-baseline py-1">
                             {/* Label and Value Inline */}
-                            <span className="text-sm font-medium text-gray-600 min-w-[140px] shrink-0">
+                            <span className="text-sm font-medium text-muted-foreground min-w-[140px] shrink-0">
                               {field.label}:
                             </span>
-                            <span className="text-sm text-gray-900 ml-2 flex-1">
+                            <span className="text-sm text-foreground ml-2 flex-1">
                               {getFieldValue(field) || (
-                                <span className="text-gray-400 italic">Not provided</span>
+                                <span className="text-muted-foreground italic">Not provided</span>
                               )}
                             </span>
                           </div>
@@ -288,9 +288,11 @@ export const OptimizedFormSubmissionViewer: React.FC<OptimizedFormSubmissionView
           ) : (
             <Card>
               <CardContent className="p-6 text-center">
-                <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Form Data</h3>
-                <p className="text-gray-600">No form fields were captured in this submission.</p>
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">No Form Data</h3>
+                <p className="text-muted-foreground">
+                  No form fields were captured in this submission.
+                </p>
               </CardContent>
             </Card>
           )}

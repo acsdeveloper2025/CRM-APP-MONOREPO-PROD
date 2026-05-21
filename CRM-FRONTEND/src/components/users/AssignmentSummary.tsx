@@ -19,8 +19,8 @@ export const AssignmentSummary: React.FC<AssignmentSummaryProps> = ({
     return (
       <div className="border rounded-lg p-8 text-center">
         <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto" />
-          <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto" />
+          <div className="h-4 bg-muted rounded w-1/4 mx-auto" />
+          <div className="h-4 bg-muted rounded w-1/2 mx-auto" />
         </div>
       </div>
     );
@@ -29,9 +29,9 @@ export const AssignmentSummary: React.FC<AssignmentSummaryProps> = ({
   if (savedAssignments.length === 0) {
     return (
       <div className="border rounded-lg p-8 text-center">
-        <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No Saved Assignments</h3>
-        <p className="text-gray-600 max-w-md mx-auto">
+        <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-foreground mb-2">No Saved Assignments</h3>
+        <p className="text-muted-foreground max-w-md mx-auto">
           This field agent has not been assigned to any territories yet. Use the Pincodes and Areas
           tabs to create new assignments.
         </p>
@@ -55,7 +55,7 @@ export const AssignmentSummary: React.FC<AssignmentSummaryProps> = ({
 
       {/* Summary header */}
       <div className="flex items-center gap-4">
-        <h3 className="text-lg font-semibold text-gray-900">Saved Territory Assignments</h3>
+        <h3 className="text-lg font-semibold text-foreground">Saved Territory Assignments</h3>
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200">
             {totalPincodes} {totalPincodes === 1 ? 'pincode' : 'pincodes'}
@@ -69,21 +69,21 @@ export const AssignmentSummary: React.FC<AssignmentSummaryProps> = ({
       {/* Saved assignments list */}
       <div className="border rounded-lg divide-y max-h-[500px] overflow-y-auto">
         {savedAssignments.map((assignment) => (
-          <div key={assignment.assignmentId} className="p-4 bg-white">
+          <div key={assignment.assignmentId} className="p-4 bg-card">
             <div className="space-y-2">
               {/* Pincode info */}
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-emerald-600" />
-                <span className="font-medium text-gray-900">{assignment.pincodeCode}</span>
-                <span className="text-gray-500">-</span>
-                <span className="text-gray-700">{assignment.cityName}</span>
-                <span className="text-gray-400 text-sm">({assignment.stateName})</span>
+                <span className="font-medium text-foreground">{assignment.pincodeCode}</span>
+                <span className="text-muted-foreground">-</span>
+                <span className="text-foreground">{assignment.cityName}</span>
+                <span className="text-muted-foreground text-sm">({assignment.stateName})</span>
               </div>
 
               {/* Areas */}
               {assignment.areaAssignments.length > 0 ? (
                 <div className="pl-6">
-                  <div className="text-sm text-gray-600 mb-1">
+                  <div className="text-sm text-muted-foreground mb-1">
                     Areas ({assignment.areaAssignments.length}):
                   </div>
                   <div className="flex flex-wrap gap-1">
@@ -95,11 +95,11 @@ export const AssignmentSummary: React.FC<AssignmentSummaryProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="pl-6 text-sm text-gray-500 italic">No areas assigned</div>
+                <div className="pl-6 text-sm text-muted-foreground italic">No areas assigned</div>
               )}
 
               {/* Assignment date */}
-              <div className="pl-6 text-xs text-gray-500">
+              <div className="pl-6 text-xs text-muted-foreground">
                 Assigned on:{' '}
                 {new Date(assignment.assignedAt).toLocaleDateString('en-IN', {
                   year: 'numeric',

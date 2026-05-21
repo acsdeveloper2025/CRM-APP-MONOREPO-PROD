@@ -107,7 +107,9 @@ export function UserPermissionsPage() {
           </Button>
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">User Permissions</h1>
-            <p className="text-gray-600">Manage access control and permissions for {user.name}</p>
+            <p className="text-muted-foreground">
+              Manage access control and permissions for {user.name}
+            </p>
           </div>
         </div>
       </div>
@@ -123,19 +125,19 @@ export function UserPermissionsPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <p className="text-sm font-medium text-gray-600">Name</p>
+              <p className="text-sm font-medium text-muted-foreground">Name</p>
               <p className="text-lg font-semibold">{user.name}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Email</p>
+              <p className="text-sm font-medium text-muted-foreground">Email</p>
               <p className="text-lg">{user.email || '—'}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Role</p>
+              <p className="text-sm font-medium text-muted-foreground">Role</p>
               <Badge variant={adminLike ? 'default' : 'secondary'}>{roleLabel}</Badge>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Status</p>
+              <p className="text-sm font-medium text-muted-foreground">Status</p>
               <Badge variant={user.isActive ? 'default' : 'destructive'}>
                 {user.isActive ? 'Active' : 'Inactive'}
               </Badge>
@@ -196,14 +198,14 @@ export function UserPermissionsPage() {
                 <span>Client Access</span>
               </h4>
               {adminLike ? (
-                <p className="text-sm text-gray-600">Full/elevated access to clients</p>
+                <p className="text-sm text-muted-foreground">Full/elevated access to clients</p>
               ) : backendScoped ? (
                 <div className="space-y-2">
                   {clientAssignmentsLoading ? (
-                    <p className="text-sm text-gray-600">Loading assignments...</p>
+                    <p className="text-sm text-muted-foreground">Loading assignments...</p>
                   ) : clientAssignments?.data && clientAssignments.data.length > 0 ? (
                     <div className="space-y-1">
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         Assigned to {clientAssignments.data.length} client(s):
                       </p>
                       <div className="flex flex-wrap gap-1">
@@ -221,7 +223,9 @@ export function UserPermissionsPage() {
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-gray-600">Role-based access (not client-specific)</p>
+                <p className="text-sm text-muted-foreground">
+                  Role-based access (not client-specific)
+                </p>
               )}
             </div>
             <div>
@@ -230,11 +234,11 @@ export function UserPermissionsPage() {
                 <span>Product Access</span>
               </h4>
               {adminLike ? (
-                <p className="text-sm text-gray-600">Full/elevated access to products</p>
+                <p className="text-sm text-muted-foreground">Full/elevated access to products</p>
               ) : backendScoped ? (
                 <div className="space-y-2">
                   {productAssignmentsLoading || clientAssignmentsLoading ? (
-                    <p className="text-sm text-gray-600">Loading assignments...</p>
+                    <p className="text-sm text-muted-foreground">Loading assignments...</p>
                   ) : !clientAssignments?.data || clientAssignments.data.length === 0 ? (
                     // Effective access requires at least one client. Direct product
                     // assignments without clients have no effect under the new
@@ -245,7 +249,7 @@ export function UserPermissionsPage() {
                     </p>
                   ) : productAssignments?.data && productAssignments.data.length > 0 ? (
                     <div className="space-y-1">
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         Assigned to {productAssignments.data.length} product(s):
                       </p>
                       <div className="flex flex-wrap gap-1">
@@ -263,7 +267,9 @@ export function UserPermissionsPage() {
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-gray-600">Role-based access (not product-specific)</p>
+                <p className="text-sm text-muted-foreground">
+                  Role-based access (not product-specific)
+                </p>
               )}
             </div>
           </div>

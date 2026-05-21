@@ -78,9 +78,9 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <Clock className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-          <p className="text-lg font-medium text-gray-600">No tasks found</p>
-          <p className="text-sm text-gray-600 mt-1">
+          <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-lg font-medium text-muted-foreground">No tasks found</p>
+          <p className="text-sm text-muted-foreground mt-1">
             Try adjusting your filters or search criteria
           </p>
         </CardContent>
@@ -116,75 +116,75 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
       <div className="border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-border">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-muted border-b border-border">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Task #
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Case #
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Customer
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Client
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Product
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Task Title
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Verification Type
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Address
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Pincode
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Rate Type
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Type
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Priority
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Assigned To
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Assigned By
                 </th>
                 {showRevokeMetadata && (
                   <>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                       Revoke Reason
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                       Revoked By
                     </th>
                   </>
                 )}
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Date
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Time
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-foreground uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-gray-200">
               {tasks.map((task, _index) => {
                 const StatusIcon = getStatusIcon(task.status);
 
@@ -225,31 +225,31 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
 
                     {/* Customer Name */}
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{task.customerName}</div>
+                      <div className="text-sm font-medium text-foreground">{task.customerName}</div>
                     </td>
 
                     {/* Client */}
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{task.clientName || '-'}</div>
+                      <div className="text-sm text-foreground">{task.clientName || '-'}</div>
                     </td>
 
                     {/* Product */}
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{task.productName || '-'}</div>
+                      <div className="text-sm text-foreground">{task.productName || '-'}</div>
                     </td>
 
                     {/* Task Title */}
                     <td className="px-4 py-4">
                       <div className="max-w-[200px]">
                         <div
-                          className="text-sm font-medium text-gray-900 truncate"
+                          className="text-sm font-medium text-foreground truncate"
                           title={task.taskTitle}
                         >
                           {task.taskTitle}
                         </div>
                         {task.taskDescription && (
                           <div
-                            className="text-xs text-gray-600 truncate mt-1"
+                            className="text-xs text-muted-foreground truncate mt-1"
                             title={task.taskDescription}
                           >
                             {task.taskDescription}
@@ -260,7 +260,7 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
 
                     {/* Verification Type */}
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-foreground">
                         {task.verificationTypeName || '-'}
                       </div>
                     </td>
@@ -268,7 +268,7 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                     {/* Address */}
                     <td className="px-4 py-4">
                       <div
-                        className="text-sm text-gray-900 max-w-[200px] truncate"
+                        className="text-sm text-foreground max-w-[200px] truncate"
                         title={task.address}
                       >
                         {task.address || '-'}
@@ -277,12 +277,12 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
 
                     {/* Pincode */}
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{task.pincode || '-'}</div>
+                      <div className="text-sm text-foreground">{task.pincode || '-'}</div>
                     </td>
 
                     {/* Rate Type */}
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{task.rateTypeName || '-'}</div>
+                      <div className="text-sm text-foreground">{task.rateTypeName || '-'}</div>
                     </td>
 
                     {/* Status */}
@@ -317,7 +317,7 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                     {/* Assigned To */}
                     <td className="px-4 py-4 whitespace-nowrap">
                       {task.assignedToName ? (
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-foreground">
                           {task.assignedToName}
                           {/* Employee ID not currently available in flattened response */}
                         </div>
@@ -328,32 +328,32 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
 
                     {/* Assigned By */}
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{task.assignedByName || '-'}</div>
+                      <div className="text-sm text-foreground">{task.assignedByName || '-'}</div>
                     </td>
 
                     {showRevokeMetadata && (
                       <>
                         {/* Revoke Reason */}
                         <td
-                          className="px-4 py-4 text-sm text-gray-900 max-w-xs truncate"
+                          className="px-4 py-4 text-sm text-foreground max-w-xs truncate"
                           title={task.revokeReason || ''}
                         >
                           {task.revokeReason || '-'}
                         </td>
                         {/* Revoked By */}
-                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-foreground">
                           {task.revokedByName || '-'}
                         </td>
                       </>
                     )}
 
                     {/* Date */}
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {task.assignedAt ? formatDate(task.assignedAt) : formatDate(task.createdAt)}
                     </td>
 
                     {/* Time */}
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {task.assignedAt ? formatTime(task.assignedAt) : formatTime(task.createdAt)}
                     </td>
 

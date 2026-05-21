@@ -196,8 +196,8 @@ export const DashboardPage: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Dashboard</h1>
-          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">Dashboard</h1>
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">
             Welcome back! Here&apos;s what&apos;s happening with your cases today.
           </p>
         </div>
@@ -267,7 +267,7 @@ export const DashboardPage: React.FC = () => {
       {/* KYC Verification Stats */}
       {hasKYCAccess && (
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">KYC Document Verification</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-4">KYC Document Verification</h2>
           <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-5">
             <StatsCard
               title="Total KYC"
@@ -343,12 +343,12 @@ export const DashboardPage: React.FC = () => {
                       <action.icon className="h-5 w-5" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-medium text-gray-900 group-hover:text-green-600">
+                      <h3 className="font-medium text-foreground group-hover:text-green-600">
                         {action.title}
                       </h3>
-                      <p className="text-sm text-gray-600">{action.description}</p>
+                      <p className="text-sm text-muted-foreground">{action.description}</p>
                       {action.count !== null && (
-                        <p className="text-lg font-bold text-gray-900 mt-1">{action.count}</p>
+                        <p className="text-lg font-bold text-foreground mt-1">{action.count}</p>
                       )}
                     </div>
                   </div>
@@ -374,17 +374,17 @@ export const DashboardPage: React.FC = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Monthly Revenue</span>
+                  <span className="text-sm text-muted-foreground">Monthly Revenue</span>
                   <span className="font-bold text-green-600">
                     ${stats.monthlyRevenue?.toLocaleString() || '0'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Total Invoices</span>
-                  <span className="font-bold text-gray-900">{stats.totalInvoices || 0}</span>
+                  <span className="text-sm text-muted-foreground">Total Invoices</span>
+                  <span className="font-bold text-foreground">{stats.totalInvoices || 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Pending Commissions</span>
+                  <span className="text-sm text-muted-foreground">Pending Commissions</span>
                   <span className="font-bold text-yellow-600">{stats.pendingCommissions || 0}</span>
                 </div>
               </CardContent>
@@ -398,19 +398,19 @@ export const DashboardPage: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Avg. Completion Time</span>
-                <span className="font-bold text-gray-900">
+                <span className="text-sm text-muted-foreground">Avg. Completion Time</span>
+                <span className="font-bold text-foreground">
                   {stats.avgTurnaroundDays ? `${stats.avgTurnaroundDays.toFixed(1)} days` : 'N/A'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Success Rate</span>
+                <span className="text-sm text-muted-foreground">Success Rate</span>
                 <span className="font-bold text-green-600">
                   {stats.completionRate ? `${stats.completionRate.toFixed(1)}%` : 'N/A'}
                 </span>
               </div>
               <div className="flex items-center justify-between" title="Based on completed tasks">
-                <span className="text-sm text-gray-600">Operations Health</span>
+                <span className="text-sm text-muted-foreground">Operations Health</span>
                 <span className="font-bold text-green-600">Stable</span>
               </div>
             </CardContent>

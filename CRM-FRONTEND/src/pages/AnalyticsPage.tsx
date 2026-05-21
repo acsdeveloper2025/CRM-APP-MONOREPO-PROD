@@ -119,11 +119,11 @@ export const AnalyticsPage: React.FC = () => {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Cases</CardTitle>
-                <FileText className="h-4 w-4 text-gray-600" />
+                <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{caseSummary?.totalCases || 0}</div>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-muted-foreground">
                   {caseSummary?.completionRate
                     ? `${caseSummary.completionRate.toFixed(1)}%`
                     : 'No cases'}
@@ -139,7 +139,7 @@ export const AnalyticsPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalTasks}</div>
-                <p className="text-xs text-gray-600">{taskCompletionRate.toFixed(1)}%</p>
+                <p className="text-xs text-muted-foreground">{taskCompletionRate.toFixed(1)}%</p>
               </CardContent>
             </Card>
 
@@ -151,7 +151,7 @@ export const AnalyticsPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">{completedTasks}</div>
-                <p className="text-xs text-gray-600">{inProgressTasks} in progress</p>
+                <p className="text-xs text-muted-foreground">{inProgressTasks} in progress</p>
               </CardContent>
             </Card>
 
@@ -163,7 +163,7 @@ export const AnalyticsPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{activeAgents}</div>
-                <p className="text-xs text-gray-600">Field agents</p>
+                <p className="text-xs text-muted-foreground">Field agents</p>
               </CardContent>
             </Card>
 
@@ -175,7 +175,7 @@ export const AnalyticsPage: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{pendingTasks}</div>
-                <p className="text-xs text-gray-600">Awaiting action</p>
+                <p className="text-xs text-muted-foreground">Awaiting action</p>
               </CardContent>
             </Card>
           </div>
@@ -192,7 +192,7 @@ export const AnalyticsPage: React.FC = () => {
                   {Object.entries(caseSummary?.statusDistribution || {}).map(([status, count]) => (
                     <div key={status} className="flex items-center justify-between">
                       <span className="text-sm font-medium">{status.replace(/_/g, ' ')}</span>
-                      <span className="text-sm text-gray-600">{count as number}</span>
+                      <span className="text-sm text-muted-foreground">{count as number}</span>
                     </div>
                   ))}
                 </div>
@@ -208,7 +208,7 @@ export const AnalyticsPage: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Avg Completion Time</span>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-muted-foreground">
                       {caseSummary?.avgCompletionDays
                         ? `${caseSummary.avgCompletionDays.toFixed(1)} days`
                         : 'N/A'}
@@ -216,7 +216,7 @@ export const AnalyticsPage: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Task Progress</span>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-muted-foreground">
                       {caseSummary?.avgFormCompletion
                         ? `${caseSummary.avgFormCompletion.toFixed(1)}%`
                         : 'N/A'}
@@ -224,7 +224,7 @@ export const AnalyticsPage: React.FC = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Tasks per Case</span>
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-muted-foreground">
                       {caseSummary?.totalCases && totalTasks
                         ? (totalTasks / caseSummary.totalCases).toFixed(1)
                         : 'N/A'}
@@ -246,28 +246,28 @@ export const AnalyticsPage: React.FC = () => {
                 <div className="text-center p-4 border rounded-lg">
                   <FileText className="mx-auto h-8 w-8 text-green-600 mb-2" />
                   <h3 className="font-semibold">Cases Analytics</h3>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     Comprehensive case metrics with distribution by client, product, and status
                   </p>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
                   <CheckSquare className="mx-auto h-8 w-8 text-green-600 mb-2" />
                   <h3 className="font-semibold">Tasks Analytics</h3>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     Verification task metrics with status tracking and agent assignment
                   </p>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
                   <Users className="mx-auto h-8 w-8 text-green-600 mb-2" />
                   <h3 className="font-semibold">Agent Performance</h3>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     Comprehensive agent analytics with productivity metrics and trends
                   </p>
                 </div>
                 <div className="text-center p-4 border rounded-lg">
                   <TrendingUp className="mx-auto h-8 w-8 text-yellow-600 mb-2" />
                   <h3 className="font-semibold">Interactive Charts</h3>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     Rich visualizations with filters, trends, and comparative analysis
                   </p>
                 </div>

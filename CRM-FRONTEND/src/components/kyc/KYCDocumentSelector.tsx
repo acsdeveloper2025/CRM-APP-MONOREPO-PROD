@@ -223,7 +223,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
               setDropdownOpen(!dropdownOpen);
               setTimeout(() => inputRef.current?.focus(), 50);
             }}
-            className="w-full flex items-center justify-between border rounded-md px-3 py-2 bg-white hover:bg-gray-50 transition-colors text-sm min-h-[40px]"
+            className="w-full flex items-center justify-between border rounded-md px-3 py-2 bg-card hover:bg-muted transition-colors text-sm min-h-[40px]"
           >
             <span className={selectedDocuments.length === 0 ? 'text-muted-foreground' : ''}>
               {selectedDocuments.length === 0
@@ -268,11 +268,11 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
 
           {/* Dropdown list */}
           {dropdownOpen && (
-            <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-72 overflow-hidden">
+            <div className="absolute z-50 w-full mt-1 bg-card border rounded-md shadow-lg max-h-72 overflow-hidden">
               {/* Search inside dropdown */}
-              <div className="p-2 border-b sticky top-0 bg-white">
+              <div className="p-2 border-b sticky top-0 bg-card">
                 <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     ref={inputRef}
                     placeholder="Search document types..."
@@ -309,10 +309,10 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                         key={dt.code}
                         type="button"
                         onClick={() => toggleDocument(dt.code)}
-                        className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm hover:bg-gray-50 transition-colors ${checked ? 'bg-primary/5' : ''}`}
+                        className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm hover:bg-muted transition-colors ${checked ? 'bg-primary/5' : ''}`}
                       >
                         <div
-                          className={`flex items-center justify-center h-4 w-4 rounded border shrink-0 ${checked ? 'bg-primary border-primary text-white' : 'border-gray-300'}`}
+                          className={`flex items-center justify-center h-4 w-4 rounded border shrink-0 ${checked ? 'bg-primary border-primary text-white' : 'border-input'}`}
                         >
                           {checked && <Check className="h-3 w-3" />}
                         </div>
@@ -356,7 +356,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
         {selectedDocuments.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-gray-500">
+              <p className="text-xs font-medium text-muted-foreground">
                 {selectedDocuments.length} document{selectedDocuments.length > 1 ? 's' : ''}{' '}
                 selected — click to expand details
               </p>
@@ -392,7 +392,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
               return (
                 <div
                   key={doc.documentTypeCode}
-                  className="border rounded-lg bg-white overflow-hidden"
+                  className="border rounded-lg bg-card overflow-hidden"
                 >
                   {/* Compact header row — always visible */}
                   <div
@@ -400,7 +400,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                     tabIndex={0}
                     aria-expanded={isExpanded}
                     aria-label={`Toggle ${doc.documentTypeName} details`}
-                    className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-muted transition-colors"
                     onClick={() => toggleExpanded(doc.documentTypeCode)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
@@ -410,7 +410,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                     }}
                   >
                     <ChevronDown
-                      className={`h-3.5 w-3.5 text-gray-400 shrink-0 transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`}
+                      className={`h-3.5 w-3.5 text-muted-foreground shrink-0 transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`}
                     />
                     <FileText className="h-4 w-4 text-amber-600 shrink-0" />
                     <span className="text-sm font-medium flex-1 truncate">
@@ -420,7 +420,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                       {CATEGORY_LABELS[doc.documentCategory] || doc.documentCategory}
                     </Badge>
                     {doc.documentNumber && (
-                      <span className="text-xs text-gray-400 hidden sm:inline">
+                      <span className="text-xs text-muted-foreground hidden sm:inline">
                         #{doc.documentNumber}
                       </span>
                     )}
@@ -433,7 +433,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0 text-gray-400 hover:text-red-500 shrink-0"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500 shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
                         removeDocument(doc.documentTypeCode);
@@ -451,7 +451,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                           {customFields.map((field) => (
                             <div key={field.key}>
-                              <Label className="text-xs text-gray-500">
+                              <Label className="text-xs text-muted-foreground">
                                 {field.label}
                                 {field.required && <span className="text-red-500 ml-0.5">*</span>}
                               </Label>
@@ -472,7 +472,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                       {/* Common fields — single compact row */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                         <div>
-                          <Label className="text-xs text-gray-500">Document Number</Label>
+                          <Label className="text-xs text-muted-foreground">Document Number</Label>
                           <Input
                             placeholder="Enter number"
                             className="h-7 text-xs mt-0.5"
@@ -483,7 +483,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                           />
                         </div>
                         <div>
-                          <Label className="text-xs text-gray-500">Holder Name</Label>
+                          <Label className="text-xs text-muted-foreground">Holder Name</Label>
                           <Input
                             placeholder="Holder name"
                             className="h-7 text-xs mt-0.5"
@@ -498,7 +498,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                           />
                         </div>
                         <div>
-                          <Label className="text-xs text-gray-500">
+                          <Label className="text-xs text-muted-foreground">
                             Assign To <span className="text-red-500">*</span>
                           </Label>
                           <Select
@@ -529,10 +529,10 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                           )}
                         </div>
                         <div>
-                          <Label className="text-xs text-gray-500">File</Label>
+                          <Label className="text-xs text-muted-foreground">File</Label>
                           {doc.file ? (
-                            <div className="flex items-center gap-1 mt-0.5 h-7 px-2 bg-gray-50 rounded border text-xs">
-                              <FileText className="h-3 w-3 text-gray-400 shrink-0" />
+                            <div className="flex items-center gap-1 mt-0.5 h-7 px-2 bg-muted rounded border text-xs">
+                              <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
                               <span className="truncate flex-1">{doc.file.name}</span>
                               <Button
                                 type="button"
@@ -545,7 +545,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                               </Button>
                             </div>
                           ) : (
-                            <label className="flex items-center gap-1 mt-0.5 h-7 px-2 bg-gray-50 rounded border border-dashed cursor-pointer hover:bg-gray-100 transition-colors text-xs text-gray-500">
+                            <label className="flex items-center gap-1 mt-0.5 h-7 px-2 bg-muted rounded border border-dashed cursor-pointer hover:bg-muted transition-colors text-xs text-muted-foreground">
                               <Upload className="h-3 w-3" />
                               <span>Upload</span>
                               <input
@@ -567,7 +567,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
 
                       {/* Description — compact */}
                       <div>
-                        <Label className="text-xs text-gray-500">Notes</Label>
+                        <Label className="text-xs text-muted-foreground">Notes</Label>
                         <Input
                           placeholder="Optional notes..."
                           className="h-7 text-xs mt-0.5"

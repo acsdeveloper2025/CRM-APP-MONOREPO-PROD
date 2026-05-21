@@ -125,7 +125,7 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
   if (isLoading) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-gray-500">
+        <CardContent className="py-8 text-center text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
           Loading KYC documents...
         </CardContent>
@@ -136,7 +136,7 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
   if (kycTasks.length === 0) {
     return (
       <Card>
-        <CardContent className="py-6 text-center text-gray-500">
+        <CardContent className="py-6 text-center text-muted-foreground">
           No KYC documents linked to this task.
         </CardContent>
       </Card>
@@ -184,12 +184,12 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
           return (
             <div
               key={doc.id}
-              className={`border rounded-lg overflow-hidden ${isPending ? 'border-yellow-200' : 'border-gray-200'}`}
+              className={`border rounded-lg overflow-hidden ${isPending ? 'border-yellow-200' : 'border-border'}`}
             >
               {/* Document header row */}
               <button
                 type="button"
-                className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center gap-3 p-3 text-left hover:bg-muted transition-colors"
                 onClick={() => setExpandedDoc(isExpanded ? null : doc.id)}
               >
                 <StatusIcon
@@ -208,7 +208,7 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                       {doc.documentCategory}
                     </Badge>
                   </div>
-                  <div className="text-xs text-gray-500 mt-0.5">
+                  <div className="text-xs text-muted-foreground mt-0.5">
                     {doc.documentNumber && <span>#{doc.documentNumber} · </span>}
                     {doc.documentHolderName && <span>{doc.documentHolderName} · </span>}
                     {doc.assignedToName ? `Assigned: ${doc.assignedToName}` : 'Unassigned'}
@@ -221,19 +221,19 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
 
               {/* Expanded section */}
               {isExpanded && (
-                <div className="border-t bg-gray-50/50 p-4 space-y-4">
+                <div className="border-t bg-muted/50 p-4 space-y-4">
                   {/* Document details grid */}
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     <div>
-                      <p className="text-xs text-gray-500">Document Number</p>
+                      <p className="text-xs text-muted-foreground">Document Number</p>
                       <p className="text-sm font-medium font-mono">{doc.documentNumber || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Holder Name</p>
+                      <p className="text-xs text-muted-foreground">Holder Name</p>
                       <p className="text-sm font-medium">{doc.documentHolderName || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Created</p>
+                      <p className="text-xs text-muted-foreground">Created</p>
                       <p className="text-sm">{format(new Date(doc.createdAt), 'dd MMM yyyy')}</p>
                     </div>
                   </div>
@@ -241,13 +241,13 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                   {/* Custom fields from LOS */}
                   {customFields && (
                     <div className="border rounded p-3 bg-blue-50/50">
-                      <p className="text-xs font-semibold text-gray-600 mb-2">
+                      <p className="text-xs font-semibold text-muted-foreground mb-2">
                         Verification Details
                       </p>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                         {Object.entries(customFields).map(([key, value]) => (
                           <div key={key}>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-muted-foreground">
                               {key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
                             </p>
                             <p className="text-sm font-medium">{value || '-'}</p>
@@ -259,15 +259,17 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
 
                   {/* Description */}
                   {doc.description && (
-                    <div className="border rounded p-3 bg-gray-50">
-                      <p className="text-xs font-semibold text-gray-600 mb-1">Description</p>
+                    <div className="border rounded p-3 bg-muted">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">
+                        Description
+                      </p>
                       <p className="text-sm">{doc.description}</p>
                     </div>
                   )}
 
                   {/* Document file */}
                   {doc.documentFilePath ? (
-                    <div className="flex items-center gap-2 p-2 bg-white border rounded">
+                    <div className="flex items-center gap-2 p-2 bg-card border rounded">
                       <FileText className="h-4 w-4 text-blue-500 shrink-0" />
                       <span className="text-sm flex-1 truncate">{doc.documentFileName}</span>
                       <Button variant="outline" size="sm" asChild>
@@ -277,7 +279,7 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                       </Button>
                     </div>
                   ) : isPending && !readonly ? (
-                    <label className="flex items-center gap-2 p-3 bg-white border border-dashed rounded cursor-pointer hover:bg-gray-50 transition-colors text-sm text-gray-500">
+                    <label className="flex items-center gap-2 p-3 bg-card border border-dashed rounded cursor-pointer hover:bg-muted transition-colors text-sm text-muted-foreground">
                       <Upload className="h-4 w-4" />
                       <span>Upload document</span>
                       <input
@@ -294,13 +296,13 @@ export const KYCTaskVerificationSection: React.FC<KYCTaskVerificationSectionProp
                       />
                     </label>
                   ) : (
-                    <div className="text-sm text-gray-400 italic">No document uploaded</div>
+                    <div className="text-sm text-muted-foreground italic">No document uploaded</div>
                   )}
 
                   {/* Assignment */}
                   {isPending && !readonly && (
                     <div className="flex items-center gap-2">
-                      <UserPlus className="h-4 w-4 text-gray-400 shrink-0" />
+                      <UserPlus className="h-4 w-4 text-muted-foreground shrink-0" />
                       <Select
                         value={assignUser[doc.id] || doc.assignedTo || ''}
                         onValueChange={(v) => setAssignUser((prev) => ({ ...prev, [doc.id]: v }))}

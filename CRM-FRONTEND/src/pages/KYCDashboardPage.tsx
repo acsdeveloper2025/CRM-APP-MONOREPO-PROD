@@ -53,7 +53,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   LEGAL: 'bg-red-100 text-red-700',
   VERIFICATION: 'bg-indigo-100 text-indigo-700',
   MEDICAL: 'bg-pink-100 text-pink-700',
-  OTHER: 'bg-gray-100 text-gray-700',
+  OTHER: 'bg-muted text-foreground',
 };
 
 interface KYCDashboardPageProps {
@@ -137,7 +137,7 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{pageTitle}</h1>
-          <p className="text-sm text-gray-500 mt-1">{pageSubtitle}</p>
+          <p className="text-sm text-muted-foreground mt-1">{pageSubtitle}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => refetch()}>
@@ -154,7 +154,7 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
         <Card>
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total</p>
+              <p className="text-sm text-muted-foreground">Total</p>
               <p className="text-2xl font-bold">{stats.total}</p>
             </div>
             <FileText className="h-8 w-8 text-blue-500" />
@@ -163,7 +163,7 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
         <Card>
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Pending</p>
+              <p className="text-sm text-muted-foreground">Pending</p>
               <p className="text-2xl font-bold">{stats.pending}</p>
             </div>
             <Clock className="h-8 w-8 text-yellow-500" />
@@ -172,7 +172,7 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
         <Card>
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Passed</p>
+              <p className="text-sm text-muted-foreground">Passed</p>
               <p className="text-2xl font-bold">{stats.passed}</p>
             </div>
             <CheckCircle className="h-8 w-8 text-green-500" />
@@ -181,7 +181,7 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
         <Card>
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Failed</p>
+              <p className="text-sm text-muted-foreground">Failed</p>
               <p className="text-2xl font-bold">{stats.failed}</p>
             </div>
             <XCircle className="h-8 w-8 text-red-500" />
@@ -190,7 +190,7 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
         <Card>
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Referred</p>
+              <p className="text-sm text-muted-foreground">Referred</p>
               <p className="text-2xl font-bold">{stats.referred}</p>
             </div>
             <AlertTriangle className="h-8 w-8 text-purple-500" />
@@ -205,7 +205,7 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
             <div>
               <Label>Search</Label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Customer name, document number..."
                   className="pl-9"
@@ -271,9 +271,9 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-gray-500">Loading...</div>
+            <div className="text-center py-8 text-muted-foreground">Loading...</div>
           ) : tasks.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">No KYC tasks found</div>
+            <div className="text-center py-8 text-muted-foreground">No KYC tasks found</div>
           ) : (
             <>
               <Table>
@@ -292,12 +292,12 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                 </TableHeader>
                 <TableBody>
                   {tasks.map((task) => (
-                    <TableRow key={task.id} className="hover:bg-gray-50">
+                    <TableRow key={task.id} className="hover:bg-muted">
                       <TableCell className="font-medium">#{task.caseNumber}</TableCell>
                       <TableCell>{task.customerName}</TableCell>
                       <TableCell>
                         <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_COLORS[task.documentCategory] || 'bg-gray-100 text-gray-700'}`}
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_COLORS[task.documentCategory] || 'bg-muted text-foreground'}`}
                         >
                           {task.documentCategory}
                         </span>
@@ -312,9 +312,11 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {task.assignedToName || <span className="text-gray-400">Unassigned</span>}
+                        {task.assignedToName || (
+                          <span className="text-muted-foreground">Unassigned</span>
+                        )}
                       </TableCell>
-                      <TableCell className="text-sm text-gray-500">
+                      <TableCell className="text-sm text-muted-foreground">
                         {format(new Date(task.createdAt), 'dd MMM yyyy')}
                       </TableCell>
                       <TableCell>
@@ -335,7 +337,7 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
               {/* Pagination */}
               {pagination.totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4">
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-muted-foreground">
                     Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
                   </span>
                   <div className="flex gap-2">

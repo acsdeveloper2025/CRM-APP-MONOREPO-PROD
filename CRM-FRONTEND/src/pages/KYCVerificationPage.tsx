@@ -81,7 +81,7 @@ export const KYCVerificationPage: React.FC = () => {
         </Button>
         <div>
           <h1 className="text-xl font-bold">KYC Verification</h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Case #{task.caseNumber} — {task.taskNumber}
           </p>
         </div>
@@ -98,30 +98,30 @@ export const KYCVerificationPage: React.FC = () => {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-gray-400" />
+              <User className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-xs text-gray-500">Customer Name</p>
+                <p className="text-xs text-muted-foreground">Customer Name</p>
                 <p className="font-medium">{task.customerName}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-gray-400" />
+              <Phone className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-xs text-gray-500">Phone</p>
+                <p className="text-xs text-muted-foreground">Phone</p>
                 <p className="font-medium">{task.customerPhone || '-'}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-gray-400" />
+              <FileText className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-xs text-gray-500">Case Status</p>
+                <p className="text-xs text-muted-foreground">Case Status</p>
                 <p className="font-medium">{task.caseStatus}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-gray-400" />
+              <Calendar className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-xs text-gray-500">Created</p>
+                <p className="text-xs text-muted-foreground">Created</p>
                 <p className="font-medium">{format(new Date(task.createdAt), 'dd MMM yyyy')}</p>
               </div>
             </div>
@@ -137,18 +137,18 @@ export const KYCVerificationPage: React.FC = () => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
-              <p className="text-xs text-gray-500">Document Type</p>
+              <p className="text-xs text-muted-foreground">Document Type</p>
               <p className="font-medium">{task.documentTypeName}</p>
               <Badge variant="outline" className="mt-1 text-xs">
                 {task.documentCategory}
               </Badge>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Document Number</p>
+              <p className="text-xs text-muted-foreground">Document Number</p>
               <p className="font-medium font-mono">{task.documentNumber || '-'}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Document Holder</p>
+              <p className="text-xs text-muted-foreground">Document Holder</p>
               <p className="font-medium">{task.documentHolderName || task.customerName}</p>
             </div>
           </div>
@@ -156,11 +156,13 @@ export const KYCVerificationPage: React.FC = () => {
           {/* Custom Fields (from LOS) */}
           {task.documentDetails && Object.keys(task.documentDetails).length > 0 && (
             <div className="border rounded-lg p-3 bg-blue-50/50">
-              <p className="text-xs font-semibold text-gray-600 mb-2">Verification Details</p>
+              <p className="text-xs font-semibold text-muted-foreground mb-2">
+                Verification Details
+              </p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {Object.entries(task.documentDetails).map(([key, value]) => (
                   <div key={key}>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       {key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
                     </p>
                     <p className="font-medium text-sm">{value || '-'}</p>
@@ -172,21 +174,21 @@ export const KYCVerificationPage: React.FC = () => {
 
           {/* Description */}
           {task.description && (
-            <div className="border rounded-lg p-3 bg-gray-50">
-              <p className="text-xs font-semibold text-gray-600 mb-1">Description</p>
-              <p className="text-sm text-gray-700">{task.description}</p>
+            <div className="border rounded-lg p-3 bg-muted">
+              <p className="text-xs font-semibold text-muted-foreground mb-1">Description</p>
+              <p className="text-sm text-foreground">{task.description}</p>
             </div>
           )}
 
           {/* Document File */}
           {task.documentFilePath ? (
-            <div className="border rounded-lg p-4 bg-gray-50">
+            <div className="border rounded-lg p-4 bg-muted">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-blue-500" />
                   <div>
                     <p className="font-medium">{task.documentFileName}</p>
-                    <p className="text-xs text-gray-500">Uploaded document</p>
+                    <p className="text-xs text-muted-foreground">Uploaded document</p>
                   </div>
                 </div>
                 <Button variant="outline" size="sm" asChild>

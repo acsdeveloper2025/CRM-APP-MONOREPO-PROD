@@ -76,8 +76,10 @@ export const CaseDetailPage: React.FC = () => {
   if (!caseItem) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Case not found</h2>
-        <p className="mt-2 text-gray-600">The case you&apos;re looking for doesn&apos;t exist.</p>
+        <h2 className="text-xl sm:text-2xl font-bold text-foreground">Case not found</h2>
+        <p className="mt-2 text-muted-foreground">
+          The case you&apos;re looking for doesn&apos;t exist.
+        </p>
         <Link to="/case-management/all-cases">
           <Button className="mt-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -168,10 +170,10 @@ export const CaseDetailPage: React.FC = () => {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
               Case #{caseItem.caseId || caseItem.id?.slice(-8) || 'N/A'}
             </h1>
-            <p className="mt-2 text-gray-600">{caseItem.title || 'Case Details'}</p>
+            <p className="mt-2 text-muted-foreground">{caseItem.title || 'Case Details'}</p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
@@ -249,38 +251,38 @@ export const CaseDetailPage: React.FC = () => {
                       <h4 className="font-medium text-green-900">Applicant Information</h4>
                       <div className="mt-2 space-y-2">
                         <div className="flex items-center space-x-2">
-                          <User className="h-4 w-4 text-gray-600" />
+                          <User className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm">
                             {caseItem.customerName || caseItem.applicantName || 'N/A'}
                           </span>
                         </div>
                         {caseItem.applicantPhone && (
                           <div className="flex items-center space-x-2">
-                            <Phone className="h-4 w-4 text-gray-600" />
+                            <Phone className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm">{caseItem.applicantPhone}</span>
                           </div>
                         )}
                         {caseItem.applicantEmail && (
                           <div className="flex items-center space-x-2">
-                            <Mail className="h-4 w-4 text-gray-600" />
+                            <Mail className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm">{caseItem.applicantEmail}</span>
                           </div>
                         )}
                         {caseItem.applicantType && (
                           <div className="flex items-center space-x-2">
-                            <User className="h-4 w-4 text-gray-600" />
+                            <User className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm">Type: {caseItem.applicantType}</span>
                           </div>
                         )}
                         {caseItem.customerPhone && (
                           <div className="flex items-center space-x-2">
-                            <Phone className="h-4 w-4 text-gray-600" />
+                            <Phone className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm">Mobile: {caseItem.customerPhone}</span>
                           </div>
                         )}
                         {caseItem.customerCallingCode && (
                           <div className="flex items-center space-x-2">
-                            <FileText className="h-4 w-4 text-gray-600" />
+                            <FileText className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm">
                               Customer Calling Code: {caseItem.customerCallingCode}
                             </span>
@@ -288,7 +290,7 @@ export const CaseDetailPage: React.FC = () => {
                         )}
                         {caseItem.panNumber && (
                           <div className="flex items-center space-x-2">
-                            <FileText className="h-4 w-4 text-gray-600" />
+                            <FileText className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm">PAN: {caseItem.panNumber}</span>
                           </div>
                         )}
@@ -299,7 +301,7 @@ export const CaseDetailPage: React.FC = () => {
                       <h4 className="font-medium text-green-900">Address</h4>
                       <div className="mt-2">
                         <div className="flex items-start space-x-2">
-                          <MapPin className="h-4 w-4 text-gray-600 mt-0.5" />
+                          <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                           <div className="text-sm">
                             <div>{caseItem.address || 'N/A'}</div>
                             {(caseItem.taskPincode || caseItem.pincode) && (
@@ -315,10 +317,10 @@ export const CaseDetailPage: React.FC = () => {
 
                   <div>
                     <div className="flex items-center space-x-2">
-                      <User className="h-4 w-4 text-gray-600" />
+                      <User className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">Created By Backend User</span>
                     </div>
-                    <p className="mt-1 text-sm text-gray-600">
+                    <p className="mt-1 text-sm text-muted-foreground">
                       {caseItem.createdByBackendUser?.name || 'System'}
                     </p>
                   </div>
@@ -327,24 +329,24 @@ export const CaseDetailPage: React.FC = () => {
                     <h4 className="font-medium text-green-900">Case Details</h4>
                     <div className="mt-2 space-y-2">
                       <div className="flex items-center space-x-2">
-                        <FileText className="h-4 w-4 text-gray-600" />
+                        <FileText className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">Case ID: {caseItem.caseId}</span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Building2 className="h-4 w-4 text-gray-600" />
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">Client: {caseItem.clientName}</span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <FileText className="h-4 w-4 text-gray-600" />
+                        <FileText className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">Product: {caseItem.productName || '-'}</span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <FileText className="h-4 w-4 text-gray-600" />
+                        <FileText className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm">Rate Type: {caseItem.rateTypeName || '-'}</span>
                       </div>
                       {caseItem.backendContactNumber && (
                         <div className="flex items-center space-x-2">
-                          <Phone className="h-4 w-4 text-gray-600" />
+                          <Phone className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm">
                             Backend Contact: {caseItem.backendContactNumber}
                           </span>
@@ -356,7 +358,9 @@ export const CaseDetailPage: React.FC = () => {
                   {(caseItem.trigger || caseItem.notes) && (
                     <div>
                       <h4 className="font-medium text-green-900">TRIGGER</h4>
-                      <p className="mt-1 text-gray-600">{caseItem.trigger || caseItem.notes}</p>
+                      <p className="mt-1 text-muted-foreground">
+                        {caseItem.trigger || caseItem.notes}
+                      </p>
                     </div>
                   )}
 
@@ -383,16 +387,16 @@ export const CaseDetailPage: React.FC = () => {
                           </Badge>
                         </div>
                         <div>
-                          <span className="text-sm font-medium text-gray-700">
+                          <span className="text-sm font-medium text-foreground">
                             {caseItem.deduplicationDecision === 'NO_DUPLICATES_FOUND'
                               ? 'Automated Check:'
                               : 'Decision Rationale:'}
                           </span>
                           <p
-                            className={`mt-1 text-gray-600 text-sm p-3 rounded border ${
+                            className={`mt-1 text-muted-foreground text-sm p-3 rounded border ${
                               caseItem.deduplicationDecision === 'NO_DUPLICATES_FOUND'
                                 ? 'bg-green-50 border-green-200'
-                                : 'bg-gray-50 border-gray-200'
+                                : 'bg-muted border-border'
                             }`}
                           >
                             {caseItem.deduplicationRationale}
@@ -427,11 +431,11 @@ export const CaseDetailPage: React.FC = () => {
                 ) : (
                   <Card>
                     <CardContent className="p-6 text-center">
-                      <FormInput className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      <FormInput className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-foreground mb-2">
                         No Form Submissions
                       </h3>
-                      <p className="text-gray-600">
+                      <p className="text-muted-foreground">
                         No verification forms have been submitted for this case yet.
                       </p>
                     </CardContent>
@@ -455,9 +459,9 @@ export const CaseDetailPage: React.FC = () => {
               ) : (
                 <Card>
                   <CardContent className="p-6 text-center">
-                    <FileCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No KYC Tasks</h3>
-                    <p className="text-gray-600">
+                    <FileCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">No KYC Tasks</h3>
+                    <p className="text-muted-foreground">
                       No KYC document verification tasks exist for this case.
                     </p>
                   </CardContent>
@@ -501,20 +505,20 @@ export const CaseDetailPage: React.FC = () => {
             <CardContent className="space-y-4">
               <div>
                 <div className="flex items-center space-x-2">
-                  <User className="h-4 w-4 text-gray-600" />
+                  <User className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium">Assigned To</span>
                 </div>
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-muted-foreground">
                   {caseItem.assignedTo?.name || 'Not assigned'}
                 </p>
               </div>
 
               <div>
                 <div className="flex items-center space-x-2">
-                  <Calendar className="h-4 w-4 text-gray-600" />
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium">Last Updated</span>
                 </div>
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-muted-foreground">
                   {safeFormatDistanceToNow(caseItem.updatedAt)}
                 </p>
               </div>

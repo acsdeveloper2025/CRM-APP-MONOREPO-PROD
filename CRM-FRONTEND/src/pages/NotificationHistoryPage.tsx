@@ -30,7 +30,7 @@ const getNotificationCardClass = (type: string | undefined, isRead: boolean): st
       ? 'border-green-200 bg-green-50/40'
       : 'border-green-300 bg-green-50 ring-1 ring-green-200';
   }
-  return isRead ? 'border-gray-200 bg-white' : 'border-blue-200 bg-blue-50';
+  return isRead ? 'border-border bg-card' : 'border-blue-200 bg-blue-50';
 };
 
 export function NotificationHistoryPage() {
@@ -336,7 +336,9 @@ export function NotificationHistoryPage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
-          <p className="text-gray-600">Unified inbox backed by the CRM notification service.</p>
+          <p className="text-muted-foreground">
+            Unified inbox backed by the CRM notification service.
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -372,7 +374,7 @@ export function NotificationHistoryPage() {
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={searchTerm}
               onChange={(event) => {
@@ -412,7 +414,7 @@ export function NotificationHistoryPage() {
               Read
             </Button>
           </div>
-          <div className="flex items-center justify-end gap-2 text-sm text-gray-600">
+          <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
             <Bell className="h-4 w-4" />
             <span>{notificationsQuery.data?.unreadCount || 0} unread</span>
           </div>
@@ -422,7 +424,7 @@ export function NotificationHistoryPage() {
       {selectedIds.size > 0 && (
         <Card>
           <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
-            <span className="text-sm text-gray-600">{selectedIds.size} selected</span>
+            <span className="text-sm text-muted-foreground">{selectedIds.size} selected</span>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -459,19 +461,19 @@ export function NotificationHistoryPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {notificationsQuery.isLoading ? (
-            <div className="py-10 text-center text-gray-600">Loading notifications...</div>
+            <div className="py-10 text-center text-muted-foreground">Loading notifications...</div>
           ) : pagedNotifications.length === 0 ? (
-            <div className="py-10 text-center text-gray-600">No notifications found.</div>
+            <div className="py-10 text-center text-muted-foreground">No notifications found.</div>
           ) : (
             <>
-              <div className="flex items-center gap-3 rounded-lg border border-gray-200 px-4 py-2">
+              <div className="flex items-center gap-3 rounded-lg border border-border px-4 py-2">
                 <Checkbox
                   checked={
                     pagedNotifications.length > 0 && selectedIds.size === pagedNotifications.length
                   }
                   onCheckedChange={handleSelectAll}
                 />
-                <span className="text-sm text-gray-600">Select page</span>
+                <span className="text-sm text-muted-foreground">Select page</span>
               </div>
               <div className="space-y-3">
                 {pagedNotifications.map((notification) => (
@@ -493,19 +495,21 @@ export function NotificationHistoryPage() {
                         />
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-gray-900">
+                            <span className="font-semibold text-foreground">
                               {notification.title}
                             </span>
                             <Badge variant={notification.isRead ? 'outline' : 'default'}>
                               {notification.isRead ? 'Read' : 'Unread'}
                             </Badge>
                           </div>
-                          <p className="mt-1 text-sm text-gray-600">{notification.message}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {notification.message}
+                          </p>
                         </div>
                       </div>
                       <Badge variant="outline">{notification.priority}</Badge>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                       {notification.caseNumber && <span>Case: {notification.caseNumber}</span>}
                       {notification.taskNumber && <span>Task: {notification.taskNumber}</span>}
                       <span title={new Date(notification.createdAt).toISOString()}>
@@ -522,7 +526,7 @@ export function NotificationHistoryPage() {
           )}
 
           <div className="flex items-center justify-between pt-2">
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-muted-foreground">
               Page {currentPage} of {totalPages}
             </span>
             <div className="flex items-center gap-2">

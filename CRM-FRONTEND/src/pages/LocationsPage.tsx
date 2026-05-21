@@ -211,7 +211,9 @@ export function LocationsPage() {
               } as Record<string, string>
             )[tabParam || ''] || 'Location Management'}
           </h1>
-          <p className="text-gray-600">Manage cities, states, pincodes, and geographical data</p>
+          <p className="text-muted-foreground">
+            Manage cities, states, pincodes, and geographical data
+          </p>
         </div>
       </div>
 
@@ -220,51 +222,51 @@ export function LocationsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Countries</CardTitle>
-            <Globe className="h-4 w-4 text-gray-600" />
+            <Globe className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.countries}</div>
-            <p className="text-xs text-gray-600">Across all continents</p>
+            <p className="text-xs text-muted-foreground">Across all continents</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total States</CardTitle>
-            <MapPin className="h-4 w-4 text-gray-600" />
+            <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.states}</div>
-            <p className="text-xs text-gray-600">Across all countries</p>
+            <p className="text-xs text-muted-foreground">Across all countries</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Cities</CardTitle>
-            <Building className="h-4 w-4 text-gray-600" />
+            <Building className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.cities}</div>
-            <p className="text-xs text-gray-600">Across all states and countries</p>
+            <p className="text-xs text-muted-foreground">Across all states and countries</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Pincodes</CardTitle>
-            <MapPin className="h-4 w-4 text-gray-600" />
+            <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.pincodes}</div>
-            <p className="text-xs text-gray-600">Postal codes across all cities</p>
+            <p className="text-xs text-muted-foreground">Postal codes across all cities</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Areas</CardTitle>
-            <Map className="h-4 w-4 text-gray-600" />
+            <Map className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.areas}</div>
-            <p className="text-xs text-gray-600">Areas across all pincodes</p>
+            <p className="text-xs text-muted-foreground">Areas across all pincodes</p>
           </CardContent>
         </Card>
       </div>
@@ -423,7 +425,7 @@ export function LocationsPage() {
               <CountriesTable data={countriesData?.data || []} isLoading={countriesLoading} />
               {countriesData?.pagination && (
                 <div className="flex items-center justify-between px-2">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     Showing {(currentPage - 1) * pageSize + 1} to{' '}
                     {Math.min(currentPage * pageSize, countriesData.pagination.total)} of{' '}
                     {countriesData.pagination.total} countries
@@ -457,7 +459,7 @@ export function LocationsPage() {
               <StatesTable data={statesData?.data || []} isLoading={statesLoading} />
               {statesData?.pagination && (
                 <div className="flex items-center justify-between px-2">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     Showing {(currentPage - 1) * pageSize + 1} to{' '}
                     {Math.min(currentPage * pageSize, statesData.pagination.total)} of{' '}
                     {statesData.pagination.total} states
@@ -491,7 +493,7 @@ export function LocationsPage() {
               <CitiesTable data={citiesData?.data || []} isLoading={citiesLoading} />
               {citiesData?.pagination && (
                 <div className="flex items-center justify-between px-2">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     Showing {(currentPage - 1) * pageSize + 1} to{' '}
                     {Math.min(currentPage * pageSize, citiesData.pagination.total)} of{' '}
                     {citiesData.pagination.total} cities
@@ -525,7 +527,7 @@ export function LocationsPage() {
               <PincodesTable data={pincodesData?.data || []} isLoading={pincodesLoading} />
               {pincodesData?.pagination && (
                 <div className="flex items-center justify-between px-2">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     Showing {(currentPage - 1) * pageSize + 1} to{' '}
                     {Math.min(currentPage * pageSize, pincodesData.pagination.total)} of{' '}
                     {pincodesData.pagination.total} pincodes
@@ -562,7 +564,7 @@ export function LocationsPage() {
               />
               {areasData?.pagination && (
                 <div className="flex items-center justify-between px-2">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     Showing {(currentPage - 1) * pageSize + 1} to{' '}
                     {Math.min(currentPage * pageSize, areasData.pagination.total)} of{' '}
                     {areasData.pagination.total} areas

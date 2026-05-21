@@ -210,9 +210,9 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <Shield className="mx-auto h-12 w-12 text-gray-600" />
+        <Shield className="mx-auto h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">No users found</h3>
-        <p className="text-gray-600">Get started by adding your first user.</p>
+        <p className="text-muted-foreground">Get started by adding your first user.</p>
       </div>
     );
   }
@@ -294,10 +294,10 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                     </Avatar>
                     <div>
                       <div className="font-medium">{user.name}</div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-muted-foreground">
                         <span className="case-sensitive">{user.username}</span> • {user.employeeId}
                       </div>
-                      <div className="text-sm text-gray-600 case-sensitive">
+                      <div className="text-sm text-muted-foreground case-sensitive">
                         {user.email || '—'}
                       </div>
                     </div>
@@ -311,7 +311,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                 <TableCell className="hidden lg:table-cell">
                   <div>
                     <div className="font-medium">{user.departmentName || 'No Department'}</div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-muted-foreground">
                       {user.designationName || user.designation}
                     </div>
                   </div>
@@ -323,13 +323,13 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                         <span className="font-medium text-green-700">
                           {user.assignedClientsCount || 0}
                         </span>
-                        <span className="text-gray-600">clients</span>
+                        <span className="text-muted-foreground">clients</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <span className="font-medium text-green-700">
                           {user.assignedProductsCount || 0}
                         </span>
-                        <span className="text-gray-600">products</span>
+                        <span className="text-muted-foreground">products</span>
                       </div>
                     </div>
                   ) : isFieldAgentUser(user) ? (
@@ -338,17 +338,17 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                         <span className="font-medium text-green-700">
                           {user.assignedPincodesCount || 0}
                         </span>
-                        <span className="text-gray-600">pincodes</span>
+                        <span className="text-muted-foreground">pincodes</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <span className="font-medium text-green-700">
                           {user.assignedAreasCount || 0}
                         </span>
-                        <span className="text-gray-600">areas</span>
+                        <span className="text-muted-foreground">areas</span>
                       </div>
                     </div>
                   ) : (
-                    <span className="text-sm text-gray-400">N/A</span>
+                    <span className="text-sm text-muted-foreground">N/A</span>
                   )}
                 </TableCell>
                 <TableCell>{getStatusBadge(user.isActive ?? false)}</TableCell>
@@ -358,7 +358,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                       {new Date(user.lastLogin || user.lastLoginAt || '').toLocaleString()}
                     </div>
                   ) : (
-                    <span className="text-sm text-gray-600">Never</span>
+                    <span className="text-sm text-muted-foreground">Never</span>
                   )}
                 </TableCell>
                 <TableCell className="hidden xl:table-cell">
@@ -448,10 +448,10 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">{user.name}</div>
-                  <div className="text-sm text-gray-600 truncate">
+                  <div className="text-sm text-muted-foreground truncate">
                     <span className="case-sensitive">{user.username}</span> • {user.employeeId}
                   </div>
-                  <div className="text-sm text-gray-600 truncate case-sensitive">
+                  <div className="text-sm text-muted-foreground truncate case-sensitive">
                     {user.email || '—'}
                   </div>
                 </div>
@@ -518,7 +518,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                   <div>
                     <div className="font-medium">{user.departmentName || 'No Department'}</div>
                     {user.designation && (
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-muted-foreground">
                         {user.designationName || user.designation}
                       </div>
                     )}
@@ -534,13 +534,13 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                         <span className="font-medium text-green-700">
                           {user.assignedClientsCount || 0}
                         </span>
-                        <span className="text-gray-600">clients</span>
+                        <span className="text-muted-foreground">clients</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <span className="font-medium text-green-700">
                           {user.assignedProductsCount || 0}
                         </span>
-                        <span className="text-gray-600">products</span>
+                        <span className="text-muted-foreground">products</span>
                       </div>
                     </div>
                   }
@@ -555,13 +555,13 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                         <span className="font-medium text-green-700">
                           {user.assignedPincodesCount || 0}
                         </span>
-                        <span className="text-gray-600">pincodes</span>
+                        <span className="text-muted-foreground">pincodes</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <span className="font-medium text-green-700">
                           {user.assignedAreasCount || 0}
                         </span>
-                        <span className="text-gray-600">areas</span>
+                        <span className="text-muted-foreground">areas</span>
                       </div>
                     </div>
                   }
@@ -575,7 +575,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                       {new Date(user.lastLogin || user.lastLoginAt || '').toLocaleDateString()}
                     </div>
                   ) : (
-                    <span className="text-sm text-gray-600">Never</span>
+                    <span className="text-sm text-muted-foreground">Never</span>
                   )
                 }
               />

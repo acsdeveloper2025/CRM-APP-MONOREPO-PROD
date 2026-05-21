@@ -110,16 +110,16 @@ export const CommissionCalculationsTab: React.FC = () => {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                      <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
                         {month}
                       </p>
-                      <p className="text-2xl font-bold text-gray-900 mt-1">
+                      <p className="text-2xl font-bold text-foreground mt-1">
                         {data.currency} {data.total.toFixed(2)}
                       </p>
-                      <p className="text-xs text-gray-600 mt-1">{data.count} commissions</p>
+                      <p className="text-xs text-muted-foreground mt-1">{data.count} commissions</p>
                     </div>
-                    <Calculator className="h-10 w-10 text-gray-600" />
+                    <Calculator className="h-10 w-10 text-muted-foreground" />
                   </div>
                 </CardContent>
               </Card>
@@ -172,7 +172,7 @@ export const CommissionCalculationsTab: React.FC = () => {
               {calculations.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="h-64 text-center">
-                    <div className="flex flex-col items-center justify-center text-gray-600">
+                    <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <Calculator className="h-12 w-12 mb-4" />
                       <p className="text-lg font-semibold">No commission calculations found</p>
                       <p className="text-sm mt-2">
@@ -186,11 +186,11 @@ export const CommissionCalculationsTab: React.FC = () => {
                   <TableRow key={calculation.id}>
                     <TableCell>
                       <div>
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-foreground">
                           {calculation.taskNumber || 'N/A'}
                         </div>
                         {calculation.verificationTypeName && (
-                          <div className="text-sm text-gray-600">
+                          <div className="text-sm text-muted-foreground">
                             {calculation.verificationTypeName}
                           </div>
                         )}
@@ -198,14 +198,16 @@ export const CommissionCalculationsTab: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium text-gray-900">
+                        <div className="font-medium text-foreground">
                           {calculation.userName || 'N/A'}
                         </div>
-                        <div className="text-sm text-gray-600">{calculation.userEmail || ''}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {calculation.userEmail || ''}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium text-gray-900">
+                      <div className="font-medium text-foreground">
                         {calculation.clientName || 'N/A'}
                       </div>
                     </TableCell>
@@ -221,7 +223,7 @@ export const CommissionCalculationsTab: React.FC = () => {
                           {calculation.currency} {Number(calculation.commissionAmount).toFixed(2)}
                         </div>
                         {calculation.baseAmount && (
-                          <div className="text-sm text-gray-600">
+                          <div className="text-sm text-muted-foreground">
                             Base: {calculation.currency} {Number(calculation.baseAmount).toFixed(2)}
                           </div>
                         )}
@@ -229,7 +231,7 @@ export const CommissionCalculationsTab: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5 text-gray-600" />
+                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                         <span className="text-sm">{formatMonth(calculation.createdAt)}</span>
                       </div>
                     </TableCell>
@@ -242,12 +244,12 @@ export const CommissionCalculationsTab: React.FC = () => {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6 pt-4 border-t">
-              <div className="text-sm text-gray-600">
-                Showing <span className="font-medium text-gray-900">{calculations.length}</span>{' '}
+              <div className="text-sm text-muted-foreground">
+                Showing <span className="font-medium text-foreground">{calculations.length}</span>{' '}
                 commissions
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-muted-foreground">
                   Page {currentPage} of {totalPages}
                 </span>
                 <div className="flex gap-2">

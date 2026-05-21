@@ -58,7 +58,7 @@ export function FormViewer({
       case 'nsp':
         return 'text-yellow-600 dark:text-yellow-400';
       default:
-        return 'text-gray-600';
+        return 'text-muted-foreground';
     }
   };
 
@@ -129,7 +129,7 @@ export function FormViewer({
       case 'OFFLINE':
         return <WifiOff className="h-4 w-4 text-red-600" />;
       default:
-        return <Wifi className="h-4 w-4 text-gray-600" />;
+        return <Wifi className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
@@ -144,20 +144,20 @@ export function FormViewer({
                 <FileText className="h-8 w-8 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-3xl font-bold text-gray-900">
+                <CardTitle className="text-3xl font-bold text-foreground">
                   {getFormTypeLabel(submission.formType)} Verification
                 </CardTitle>
                 <CardDescription className="text-lg mt-2 space-y-2">
                   <div className="flex items-center space-x-4">
-                    <span className="font-semibold text-gray-900">
+                    <span className="font-semibold text-foreground">
                       {submission.verificationType}
                     </span>
-                    <span className="text-gray-600">•</span>
+                    <span className="text-muted-foreground">•</span>
                     <span className={`font-bold ${getOutcomeColor(submission.outcome)}`}>
                       {submission.outcome}
                     </span>
                   </div>
-                  <div className="flex items-center space-x-4 text-sm text-gray-600">
+                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                     <div className="flex items-center space-x-1">
                       <User className="h-4 w-4" />
                       <span>Agent: {submission.submittedByName}</span>
@@ -202,8 +202,8 @@ export function FormViewer({
               <FileText className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <div className="text-sm font-medium text-gray-600">Form Sections</div>
-              <div className="text-2xl font-bold text-gray-900">{submission.sections.length}</div>
+              <div className="text-sm font-medium text-muted-foreground">Form Sections</div>
+              <div className="text-2xl font-bold text-foreground">{submission.sections.length}</div>
             </div>
           </div>
         </Card>
@@ -214,8 +214,8 @@ export function FormViewer({
               <Camera className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <div className="text-sm font-medium text-gray-600">Photos Captured</div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-sm font-medium text-muted-foreground">Photos Captured</div>
+              <div className="text-2xl font-bold text-foreground">
                 {submission.photos?.length || 0}
               </div>
             </div>
@@ -228,8 +228,8 @@ export function FormViewer({
               <MapPin className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <div className="text-sm font-medium text-gray-600">GPS Accuracy</div>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className="text-sm font-medium text-muted-foreground">GPS Accuracy</div>
+              <div className="text-2xl font-bold text-foreground">
                 {submission.geoLocation?.accuracy ? `±${submission.geoLocation.accuracy}m` : 'N/A'}
               </div>
             </div>
@@ -242,8 +242,8 @@ export function FormViewer({
               <Smartphone className="h-5 w-5 text-yellow-600" />
             </div>
             <div>
-              <div className="text-sm font-medium text-gray-600">Platform</div>
-              <div className="text-lg font-bold text-gray-900">
+              <div className="text-sm font-medium text-muted-foreground">Platform</div>
+              <div className="text-lg font-bold text-foreground">
                 {submission.metadata?.deviceInfo?.platform || 'Unknown'}
               </div>
             </div>
@@ -270,7 +270,7 @@ export function FormViewer({
                   {/* Section Header */}
                   <div className="bg-slate-100 dark:bg-slate-800/60 px-4 py-3 border-b">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
+                      <h3 className="text-lg font-semibold text-foreground flex items-center space-x-2">
                         <span className="bg-primary text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold">
                           {sectionIndex + 1}
                         </span>
@@ -281,18 +281,20 @@ export function FormViewer({
                       </Badge>
                     </div>
                     {section.description && (
-                      <p className="text-sm text-gray-600 mt-1 ml-9">{section.description}</p>
+                      <p className="text-sm text-muted-foreground mt-1 ml-9">
+                        {section.description}
+                      </p>
                     )}
                   </div>
 
                   {/* Section Fields in Grid */}
-                  <div className="p-4 bg-white">
+                  <div className="p-4 bg-card">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {section.fields.map((field, fieldIndex) => (
                         <div key={field.id} className="space-y-2">
                           {/* Field Label */}
                           <div className="flex items-center justify-between">
-                            <Label className="text-sm font-medium text-gray-600 flex items-center space-x-2">
+                            <Label className="text-sm font-medium text-muted-foreground flex items-center space-x-2">
                               <span className="bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200 rounded-full w-5 h-5 flex items-center justify-center text-xs">
                                 {fieldIndex + 1}
                               </span>
@@ -303,7 +305,7 @@ export function FormViewer({
                           </div>
 
                           {/* Field Value */}
-                          <div className="min-h-10 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                          <div className="min-h-10 p-3 bg-muted border border-border rounded-md">
                             <FormFieldViewer
                               field={field}
                               readonly={true}
@@ -371,21 +373,21 @@ export function FormViewer({
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Status</span>
+                  <span className="text-sm text-muted-foreground">Status</span>
                   {getStatusBadge(submission.status)}
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Outcome</span>
+                  <span className="text-sm text-muted-foreground">Outcome</span>
                   <span className={`font-semibold ${getOutcomeColor(submission.outcome)}`}>
                     {submission.outcome}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Validation</span>
+                  <span className="text-sm text-muted-foreground">Validation</span>
                   {getValidationBadge(submission.validationStatus)}
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Sections</span>
+                  <span className="text-sm text-muted-foreground">Sections</span>
                   <span className="font-semibold">{submission.sections.length}</span>
                 </div>
               </div>
@@ -404,29 +406,31 @@ export function FormViewer({
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div>
-                    <div className="text-sm font-medium text-gray-900 mb-1">Platform</div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm font-medium text-foreground mb-1">Platform</div>
+                    <div className="text-sm text-muted-foreground">
                       {submission.metadata.deviceInfo.platform}
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-gray-900 mb-1">App Version</div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm font-medium text-foreground mb-1">App Version</div>
+                    <div className="text-sm text-muted-foreground">
                       v{submission.metadata.deviceInfo.appVersion}
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-gray-900 mb-1">Network</div>
+                    <div className="text-sm font-medium text-foreground mb-1">Network</div>
                     <div className="flex items-center space-x-2">
                       {getNetworkIcon(submission.metadata.networkInfo.type)}
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-muted-foreground">
                         {submission.metadata.networkInfo.type}
                       </span>
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-gray-900 mb-1">Form Version</div>
-                    <div className="text-sm text-gray-600">{submission.metadata.formVersion}</div>
+                    <div className="text-sm font-medium text-foreground mb-1">Form Version</div>
+                    <div className="text-sm text-muted-foreground">
+                      {submission.metadata.formVersion}
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -474,30 +478,30 @@ export function FormViewer({
         <CardContent className="p-6">
           {/* Form Header with Key Information */}
           <div className="mb-8 p-6 bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-green-200">
-            <h2 className="text-2xl font-bold text-center text-gray-900 mb-4">
+            <h2 className="text-2xl font-bold text-center text-foreground mb-4">
               {getFormTypeLabel(submission.formType)} Verification Form
             </h2>
 
             {/* Key Form Metadata */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-              <div className="bg-white p-3 rounded-lg border">
-                <div className="font-medium text-gray-600">Case ID</div>
+              <div className="bg-card p-3 rounded-lg border">
+                <div className="font-medium text-muted-foreground">Case ID</div>
                 <div className="text-lg font-bold text-primary">{submission.caseId}</div>
               </div>
-              <div className="bg-white p-3 rounded-lg border">
-                <div className="font-medium text-gray-600">Field Agent</div>
-                <div className="text-lg font-semibold text-gray-900">
+              <div className="bg-card p-3 rounded-lg border">
+                <div className="font-medium text-muted-foreground">Field Agent</div>
+                <div className="text-lg font-semibold text-foreground">
                   {submission.submittedByName}
                 </div>
               </div>
-              <div className="bg-white p-3 rounded-lg border">
-                <div className="font-medium text-gray-600">Verification Outcome</div>
+              <div className="bg-card p-3 rounded-lg border">
+                <div className="font-medium text-muted-foreground">Verification Outcome</div>
                 <div className={`text-lg font-bold ${getOutcomeColor(submission.outcome)}`}>
                   {submission.outcome}
                 </div>
               </div>
-              <div className="bg-white p-3 rounded-lg border">
-                <div className="font-medium text-gray-600">Total Images</div>
+              <div className="bg-card p-3 rounded-lg border">
+                <div className="font-medium text-muted-foreground">Total Images</div>
                 <div className="text-lg font-bold text-green-600">
                   {submission.photos?.length || 0} photos
                 </div>
@@ -506,9 +510,9 @@ export function FormViewer({
 
             {/* Submission Timestamp */}
             <div className="mt-4 text-center">
-              <div className="inline-flex items-center space-x-2 bg-white px-4 py-2 rounded-full border">
-                <Clock className="h-4 w-4 text-gray-600" />
-                <span className="text-sm text-gray-600">
+              <div className="inline-flex items-center space-x-2 bg-card px-4 py-2 rounded-full border">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
                   Submitted on{' '}
                   {submission.submittedAt && !isNaN(new Date(submission.submittedAt).getTime())
                     ? new Date(submission.submittedAt).toLocaleDateString('en-US', {
@@ -535,14 +539,16 @@ export function FormViewer({
                 <div className="bg-linear-to-r from-gray-100 to-gray-50 px-6 py-4 border-b">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900 flex items-center space-x-2">
+                      <h3 className="text-lg font-bold text-foreground flex items-center space-x-2">
                         <span className="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">
                           {sectionIndex + 1}
                         </span>
                         <span>{section.title}</span>
                       </h3>
                       {section.description && (
-                        <p className="text-sm text-gray-600 mt-1 ml-10">{section.description}</p>
+                        <p className="text-sm text-muted-foreground mt-1 ml-10">
+                          {section.description}
+                        </p>
                       )}
                     </div>
                     <Badge variant="outline" className="text-xs">
@@ -552,13 +558,13 @@ export function FormViewer({
                 </div>
 
                 {/* Section Fields */}
-                <div className="p-6 bg-white">
+                <div className="p-6 bg-card">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {section.fields.map((field, fieldIndex) => (
                       <div key={field.id} className="space-y-3">
                         {/* Field Label with Enhanced Styling */}
                         <div className="flex items-center justify-between">
-                          <Label className="text-sm font-semibold text-gray-900 flex items-center space-x-2">
+                          <Label className="text-sm font-semibold text-foreground flex items-center space-x-2">
                             <span className="bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
                               {fieldIndex + 1}
                             </span>
@@ -603,25 +609,25 @@ export function FormViewer({
 
           {/* Form Summary Footer */}
           <div className="mt-8 p-6 bg-linear-to-r from-gray-50 to-gray-100 rounded-xl border-2 border-border">
-            <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2">
+            <h4 className="text-lg font-bold text-foreground mb-4 flex items-center space-x-2">
               <FileText className="h-5 w-5" />
               <span>Form Submission Summary</span>
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white p-4 rounded-lg border">
-                <div className="text-sm font-medium text-gray-900">Status</div>
+              <div className="bg-card p-4 rounded-lg border">
+                <div className="text-sm font-medium text-foreground">Status</div>
                 <Badge className={getStatusColor(submission.status)} variant="outline">
                   {submission.status.replace('_', ' ')}
                 </Badge>
               </div>
-              <div className="bg-white p-4 rounded-lg border">
-                <div className="text-sm font-medium text-gray-900">Verification Outcome</div>
+              <div className="bg-card p-4 rounded-lg border">
+                <div className="text-sm font-medium text-foreground">Verification Outcome</div>
                 <span className={`text-lg font-bold ${getOutcomeColor(submission.outcome)}`}>
                   {submission.outcome}
                 </span>
               </div>
-              <div className="bg-white p-4 rounded-lg border">
-                <div className="text-sm font-medium text-gray-900">Validation Status</div>
+              <div className="bg-card p-4 rounded-lg border">
+                <div className="text-sm font-medium text-foreground">Validation Status</div>
                 <Badge
                   className={getValidationColor(submission.validationStatus)}
                   variant="outline"
@@ -629,8 +635,8 @@ export function FormViewer({
                   {submission.validationStatus}
                 </Badge>
               </div>
-              <div className="bg-white p-4 rounded-lg border">
-                <div className="text-sm font-medium text-gray-900">Form Sections</div>
+              <div className="bg-card p-4 rounded-lg border">
+                <div className="text-sm font-medium text-foreground">Form Sections</div>
                 <div className="text-lg font-bold text-green-600">
                   {submission.sections.length} sections
                 </div>
@@ -639,9 +645,9 @@ export function FormViewer({
 
             {/* Additional Metadata */}
             {submission.metadata && (
-              <div className="mt-4 p-4 bg-white rounded-lg border">
-                <h5 className="text-sm font-bold text-gray-900 mb-2">Submission Metadata</h5>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-600">
+              <div className="mt-4 p-4 bg-card rounded-lg border">
+                <h5 className="text-sm font-bold text-foreground mb-2">Submission Metadata</h5>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-muted-foreground">
                   <div>
                     <span className="font-medium">Platform:</span>{' '}
                     {submission.metadata.deviceInfo?.platform || 'Unknown'}
@@ -713,11 +719,11 @@ export function FormViewer({
               <p className="text-sm whitespace-pre-wrap">{submission.reviewNotes}</p>
               {submission.reviewedBy && submission.reviewedAt && (
                 <div className="flex items-center justify-between mt-3 pt-3 border-t">
-                  <div className="flex items-center space-x-2 text-xs text-gray-600">
+                  <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                     <User className="h-3 w-3" />
                     <span>Reviewed by {submission.reviewedBy}</span>
                   </div>
-                  <div className="flex items-center space-x-2 text-xs text-gray-600">
+                  <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
                     <span>{new Date(submission.reviewedAt).toLocaleString()}</span>
                   </div>
@@ -733,7 +739,7 @@ export function FormViewer({
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-foreground">
                 Last updated: {new Date(submission.submittedAt).toLocaleString()}
               </div>
               <div className="flex items-center space-x-2">

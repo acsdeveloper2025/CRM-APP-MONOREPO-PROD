@@ -268,7 +268,9 @@ export function RBACAdminPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">RBAC Administration</h1>
-        <p className="text-gray-600">Manage roles and permission assignments for the system.</p>
+        <p className="text-muted-foreground">
+          Manage roles and permission assignments for the system.
+        </p>
       </div>
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
@@ -278,7 +280,7 @@ export function RBACAdminPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalRoles}</div>
-            <p className="text-xs text-gray-600">Configured roles</p>
+            <p className="text-xs text-muted-foreground">Configured roles</p>
           </CardContent>
         </Card>
         <Card>
@@ -287,7 +289,7 @@ export function RBACAdminPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.systemRoles}</div>
-            <p className="text-xs text-gray-600">Protected defaults</p>
+            <p className="text-xs text-muted-foreground">Protected defaults</p>
           </CardContent>
         </Card>
         <Card>
@@ -296,7 +298,7 @@ export function RBACAdminPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.customRoles}</div>
-            <p className="text-xs text-gray-600">User-defined roles</p>
+            <p className="text-xs text-muted-foreground">User-defined roles</p>
           </CardContent>
         </Card>
         <Card>
@@ -305,7 +307,7 @@ export function RBACAdminPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalAssignedUsers}</div>
-            <p className="text-xs text-gray-600">Users across roles</p>
+            <p className="text-xs text-muted-foreground">Users across roles</p>
           </CardContent>
         </Card>
         <Card>
@@ -314,7 +316,7 @@ export function RBACAdminPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalPermissions}</div>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-muted-foreground">
               {selectedRole
                 ? `${stats.selectedRolePermissions} selected for ${selectedRole.name}`
                 : 'Catalog size'}
@@ -360,15 +362,13 @@ export function RBACAdminPage() {
                       }
                     }}
                     className={`rounded-lg border p-3 cursor-pointer ${
-                      selectedRoleId === role.id
-                        ? 'border-green-500 bg-green-50'
-                        : 'border-gray-200'
+                      selectedRoleId === role.id ? 'border-green-500 bg-green-50' : 'border-border'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="font-medium truncate">{role.name}</div>
-                        <div className="text-xs text-gray-500 line-clamp-2">
+                        <div className="text-xs text-muted-foreground line-clamp-2">
                           {role.description || 'No description'}
                         </div>
                         <div className="mt-2 flex flex-wrap gap-1">
@@ -407,7 +407,9 @@ export function RBACAdminPage() {
                     </div>
                   </div>
                 ))}
-                {roles.length === 0 && <div className="text-sm text-gray-500">No roles found.</div>}
+                {roles.length === 0 && (
+                  <div className="text-sm text-muted-foreground">No roles found.</div>
+                )}
               </CardContent>
             </Card>
 
@@ -415,7 +417,7 @@ export function RBACAdminPage() {
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <div>
                   <CardTitle>Permission Matrix</CardTitle>
-                  <div className="text-sm text-gray-500 mt-1">
+                  <div className="text-sm text-muted-foreground mt-1">
                     {selectedRole
                       ? `Editing permissions for ${selectedRole.name}`
                       : 'Select a role to edit permissions'}
@@ -432,13 +434,15 @@ export function RBACAdminPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 {!selectedRoleId ? (
-                  <div className="text-sm text-gray-500">Select a role from the left panel.</div>
+                  <div className="text-sm text-muted-foreground">
+                    Select a role from the left panel.
+                  </div>
                 ) : (
                   Object.entries(RBAC_PERMISSION_MODULES).map(([moduleName, codes]) => (
                     <div key={moduleName} className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Shield className="h-4 w-4 text-gray-500" />
-                        <h3 className="font-semibold text-sm text-gray-700">{moduleName}</h3>
+                        <Shield className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="font-semibold text-sm text-foreground">{moduleName}</h3>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {codes.map((code) => {
@@ -448,7 +452,7 @@ export function RBACAdminPage() {
                             <label
                               key={code}
                               htmlFor={`rbac-perm-${code}`}
-                              className="flex items-start gap-2 rounded border p-2 hover:bg-gray-50"
+                              className="flex items-start gap-2 rounded border p-2 hover:bg-muted"
                             >
                               <Checkbox
                                 id={`rbac-perm-${code}`}
@@ -457,7 +461,7 @@ export function RBACAdminPage() {
                               />
                               <div>
                                 <div className="text-sm font-medium">{code}</div>
-                                <div className="text-xs text-gray-500">
+                                <div className="text-xs text-muted-foreground">
                                   {meta?.description || 'Permission'}
                                 </div>
                               </div>
