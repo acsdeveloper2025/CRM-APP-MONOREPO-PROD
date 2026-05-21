@@ -57,15 +57,15 @@ export function FormLocationViewer({
               <h4 className="font-medium text-sm mb-2">Coordinates</h4>
               <div className="space-y-1 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Latitude:</span>
+                  <span className="text-muted-foreground">Latitude:</span>
                   <span className="font-mono">{location.latitude.toFixed(6)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Longitude:</span>
+                  <span className="text-muted-foreground">Longitude:</span>
                   <span className="font-mono">{location.longitude.toFixed(6)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Accuracy:</span>
+                  <span className="text-muted-foreground">Accuracy:</span>
                   <span>{location.accuracy}m</span>
                 </div>
               </div>
@@ -75,8 +75,8 @@ export function FormLocationViewer({
               <h4 className="font-medium text-sm mb-2">Capture Details</h4>
               <div className="space-y-1 text-sm">
                 <div className="flex items-center space-x-2">
-                  <Clock className="h-3 w-3 text-gray-600" />
-                  <span className="text-gray-600">Captured:</span>
+                  <Clock className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-muted-foreground">Captured:</span>
                   <span>{new Date(location.timestamp).toLocaleString()}</span>
                 </div>
               </div>
@@ -111,9 +111,11 @@ export function FormLocationViewer({
               {!getGoogleMapsApiKey() && (
                 <div className="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800/60">
                   <div className="text-center">
-                    <MapPin className="h-8 w-8 mx-auto text-gray-600 mb-2" />
-                    <p className="text-sm text-gray-600">Map preview unavailable</p>
-                    <p className="text-xs text-gray-600">Google Maps API key not configured</p>
+                    <MapPin className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">Map preview unavailable</p>
+                    <p className="text-xs text-muted-foreground">
+                      Google Maps API key not configured
+                    </p>
                   </div>
                 </div>
               )}
@@ -139,7 +141,7 @@ export function FormLocationViewer({
           {/* Accuracy Information */}
           <div className="bg-slate-100/50 dark:bg-slate-800/40 rounded-lg p-3">
             <h4 className="font-medium text-sm mb-2">Accuracy Information</h4>
-            <div className="text-xs text-gray-600 space-y-1">
+            <div className="text-xs text-muted-foreground space-y-1">
               <p>
                 <strong>GPS Accuracy:</strong> ±{location.accuracy} meters
               </p>

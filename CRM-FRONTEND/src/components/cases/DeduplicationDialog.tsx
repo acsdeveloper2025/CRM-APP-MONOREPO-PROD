@@ -177,7 +177,7 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
                 className={`cursor-pointer transition-colors border-2 ${
                   selectedCaseId === duplicate.id
                     ? 'ring-2 ring-emerald-500 bg-emerald-50 border-emerald-500'
-                    : 'hover:bg-[#FAFAFA] hover:border-emerald-300 border-gray-200'
+                    : 'hover:bg-[#FAFAFA] hover:border-emerald-300 border-border'
                 }`}
                 onClick={() => setSelectedCaseId(duplicate.id)}
               >
@@ -189,62 +189,62 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
                         <Badge className={getStatusColor(duplicate.status)}>
                           {duplicate.status}
                         </Badge>
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-muted-foreground">
                           Score: {duplicate.matchScore}%
                         </span>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-gray-600" />
+                          <User className="h-4 w-4 text-muted-foreground" />
                           <span>{duplicate.customerName}</span>
                         </div>
                         {duplicate.customerPhone && (
                           <div className="flex items-center gap-2">
-                            <Phone className="h-4 w-4 text-gray-600" />
+                            <Phone className="h-4 w-4 text-muted-foreground" />
                             <span>{duplicate.customerPhone}</span>
                           </div>
                         )}
                         {duplicate.customerEmail && (
                           <div className="flex items-center gap-2">
-                            <Mail className="h-4 w-4 text-gray-600" />
+                            <Mail className="h-4 w-4 text-muted-foreground" />
                             <span>{duplicate.customerEmail}</span>
                           </div>
                         )}
                         {duplicate.clientName && (
                           <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-gray-600" />
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
                             <span className="font-medium">{duplicate.clientName}</span>
                           </div>
                         )}
                         {duplicate.productName && (
                           <div className="flex items-center gap-2">
-                            <Package className="h-4 w-4 text-gray-600" />
+                            <Package className="h-4 w-4 text-muted-foreground" />
                             <span>{duplicate.productName}</span>
                           </div>
                         )}
                         {duplicate.verificationTypeName && (
                           <div className="flex items-center gap-2">
-                            <FileCheck className="h-4 w-4 text-gray-600" />
+                            <FileCheck className="h-4 w-4 text-muted-foreground" />
                             <span>{duplicate.verificationTypeName}</span>
                           </div>
                         )}
                         {duplicate.pincode && (
                           <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-gray-600" />
+                            <MapPin className="h-4 w-4 text-muted-foreground" />
                             <span>{duplicate.pincode}</span>
                           </div>
                         )}
                         {duplicate.verificationOutcome && (
                           <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-gray-600" />
+                            <CheckCircle className="h-4 w-4 text-muted-foreground" />
                             <Badge variant="outline" className="text-xs">
                               {duplicate.verificationOutcome}
                             </Badge>
                           </div>
                         )}
                         <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-gray-600" />
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
                           <span>
                             {format(new Date(duplicate.createdAt), "MMM d, yyyy 'at' h:mm a")}
                           </span>

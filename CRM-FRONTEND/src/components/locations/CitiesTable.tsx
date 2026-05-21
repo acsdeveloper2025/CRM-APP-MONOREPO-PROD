@@ -88,9 +88,9 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <Building className="mx-auto h-12 w-12 text-gray-600" />
+        <Building className="mx-auto h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">No cities found</h3>
-        <p className="text-gray-600">Get started by adding your first city.</p>
+        <p className="text-muted-foreground">Get started by adding your first city.</p>
       </div>
     );
   }

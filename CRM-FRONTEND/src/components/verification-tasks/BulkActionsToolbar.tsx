@@ -112,14 +112,14 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
 
           <div className="space-y-6">
             {/* Selection Summary */}
-            <Card className="bg-gray-50 border-gray-200">
+            <Card className="bg-muted border-border">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-foreground">
                       Assigning {selectedCount} task{selectedCount !== 1 ? 's' : ''}
                     </p>
-                    <p className="text-xs text-gray-600 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       All selected tasks will be assigned to the chosen user
                     </p>
                   </div>
@@ -156,7 +156,9 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     {fieldUsers.length === 0 ? (
-                      <div className="p-2 text-sm text-gray-500">No field users available</div>
+                      <div className="p-2 text-sm text-muted-foreground">
+                        No field users available
+                      </div>
                     ) : (
                       fieldUsers.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
@@ -164,7 +166,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
                             <User className="h-4 w-4" />
                             <div>
                               <div className="font-medium">{user.name}</div>
-                              <div className="text-xs text-gray-500 case-sensitive">
+                              <div className="text-xs text-muted-foreground case-sensitive">
                                 {user.email || '—'}
                               </div>
                             </div>
@@ -187,7 +189,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
                   placeholder="Explain why these tasks are being assigned to this user..."
                   rows={3}
                 />
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   This reason will be applied to all selected tasks and visible in audit logs.
                 </p>
               </div>

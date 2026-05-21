@@ -192,7 +192,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
 
               <TabsContent value="mappings" className="space-y-4">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-900 mb-2">Current Products</h4>
+                  <h4 className="text-sm font-medium text-foreground mb-2">Current Products</h4>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {currentProducts.map((product: Product) => (
                       <Badge key={product.id} variant="secondary">
@@ -200,7 +200,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                       </Badge>
                     ))}
                     {currentProducts.length === 0 && (
-                      <span className="text-sm text-gray-600">No products assigned</span>
+                      <span className="text-sm text-muted-foreground">No products assigned</span>
                     )}
                   </div>
                 </div>
@@ -228,8 +228,8 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
 
               <TabsContent value="branding" className="space-y-6">
                 <div className="rounded-md border p-4 space-y-4">
-                  <h4 className="text-sm font-medium text-gray-900">Report Colors</h4>
-                  <p className="text-xs text-gray-600">
+                  <h4 className="text-sm font-medium text-foreground">Report Colors</h4>
+                  <p className="text-xs text-muted-foreground">
                     Used by PDF report templates. Leave blank to keep the template defaults.
                   </p>
                   <FormField
@@ -309,8 +309,8 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                 </div>
 
                 <div className="rounded-md border border-dashed p-4 space-y-2 bg-muted/20">
-                  <h4 className="text-sm font-medium text-gray-900">Logo & Stamp</h4>
-                  <p className="text-xs text-gray-600">
+                  <h4 className="text-sm font-medium text-foreground">Logo & Stamp</h4>
+                  <p className="text-xs text-muted-foreground">
                     Logo and agency stamp are now attached at report-generation time rather than
                     stored per client. When you click <strong>Download Report</strong> on a case, a
                     dialog lets you pick the logo and stamp for that specific PDF. Your choices are

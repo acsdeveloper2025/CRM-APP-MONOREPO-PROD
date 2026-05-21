@@ -190,7 +190,7 @@ export const TasksAnalytics: React.FC = () => {
         <CardContent className="flex flex-col items-center justify-center py-12">
           <XCircle className="h-12 w-12 text-red-500 mb-4" />
           <h3 className="text-lg font-semibold mb-2">Failed to Load Task Analytics</h3>
-          <p className="text-gray-600 text-center">
+          <p className="text-muted-foreground text-center">
             There was an error loading the task analytics. Please try again later.
           </p>
         </CardContent>
@@ -203,10 +203,10 @@ export const TasksAnalytics: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">
             Verification Tasks Analytics
           </h2>
-          <p className="mt-1 text-sm sm:text-base text-gray-600">
+          <p className="mt-1 text-sm sm:text-base text-muted-foreground">
             Task-level metrics and performance analysis
           </p>
         </div>
@@ -229,11 +229,11 @@ export const TasksAnalytics: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-            <CheckSquare className="h-4 w-4 text-gray-600" />
+            <CheckSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalTasks}</div>
-            <p className="text-xs text-gray-600">All verification tasks</p>
+            <p className="text-xs text-muted-foreground">All verification tasks</p>
           </CardContent>
         </Card>
 
@@ -244,7 +244,9 @@ export const TasksAnalytics: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{completedTasks}</div>
-            <p className="text-xs text-gray-600">{completionRate.toFixed(1)}% completion rate</p>
+            <p className="text-xs text-muted-foreground">
+              {completionRate.toFixed(1)}% completion rate
+            </p>
           </CardContent>
         </Card>
 
@@ -255,18 +257,20 @@ export const TasksAnalytics: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{inProgressTasks}</div>
-            <p className="text-xs text-gray-600">{pendingTasks} pending assignment</p>
+            <p className="text-xs text-muted-foreground">{pendingTasks} pending assignment</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Value</CardTitle>
-            <DollarSign className="h-4 w-4 text-gray-600" />
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{totalActualAmount.toLocaleString()}</div>
-            <p className="text-xs text-gray-600">Est: ₹{totalEstimatedAmount.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">
+              Est: ₹{totalEstimatedAmount.toLocaleString()}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -379,7 +383,7 @@ export const TasksAnalytics: React.FC = () => {
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: status.color }} />
                   <div>
                     <p className="font-medium">{status.name}</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       {totalTasks > 0 ? ((status.value / totalTasks) * 100).toFixed(1) : 0}%
                     </p>
                   </div>

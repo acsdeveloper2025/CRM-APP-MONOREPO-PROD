@@ -29,7 +29,9 @@ export function FormViewerPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Form Viewer</h1>
-          <p className="text-gray-600">View and interact with verification form submissions</p>
+          <p className="text-muted-foreground">
+            View and interact with verification form submissions
+          </p>
         </div>
         <div className="flex items-center space-x-2">
           <Button variant="outline" size="sm">
@@ -119,7 +121,7 @@ export function FormViewerPage() {
               }}
             />
           ) : (
-            <div className="text-center py-8 text-gray-600">
+            <div className="text-center py-8 text-muted-foreground">
               No form data available. Mock data has been removed.
             </div>
           )}

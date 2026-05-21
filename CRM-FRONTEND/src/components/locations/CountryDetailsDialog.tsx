@@ -64,7 +64,7 @@ export function CountryDetailsDialog({ country, open, onOpenChange }: CountryDet
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Globe className="h-4 w-4" />
                     <span>Country Name</span>
                   </div>
@@ -72,7 +72,7 @@ export function CountryDetailsDialog({ country, open, onOpenChange }: CountryDet
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Hash className="h-4 w-4" />
                     <span>Country Code</span>
                   </div>
@@ -82,7 +82,7 @@ export function CountryDetailsDialog({ country, open, onOpenChange }: CountryDet
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <MapPin className="h-4 w-4" />
                     <span>Continent</span>
                   </div>
@@ -92,7 +92,7 @@ export function CountryDetailsDialog({ country, open, onOpenChange }: CountryDet
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                     <Calendar className="h-4 w-4" />
                     <span>Created</span>
                   </div>
@@ -131,21 +131,21 @@ export function CountryDetailsDialog({ country, open, onOpenChange }: CountryDet
                       className="flex items-center justify-between p-3 border rounded-lg"
                     >
                       <div className="flex items-center space-x-3">
-                        <MapPin className="h-4 w-4 text-gray-600" />
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
                         <div>
                           <p className="font-medium">{state.name}</p>
-                          <p className="text-sm text-gray-600">Code: {state.code}</p>
+                          <p className="text-sm text-muted-foreground">Code: {state.code}</p>
                         </div>
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-muted-foreground">
                         {new Date(state.createdAt).toLocaleDateString()}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-6 text-gray-600">
-                  <Building className="mx-auto h-8 w-8 text-gray-600 mb-2" />
+                <div className="text-center py-6 text-muted-foreground">
+                  <Building className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
                   <p>No states found for this country</p>
                   <p className="text-sm">States will appear here when created</p>
                 </div>
@@ -162,17 +162,17 @@ export function CountryDetailsDialog({ country, open, onOpenChange }: CountryDet
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
                 <div className="space-y-1">
                   <p className="text-2xl font-bold text-green-600">{states.length}</p>
-                  <p className="text-sm text-gray-600">States</p>
+                  <p className="text-sm text-muted-foreground">States</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-2xl font-bold text-green-600">
                     {states.reduce((acc, state) => acc + (state.cities?.length || 0), 0)}
                   </p>
-                  <p className="text-sm text-gray-600">Cities</p>
+                  <p className="text-sm text-muted-foreground">Cities</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-2xl font-bold text-green-600">{country.continent}</p>
-                  <p className="text-sm text-gray-600">Continent</p>
+                  <p className="text-sm text-muted-foreground">Continent</p>
                 </div>
               </div>
             </CardContent>

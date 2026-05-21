@@ -211,9 +211,9 @@ export const VerificationTasksManager: React.FC<VerificationTasksManagerProps> =
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Verification Tasks</h2>
+          <h2 className="text-2xl font-bold text-foreground">Verification Tasks</h2>
           {caseNumber && customerName && (
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Case #{caseNumber} - {customerName}
             </p>
           )}

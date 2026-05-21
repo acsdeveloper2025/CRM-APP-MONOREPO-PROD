@@ -88,9 +88,9 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
   if (!data.length) {
     return (
       <div className="text-center py-8">
-        <Globe className="mx-auto h-12 w-12 text-gray-600" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">No countries found</h3>
-        <p className="mt-1 text-sm text-gray-600">Get started by creating a new country.</p>
+        <Globe className="mx-auto h-12 w-12 text-muted-foreground" />
+        <h3 className="mt-2 text-sm font-medium text-foreground">No countries found</h3>
+        <p className="mt-1 text-sm text-muted-foreground">Get started by creating a new country.</p>
       </div>
     );
   }
@@ -113,7 +113,7 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
               <TableRow key={country.id}>
                 <TableCell className="font-medium">
                   <div className="flex items-center space-x-2">
-                    <Globe className="h-4 w-4 text-gray-600" />
+                    <Globe className="h-4 w-4 text-muted-foreground" />
                     <span>{country.name}</span>
                   </div>
                 </TableCell>
@@ -123,7 +123,7 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
                 <TableCell>
                   <Badge className={baseBadgeStyle}>{formatBadgeLabel(country.continent)}</Badge>
                 </TableCell>
-                <TableCell className="text-gray-600">
+                <TableCell className="text-muted-foreground">
                   {new Date(country.createdAt).toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-right">

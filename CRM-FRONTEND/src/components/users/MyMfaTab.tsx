@@ -295,7 +295,7 @@ function EnrollDialog({ open, onOpenChange, onCompleted }: EnrollDialogProps) {
                 <img
                   src={qrDataUrl}
                   alt="MFA QR code"
-                  className="h-60 w-60 rounded-md border border-border bg-white p-2"
+                  className="h-60 w-60 rounded-md border border-border bg-card p-2"
                 />
               ) : (
                 <LoadingSkeleton width="15rem" height="15rem" />
@@ -303,7 +303,7 @@ function EnrollDialog({ open, onOpenChange, onCompleted }: EnrollDialogProps) {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Manual entry secret</Label>
-              <code className="case-sensitive block break-all rounded-md border border-border bg-white px-3 py-2 text-xs font-mono text-foreground">
+              <code className="case-sensitive block break-all rounded-md border border-border bg-card px-3 py-2 text-xs font-mono text-foreground">
                 {secret}
               </code>
             </div>
@@ -330,7 +330,7 @@ function EnrollDialog({ open, onOpenChange, onCompleted }: EnrollDialogProps) {
               {recoveryCodes.map((rc) => (
                 <code
                   key={rc}
-                  className="case-sensitive rounded-md border border-border bg-white px-2 py-1.5 text-center text-xs font-mono text-foreground"
+                  className="case-sensitive rounded-md border border-border bg-card px-2 py-1.5 text-center text-xs font-mono text-foreground"
                 >
                   {rc}
                 </code>

@@ -136,7 +136,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
 
   const getPriorityColor = (priority: TaskPriority) => {
     const colors = {
-      LOW: 'bg-gray-100 text-gray-800',
+      LOW: 'bg-muted text-foreground',
       MEDIUM: 'bg-green-100 text-green-800',
       HIGH: 'bg-yellow-100 text-orange-800',
       URGENT: 'bg-red-100 text-red-800',
@@ -156,14 +156,14 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
 
         <div className="space-y-6">
           {/* Task Info */}
-          <Card className="bg-gray-50 border-gray-200">
+          <Card className="bg-muted border-border">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
-                  <span className="text-sm font-medium text-gray-900 block">
+                  <span className="text-sm font-medium text-foreground block">
                     Task ID: {taskId.slice(0, 8)}...
                   </span>
-                  <span className="text-xs text-gray-600 block">
+                  <span className="text-xs text-muted-foreground block">
                     {task?.pincode ? `Pincode: ${task.pincode}` : 'Assigning task to field user'}
                   </span>
                 </div>
@@ -197,7 +197,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
               <Label htmlFor="assignedTo">
                 Assign To <span className="text-red-500">*</span>
                 {task?.pincode && (
-                  <span className="text-xs text-gray-500 ml-2">
+                  <span className="text-xs text-muted-foreground ml-2">
                     (Showing users assigned to pincode {task.pincode})
                   </span>
                 )}
@@ -234,13 +234,15 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                   {loadingUsers ? (
                     <div className="p-4 text-center">
                       <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
-                      <p className="text-sm text-gray-500">Loading field users...</p>
+                      <p className="text-sm text-muted-foreground">Loading field users...</p>
                     </div>
                   ) : fieldUsers.length === 0 ? (
                     <div className="p-4 text-center">
                       <AlertCircle className="h-4 w-4 text-yellow-500 mx-auto mb-2" />
-                      <p className="text-sm text-gray-900 font-medium">No field users available</p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-sm text-foreground font-medium">
+                        No field users available
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
                         {task?.pincode
                           ? `No field users are assigned to pincode ${task.pincode}`
                           : 'No pincode specified for this task'}
@@ -254,7 +256,9 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                           <div>
                             <div className="font-medium">{user.name}</div>
                             {user.employeeId && (
-                              <div className="text-xs text-gray-500">ID: {user.employeeId}</div>
+                              <div className="text-xs text-muted-foreground">
+                                ID: {user.employeeId}
+                              </div>
                             )}
                           </div>
                         </div>
@@ -284,7 +288,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="LOW">
-                    <Badge className="bg-gray-100 text-gray-800">Low</Badge>
+                    <Badge className="bg-muted text-foreground">Low</Badge>
                   </SelectItem>
                   <SelectItem value="MEDIUM">
                     <Badge className="bg-green-100 text-green-800">Medium</Badge>
@@ -322,7 +326,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                   <span>{errors.assignmentReason}</span>
                 </p>
               )}
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 This reason will be visible to the assigned user and in audit logs.
               </p>
             </div>

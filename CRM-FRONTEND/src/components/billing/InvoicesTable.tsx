@@ -90,9 +90,9 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <Receipt className="mx-auto h-12 w-12 text-gray-600" />
+        <Receipt className="mx-auto h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">No invoices found</h3>
-        <p className="text-gray-600">Get started by creating your first invoice.</p>
+        <p className="text-muted-foreground">Get started by creating your first invoice.</p>
       </div>
     );
   }
@@ -126,7 +126,7 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
                 <TableCell>
                   <div>
                     <div className="font-medium">{invoice.client.name}</div>
-                    <div className="text-sm text-gray-600">{invoice.client.code}</div>
+                    <div className="text-sm text-muted-foreground">{invoice.client.code}</div>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -134,7 +134,7 @@ export function InvoicesTable({ data, isLoading }: InvoicesTableProps) {
                     <div className="font-medium">
                       ₹{Number(invoice.totalAmount || 0).toLocaleString()}
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-muted-foreground">
                       Tax: ₹{Number(invoice.taxAmount || 0).toLocaleString()}
                     </div>
                   </div>

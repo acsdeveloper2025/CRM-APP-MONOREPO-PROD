@@ -275,7 +275,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
             <Plus className="h-5 w-5" />
             Commission Rate Assignments
           </CardTitle>
-          <p className="text-sm text-gray-600 mt-2">
+          <p className="text-sm text-muted-foreground mt-2">
             Configure commission rates for field users by rate type and client (not for case
             assignments)
           </p>
@@ -364,7 +364,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                     <TableCell>
                       <div>
                         <div className="font-medium">{assignment.userName}</div>
-                        <div className="text-sm text-gray-600">{assignment.userEmail}</div>
+                        <div className="text-sm text-muted-foreground">{assignment.userEmail}</div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -427,7 +427,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <div className="font-semibold text-base">{assignment.userName}</div>
-                    <div className="text-sm text-gray-600">{assignment.userEmail}</div>
+                    <div className="text-sm text-muted-foreground">{assignment.userEmail}</div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Badge variant={assignment.isActive ? 'default' : 'secondary'}>
@@ -480,7 +480,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-between items-center mt-6">
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-foreground">
                 Page {currentPage} of {totalPages}
               </div>
               <div className="flex gap-2">

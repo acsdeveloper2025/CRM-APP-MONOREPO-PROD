@@ -72,8 +72,8 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Filter className="h-5 w-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
+          <Filter className="h-5 w-5 text-muted-foreground" />
+          <h3 className="text-lg font-semibold text-foreground">Filters</h3>
           {hasActiveFilters && <Badge variant="secondary">Active</Badge>}
         </div>
         <div className="flex items-center gap-2">
@@ -94,7 +94,8 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
           {/* Date Range */}
           <div className="space-y-2">
             <Label htmlFor="dateFrom">
-              Date From <span className="text-xs font-normal text-gray-500">(YYYY-MM-DD)</span>
+              Date From{' '}
+              <span className="text-xs font-normal text-muted-foreground">(YYYY-MM-DD)</span>
             </Label>
             <Input
               id="dateFrom"
@@ -106,7 +107,8 @@ export function MISFiltersComponent({ filters, onFiltersChange, onReset }: MISFi
 
           <div className="space-y-2">
             <Label htmlFor="dateTo">
-              Date To <span className="text-xs font-normal text-gray-500">(YYYY-MM-DD)</span>
+              Date To{' '}
+              <span className="text-xs font-normal text-muted-foreground">(YYYY-MM-DD)</span>
             </Label>
             <Input
               id="dateTo"

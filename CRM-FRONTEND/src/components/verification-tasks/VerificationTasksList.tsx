@@ -96,7 +96,7 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
       return (
         <div className="text-center py-8">
           <div className="mb-2">No verification tasks found</div>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Create new tasks to get started with verification workflows
           </p>
         </div>
@@ -171,12 +171,17 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
 
                 {/* Verification Type */}
                 <TableCell>
-                  <span className="text-sm text-gray-600">{task.verificationTypeName || '-'}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {task.verificationTypeName || '-'}
+                  </span>
                 </TableCell>
 
                 {/* Trigger */}
                 <TableCell>
-                  <div className="max-w-xs truncate text-sm text-gray-600" title={task.trigger}>
+                  <div
+                    className="max-w-xs truncate text-sm text-muted-foreground"
+                    title={task.trigger}
+                  >
                     {task.trigger || '-'}
                   </div>
                 </TableCell>
@@ -188,7 +193,10 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
                     so operators don't have to drill into the detail page to
                     see WHY a task is REVOKED or which parent it revisits. */}
                 <TableCell>
-                  <div className="max-w-xs truncate text-sm text-gray-600" title={task.address}>
+                  <div
+                    className="max-w-xs truncate text-sm text-muted-foreground"
+                    title={task.address}
+                  >
                     {task.address || '-'}
                   </div>
                   {task.status === 'REVOKED' && task.revokeReason && (
@@ -208,7 +216,7 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
 
                 {/* Rate Type */}
                 <TableCell>
-                  <span className="text-sm text-gray-600">{task.rateTypeName || '-'}</span>
+                  <span className="text-sm text-muted-foreground">{task.rateTypeName || '-'}</span>
                 </TableCell>
 
                 <TableCell>
@@ -244,10 +252,10 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
                     {task.assignedToName ? (
                       <span>{task.assignedToName}</span>
                     ) : (
-                      <span className="text-gray-600 italic">Unassigned</span>
+                      <span className="text-muted-foreground italic">Unassigned</span>
                     )}
                     {task.assignedAt && (
-                      <div className="text-xs text-gray-600 mt-1">
+                      <div className="text-xs text-muted-foreground mt-1">
                         {formatDate(task.assignedAt)}
                       </div>
                     )}
@@ -255,7 +263,9 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
                 </TableCell>
 
                 <TableCell>
-                  <span className="text-sm text-gray-600">{formatDate(task.createdAt)}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {formatDate(task.createdAt)}
+                  </span>
                 </TableCell>
 
                 <TableCell>

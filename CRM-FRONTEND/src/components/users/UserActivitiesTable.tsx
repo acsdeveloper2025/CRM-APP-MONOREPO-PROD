@@ -25,9 +25,9 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <Activity className="mx-auto h-12 w-12 text-gray-600" />
+        <Activity className="mx-auto h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">No activities found</h3>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           User activities will appear here as they interact with the system.
         </p>
       </div>
@@ -76,13 +76,13 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
                   </Avatar>
                   <div>
                     <div className="font-medium">{activity.userName || 'Unknown User'}</div>
-                    <div className="text-sm text-gray-600">{activity.userId}</div>
+                    <div className="text-sm text-muted-foreground">{activity.userId}</div>
                   </div>
                 </div>
               </TableCell>
               <TableCell>{getActionBadge(activity.action)}</TableCell>
               <TableCell>
-                <code className="text-[10px] bg-gray-100 p-1 rounded block max-w-[200px] truncate">
+                <code className="text-[10px] bg-muted p-1 rounded block max-w-[200px] truncate">
                   {JSON.stringify(activity.details || {})}
                 </code>
               </TableCell>
@@ -91,7 +91,7 @@ export function UserActivitiesTable({ data, isLoading }: UserActivitiesTableProp
               </TableCell>
               <TableCell>
                 <div className="flex items-center space-x-1 whitespace-nowrap">
-                  <Clock className="h-3 w-3 text-gray-600" />
+                  <Clock className="h-3 w-3 text-muted-foreground" />
                   <span className="text-sm">{new Date(activity.createdAt).toLocaleString()}</span>
                 </div>
               </TableCell>

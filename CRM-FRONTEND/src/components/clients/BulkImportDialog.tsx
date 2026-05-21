@@ -106,7 +106,7 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
           {/* Template Download */}
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="flex items-center space-x-2">
-              <FileText className="h-4 w-4 text-gray-600" />
+              <FileText className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">Download CSV template</span>
             </div>
             <Button variant="outline" size="sm" onClick={downloadTemplate}>
@@ -126,7 +126,7 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
               disabled={importMutation.isPending}
             />
             {file && (
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Selected: {file.name} ({(file.size / 1024).toFixed(1)} KB)
               </p>
             )}
@@ -136,7 +136,7 @@ export function BulkImportDialog({ open, onOpenChange, type }: BulkImportDialogP
           {importMutation.isPending && (
             <div className="space-y-2">
               <Progress value={uploadProgress} className="w-full" />
-              <p className="text-sm text-gray-600 text-center">Importing {type}...</p>
+              <p className="text-sm text-muted-foreground text-center">Importing {type}...</p>
             </div>
           )}
 

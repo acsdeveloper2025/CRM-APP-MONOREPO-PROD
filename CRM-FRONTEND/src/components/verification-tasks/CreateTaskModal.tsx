@@ -273,7 +273,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
           {/* Tasks List */}
           <div className="space-y-4">
             {tasks.map((task, index) => (
-              <Card key={task.id} className="border-gray-200">
+              <Card key={task.id} className="border-border">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">Task {index + 1}</CardTitle>
@@ -422,9 +422,11 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
                             <SelectItem key={rateType.id} value={rateType.id.toString()}>
                               <div className="flex items-center justify-between w-full py-2">
                                 <div className="flex flex-col">
-                                  <span className="font-medium text-gray-900">{rateType.name}</span>
+                                  <span className="font-medium text-foreground">
+                                    {rateType.name}
+                                  </span>
                                   {rateType.description && (
-                                    <span className="text-xs text-gray-600 mt-1">
+                                    <span className="text-xs text-muted-foreground mt-1">
                                       {rateType.description}
                                     </span>
                                   )}
@@ -486,7 +488,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
 
                   {/* Assignment & Location Section */}
                   <div className="border-t pt-4 mt-4">
-                    <h4 className="text-sm font-medium text-gray-900 mb-4 flex items-center gap-2">
+                    <h4 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
                       <Settings className="h-4 w-4" />
                       Assignment & Location
                     </h4>

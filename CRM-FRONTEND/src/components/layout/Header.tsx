@@ -290,7 +290,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               >
                 <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-white px-1 text-[10px] font-semibold text-green-700">
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-card px-1 text-[10px] font-semibold text-green-700">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
@@ -299,11 +299,13 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             <DropdownMenuContent align="end" className="w-80">
               <DropdownMenuLabel className="flex items-center justify-between">
                 <span>Notifications</span>
-                <span className="text-xs font-normal text-gray-600">{unreadCount} unread</span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  {unreadCount} unread
+                </span>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               {recentNotifications.length === 0 ? (
-                <div className="px-2 py-4 text-sm text-gray-600">No notifications yet</div>
+                <div className="px-2 py-4 text-sm text-muted-foreground">No notifications yet</div>
               ) : (
                 recentNotifications.map((notification) => (
                   <DropdownMenuItem
@@ -326,7 +328,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                         <span className="mt-1 h-2 w-2 rounded-full bg-green-600" />
                       )}
                     </div>
-                    <span className="line-clamp-2 text-xs text-gray-600">
+                    <span className="line-clamp-2 text-xs text-muted-foreground">
                       {notification.message}
                     </span>
                   </DropdownMenuItem>

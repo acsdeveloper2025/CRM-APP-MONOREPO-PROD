@@ -153,8 +153,8 @@ export const DedupePage: React.FC = () => {
       {/* Page Header */}
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Dedupe</h1>
-          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">Dedupe</h1>
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">
             Search for cases across all clients and products
           </p>
         </div>
@@ -255,7 +255,7 @@ export const DedupePage: React.FC = () => {
           <CardContent className="p-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : results.length > 0 ? (
               <>
@@ -304,12 +304,12 @@ export const DedupePage: React.FC = () => {
                                   </Badge>
                                 ))}
                               </div>
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-muted-foreground">
                                 Score: {result.matchScore}
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm text-gray-600">
+                          <TableCell className="text-sm text-muted-foreground">
                             {formatDate(result.createdAt)}
                           </TableCell>
                           <TableCell className="text-right">
@@ -343,7 +343,7 @@ export const DedupePage: React.FC = () => {
                 {/* Pagination */}
                 {pagination.totalPages > 1 && (
                   <div className="flex items-center justify-between px-6 py-4 border-t">
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-muted-foreground">
                       Page {pagination.page} of {pagination.totalPages}
                     </div>
                     <div className="flex gap-2">
@@ -369,9 +369,9 @@ export const DedupePage: React.FC = () => {
               </>
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Search className="h-12 w-12 text-gray-300 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-1">No cases found</h3>
-                <p className="text-sm text-gray-600">Try adjusting your search criteria</p>
+                <Search className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-1">No cases found</h3>
+                <p className="text-sm text-muted-foreground">Try adjusting your search criteria</p>
               </div>
             )}
           </CardContent>

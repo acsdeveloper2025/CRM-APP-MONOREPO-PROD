@@ -104,7 +104,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
                 <div className="flex-1 space-y-2">
                   <div>
                     <h3 className="text-lg font-semibold">{user.name}</h3>
-                    <p className="text-gray-600 case-sensitive">{user.username}</p>
+                    <p className="text-muted-foreground case-sensitive">{user.username}</p>
                   </div>
                   <div className="flex items-center space-x-2">
                     {getRoleBadge(getPrimaryRoleLabel(user))}
@@ -117,14 +117,14 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-medium text-sm text-gray-600">Contact Information</h4>
+                  <h4 className="font-medium text-sm text-muted-foreground">Contact Information</h4>
                   <div className="mt-2 space-y-1">
                     <p className="text-sm case-sensitive">{user.email || '—'}</p>
                     <p className="text-sm">Employee ID: {user.employeeId}</p>
                   </div>
                 </div>
                 <div>
-                  <h4 className="font-medium text-sm text-gray-600">Work Information</h4>
+                  <h4 className="font-medium text-sm text-muted-foreground">Work Information</h4>
                   <div className="mt-2 space-y-1">
                     <p className="text-sm">{user.designation}</p>
                     <p className="text-sm">{user.department}</p>
@@ -140,7 +140,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Cases</CardTitle>
-                  <Activity className="h-4 w-4 text-gray-600" />
+                  <Activity className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{profile.stats.totalCases}</div>
@@ -174,7 +174,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Commissions</CardTitle>
-                  <Calendar className="h-4 w-4 text-gray-600" />
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
@@ -193,13 +193,13 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-medium text-sm text-gray-600">Account Created</h4>
+                  <h4 className="font-medium text-sm text-muted-foreground">Account Created</h4>
                   <p className="text-sm mt-1">
                     {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                   </p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-sm text-gray-600">Last Login</h4>
+                  <h4 className="font-medium text-sm text-muted-foreground">Last Login</h4>
                   <p className="text-sm mt-1">
                     {user.lastLogin || user.lastLoginAt
                       ? new Date(user.lastLogin || user.lastLoginAt || '').toLocaleString()
@@ -214,7 +214,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <FileCheck className="h-5 w-5 text-gray-600" />
+                <FileCheck className="h-5 w-5 text-muted-foreground" />
                 Field Executive Acknowledgement
               </CardTitle>
               <CardDescription>
@@ -297,9 +297,9 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
                       <div className="h-2 w-2 rounded-full bg-primary" />
                       <div className="flex-1">
                         <p className="text-sm font-medium">{activity.action}</p>
-                        <p className="text-xs text-gray-600">{activity.description}</p>
+                        <p className="text-xs text-muted-foreground">{activity.description}</p>
                       </div>
-                      <div className="text-xs text-gray-600">
+                      <div className="text-xs text-muted-foreground">
                         {new Date(activity.timestamp).toLocaleDateString()}
                       </div>
                     </div>

@@ -165,8 +165,8 @@ export function MISDashboard() {
       {/* Page Header */}
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">MIS Dashboard</h1>
-          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">MIS Dashboard</h1>
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">
             Comprehensive Management Information System with case and task details
           </p>
         </div>
@@ -190,7 +190,8 @@ export function MISDashboard() {
             {/* Date From Filter */}
             <div className="space-y-2">
               <Label htmlFor="dateFrom">
-                Date From <span className="text-xs font-normal text-gray-500">(YYYY-MM-DD)</span>
+                Date From{' '}
+                <span className="text-xs font-normal text-muted-foreground">(YYYY-MM-DD)</span>
               </Label>
               <Input
                 id="dateFrom"
@@ -203,7 +204,8 @@ export function MISDashboard() {
             {/* Date To Filter */}
             <div className="space-y-2">
               <Label htmlFor="dateTo">
-                Date To <span className="text-xs font-normal text-gray-500">(YYYY-MM-DD)</span>
+                Date To{' '}
+                <span className="text-xs font-normal text-muted-foreground">(YYYY-MM-DD)</span>
               </Label>
               <Input
                 id="dateTo"
@@ -442,7 +444,7 @@ export function MISDashboard() {
             />
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 {hasActiveFilters
                   ? 'No data matches your filters. Try clearing filters or adjusting the date range.'
                   : 'No data available for the selected period.'}

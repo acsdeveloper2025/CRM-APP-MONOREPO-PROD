@@ -219,7 +219,7 @@ const StaticMapImage: React.FC<{
     // still snapshots cleanly.
     return (
       <div
-        className={`${className || ''} bg-white/10 flex flex-col items-center justify-center text-[8px] text-white/70 text-center p-1`}
+        className={`${className || ''} bg-card/10 flex flex-col items-center justify-center text-[8px] text-white/70 text-center p-1`}
       >
         <MapPin className="h-4 w-4 mb-0.5" />
         <span>Map unavailable</span>
@@ -227,7 +227,7 @@ const StaticMapImage: React.FC<{
     );
   }
   if (!blobUrl) {
-    return <div className={`${className || ''} bg-white/5 animate-pulse`} />;
+    return <div className={`${className || ''} bg-card/5 animate-pulse`} />;
   }
   return (
     <img
@@ -865,7 +865,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-gray-600">
+          <div className="text-center py-8 text-muted-foreground">
             <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Failed to load verification images</p>
           </div>
@@ -884,7 +884,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-gray-600">
+          <div className="text-center py-8 text-muted-foreground">
             <ImageIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>No verification images found</p>
           </div>
@@ -930,7 +930,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
             {/* Verification Photos */}
             {verificationPhotos.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+                <h4 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
                   <Camera className="h-4 w-4" />
                   Verification Photos ({verificationPhotos.length})
                 </h4>
@@ -1013,7 +1013,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
             {/* Selfie Photos */}
             {selfiePhotos.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center gap-2">
+                <h4 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
                   <Camera className="h-4 w-4" />
                   Selfie Photos ({selfiePhotos.length})
                 </h4>

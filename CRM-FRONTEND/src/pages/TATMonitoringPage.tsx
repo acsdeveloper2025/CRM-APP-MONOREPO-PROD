@@ -169,20 +169,20 @@ export const TATMonitoringPage: React.FC = () => {
       case 'LOW':
         return 'bg-green-100 text-green-800 border-green-300';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
+        return 'bg-muted text-foreground border-input';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PENDING':
-        return 'bg-gray-100 text-gray-800 border-gray-300';
+        return 'bg-muted text-foreground border-input';
       case 'ASSIGNED':
         return 'bg-green-100 text-green-800 border-blue-300';
       case 'IN_PROGRESS':
         return 'bg-green-100 text-green-800 border-purple-300';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
+        return 'bg-muted text-foreground border-input';
     }
   };
 
@@ -212,7 +212,7 @@ export const TATMonitoringPage: React.FC = () => {
 
     if (tasks.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center h-64 text-gray-600">
+        <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
           <Clock className="h-12 w-12 mb-4 opacity-50" />
           <p className="text-lg font-medium">No overdue tasks found</p>
           <p className="text-sm">All tasks are within TAT!</p>
@@ -282,7 +282,7 @@ export const TATMonitoringPage: React.FC = () => {
                   <TableCell className="text-sm">{task.verificationTypeName}</TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <User className="h-4 w-4 text-gray-600" />
+                      <User className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">{task.assignedToName || 'Unassigned'}</span>
                     </div>
                   </TableCell>
@@ -319,7 +319,7 @@ export const TATMonitoringPage: React.FC = () => {
         {/* Pagination */}
         {pagination.totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-4 border-t">
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-muted-foreground">
               Showing {(pagination.page - 1) * 20 + 1} to{' '}
               {Math.min(pagination.page * 20, pagination.totalCount)} of {pagination.totalCount}{' '}
               tasks
@@ -361,7 +361,7 @@ export const TATMonitoringPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">TAT Monitoring</h1>
-          <p className="text-gray-600 mt-1">Track and manage overdue verification tasks</p>
+          <p className="text-muted-foreground mt-1">Track and manage overdue verification tasks</p>
         </div>
       </div>
 
@@ -374,7 +374,7 @@ export const TATMonitoringPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{criticalPagination.totalCount}</div>
-            <p className="text-xs text-gray-600">More than 3 days</p>
+            <p className="text-xs text-muted-foreground">More than 3 days</p>
           </CardContent>
         </Card>
 
@@ -385,7 +385,7 @@ export const TATMonitoringPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">{allPagination.totalCount}</div>
-            <p className="text-xs text-gray-600">More than 1 day</p>
+            <p className="text-xs text-muted-foreground">More than 1 day</p>
           </CardContent>
         </Card>
 
@@ -396,7 +396,7 @@ export const TATMonitoringPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{tatStats?.onTrack || 0}</div>
-            <p className="text-xs text-gray-600">Within TAT</p>
+            <p className="text-xs text-muted-foreground">Within TAT</p>
           </CardContent>
         </Card>
 
@@ -407,7 +407,7 @@ export const TATMonitoringPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{tatStats?.avgOverdueDays || 0} days</div>
-            <p className="text-xs text-gray-600">Average overdue</p>
+            <p className="text-xs text-muted-foreground">Average overdue</p>
           </CardContent>
         </Card>
 
@@ -418,7 +418,7 @@ export const TATMonitoringPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{tatStats?.completedToday || 0}</div>
-            <p className="text-xs text-gray-600">Tasks completed</p>
+            <p className="text-xs text-muted-foreground">Tasks completed</p>
           </CardContent>
         </Card>
       </div>

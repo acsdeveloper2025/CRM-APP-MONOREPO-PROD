@@ -940,7 +940,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                             ? 'bg-green-500 border-green-500 text-white'
                             : isActive
                               ? 'bg-green-500 border-green-500 text-white'
-                              : 'bg-slate-100 dark:bg-slate-800/60 border-border text-gray-600'
+                              : 'bg-slate-100 dark:bg-slate-800/60 border-border text-muted-foreground'
                         }
                       `}
                     >
@@ -953,12 +953,12 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
                             ? 'text-green-600'
                             : isCompleted
                               ? 'text-green-600'
-                              : 'text-gray-600'
+                              : 'text-muted-foreground'
                         }`}
                       >
                         {step.title}
                       </span>
-                      <span className="text-xs text-gray-600">{step.description}</span>
+                      <span className="text-xs text-muted-foreground">{step.description}</span>
                     </div>
                   </div>
 

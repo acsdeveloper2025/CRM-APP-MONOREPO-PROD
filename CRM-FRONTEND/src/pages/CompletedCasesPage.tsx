@@ -163,7 +163,7 @@ export const CompletedCasesPage: React.FC = () => {
                 <span className="text-green-600 font-semibold">📅</span>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">This Month</p>
+                <p className="text-sm font-medium text-muted-foreground">This Month</p>
                 <p className="text-2xl font-bold text-foreground">
                   {statistics?.completedThisMonth || 0}
                 </p>
@@ -193,7 +193,7 @@ export const CompletedCasesPage: React.FC = () => {
                 <span className="text-green-600 font-semibold">👥</span>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Field Users</p>
+                <p className="text-sm font-medium text-muted-foreground">Field Users</p>
                 <p className="text-2xl font-bold text-foreground">
                   {statistics?.activeAgentsCompleted || 0}
                 </p>
@@ -208,7 +208,7 @@ export const CompletedCasesPage: React.FC = () => {
                 <span className="text-purple-600 font-semibold">⏱️</span>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Avg TAT</p>
+                <p className="text-sm font-medium text-muted-foreground">Avg TAT</p>
                 <p className="text-2xl font-bold text-foreground">
                   {Math.round(statistics?.avgTATDays || 0)} days
                 </p>

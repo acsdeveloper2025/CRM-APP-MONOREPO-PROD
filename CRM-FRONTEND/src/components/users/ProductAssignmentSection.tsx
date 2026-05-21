@@ -112,7 +112,7 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
             <LoadingSpinner size="md" />
           </div>
         ) : assignedClients.length === 0 ? (
-          <div className="text-sm text-gray-600 border rounded-md p-4">
+          <div className="text-sm text-muted-foreground border rounded-md p-4">
             No clients assigned yet. Use the <strong>Client Assignments</strong> section above
             first; products will appear here grouped by the chosen clients.
           </div>
@@ -128,7 +128,7 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
                     </Badge>
                   </div>
                   {products.length === 0 ? (
-                    <div className="text-xs text-gray-500 pl-2">
+                    <div className="text-xs text-muted-foreground pl-2">
                       No products mapped to this client.
                     </div>
                   ) : (
@@ -148,7 +148,9 @@ export function ProductAssignmentSection({ user }: ProductAssignmentSectionProps
                           >
                             {product.name}
                             {product.code && (
-                              <span className="text-xs text-gray-500 ml-1">({product.code})</span>
+                              <span className="text-xs text-muted-foreground ml-1">
+                                ({product.code})
+                              </span>
                             )}
                           </label>
                         </div>

@@ -159,7 +159,7 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
               {showSearch && (
                 <div className="flex-1">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-600" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search submissions..."
                       value={searchQuery}
@@ -231,7 +231,7 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
             </div>
 
             {/* Results count */}
-            <div className="mt-4 text-sm text-gray-600">
+            <div className="mt-4 text-sm text-muted-foreground">
               Showing {filteredAndSortedSubmissions.length} of {submissions.length} submissions
             </div>
           </CardContent>
@@ -261,7 +261,7 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
                     </div>
 
                     {/* Details */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center space-x-2">
                         <User className="h-4 w-4" />
                         <span>{submission.submittedByName}</span>
@@ -312,9 +312,9 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
         ) : (
           <Card>
             <CardContent className="p-6 text-center">
-              <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Submissions Found</h3>
-              <p className="text-gray-600">
+              <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No Submissions Found</h3>
+              <p className="text-muted-foreground">
                 {submissions.length === 0
                   ? 'No form submissions have been made for this case yet.'
                   : 'No submissions match your current filters. Try adjusting your search criteria.'}

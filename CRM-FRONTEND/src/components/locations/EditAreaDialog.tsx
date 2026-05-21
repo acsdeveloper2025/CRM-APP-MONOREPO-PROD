@@ -78,7 +78,7 @@ export function EditAreaDialog({ area, open, onOpenChange }: EditAreaDialogProps
               />
             </div>
             {area.usageCount !== undefined && area.usageCount > 0 && (
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-foreground">
                 This area is currently used in {area.usageCount} pincode(s).
               </div>
             )}

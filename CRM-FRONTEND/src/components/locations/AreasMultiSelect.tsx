@@ -95,7 +95,7 @@ export function AreasMultiSelect({
             aria-expanded={open}
             className={cn(
               'w-full justify-between',
-              selectedAreaIds.length === 0 && 'text-gray-600',
+              selectedAreaIds.length === 0 && 'text-muted-foreground',
               error && 'border-red-500'
             )}
             disabled={disabled}
@@ -138,7 +138,7 @@ export function AreasMultiSelect({
               </CommandEmpty>
               <CommandGroup>
                 {!isLoading && areas.length > 0 && (
-                  <div className="text-xs text-gray-600 px-2 py-1 border-b">
+                  <div className="text-xs text-muted-foreground px-2 py-1 border-b">
                     {areas.length} area{areas.length === 1 ? '' : 's'}{' '}
                     {searchValue ? `matching "${searchValue}"` : 'available'}
                   </div>
@@ -189,7 +189,7 @@ export function AreasMultiSelect({
                   }}
                   onClick={() => handleRemove(area.id)}
                 >
-                  <X className="h-3 w-3 text-gray-600 hover:text-gray-900" />
+                  <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                 </button>
               )}
             </Badge>
@@ -199,7 +199,7 @@ export function AreasMultiSelect({
 
       {error && <p className="text-sm text-red-500">{error}</p>}
 
-      <p className="text-xs text-gray-600">
+      <p className="text-xs text-muted-foreground">
         Select areas from the available list. Areas must be created in the Areas management tab
         first.
       </p>

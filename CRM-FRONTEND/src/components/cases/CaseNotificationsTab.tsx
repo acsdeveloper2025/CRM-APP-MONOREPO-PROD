@@ -316,7 +316,7 @@ export const CaseNotificationsTab: React.FC<CaseNotificationsTabProps> = ({ case
                       <li key={r.id} className="flex items-center gap-2 text-xs">
                         <div
                           className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${
-                            r.isRead ? 'bg-green-500' : 'bg-gray-300'
+                            r.isRead ? 'bg-green-500' : 'bg-muted-foreground/30'
                           }`}
                           aria-hidden="true"
                         />

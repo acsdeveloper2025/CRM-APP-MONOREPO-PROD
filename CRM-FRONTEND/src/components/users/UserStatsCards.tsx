@@ -12,11 +12,11 @@ export function UserStatsCards({ stats }: UserStatsCardsProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-          <Users className="h-4 w-4 text-gray-600" />
+          <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{stats?.totalUsers || 0}</div>
-          <p className="text-xs text-gray-600">All users</p>
+          <p className="text-xs text-muted-foreground">All users</p>
         </CardContent>
       </Card>
 
@@ -27,7 +27,7 @@ export function UserStatsCards({ stats }: UserStatsCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-green-600">{stats?.activeUsers || 0}</div>
-          <p className="text-xs text-gray-600">Currently active</p>
+          <p className="text-xs text-muted-foreground">Currently active</p>
         </CardContent>
       </Card>
 
@@ -38,7 +38,7 @@ export function UserStatsCards({ stats }: UserStatsCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-red-600">{stats?.inactiveUsers || 0}</div>
-          <p className="text-xs text-gray-600">Deactivated</p>
+          <p className="text-xs text-muted-foreground">Deactivated</p>
         </CardContent>
       </Card>
 
@@ -49,7 +49,7 @@ export function UserStatsCards({ stats }: UserStatsCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{stats.recentLogins?.length || 0}</div>
-          <p className="text-xs text-gray-600">Last 24 hours</p>
+          <p className="text-xs text-muted-foreground">Last 24 hours</p>
         </CardContent>
       </Card>
 
@@ -60,7 +60,7 @@ export function UserStatsCards({ stats }: UserStatsCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{stats.newUsersThisMonth || 0}</div>
-          <p className="text-xs text-gray-600">Recently added</p>
+          <p className="text-xs text-muted-foreground">Recently added</p>
         </CardContent>
       </Card>
     </div>

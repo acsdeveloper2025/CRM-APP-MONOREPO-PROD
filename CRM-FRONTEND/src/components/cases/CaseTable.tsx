@@ -101,7 +101,7 @@ export const CaseTable: React.FC<CaseTableProps> = React.memo(({ cases, isLoadin
   if (cases.length === 0) {
     return (
       <div className="border rounded-lg p-8 text-center">
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           No cases found. Try adjusting your filters or create a new case.
         </p>
       </div>
@@ -146,7 +146,7 @@ export const CaseTable: React.FC<CaseTableProps> = React.memo(({ cases, isLoadin
                     <div className="font-medium">
                       {caseItem.customerName || caseItem.applicantName}
                     </div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-muted-foreground">
                       {caseItem.customerPhone || caseItem.applicantPhone}
                     </div>
                   </div>
@@ -182,7 +182,7 @@ export const CaseTable: React.FC<CaseTableProps> = React.memo(({ cases, isLoadin
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">{caseItem.totalTasks || 0}</span>
                     <div
-                      className="flex items-center gap-1 text-xs text-gray-600"
+                      className="flex items-center gap-1 text-xs text-muted-foreground"
                       title={`Completed: ${caseItem.completedTasks || 0} · In Progress: ${caseItem.inProgressTasks || 0} · Pending: ${caseItem.pendingTasks || 0}`}
                     >
                       <span className="text-green-600">✓ {caseItem.completedTasks || 0}</span>
@@ -194,12 +194,12 @@ export const CaseTable: React.FC<CaseTableProps> = React.memo(({ cases, isLoadin
                   </div>
                 </TableCell>
                 <TableCell className="hidden xl:table-cell">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     {format(new Date(caseItem.updatedAt), 'dd MMM yyyy')}
                   </div>
                 </TableCell>
                 <TableCell className="hidden xl:table-cell">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     {format(new Date(caseItem.updatedAt), 'hh:mm a')}
                   </div>
                 </TableCell>
@@ -248,7 +248,7 @@ export const CaseTable: React.FC<CaseTableProps> = React.memo(({ cases, isLoadin
                   <div className="font-medium">
                     {caseItem.customerName || caseItem.applicantName}
                   </div>
-                  <div className="text-xs text-gray-600">
+                  <div className="text-xs text-muted-foreground">
                     {caseItem.customerPhone || caseItem.applicantPhone}
                   </div>
                 </div>

@@ -9,11 +9,10 @@ const buttonVariants = cva(
           'bg-green-500 text-white hover:bg-green-600 active:bg-green-700 border border-green-600 shadow-sm',
         destructive:
           'bg-red-500 text-white hover:bg-red-600 active:bg-red-700 border border-red-600 shadow-sm',
-        outline:
-          'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100',
+        outline: 'border border-input bg-card text-foreground hover:bg-muted active:bg-muted',
         secondary:
-          'bg-white text-green-700 hover:bg-green-50 active:bg-green-100 border border-green-500',
-        ghost: 'text-gray-700 hover:bg-gray-100 active:bg-gray-200',
+          'bg-card text-green-700 hover:bg-green-50 active:bg-green-100 border border-green-500',
+        ghost: 'text-foreground hover:bg-muted active:bg-muted',
         link: 'text-green-600 hover:text-green-700 underline-offset-4 hover:underline active:text-green-800',
       },
       size: {

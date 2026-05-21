@@ -56,7 +56,7 @@ export const DocumentTypesPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Document Types</h1>
-          <p className="text-gray-600">Manage document types with only name and code.</p>
+          <p className="text-muted-foreground">Manage document types with only name and code.</p>
         </div>
       </div>
 
@@ -65,11 +65,11 @@ export const DocumentTypesPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Types</CardTitle>
-            <FileText className="h-4 w-4 text-gray-600" />
+            <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalDocumentTypes}</div>
-            <p className="text-xs text-gray-600">All document types</p>
+            <p className="text-xs text-muted-foreground">All document types</p>
           </CardContent>
         </Card>
         <Card>
@@ -81,7 +81,7 @@ export const DocumentTypesPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.activeDocumentTypes}</div>
-            <p className="text-xs text-gray-600">Currently active</p>
+            <p className="text-xs text-muted-foreground">Currently active</p>
           </CardContent>
         </Card>
       </div>
@@ -115,7 +115,7 @@ export const DocumentTypesPage: React.FC = () => {
             {/* Pagination Controls */}
             {documentTypesData?.pagination && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-muted-foreground">
                   Showing {documentTypesData.data?.length || 0} of{' '}
                   {documentTypesData.pagination.total} document types
                 </div>

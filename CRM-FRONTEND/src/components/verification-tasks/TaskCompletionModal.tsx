@@ -39,7 +39,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
     { value: 'NOT_VERIFIED', label: 'Not Verified', color: 'bg-red-100 text-red-800' },
     { value: 'PARTIAL', label: 'Partially Verified', color: 'bg-yellow-100 text-yellow-800' },
     { value: 'PENDING_DOCS', label: 'Pending Documents', color: 'bg-yellow-100 text-orange-800' },
-    { value: 'NOT_FOUND', label: 'Not Found', color: 'bg-gray-100 text-gray-800' },
+    { value: 'NOT_FOUND', label: 'Not Found', color: 'bg-muted text-foreground' },
   ];
 
   const validateForm = (): boolean => {
@@ -94,7 +94,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
 
   const getOutcomeColor = (outcome: string) => {
     const option = outcomeOptions.find((opt) => opt.value === outcome);
-    return option?.color || 'bg-gray-100 text-gray-800';
+    return option?.color || 'bg-muted text-foreground';
   };
 
   return (
@@ -109,14 +109,14 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
 
         <div className="space-y-6">
           {/* Task Info */}
-          <Card className="bg-gray-50 border-gray-200">
+          <Card className="bg-muted border-border">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-foreground">
                     Task ID: {taskId.slice(0, 8)}...
                   </p>
-                  <p className="text-xs text-gray-600 mt-1">Mark this task as completed</p>
+                  <p className="text-xs text-muted-foreground mt-1">Mark this task as completed</p>
                 </div>
                 <Badge className="bg-green-100 text-green-800">Completing</Badge>
               </div>
@@ -166,7 +166,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
             <div className="space-y-2">
               <Label htmlFor="actualAmount">Actual Amount (₹)</Label>
               <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="actualAmount"
                   type="number"
@@ -187,7 +187,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
                   <span>{errors.actualAmount}</span>
                 </p>
               )}
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Enter the actual amount charged for this verification
               </p>
             </div>
@@ -201,7 +201,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
                 onChange={(e) => setFormSubmissionId(e.target.value)}
                 placeholder="Enter form submission reference"
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Reference to any form submission related to this verification
               </p>
             </div>
@@ -228,7 +228,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
                   <span>{errors.completionNotes}</span>
                 </p>
               )}
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Include any relevant details, observations, or issues encountered
               </p>
             </div>

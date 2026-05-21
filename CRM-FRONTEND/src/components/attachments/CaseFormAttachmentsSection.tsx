@@ -267,8 +267,8 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
             }
           }}
         >
-          <Upload className="h-8 w-8 text-gray-600 mx-auto mb-2" />
-          <p className="text-sm text-gray-600 mb-2">
+          <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground mb-2">
             Drag and drop files here, or{' '}
             <button
               type="button"
@@ -279,7 +279,7 @@ export const CaseFormAttachmentsSection: React.FC<CaseFormAttachmentsSectionProp
               browse
             </button>
           </p>
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-muted-foreground">
             PDF, image files (JPG, PNG, GIF), and Word documents (DOC, DOCX) only. Max{' '}
             {Math.round(maxFileSize / 1024 / 1024)}MB per file, {maxFiles} files total.
           </p>

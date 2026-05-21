@@ -123,7 +123,7 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Customer Information</h2>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Enter customer details to search for existing cases or create a new one
         </p>
       </div>
@@ -173,7 +173,7 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
                     <FormLabel className="flex items-center gap-2">
                       <Hash className="h-4 w-4" />
                       Customer Calling Code *
-                      <span className="text-sm text-gray-600">(Auto-generated)</span>
+                      <span className="text-sm text-muted-foreground">(Auto-generated)</span>
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -184,7 +184,7 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
                       />
                     </FormControl>
                     <FormMessage />
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-muted-foreground">
                       This unique code will be used for automatic call routing from the mobile app
                     </p>
                   </FormItem>
@@ -200,7 +200,7 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
                     <FormLabel className="flex items-center gap-2">
                       <CreditCard className="h-4 w-4" />
                       PAN Number
-                      <span className="text-sm text-gray-600">(Optional)</span>
+                      <span className="text-sm text-muted-foreground">(Optional)</span>
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -225,7 +225,7 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
                     <FormLabel className="flex items-center gap-2">
                       <Phone className="h-4 w-4" />
                       Mobile Number
-                      <span className="text-sm text-gray-600">(Optional)</span>
+                      <span className="text-sm text-muted-foreground">(Optional)</span>
                     </FormLabel>
                     <FormControl>
                       <Input
@@ -282,7 +282,7 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
               </div>
 
               {/* Help Text */}
-              <div className="text-sm text-gray-600 bg-slate-100/70 dark:bg-slate-800/50 p-4 rounded-lg">
+              <div className="text-sm text-muted-foreground bg-slate-100/70 dark:bg-slate-800/50 p-4 rounded-lg">
                 <p className="font-medium mb-2">Mandatory Deduplication Process</p>
                 <ul className="space-y-1 text-xs">
                   <li>

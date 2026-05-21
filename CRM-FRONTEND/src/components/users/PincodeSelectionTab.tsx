@@ -68,7 +68,7 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
       {/* Header with search and actions */}
       <div className="flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
             placeholder="Search by pincode, city, or state..."
@@ -106,7 +106,7 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
       {/* Pincode list - Scrollable, shows all pincodes */}
       <div className="border rounded-lg divide-y max-h-[500px] overflow-y-auto">
         {filteredPincodes.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
+          <div className="p-8 text-center text-muted-foreground">
             {searchTerm ? 'No pincodes found matching your search' : 'No pincodes available'}
           </div>
         ) : (
@@ -125,7 +125,7 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
                   tabIndex={0}
                   aria-pressed={isSelected}
                   aria-label={`Toggle pincode ${pincode.code}`}
-                  className={`flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+                  className={`flex items-center gap-3 p-3 hover:bg-muted cursor-pointer transition-colors ${
                     isSelected ? 'bg-emerald-50' : ''
                   }`}
                   onClick={() => onPincodeToggle(pincodeIdNum)}
@@ -143,10 +143,10 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
 
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">{pincode.code}</span>
-                      <span className="text-gray-500">-</span>
-                      <span className="text-gray-700">{pincode.cityName}</span>
-                      <span className="text-gray-400 text-sm">({pincode.stateName})</span>
+                      <span className="font-medium text-foreground">{pincode.code}</span>
+                      <span className="text-muted-foreground">-</span>
+                      <span className="text-foreground">{pincode.cityName}</span>
+                      <span className="text-muted-foreground text-sm">({pincode.stateName})</span>
                     </div>
                   </div>
 
@@ -164,7 +164,7 @@ export const PincodeSelectionTab: React.FC<PincodeSelectionTabProps> = ({
 
       {/* Total count display */}
       {filteredPincodes.length > 0 && (
-        <div className="text-sm text-gray-600 text-center">
+        <div className="text-sm text-muted-foreground text-center">
           Showing {filteredPincodes.length} {filteredPincodes.length === 1 ? 'pincode' : 'pincodes'}
           {searchTerm && ' (filtered)'}
         </div>

@@ -96,7 +96,7 @@ export function ProductMappingsEditor({
 
   if (!products.length) {
     return (
-      <div className="text-sm text-gray-600 border rounded-md p-4">
+      <div className="text-sm text-muted-foreground border rounded-md p-4">
         No products available. Create products first.
       </div>
     );
@@ -104,7 +104,7 @@ export function ProductMappingsEditor({
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-gray-600">
+      <p className="text-xs text-muted-foreground">
         Check a product to assign it to this client, then pick verification types and document types
         for that (client, product) combination.
       </p>
@@ -136,7 +136,7 @@ export function ProductMappingsEditor({
             {selected && (
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 pl-6">
                 <div>
-                  <h5 className="text-xs font-medium text-gray-700 mb-1">Verification Types</h5>
+                  <h5 className="text-xs font-medium text-foreground mb-1">Verification Types</h5>
                   <ScrollArea className="h-40 w-full border rounded p-2 bg-background">
                     {verificationTypes.length ? (
                       <div className="space-y-1">
@@ -157,13 +157,13 @@ export function ProductMappingsEditor({
                         ))}
                       </div>
                     ) : (
-                      <div className="text-xs text-gray-500">No verification types</div>
+                      <div className="text-xs text-muted-foreground">No verification types</div>
                     )}
                   </ScrollArea>
                 </div>
 
                 <div>
-                  <h5 className="text-xs font-medium text-gray-700 mb-1">Document Types</h5>
+                  <h5 className="text-xs font-medium text-foreground mb-1">Document Types</h5>
                   <ScrollArea className="h-40 w-full border rounded p-2 bg-background">
                     {documentTypes.length ? (
                       <div className="space-y-1">
@@ -184,7 +184,7 @@ export function ProductMappingsEditor({
                         ))}
                       </div>
                     ) : (
-                      <div className="text-xs text-gray-500">No document types</div>
+                      <div className="text-xs text-muted-foreground">No document types</div>
                     )}
                   </ScrollArea>
                 </div>

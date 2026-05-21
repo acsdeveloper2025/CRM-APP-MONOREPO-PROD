@@ -256,7 +256,7 @@ export const KYCDocumentSelector: React.FC<KYCDocumentSelectorProps> = ({
                         e.stopPropagation();
                         removeDocument(doc.documentTypeCode);
                       }}
-                      className="ml-0.5 rounded-full hover:bg-gray-300/50 p-0.5"
+                      className="ml-0.5 rounded-full hover:bg-muted-foreground/50 p-0.5"
                     >
                       <X className="h-3 w-3" />
                     </button>

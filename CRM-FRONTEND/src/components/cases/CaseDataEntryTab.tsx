@@ -332,9 +332,9 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
     return (
       <Card>
         <CardContent className="p-6 text-center">
-          <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Entry Template</h3>
-          <p className="text-gray-600">
+          <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">No Data Entry Template</h3>
+          <p className="text-muted-foreground">
             No data entry template has been configured for this client and product combination.
           </p>
         </CardContent>
@@ -359,7 +359,7 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
           ) : entries.length > 0 ? (
             <Badge className="bg-yellow-100 text-yellow-800">In Progress</Badge>
           ) : (
-            <Badge className="bg-gray-100 text-gray-600">Not Started</Badge>
+            <Badge className="bg-muted text-muted-foreground">Not Started</Badge>
           )}
         </div>
         {!effectiveReadonly && (
@@ -414,8 +414,8 @@ export function CaseDataEntryTab({ caseId, readonly = false }: CaseDataEntryTabP
       {entries.length === 0 && (
         <Card>
           <CardContent className="p-8 text-center">
-            <FileText className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600 mb-3">No data entered yet.</p>
+            <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground mb-3">No data entered yet.</p>
             {!effectiveReadonly && (
               <Button onClick={handleCreateInstance} disabled={createInstance.isPending}>
                 <Plus className="h-4 w-4 mr-1" />
@@ -548,7 +548,7 @@ function InstanceForm({
   return (
     <div className="space-y-4 mt-3">
       <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-muted-foreground">
           {entry.isCompleted ? (
             <Badge className="bg-green-100 text-green-800">
               <CheckCircle className="h-3 w-3 mr-1" />
@@ -648,7 +648,7 @@ function DynamicField({
         <Label htmlFor={fieldId} className="mb-1.5 block">
           {field.fieldLabel}
           {field.isRequired && <span className="text-red-500 ml-1">*</span>}
-          <span className="ml-2 text-xs font-normal text-gray-500">
+          <span className="ml-2 text-xs font-normal text-muted-foreground">
             (from {entry?.label ?? field.prefillSource})
           </span>
         </Label>
@@ -737,7 +737,7 @@ function DynamicField({
             onCheckedChange={onChange}
             disabled={readonly}
           />
-          <Label htmlFor={fieldId} className="text-sm text-gray-600">
+          <Label htmlFor={fieldId} className="text-sm text-muted-foreground">
             {value === true || value === 'true' ? 'Yes' : 'No'}
           </Label>
         </div>

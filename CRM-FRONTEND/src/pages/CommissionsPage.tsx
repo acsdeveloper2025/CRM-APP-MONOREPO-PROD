@@ -76,11 +76,11 @@ export const CommissionsPage: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Calculations</CardTitle>
-            <Calculator className="h-4 w-4 text-gray-600" />
+            <Calculator className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalCommissions}</div>
-            <p className="text-xs text-gray-600">All commission records</p>
+            <p className="text-xs text-muted-foreground">All commission records</p>
           </CardContent>
         </Card>
 
@@ -91,7 +91,7 @@ export const CommissionsPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pendingCommissions}</div>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-muted-foreground">
               ₹{Number(pendingAmount).toLocaleString()} pending
             </p>
           </CardContent>
@@ -104,7 +104,7 @@ export const CommissionsPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{approvedCommissions}</div>
-            <p className="text-xs text-gray-600">Ready for payment</p>
+            <p className="text-xs text-muted-foreground">Ready for payment</p>
           </CardContent>
         </Card>
 
@@ -115,7 +115,7 @@ export const CommissionsPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{totalAmount.toLocaleString()}</div>
-            <p className="text-xs text-gray-600">All commissions</p>
+            <p className="text-xs text-muted-foreground">All commissions</p>
           </CardContent>
         </Card>
 
@@ -131,7 +131,7 @@ export const CommissionsPage: React.FC = () => {
                 ? Math.round(totalAmount / totalCommissions).toLocaleString()
                 : 0}
             </div>
-            <p className="text-xs text-gray-600">Per calculation</p>
+            <p className="text-xs text-muted-foreground">Per calculation</p>
           </CardContent>
         </Card>
       </div>
@@ -214,7 +214,7 @@ export const CommissionsPage: React.FC = () => {
             </div>
             <div>
               <h3 className="font-semibold mb-2">Commission Reports Guide</h3>
-              <div className="space-y-2 text-sm text-gray-600">
+              <div className="space-y-2 text-sm text-muted-foreground">
                 <p>
                   • <strong>Commission Calculations:</strong> View detailed commission calculations
                   for each field user with payment status and case details

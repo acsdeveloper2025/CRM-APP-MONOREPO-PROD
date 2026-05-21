@@ -96,7 +96,7 @@ export function MISSummaryCards({ summary, isLoading }: MISSummaryCardsProps) {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{card.value}</div>
-              <p className="text-xs text-gray-600">{card.subtitle}</p>
+              <p className="text-xs text-muted-foreground">{card.subtitle}</p>
             </CardContent>
           </Card>
         );

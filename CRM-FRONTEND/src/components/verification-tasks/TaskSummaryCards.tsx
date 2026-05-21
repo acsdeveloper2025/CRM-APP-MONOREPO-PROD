@@ -65,9 +65,9 @@ export const TaskSummaryCards: React.FC<TaskSummaryCardsProps> = ({
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">{card.title}</p>
-                  <p className="text-2xl font-bold text-gray-900">{card.value}</p>
-                  <p className="text-xs text-gray-500 mt-1">{card.description}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">{card.title}</p>
+                  <p className="text-2xl font-bold text-foreground">{card.value}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{card.description}</p>
                 </div>
                 <div className={`p-3 rounded-full ${card.bgColor}`}>
                   <Icon className={`h-6 w-6 ${card.color}`} />
@@ -90,10 +90,10 @@ export const TaskSummaryCards: React.FC<TaskSummaryCardsProps> = ({
           <CardContent>
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">
+                <span className="text-muted-foreground">
                   {completedTasks} of {totalTasks} tasks completed
                 </span>
-                <span className="font-medium text-gray-900">
+                <span className="font-medium text-foreground">
                   {completionPercentage.toFixed(1)}%
                 </span>
               </div>
@@ -103,15 +103,15 @@ export const TaskSummaryCards: React.FC<TaskSummaryCardsProps> = ({
               <div className="grid grid-cols-3 gap-4 text-sm">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-yellow-400 rounded-full" />
-                  <span className="text-gray-600">Pending: {pendingCount}</span>
+                  <span className="text-muted-foreground">Pending: {pendingCount}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-blue-400 rounded-full" />
-                  <span className="text-gray-600">Assigned: {assignedCount}</span>
+                  <span className="text-muted-foreground">Assigned: {assignedCount}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-orange-400 rounded-full" />
-                  <span className="text-gray-600">In Progress: {inProgressCount}</span>
+                  <span className="text-muted-foreground">In Progress: {inProgressCount}</span>
                 </div>
               </div>
             </div>

@@ -103,9 +103,11 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <TrendingUp className="mx-auto h-12 w-12 text-gray-600" />
+        <TrendingUp className="mx-auto h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">No commissions found</h3>
-        <p className="text-gray-600">Commissions will appear here once cases are completed.</p>
+        <p className="text-muted-foreground">
+          Commissions will appear here once cases are completed.
+        </p>
       </div>
     );
   }
@@ -191,20 +193,24 @@ export function CommissionsTable({ data, isLoading }: CommissionsTableProps) {
                     </div>
                     <div>
                       <div className="font-medium">{commission.user.name}</div>
-                      <div className="text-sm text-gray-600">{commission.user.employeeId}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {commission.user.employeeId}
+                      </div>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div>
                     <div className="font-medium">{commission.case.title}</div>
-                    <div className="text-sm text-gray-600">{commission.case.customerName}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {commission.case.customerName}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div>
                     <div className="font-medium">{commission.client.name}</div>
-                    <div className="text-sm text-gray-600">{commission.client.code}</div>
+                    <div className="text-sm text-muted-foreground">{commission.client.code}</div>
                   </div>
                 </TableCell>
                 <TableCell>

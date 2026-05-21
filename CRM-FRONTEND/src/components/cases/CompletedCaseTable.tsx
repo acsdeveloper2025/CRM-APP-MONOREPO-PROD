@@ -71,9 +71,11 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({ cases, i
   if (cases.length === 0) {
     return (
       <div className="border rounded-lg p-8 text-center">
-        <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No completed cases found</h3>
-        <p className="text-gray-600">There are no completed cases matching your current filters.</p>
+        <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-foreground mb-2">No completed cases found</h3>
+        <p className="text-muted-foreground">
+          There are no completed cases matching your current filters.
+        </p>
       </div>
     );
   }
@@ -108,7 +110,7 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({ cases, i
               <TableCell>
                 <div>
                   <div className="font-medium">{caseItem.customerName}</div>
-                  <div className="text-sm text-gray-600 flex items-center">
+                  <div className="text-sm text-muted-foreground flex items-center">
                     {caseItem.customerPhone && (
                       <span className="mr-2">{caseItem.customerPhone}</span>
                     )}
@@ -140,7 +142,7 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({ cases, i
               <TableCell>
                 <div>
                   <div className="font-medium">{caseItem.clientName || caseItem.client?.name}</div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     {caseItem.clientCode || caseItem.client?.code}
                   </div>
                 </div>
@@ -150,7 +152,7 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({ cases, i
                   <div className="font-medium">
                     {caseItem.productName || caseItem.product?.name || 'Not specified'}
                   </div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     {caseItem.productCode || caseItem.product?.code}
                   </div>
                 </div>
@@ -160,20 +162,20 @@ export const CompletedCaseTable: React.FC<CompletedCaseTableProps> = ({ cases, i
                   <div className="font-medium">
                     {caseItem.createdByBackendUser?.name || 'Unknown'}
                   </div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     {caseItem.createdByBackendUser?.employeeId}
                   </div>
                 </div>
               </TableCell>
               <TableCell>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-muted-foreground">
                   {caseItem.completedAt
                     ? format(new Date(caseItem.completedAt), 'dd MMM yyyy')
                     : format(new Date(caseItem.updatedAt), 'dd MMM yyyy')}
                 </div>
               </TableCell>
               <TableCell>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-muted-foreground">
                   {caseItem.completedAt
                     ? format(new Date(caseItem.completedAt), 'hh:mm a')
                     : format(new Date(caseItem.updatedAt), 'hh:mm a')}

@@ -90,10 +90,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <div
           className={cn(
             'flex items-center px-3 sm:px-4 py-2.5 sm:py-2 text-sm font-medium rounded-lg transition-all duration-200 min-h-[44px] sm:min-h-[40px]',
-            level > 0 && 'ml-4 sm:ml-6 mr-2 border-l-2 border-gray-200 pl-3 sm:pl-4',
+            level > 0 && 'ml-4 sm:ml-6 mr-2 border-l-2 border-border pl-3 sm:pl-4',
             isActive
               ? 'bg-green-100 text-green-800 border-l-4 border-green-600 shadow-sm'
-              : 'text-gray-700 hover:bg-green-50 hover:text-green-700 hover:shadow-sm'
+              : 'text-foreground hover:bg-green-50 hover:text-green-700 hover:shadow-sm'
           )}
         >
           {hasChildren ? (
@@ -148,26 +148,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <div
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 sm:w-72 lg:w-64 bg-white shadow-lg border-r border-gray-200 transform transition-all duration-300 ease-in-out',
+          'fixed inset-y-0 left-0 z-50 w-64 sm:w-72 lg:w-64 bg-card shadow-lg border-r border-border transform transition-all duration-300 ease-in-out',
           isOpen ? 'translate-x-0' : '-translate-x-full',
           isSidebarCollapsed ? 'lg:-translate-x-full' : 'lg:translate-x-0'
         )}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="relative flex items-center justify-center h-16 px-4 border-b border-gray-200 bg-green-50">
+          <div className="relative flex items-center justify-center h-16 px-4 border-b border-border bg-green-50">
             <button
               type="button"
               onClick={toggleSidebarCollapsed}
               aria-label="Collapse sidebar"
               title="Collapse sidebar"
-              className="hidden lg:flex absolute left-3 top-1/2 -translate-y-1/2 h-8 w-8 items-center justify-center rounded-md text-gray-600 hover:bg-green-100 hover:text-green-700 transition-colors duration-200"
+              className="hidden lg:flex absolute left-3 top-1/2 -translate-y-1/2 h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-green-100 hover:text-green-700 transition-colors duration-200"
             >
               <PanelLeftClose className="h-5 w-5" />
             </button>
             <Link
               to="/dashboard"
-              className="text-xl font-bold text-gray-900 hover:text-green-600 transition-colors duration-200"
+              className="text-xl font-bold text-foreground hover:text-green-600 transition-colors duration-200"
               onClick={onClose}
             >
               CRM Admin

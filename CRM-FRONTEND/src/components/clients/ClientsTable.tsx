@@ -104,9 +104,9 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <Building2 className="mx-auto h-12 w-12 text-gray-600" />
+        <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">No clients found</h3>
-        <p className="text-gray-600">Get started by creating your first client.</p>
+        <p className="text-muted-foreground">Get started by creating your first client.</p>
       </div>
     );
   }
@@ -157,7 +157,7 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
                         )}
                       </>
                     ) : (
-                      <span className="text-sm text-gray-400">-</span>
+                      <span className="text-sm text-muted-foreground">-</span>
                     )}
                   </div>
                 </TableCell>
@@ -177,7 +177,7 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
                         )}
                       </>
                     ) : (
-                      <span className="text-sm text-gray-400">-</span>
+                      <span className="text-sm text-muted-foreground">-</span>
                     )}
                   </div>
                 </TableCell>
@@ -197,7 +197,7 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
                         )}
                       </>
                     ) : (
-                      <span className="text-sm text-gray-400">-</span>
+                      <span className="text-sm text-muted-foreground">-</span>
                     )}
                   </div>
                 </TableCell>

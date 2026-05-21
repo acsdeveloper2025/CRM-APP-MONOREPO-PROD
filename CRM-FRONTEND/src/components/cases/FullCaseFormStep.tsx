@@ -347,7 +347,9 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Case Details</h2>
-        <p className="text-gray-600">Complete the case information and assignment details</p>
+        <p className="text-muted-foreground">
+          Complete the case information and assignment details
+        </p>
       </div>
 
       <Form {...form}>
@@ -365,18 +367,18 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
               {/* Read-only customer details from previous step */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg">
                 <div>
-                  <span className="text-sm font-medium text-gray-600">Customer Name *</span>
+                  <span className="text-sm font-medium text-muted-foreground">Customer Name *</span>
                   <p className="text-base font-medium">{customerInfo.customerName}</p>
                 </div>
                 {customerInfo.panNumber && (
                   <div>
-                    <span className="text-sm font-medium text-gray-600">PAN</span>
+                    <span className="text-sm font-medium text-muted-foreground">PAN</span>
                     <p className="text-base font-mono">{customerInfo.panNumber}</p>
                   </div>
                 )}
                 {customerInfo.mobileNumber && (
                   <div>
-                    <span className="text-sm font-medium text-gray-600">Mobile Number</span>
+                    <span className="text-sm font-medium text-muted-foreground">Mobile Number</span>
                     <p className="text-base">{customerInfo.mobileNumber}</p>
                   </div>
                 )}
@@ -747,9 +749,11 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
                             <SelectItem key={rateType.id} value={rateType.id.toString()}>
                               <div className="flex items-center justify-between w-full py-2">
                                 <div className="flex flex-col">
-                                  <span className="font-medium text-gray-900">{rateType.name}</span>
+                                  <span className="font-medium text-foreground">
+                                    {rateType.name}
+                                  </span>
                                   {rateType.description && (
-                                    <span className="text-xs text-gray-600 mt-1">
+                                    <span className="text-xs text-muted-foreground mt-1">
                                       {rateType.description}
                                     </span>
                                   )}

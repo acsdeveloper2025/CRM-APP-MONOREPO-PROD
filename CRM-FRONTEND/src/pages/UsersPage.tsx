@@ -291,7 +291,7 @@ export function UsersPage() {
               >
             )[activeTab] || 'User Management'}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Manage users, roles, permissions, and monitor user activities
           </p>
         </div>
@@ -469,7 +469,7 @@ export function UsersPage() {
               {/* Pagination Controls */}
               {usersData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     Showing {usersData.data?.length || 0} of {usersData.pagination.total} users
                   </div>
                   <div className="flex items-center gap-2">
@@ -590,7 +590,7 @@ export function UsersPage() {
               {/* Pagination Controls */}
               {activitiesData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     Showing {activitiesData.data?.length || 0} of {activitiesData.pagination.total}{' '}
                     activities
                   </div>

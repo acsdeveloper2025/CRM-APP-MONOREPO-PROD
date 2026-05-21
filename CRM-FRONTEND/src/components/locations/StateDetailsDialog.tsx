@@ -49,26 +49,26 @@ export function StateDetailsDialog({ state, open, onOpenChange }: StateDetailsDi
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <span className="text-sm font-medium text-gray-600">State Name</span>
+                  <span className="text-sm font-medium text-muted-foreground">State Name</span>
                   <p className="text-sm font-medium">{state.name}</p>
                 </div>
                 <div>
-                  <span className="text-sm font-medium text-gray-600">State Code</span>
+                  <span className="text-sm font-medium text-muted-foreground">State Code</span>
                   <Badge variant="outline" className="mt-1">
                     {state.code}
                   </Badge>
                 </div>
                 <div>
-                  <span className="text-sm font-medium text-gray-600">Country</span>
+                  <span className="text-sm font-medium text-muted-foreground">Country</span>
                   <div className="flex items-center gap-2 mt-1">
-                    <Globe className="h-4 w-4 text-gray-600" />
+                    <Globe className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">{state.country}</span>
                   </div>
                 </div>
                 <div>
-                  <span className="text-sm font-medium text-gray-600">Created</span>
+                  <span className="text-sm font-medium text-muted-foreground">Created</span>
                   <div className="flex items-center gap-2 mt-1">
-                    <Calendar className="h-4 w-4 text-gray-600" />
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">
                       {new Date(state.createdAt).toLocaleDateString()}
                     </span>
@@ -101,7 +101,7 @@ export function StateDetailsDialog({ state, open, onOpenChange }: StateDetailsDi
                     >
                       <div>
                         <p className="font-medium">{city.name}</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted-foreground">
                           {city.pincodes?.length || 0} pincodes
                         </p>
                       </div>
@@ -113,9 +113,9 @@ export function StateDetailsDialog({ state, open, onOpenChange }: StateDetailsDi
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <Building className="mx-auto h-12 w-12 text-gray-600" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">No cities found</h3>
-                  <p className="mt-1 text-sm text-gray-600">
+                  <Building className="mx-auto h-12 w-12 text-muted-foreground" />
+                  <h3 className="mt-2 text-sm font-medium text-foreground">No cities found</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
                     No cities have been added to this state yet.
                   </p>
                 </div>
@@ -132,13 +132,13 @@ export function StateDetailsDialog({ state, open, onOpenChange }: StateDetailsDi
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
                 <div>
                   <p className="text-2xl font-bold">{cities.length}</p>
-                  <p className="text-sm text-gray-600">Cities</p>
+                  <p className="text-sm text-muted-foreground">Cities</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
                     {cities.reduce((total, city) => total + (city.pincodes?.length || 0), 0)}
                   </p>
-                  <p className="text-sm text-gray-600">Pincodes</p>
+                  <p className="text-sm text-muted-foreground">Pincodes</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold">
@@ -146,7 +146,7 @@ export function StateDetailsDialog({ state, open, onOpenChange }: StateDetailsDi
                       (Date.now() - new Date(state.createdAt).getTime()) / (1000 * 60 * 60 * 24)
                     )}
                   </p>
-                  <p className="text-sm text-gray-600">Days Old</p>
+                  <p className="text-sm text-muted-foreground">Days Old</p>
                 </div>
               </div>
             </CardContent>

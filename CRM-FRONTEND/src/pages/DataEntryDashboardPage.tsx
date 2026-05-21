@@ -60,7 +60,7 @@ interface DashboardResponse {
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   /* eslint-disable camelcase -- keys match the backend's SQL CASE alias */
-  not_started: { label: 'Not Started', className: 'bg-gray-100 text-gray-700' },
+  not_started: { label: 'Not Started', className: 'bg-muted text-foreground' },
   in_progress: { label: 'In Progress', className: 'bg-yellow-100 text-yellow-800' },
   /* eslint-enable camelcase */
   completed: { label: 'Completed', className: 'bg-green-100 text-green-800' },
@@ -146,10 +146,10 @@ export function DataEntryDashboardPage() {
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Not Started</CardTitle>
-            <FileText className="h-4 w-4 text-gray-400" />
+            <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-600">{notStarted}</div>
+            <div className="text-2xl font-bold text-muted-foreground">{notStarted}</div>
           </CardContent>
         </Card>
         <Card

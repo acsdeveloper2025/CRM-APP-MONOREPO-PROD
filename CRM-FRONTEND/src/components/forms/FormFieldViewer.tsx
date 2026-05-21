@@ -99,7 +99,7 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
             </div>
           );
         }
-        return <span className="text-sm text-gray-600">No files</span>;
+        return <span className="text-sm text-muted-foreground">No files</span>;
 
       case 'date':
         return (
@@ -200,11 +200,11 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
   return (
     <div className="space-y-2">
       <div className="flex items-center space-x-2">
-        <div className="text-gray-600">{getFieldIcon(field.type)}</div>
+        <div className="text-muted-foreground">{getFieldIcon(field.type)}</div>
         <Label className="text-sm font-medium">
           {field.label}
           {field.isRequired && <span className="text-red-500 ml-1">*</span>}
-          {readonly && <span className="text-xs text-gray-600 ml-2">(Read Only)</span>}
+          {readonly && <span className="text-xs text-muted-foreground ml-2">(Read Only)</span>}
         </Label>
       </div>
 
@@ -213,7 +213,9 @@ export function FormFieldViewer({ field, readonly = true, onChange }: FormFieldV
       </div>
 
       {!readonly && field.type === 'file' && (
-        <div className="text-xs text-gray-600">Supported formats: JPG, PNG, PDF (Max 10MB)</div>
+        <div className="text-xs text-muted-foreground">
+          Supported formats: JPG, PNG, PDF (Max 10MB)
+        </div>
       )}
     </div>
   );

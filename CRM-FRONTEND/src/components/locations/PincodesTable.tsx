@@ -84,9 +84,9 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <MapPin className="mx-auto h-12 w-12 text-gray-600" />
+        <MapPin className="mx-auto h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">No pincodes found</h3>
-        <p className="text-gray-600">Get started by adding your first pincode.</p>
+        <p className="text-muted-foreground">Get started by adding your first pincode.</p>
       </div>
     );
   }
@@ -122,11 +122,11 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
                 <TableCell>
                   {pincode.cityName ? (
                     <div className="flex items-center space-x-1">
-                      <Building className="h-3 w-3 text-gray-600" />
+                      <Building className="h-3 w-3 text-muted-foreground" />
                       <span>{pincode.cityName}</span>
                     </div>
                   ) : (
-                    <span className="text-gray-600">No city</span>
+                    <span className="text-muted-foreground">No city</span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -139,7 +139,7 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
                       )}
                     </Badge>
                   ) : (
-                    <span className="text-gray-600">-</span>
+                    <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
                 <TableCell>{new Date(pincode.createdAt).toLocaleDateString()}</TableCell>

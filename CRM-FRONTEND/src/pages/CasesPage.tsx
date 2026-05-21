@@ -176,7 +176,7 @@ export const CasesPage: React.FC = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <FileText className="h-8 w-8 text-gray-600" />
+              <FileText className="h-8 w-8 text-muted-foreground" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">Total Cases</p>
                 <p className="text-2xl font-bold text-foreground">{totalCases}</p>
@@ -236,7 +236,7 @@ export const CasesPage: React.FC = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <XCircle className="h-8 w-8 text-gray-600" />
+              <XCircle className="h-8 w-8 text-muted-foreground" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">Revoked</p>
                 <p className="text-2xl font-bold text-foreground">{revokedCases}</p>

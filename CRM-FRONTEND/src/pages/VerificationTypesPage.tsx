@@ -50,7 +50,9 @@ export function VerificationTypesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Verification Types</h1>
-          <p className="text-gray-600">Manage verification types, categories, and configurations</p>
+          <p className="text-muted-foreground">
+            Manage verification types, categories, and configurations
+          </p>
         </div>
       </div>
 
@@ -59,11 +61,11 @@ export function VerificationTypesPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Types</CardTitle>
-            <FileCheck className="h-4 w-4 text-gray-600" />
+            <FileCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
-            <p className="text-xs text-gray-600">All types</p>
+            <p className="text-xs text-muted-foreground">All types</p>
           </CardContent>
         </Card>
 
@@ -74,7 +76,7 @@ export function VerificationTypesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.active}</div>
-            <p className="text-xs text-gray-600">Currently active</p>
+            <p className="text-xs text-muted-foreground">Currently active</p>
           </CardContent>
         </Card>
 
@@ -85,7 +87,7 @@ export function VerificationTypesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.inactive}</div>
-            <p className="text-xs text-gray-600">Disabled types</p>
+            <p className="text-xs text-muted-foreground">Disabled types</p>
           </CardContent>
         </Card>
 
@@ -96,7 +98,7 @@ export function VerificationTypesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{Object.keys(stats.byCategory || {}).length}</div>
-            <p className="text-xs text-gray-600">Type categories</p>
+            <p className="text-xs text-muted-foreground">Type categories</p>
           </CardContent>
         </Card>
 
@@ -142,7 +144,7 @@ export function VerificationTypesPage() {
             {/* Pagination Controls */}
             {verificationTypesData?.pagination && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-muted-foreground">
                   Showing {verificationTypesData.data?.length || 0} of{' '}
                   {verificationTypesData.pagination.total} verification types
                 </div>

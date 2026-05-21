@@ -134,7 +134,7 @@ export const CasesAnalytics: React.FC = () => {
         <CardContent className="flex flex-col items-center justify-center py-12">
           <XCircle className="h-12 w-12 text-red-500 mb-4" />
           <h3 className="text-lg font-semibold mb-2">Failed to Load Case Analytics</h3>
-          <p className="text-gray-600 text-center">
+          <p className="text-muted-foreground text-center">
             There was an error loading the case analytics. Please try again later.
           </p>
         </CardContent>
@@ -147,8 +147,10 @@ export const CasesAnalytics: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Cases Analytics</h2>
-          <p className="mt-1 text-sm sm:text-base text-gray-600">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">
+            Cases Analytics
+          </h2>
+          <p className="mt-1 text-sm sm:text-base text-muted-foreground">
             Comprehensive case metrics and distribution analysis
           </p>
         </div>
@@ -171,11 +173,11 @@ export const CasesAnalytics: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Cases</CardTitle>
-            <FileText className="h-4 w-4 text-gray-600" />
+            <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{summary?.totalCases || 0}</div>
-            <p className="text-xs text-gray-600">All cases in selected period</p>
+            <p className="text-xs text-muted-foreground">All cases in selected period</p>
           </CardContent>
         </Card>
 
@@ -186,7 +188,7 @@ export const CasesAnalytics: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{summary?.completedCases || 0}</div>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-muted-foreground">
               {summary?.completionRate
                 ? `${summary.completionRate.toFixed(1)}% completion rate`
                 : '0% completion rate'}
@@ -197,26 +199,26 @@ export const CasesAnalytics: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Avg Completion</CardTitle>
-            <Clock className="h-4 w-4 text-gray-600" />
+            <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {summary?.avgCompletionDays ? `${summary.avgCompletionDays.toFixed(1)}d` : 'N/A'}
             </div>
-            <p className="text-xs text-gray-600">Average days to complete</p>
+            <p className="text-xs text-muted-foreground">Average days to complete</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Task Progress</CardTitle>
-            <TrendingUp className="h-4 w-4 text-gray-600" />
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {summary?.avgFormCompletion ? `${summary.avgFormCompletion.toFixed(1)}%` : 'N/A'}
             </div>
-            <p className="text-xs text-gray-600">Average task completion</p>
+            <p className="text-xs text-muted-foreground">Average task completion</p>
           </CardContent>
         </Card>
       </div>
@@ -333,7 +335,7 @@ export const CasesAnalytics: React.FC = () => {
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: status.color }} />
                   <div>
                     <p className="font-medium">{status.name}</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       {summary?.totalCases
                         ? ((status.value / summary.totalCases) * 100).toFixed(1)
                         : 0}

@@ -99,8 +99,8 @@ export function FormAttachmentsViewer({
         <CardContent>
           {attachments.length === 0 ? (
             <div className="text-center py-8">
-              <FileText className="h-12 w-12 mx-auto text-gray-600 mb-2" />
-              <p className="text-sm text-gray-600">No attachments found</p>
+              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">No attachments found</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -150,7 +150,7 @@ export function FormAttachmentsViewer({
                         )}
 
                         {/* File Info */}
-                        <div className="space-y-2 text-xs text-gray-600">
+                        <div className="space-y-2 text-xs text-muted-foreground">
                           <div className="flex items-center justify-between">
                             <span>Size:</span>
                             <span>{formatFileSize(attachment.size)}</span>
@@ -229,7 +229,7 @@ export function FormAttachmentsViewer({
               <div className="grid gap-4 md:grid-cols-2 text-sm">
                 <div>
                   <h4 className="font-medium mb-2">File Information</h4>
-                  <div className="space-y-1 text-gray-600">
+                  <div className="space-y-1 text-muted-foreground">
                     <div>Size: {formatFileSize(selectedAttachment.size)}</div>
                     <div>Type: {selectedAttachment.mimeType}</div>
                     <div>Uploaded: {new Date(selectedAttachment.uploadedAt).toLocaleString()}</div>

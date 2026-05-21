@@ -431,7 +431,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold tracking-tight">Create Case with Tasks</h2>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           {editMode
             ? 'Update case details and verification tasks'
             : 'Fill in case details once, then configure verification tasks'}
@@ -455,18 +455,18 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-100/70 dark:bg-slate-800/50 rounded-lg">
                   <div>
-                    <span className="text-sm font-medium text-gray-600">Customer Name</span>
+                    <span className="text-sm font-medium text-muted-foreground">Customer Name</span>
                     <p className="text-base font-medium">{customerInfo.customerName}</p>
                   </div>
                   {customerInfo.panNumber && (
                     <div>
-                      <span className="text-sm font-medium text-gray-600">PAN</span>
+                      <span className="text-sm font-medium text-muted-foreground">PAN</span>
                       <p className="text-base font-mono">{customerInfo.panNumber}</p>
                     </div>
                   )}
                   {customerInfo.mobileNumber && (
                     <div>
-                      <span className="text-sm font-medium text-gray-600">Mobile</span>
+                      <span className="text-sm font-medium text-muted-foreground">Mobile</span>
                       <p className="text-base">{customerInfo.mobileNumber}</p>
                     </div>
                   )}
@@ -592,7 +592,7 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                           <Input
                             {...field}
                             disabled
-                            className="bg-slate-100 dark:bg-slate-800/60 text-black dark:text-slate-100"
+                            className="bg-slate-100 dark:bg-slate-800/60 text-foreground dark:text-slate-100"
                           />
                         </FormControl>
                         <FormMessage />
@@ -1431,7 +1431,7 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
         tabIndex={0}
         aria-label="File upload drop zone, press Enter to browse files"
         className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
-          isDragging ? 'border-green-500 bg-green-50' : 'border-gray-300'
+          isDragging ? 'border-green-500 bg-green-50' : 'border-input'
         }`}
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
@@ -1444,8 +1444,8 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
           }
         }}
       >
-        <Upload className="h-6 w-6 text-gray-600 mx-auto mb-2" />
-        <p className="text-xs text-gray-600 mb-1">
+        <Upload className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+        <p className="text-xs text-muted-foreground mb-1">
           <button
             type="button"
             className="text-green-600 hover:text-green-700 underline cursor-pointer"
@@ -1456,7 +1456,7 @@ const TaskAttachmentsSection: React.FC<TaskAttachmentsSectionProps> = ({
           </button>{' '}
           or drag and drop
         </p>
-        <p className="text-xs text-gray-600">
+        <p className="text-xs text-muted-foreground">
           PDF, images, Word docs • Max 10MB • {MAX_FILES} files total
         </p>
         <input

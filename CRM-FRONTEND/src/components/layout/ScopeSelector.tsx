@@ -78,7 +78,7 @@ export const ScopeSelector: React.FC = () => {
           onValueChange={onClientChange}
           disabled={isDemoMode}
         >
-          <SelectTrigger className="h-8 w-40 bg-white/10 text-white border-white/20 hover:bg-white/20 focus:ring-white/40 disabled:opacity-70 disabled:cursor-not-allowed">
+          <SelectTrigger className="h-8 w-40 bg-card/10 text-white border-white/20 hover:bg-card/20 focus:ring-white/40 disabled:opacity-70 disabled:cursor-not-allowed">
             <SelectValue placeholder="Client" />
           </SelectTrigger>
           <SelectContent>
@@ -96,7 +96,7 @@ export const ScopeSelector: React.FC = () => {
             onValueChange={onProductChange}
             disabled={isDemoMode}
           >
-            <SelectTrigger className="h-8 w-40 bg-white/10 text-white border-white/20 hover:bg-white/20 focus:ring-white/40 disabled:opacity-70 disabled:cursor-not-allowed">
+            <SelectTrigger className="h-8 w-40 bg-card/10 text-white border-white/20 hover:bg-card/20 focus:ring-white/40 disabled:opacity-70 disabled:cursor-not-allowed">
               <SelectValue placeholder="Product" />
             </SelectTrigger>
             <SelectContent>
@@ -113,7 +113,7 @@ export const ScopeSelector: React.FC = () => {
           <Button
             size="icon"
             variant="ghost"
-            className="h-8 w-8 text-white hover:bg-white/20"
+            className="h-8 w-8 text-white hover:bg-card/20"
             onClick={() => setLockConfirmOpen(true)}
             aria-label="Lock scope (enter Demo Mode)"
             title="Lock scope — prevents accidental switching during demos"

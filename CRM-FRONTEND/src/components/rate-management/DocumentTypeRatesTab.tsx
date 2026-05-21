@@ -258,7 +258,7 @@ export function DocumentTypeRatesTab() {
             <div className="space-y-2">
               <Label htmlFor="amount-input">Amount *</Label>
               <div className="relative">
-                <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+                <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="amount-input"
                   type="number"
@@ -321,9 +321,9 @@ export function DocumentTypeRatesTab() {
         </CardHeader>
         <CardContent>
           {ratesLoading ? (
-            <div className="text-center py-8 text-gray-500">Loading rates...</div>
+            <div className="text-center py-8 text-muted-foreground">Loading rates...</div>
           ) : rates.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               No KYC rates configured yet. Add your first rate above.
             </div>
           ) : (
@@ -384,7 +384,7 @@ export function DocumentTypeRatesTab() {
           {/* Pagination Controls */}
           {ratesData?.pagination && (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-foreground">
                 Showing {rates.length} of {ratesData.pagination.total} KYC rates
               </div>
               <div className="flex items-center gap-2">

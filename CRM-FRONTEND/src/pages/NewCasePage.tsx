@@ -290,7 +290,7 @@ export const NewCasePage: React.FC = () => {
       <div className="space-y-6">
         <div className="text-center">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Edit Case</h1>
-          <p className="text-gray-600">Loading case data... (ID: {editCaseId})</p>
+          <p className="text-muted-foreground">Loading case data... (ID: {editCaseId})</p>
         </div>
         <LoadingState message="Fetching case data..." size="lg" />
       </div>
@@ -305,7 +305,7 @@ export const NewCasePage: React.FC = () => {
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-red-600">
             Edit Mode - No Data
           </h1>
-          <div className="text-gray-600 space-y-2">
+          <div className="text-muted-foreground space-y-2">
             <p>Edit Case ID: {editCaseId}</p>
             <p>Loading: {loadingCase ? 'Yes' : 'No'}</p>
             <p>Has Case Data: {caseData?.data ? 'Yes' : 'No'}</p>
@@ -330,7 +330,7 @@ export const NewCasePage: React.FC = () => {
       <div className="space-y-6">
         <div className="text-center">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Edit Case</h1>
-          <p className="text-gray-600">Preparing form data... (ID: {editCaseId})</p>
+          <p className="text-muted-foreground">Preparing form data... (ID: {editCaseId})</p>
         </div>
         <LoadingState message="Preparing form data..." size="lg" />
       </div>
@@ -354,7 +354,7 @@ export const NewCasePage: React.FC = () => {
               </span>
             </div>
             <h2 className="text-xl font-bold mb-2">Cannot Edit Completed Case</h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               This case has been marked as completed and can no longer be edited. If you need to
               make changes, please contact your administrator.
             </p>
@@ -378,7 +378,7 @@ export const NewCasePage: React.FC = () => {
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
           {isEditMode ? 'Edit Case' : 'Create New Case'}
         </h1>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           {isEditMode
             ? 'Update the case details using the form below.'
             : 'Follow the steps below to create a new verification case with duplicate detection.'}

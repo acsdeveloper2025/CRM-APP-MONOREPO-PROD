@@ -120,7 +120,7 @@ export function ClientsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Clients</h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Manage clients, products, verification types, and their relationships
           </p>
         </div>
@@ -134,7 +134,7 @@ export function ClientsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.clients}</div>
-            <p className="text-xs text-gray-600">Active organizations</p>
+            <p className="text-xs text-muted-foreground">Active organizations</p>
           </CardContent>
         </Card>
         <Card className="transition-all duration-200 hover:shadow-md">
@@ -143,7 +143,7 @@ export function ClientsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.products}</div>
-            <p className="text-xs text-gray-600">All products</p>
+            <p className="text-xs text-muted-foreground">All products</p>
           </CardContent>
         </Card>
         <Card className="transition-all duration-200 hover:shadow-md">
@@ -152,7 +152,7 @@ export function ClientsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.verificationTypes}</div>
-            <p className="text-xs text-gray-600">Available types</p>
+            <p className="text-xs text-muted-foreground">Available types</p>
           </CardContent>
         </Card>
         <Card className="transition-all duration-200 hover:shadow-md">
@@ -161,7 +161,7 @@ export function ClientsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.documentTypes}</div>
-            <p className="text-xs text-gray-600">Document types</p>
+            <p className="text-xs text-muted-foreground">Document types</p>
           </CardContent>
         </Card>
         <Card className="transition-all duration-200 hover:shadow-md">
@@ -170,7 +170,7 @@ export function ClientsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.activeCases || 0}</div>
-            <p className="text-xs text-gray-600">In progress</p>
+            <p className="text-xs text-muted-foreground">In progress</p>
           </CardContent>
         </Card>
       </div>
@@ -269,7 +269,7 @@ export function ClientsPage() {
                 {/* Pagination Controls */}
                 {clientsData?.pagination && (
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-muted-foreground">
                       Showing {clientsData.data?.length || 0} of {clientsData.pagination.total}{' '}
                       clients
                     </div>
@@ -331,7 +331,7 @@ export function ClientsPage() {
                 {/* Pagination Controls */}
                 {productsData?.pagination && (
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-muted-foreground">
                       Showing {productsData.data?.length || 0} of {productsData.pagination.total}{' '}
                       products
                     </div>
@@ -386,7 +386,7 @@ export function ClientsPage() {
                 {/* Pagination Controls */}
                 {verificationTypesData?.pagination && (
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-muted-foreground">
                       Showing {verificationTypesData.data?.length || 0} of{' '}
                       {verificationTypesData.pagination.total} verification types
                     </div>
@@ -445,7 +445,7 @@ export function ClientsPage() {
                 {/* Pagination Controls */}
                 {documentTypesData?.pagination && (
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-muted-foreground">
                       Showing {documentTypesData.data?.length || 0} of{' '}
                       {documentTypesData.pagination.total} document types
                     </div>

@@ -37,10 +37,10 @@ export const CommissionManagementPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">
             Commission Management
           </h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Manage field employee commissions, rate assignments, and payments
           </p>
         </div>
@@ -65,7 +65,9 @@ export const CommissionManagementPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{stats.paidAmount?.toLocaleString() || 0}</div>
-            <p className="text-xs text-gray-600">{stats.paidCommissions || 0} commissions paid</p>
+            <p className="text-xs text-muted-foreground">
+              {stats.paidCommissions || 0} commissions paid
+            </p>
           </CardContent>
         </Card>
 
@@ -76,7 +78,7 @@ export const CommissionManagementPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{stats.pendingAmount?.toLocaleString() || 0}</div>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-muted-foreground">
               {stats.pendingCommissions || 0} awaiting payment
             </p>
           </CardContent>
@@ -89,7 +91,7 @@ export const CommissionManagementPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.activeFieldUsers || 0}</div>
-            <p className="text-xs text-gray-600">Field agents with assignments</p>
+            <p className="text-xs text-muted-foreground">Field agents with assignments</p>
           </CardContent>
         </Card>
 
@@ -102,7 +104,7 @@ export const CommissionManagementPage: React.FC = () => {
             <div className="text-2xl font-bold">
               ₹{stats.averageCommissionPerCase?.toLocaleString() || 0}
             </div>
-            <p className="text-xs text-gray-600">Per completed task</p>
+            <p className="text-xs text-muted-foreground">Per completed task</p>
           </CardContent>
         </Card>
 
@@ -113,7 +115,7 @@ export const CommissionManagementPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{stats.totalAmount?.toLocaleString() || 0}</div>
-            <p className="text-xs text-gray-600">Total commissions</p>
+            <p className="text-xs text-muted-foreground">Total commissions</p>
           </CardContent>
         </Card>
       </div>
@@ -139,8 +141,8 @@ export const CommissionManagementPage: React.FC = () => {
               <FileText className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 mb-2">Commission Management Guide</h3>
-              <div className="space-y-1 text-sm text-gray-600">
+              <h3 className="font-semibold text-foreground mb-2">Commission Management Guide</h3>
+              <div className="space-y-1 text-sm text-muted-foreground">
                 <p>
                   • <strong>Rate Assignments:</strong> Assign commission rates to field users using
                   existing rate types from the rate management system

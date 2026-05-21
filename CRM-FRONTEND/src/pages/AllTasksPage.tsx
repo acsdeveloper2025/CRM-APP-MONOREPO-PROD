@@ -128,7 +128,7 @@ export const AllTasksPage: React.FC = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <ListTodo className="h-8 w-8 text-gray-600" />
+              <ListTodo className="h-8 w-8 text-muted-foreground" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">Total Tasks</p>
                 <p className="text-2xl font-bold text-foreground">{pagination.total}</p>
@@ -315,7 +315,7 @@ export const AllTasksPage: React.FC = () => {
         <Card>
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
                 {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
                 {pagination.total} tasks

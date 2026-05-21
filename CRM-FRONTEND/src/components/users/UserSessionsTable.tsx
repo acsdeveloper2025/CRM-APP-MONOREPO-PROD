@@ -68,9 +68,11 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <Monitor className="mx-auto h-12 w-12 text-gray-600" />
+        <Monitor className="mx-auto h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">No active sessions</h3>
-        <p className="text-gray-600">User sessions will appear here when users are logged in.</p>
+        <p className="text-muted-foreground">
+          User sessions will appear here when users are logged in.
+        </p>
       </div>
     );
   }
@@ -105,7 +107,7 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
                   </Avatar>
                   <div>
                     <div className="font-medium">{session.userName || 'Unknown User'}</div>
-                    <div className="text-sm text-gray-600">{session.username}</div>
+                    <div className="text-sm text-muted-foreground">{session.username}</div>
                   </div>
                 </div>
               </TableCell>
@@ -125,7 +127,7 @@ export function UserSessionsTable({ data, isLoading }: UserSessionsTableProps) {
               </TableCell>
               <TableCell>
                 <div className="flex items-center space-x-1">
-                  <Clock className="h-3 w-3 text-gray-600" />
+                  <Clock className="h-3 w-3 text-muted-foreground" />
                   <span className="text-sm">{new Date(session.createdAt).toLocaleString()}</span>
                 </div>
               </TableCell>

@@ -228,13 +228,15 @@ export function DataEntryMISPage() {
             </div>
             <div>
               <Label>
-                Date From <span className="text-xs font-normal text-gray-500">(YYYY-MM-DD)</span>
+                Date From{' '}
+                <span className="text-xs font-normal text-muted-foreground">(YYYY-MM-DD)</span>
               </Label>
               <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
             </div>
             <div>
               <Label>
-                Date To <span className="text-xs font-normal text-gray-500">(YYYY-MM-DD)</span>
+                Date To{' '}
+                <span className="text-xs font-normal text-muted-foreground">(YYYY-MM-DD)</span>
               </Label>
               <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
             </div>

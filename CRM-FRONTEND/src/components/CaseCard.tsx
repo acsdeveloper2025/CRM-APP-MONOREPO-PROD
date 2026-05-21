@@ -100,7 +100,7 @@ export const CaseCard: React.FC<CaseCardProps> = ({ case: caseItem, onClick, cla
                 </span>
                 <div className="flex items-center gap-1.5 text-[10px] font-bold ml-1">
                   <span className="text-green-600">✓ {caseItem.completedTasks || 0}</span>
-                  <span className="text-gray-300">|</span>
+                  <span className="text-muted-foreground/50">|</span>
                   <span className="text-yellow-600">
                     ⏳ {(caseItem.pendingTasks || 0) + (caseItem.inProgressTasks || 0)}
                   </span>

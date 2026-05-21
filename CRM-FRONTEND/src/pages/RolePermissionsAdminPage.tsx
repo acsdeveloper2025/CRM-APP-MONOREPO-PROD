@@ -286,7 +286,7 @@ export default function RolePermissionsAdminPage() {
     <div className="container mx-auto py-6 space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Role & Permissions</h1>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Configure RBAC permissions, route access, and role hierarchy.
         </p>
       </div>
@@ -307,7 +307,7 @@ export default function RolePermissionsAdminPage() {
                 tabIndex={0}
                 aria-pressed={selectedRoleId === role.id}
                 aria-label={`Select role ${role.name}`}
-                className={`rounded border p-3 cursor-pointer ${selectedRoleId === role.id ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}
+                className={`rounded border p-3 cursor-pointer ${selectedRoleId === role.id ? 'border-green-500 bg-green-50' : 'border-border'}`}
                 onClick={() => setSelectedRoleId(role.id)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -319,7 +319,7 @@ export default function RolePermissionsAdminPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="font-medium">{role.name}</div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-muted-foreground">
                       {role.description || 'No description'}
                     </div>
                     <div className="mt-1 flex flex-wrap gap-1">
@@ -393,7 +393,7 @@ export default function RolePermissionsAdminPage() {
           <CardContent className="space-y-6">
             {Object.entries(RBAC_PERMISSION_MODULES).map(([moduleName, codes]) => (
               <div key={moduleName} className="space-y-2">
-                <h3 className="font-semibold text-sm text-gray-700">{moduleName}</h3>
+                <h3 className="font-semibold text-sm text-foreground">{moduleName}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {codes.map((code) => {
                     const meta = groupedPermissions.find((p) => p.code === code);
@@ -402,7 +402,7 @@ export default function RolePermissionsAdminPage() {
                       <label
                         key={code}
                         htmlFor={`role-perm-${code}`}
-                        className="flex items-start gap-2 rounded border p-2 hover:bg-gray-50"
+                        className="flex items-start gap-2 rounded border p-2 hover:bg-muted"
                       >
                         <Checkbox
                           id={`role-perm-${code}`}
@@ -411,7 +411,7 @@ export default function RolePermissionsAdminPage() {
                         />
                         <div>
                           <div className="text-sm font-medium">{code}</div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-muted-foreground">
                             {meta?.description || meta?.module || 'Permission'}
                           </div>
                         </div>
@@ -440,11 +440,11 @@ export default function RolePermissionsAdminPage() {
               <label
                 key={route.key}
                 htmlFor={`role-route-${route.key}`}
-                className="flex items-center justify-between rounded border p-3 hover:bg-gray-50"
+                className="flex items-center justify-between rounded border p-3 hover:bg-muted"
               >
                 <div>
                   <div className="text-sm font-medium">{route.label}</div>
-                  <div className="text-xs text-gray-500">{route.key}</div>
+                  <div className="text-xs text-muted-foreground">{route.key}</div>
                 </div>
                 <Checkbox
                   id={`role-route-${route.key}`}

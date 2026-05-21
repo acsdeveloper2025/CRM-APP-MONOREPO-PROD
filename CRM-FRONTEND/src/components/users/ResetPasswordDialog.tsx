@@ -118,7 +118,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
 
               <div className="space-y-2">
                 <h4 className="font-medium">User Information:</h4>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-muted-foreground">
                   <p>Name: {user.name}</p>
                   <p>
                     Username: <span className="case-sensitive">{user.username}</span>
@@ -138,7 +138,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                       <Eye className="h-4 w-4 text-green-600" />
                       <h5 className="font-medium">Show Password</h5>
                     </div>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       Generate and display the temporary password in this dialog. You can copy it
                       and share with the user manually.
                     </p>
@@ -159,7 +159,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                       <Mail className="h-4 w-4 text-green-600" />
                       <h5 className="font-medium">Send via Email</h5>
                     </div>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       Generate and automatically send the temporary password to{' '}
                       {user.email || 'the user’s email address on file'} via email.
                     </p>
@@ -177,7 +177,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                       <Key className="h-4 w-4 text-green-600" />
                       <h5 className="font-medium">Set Custom Password</h5>
                     </div>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       Set a custom password manually with strong password policy validation.
                     </p>
 
@@ -276,7 +276,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                     data-1p-ignore="true"
                     value={user.username}
                     readOnly
-                    className="bg-white text-gray-900 font-medium border-2 border-border focus:border-border shadow-sm"
+                    className="bg-card text-foreground font-medium border-2 border-border focus:border-border shadow-sm"
                   />
                 </div>
 
@@ -288,7 +288,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
                       type={showPassword ? 'text' : 'password'}
                       value={generatedPassword}
                       readOnly
-                      className="bg-white text-gray-900 font-mono font-bold pr-20 border-2 border-green-200 text-lg focus:border-blue-400 shadow-sm"
+                      className="bg-card text-foreground font-mono font-bold pr-20 border-2 border-green-200 text-lg focus:border-blue-400 shadow-sm"
                     />
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex space-x-1">
                       <Button

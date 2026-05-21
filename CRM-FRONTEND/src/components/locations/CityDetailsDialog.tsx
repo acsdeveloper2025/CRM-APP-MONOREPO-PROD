@@ -52,7 +52,7 @@ export function CityDetailsDialog({ city, open, onOpenChange }: CityDetailsDialo
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
-                    <Building className="h-4 w-4 text-gray-600" />
+                    <Building className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">City Name</span>
                   </div>
                   <p className="text-lg font-semibold">{city.name}</p>
@@ -60,7 +60,7 @@ export function CityDetailsDialog({ city, open, onOpenChange }: CityDetailsDialo
 
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
-                    <MapPin className="h-4 w-4 text-gray-600" />
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">State</span>
                   </div>
                   <Badge variant="outline">{city.state}</Badge>
@@ -68,7 +68,7 @@ export function CityDetailsDialog({ city, open, onOpenChange }: CityDetailsDialo
 
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
-                    <Globe className="h-4 w-4 text-gray-600" />
+                    <Globe className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Country</span>
                   </div>
                   <p>{city.country}</p>
@@ -76,7 +76,7 @@ export function CityDetailsDialog({ city, open, onOpenChange }: CityDetailsDialo
 
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
-                    <Calendar className="h-4 w-4 text-gray-600" />
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Created</span>
                   </div>
                   <p>{new Date(city.createdAt).toLocaleDateString()}</p>
@@ -119,7 +119,7 @@ export function CityDetailsDialog({ city, open, onOpenChange }: CityDetailsDialo
                             </Badge>
                             <span className="font-medium">{pincode.area}</span>
                           </div>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-muted-foreground">
                             Created {new Date(pincode.createdAt).toLocaleDateString()}
                           </p>
                         </div>
@@ -129,9 +129,9 @@ export function CityDetailsDialog({ city, open, onOpenChange }: CityDetailsDialo
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <MapPin className="mx-auto h-12 w-12 text-gray-600" />
+                  <MapPin className="mx-auto h-12 w-12 text-muted-foreground" />
                   <h3 className="mt-4 text-lg font-semibold">No pincodes found</h3>
-                  <p className="text-gray-600">
+                  <p className="text-muted-foreground">
                     This city doesn&apos;t have any pincodes assigned yet.
                   </p>
                 </div>

@@ -53,7 +53,7 @@ export function MISDataTable({ data, pagination, onPageChange, isLoading }: MISD
       COMPLETED: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
       PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
       ASSIGNED: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
-      REVOKED: 'bg-muted text-foreground dark:bg-gray-900/20 dark:text-muted-foreground',
+      REVOKED: 'bg-muted text-foreground dark:bg-muted/20 dark:text-muted-foreground',
     };
 
     return (

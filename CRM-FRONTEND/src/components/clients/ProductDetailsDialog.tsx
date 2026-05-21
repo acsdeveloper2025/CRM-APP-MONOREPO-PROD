@@ -57,7 +57,7 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                       <Package className="h-4 w-4" />
                       <span>Product Name</span>
                     </div>
@@ -65,15 +65,17 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                       <Building2 className="h-4 w-4" />
                       <span>Verification Types</span>
                     </div>
-                    <p className="text-sm text-gray-600">Types vary per client-product mapping</p>
+                    <p className="text-sm text-muted-foreground">
+                      Types vary per client-product mapping
+                    </p>
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                       <Calendar className="h-4 w-4" />
                       <span>Created Date</span>
                     </div>
@@ -87,7 +89,7 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                       <CheckCircle className="h-4 w-4" />
                       <span>Status</span>
                     </div>
@@ -110,7 +112,7 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
             </CardHeader>
             <CardContent>
               {types.length === 0 ? (
-                <div className="text-center py-8 text-gray-600">
+                <div className="text-center py-8 text-muted-foreground">
                   <CheckCircle className="mx-auto h-12 w-12 mb-4 opacity-50" />
                   <p>No verification types found for this product</p>
                 </div>
@@ -123,7 +125,7 @@ export function ProductDetailsDialog({ product, open, onOpenChange }: ProductDet
                     >
                       <div className="space-y-1">
                         <p className="font-medium">{type.name}</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted-foreground">
                           Created {new Date(type.createdAt).toLocaleDateString()}
                         </p>
                       </div>

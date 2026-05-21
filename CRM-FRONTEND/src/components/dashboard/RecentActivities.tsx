@@ -72,7 +72,7 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = React.memo(
         <CardContent>
           <div className="space-y-4">
             {activities.length === 0 ? (
-              <p className="text-sm text-gray-600 text-center py-4">No recent activities</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No recent activities</p>
             ) : (
               activities.map((activity) => {
                 const Icon = getActivityIcon(activity.type);
@@ -80,20 +80,24 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = React.memo(
                   <div key={activity.id} className="flex items-start space-x-4">
                     <div className="shrink-0">
                       <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800/60 rounded-full flex items-center justify-center">
-                        <Icon className="w-4 h-4 text-gray-600" />
+                        <Icon className="w-4 h-4 text-muted-foreground" />
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
-                        <p className="text-sm font-medium text-gray-600">{activity.title}</p>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          {activity.title}
+                        </p>
                         <Badge className={baseBadgeStyle}>{formatBadgeLabel(activity.type)}</Badge>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{activity.description}</p>
                       <div className="flex items-center space-x-2 mt-1">
                         {activity.userName && (
-                          <span className="text-xs text-gray-600">by {activity.userName}</span>
+                          <span className="text-xs text-muted-foreground">
+                            by {activity.userName}
+                          </span>
                         )}
-                        <span className="text-xs text-gray-600">
+                        <span className="text-xs text-muted-foreground">
                           {format(new Date(activity.timestamp), 'MMM dd, yyyy HH:mm')}
                         </span>
                       </div>

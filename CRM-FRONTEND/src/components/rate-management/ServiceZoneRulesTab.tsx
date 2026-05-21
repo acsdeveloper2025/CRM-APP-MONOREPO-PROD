@@ -483,7 +483,7 @@ export function ServiceZoneRulesTab() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-600" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -497,7 +497,7 @@ export function ServiceZoneRulesTab() {
               <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
             </div>
           ) : filteredRules.length === 0 ? (
-            <p className="py-8 text-center text-gray-600">No rate type rules found</p>
+            <p className="py-8 text-center text-muted-foreground">No rate type rules found</p>
           ) : (
             <Table>
               <TableHeader>

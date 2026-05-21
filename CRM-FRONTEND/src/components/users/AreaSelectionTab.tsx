@@ -79,9 +79,9 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
   if (selectedPincodes.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center">
-        <AlertCircle className="h-12 w-12 text-gray-400 mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No Pincodes Selected</h3>
-        <p className="text-gray-600 max-w-md">
+        <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-medium text-foreground mb-2">No Pincodes Selected</h3>
+        <p className="text-muted-foreground max-w-md">
           Please select pincodes from the &quot;Select Pincodes&quot; tab first. Then you can select
           areas for each pincode here.
         </p>
@@ -94,7 +94,7 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
       {/* Header with search */}
       <div className="flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
             placeholder="Search areas..."
@@ -112,7 +112,9 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
       {/* Areas grouped by pincode */}
       <div className="space-y-4 max-h-[500px] overflow-y-auto">
         {filteredPincodes.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">No areas found matching your search</div>
+          <div className="p-8 text-center text-muted-foreground">
+            No areas found matching your search
+          </div>
         ) : (
           filteredPincodes.map((pincode) => {
             // Convert pincode.id to number for lookup (API returns string IDs)
@@ -132,12 +134,12 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
             return (
               <div key={pincode.id} className="border rounded-lg overflow-hidden">
                 {/* Pincode header */}
-                <div className="bg-gray-50 px-4 py-3 border-b flex items-center justify-between">
+                <div className="bg-muted px-4 py-3 border-b flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900">{pincode.code}</span>
-                    <span className="text-gray-500">-</span>
-                    <span className="text-gray-700">{pincode.cityName}</span>
-                    <span className="text-gray-400 text-sm">({pincode.stateName})</span>
+                    <span className="font-medium text-foreground">{pincode.code}</span>
+                    <span className="text-muted-foreground">-</span>
+                    <span className="text-foreground">{pincode.cityName}</span>
+                    <span className="text-muted-foreground text-sm">({pincode.stateName})</span>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -168,7 +170,7 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
                 {/* Area list */}
                 <div className="divide-y">
                   {areas.length === 0 ? (
-                    <div className="p-4 text-center text-gray-500 text-sm">
+                    <div className="p-4 text-center text-muted-foreground text-sm">
                       No areas available for this pincode
                     </div>
                   ) : (
@@ -185,7 +187,7 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
                           tabIndex={0}
                           aria-pressed={isSelected}
                           aria-label={`Toggle area ${area.name}`}
-                          className={`flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+                          className={`flex items-center gap-3 p-3 hover:bg-muted cursor-pointer transition-colors ${
                             isSelected ? 'bg-emerald-50' : ''
                           }`}
                           onClick={() => onAreaToggle(pincodeIdNum, areaIdNum)}
@@ -200,7 +202,7 @@ export const AreaSelectionTab: React.FC<AreaSelectionTabProps> = ({
                             checked={isSelected}
                             onCheckedChange={() => onAreaToggle(pincodeIdNum, areaIdNum)}
                           />
-                          <span className="text-gray-900">{area.name}</span>
+                          <span className="text-foreground">{area.name}</span>
                         </div>
                       );
                     })

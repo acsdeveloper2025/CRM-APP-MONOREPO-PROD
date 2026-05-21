@@ -329,11 +329,11 @@ export function GoogleMarkerMap({
 
   if (!getGoogleMapsApiKey()) {
     return (
-      <div className="flex min-h-[520px] items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50">
+      <div className="flex min-h-[520px] items-center justify-center rounded-lg border border-dashed border-input bg-muted">
         <div className="text-center">
-          <MapPin className="mx-auto mb-3 h-8 w-8 text-gray-500" />
-          <p className="text-sm font-medium text-gray-700">Map preview unavailable</p>
-          <p className="text-xs text-gray-500">Google Maps API key not configured</p>
+          <MapPin className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+          <p className="text-sm font-medium text-foreground">Map preview unavailable</p>
+          <p className="text-xs text-muted-foreground">Google Maps API key not configured</p>
         </div>
       </div>
     );
@@ -354,11 +354,11 @@ export function GoogleMarkerMap({
   if (normalizedItems.length === 0) {
     return (
       <div className="space-y-3">
-        <div className="flex min-h-[520px] items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50">
+        <div className="flex min-h-[520px] items-center justify-center rounded-lg border border-dashed border-input bg-muted">
           <div className="text-center">
-            <MapPin className="mx-auto mb-3 h-8 w-8 text-gray-500" />
-            <p className="text-sm font-medium text-gray-700">{emptyTitle}</p>
-            <p className="text-xs text-gray-500">{emptyDescription}</p>
+            <MapPin className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+            <p className="text-sm font-medium text-foreground">{emptyTitle}</p>
+            <p className="text-xs text-muted-foreground">{emptyDescription}</p>
           </div>
         </div>
       </div>
@@ -367,10 +367,10 @@ export function GoogleMarkerMap({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-lg border border-gray-200">
+      <div className="rounded-lg border border-border">
         <div ref={mapContainerRef} className={`${heightClassName} w-full rounded-lg`} />
       </div>
-      {markerSummary ? <p className="text-xs text-gray-500">{markerSummary}</p> : null}
+      {markerSummary ? <p className="text-xs text-muted-foreground">{markerSummary}</p> : null}
     </div>
   );
 }

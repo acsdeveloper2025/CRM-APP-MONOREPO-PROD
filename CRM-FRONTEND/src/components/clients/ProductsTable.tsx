@@ -90,9 +90,9 @@ export function ProductsTable({ data, isLoading }: ProductsTableProps) {
   if (!data || data.length === 0) {
     return (
       <div className="text-center py-12">
-        <Package className="mx-auto h-12 w-12 text-gray-600" />
+        <Package className="mx-auto h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-lg font-semibold">No products found</h3>
-        <p className="text-gray-600">Get started by creating your first product.</p>
+        <p className="text-muted-foreground">Get started by creating your first product.</p>
       </div>
     );
   }

@@ -74,7 +74,7 @@ export const CommissionStatsTab: React.FC = () => {
               <select
                 value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
+                className="px-3 py-1 border border-input rounded-lg text-sm"
               >
                 <option value="week">This Week</option>
                 <option value="month">This Month</option>
@@ -153,19 +153,19 @@ export const CommissionStatsTab: React.FC = () => {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Top Performing User:</span>
+                    <span className="text-muted-foreground">Top Performing User:</span>
                     <span className="font-semibold">{stats?.topPerformingUser || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Most Used Rate Type:</span>
+                    <span className="text-muted-foreground">Most Used Rate Type:</span>
                     <span className="font-semibold">{stats?.mostUsedRateType || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Total Assignments:</span>
+                    <span className="text-muted-foreground">Total Assignments:</span>
                     <span className="font-semibold">{stats?.totalAssignments || '0'}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Commission Rate Types:</span>
+                    <span className="text-muted-foreground">Commission Rate Types:</span>
                     <span className="font-semibold">{stats?.totalRateTypes || '0'}</span>
                   </div>
                 </div>
@@ -179,21 +179,21 @@ export const CommissionStatsTab: React.FC = () => {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Cases Completed Today:</span>
+                    <span className="text-muted-foreground">Cases Completed Today:</span>
                     <span className="font-semibold">{stats?.casesCompletedToday || '0'}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Commission Calculated Today:</span>
+                    <span className="text-muted-foreground">Commission Calculated Today:</span>
                     <span className="font-semibold">
                       ₹{stats?.commissionCalculatedToday?.toLocaleString() || '0'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">New Assignments This Week:</span>
+                    <span className="text-muted-foreground">New Assignments This Week:</span>
                     <span className="font-semibold">{stats?.newAssignmentsThisWeek || '0'}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Payment Batches Pending:</span>
+                    <span className="text-muted-foreground">Payment Batches Pending:</span>
                     <span className="font-semibold">{stats?.paymentBatchesPending || '0'}</span>
                   </div>
                 </div>

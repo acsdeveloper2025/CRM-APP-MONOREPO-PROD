@@ -165,7 +165,7 @@ export function BillingPage() {
               } as Record<string, string>
             )[activeTab] || 'Billing & Commission'}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Manage invoices, track payments, and monitor commission payouts
           </p>
         </div>
@@ -176,11 +176,11 @@ export function BillingPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
-            <Receipt className="h-4 w-4 text-gray-600" />
+            <Receipt className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.invoices.total}</div>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-muted-foreground">
               ₹{Number(stats.invoices.totalAmount || 0).toLocaleString()}
             </p>
           </CardContent>
@@ -193,7 +193,7 @@ export function BillingPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{stats.invoices.draft}</div>
-            <p className="text-xs text-gray-600">{stats.invoices.overdue} overdue</p>
+            <p className="text-xs text-muted-foreground">{stats.invoices.overdue} overdue</p>
           </CardContent>
         </Card>
 
@@ -204,7 +204,7 @@ export function BillingPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.commissions.total}</div>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-muted-foreground">
               ₹{Number(stats.commissions.totalAmount || 0).toLocaleString()}
             </p>
           </CardContent>
@@ -217,7 +217,7 @@ export function BillingPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">{stats.commissions.pending}</div>
-            <p className="text-xs text-gray-600">{stats.commissions.paid} paid</p>
+            <p className="text-xs text-muted-foreground">{stats.commissions.paid} paid</p>
           </CardContent>
         </Card>
 
@@ -230,7 +230,7 @@ export function BillingPage() {
             <div className="text-2xl font-bold text-red-600">
               ₹{(stats.invoices.outstandingAmount || 0).toLocaleString()}
             </div>
-            <p className="text-xs text-gray-600">Sent &amp; unpaid</p>
+            <p className="text-xs text-muted-foreground">Sent &amp; unpaid</p>
           </CardContent>
         </Card>
       </div>
@@ -289,7 +289,7 @@ export function BillingPage() {
               <InvoicesTable data={invoicesData?.data || []} isLoading={invoicesLoading} />
               {invoicesData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     Showing {invoicesData.data?.length || 0} of {invoicesData.pagination.total}{' '}
                     invoices
                   </div>
@@ -325,7 +325,7 @@ export function BillingPage() {
               <CommissionsTable data={commissionsData?.data || []} isLoading={commissionsLoading} />
               {commissionsData?.pagination && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     Showing {commissionsData.data?.length || 0} of{' '}
                     {commissionsData.pagination.total} commissions
                   </div>
