@@ -144,10 +144,18 @@ services:
       # Container-side Puppeteer hygiene (memory rule #12)
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
       PUPPETEER_SKIP_DOWNLOAD: "true"
+      # Firebase service-account path — file mounted via secrets block.
+      # Mirrors the worker. Today only the worker fires FCM (case-assignment
+      # notifications run via BullMQ → NotificationService → PushNotificationService
+      # on the worker). Aligning the api now is defensive — if a sync HTTP push
+      # path is ever added, it won't recreate the 2026-05-21 outage class.
+      FIREBASE_SERVICE_ACCOUNT_PATH: /run/secrets/firebase-service-account
     env_file:
       - ../../.env.staging
     volumes:
       - uploads:/app/uploads
+    secrets:
+      - firebase-service-account
     healthcheck:
       # Liveness — shallow. Readiness lives at /api/health/ready.
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]

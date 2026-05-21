@@ -594,6 +594,28 @@ export class PushNotificationService {
   }
 
   /**
+   * Health-probe accessor: did Firebase Admin SDK successfully load the
+   * service-account credential at init time? When false, every FCM send
+   * call short-circuits to `failed=N` with the "FCM not initialized,
+   * skipping FCM notifications" warning. The `/api/health?level=full`
+   * `fcm` probe surfaces this so ops sees the broken state before users do.
+   *
+   * Does NOT trigger initialize() — caller decides when to lazy-init.
+   */
+  public isFcmReady(): boolean {
+    return this.fcmApp !== null;
+  }
+
+  /**
+   * Health-probe accessor: APNs provider initialized? Currently always
+   * false in prod (iOS distribution pending Apple Developer enrollment).
+   * See docs/ios-distribution-options.md.
+   */
+  public isApnsReady(): boolean {
+    return this.apnProvider !== null;
+  }
+
+  /**
    * Test push notification connectivity
    */
   public testConnectivity(): Promise<{ fcm: boolean; apns: boolean }> {
