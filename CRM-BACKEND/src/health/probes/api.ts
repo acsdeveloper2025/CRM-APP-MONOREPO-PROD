@@ -11,16 +11,21 @@ histogram.enable();
 const HEAP_SIZE_LIMIT_BYTES = getHeapStatistics().heap_size_limit;
 const HEAP_SIZE_LIMIT_MB = Math.round((HEAP_SIZE_LIMIT_BYTES / 1024 / 1024) * 10) / 10;
 
-function pickStatus(heapPct: number, elMaxMs: number): HealthStatus {
+// Status check uses MEAN event-loop delay (sustained load signal), not MAX.
+// A single 100-200ms GC pause sets max high but says nothing about overall
+// pressure. Mean averaged over the 10s window between resets is the right
+// "is the loop busy" indicator. max is still surfaced in details for ops
+// to see worst-case spikes.
+function pickStatus(heapPct: number, elMeanMs: number): HealthStatus {
   if (
     heapPct >= THRESHOLDS.api.heap_pct_unhealthy ||
-    elMaxMs >= THRESHOLDS.api.event_loop_max_ms_unhealthy
+    elMeanMs >= THRESHOLDS.api.event_loop_max_ms_unhealthy
   ) {
     return 'unhealthy';
   }
   if (
     heapPct >= THRESHOLDS.api.heap_pct_degraded ||
-    elMaxMs >= THRESHOLDS.api.event_loop_max_ms_degraded
+    elMeanMs >= THRESHOLDS.api.event_loop_max_ms_degraded
   ) {
     return 'degraded';
   }
@@ -43,7 +48,7 @@ export function probeApi(): ServiceHealth {
   histogram.reset();
 
   return {
-    status: pickStatus(heapPct, elMaxMs),
+    status: pickStatus(heapPct, elMeanMs),
     details: {
       heap_used_mb: heapUsedMb,
       heap_total_mb: heapTotalMb,
