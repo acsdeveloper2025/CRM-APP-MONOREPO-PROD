@@ -101,9 +101,6 @@ const LocationsPage = React.lazy(() =>
   import('@/pages/LocationsPage').then((module) => ({ default: module.LocationsPage }))
 );
 // FormViewerPage removed — route was unused (RBAC audit 2026-04-16)
-const SecurityUXPage = React.lazy(() =>
-  import('@/pages/SecurityUXPage').then((module) => ({ default: module.SecurityUXPage }))
-);
 const SystemHealthPage = React.lazy(() =>
   import('@/pages/SystemHealthPage').then((module) => ({ default: module.SystemHealthPage }))
 );
@@ -676,14 +673,6 @@ export const AppRoutes: React.FC = () => {
             }
           />
 
-          <Route
-            path="/security-ux"
-            element={
-              <ProtectedRoute permission="page.settings">
-                <SecurityUXPage />
-              </ProtectedRoute>
-            }
-          />
           <Route
             path="/admin/system-health"
             element={

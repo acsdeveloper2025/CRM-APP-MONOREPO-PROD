@@ -493,14 +493,7 @@ export const navigationItems: NavigationItem[] = [
     ],
   },
   // Form Viewer removed — unused (RBAC audit 2026-04-16)
-  {
-    id: 'security-ux',
-    label: 'Security & UX',
-    href: '/security-ux',
-    icon: Shield,
-    permissionCode: 'page.settings',
-    permission: { resource: 'settings', action: 'read' },
-  },
+  // Security & UX removed — was 100% demo/showcase page, theme toggle duplicated in Header (audit 2026-05-20)
   {
     id: 'system-health',
     label: 'System Health',
