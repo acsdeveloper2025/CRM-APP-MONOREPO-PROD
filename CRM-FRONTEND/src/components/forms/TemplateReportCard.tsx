@@ -150,19 +150,17 @@ ${report.content}`;
 
   if (loading) {
     return (
-      <div className="bg-card dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+      <div className="bg-card dark:bg-card rounded-lg border border-border p-6">
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-green-600" />
-          <span className="ml-2 text-slate-600 dark:text-slate-300">
-            Loading template report...
-          </span>
+          <span className="ml-2 text-muted-foreground">Loading template report...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-card dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-6">
+    <div className="bg-card dark:bg-card rounded-lg border border-border p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
@@ -170,15 +168,15 @@ ${report.content}`;
             <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+            <h3 className="text-lg font-semibold text-foreground dark:text-white">
               Template Verification Report
             </h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-muted-foreground">
               Structured report based on predefined templates
             </p>
           </div>
         </div>
-        <div className="flex items-center space-x-2 text-sm text-slate-500 dark:text-slate-400">
+        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
           <CheckCircle className="h-4 w-4 text-green-500" />
           <span>Template-Based</span>
         </div>
@@ -198,47 +196,35 @@ ${report.content}`;
       {report ? (
         <div className="space-y-6">
           {/* Report Content */}
-          <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
-              Report Content
-            </h4>
-            <div className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+          <div className="bg-muted/50 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-foreground mb-3">Report Content</h4>
+            <div className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
               {report.content}
             </div>
           </div>
 
           {/* Report Details */}
-          <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4">
+          <div className="bg-muted/50 rounded-lg p-4">
             <div className="flex items-center mb-3">
-              <Clock className="h-4 w-4 text-slate-500 mr-2" />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Report Details
-              </span>
+              <Clock className="h-4 w-4 text-muted-foreground mr-2" />
+              <span className="text-sm font-medium text-foreground">Report Details</span>
             </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-slate-500 dark:text-slate-400">Generated:</span>
-                <span className="ml-2 text-slate-700 dark:text-slate-300">
-                  {formatDate(report.createdAt)}
-                </span>
+                <span className="text-muted-foreground">Generated:</span>
+                <span className="ml-2 text-foreground">{formatDate(report.createdAt)}</span>
               </div>
               <div>
-                <span className="text-slate-500 dark:text-slate-400">Type:</span>
-                <span className="ml-2 text-slate-700 dark:text-slate-300">
-                  {report.metadata.verificationType}
-                </span>
+                <span className="text-muted-foreground">Type:</span>
+                <span className="ml-2 text-foreground">{report.metadata.verificationType}</span>
               </div>
               <div>
-                <span className="text-slate-500 dark:text-slate-400">Outcome:</span>
-                <span className="ml-2 text-slate-700 dark:text-slate-300">
-                  {report.metadata.outcome}
-                </span>
+                <span className="text-muted-foreground">Outcome:</span>
+                <span className="ml-2 text-foreground">{report.metadata.outcome}</span>
               </div>
               <div>
-                <span className="text-slate-500 dark:text-slate-400">Template:</span>
-                <span className="ml-2 text-slate-700 dark:text-slate-300">
-                  {report.metadata.templateUsed}
-                </span>
+                <span className="text-muted-foreground">Template:</span>
+                <span className="ml-2 text-foreground">{report.metadata.templateUsed}</span>
               </div>
             </div>
           </div>
@@ -259,7 +245,7 @@ ${report.content}`;
             </button>
             <button
               onClick={downloadReport}
-              className="flex items-center px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors"
+              className="flex items-center px-4 py-2 bg-secondary hover:bg-accent text-secondary-foreground rounded-lg transition-colors"
             >
               <Download className="h-4 w-4 mr-2" />
               Download Report
@@ -269,11 +255,9 @@ ${report.content}`;
       ) : (
         /* No Report State */
         <div className="text-center py-8">
-          <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-          <h4 className="text-lg font-medium text-slate-700 dark:text-slate-300 mb-2">
-            No Template Report Generated
-          </h4>
-          <p className="text-slate-500 dark:text-slate-400 mb-6">
+          <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h4 className="text-lg font-medium text-foreground mb-2">No Template Report Generated</h4>
+          <p className="text-muted-foreground mb-6">
             Generate a structured verification report using predefined templates
           </p>
           <button

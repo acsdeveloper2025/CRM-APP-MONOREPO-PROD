@@ -87,7 +87,7 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
       case 'Name':
         return 'bg-green-100 text-green-800';
       default:
-        return 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100';
+        return 'bg-muted text-foreground dark:bg-card/60 dark:text-muted-foreground';
     }
   };
 
@@ -102,7 +102,7 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
       case 'cancelled':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100';
+        return 'bg-muted text-foreground dark:bg-card/60 dark:text-muted-foreground';
     }
   };
 
@@ -177,7 +177,7 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
                 className={`cursor-pointer transition-colors border-2 ${
                   selectedCaseId === duplicate.id
                     ? 'ring-2 ring-emerald-500 bg-emerald-50 border-emerald-500'
-                    : 'hover:bg-[#FAFAFA] hover:border-emerald-300 border-border'
+                    : 'hover:bg-background hover:border-emerald-300 border-border'
                 }`}
                 onClick={() => setSelectedCaseId(duplicate.id)}
               >

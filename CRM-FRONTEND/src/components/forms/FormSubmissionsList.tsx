@@ -111,7 +111,7 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
       case 'DRAFT':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
       default:
-        return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
+        return 'bg-muted text-foreground dark:bg-card/60 dark:text-muted-foreground';
     }
   };
 
@@ -124,7 +124,7 @@ export const FormSubmissionsList: React.FC<FormSubmissionsListProps> = ({
       case 'WARNING':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
       default:
-        return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
+        return 'bg-muted text-foreground dark:bg-card/60 dark:text-muted-foreground';
     }
   };
 

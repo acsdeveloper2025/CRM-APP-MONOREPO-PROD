@@ -136,7 +136,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </div>
 
               {/* Error Message */}
-              <div className="bg-slate-100/70 dark:bg-slate-800/50 rounded-lg p-4">
+              <div className="bg-muted/70 dark:bg-card/50 rounded-lg p-4">
                 <h4 className="font-medium mb-2">Error Details</h4>
                 <p className="text-sm text-muted-foreground">
                   {this.state.error?.message || 'An unexpected error occurred'}
@@ -180,7 +180,7 @@ export class ErrorBoundary extends Component<Props, State> {
                     {/* Error Stack */}
                     <div>
                       <h5 className="font-medium text-sm mb-2">Error Stack</h5>
-                      <pre className="bg-slate-100 dark:bg-slate-800/60 p-3 rounded text-xs overflow-auto max-h-32">
+                      <pre className="bg-muted/60 p-3 rounded text-xs overflow-auto max-h-32">
                         {this.state.error?.stack}
                       </pre>
                     </div>
@@ -189,7 +189,7 @@ export class ErrorBoundary extends Component<Props, State> {
                     {this.state.errorInfo?.componentStack && (
                       <div>
                         <h5 className="font-medium text-sm mb-2">Component Stack</h5>
-                        <pre className="bg-slate-100 dark:bg-slate-800/60 p-3 rounded text-xs overflow-auto max-h-32">
+                        <pre className="bg-muted/60 p-3 rounded text-xs overflow-auto max-h-32">
                           {this.state.errorInfo.componentStack}
                         </pre>
                       </div>
@@ -198,7 +198,7 @@ export class ErrorBoundary extends Component<Props, State> {
                     {/* Environment Info */}
                     <div>
                       <h5 className="font-medium text-sm mb-2">Environment</h5>
-                      <div className="bg-slate-100 dark:bg-slate-800/60 p-3 rounded text-xs space-y-1">
+                      <div className="bg-muted/60 p-3 rounded text-xs space-y-1">
                         <div>URL: {window.location.href}</div>
                         <div>User Agent: {navigator.userAgent}</div>
                         <div>Timestamp: {new Date().toISOString()}</div>

@@ -59,9 +59,7 @@ export const ViewDocumentTypeDialog: React.FC<ViewDocumentTypeDialogProps> = ({
           <div>
             <span className="text-sm font-medium text-muted-foreground">Code</span>
             <p className="text-sm">
-              <code className="bg-slate-100 dark:bg-slate-800/60 px-2 py-1 rounded text-sm">
-                {documentType.code}
-              </code>
+              <code className="bg-muted/60 px-2 py-1 rounded text-sm">{documentType.code}</code>
             </p>
           </div>
           <div>

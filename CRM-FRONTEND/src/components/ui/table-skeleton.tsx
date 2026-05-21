@@ -50,7 +50,7 @@ export const TableSkeleton: React.FC<TableSkeletonProps> = ({
                 return (
                   <TableCell key={`sk-${rowIdx}-${colIdx}`}>
                     <div
-                      className={`h-4 ${widthClass} max-w-full bg-slate-100 dark:bg-slate-800/60 rounded animate-pulse`}
+                      className={`h-4 ${widthClass} max-w-full bg-muted/60 rounded animate-pulse`}
                     />
                   </TableCell>
                 );

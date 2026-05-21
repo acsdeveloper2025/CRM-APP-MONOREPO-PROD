@@ -69,7 +69,7 @@ export function FormViewer({
       case 'draft':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
       default:
-        return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
+        return 'bg-muted text-foreground dark:bg-card/60 dark:text-muted-foreground';
     }
   };
 
@@ -82,7 +82,7 @@ export function FormViewer({
       case 'warning':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
       default:
-        return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
+        return 'bg-muted text-foreground dark:bg-card/60 dark:text-muted-foreground';
     }
   };
 
@@ -268,7 +268,7 @@ export function FormViewer({
               {submission.sections.map((section, sectionIndex) => (
                 <div key={section.id} className="border rounded-lg overflow-hidden">
                   {/* Section Header */}
-                  <div className="bg-slate-100 dark:bg-slate-800/60 px-4 py-3 border-b">
+                  <div className="bg-muted/60 px-4 py-3 border-b">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-semibold text-foreground flex items-center space-x-2">
                         <span className="bg-primary text-white rounded-full w-7 h-7 flex items-center justify-center text-sm font-bold">
@@ -295,7 +295,7 @@ export function FormViewer({
                           {/* Field Label */}
                           <div className="flex items-center justify-between">
                             <Label className="text-sm font-medium text-muted-foreground flex items-center space-x-2">
-                              <span className="bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200 rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                              <span className="bg-muted text-foreground dark:bg-card/60 dark:text-muted-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs">
                                 {fieldIndex + 1}
                               </span>
                               <span>{field.label}</span>
@@ -565,7 +565,7 @@ export function FormViewer({
                         {/* Field Label with Enhanced Styling */}
                         <div className="flex items-center justify-between">
                           <Label className="text-sm font-semibold text-foreground flex items-center space-x-2">
-                            <span className="bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                            <span className="bg-muted text-foreground dark:bg-card/60 dark:text-muted-foreground rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
                               {fieldIndex + 1}
                             </span>
                             <span>{field.label}</span>
@@ -577,7 +577,7 @@ export function FormViewer({
                         </div>
 
                         {/* Field Value Display with Enhanced Styling */}
-                        <div className="min-h-[50px] p-4 bg-slate-100 dark:bg-slate-800/60 border-2 border-border rounded-lg">
+                        <div className="min-h-[50px] p-4 bg-muted/60 border-2 border-border rounded-lg">
                           <FormFieldViewer
                             field={field}
                             readonly={true}
@@ -715,7 +715,7 @@ export function FormViewer({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="bg-slate-100/70 dark:bg-slate-800/50 rounded-lg p-4">
+            <div className="bg-muted/70 dark:bg-card/50 rounded-lg p-4">
               <p className="text-sm whitespace-pre-wrap">{submission.reviewNotes}</p>
               {submission.reviewedBy && submission.reviewedAt && (
                 <div className="flex items-center justify-between mt-3 pt-3 border-t">

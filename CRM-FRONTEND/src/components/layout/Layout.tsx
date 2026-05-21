@@ -21,7 +21,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] overflow-x-hidden">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <Sidebar isOpen={sidebarOpen} onClose={handleSidebarClose} />
       <div
         className={cn(

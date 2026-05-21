@@ -179,7 +179,7 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
                       <Input
                         {...field}
                         readOnly
-                        className="text-base font-mono bg-slate-100 dark:bg-slate-800/60"
+                        className="text-base font-mono bg-muted/60"
                         placeholder="Auto-generated calling code"
                       />
                     </FormControl>
@@ -282,7 +282,7 @@ export const CustomerInfoStep: React.FC<CustomerInfoStepProps> = ({
               </div>
 
               {/* Help Text */}
-              <div className="text-sm text-muted-foreground bg-slate-100/70 dark:bg-slate-800/50 p-4 rounded-lg">
+              <div className="text-sm text-muted-foreground bg-muted/70 dark:bg-card/50 p-4 rounded-lg">
                 <p className="font-medium mb-2">Mandatory Deduplication Process</p>
                 <ul className="space-y-1 text-xs">
                   <li>

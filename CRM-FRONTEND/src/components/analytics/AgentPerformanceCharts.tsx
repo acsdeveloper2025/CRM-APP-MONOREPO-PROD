@@ -179,7 +179,7 @@ export const AgentPerformanceCharts: React.FC = () => {
     };
     return (
       colors[performance as keyof typeof colors] ||
-      'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100'
+      'bg-muted text-foreground dark:bg-card/60 dark:text-muted-foreground'
     );
   };
 

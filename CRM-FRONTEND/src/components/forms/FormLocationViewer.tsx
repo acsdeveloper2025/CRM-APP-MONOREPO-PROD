@@ -87,7 +87,7 @@ export function FormLocationViewer({
           {location.address && (
             <div>
               <h4 className="font-medium text-sm mb-2">Reverse Geocoded Address</h4>
-              <div className="bg-slate-100/70 dark:bg-slate-800/50 rounded-lg p-3">
+              <div className="bg-muted/70 dark:bg-card/50 rounded-lg p-3">
                 <p className="text-sm">{location.address}</p>
               </div>
             </div>
@@ -96,7 +96,7 @@ export function FormLocationViewer({
           {/* Map Preview */}
           <div>
             <h4 className="font-medium text-sm mb-2">Map Preview</h4>
-            <div className="relative bg-slate-100 dark:bg-slate-800/60 rounded-lg overflow-hidden">
+            <div className="relative bg-muted/60 rounded-lg overflow-hidden">
               <iframe
                 title="Location map preview"
                 src={`https://www.google.com/maps/embed/v1/place?key=${getGoogleMapsApiKey()}&q=${location.latitude},${location.longitude}&zoom=16`}
@@ -109,7 +109,7 @@ export function FormLocationViewer({
                 className="w-full"
               />
               {!getGoogleMapsApiKey() && (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800/60">
+                <div className="absolute inset-0 flex items-center justify-center bg-muted/60">
                   <div className="text-center">
                     <MapPin className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground">Map preview unavailable</p>
@@ -139,7 +139,7 @@ export function FormLocationViewer({
           </div>
 
           {/* Accuracy Information */}
-          <div className="bg-slate-100/50 dark:bg-slate-800/40 rounded-lg p-3">
+          <div className="bg-muted/50 dark:bg-card/40 rounded-lg p-3">
             <h4 className="font-medium text-sm mb-2">Accuracy Information</h4>
             <div className="text-xs text-muted-foreground space-y-1">
               <p>

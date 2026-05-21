@@ -61,7 +61,7 @@ type FieldMonitoringFilters = {
 };
 
 const statusBadgeClassNames: Record<FieldMonitoringLiveStatus, string> = {
-  Idle: 'bg-slate-100 text-slate-700 border-slate-200',
+  Idle: 'bg-muted text-foreground border-border',
   Travelling: 'bg-amber-100 text-amber-700 border-amber-200',
   'At Location': 'bg-green-100 text-green-700 border-green-200',
   Submitted: 'bg-purple-100 text-purple-700 border-purple-200',

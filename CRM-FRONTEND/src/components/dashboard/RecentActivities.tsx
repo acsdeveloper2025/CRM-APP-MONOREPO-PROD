@@ -50,10 +50,10 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = React.memo(
             <div className="space-y-4">
               {[1, 2, 3, 4, 5].map((item) => (
                 <div key={item} className="flex items-center space-x-4 animate-pulse">
-                  <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800/60 rounded-full" />
+                  <div className="w-8 h-8 bg-muted/60 rounded-full" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded w-3/4" />
-                    <div className="h-3 bg-slate-100 dark:bg-slate-800/60 rounded w-1/2" />
+                    <div className="h-4 bg-muted/60 rounded w-3/4" />
+                    <div className="h-3 bg-muted/60 rounded w-1/2" />
                   </div>
                 </div>
               ))}
@@ -79,7 +79,7 @@ export const RecentActivities: React.FC<RecentActivitiesProps> = React.memo(
                 return (
                   <div key={activity.id} className="flex items-start space-x-4">
                     <div className="shrink-0">
-                      <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800/60 rounded-full flex items-center justify-center">
+                      <div className="w-8 h-8 bg-muted/60 rounded-full flex items-center justify-center">
                         <Icon className="w-4 h-4 text-muted-foreground" />
                       </div>
                     </div>

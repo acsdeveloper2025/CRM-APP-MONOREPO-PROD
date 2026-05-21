@@ -135,7 +135,7 @@ export const VerificationTasksList: React.FC<VerificationTasksListProps> = React
           </TableHeader>
           <TableBody>
             {tasks.map((task) => (
-              <TableRow key={task.id} className="hover:bg-slate-100/70 dark:hover:bg-slate-800/50">
+              <TableRow key={task.id} className="hover:bg-muted/70 dark:hover:bg-card/50">
                 {!readonly && (
                   <TableCell>
                     <Checkbox

@@ -629,7 +629,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           <>
             <div
               data-popup-download-card={image?.id}
-              className="relative bg-slate-900 rounded-lg overflow-hidden mx-auto"
+              className="relative bg-card rounded-lg overflow-hidden mx-auto"
               style={{ maxWidth: '100%' }}
             >
               <img
@@ -833,7 +833,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
       case 'selfie':
         return 'bg-green-100 text-green-800';
       default:
-        return 'bg-slate-100 text-slate-900 dark:bg-slate-800/60 dark:text-slate-100';
+        return 'bg-muted text-foreground dark:bg-card/60 dark:text-muted-foreground';
     }
   };
 
@@ -948,7 +948,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                             html2canvas snapshot stays clean. */}
                         <div
                           data-download-card={image.id}
-                          className="relative aspect-[3/4] bg-slate-100 dark:bg-slate-800/60 rounded-lg overflow-hidden"
+                          className="relative aspect-[3/4] bg-muted/60 rounded-lg overflow-hidden"
                         >
                           <AsyncImage
                             imageUrl={image.url}
@@ -1032,7 +1032,7 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                             verification photo grid card for visual parity. */}
                         <div
                           data-download-card={image.id}
-                          className="relative aspect-square bg-slate-100 dark:bg-slate-800/60 rounded-lg overflow-hidden"
+                          className="relative aspect-square bg-muted/60 rounded-lg overflow-hidden"
                         >
                           <AsyncImage
                             imageUrl={image.url}

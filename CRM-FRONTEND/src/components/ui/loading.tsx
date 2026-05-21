@@ -111,14 +111,10 @@ export function LoadingOverlay({
     <div className={cn('relative', className)}>
       {children}
       {isLoading && (
-        <div className="absolute inset-0 bg-[#FAFAFA]/95 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="absolute inset-0 bg-background/95 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="flex flex-col items-center space-y-4">
-            <LoadingSpinner
-              size={spinnerSize}
-              variant={spinnerVariant}
-              className="text-[#10B981]"
-            />
-            <p className="text-sm text-[#1F2937] font-medium">{loadingText}</p>
+            <LoadingSpinner size={spinnerSize} variant={spinnerVariant} className="text-primary" />
+            <p className="text-sm text-foreground font-medium">{loadingText}</p>
           </div>
         </div>
       )}
@@ -161,7 +157,7 @@ export function LoadingSkeleton({
   height,
   lines = 1,
 }: LoadingSkeletonProps) {
-  const baseClasses = 'animate-pulse bg-slate-100 dark:bg-slate-800/60';
+  const baseClasses = 'animate-pulse bg-muted/60';
 
   if (variant === 'text') {
     return (
@@ -230,12 +226,12 @@ export function LoadingPage({
   className,
 }: LoadingPageProps) {
   return (
-    <div className={cn('min-h-screen flex items-center justify-center bg-[#FAFAFA]', className)}>
+    <div className={cn('min-h-screen flex items-center justify-center bg-background', className)}>
       <div className="text-center space-y-4">
-        <LoadingSpinner size="xl" className="text-[#10B981]" />
+        <LoadingSpinner size="xl" className="text-primary" />
         <div>
-          <h2 className="text-2xl font-semibold text-[#1F2937]">{title}</h2>
-          <p className="text-[#1F2937]/70">{description}</p>
+          <h2 className="text-2xl font-semibold text-foreground">{title}</h2>
+          <p className="text-muted-foreground">{description}</p>
         </div>
       </div>
     </div>
@@ -310,8 +306,8 @@ export function LoadingState({
 }: LoadingStateProps) {
   return (
     <div className={cn('flex flex-col items-center justify-center py-12 space-y-4', className)}>
-      <LoadingSpinner size={size} className="text-[#10B981]" />
-      <p className="text-sm text-[#1F2937] font-medium">{message}</p>
+      <LoadingSpinner size={size} className="text-primary" />
+      <p className="text-sm text-foreground font-medium">{message}</p>
     </div>
   );
 }

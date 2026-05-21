@@ -292,7 +292,7 @@ export function UserDetailsDialog({ user, open, onOpenChange }: UserDetailsDialo
                   {profile.recentActivity.slice(0, 5).map((activity) => (
                     <div
                       key={activity.id}
-                      className="flex items-center space-x-3 p-2 rounded-lg bg-slate-100/70 dark:bg-slate-800/50"
+                      className="flex items-center space-x-3 p-2 rounded-lg bg-muted/70 dark:bg-card/50"
                     >
                       <div className="h-2 w-2 rounded-full bg-primary" />
                       <div className="flex-1">

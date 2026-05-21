@@ -175,7 +175,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto bg-[#FAFAFA]">
+          <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto bg-background">
             {navigationItems.map((item) => renderNavigationItem(item))}
           </nav>
         </div>

@@ -99,7 +99,7 @@ export const CaseDetailPage: React.FC = () => {
       case 'COMPLETED':
         return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
       default:
-        return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
+        return 'bg-muted text-foreground dark:bg-card/60 dark:text-muted-foreground';
     }
   };
 
@@ -119,7 +119,7 @@ export const CaseDetailPage: React.FC = () => {
 
     switch (priorityNum) {
       case 1:
-        return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
+        return 'bg-muted text-foreground dark:bg-card/60 dark:text-muted-foreground';
       case 2:
         return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300';
       case 3:
@@ -127,7 +127,7 @@ export const CaseDetailPage: React.FC = () => {
       case 4:
         return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300';
       default:
-        return 'bg-slate-100 text-slate-700 dark:bg-slate-800/60 dark:text-slate-200';
+        return 'bg-muted text-foreground dark:bg-card/60 dark:text-muted-foreground';
     }
   };
 

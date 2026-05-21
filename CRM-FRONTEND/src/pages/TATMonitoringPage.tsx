@@ -264,10 +264,7 @@ export const TATMonitoringPage: React.FC = () => {
             </TableHeader>
             <TableBody>
               {tasks.map((task) => (
-                <TableRow
-                  key={task.id}
-                  className="hover:bg-slate-100/70 dark:hover:bg-slate-800/50"
-                >
+                <TableRow key={task.id} className="hover:bg-muted/70 dark:hover:bg-card/50">
                   <TableCell className="font-medium">{task.taskNumber}</TableCell>
                   <TableCell>
                     <Button

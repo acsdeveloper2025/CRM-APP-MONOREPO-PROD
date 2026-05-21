@@ -134,7 +134,7 @@ export function FormViewerPage() {
               <CardDescription>Raw JSON data structure of the form submission</CardDescription>
             </CardHeader>
             <CardContent>
-              <pre className="bg-slate-100 dark:bg-slate-800/60 p-4 rounded-lg overflow-auto text-xs">
+              <pre className="bg-muted/60 p-4 rounded-lg overflow-auto text-xs">
                 {sampleSubmission ? JSON.stringify(sampleSubmission, null, 2) : 'No data available'}
               </pre>
             </CardContent>

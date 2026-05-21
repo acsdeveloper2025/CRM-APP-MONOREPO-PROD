@@ -221,7 +221,7 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
     <>
       {/* Bulk Actions */}
       {selectedUsers.length > 0 && (
-        <div className="flex items-center justify-between p-4 bg-slate-100 dark:bg-slate-800/60 rounded-lg mb-4">
+        <div className="flex items-center justify-between p-4 bg-muted/60 rounded-lg mb-4">
           <span className="text-sm font-medium">{selectedUsers.length} user(s) selected</span>
           <div className="flex items-center space-x-2">
             <Button
