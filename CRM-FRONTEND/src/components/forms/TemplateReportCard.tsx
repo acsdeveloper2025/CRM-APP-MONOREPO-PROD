@@ -168,9 +168,7 @@ ${report.content}`;
             <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-foreground dark:text-white">
-              Template Verification Report
-            </h3>
+            <h3 className="text-lg font-semibold text-foreground">Template Verification Report</h3>
             <p className="text-sm text-muted-foreground">
               Structured report based on predefined templates
             </p>
