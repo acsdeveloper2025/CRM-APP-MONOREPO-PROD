@@ -66,10 +66,7 @@ const TableFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <tfoot
     ref={ref}
-    className={cn(
-      'border-t bg-slate-100/70 dark:bg-slate-800/50 font-medium [&>tr]:last:border-b-0',
-      className
-    )}
+    className={cn('border-t bg-muted font-medium [&>tr]:last:border-b-0', className)}
     {...props}
   />
 ));
@@ -80,7 +77,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
     <tr
       ref={ref}
       className={cn(
-        'border-b transition-colors hover:bg-slate-100/70 dark:hover:bg-slate-800/50 data-[state=selected]:bg-slate-100 dark:data-[state=selected]:bg-slate-800/60',
+        'border-b transition-colors hover:bg-muted data-[state=selected]:bg-accent',
         className
       )}
       {...props}
@@ -98,7 +95,7 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      'h-12 px-2 sm:px-4 text-left align-middle font-medium text-gray-600 [&:has([role=checkbox])]:pr-0',
+      'h-12 px-2 sm:px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0',
       hideOnMobile && 'hidden sm:table-cell',
       className
     )}
@@ -124,7 +121,7 @@ const TableCell = React.forwardRef<
     {...props}
   >
     {mobileLabel && (
-      <div className="sm:hidden font-medium text-gray-600 text-xs mb-1">{mobileLabel}</div>
+      <div className="sm:hidden font-medium text-muted-foreground text-xs mb-1">{mobileLabel}</div>
     )}
     {children}
   </td>
@@ -135,7 +132,7 @@ const TableCaption = React.forwardRef<
   HTMLTableCaptionElement,
   React.HTMLAttributes<HTMLTableCaptionElement>
 >(({ className, ...props }, ref) => (
-  <caption ref={ref} className={cn('mt-4 text-sm text-gray-600', className)} {...props} />
+  <caption ref={ref} className={cn('mt-4 text-sm text-muted-foreground', className)} {...props} />
 ));
 TableCaption.displayName = 'TableCaption';
 
@@ -164,7 +161,7 @@ const MobileTableField = React.forwardRef<
   }
 >(({ className, label, value, ...props }, ref) => (
   <div ref={ref} className={cn('flex justify-between items-start gap-2', className)} {...props}>
-    <span className="text-sm font-medium text-gray-600 min-w-0 shrink-0">{label}:</span>
+    <span className="text-sm font-medium text-muted-foreground min-w-0 shrink-0">{label}:</span>
     <span className="text-sm text-right min-w-0 flex-1">{value}</span>
   </div>
 ));

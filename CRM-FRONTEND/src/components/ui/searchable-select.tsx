@@ -70,24 +70,24 @@ export function SearchableSelect({
           role="combobox"
           aria-expanded={open}
           className={cn(
-            'w-full justify-between bg-white border-gray-300 text-gray-900 hover:bg-gray-50 hover:border-gray-400',
-            'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
-            'disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed',
+            'w-full justify-between bg-background border-input text-foreground hover:bg-muted hover:border-ring',
+            'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+            'disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed',
             className
           )}
           disabled={disabled}
         >
-          <span className={cn('truncate', !selectedOption && 'text-gray-500')}>
+          <span className={cn('truncate', !selectedOption && 'text-muted-foreground')}>
             {selectedOption ? selectedOption.label : placeholder}
           </span>
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-gray-500" />
+          <ChevronDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0 bg-white border-gray-200 shadow-lg" align="start">
+      <PopoverContent className="w-full p-0 bg-popover border-border shadow-lg" align="start">
         <div className="flex flex-col">
           {/* Search Input */}
-          <div className="flex items-center border-b border-gray-200 px-3 py-2 bg-gray-50">
-            <Search className="mr-2 h-4 w-4 shrink-0 text-gray-500" />
+          <div className="flex items-center border-b border-border px-3 py-2 bg-muted">
+            <Search className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
             <Input
               ref={searchInputRef}
               placeholder={searchPlaceholder}
@@ -96,25 +96,25 @@ export function SearchableSelect({
                 setSearchQuery(e.target.value);
                 onSearchChange?.(e.target.value);
               }}
-              className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-900 placeholder:text-gray-500"
+              className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
             />
           </div>
 
           {/* Options List */}
-          <div className="max-h-60 overflow-auto bg-white">
+          <div className="max-h-60 overflow-auto bg-popover">
             {filteredOptions.length === 0 ? (
-              <div className="py-8 text-center text-sm text-gray-500">{emptyMessage}</div>
+              <div className="py-8 text-center text-sm text-muted-foreground">{emptyMessage}</div>
             ) : (
               filteredOptions.map((option) => (
                 <div
                   key={option.value}
                   className={cn(
                     'relative flex cursor-pointer select-none items-center px-3 py-2.5 text-sm outline-none transition-colors',
-                    'hover:bg-green-50 hover:text-gray-900',
-                    'focus:bg-green-50 focus:text-gray-900',
+                    'hover:bg-accent hover:text-accent-foreground',
+                    'focus:bg-accent focus:text-accent-foreground',
                     value === option.value
-                      ? 'bg-green-100 text-gray-900 font-medium'
-                      : 'text-gray-700'
+                      ? 'bg-accent text-accent-foreground font-medium'
+                      : 'text-popover-foreground'
                   )}
                   onClick={() => handleSelect(option.value)}
                   onKeyDown={(e) => {
@@ -136,7 +136,7 @@ export function SearchableSelect({
                   <div className="flex flex-col flex-1 min-w-0">
                     <span className="truncate">{option.label}</span>
                     {option.description && (
-                      <span className="text-xs text-gray-500 truncate mt-0.5">
+                      <span className="text-xs text-muted-foreground truncate mt-0.5">
                         {option.description}
                       </span>
                     )}

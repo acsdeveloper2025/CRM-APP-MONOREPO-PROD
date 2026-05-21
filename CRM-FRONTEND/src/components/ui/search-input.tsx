@@ -157,7 +157,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       {/* Search Icon */}
       <Search
         className={cn(
-          'absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-600',
+          'absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground',
           iconSizeClasses[size],
           size === 'lg' && 'left-3'
         )}

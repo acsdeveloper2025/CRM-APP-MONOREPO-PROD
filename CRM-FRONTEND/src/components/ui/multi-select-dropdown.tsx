@@ -135,9 +135,9 @@ export function MultiSelectDropdown({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className={cn(
-          'w-full justify-between text-left font-normal bg-white border-gray-300 text-gray-900 hover:bg-gray-50 focus:ring-2 focus:ring-green-500 focus:border-green-500',
-          error && 'border-red-500',
-          selectedValues.length === 0 && 'text-gray-600'
+          'w-full justify-between text-left font-normal bg-background border-input text-foreground hover:bg-muted focus:ring-2 focus:ring-ring focus:border-ring',
+          error && 'border-destructive',
+          selectedValues.length === 0 && 'text-muted-foreground'
         )}
       >
         <span className="truncate">
@@ -146,12 +146,15 @@ export function MultiSelectDropdown({
             : `${selectedValues.length} item${selectedValues.length === 1 ? '' : 's'} selected`}
         </span>
         <ChevronDown
-          className={cn('h-4 w-4 transition-transform text-gray-600', isOpen && 'rotate-180')}
+          className={cn(
+            'h-4 w-4 transition-transform text-muted-foreground',
+            isOpen && 'rotate-180'
+          )}
         />
       </Button>
 
       {/* Error Message */}
-      {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
+      {error && <p className="text-sm text-destructive mt-1">{error}</p>}
 
       {/* Selected Items Display */}
       {selectedOptions.length > 0 && (
@@ -174,7 +177,7 @@ export function MultiSelectDropdown({
               variant="ghost"
               size="sm"
               onClick={handleClearAll}
-              className="h-6 px-2 text-xs text-gray-600 hover:text-red-600 hover:bg-red-50"
+              className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
             >
               Clear all
             </Button>
@@ -186,33 +189,33 @@ export function MultiSelectDropdown({
       {isOpen && (
         <div
           className={cn(
-            'absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-80 overflow-hidden',
+            'absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-80 overflow-hidden',
             dropdownClassName
           )}
         >
           {/* Search Input */}
-          <div className="p-2 border-b border-gray-200 bg-white">
+          <div className="p-2 border-b border-border bg-popover">
             <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-600" />
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 ref={searchInputRef}
                 placeholder={searchPlaceholder}
                 value={internalSearchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="pl-8 bg-white border-gray-300 text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="pl-8"
               />
             </div>
           </div>
 
           {/* Options List */}
-          <div className="max-h-60 overflow-y-auto bg-white">
+          <div className="max-h-60 overflow-y-auto bg-popover">
             {isLoading ? (
               <div className="flex items-center justify-center p-4">
-                <Loader2 className="h-4 w-4 animate-spin mr-2 text-gray-600" />
-                <span className="text-sm text-gray-600">Loading...</span>
+                <Loader2 className="h-4 w-4 animate-spin mr-2 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Loading...</span>
               </div>
             ) : filteredOptions.length === 0 ? (
-              <div className="p-4 text-center text-sm text-gray-600">{emptyMessage}</div>
+              <div className="p-4 text-center text-sm text-muted-foreground">{emptyMessage}</div>
             ) : (
               filteredOptions.map((option) => {
                 const isSelected = selectedValues.includes(option.id);
@@ -231,25 +234,27 @@ export function MultiSelectDropdown({
                       }
                     }}
                     className={cn(
-                      'flex items-center gap-2 p-2 cursor-pointer hover:bg-green-50 hover:text-green-900 transition-colors',
+                      'flex items-center gap-2 p-2 cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors',
                       option.disabled && 'opacity-50 cursor-not-allowed',
-                      isSelected && 'bg-green-50'
+                      isSelected && 'bg-accent'
                     )}
                   >
                     <div
                       className={cn(
                         'w-4 h-4 border rounded flex items-center justify-center shrink-0',
-                        isSelected ? 'bg-green-600 border-green-600' : 'border-gray-300 bg-white'
+                        isSelected ? 'bg-primary border-primary' : 'border-input bg-background'
                       )}
                     >
-                      {isSelected && <Check className="h-3 w-3 text-white" />}
+                      {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900 truncate">
+                      <div className="text-sm font-medium text-foreground truncate">
                         {option.label}
                       </div>
                       {option.description && (
-                        <div className="text-xs text-gray-600 truncate">{option.description}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {option.description}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -260,7 +265,7 @@ export function MultiSelectDropdown({
 
           {/* Footer with selection count */}
           {filteredOptions.length > 0 && (
-            <div className="p-2 border-t border-gray-200 bg-gray-50 text-xs text-gray-600">
+            <div className="p-2 border-t border-border bg-muted text-xs text-muted-foreground">
               {selectedValues.length} of {options.length} items selected
               {filteredOptions.length < options.length && (
                 <span> • Showing {filteredOptions.length} filtered results</span>

@@ -143,7 +143,7 @@ export const UnifiedSearchInput = React.forwardRef<HTMLInputElement, UnifiedSear
         {/* Search Icon */}
         <Search
           className={cn(
-            'absolute left-3 top-1/2 -translate-y-1/2 text-gray-600',
+            'absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground',
             iconSizes[size],
             disabled && 'opacity-50'
           )}
@@ -176,7 +176,9 @@ export const UnifiedSearchInput = React.forwardRef<HTMLInputElement, UnifiedSear
 
         {/* Right Side Icons (Loading or Clear) */}
         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-          {isLoading && <Loader2 className={cn('animate-spin text-gray-600', iconSizes[size])} />}
+          {isLoading && (
+            <Loader2 className={cn('animate-spin text-muted-foreground', iconSizes[size])} />
+          )}
 
           {value && !disabled && (
             <Button
@@ -184,13 +186,10 @@ export const UnifiedSearchInput = React.forwardRef<HTMLInputElement, UnifiedSear
               variant="ghost"
               size="sm"
               onClick={handleClear}
-              className={cn(
-                'h-6 w-6 p-0 hover:bg-slate-100 dark:hover:bg-slate-800/60',
-                'transition-opacity duration-200'
-              )}
+              className={cn('h-6 w-6 p-0 hover:bg-muted', 'transition-opacity duration-200')}
               tabIndex={-1}
             >
-              <X className={cn('text-gray-600', iconSizes[size])} />
+              <X className={cn('text-muted-foreground', iconSizes[size])} />
               <span className="sr-only">Clear search</span>
             </Button>
           )}

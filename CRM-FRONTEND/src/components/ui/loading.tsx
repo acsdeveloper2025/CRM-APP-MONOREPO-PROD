@@ -139,7 +139,7 @@ export function LoadingCard({ title = 'Loading', description, className }: Loadi
         <LoadingSpinner size="lg" />
         <div>
           <h3 className="font-medium">{title}</h3>
-          {description && <p className="text-sm text-gray-600">{description}</p>}
+          {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>
       </div>
     </div>

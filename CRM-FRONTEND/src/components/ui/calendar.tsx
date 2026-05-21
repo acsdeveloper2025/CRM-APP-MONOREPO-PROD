@@ -37,7 +37,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         ),
         [UI.MonthGrid]: 'w-full border-collapse space-y-1',
         [UI.Weekdays]: 'flex',
-        [UI.Weekday]: 'text-gray-600 rounded-md w-9 font-normal text-[0.8rem]',
+        [UI.Weekday]: 'text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]',
         [UI.Week]: 'flex w-full mt-2',
         [UI.Day]:
           'h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20',
@@ -50,8 +50,8 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
           'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground',
         [Day.today]: 'bg-accent text-accent-foreground',
         [Day.outside]:
-          'day-outside text-gray-600 opacity-50 aria-selected:bg-accent/50 aria-selected:text-gray-600 aria-selected:opacity-30',
-        [Day.disabled]: 'text-gray-600 opacity-50',
+          'day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30',
+        [Day.disabled]: 'text-muted-foreground opacity-50',
         [Selection.rangeMiddle]: 'aria-selected:bg-accent aria-selected:text-accent-foreground',
         [Day.hidden]: 'invisible',
         ...classNames,

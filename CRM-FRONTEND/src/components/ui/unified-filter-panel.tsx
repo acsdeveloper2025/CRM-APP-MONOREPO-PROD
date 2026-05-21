@@ -123,7 +123,7 @@ export const UnifiedFilterPanel: React.FC<UnifiedFilterPanelProps> = ({
                 }
               }}
             >
-              {showIcon && <Filter className="h-5 w-5 text-gray-600" />}
+              {showIcon && <Filter className="h-5 w-5 text-muted-foreground" />}
 
               <CardTitle className="text-lg font-semibold">{title}</CardTitle>
 
@@ -137,14 +137,14 @@ export const UnifiedFilterPanel: React.FC<UnifiedFilterPanelProps> = ({
               )}
 
               {isCollapsed ? (
-                <ChevronDown className="h-4 w-4 text-gray-500" />
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
               ) : (
-                <ChevronUp className="h-4 w-4 text-gray-500" />
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
               )}
             </div>
           ) : (
             <div className={cn('flex items-center gap-2', 'transition-colors duration-200')}>
-              {showIcon && <Filter className="h-5 w-5 text-gray-600" />}
+              {showIcon && <Filter className="h-5 w-5 text-muted-foreground" />}
 
               <CardTitle className="text-lg font-semibold">{title}</CardTitle>
 
@@ -164,7 +164,7 @@ export const UnifiedFilterPanel: React.FC<UnifiedFilterPanelProps> = ({
               variant="ghost"
               size="sm"
               onClick={onClearFilters}
-              className="h-8 px-3 text-gray-600 hover:text-gray-900"
+              className="h-8 px-3 text-muted-foreground hover:text-foreground"
             >
               <X className="h-4 w-4 mr-1" />
               Clear All
@@ -201,7 +201,7 @@ export interface FilterSectionProps {
 export const FilterSection: React.FC<FilterSectionProps> = ({ title, children, className }) => {
   return (
     <div className={cn('space-y-3', className)}>
-      {title && <h4 className="text-sm font-medium text-gray-600">{title}</h4>}
+      {title && <h4 className="text-sm font-medium text-muted-foreground">{title}</h4>}
       <div className="space-y-3">{children}</div>
     </div>
   );
@@ -300,7 +300,7 @@ export const ActiveFiltersDisplay: React.FC<ActiveFiltersDisplayProps> = ({
 
   return (
     <div className={cn('space-y-2', className)}>
-      <p className="text-sm font-medium text-gray-600">Active Filters:</p>
+      <p className="text-sm font-medium text-muted-foreground">Active Filters:</p>
       <div className="flex flex-wrap gap-2">
         {activeFilters.map(([key, value]) => (
           <Badge
