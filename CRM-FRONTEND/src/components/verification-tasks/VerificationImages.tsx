@@ -219,7 +219,7 @@ const StaticMapImage: React.FC<{
     // still snapshots cleanly.
     return (
       <div
-        className={`${className || ''} bg-card/10 flex flex-col items-center justify-center text-[8px] text-white/70 text-center p-1`}
+        className={`${className || ''} bg-muted flex flex-col items-center justify-center text-[8px] text-muted-foreground text-center p-1`}
       >
         <MapPin className="h-4 w-4 mb-0.5" />
         <span>Map unavailable</span>

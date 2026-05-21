@@ -189,52 +189,19 @@
   --color-priority-urgent-bg: #fee2e2;
 }
 
-@media (prefers-color-scheme: dark) {
-  @theme {
-    --color-background: #0f172a;
-    --color-foreground: #f8fafc;
-    --color-card: #1e293b;
-    --color-card-foreground: #f8fafc;
-    --color-popover: #1e293b;
-    --color-popover-foreground: #f8fafc;
-    --color-primary: #10b981; /* Keep green in dark mode */
-    --color-primary-foreground: #ffffff;
-    --color-secondary: #334155;
-    --color-secondary-foreground: #f8fafc;
-    --color-muted: #1f3a34;
-    --color-muted-foreground: #94a3b8;
-    --color-accent: #064e3b; /* Dark green */
-    --color-accent-foreground: #10b981; /* Light green text */
-    --color-destructive: #dc2626;
-    --color-destructive-foreground: #f8fafc;
-    --color-border: #334155;
-    --color-input: #334155;
-    --color-ring: #10b981; /* Keep green focus */
-    --color-success: #10b981;
-    --color-warning: #d97706;
-    --color-info: #60a5fa;
-
-    /* Status colors for badges and indicators - Dark mode */
-    --color-status-pending: #fbbf24;
-    --color-status-pending-bg: rgba(245, 158, 11, 0.2);
-    --color-status-in-progress: #60a5fa;
-    --color-status-in-progress-bg: rgba(59, 130, 246, 0.2);
-    --color-status-completed: #10b981;
-    --color-status-completed-bg: rgba(16, 185, 129, 0.2);
-    --color-status-cancelled: #ef4444;
-    --color-status-cancelled-bg: rgba(239, 68, 68, 0.2);
-
-    /* Priority colors - Dark mode */
-    --color-priority-low: #9ca3af;
-    --color-priority-low-bg: rgba(107, 114, 128, 0.2);
-    --color-priority-medium: #fbbf24;
-    --color-priority-medium-bg: rgba(245, 158, 11, 0.2);
-    --color-priority-high: #fb923c;
-    --color-priority-high-bg: rgba(249, 115, 22, 0.2);
-    --color-priority-urgent: #ef4444;
-    --color-priority-urgent-bg: rgba(239, 68, 68, 0.2);
-  }
-}
+/*
+ * Dark mode is driven SOLELY by the `.dark` class set on <html> by
+ * ThemeContext (see contexts/ThemeContext.tsx). The previous
+ * @media (prefers-color-scheme: dark) @theme {...} block was removed
+ * because it overrode --color-popover / --color-muted / --color-accent /
+ * etc. to dark values whenever the OS was in dark mode — even when the
+ * app's explicit theme was "light". That produced black popovers and
+ * dark tab pills on pages where users had chosen the light theme.
+ *
+ * Tailwind v4 base @theme (above) supplies the LIGHT defaults. .dark
+ * overrides them when the user (or system, via theme='system')
+ * resolves to dark. No media query in between.
+ */
 
 .dark {
   --color-background: #0f172a;

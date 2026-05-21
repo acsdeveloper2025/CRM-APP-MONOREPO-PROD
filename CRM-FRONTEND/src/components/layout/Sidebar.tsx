@@ -167,7 +167,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             </button>
             <Link
               to="/dashboard"
-              className="text-xl font-bold text-foreground hover:text-green-600 transition-colors duration-200"
+              className="text-xl font-bold text-green-900 hover:text-green-700 transition-colors duration-200"
               onClick={onClose}
             >
               CRM Admin

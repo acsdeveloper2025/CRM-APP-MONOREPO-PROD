@@ -290,7 +290,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               >
                 <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-card px-1 text-[10px] font-semibold text-green-700">
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary-foreground px-1 text-[10px] font-semibold text-primary">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
