@@ -86,8 +86,25 @@ const AcceptPolicyPage = React.lazy(() => import('@/pages/AcceptPolicyPage'));
 const ReportsPage = React.lazy(() =>
   import('@/pages/ReportsPage').then((module) => ({ default: module.ReportsPage }))
 );
-const AnalyticsPage = React.lazy(() =>
-  import('@/pages/AnalyticsPage').then((module) => ({ default: module.AnalyticsPage }))
+const AnalyticsOverviewPage = React.lazy(() =>
+  import('@/pages/analytics/AnalyticsOverviewPage').then((module) => ({
+    default: module.AnalyticsOverviewPage,
+  }))
+);
+const AnalyticsCasesPage = React.lazy(() =>
+  import('@/pages/analytics/AnalyticsCasesPage').then((module) => ({
+    default: module.AnalyticsCasesPage,
+  }))
+);
+const AnalyticsTasksPage = React.lazy(() =>
+  import('@/pages/analytics/AnalyticsTasksPage').then((module) => ({
+    default: module.AnalyticsTasksPage,
+  }))
+);
+const AnalyticsAgentsPage = React.lazy(() =>
+  import('@/pages/analytics/AnalyticsAgentsPage').then((module) => ({
+    default: module.AnalyticsAgentsPage,
+  }))
 );
 const MISDashboardPage = React.lazy(() =>
   import('@/pages/MISDashboardPage').then((module) => ({ default: module.MISDashboardPage }))
@@ -597,9 +614,37 @@ export const AppRoutes: React.FC = () => {
           />
           <Route
             path="/reports-and-mis/analytics-dashboard"
+            element={<Navigate to="/reports-and-mis/analytics-dashboard/overview" replace />}
+          />
+          <Route
+            path="/reports-and-mis/analytics-dashboard/overview"
             element={
               <ProtectedRoute permission="page.analytics">
-                <AnalyticsPage />
+                <AnalyticsOverviewPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports-and-mis/analytics-dashboard/cases"
+            element={
+              <ProtectedRoute permission="page.analytics">
+                <AnalyticsCasesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports-and-mis/analytics-dashboard/tasks"
+            element={
+              <ProtectedRoute permission="page.analytics">
+                <AnalyticsTasksPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports-and-mis/analytics-dashboard/agents"
+            element={
+              <ProtectedRoute permission="page.analytics">
+                <AnalyticsAgentsPage />
               </ProtectedRoute>
             }
           />

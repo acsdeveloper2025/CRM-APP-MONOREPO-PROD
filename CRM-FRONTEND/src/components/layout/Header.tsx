@@ -103,6 +103,24 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     if (path === '/reports-and-mis') {
       return 'Reports';
     }
+    if (
+      path === '/reports-and-mis/analytics-dashboard' ||
+      path === '/reports-and-mis/analytics-dashboard/overview'
+    ) {
+      return 'Analytics Overview';
+    }
+    if (path === '/reports-and-mis/analytics-dashboard/cases') {
+      return 'Cases Analytics';
+    }
+    if (path === '/reports-and-mis/analytics-dashboard/tasks') {
+      return 'Tasks Analytics';
+    }
+    if (path === '/reports-and-mis/analytics-dashboard/agents') {
+      return 'Agent Performance';
+    }
+    if (path === '/reports-and-mis/mis-dashboard') {
+      return 'MIS Dashboard';
+    }
     if (path === '/billing-and-commission') {
       return 'Billing';
     }
