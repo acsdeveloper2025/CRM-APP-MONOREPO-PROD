@@ -1,6 +1,10 @@
 import { useState } from 'react';
-import { MoreHorizontal, Edit, Trash2, Eye, Building } from 'lucide-react';
-import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
+import { MoreHorizontal, Edit, Trash2, Eye, Building, ToggleLeft, ToggleRight } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  useMutationWithInvalidation,
+  useStandardizedMutation,
+} from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -42,6 +46,7 @@ interface CitiesTableProps {
 }
 
 export function CitiesTable({ data, isLoading }: CitiesTableProps) {
+  const queryClient = useQueryClient();
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -50,13 +55,24 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
 
   const deleteMutation = useMutationWithInvalidation({
     mutationFn: (id: string) => locationsService.deleteCity(id),
-    invalidateKeys: [['cities']],
+    invalidateKeys: [['cities'], ['city-stats']],
     successMessage: 'City deleted successfully',
     errorContext: 'City Deletion',
     errorFallbackMessage: 'Failed to delete city',
     onSuccess: () => {
       setShowDeleteDialog(false);
       setCityToDelete(null);
+    },
+  });
+
+  const toggleActiveMutation = useStandardizedMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      locationsService.updateCity(id, { isActive }),
+    errorContext: 'City Status Toggle',
+    errorFallbackMessage: 'Failed to update city status',
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cities'] });
+      queryClient.invalidateQueries({ queryKey: ['city-stats'] });
     },
   });
 
@@ -82,7 +98,11 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
   };
 
   if (isLoading) {
-    return <TableSkeleton headers={['City Name', 'State', 'Country', 'Created Date', 'Actions']} />;
+    return (
+      <TableSkeleton
+        headers={['City Name', 'State', 'Country', 'Created Date', 'Status', 'Actions']}
+      />
+    );
   }
 
   if (!data || data.length === 0) {
@@ -105,6 +125,7 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
               <TableHead>State</TableHead>
               <TableHead>Country</TableHead>
               <TableHead>Created Date</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -126,6 +147,13 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
                   <Badge className={baseBadgeStyle}>{formatBadgeLabel(city.country)}</Badge>
                 </TableCell>
                 <TableCell>{new Date(city.createdAt).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  {city.isActive === false ? (
+                    <Badge variant="secondary">INACTIVE</Badge>
+                  ) : (
+                    <Badge variant="default">ACTIVE</Badge>
+                  )}
+                </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -144,6 +172,27 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
                         <Edit className="mr-2 h-4 w-4" />
                         Edit City
                       </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={toggleActiveMutation.isPending}
+                        onClick={() =>
+                          toggleActiveMutation.mutate({
+                            id: String(city.id),
+                            isActive: !(city.isActive ?? true),
+                          })
+                        }
+                      >
+                        {city.isActive === false ? (
+                          <>
+                            <ToggleRight className="mr-2 h-4 w-4" />
+                            Activate
+                          </>
+                        ) : (
+                          <>
+                            <ToggleLeft className="mr-2 h-4 w-4" />
+                            Deactivate
+                          </>
+                        )}
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => handleDelete(city)}
@@ -161,7 +210,6 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
         </Table>
       </div>
 
-      {/* Edit Dialog */}
       {selectedCity && (
         <EditCityDialog
           city={selectedCity}
@@ -170,7 +218,6 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
         />
       )}
 
-      {/* Details Dialog */}
       {selectedCity && (
         <CityDetailsDialog
           city={selectedCity}
@@ -179,7 +226,6 @@ export function CitiesTable({ data, isLoading }: CitiesTableProps) {
         />
       )}
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>

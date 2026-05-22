@@ -27,6 +27,7 @@ export interface City extends Omit<BaseEntity, 'id'> {
   state: string;
   countryId: number;
   country: string;
+  isActive?: boolean;
   pincodes?: Pincode[];
   pincodeCount?: number;
 }
@@ -97,6 +98,7 @@ export interface UpdateCityData {
   name?: string;
   state?: string;
   country?: string;
+  isActive?: boolean;
 }
 
 export interface CreatePincodeData {

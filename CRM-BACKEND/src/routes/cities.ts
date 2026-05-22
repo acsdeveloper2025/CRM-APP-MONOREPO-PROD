@@ -12,6 +12,7 @@ import {
   deleteCity,
   getCitiesStats,
   bulkImportCities,
+  exportCities,
 } from '@/controllers/citiesController';
 import * as PincodesController from '../controllers/pincodesController';
 
@@ -51,6 +52,7 @@ const updateCityValidation = [
     .trim()
     .isLength({ min: 1, max: 100 })
     .withMessage('Country must be less than 100 characters'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 const listCitiesValidation = [
@@ -64,12 +66,16 @@ const listCitiesValidation = [
     .trim()
     .isLength({ max: 100 })
     .withMessage('State must be less than 100 characters'),
+  query('stateId').optional(),
   query('country')
     .optional()
     .trim()
     .isLength({ max: 100 })
     .withMessage('Country must be less than 100 characters'),
-  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+  query('isActive')
+    .optional()
+    .isIn(['true', 'false', 'all'])
+    .withMessage('isActive must be true, false, or all'),
   query('search')
     .optional()
     .trim()
@@ -77,15 +83,20 @@ const listCitiesValidation = [
     .withMessage('Search term must be less than 100 characters'),
   query('sortBy')
     .optional()
-    .isIn(['name', 'state', 'country', 'code', 'population', 'area', 'createdAt'])
+    .isIn(['name', 'state', 'country', 'createdAt', 'updatedAt'])
     .withMessage('Invalid sort field'),
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
+  query('createdFrom').optional().isISO8601().withMessage('createdFrom must be ISO 8601 date'),
+  query('createdTo').optional().isISO8601().withMessage('createdTo must be ISO 8601 date'),
 ];
 
 // Core CRUD routes
 router.get('/', listCitiesValidation, validate, getCities);
 
 router.get('/stats', getCitiesStats);
+
+// /export MUST precede /:id (Express matches in declaration order).
+router.get('/export', listCitiesValidation, validate, exportCities);
 
 router.post('/', authorize('settings.manage'), createCityValidation, validate, createCity);
 

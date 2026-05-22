@@ -49,6 +49,11 @@ export const cityFormSchema = z.object({
 });
 export type CityFormData = z.infer<typeof cityFormSchema>;
 
+export const editCityFormSchema = cityFormSchema.extend({
+  isActive: z.boolean().optional(),
+});
+export type EditCityFormData = z.infer<typeof editCityFormSchema>;
+
 export const pincodeFormSchema = z.object({
   code: z
     .string()

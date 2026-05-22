@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
-import { cityFormSchema, type CityFormData } from '@/forms/schemas/location.schema';
+import { editCityFormSchema, type EditCityFormData } from '@/forms/schemas/location.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,6 +16,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -29,6 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { locationsService } from '@/services/locations';
 import { City } from '@/types/location';
 
@@ -39,12 +41,13 @@ interface EditCityDialogProps {
 }
 
 export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps) {
-  const form = useForm<CityFormData>({
-    resolver: zodResolver(cityFormSchema),
+  const form = useForm<EditCityFormData>({
+    resolver: zodResolver(editCityFormSchema),
     defaultValues: {
       name: city.name,
       state: city.state,
       country: city.country,
+      isActive: city.isActive ?? true,
     },
   });
 
@@ -54,6 +57,7 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
         name: city.name,
         state: city.state,
         country: city.country,
+        isActive: city.isActive ?? true,
       });
     }
   }, [city, form]);
@@ -75,17 +79,17 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
   });
 
   const updateMutation = useCRUDMutation({
-    mutationFn: (data: CityFormData) => locationsService.updateCity(city.id.toString(), data),
+    mutationFn: (data: EditCityFormData) => locationsService.updateCity(city.id.toString(), data),
     queryKey: ['cities'],
     resourceName: 'City',
     operation: 'update',
-    additionalInvalidateKeys: [['dashboard']],
+    additionalInvalidateKeys: [['city-stats']],
     onSuccess: () => {
       onOpenChange(false);
     },
   });
 
-  const onSubmit = (data: CityFormData) => {
+  const onSubmit = (data: EditCityFormData) => {
     updateMutation.mutate(data);
   };
 
@@ -162,6 +166,24 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
                     </SelectContent>
                   </Select>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Active</FormLabel>
+                    <FormDescription>
+                      Inactive cities are hidden from the Active filter.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
+                  </FormControl>
                 </FormItem>
               )}
             />
