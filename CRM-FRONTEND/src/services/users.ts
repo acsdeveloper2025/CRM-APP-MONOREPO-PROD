@@ -9,7 +9,6 @@ import type {
   UserStats,
   UserSession,
   UserProfile,
-  BulkUserOperation,
   RolePermission,
   UserClientAssignment,
   UserProductAssignment,
@@ -158,13 +157,6 @@ export class UsersService {
     return apiService.get<UserActivity[]>('/users/activities', query);
   }
 
-  async getUserActivityById(
-    userId: string,
-    query: ActivityQuery = {}
-  ): Promise<ApiResponse<UserActivity[]>> {
-    return apiService.get<UserActivity[]>(`/users/${userId}/activities`, query);
-  }
-
   // 2026-05-13: Field Executive Acknowledgement audit trail. One row
   // per (user, policy_version) — admin uses this on the user-detail
   // dialog to confirm acceptance during disputes / compliance review.
@@ -189,10 +181,6 @@ export class UsersService {
     return apiService.get<UserSession[]>('/users/sessions', query);
   }
 
-  async getUserSessionsByUser(userId: string): Promise<ApiResponse<UserSession[]>> {
-    return apiService.get<UserSession[]>(`/users/${userId}/sessions`);
-  }
-
   async terminateSession(sessionId: string): Promise<ApiResponse<void>> {
     return apiService.delete<void>(`/users/sessions/${sessionId}`);
   }
@@ -206,14 +194,6 @@ export class UsersService {
     return apiService.get<UserStats>('/users/stats');
   }
 
-  async getUserStatsByDepartment(department: string): Promise<ApiResponse<UserStats>> {
-    return apiService.get<UserStats>(`/users/stats/department/${department}`);
-  }
-
-  async getUserStatsByRole(role: Role): Promise<ApiResponse<UserStats>> {
-    return apiService.get<UserStats>(`/users/stats/role/${role}`);
-  }
-
   // Role and permissions
   async getRolePermissions(): Promise<ApiResponse<RolePermission[]>> {
     return apiService.get<RolePermission[]>('/users/roles/permissions');
@@ -221,53 +201,6 @@ export class UsersService {
 
   async getRolePermissionsByRole(role: Role): Promise<ApiResponse<RolePermission>> {
     return apiService.get<RolePermission>(`/users/roles/${role}/permissions`);
-  }
-
-  // Bulk operations
-  async bulkUserOperation(
-    operation: BulkUserOperation
-  ): Promise<ApiResponse<{ success: number; failed: number; errors: string[] }>> {
-    return apiService.post('/users/bulk-operation', operation);
-  }
-
-  async bulkActivateUsers(
-    userIds: string[]
-  ): Promise<ApiResponse<{ success: number; failed: number }>> {
-    return this.bulkUserOperation({
-      userIds,
-      operation: 'activate',
-    });
-  }
-
-  async bulkDeactivateUsers(
-    userIds: string[],
-    reason?: string
-  ): Promise<ApiResponse<{ success: number; failed: number }>> {
-    return this.bulkUserOperation({
-      userIds,
-      operation: 'deactivate',
-      data: { reason },
-    });
-  }
-
-  async bulkDeleteUsers(
-    userIds: string[]
-  ): Promise<ApiResponse<{ success: number; failed: number }>> {
-    return this.bulkUserOperation({
-      userIds,
-      operation: 'delete',
-    });
-  }
-
-  async bulkChangeRole(
-    userIds: string[],
-    role: Role
-  ): Promise<ApiResponse<{ success: number; failed: number }>> {
-    return this.bulkUserOperation({
-      userIds,
-      operation: 'changeRole',
-      data: { role },
-    });
   }
 
   // Import/Export
@@ -298,22 +231,6 @@ export class UsersService {
   // Search and filters
   async searchUsers(query: string): Promise<ApiResponse<User[]>> {
     return apiService.get('/users/search', { q: query });
-  }
-
-  async getUsersByDepartment(department: string): Promise<ApiResponse<User[]>> {
-    return this.getUsers({ department });
-  }
-
-  async getUsersByRole(role: Role): Promise<ApiResponse<User[]>> {
-    return this.getUsers({ role });
-  }
-
-  async getActiveUsers(): Promise<ApiResponse<User[]>> {
-    return this.getUsers({ isActive: true });
-  }
-
-  async getInactiveUsers(): Promise<ApiResponse<User[]>> {
-    return this.getUsers({ isActive: false });
   }
 
   async getFieldUsers(): Promise<ApiResponse<User[]>> {
@@ -375,12 +292,6 @@ export class UsersService {
 
   async getDesignations(): Promise<ApiResponse<string[]>> {
     return apiService.get('/users/designations');
-  }
-
-  async getDepartmentStats(): Promise<
-    ApiResponse<{ department: string; userCount: number; activeCount: number }[]>
-  > {
-    return apiService.get('/users/departments/stats');
   }
 
   // Client assignment management for BACKEND users

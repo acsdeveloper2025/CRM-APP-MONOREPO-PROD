@@ -26,7 +26,6 @@ export type {
   UserClientAssignment,
   UserProductAssignment,
   UserExportData,
-  BulkUserOperation,
   UserImportData,
   ActivityQuery,
 } from './user';

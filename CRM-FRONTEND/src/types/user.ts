@@ -331,15 +331,6 @@ export interface UserProfile {
   recentActivity: UserActivity[];
 }
 
-export interface BulkUserOperation {
-  userIds: string[];
-  operation: 'activate' | 'deactivate' | 'delete' | 'changeRole';
-  data?: {
-    role?: Role;
-    reason?: string;
-  };
-}
-
 export interface UserImportData {
   name: string;
   username: string;

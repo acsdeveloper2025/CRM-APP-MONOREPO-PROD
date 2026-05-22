@@ -1851,14 +1851,6 @@ export const getRolePermissions = (req: AuthenticatedRequest, res: Response) => 
   });
 };
 
-export const bulkUserOperation = (req: AuthenticatedRequest, res: Response) => {
-  res.status(501).json({
-    success: false,
-    message: 'Bulk operations feature coming soon',
-    error: { code: 'NOT_IMPLEMENTED' },
-  });
-};
-
 // GET /api/users/:userId/client-assignments - Get assigned clients for a user
 export const getUserClientAssignments = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -2807,7 +2799,6 @@ export const getAssignableUsersByRole = async (req: AuthenticatedRequest, res: R
   }
 };
 
-// POST /api/users/export - Export users to Excel
 // GET /api/users/export — xlsx export matching the list endpoint's WHERE
 // helper. Pagination intentionally absent; rows capped at
 // USER_EXPORT_ROW_LIMIT. Every user-controlled cell passes through

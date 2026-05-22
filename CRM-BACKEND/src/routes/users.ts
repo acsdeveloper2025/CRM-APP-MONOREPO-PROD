@@ -39,7 +39,6 @@ import {
   getUserProductAssignments,
   assignProductsToUser,
   removeProductAssignment,
-  bulkUserOperation,
   generateTemporaryPassword,
   changePassword,
   resetPassword,
@@ -323,15 +322,6 @@ const listUsersValidation = [
     .withMessage('consentStatus must be accepted or pending'),
 ];
 
-const bulkOperationValidation = [
-  body('userIds').isArray({ min: 1 }).withMessage('User IDs array is required'),
-  body('userIds.*').isString().withMessage('Each user ID must be a string'),
-  body('operation')
-    .isIn(['activate', 'deactivate', 'delete', 'changeRole'])
-    .withMessage('Operation must be one of: activate, deactivate, delete, change_role'),
-  body('data').optional().isObject().withMessage('Data must be an object'),
-];
-
 const searchValidation = [
   query('q')
     .trim()
@@ -516,16 +506,6 @@ router.post(
   createUserValidation,
   validate,
   createUser
-);
-
-router.post(
-  '/bulk-operation',
-  authenticateToken,
-  authorize('user.update'),
-  EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
-  bulkOperationValidation,
-  validate,
-  bulkUserOperation
 );
 
 // Client assignment routes (must be before /:id route)
