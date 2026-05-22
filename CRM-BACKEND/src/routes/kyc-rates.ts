@@ -9,6 +9,7 @@ import {
   createOrUpdateKYCRate,
   deleteKYCRate,
   getKYCRateStats,
+  exportKYCRates,
 } from '@/controllers/kycRatesController';
 
 const router = express.Router();
@@ -16,19 +17,19 @@ const router = express.Router();
 // Apply authentication
 router.use(authenticateToken);
 // Validation schemas
-const listKYCRatesValidation = [
-  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit')
-    .optional()
-    .isInt({ min: 1, max: 1000 })
-    .withMessage('Limit must be between 1 and 1000'),
+// Reusable query-param validators for list + export — kept in lockstep with
+// buildKYCRatesWhereClause in kycRatesController.ts.
+const kycRatesQueryValidation = [
   query('clientId').optional().isInt({ min: 1 }).withMessage('Client ID must be a valid integer'),
   query('productId').optional().isInt({ min: 1 }).withMessage('Product ID must be a valid integer'),
   query('documentTypeId')
     .optional()
     .isInt({ min: 1 })
     .withMessage('Document Type ID must be a valid integer'),
-  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+  query('isActive')
+    .optional()
+    .isIn(['true', 'false', 'all'])
+    .withMessage("isActive must be 'true', 'false', or 'all'"),
   query('search')
     .optional()
     .trim()
@@ -39,6 +40,15 @@ const listKYCRatesValidation = [
     .isIn(['clientName', 'productName', 'documentTypeName', 'amount', 'createdAt', 'updatedAt'])
     .withMessage('Invalid sort field'),
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
+];
+
+const listKYCRatesValidation = [
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 1000 })
+    .withMessage('Limit must be between 1 and 1000'),
+  ...kycRatesQueryValidation,
 ];
 
 const createOrUpdateKYCRateValidation = [
@@ -67,8 +77,17 @@ const deleteKYCRateValidation = [
 
 // Routes
 
-// GET /api/kyc-rates/stats - Get statistics (must be before /:id route)
+// GET /api/kyc-rates/stats - 5-card stats aggregate (no filter params).
 router.get('/stats', authorize('page.masterdata'), getKYCRateStats);
+
+// GET /api/kyc-rates/export - xlsx mirroring list filters via shared helper.
+router.get(
+  '/export',
+  authorize('page.masterdata'),
+  kycRatesQueryValidation,
+  handleValidationErrors,
+  exportKYCRates
+);
 
 // GET /api/kyc-rates - List document type rates
 router.get(
@@ -83,7 +102,7 @@ router.get(
 router.post(
   '/',
   authorize('settings.manage'),
-  EnterpriseCache.invalidate(CacheInvalidationPatterns.documentTypeRateUpdate),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.kycRateUpdate),
   createOrUpdateKYCRateValidation,
   handleValidationErrors,
   createOrUpdateKYCRate
@@ -93,7 +112,7 @@ router.post(
 router.delete(
   '/:id',
   authorize('settings.manage'),
-  EnterpriseCache.invalidate(CacheInvalidationPatterns.documentTypeRateUpdate),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.kycRateUpdate),
   deleteKYCRateValidation,
   handleValidationErrors,
   deleteKYCRate

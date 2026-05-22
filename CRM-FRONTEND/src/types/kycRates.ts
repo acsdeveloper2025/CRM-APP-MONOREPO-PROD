@@ -40,7 +40,8 @@ export interface KYCRateQuery {
   clientId?: number;
   productId?: number;
   documentTypeId?: number;
-  isActive?: boolean;
+  // 'all' sent verbatim so URL/cache key stays stable; BE treats it as no-filter.
+  isActive?: boolean | 'true' | 'false' | 'all';
   search?: string;
   page?: number;
   limit?: number;
@@ -48,15 +49,21 @@ export interface KYCRateQuery {
   sortOrder?: 'asc' | 'desc';
 }
 
-// Statistics interface
+// Statistics interface — Page 3 sweep (2026-05-22) added canonical
+// total/active/inactive + recentlyAddedCount; legacy keys kept for downstream.
 export interface KYCRateStats {
-  totalRates: number;
-  totalClients: number;
-  totalProducts: number;
-  totalDocumentTypes: number;
-  averageRate: number;
-  minRate: number;
-  maxRate: number;
+  total: number;
+  active: number;
+  inactive: number;
+  recentlyAddedCount: number;
+  averageRate: number | string;
+  // Legacy fields kept for backward compat with the rate-management page facade.
+  totalRates?: number;
+  totalClients?: number;
+  totalProducts?: number;
+  totalDocumentTypes?: number;
+  minRate?: number | string;
+  maxRate?: number | string;
 }
 
 // Document Type interface (for reference)

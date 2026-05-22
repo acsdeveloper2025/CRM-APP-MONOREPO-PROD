@@ -1,58 +1,68 @@
 import type { Response } from 'express';
+import ExcelJS from 'exceljs';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
 import type { QueryParams } from '@/types/database';
+import { createAuditLog } from '@/utils/auditLogger';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
 
-// GET /api/kyc-rates - List document type rates with filtering and pagination
+const EXPORT_ROW_LIMIT = 10000;
+
+// Shared WHERE-clause builder for getKYCRates + exportKYCRates so the two
+// stay in lockstep. Operates against kyc_rates_view columns
+// (client_name, product_name, document_type_name etc.). Page 3 of the
+// filter-standardization sweep (2026-05-22).
+const buildKYCRatesWhereClause = (
+  req: AuthenticatedRequest
+): { whereClause: string; queryParams: QueryParams; nextParamIndex: number } => {
+  const { search, isActive, clientId, productId, documentTypeId } = req.query;
+  const whereConditions: string[] = [];
+  const queryParams: QueryParams = [];
+  let paramIndex = 1;
+
+  if (clientId) {
+    whereConditions.push(`client_id = $${paramIndex}`);
+    queryParams.push(Number(clientId));
+    paramIndex++;
+  }
+  if (productId) {
+    whereConditions.push(`product_id = $${paramIndex}`);
+    queryParams.push(Number(productId));
+    paramIndex++;
+  }
+  if (documentTypeId) {
+    whereConditions.push(`document_type_id = $${paramIndex}`);
+    queryParams.push(Number(documentTypeId));
+    paramIndex++;
+  }
+  if (isActive === 'true' || isActive === 'false') {
+    whereConditions.push(`is_active = $${paramIndex}`);
+    queryParams.push(isActive === 'true');
+    paramIndex++;
+  } else if (typeof isActive === 'boolean') {
+    whereConditions.push(`is_active = $${paramIndex}`);
+    queryParams.push(isActive);
+    paramIndex++;
+  }
+  if (search && typeof search === 'string') {
+    whereConditions.push(
+      `(client_name ILIKE $${paramIndex} OR product_name ILIKE $${paramIndex} OR document_type_name ILIKE $${paramIndex})`
+    );
+    queryParams.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+  return { whereClause, queryParams, nextParamIndex: paramIndex };
+};
+
+// GET /api/kyc-rates - List KYC rates with filtering and pagination
 export const getKYCRates = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      clientId,
-      productId,
-      documentTypeId,
-      isActive,
-      search,
-      sortBy = 'clientName',
-      sortOrder = 'asc',
-    } = req.query;
+    const { page = 1, limit = 20, sortBy = 'clientName', sortOrder = 'asc' } = req.query;
 
-    // Build where clause
-    const values: QueryParams = [];
-    const whereSql: string[] = [];
-
-    if (clientId) {
-      values.push(Number(clientId));
-      whereSql.push(`client_id = $${values.length}`);
-    }
-
-    if (productId) {
-      values.push(Number(productId));
-      whereSql.push(`product_id = $${values.length}`);
-    }
-
-    if (documentTypeId) {
-      values.push(Number(documentTypeId));
-      whereSql.push(`document_type_id = $${values.length}`);
-    }
-
-    if (typeof isActive !== 'undefined') {
-      values.push(typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive));
-      whereSql.push(`is_active = $${values.length}`);
-    }
-
-    if (search && typeof search === 'string') {
-      values.push(`%${search}%`);
-      values.push(`%${search}%`);
-      values.push(`%${search}%`);
-      whereSql.push(
-        `(client_name ILIKE $${values.length - 2} OR product_name ILIKE $${values.length - 1} OR document_type_name ILIKE $${values.length})`
-      );
-    }
-
-    const whereClause = whereSql.length ? `WHERE ${whereSql.join(' AND ')}` : '';
+    const { whereClause, queryParams: values } = buildKYCRatesWhereClause(req);
 
     // Get total count
     const countRes = await query<{ count: string }>(
@@ -86,11 +96,11 @@ export const getKYCRates = async (req: AuthenticatedRequest, res: Response) => {
     );
     const rates = listRes.rows;
 
-    logger.info(`Retrieved ${rates.length} document type rates from database`, {
+    logger.info(`Retrieved ${rates.length} kyc rates from database`, {
       userId: req.user?.id,
       page: Number(page),
       limit: Number(limit),
-      search: search || '',
+      search: req.query.search || '',
       total: totalCount,
     });
 
@@ -284,25 +294,43 @@ export const deleteKYCRate = async (req: AuthenticatedRequest, res: Response) =>
   }
 };
 
-// GET /api/kyc-rates/stats - Get statistics
+// GET /api/kyc-rates/stats - 5-card stats aggregate. Filter-standardization
+// sweep Page 3 (2026-05-22) added canonical total/active/inactive +
+// recentlyAddedCount alongside the existing operational signals; legacy
+// keys kept for downstream consumers.
 export const getKYCRateStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const statsRes = await query(`
-      SELECT 
-        COUNT(*)::int as "total_rates",
-        COUNT(DISTINCT client_id)::int as "total_clients",
-        COUNT(DISTINCT product_id)::int as "total_products",
-        COUNT(DISTINCT document_type_id)::int as "total_document_types",
-        COALESCE(AVG(amount), 0)::numeric(10,2) as "average_rate",
-        COALESCE(MIN(amount), 0)::numeric(10,2) as "min_rate",
-        COALESCE(MAX(amount), 0)::numeric(10,2) as "max_rate"
+    const statsRes = await query<{
+      total: number;
+      active: number;
+      inactive: number;
+      recentlyAddedCount: number;
+      averageRate: string | null;
+      totalRates: number;
+      totalClients: number;
+      totalProducts: number;
+      totalDocumentTypes: number;
+      minRate: string | null;
+      maxRate: string | null;
+    }>(`
+      SELECT
+        COUNT(*)::int as total,
+        COUNT(CASE WHEN is_active = true THEN 1 END)::int as active,
+        COUNT(CASE WHEN is_active = false THEN 1 END)::int as inactive,
+        COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END)::int as "recentlyAddedCount",
+        COALESCE(AVG(amount) FILTER (WHERE is_active = true), 0)::numeric(10,2) as "averageRate",
+        COUNT(CASE WHEN is_active = true THEN 1 END)::int as "totalRates",
+        COUNT(DISTINCT CASE WHEN is_active = true THEN client_id END)::int as "totalClients",
+        COUNT(DISTINCT CASE WHEN is_active = true THEN product_id END)::int as "totalProducts",
+        COUNT(DISTINCT CASE WHEN is_active = true THEN document_type_id END)::int as "totalDocumentTypes",
+        COALESCE(MIN(amount) FILTER (WHERE is_active = true), 0)::numeric(10,2) as "minRate",
+        COALESCE(MAX(amount) FILTER (WHERE is_active = true), 0)::numeric(10,2) as "maxRate"
       FROM kyc_rates
-      WHERE is_active = true
     `);
 
     const stats = statsRes.rows[0];
 
-    logger.info('Retrieved document type rate statistics', { userId: req.user?.id });
+    logger.info('Retrieved kyc rate statistics', { userId: req.user?.id });
 
     res.json({
       success: true,
@@ -317,6 +345,107 @@ export const getKYCRateStats = async (req: AuthenticatedRequest, res: Response) 
         code: 'STATS_ERROR',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
+    });
+  }
+};
+
+// GET /api/kyc-rates/export - xlsx download mirroring list filters via the
+// shared buildKYCRatesWhereClause helper. Cap EXPORT_ROW_LIMIT rows; every
+// user-controlled cell through escapeFormulaRow (CWE-1236). Audit row pre-
+// stream. Route MUST stay declared BEFORE /:id (Express matches in order).
+export const exportKYCRates = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { sortBy = 'clientName', sortOrder = 'asc' } = req.query;
+    const { whereClause, queryParams, nextParamIndex } = buildKYCRatesWhereClause(req);
+
+    const sortColumnMap: Record<string, string> = {
+      clientName: 'client_name',
+      productName: 'product_name',
+      documentTypeName: 'document_type_name',
+      amount: 'amount',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    };
+    const sortCol = sortColumnMap[typeof sortBy === 'string' ? sortBy : ''] || 'client_name';
+    const sortDir =
+      typeof sortOrder === 'string' && sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+
+    const listRes = await query<{
+      clientName: string;
+      productName: string;
+      documentTypeName: string;
+      documentTypeCategory: string | null;
+      amount: string;
+      currency: string;
+      isActive: boolean;
+      createdAt: Date;
+    }>(
+      `SELECT client_name AS "clientName",
+              product_name AS "productName",
+              document_type_name AS "documentTypeName",
+              document_type_category AS "documentTypeCategory",
+              amount,
+              currency,
+              is_active AS "isActive",
+              created_at AS "createdAt"
+         FROM kyc_rates_view
+         ${whereClause}
+         ORDER BY ${sortCol} ${sortDir}
+         LIMIT $${nextParamIndex}`,
+      [...queryParams, EXPORT_ROW_LIMIT]
+    );
+
+    await createAuditLog({
+      action: 'KYC_RATE_EXPORTED',
+      entityType: 'KYC_RATE',
+      entityId: undefined,
+      userId: req.user?.id,
+      details: { rowCount: listRes.rows.length, filters: req.query },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('KYC Rates');
+    ws.addRow([
+      'Client',
+      'Product',
+      'KYC Document Type',
+      'Category',
+      'Amount',
+      'Currency',
+      'Created Date',
+      'Status',
+    ]);
+    for (const r of listRes.rows) {
+      ws.addRow(
+        escapeFormulaRow([
+          r.clientName,
+          r.productName,
+          r.documentTypeName,
+          r.documentTypeCategory ?? '',
+          r.amount,
+          r.currency,
+          r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : '',
+          r.isActive ? 'ACTIVE' : 'INACTIVE',
+        ])
+      );
+    }
+
+    const filename = `kyc_rates_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    const buf = await wb.xlsx.writeBuffer();
+    res.send(Buffer.from(buf));
+  } catch (error) {
+    logger.error('Error exporting KYC rates:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export KYC rates',
+      error: { code: 'INTERNAL_ERROR' },
     });
   }
 };

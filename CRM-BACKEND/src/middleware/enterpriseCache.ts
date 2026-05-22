@@ -603,7 +603,7 @@ export const CacheInvalidationPatterns = {
 
   documentTypeUpdate: ['document-types:*', 'api_cache:*:*document-types*'],
 
-  documentTypeRateUpdate: ['kyc-rates:*', 'api_cache:*:*kyc-rates*', 'rate-management-stats:*'],
+  kycRateUpdate: ['kyc-rates:*', 'api_cache:*:*kyc-rates*', 'rate-management-stats:*'],
 
   clientDocumentTypeUpdate: [
     'client-document-types:*',

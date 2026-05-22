@@ -1,3 +1,4 @@
+import type { AxiosResponse } from 'axios';
 import { apiService } from './api';
 import type { ApiResponse, PaginatedResponse } from '@/types/api';
 import type {
@@ -52,6 +53,13 @@ export class KYCRatesService {
       });
     }
     return response;
+  }
+
+  // xlsx export — mirrors getKYCRates filters via shared BE WHERE-helper.
+  async exportKYCRates(
+    query: Omit<KYCRateQuery, 'page' | 'limit'> = {}
+  ): Promise<AxiosResponse<Blob>> {
+    return apiService.getRaw<Blob>('/kyc-rates/export', query, { responseType: 'blob' });
   }
 
   /**
