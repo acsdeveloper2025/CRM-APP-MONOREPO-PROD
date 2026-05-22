@@ -18,6 +18,7 @@ import {
   convertFromPdf,
   getContextSchema,
   previewHtml,
+  getReportTemplateStats,
 } from '@/controllers/reportTemplatesController';
 
 // Multer config for the PDF → Handlebars converter. Memory storage because
@@ -127,7 +128,10 @@ const listTemplatesValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Product ID must be a positive integer'),
-  queryValidator('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+  queryValidator('isActive')
+    .optional()
+    .custom(v => v === 'true' || v === 'false' || v === 'all' || typeof v === 'boolean')
+    .withMessage("isActive must be 'true', 'false', or 'all'"),
   queryValidator('search')
     .optional()
     .trim()
@@ -162,6 +166,9 @@ router.get(
   handleValidationErrors,
   getTemplates
 );
+
+// 5-card stats aggregate. MUST stay above /:id.
+router.get('/stats', authorize('report_template.manage'), getReportTemplateStats);
 
 router.get(
   '/by-config',

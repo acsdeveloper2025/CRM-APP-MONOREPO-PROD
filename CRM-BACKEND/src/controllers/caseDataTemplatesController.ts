@@ -35,7 +35,11 @@ export const getTemplates = async (req: AuthenticatedRequest, res: Response) => 
       queryParams.push(Number(productId));
     }
 
-    if (isActive !== undefined) {
+    // 'all' (or undefined) → no filter; otherwise coerce to bool.
+    if (typeof isActive === 'boolean') {
+      whereConditions.push(`t.is_active = $${paramIndex++}`);
+      queryParams.push(isActive);
+    } else if (isActive === 'true' || isActive === 'false') {
       whereConditions.push(`t.is_active = $${paramIndex++}`);
       queryParams.push(isActive === 'true');
     }

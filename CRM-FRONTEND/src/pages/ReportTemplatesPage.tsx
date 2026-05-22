@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import {
   Plus,
   Pencil,
@@ -11,7 +13,10 @@ import {
   Wand2,
   Loader2,
   Eye,
+  Calendar,
+  Layers,
 } from 'lucide-react';
+import { reportTemplatesService } from '@/services/reportTemplates';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -92,14 +97,71 @@ const MAX_HTML_BYTES = 4 * 1024 * 1024;
 // ---------------------------------------------------------------------------
 
 export function ReportTemplatesPage() {
-  const [filterClientId, setFilterClientId] = useState<string>('');
-  const [filterProductId, setFilterProductId] = useState<string>('');
-  const [filterActiveOnly, setFilterActiveOnly] = useState<boolean>(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 20;
+  // URL is source of truth for filters — canonical list-page shell per
+  // feedback_fe_code_standards.md §9.
+  const [searchParams, setSearchParams] = useSearchParams();
+  type SortValue = 'name_asc' | 'name_desc' | 'created_desc' | 'created_asc' | 'updated_desc';
+  type StatusValue = 'all' | 'true' | 'false';
+  const SORT_OPTIONS: Array<{
+    value: SortValue;
+    label: string;
+    sortBy: string;
+    sortOrder: 'asc' | 'desc';
+  }> = useMemo(
+    () => [
+      { value: 'name_asc', label: 'Name A → Z', sortBy: 'name', sortOrder: 'asc' },
+      { value: 'name_desc', label: 'Name Z → A', sortBy: 'name', sortOrder: 'desc' },
+      { value: 'created_desc', label: 'Newest first', sortBy: 'createdAt', sortOrder: 'desc' },
+      { value: 'created_asc', label: 'Oldest first', sortBy: 'createdAt', sortOrder: 'asc' },
+      { value: 'updated_desc', label: 'Recently updated', sortBy: 'updatedAt', sortOrder: 'desc' },
+    ],
+    []
+  );
+  const PAGE_SIZE_OPTIONS = useMemo(() => [20, 50, 100] as const, []);
+  const filterClientId = searchParams.get('clientId') || '';
+  const filterProductId = searchParams.get('productId') || '';
+  // status: 'all' (default) / 'true' = active / 'false' = inactive.
+  const status = (searchParams.get('status') as StatusValue) || 'all';
+  const sort = (searchParams.get('sort') as SortValue) || 'name_asc';
+  const pageSizeRaw = Number(searchParams.get('pageSize')) || 20;
+  const pageSize: 20 | 50 | 100 = (PAGE_SIZE_OPTIONS as readonly number[]).includes(pageSizeRaw)
+    ? (pageSizeRaw as 20 | 50 | 100)
+    : 20;
+  const currentPage = Math.max(1, Number(searchParams.get('page')) || 1);
+  const sortConfig = useMemo(
+    () => SORT_OPTIONS.find((o) => o.value === sort) ?? SORT_OPTIONS[0],
+    [sort, SORT_OPTIONS]
+  );
+
   // Standard debounced + URL-synced search, same hook used across the app.
   const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
     useUnifiedSearch({ syncWithUrl: true });
+
+  const updateParam = useCallback(
+    (key: string, value: string | null) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (value === null || value === '' || value === 'all') {
+            next.delete(key);
+          } else {
+            next.set(key, value);
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
+
+  const setCurrentPage = useCallback(
+    (updater: number | ((p: number) => number)) => {
+      const next = typeof updater === 'function' ? updater(currentPage) : updater;
+      updateParam('page', String(Math.max(1, next)));
+    },
+    [currentPage, updateParam]
+  );
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deleteCandidate, setDeleteCandidate] = useState<ReportTemplateListItem | null>(null);
@@ -135,18 +197,30 @@ export function ReportTemplatesPage() {
     () => ({
       ...(filterClientId ? { clientId: Number(filterClientId) } : {}),
       ...(filterProductId ? { productId: Number(filterProductId) } : {}),
-      ...(filterActiveOnly ? { isActive: true } : {}),
+      ...(status === 'all' ? {} : { isActive: status as 'true' | 'false' }),
       ...(debouncedSearchValue.trim() ? { search: debouncedSearchValue.trim() } : {}),
+      sortBy: sortConfig.sortBy,
+      sortOrder: sortConfig.sortOrder,
       page: currentPage,
       limit: pageSize,
     }),
-    [filterClientId, filterProductId, filterActiveOnly, debouncedSearchValue, currentPage]
+    [filterClientId, filterProductId, status, debouncedSearchValue, sortConfig, currentPage, pageSize]
   );
 
-  // Reset to page 1 when filters change
+  // Reset to page 1 when any filter narrows results.
   useEffect(() => {
-    setCurrentPage(1);
-  }, [filterClientId, filterProductId, filterActiveOnly, debouncedSearchValue]);
+    if (currentPage !== 1) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('page', '1');
+          return next;
+        },
+        { replace: true }
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterClientId, filterProductId, status, sort, pageSize, debouncedSearchValue]);
 
   const { data: listRes, isLoading, refetch } = useReportTemplates(listParams);
   const templates = useMemo(() => {
@@ -393,18 +467,39 @@ export function ReportTemplatesPage() {
   const isSaving = createMutation.isPending || updateMutation.isPending;
   const htmlBytes = new Blob([form.htmlContent]).size;
 
-  // Derived stats for the top cards, mirroring CaseDataTemplatesPage.
-  const activeCount = templates.filter((t) => t.isActive).length;
-  const inactiveCount = templates.length - activeCount;
+  // 5-card stats from BE (NOT FE-derived from paginated array — D-17 anti-pattern).
+  const { data: statsRes } = useQuery({
+    queryKey: ['report-templates-stats'],
+    queryFn: () => reportTemplatesService.getStats(),
+  });
+  const stats = statsRes?.data || {
+    total: 0,
+    active: 0,
+    inactive: 0,
+    recentlyAddedCount: 0,
+    clientProductPairCount: 0,
+  };
 
-  const hasActiveFilters = !!filterClientId || !!filterProductId || !filterActiveOnly;
+  const hasActiveFilters =
+    !!filterClientId || !!filterProductId || status !== 'all' || sort !== 'name_asc';
   const activeFilterCount =
-    (filterClientId ? 1 : 0) + (filterProductId ? 1 : 0) + (filterActiveOnly ? 0 : 1);
+    (filterClientId ? 1 : 0) +
+    (filterProductId ? 1 : 0) +
+    (status !== 'all' ? 1 : 0) +
+    (sort !== 'name_asc' ? 1 : 0);
 
   const handleClearFilters = () => {
-    setFilterClientId('');
-    setFilterProductId('');
-    setFilterActiveOnly(true);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('clientId');
+        next.delete('productId');
+        next.delete('status');
+        next.delete('sort');
+        return next;
+      },
+      { replace: true }
+    );
   };
 
   return (
@@ -417,33 +512,56 @@ export function ReportTemplatesPage() {
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-        <Card className="transition-all duration-200 hover:shadow-md">
+      {/* Stats Cards — 5-card shell per feedback_fe_code_standards.md §9 */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Templates</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{templates.length}</div>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">All templates</p>
           </CardContent>
         </Card>
-        <Card className="transition-all duration-200 hover:shadow-md">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{activeCount}</div>
+            <div className="text-2xl font-bold">{stats.active}</div>
+            <p className="text-xs text-muted-foreground">Current versions</p>
           </CardContent>
         </Card>
-        <Card className="transition-all duration-200 hover:shadow-md">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Inactive</CardTitle>
-            <XCircle className="h-4 w-4 text-muted-foreground" />
+            <XCircle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{inactiveCount}</div>
+            <div className="text-2xl font-bold">{stats.inactive}</div>
+            <p className="text-xs text-muted-foreground">Superseded versions</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Recently Added</CardTitle>
+            <Calendar className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.recentlyAddedCount}</div>
+            <p className="text-xs text-muted-foreground">Last 30 days</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Client-Product Pairs</CardTitle>
+            <Layers className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.clientProductPairCount}</div>
+            <p className="text-xs text-muted-foreground">Distinct mappings</p>
           </CardContent>
         </Card>
       </div>
@@ -459,17 +577,17 @@ export function ReportTemplatesPage() {
         activeFilterCount={activeFilterCount}
         onClearFilters={handleClearFilters}
         filterContent={
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-            <div>
-              <Label className="text-xs">Client</Label>
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-1">
+              <Label htmlFor="rt-client">Client</Label>
               <Select
                 value={filterClientId || 'all'}
                 onValueChange={(val) => {
-                  setFilterClientId(val === 'all' ? '' : val);
-                  setFilterProductId('');
+                  updateParam('clientId', val === 'all' ? null : val);
+                  updateParam('productId', null);
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger id="rt-client">
                   <SelectValue placeholder="All clients" />
                 </SelectTrigger>
                 <SelectContent>
@@ -482,14 +600,14 @@ export function ReportTemplatesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label className="text-xs">Product</Label>
+            <div className="space-y-1">
+              <Label htmlFor="rt-product">Product</Label>
               <Select
                 value={filterProductId || 'all'}
-                onValueChange={(val) => setFilterProductId(val === 'all' ? '' : val)}
+                onValueChange={(val) => updateParam('productId', val === 'all' ? null : val)}
                 disabled={!filterClientId}
               >
-                <SelectTrigger>
+                <SelectTrigger id="rt-product">
                   <SelectValue placeholder="All products" />
                 </SelectTrigger>
                 <SelectContent>
@@ -502,18 +620,31 @@ export function ReportTemplatesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label className="text-xs">Status</Label>
-              <Select
-                value={filterActiveOnly ? 'active' : 'all'}
-                onValueChange={(val) => setFilterActiveOnly(val === 'active')}
-              >
-                <SelectTrigger>
+            <div className="space-y-1">
+              <Label htmlFor="rt-status">Status</Label>
+              <Select value={status} onValueChange={(v) => updateParam('status', v)}>
+                <SelectTrigger id="rt-status">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Active only</SelectItem>
-                  <SelectItem value="all">All (incl. deactivated)</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="true">Active</SelectItem>
+                  <SelectItem value="false">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="rt-sort">Sort by</Label>
+              <Select value={sort} onValueChange={(v) => updateParam('sort', v)}>
+                <SelectTrigger id="rt-sort">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SORT_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -604,32 +735,57 @@ export function ReportTemplatesPage() {
             </div>
           )}
 
-          {listRes?.pagination && listRes.pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <span className="text-sm text-muted-foreground">
-                Page {listRes.pagination.page} of {listRes.pagination.totalPages} (
-                {listRes.pagination.total} total)
-              </span>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-4 border-t">
+            <span className="text-sm text-muted-foreground">
+              {listRes?.pagination && listRes.pagination.total > 0
+                ? `Page ${listRes.pagination.page} of ${listRes.pagination.totalPages} (${listRes.pagination.total} total)`
+                : 'No templates to show'}
+            </span>
+            <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={listRes.pagination.page <= 1}
+                <Label htmlFor="rt-page-size" className="text-sm text-muted-foreground">
+                  Rows
+                </Label>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(v) => updateParam('pageSize', v)}
                 >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => p + 1)}
-                  disabled={listRes.pagination.page >= listRes.pagination.totalPages}
-                >
-                  Next
-                </Button>
+                  <SelectTrigger id="rt-page-size" className="w-[80px] h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAGE_SIZE_OPTIONS.map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={!listRes?.pagination || listRes.pagination.page <= 1}
+              >
+                Previous
+              </Button>
+              <span className="text-sm">
+                Page {listRes?.pagination?.page ?? 1} of {listRes?.pagination?.totalPages ?? 1}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => p + 1)}
+                disabled={
+                  !listRes?.pagination ||
+                  listRes.pagination.page >= listRes.pagination.totalPages
+                }
+              >
+                Next
+              </Button>
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
 

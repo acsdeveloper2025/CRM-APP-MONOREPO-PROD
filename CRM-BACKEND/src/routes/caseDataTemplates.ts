@@ -265,7 +265,10 @@ const listTemplatesValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Product ID must be a positive integer'),
-  queryValidator('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+  queryValidator('isActive')
+    .optional()
+    .custom(v => v === 'true' || v === 'false' || v === 'all' || typeof v === 'boolean')
+    .withMessage("isActive must be 'true', 'false', or 'all'"),
   queryValidator('search')
     .optional()
     .trim()

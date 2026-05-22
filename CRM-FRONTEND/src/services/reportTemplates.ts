@@ -65,7 +65,8 @@ class ReportTemplatesService {
   async list(params?: {
     clientId?: number;
     productId?: number;
-    isActive?: boolean;
+    // 'all' sent verbatim so URL/cache key stays stable; BE treats it as no-filter.
+    isActive?: 'true' | 'false' | 'all' | boolean;
     search?: string;
     page?: number;
     limit?: number;
@@ -76,6 +77,18 @@ class ReportTemplatesService {
     // success envelope. Our apiService is typed to put that top-level payload into `.data`, so
     // callers get the list via res.data and pagination via res.pagination.
     return apiService.get('/report-templates', params);
+  }
+
+  async getStats(): Promise<
+    ApiResponse<{
+      total: number;
+      active: number;
+      inactive: number;
+      recentlyAddedCount: number;
+      clientProductPairCount: number;
+    }>
+  > {
+    return apiService.get('/report-templates/stats');
   }
 
   async getById(id: number): Promise<ApiResponse<ReportTemplateListItem>> {
