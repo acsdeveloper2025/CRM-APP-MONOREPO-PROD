@@ -19,6 +19,7 @@ import {
 import { getScopedOperationalUserIds } from '@/security/userScope';
 import { isOperationsEligibleUser, loadUserCapabilityProfile } from '@/security/userCapabilities';
 import { createAuditLog } from '@/utils/auditLogger';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
 
 const STRONG_PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
@@ -264,6 +265,89 @@ const validateHierarchyAssignments = async (
   return { teamLeaderId: null, managerId: null };
 };
 
+// Export contract — keep in lockstep with §9.5 list-page shell rules.
+// Pagination is intentionally absent on export; rows are hard-capped here.
+const USER_EXPORT_ROW_LIMIT = 10000;
+
+// Shared WHERE-clause builder. SINGLE source of WHERE-truth for getUsers
+// + exportUsers + getUserStats (when scoped). Assumes the calling query
+// JOINs `departments d ON u.department_id = d.id` (so the `d.name`
+// predicate resolves). Always excludes soft-deleted users.
+const buildUsersWhereClause = (
+  req: AuthenticatedRequest
+): { whereClause: string; queryParams: (string | number | boolean)[]; nextParamIndex: number } => {
+  const { role, department, isActive, search, consentStatus, createdFrom, createdTo } = req.query;
+  const conditions: string[] = ['u.deleted_at IS NULL'];
+  const params: (string | number | boolean)[] = [];
+  let paramIndex = 1;
+
+  if (role && typeof role === 'string') {
+    conditions.push(`EXISTS (
+      SELECT 1
+      FROM user_roles urf
+      JOIN roles_v2 rvf ON rvf.id = urf.role_id
+      WHERE urf.user_id = u.id AND rvf.name = $${paramIndex}
+    )`);
+    params.push(role);
+    paramIndex++;
+  }
+
+  if (department && typeof department === 'string') {
+    conditions.push(`d.name ILIKE $${paramIndex}`);
+    params.push(`%${department}%`);
+    paramIndex++;
+  }
+
+  // 'all' (or undefined) → no filter; 'true'/'false' string OR coerced
+  // boolean → flip is_active branch. Never `if (isActive !== undefined)`
+  // alone — that silently treats 'all' as false (§9.7 don't-regress).
+  if (typeof isActive === 'boolean') {
+    conditions.push(`u.is_active = $${paramIndex}`);
+    params.push(isActive);
+    paramIndex++;
+  } else if (isActive === 'true' || isActive === 'false') {
+    conditions.push(`u.is_active = $${paramIndex}`);
+    params.push(isActive === 'true');
+    paramIndex++;
+  }
+
+  if (search && typeof search === 'string') {
+    conditions.push(`(
+      COALESCE(u.name, '') ILIKE $${paramIndex} OR
+      COALESCE(u.email, '') ILIKE $${paramIndex} OR
+      COALESCE(u.username, '') ILIKE $${paramIndex} OR
+      COALESCE(u.employee_id, '') ILIKE $${paramIndex}
+    )`);
+    params.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  // Field Executive Acknowledgement filter (2026-05-13): 'accepted' = at
+  // least one row in user_consents for this user; 'pending' = zero rows.
+  if (consentStatus === 'accepted') {
+    conditions.push(`EXISTS (SELECT 1 FROM user_consents uc WHERE uc.user_id = u.id)`);
+  } else if (consentStatus === 'pending') {
+    conditions.push(`NOT EXISTS (SELECT 1 FROM user_consents uc WHERE uc.user_id = u.id)`);
+  }
+
+  if (typeof createdFrom === 'string' && createdFrom) {
+    conditions.push(`u.created_at >= $${paramIndex}`);
+    params.push(createdFrom);
+    paramIndex++;
+  }
+  if (typeof createdTo === 'string' && createdTo) {
+    conditions.push(`u.created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
+    params.push(createdTo);
+    paramIndex++;
+  }
+
+  return {
+    whereClause: `WHERE ${conditions.join(' AND ')}`,
+    queryParams: params,
+    nextParamIndex: paramIndex,
+  };
+};
+
 // GET /api/users - List users with pagination and filters
 export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -271,10 +355,6 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
     const limit = Number(
       Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit || 20
     );
-    const role = req.query.role as string;
-    const department = req.query.department as string;
-    const isActive = req.query.isActive as string;
-    const search = req.query.search as string;
     const sortBy = (
       Array.isArray(req.query.sortBy) ? req.query.sortBy[0] : req.query.sortBy || 'name'
     ) as string;
@@ -282,57 +362,11 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
       Array.isArray(req.query.sortOrder) ? req.query.sortOrder[0] : req.query.sortOrder || 'asc'
     ) as string;
 
-    // Build the WHERE clause
-    const conditions: string[] = [];
-    const params: (string | number | boolean)[] = [];
-    let paramIndex = 1;
-
-    // Always exclude soft-deleted users
-    conditions.push(`u.deleted_at IS NULL`);
-
-    if (role && typeof role === 'string') {
-      conditions.push(`EXISTS (
-        SELECT 1
-        FROM user_roles urf
-        JOIN roles_v2 rvf ON rvf.id = urf.role_id
-        WHERE urf.user_id = u.id AND rvf.name = $${paramIndex++}
-      )`);
-      params.push(role);
-    }
-
-    if (department && typeof department === 'string') {
-      conditions.push(`d.name ILIKE $${paramIndex++}`);
-      params.push(`%${department}%`);
-    }
-
-    if (isActive !== undefined) {
-      conditions.push(`u.is_active = $${paramIndex++}`);
-      params.push(isActive === 'true');
-    }
-
-    if (search && typeof search === 'string') {
-      conditions.push(`(
-        COALESCE(u.name, '') ILIKE $${paramIndex} OR
-        COALESCE(u.email, '') ILIKE $${paramIndex} OR
-        COALESCE(u.username, '') ILIKE $${paramIndex} OR
-        COALESCE(u.employee_id, '') ILIKE $${paramIndex}
-      )`);
-      params.push(`%${search}%`);
-      paramIndex++;
-    }
-
-    // 2026-05-13: Field Executive Acknowledgement filter — compliance
-    // roll-out tool. 'accepted' = at least one row in user_consents
-    // for this user; 'pending' = zero rows. Per Q1.A there's a single
-    // global policy version so any row counts as "accepted" today.
-    const consentStatus = req.query.consentStatus as string | undefined;
-    if (consentStatus === 'accepted') {
-      conditions.push(`EXISTS (SELECT 1 FROM user_consents uc WHERE uc.user_id = u.id)`);
-    } else if (consentStatus === 'pending') {
-      conditions.push(`NOT EXISTS (SELECT 1 FROM user_consents uc WHERE uc.user_id = u.id)`);
-    }
-
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const {
+      whereClause,
+      queryParams: params,
+      nextParamIndex: paramIndex,
+    } = buildUsersWhereClause(req);
 
     // Validate sortBy to prevent SQL injection
     const validSortColumns = ['name', 'username', 'email', 'role', 'createdAt', 'updatedAt'];
@@ -470,7 +504,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
 
     logger.info(`Retrieved ${usersResult.rows.length} users`, {
       userId: req.user?.id,
-      filters: { role, department, isActive, search },
+      query: req.query,
       pagination: { page, limit },
     });
 
@@ -1501,13 +1535,20 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
       return Number.isFinite(value) ? value : 0;
     };
 
-    // Get basic user counts
+    // Get basic user counts. Canonical 5-card aggregate (total / active /
+    // inactive / recentlyAddedCount / mfaEnabledCount) plus legacy fields
+    // (newUsersThisMonth, usersByRole, usersByDepartment, recentLogins)
+    // kept for back-compat with /profile + admin dashboard consumers.
     const userCountsQuery = `
       SELECT
         COUNT(*) as "total_users",
-        COUNT(CASE WHEN is_active = true THEN 1 END) as "active_users",
-        COUNT(CASE WHEN is_active = false THEN 1 END) as "inactive_users",
-        COUNT(CASE WHEN created_at >= DATE_TRUNC('month', CURRENT_DATE) THEN 1 END) as "new_users_this_month"
+        COUNT(*) FILTER (WHERE is_active = true) as "active_users",
+        COUNT(*) FILTER (WHERE is_active = false) as "inactive_users",
+        COUNT(*) FILTER (WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE)) as "new_users_this_month",
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days') as "recently_added_count",
+        COUNT(*) FILTER (
+          WHERE EXISTS (SELECT 1 FROM user_mfa_secrets ums WHERE ums.user_id = users.id)
+        ) as "mfa_enabled_count"
       FROM users
       WHERE deleted_at IS NULL
     `;
@@ -1555,12 +1596,23 @@ export const getUserStats = async (req: AuthenticatedRequest, res: Response) => 
 
     const statsRow = (userCounts.rows[0] || {}) as Record<string, unknown>;
 
+    const totalUsers = getCountValue(statsRow, 'totalUsers');
+    const activeUsers = getCountValue(statsRow, 'activeUsers');
+    const inactiveUsers = getCountValue(statsRow, 'inactiveUsers');
+
     res.json({
       success: true,
       data: {
-        totalUsers: getCountValue(statsRow, 'totalUsers'),
-        activeUsers: getCountValue(statsRow, 'activeUsers'),
-        inactiveUsers: getCountValue(statsRow, 'inactiveUsers'),
+        // Canonical 5-card shape (§9.1).
+        total: totalUsers,
+        active: activeUsers,
+        inactive: inactiveUsers,
+        recentlyAddedCount: getCountValue(statsRow, 'recentlyAddedCount'),
+        mfaEnabledCount: getCountValue(statsRow, 'mfaEnabledCount'),
+        // Legacy fields — kept for /profile + admin dashboard consumers.
+        totalUsers,
+        activeUsers,
+        inactiveUsers,
         newUsersThisMonth: getCountValue(statsRow, 'newUsersThisMonth'),
         usersByRole: roleStats.rows,
         usersByDepartment: departmentStats.rows,
@@ -2756,64 +2808,27 @@ export const getAssignableUsersByRole = async (req: AuthenticatedRequest, res: R
 };
 
 // POST /api/users/export - Export users to Excel
+// GET /api/users/export — xlsx export matching the list endpoint's WHERE
+// helper. Pagination intentionally absent; rows capped at
+// USER_EXPORT_ROW_LIMIT. Every user-controlled cell passes through
+// escapeFormulaRow (CWE-1236). Audit log written PRE-stream.
 export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const sortBy = (
+      Array.isArray(req.query.sortBy) ? req.query.sortBy[0] : req.query.sortBy || 'name'
+    ) as string;
+    const sortOrder = (
+      Array.isArray(req.query.sortOrder) ? req.query.sortOrder[0] : req.query.sortOrder || 'asc'
+    ) as string;
+
     const {
-      role,
-      department,
-      isActive,
-      search,
-      sortBy = 'name',
-      sortOrder = 'asc',
-      format = 'EXCEL',
-    } = { ...req.query, ...(req.method === 'POST' ? req.body : {}) };
+      whereClause,
+      queryParams: params,
+      nextParamIndex: paramIndex,
+    } = buildUsersWhereClause(req);
 
-    // Build the WHERE clause (same logic as getUsers but without pagination)
-    const conditions: string[] = [];
-    const params: (string | number | boolean)[] = [];
-    let paramIndex = 1;
-
-    // Always exclude soft-deleted users
-    conditions.push(`u.deleted_at IS NULL`);
-
-    if (role && typeof role === 'string') {
-      conditions.push(`EXISTS (
-        SELECT 1
-        FROM user_roles urf
-        JOIN roles_v2 rvf ON rvf.id = urf.role_id
-        WHERE urf.user_id = u.id AND rvf.name = $${paramIndex++}
-      )`);
-      params.push(role);
-    }
-
-    if (department && typeof department === 'string') {
-      conditions.push(`d.name ILIKE $${paramIndex++}`);
-      params.push(`%${department}%`);
-    }
-
-    if (isActive !== undefined) {
-      conditions.push(`u.is_active = $${paramIndex++}`);
-      params.push(isActive === 'true' || isActive === true);
-    }
-
-    if (search && typeof search === 'string') {
-      conditions.push(`(
-        COALESCE(u.name, '') ILIKE $${paramIndex} OR
-        COALESCE(u.email, '') ILIKE $${paramIndex} OR
-        COALESCE(u.username, '') ILIKE $${paramIndex} OR
-        COALESCE(u.employee_id, '') ILIKE $${paramIndex}
-      )`);
-      params.push(`%${search}%`);
-      paramIndex++;
-    }
-
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
-    // Validate sortBy to prevent SQL injection
     const validSortColumns = ['name', 'username', 'email', 'role', 'createdAt', 'updatedAt'];
-    const safeSortBy: string = validSortColumns.includes(sortBy as string)
-      ? (sortBy as string)
-      : 'name';
+    const safeSortBy: string = validSortColumns.includes(sortBy) ? sortBy : 'name';
     const safeSortOrder: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
     const sortColumnMap: Record<string, string> = {
       name: 'u.name',
@@ -2833,149 +2848,104 @@ export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
         u.email,
         u.phone,
         ${PRIMARY_RBAC_ROLE_NAME_SQL} as role,
-        u.employee_id,
+        u.employee_id as "employeeId",
         des.name as designation,
         d.name as department,
-        u.is_active,
-        u.last_login,
-        u.created_at,
-        u.updated_at,
-        ${PRIMARY_RBAC_ROLE_NAME_SQL} as role_name,
+        u.is_active as "isActive",
+        u.last_login as "lastLogin",
+        u.created_at as "createdAt",
+        u.updated_at as "updatedAt",
+        ${PRIMARY_RBAC_ROLE_NAME_SQL} as "roleName",
         d.name as "departmentName"
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
       LEFT JOIN designations des ON des.id = u.designation_id
       ${whereClause}
       ORDER BY ${safeSortColumn} ${safeSortOrder}
+      LIMIT $${paramIndex}
     `;
 
-    const usersResult = await query(usersQuery, params);
+    const usersResult = await query(usersQuery, [...params, USER_EXPORT_ROW_LIMIT]);
     const users = usersResult.rows;
 
-    if (format === 'EXCEL') {
-      // Create Excel workbook
-      const workbook = new ExcelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Users');
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'USER_EXPORTED',
+      entityType: 'users',
+      details: { recordCount: users.length, filters: req.query },
+    });
 
-      // Define columns
-      worksheet.columns = [
-        { header: 'ID', key: 'id', width: 36 },
-        { header: 'Name', key: 'name', width: 25 },
-        { header: 'Username', key: 'username', width: 20 },
-        { header: 'Email', key: 'email', width: 30 },
-        { header: 'Role', key: 'roleName', width: 15 },
-        { header: 'Department', key: 'departmentName', width: 20 },
-        { header: 'Employee ID', key: 'employeeId', width: 15 },
-        { header: 'Phone', key: 'phone', width: 15 },
-        { header: 'Designation', key: 'designation', width: 18 },
-        { header: 'Status', key: 'isActive', width: 10 },
-        { header: 'Last Login', key: 'lastLogin', width: 20 },
-        { header: 'Created At', key: 'createdAt', width: 20 },
-      ];
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Users');
 
-      // Style header row
-      worksheet.getRow(1).font = { bold: true };
-      worksheet.getRow(1).fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF4472C4' },
-      };
-      worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    worksheet.columns = [
+      { header: 'Name', key: 'name', width: 25 },
+      { header: 'Username', key: 'username', width: 20 },
+      { header: 'Email', key: 'email', width: 30 },
+      { header: 'Role', key: 'roleName', width: 18 },
+      { header: 'Department', key: 'departmentName', width: 20 },
+      { header: 'Designation', key: 'designation', width: 18 },
+      { header: 'Employee ID', key: 'employeeId', width: 15 },
+      { header: 'Phone', key: 'phone', width: 15 },
+      { header: 'Status', key: 'isActive', width: 10 },
+      { header: 'Last Login', key: 'lastLogin', width: 22 },
+      { header: 'Created At', key: 'createdAt', width: 22 },
+    ];
 
-      // Add data rows
-      users.forEach(
-        (user: {
-          id: string;
-          name: string;
-          username: string;
-          email: string;
-          role: string;
-          isActive: boolean;
-          createdAt: string;
-          roleName?: string;
-          departmentName?: string;
-          employeeId?: string;
-          phone?: string;
-        }) => {
-          worksheet.addRow({
-            ...user,
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' },
+    };
+
+    users.forEach(
+      (user: {
+        name: string;
+        username: string;
+        email: string;
+        roleName?: string;
+        departmentName?: string;
+        designation?: string;
+        employeeId?: string;
+        phone?: string;
+        isActive: boolean;
+        lastLogin?: string;
+        createdAt: string;
+      }) => {
+        worksheet.addRow(
+          escapeFormulaRow({
+            name: user.name,
+            username: user.username,
+            email: user.email,
+            roleName: user.roleName,
+            departmentName: user.departmentName,
+            designation: user.designation,
+            employeeId: user.employeeId,
+            phone: user.phone,
             isActive: user.isActive ? 'Active' : 'Inactive',
-            createdAt: user.createdAt ? new Date(user.createdAt).toLocaleString() : '',
-          });
-        }
-      );
+            lastLogin: user.lastLogin ? new Date(user.lastLogin).toISOString() : '',
+            createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : '',
+          })
+        );
+      }
+    );
 
-      // Generate buffer
-      const buffer = await workbook.xlsx.writeBuffer();
+    const buffer = await workbook.xlsx.writeBuffer();
 
-      // Set response headers
-      res.setHeader(
-        'Content-Type',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      );
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename=Users_Export_${new Date().toISOString().split('T')[0]}.xlsx`
-      );
-      res.send(buffer);
-    } else {
-      // Default to CSV
-      const headers = [
-        'ID',
-        'Name',
-        'Username',
-        'Email',
-        'Role',
-        'Department',
-        'Employee ID',
-        'Phone',
-        'Status',
-        'Created At',
-      ];
-      const csvRows = [headers.join(',')];
-
-      users.forEach(
-        (user: {
-          id: string;
-          name: string;
-          username: string;
-          email: string;
-          role: string;
-          isActive: boolean;
-          createdAt: string;
-          roleName?: string;
-          departmentName?: string;
-          employeeId?: string;
-          phone?: string;
-        }) => {
-          const row = [
-            user.id,
-            `"${user.name || ''}"`,
-            user.username,
-            user.email,
-            user.roleName || '',
-            `"${user.departmentName || ''}"`,
-            user.employeeId || '',
-            user.phone || '',
-            user.isActive ? 'Active' : 'Inactive',
-            user.createdAt ? new Date(user.createdAt).toISOString() : '',
-          ];
-          csvRows.push(row.join(','));
-        }
-      );
-
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename=Users_Export_${new Date().toISOString().split('T')[0]}.csv`
-      );
-      res.send(csvRows.join('\n'));
-    }
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=users_${new Date().toISOString().split('T')[0]}.xlsx`
+    );
+    res.send(buffer);
 
     logger.info('Users exported successfully', {
       userId: req.user?.id,
       recordCount: users.length,
-      format,
     });
   } catch (error) {
     logger.error('Error exporting users:', error);

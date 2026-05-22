@@ -133,6 +133,13 @@ export interface UserActivity {
 }
 
 export interface UserStats {
+  // Canonical 5-card aggregate (§9.1).
+  total?: number;
+  active?: number;
+  inactive?: number;
+  recentlyAddedCount?: number;
+  mfaEnabledCount?: number;
+  // Legacy fields — kept for back-compat with /profile + admin dashboards.
   totalUsers: number;
   activeUsers: number;
   inactiveUsers: number;

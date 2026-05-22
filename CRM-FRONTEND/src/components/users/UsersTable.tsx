@@ -48,6 +48,7 @@ import {
 import { toast } from 'sonner';
 import { usersService } from '@/services/users';
 import { authService } from '@/services/auth';
+import { useAuth } from '@/hooks/useAuth';
 import { User } from '@/types/user';
 import { EditUserDialog } from './EditUserDialog';
 import { UserDetailsDialog } from './UserDetailsDialog';
@@ -70,6 +71,7 @@ interface UsersTableProps {
 export function UsersTable({ data, isLoading }: UsersTableProps) {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -398,17 +400,20 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                       </DropdownMenuItem>
 
                       <DropdownMenuSeparator />
-                      {user.isActive ? (
-                        <DropdownMenuItem onClick={() => deactivateUserMutation.mutate(user.id)}>
-                          <UserX className="mr-2 h-4 w-4" />
-                          Deactivate
-                        </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem onClick={() => activateUserMutation.mutate(user.id)}>
-                          <UserCheck className="mr-2 h-4 w-4" />
-                          Activate
-                        </DropdownMenuItem>
-                      )}
+                      {/* Hide Activate/Deactivate on the current user's
+                          own row — would lock themselves out. */}
+                      {user.id !== currentUser?.id &&
+                        (user.isActive ? (
+                          <DropdownMenuItem onClick={() => deactivateUserMutation.mutate(user.id)}>
+                            <UserX className="mr-2 h-4 w-4" />
+                            Deactivate
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => activateUserMutation.mutate(user.id)}>
+                            <UserCheck className="mr-2 h-4 w-4" />
+                            Activate
+                          </DropdownMenuItem>
+                        ))}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => handleDelete(user)}
@@ -489,17 +494,18 @@ export function UsersTable({ data, isLoading }: UsersTableProps) {
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
-                  {user.isActive ? (
-                    <DropdownMenuItem onClick={() => deactivateUserMutation.mutate(user.id)}>
-                      <UserX className="mr-2 h-4 w-4" />
-                      Deactivate
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem onClick={() => activateUserMutation.mutate(user.id)}>
-                      <UserCheck className="mr-2 h-4 w-4" />
-                      Activate
-                    </DropdownMenuItem>
-                  )}
+                  {user.id !== currentUser?.id &&
+                    (user.isActive ? (
+                      <DropdownMenuItem onClick={() => deactivateUserMutation.mutate(user.id)}>
+                        <UserX className="mr-2 h-4 w-4" />
+                        Deactivate
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem onClick={() => activateUserMutation.mutate(user.id)}>
+                        <UserCheck className="mr-2 h-4 w-4" />
+                        Activate
+                      </DropdownMenuItem>
+                    ))}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => handleDelete(user)} className="text-destructive">
                     <Trash2 className="mr-2 h-4 w-4" />

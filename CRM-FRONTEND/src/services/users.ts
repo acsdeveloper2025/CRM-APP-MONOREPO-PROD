@@ -24,9 +24,22 @@ import { UserSchema, UserListSchema } from './schemas/user.schema';
 export interface UserQuery extends PaginationQuery {
   role?: Role;
   department?: string;
-  isActive?: boolean;
+  // Accept boolean OR 'true' / 'false' / 'all' to align with the canonical
+  // list-page contract (§9.5). Server normalises both.
+  isActive?: boolean | 'true' | 'false' | 'all';
   search?: string;
-  sortBy?: 'name' | 'username' | 'email' | 'role' | 'department' | 'createdAt' | 'lastLoginAt';
+  consentStatus?: 'accepted' | 'pending';
+  createdFrom?: string;
+  createdTo?: string;
+  sortBy?:
+    | 'name'
+    | 'username'
+    | 'email'
+    | 'role'
+    | 'department'
+    | 'createdAt'
+    | 'updatedAt'
+    | 'lastLoginAt';
   sortOrder?: 'asc' | 'desc';
 }
 
@@ -271,8 +284,8 @@ export class UsersService {
     });
   }
 
-  async exportUsers(query: UserQuery = {}, format: 'CSV' | 'EXCEL' = 'EXCEL'): Promise<Blob> {
-    const response = await apiService.postRaw<Blob>(`/users/export?format=${format}`, query, {
+  async exportUsers(query: UserQuery = {}): Promise<Blob> {
+    const response = await apiService.getRaw<Blob>('/users/export', query, {
       responseType: 'blob',
     });
     return response.data;

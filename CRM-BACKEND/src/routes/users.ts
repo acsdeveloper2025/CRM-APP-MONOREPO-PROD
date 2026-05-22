@@ -295,7 +295,10 @@ const listUsersValidation = [
     .trim()
     .isLength({ max: 100 })
     .withMessage('Department must be less than 100 characters'),
-  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+  query('isActive')
+    .optional()
+    .isIn(['true', 'false', 'all'])
+    .withMessage("isActive must be 'true', 'false', or 'all'"),
   query('search')
     .optional()
     .trim()
@@ -303,9 +306,21 @@ const listUsersValidation = [
     .withMessage('Search term must be less than 100 characters'),
   query('sortBy')
     .optional()
-    .isIn(['name', 'username', 'email', 'role', 'createdAt', 'lastLoginAt'])
+    .isIn(['name', 'username', 'email', 'role', 'createdAt', 'updatedAt', 'lastLoginAt'])
     .withMessage('Invalid sort field'),
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
+  query('createdFrom')
+    .optional({ values: 'falsy' })
+    .isISO8601()
+    .withMessage('createdFrom must be ISO 8601'),
+  query('createdTo')
+    .optional({ values: 'falsy' })
+    .isISO8601()
+    .withMessage('createdTo must be ISO 8601'),
+  query('consentStatus')
+    .optional()
+    .isIn(['accepted', 'pending'])
+    .withMessage('consentStatus must be accepted or pending'),
 ];
 
 const bulkOperationValidation = [
@@ -382,8 +397,16 @@ router.get(
   searchUsers
 );
 
-// Export users route
-router.post('/export', authenticateToken, authorize('user.view'), exportUsers);
+// Export users route — MUST stay declared BEFORE /:id (Express matches in
+// declaration order).
+router.get(
+  '/export',
+  authenticateToken,
+  authorize('user.view'),
+  listUsersValidation,
+  validate,
+  exportUsers
+);
 
 // C-HIGH-3 (AUDIT 2026-05-17): DPDP §9(4) self-service audit-log access.
 // Authorization handled inside the controller (self OR settings.manage admin).
