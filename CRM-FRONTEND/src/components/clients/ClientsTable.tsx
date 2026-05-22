@@ -1,6 +1,15 @@
 import { useState } from 'react';
 import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
-import { MoreHorizontal, Edit, Trash2, Eye, Building2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Eye,
+  Building2,
+  ToggleLeft,
+  ToggleRight,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -48,6 +57,8 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
+  const queryClient = useQueryClient();
+
   const deleteMutation = useStandardizedMutation({
     mutationFn: (id: number) => clientsService.deleteClient(id),
     successMessage: 'Client deleted successfully',
@@ -60,6 +71,17 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
     onErrorCallback: () => {
       setShowDeleteDialog(false);
       setClientToDelete(null);
+    },
+  });
+
+  const toggleActiveMutation = useStandardizedMutation({
+    mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
+      clientsService.updateClient(id, { isActive }),
+    errorContext: 'Client Status Toggle',
+    errorFallbackMessage: 'Failed to update client status',
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['client', variables.id] });
     },
   });
 
@@ -203,7 +225,11 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
                 </TableCell>
                 <TableCell>{new Date(client.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell>
-                  <Badge className={baseBadgeStyle}>ACTIVE</Badge>
+                  {client.isActive === false ? (
+                    <Badge variant="secondary">INACTIVE</Badge>
+                  ) : (
+                    <Badge className={baseBadgeStyle}>ACTIVE</Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
@@ -222,6 +248,27 @@ export function ClientsTable({ data, isLoading }: ClientsTableProps) {
                       <DropdownMenuItem onClick={() => handleEdit(client)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Edit Client
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={toggleActiveMutation.isPending}
+                        onClick={() =>
+                          toggleActiveMutation.mutate({
+                            id: client.id,
+                            isActive: !(client.isActive ?? true),
+                          })
+                        }
+                      >
+                        {client.isActive === false ? (
+                          <>
+                            <ToggleRight className="mr-2 h-4 w-4" />
+                            Activate
+                          </>
+                        ) : (
+                          <>
+                            <ToggleLeft className="mr-2 h-4 w-4" />
+                            Deactivate
+                          </>
+                        )}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem

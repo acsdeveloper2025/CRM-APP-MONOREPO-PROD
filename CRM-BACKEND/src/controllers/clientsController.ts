@@ -1,6 +1,7 @@
 import type { Response } from 'express';
 import path from 'path';
 import fs from 'fs/promises';
+import ExcelJS from 'exceljs';
 import { logger } from '@/config/logger';
 import { invalidateAuthContextCache, type AuthenticatedRequest } from '@/middleware/auth';
 import { invalidateClientScopeCache } from '@/middleware/clientAccess';
@@ -11,76 +12,111 @@ import { getAssignedProductIds } from '@/middleware/productAccess';
 import { isScopedOperationsUser } from '@/security/rbacAccess';
 import { createAuditLog } from '@/utils/auditLogger';
 import { sendError } from '@/utils/apiResponse';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
 
 interface DatabaseError extends Error {
   code?: string;
   details?: unknown;
 }
 
+// Shared WHERE-clause builder for getClients + exportClients so the two stay
+// in lockstep (same scope, same filters). Returns the SQL `WHERE …` fragment
+// + the positional parameter array, OR `null` to signal "user has zero
+// assigned clients — short-circuit with empty result".
+const buildClientsWhereClause = (
+  req: AuthenticatedRequest
+): { whereClause: string; queryParams: QueryParams; nextParamIndex: number } | null => {
+  const { search, isActive, createdFrom, createdTo } = req.query;
+  const clientFilter = (req as AuthenticatedRequest & { clientFilter?: unknown }).clientFilter;
+  const whereConditions: string[] = [];
+  const queryParams: QueryParams = [];
+  let paramIndex = 1;
+
+  if (clientFilter !== undefined) {
+    if (!Array.isArray(clientFilter)) {
+      throw Object.assign(new Error('Invalid client filter format'), {
+        code: 'INVALID_CLIENT_FILTER',
+      });
+    }
+    if (clientFilter.length === 0) {
+      return null;
+    }
+    whereConditions.push(`id = ANY($${paramIndex}::int[])`);
+    queryParams.push(clientFilter);
+    paramIndex++;
+  }
+
+  if (search) {
+    whereConditions.push(
+      `(COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex})`
+    );
+    queryParams.push(
+      `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
+    );
+    paramIndex++;
+  }
+
+  // 'all' (or undefined) → no filter; 'true'/'false' → flip is_active branch.
+  if (isActive === 'true' || isActive === 'false') {
+    whereConditions.push(`is_active = $${paramIndex}`);
+    queryParams.push(isActive === 'true');
+    paramIndex++;
+  }
+
+  if (typeof createdFrom === 'string' && createdFrom) {
+    whereConditions.push(`created_at >= $${paramIndex}`);
+    queryParams.push(createdFrom);
+    paramIndex++;
+  }
+  if (typeof createdTo === 'string' && createdTo) {
+    // Treat the to-date as inclusive end-of-day. Validator already enforced
+    // ISO 8601 so this addition can't smuggle in an injection.
+    whereConditions.push(`created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
+    queryParams.push(createdTo);
+    paramIndex++;
+  }
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+  return { whereClause, queryParams, nextParamIndex: paramIndex };
+};
+
 // GET /api/clients - List clients with pagination and filters
 export const getClients = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { page = 1, limit = 20, search, sortBy = 'name', sortOrder = 'asc' } = req.query;
 
-    // Get client filter from middleware
-    const clientFilter = (req as AuthenticatedRequest & { clientFilter?: unknown }).clientFilter;
-
     logger.info('getClients controller called', {
       userId: req.user?.id,
       scopedOpsUser: isScopedOperationsUser(req.user),
       query: req.query,
-      clientFilter,
-      clientFilterType: typeof clientFilter,
     });
 
-    // Build where clause and parameters
-    const whereConditions: string[] = [];
-    const queryParams: QueryParams = [];
-    let paramIndex = 1;
-
-    // Apply client filtering for BACKEND_USER users
-    if (clientFilter !== undefined) {
-      if (Array.isArray(clientFilter)) {
-        if (clientFilter.length === 0) {
-          // User has no client assignments, return empty result
-          return res.json({
-            success: true,
-            data: [],
-            pagination: {
-              page: Number(page),
-              limit: Number(limit),
-              total: 0,
-              totalPages: 0,
-            },
-            message: 'No clients found - user has no assigned clients',
-          });
-        }
-        whereConditions.push(`id = ANY($${paramIndex}::int[])`);
-        queryParams.push(clientFilter);
-        paramIndex++;
-        logger.info('Applied client filter', { clientFilter, whereConditions });
-      } else {
-        logger.error('clientFilter is not an array:', { clientFilter, type: typeof clientFilter });
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid client filter format',
-          error: { code: 'INVALID_CLIENT_FILTER' },
-        });
-      }
+    let built: ReturnType<typeof buildClientsWhereClause>;
+    try {
+      built = buildClientsWhereClause(req);
+    } catch (e) {
+      const err = e as Error & { code?: string };
+      return res.status(400).json({
+        success: false,
+        message: err.message,
+        error: { code: err.code || 'INVALID_FILTER' },
+      });
     }
-
-    // Add search filter if provided
-    if (search) {
-      whereConditions.push(
-        `(COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex})`
-      );
-      queryParams.push(
-        `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
-      );
-      paramIndex += 1;
+    if (built === null) {
+      return res.json({
+        success: true,
+        data: [],
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total: 0,
+          totalPages: 0,
+        },
+        message: 'No clients found - user has no assigned clients',
+      });
     }
-
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+    const { whereClause, queryParams } = built;
+    const paramIndex = built.nextParamIndex;
 
     // Get total count
     const countRes = await query<{ count: string }>(
@@ -106,7 +142,7 @@ export const getClients = async (req: AuthenticatedRequest, res: Response) => {
 
     const clientsRes = await query(
       `SELECT id, name, code, logo_url, stamp_url, primary_color, header_color,
-              created_at, updated_at
+              is_active, created_at, updated_at
        FROM clients
        ${whereClause}
        ORDER BY ${safeSortCol} ${sortDir}
@@ -776,6 +812,7 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
     const updateData = req.body as {
       name?: string;
       code?: string;
+      isActive?: boolean;
       productIds?: unknown[];
       verificationTypeIds?: unknown[];
       documentTypeIds?: unknown[];
@@ -894,6 +931,10 @@ export const updateClient = async (req: AuthenticatedRequest, res: Response) => 
       if (updateData.code) {
         updates.push(`code = $${i++}`);
         vals.push(updateData.code);
+      }
+      if (typeof updateData.isActive === 'boolean') {
+        updates.push(`is_active = $${i++}`);
+        vals.push(updateData.isActive);
       }
       // Explicit `in updateData` checks so callers can clear a color by
       // sending null; a missing key leaves the column untouched.
@@ -1862,5 +1903,198 @@ export const bulkImportClients = async (
   } catch (error) {
     logger.error('Error in bulk import clients:', error);
     return sendError(res, 500, 'Failed to bulk import clients', 'INTERNAL_ERROR');
+  }
+};
+
+// GET /api/clients/export - xlsx download mirroring getClients filters.
+// Same scope (addClientFiltering middleware) + same search/isActive/date-range
+// filters. Pagination is intentionally absent — capped at EXPORT_ROW_LIMIT
+// rows because spreadsheet UX falls off a cliff beyond that. Every
+// user-controlled cell passes through escapeFormulaRow (CWE-1236).
+const EXPORT_ROW_LIMIT = 10000;
+
+export const exportClients = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { sortBy = 'name', sortOrder = 'asc' } = req.query;
+
+    let built: ReturnType<typeof buildClientsWhereClause>;
+    try {
+      built = buildClientsWhereClause(req);
+    } catch (e) {
+      const err = e as Error & { code?: string };
+      return res.status(400).json({
+        success: false,
+        message: err.message,
+        error: { code: err.code || 'INVALID_FILTER' },
+      });
+    }
+
+    const SORT_COLUMNS: Record<string, string> = {
+      name: '"name"',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    };
+    const sortByStr =
+      typeof sortBy === 'string' || typeof sortBy === 'number' ? String(sortBy) : 'name';
+    const safeSortCol = SORT_COLUMNS[sortByStr] || SORT_COLUMNS.name;
+    const sortOrderStr =
+      typeof sortOrder === 'string' || typeof sortOrder === 'number' ? String(sortOrder) : 'asc';
+    const sortDir = sortOrderStr.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+
+    let rows: Array<{
+      id: number;
+      name: string;
+      code: string;
+      isActive: boolean;
+      createdAt: Date;
+    }> = [];
+
+    if (built !== null) {
+      const { whereClause, queryParams } = built;
+      const clientsRes = await query<{
+        id: number;
+        name: string;
+        code: string;
+        isActive: boolean;
+        createdAt: Date;
+      }>(
+        `SELECT id, name, code, is_active, created_at
+           FROM clients
+           ${whereClause}
+           ORDER BY ${safeSortCol} ${sortDir}
+           LIMIT $${built.nextParamIndex}`,
+        [...queryParams, EXPORT_ROW_LIMIT]
+      );
+      rows = clientsRes.rows;
+
+      if (rows.length > 0) {
+        const clientIds = rows.map(r => r.id);
+        const codesMapRes = await query<{
+          clientId: number;
+          productCodes: string | null;
+          vtCodes: string | null;
+          dtCodes: string | null;
+        }>(
+          `SELECT cp.client_id,
+                  STRING_AGG(DISTINCT p.code, ', ' ORDER BY p.code) AS product_codes,
+                  STRING_AGG(DISTINCT vt.code, ', ' ORDER BY vt.code) AS vt_codes,
+                  STRING_AGG(DISTINCT dt.code, ', ' ORDER BY dt.code) AS dt_codes
+             FROM client_products cp
+             JOIN products p ON p.id = cp.product_id
+             LEFT JOIN client_product_verifications cpv ON cpv.client_product_id = cp.id
+             LEFT JOIN verification_types vt ON vt.id = cpv.verification_type_id
+             LEFT JOIN client_product_documents cpd ON cpd.client_product_id = cp.id
+             LEFT JOIN document_types dt ON dt.id = cpd.document_type_id
+            WHERE cp.client_id = ANY($1::integer[])
+            GROUP BY cp.client_id`,
+          [clientIds]
+        );
+        const codesByClient = new Map(codesMapRes.rows.map(r => [r.clientId, r]));
+
+        // Build the workbook only after data is in hand so we don't emit
+        // partial headers on a query error.
+        const workbook = new ExcelJS.Workbook();
+        const ws = workbook.addWorksheet('Clients');
+        ws.columns = [
+          { header: 'Name', key: 'name', width: 30 },
+          { header: 'Code', key: 'code', width: 14 },
+          { header: 'Products', key: 'products', width: 30 },
+          { header: 'Verification Types', key: 'verificationTypes', width: 30 },
+          { header: 'Document Types', key: 'documentTypes', width: 30 },
+          { header: 'Created Date', key: 'createdAt', width: 20 },
+          { header: 'Status', key: 'status', width: 12 },
+        ];
+        ws.getRow(1).font = { bold: true };
+        ws.getRow(1).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFE6E6FA' },
+        };
+
+        for (const r of rows) {
+          const codes = codesByClient.get(r.id);
+          ws.addRow(
+            escapeFormulaRow({
+              name: r.name,
+              code: r.code,
+              products: codes?.productCodes || '',
+              verificationTypes: codes?.vtCodes || '',
+              documentTypes: codes?.dtCodes || '',
+              createdAt: r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : '',
+              status: r.isActive ? 'ACTIVE' : 'INACTIVE',
+            })
+          );
+        }
+
+        const dateStr = new Date().toISOString().slice(0, 10);
+        const filename = `clients_${dateStr}.xlsx`;
+        res.setHeader(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+        void createAuditLog({
+          action: 'CLIENT_EXPORTED',
+          entityType: 'CLIENT',
+          entityId: undefined,
+          userId: req.user!.id,
+          details: {
+            rowCount: rows.length,
+            filename,
+            filters: {
+              search: typeof req.query.search === 'string' ? req.query.search : null,
+              isActive: typeof req.query.isActive === 'string' ? req.query.isActive : null,
+              createdFrom: typeof req.query.createdFrom === 'string' ? req.query.createdFrom : null,
+              createdTo: typeof req.query.createdTo === 'string' ? req.query.createdTo : null,
+              sortBy: sortByStr,
+              sortOrder: sortDir.toLowerCase(),
+            },
+          },
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent') || undefined,
+        });
+
+        await workbook.xlsx.write(res);
+        res.end();
+        logger.info(`Clients exported: ${filename}, ${rows.length} rows`);
+        return;
+      }
+    }
+
+    // Empty result (no assigned clients OR zero rows match) — still return a
+    // valid xlsx with just the header so the FE download flow doesn't choke
+    // on a JSON body it didn't ask for.
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('Clients');
+    ws.columns = [
+      { header: 'Name', key: 'name', width: 30 },
+      { header: 'Code', key: 'code', width: 14 },
+      { header: 'Products', key: 'products', width: 30 },
+      { header: 'Verification Types', key: 'verificationTypes', width: 30 },
+      { header: 'Document Types', key: 'documentTypes', width: 30 },
+      { header: 'Created Date', key: 'createdAt', width: 20 },
+      { header: 'Status', key: 'status', width: 12 },
+    ];
+    ws.getRow(1).font = { bold: true };
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const filename = `clients_${dateStr}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    logger.error('Error exporting clients:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export clients',
+        error: { code: 'INTERNAL_ERROR' },
+      });
+    }
   }
 };

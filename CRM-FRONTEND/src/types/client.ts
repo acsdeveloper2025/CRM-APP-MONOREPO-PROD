@@ -50,6 +50,7 @@ export interface CreateClientData {
 export interface UpdateClientData {
   name?: string;
   code?: string;
+  isActive?: boolean;
   productIds?: number[];
   verificationTypeIds?: number[];
   documentTypeIds?: number[];

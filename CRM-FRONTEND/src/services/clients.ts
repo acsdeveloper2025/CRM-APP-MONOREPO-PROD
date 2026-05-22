@@ -1,3 +1,4 @@
+import type { AxiosResponse } from 'axios';
 import { apiService } from './api';
 import type {
   Client,
@@ -15,9 +16,16 @@ import { z } from 'zod';
 import { validateResponse } from './schemas/runtime';
 import { ClientSchema, ProductSchema } from './schemas/client.schema';
 
+export interface ClientListQuery extends PaginationQuery {
+  // 'all' is sent so the URL/cache key is stable; BE ignores it.
+  isActive?: 'true' | 'false' | 'all';
+  createdFrom?: string; // ISO 8601 (date-only is fine)
+  createdTo?: string; // ISO 8601 (treated as end-of-day inclusive by BE)
+}
+
 export class ClientsService {
   // Client operations
-  async getClients(query: PaginationQuery = {}): Promise<ApiResponse<Client[]>> {
+  async getClients(query: ClientListQuery = {}): Promise<ApiResponse<Client[]>> {
     const response = await apiService.get<Client[]>('/clients', query);
     if (response.success && Array.isArray(response.data)) {
       validateResponse(z.array(ClientSchema), response.data, {
@@ -26,6 +34,16 @@ export class ClientsService {
       });
     }
     return response;
+  }
+
+  // Excel export — mirrors getClients filters. Returns the raw axios response
+  // so the caller can pull headers (Content-Disposition) + the blob body.
+  async exportClients(
+    query: Omit<ClientListQuery, 'page' | 'limit'> = {}
+  ): Promise<AxiosResponse<Blob>> {
+    return apiService.getRaw<Blob>('/clients/export', query, {
+      responseType: 'blob',
+    });
   }
 
   async getClientById(id: number): Promise<ApiResponse<Client>> {

@@ -28,6 +28,7 @@ import {
   deleteClientLogo,
   deleteClientStamp,
   bulkImportClients,
+  exportClients,
 } from '@/controllers/clientsController';
 import { upload } from '@/middleware/upload';
 
@@ -123,6 +124,24 @@ const updateClientValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Each documentTypeId must be a positive integer'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+];
+
+// Reusable query-param validators for list + export endpoints (kept in
+// lockstep with buildClientsWhereClause in clientsController.ts).
+const clientListQueryValidation = [
+  query('search').optional().trim().isLength({ max: 100 }).withMessage('Search term too long'),
+  query('isActive')
+    .optional()
+    .isIn(['true', 'false', 'all'])
+    .withMessage("isActive must be 'true', 'false', or 'all'"),
+  query('createdFrom').optional().isISO8601().withMessage('createdFrom must be ISO 8601'),
+  query('createdTo').optional().isISO8601().withMessage('createdTo must be ISO 8601'),
+  query('sortBy').optional().isIn(['name', 'createdAt', 'updatedAt']).withMessage('Invalid sortBy'),
+  query('sortOrder')
+    .optional()
+    .isIn(['asc', 'desc'])
+    .withMessage("sortOrder must be 'asc' or 'desc'"),
 ];
 
 // GET /api/clients - Get all clients (CACHED).
@@ -142,11 +161,24 @@ router.get(
       .optional()
       .isInt({ min: 1, max: 500 })
       .withMessage('Limit must be between 1 and 500'),
-    query('search').optional().trim().isLength({ max: 100 }).withMessage('Search term too long'),
+    ...clientListQueryValidation,
   ]),
   markCrossTenant,
   addClientFiltering,
   getClients
+);
+
+// GET /api/clients/export - xlsx download mirroring list filters.
+// NOT cached; intentionally bypasses EnterpriseCache so every export reflects
+// the latest data. Scope (markCrossTenant + addClientFiltering) matches the
+// list endpoint so users cannot export rows they cannot see.
+router.get(
+  '/export',
+  authenticateToken,
+  validate(clientListQueryValidation),
+  markCrossTenant,
+  addClientFiltering,
+  exportClients
 );
 
 // GET /api/clients/:id - Get client by ID (CACHED)

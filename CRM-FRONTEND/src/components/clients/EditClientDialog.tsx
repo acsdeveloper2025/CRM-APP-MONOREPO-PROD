@@ -23,6 +23,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { clientsService } from '@/services/clients';
@@ -42,6 +43,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
     defaultValues: {
       name: '',
       code: '',
+      isActive: true,
       productMappings: [],
       primaryColor: '',
       headerColor: '',
@@ -80,6 +82,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
       form.reset({
         name: clientDetails.name,
         code: clientDetails.code,
+        isActive: clientDetails.isActive ?? true,
         productMappings,
         primaryColor: clientDetails.primaryColor ?? '',
         headerColor: clientDetails.headerColor ?? '',
@@ -99,6 +102,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
       const cleanData = {
         name: data.name,
         code: data.code,
+        isActive: data.isActive,
         productIds,
         verificationTypeIds,
         documentTypeIds,
@@ -185,6 +189,25 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                         underscores only)
                       </FormDescription>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Active</FormLabel>
+                        <FormDescription>
+                          Inactive clients are hidden from the Active filter and excluded from
+                          new-case scope.
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
+                      </FormControl>
                     </FormItem>
                   )}
                 />

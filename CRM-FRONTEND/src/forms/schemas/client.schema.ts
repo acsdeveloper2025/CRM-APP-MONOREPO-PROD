@@ -27,6 +27,7 @@ export type CreateClientFormData = z.infer<typeof createClientFormSchema>;
 
 export const editClientFormSchema = z.object({
   ...baseClientShape,
+  isActive: z.boolean().optional(),
   primaryColor: z
     .string()
     .regex(HEX_COLOR_REGEX, 'Must be a hex color like #FF9800 or empty')
