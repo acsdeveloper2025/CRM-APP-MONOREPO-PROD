@@ -124,8 +124,27 @@ const FieldMonitoringPage = React.lazy(() =>
   }))
 );
 
-const RateManagementPage = React.lazy(() =>
-  import('@/pages/RateManagementPage').then((module) => ({ default: module.RateManagementPage }))
+const RateTypesPage = React.lazy(() =>
+  import('@/pages/RateTypesPage').then((module) => ({ default: module.RateTypesPage }))
+);
+const RateTypeAssignmentPage = React.lazy(() =>
+  import('@/pages/RateTypeAssignmentPage').then((module) => ({
+    default: module.RateTypeAssignmentPage,
+  }))
+);
+const RateAmountsPage = React.lazy(() =>
+  import('@/pages/RateAmountsPage').then((module) => ({ default: module.RateAmountsPage }))
+);
+const ServiceZoneRulesPage = React.lazy(() =>
+  import('@/pages/ServiceZoneRulesPage').then((module) => ({
+    default: module.ServiceZoneRulesPage,
+  }))
+);
+const KYCRatesPage = React.lazy(() =>
+  import('@/pages/KYCRatesPage').then((module) => ({ default: module.KYCRatesPage }))
+);
+const RateReportPage = React.lazy(() =>
+  import('@/pages/RateReportPage').then((module) => ({ default: module.RateReportPage }))
 );
 const DedupePage = React.lazy(() =>
   import('@/pages/DedupePage').then((module) => ({ default: module.DedupePage }))
@@ -450,28 +469,18 @@ export const AppRoutes: React.FC = () => {
               </ProtectedRoute>
             }
           />
-          {/* Rate Management — top-level section with sub-routes per tab */}
+          {/* Rate Management — 6 standalone sub-pages. Parent /rate-management
+              redirects to the first child (matches Client Mgmt pattern after
+              the 2026-05-22 tab strip; see project_filter_standardization_2026_05_22.md). */}
           <Route
             path="/rate-management"
-            element={
-              <ProtectedRoute permission="page.masterdata">
-                <RateManagementPage />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/rate-management/rate-types" replace />}
           />
           <Route
             path="/rate-management/rate-types"
             element={
               <ProtectedRoute permission="page.masterdata">
-                <RateManagementPage defaultTab="rate-types" />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/rate-management/service-zone-rules"
-            element={
-              <ProtectedRoute permission="page.masterdata">
-                <RateManagementPage defaultTab="service-zone-rules" />
+                <RateTypesPage />
               </ProtectedRoute>
             }
           />
@@ -479,7 +488,7 @@ export const AppRoutes: React.FC = () => {
             path="/rate-management/rate-type-assignment"
             element={
               <ProtectedRoute permission="page.masterdata">
-                <RateManagementPage defaultTab="rate-type-assignment" />
+                <RateTypeAssignmentPage />
               </ProtectedRoute>
             }
           />
@@ -487,15 +496,15 @@ export const AppRoutes: React.FC = () => {
             path="/rate-management/rate-amounts"
             element={
               <ProtectedRoute permission="page.masterdata">
-                <RateManagementPage defaultTab="rate-assignment" />
+                <RateAmountsPage />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/rate-management/rate-report"
+            path="/rate-management/service-zone-rules"
             element={
               <ProtectedRoute permission="page.masterdata">
-                <RateManagementPage defaultTab="rate-view-report" />
+                <ServiceZoneRulesPage />
               </ProtectedRoute>
             }
           />
@@ -503,7 +512,15 @@ export const AppRoutes: React.FC = () => {
             path="/rate-management/kyc-rates"
             element={
               <ProtectedRoute permission="page.masterdata">
-                <RateManagementPage defaultTab="document-type-rates" />
+                <KYCRatesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rate-management/rate-report"
+            element={
+              <ProtectedRoute permission="page.masterdata">
+                <RateReportPage />
               </ProtectedRoute>
             }
           />
