@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
-import { MoreHorizontal, Edit, Trash2, Eye, Package } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { MoreHorizontal, Edit, Trash2, Eye, Package, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -47,6 +48,8 @@ export function ProductsTable({ data, isLoading }: ProductsTableProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
+  const queryClient = useQueryClient();
+
   const deleteMutation = useStandardizedMutation({
     mutationFn: (id: number) => clientsService.deleteProduct(id),
     successMessage: 'Product deleted successfully',
@@ -59,6 +62,17 @@ export function ProductsTable({ data, isLoading }: ProductsTableProps) {
     onErrorCallback: () => {
       setShowDeleteDialog(false);
       setProductToDelete(null);
+    },
+  });
+
+  const toggleActiveMutation = useStandardizedMutation({
+    mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
+      clientsService.updateProduct(id, { isActive }),
+    errorContext: 'Product Status Toggle',
+    errorFallbackMessage: 'Failed to update product status',
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product-stats'] });
     },
   });
 
@@ -122,7 +136,11 @@ export function ProductsTable({ data, isLoading }: ProductsTableProps) {
                 </TableCell>
                 <TableCell>{new Date(product.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell>
-                  <Badge variant="default">Active</Badge>
+                  {product.isActive === false ? (
+                    <Badge variant="secondary">INACTIVE</Badge>
+                  ) : (
+                    <Badge variant="default">ACTIVE</Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
@@ -141,6 +159,27 @@ export function ProductsTable({ data, isLoading }: ProductsTableProps) {
                       <DropdownMenuItem onClick={() => handleEdit(product)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Edit Product
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={toggleActiveMutation.isPending}
+                        onClick={() =>
+                          toggleActiveMutation.mutate({
+                            id: product.id,
+                            isActive: !(product.isActive ?? true),
+                          })
+                        }
+                      >
+                        {product.isActive === false ? (
+                          <>
+                            <ToggleRight className="mr-2 h-4 w-4" />
+                            Activate
+                          </>
+                        ) : (
+                          <>
+                            <ToggleLeft className="mr-2 h-4 w-4" />
+                            Deactivate
+                          </>
+                        )}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem

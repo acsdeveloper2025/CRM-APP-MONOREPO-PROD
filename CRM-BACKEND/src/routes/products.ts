@@ -19,6 +19,7 @@ import {
   getProductStats,
   getProductVerificationTypes,
   bulkImportProducts,
+  exportProducts,
 } from '@/controllers/productsController';
 import { upload } from '@/middleware/upload';
 
@@ -93,7 +94,12 @@ const listProductsValidation = [
       'OTHER',
     ])
     .withMessage('Invalid category'),
-  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+  query('isActive')
+    .optional()
+    .custom(v => v === 'true' || v === 'false' || v === 'all' || typeof v === 'boolean')
+    .withMessage("isActive must be 'true', 'false', or 'all'"),
+  query('createdFrom').optional().isISO8601().withMessage('createdFrom must be ISO 8601'),
+  query('createdTo').optional().isISO8601().withMessage('createdTo must be ISO 8601'),
   query('search')
     .optional()
     .trim()
@@ -131,6 +137,19 @@ router.get(
   authenticateToken,
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getProductStats
+);
+
+// GET /api/products/export - xlsx download mirroring list filters.
+// NOT cached. Same scope (markCrossTenant + addProductFiltering) as the list.
+// MUST stay above /:id so Express route-matching catches /export first.
+router.get(
+  '/export',
+  authenticateToken,
+  listProductsValidation,
+  handleValidationErrors,
+  markCrossTenant,
+  addProductFiltering,
+  exportProducts
 );
 
 router.post(

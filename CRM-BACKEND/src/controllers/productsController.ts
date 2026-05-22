@@ -1,65 +1,101 @@
 import type { Response } from 'express';
+import ExcelJS from 'exceljs';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
 import { createAuditLog } from '@/utils/auditLogger';
 import { sendError } from '@/utils/apiResponse';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
+
+// Shared WHERE-clause builder for getProducts + exportProducts so the two
+// stay in lockstep. Returns the SQL fragment + params, OR null to signal
+// "user has zero assigned products — short-circuit with empty result".
+const buildProductsWhereClause = (
+  req: AuthenticatedRequest
+): {
+  whereClause: string;
+  queryParams: (string | number | boolean | number[])[];
+  nextParamIndex: number;
+} | null => {
+  const { search, isActive, createdFrom, createdTo, productIds: productIdsFilter } = req.query;
+  const whereSql: string[] = [];
+  const values: (string | number | boolean | number[])[] = [];
+  let paramIndex = 1;
+
+  // BACKEND_USER product narrowing (addProductFiltering middleware emits
+  // `productIds` as a JSON-stringified array on req.query).
+  if (productIdsFilter) {
+    try {
+      const parsedProductIds = JSON.parse(productIdsFilter as string);
+      if (Array.isArray(parsedProductIds)) {
+        if (parsedProductIds.length === 0) {
+          return null;
+        }
+        whereSql.push(`id = ANY($${paramIndex}::int[])`);
+        values.push(parsedProductIds);
+        paramIndex++;
+      }
+    } catch (error) {
+      logger.error('Error parsing productIds filter:', error);
+    }
+  }
+
+  if (search && typeof search === 'string') {
+    whereSql.push(
+      `(COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex + 1})`
+    );
+    values.push(`%${search}%`, `%${search}%`);
+    paramIndex += 2;
+  }
+
+  // isActive validator accepts the express-validator coerced boolean OR a
+  // 'true'/'false' string. 'all' (or undefined) → no filter.
+  if (typeof isActive === 'boolean') {
+    whereSql.push(`is_active = $${paramIndex}`);
+    values.push(isActive);
+    paramIndex++;
+  } else if (isActive === 'true' || isActive === 'false') {
+    whereSql.push(`is_active = $${paramIndex}`);
+    values.push(isActive === 'true');
+    paramIndex++;
+  }
+
+  if (typeof createdFrom === 'string' && createdFrom) {
+    whereSql.push(`created_at >= $${paramIndex}`);
+    values.push(createdFrom);
+    paramIndex++;
+  }
+  if (typeof createdTo === 'string' && createdTo) {
+    whereSql.push(`created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
+    values.push(createdTo);
+    paramIndex++;
+  }
+
+  const whereClause = whereSql.length ? `WHERE ${whereSql.join(' AND ')}` : '';
+  return { whereClause, queryParams: values, nextParamIndex: paramIndex };
+};
 
 // GET /api/products - List products with pagination and filters
 export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      search,
-      sortBy = 'name',
-      sortOrder = 'asc',
-      productIds: productIdsFilter,
-    } = req.query;
+    const { page = 1, limit = 20, search, sortBy = 'name', sortOrder = 'asc' } = req.query;
 
-    // Build where clause and parameters
-    const values: (string | number | number[])[] = [];
-    const whereSql: string[] = [];
-    let paramIndex = 1;
-
-    // Apply product filtering for BACKEND_USER users
-    if (productIdsFilter) {
-      try {
-        const parsedProductIds = JSON.parse(productIdsFilter as string);
-        if (Array.isArray(parsedProductIds)) {
-          if (parsedProductIds.length === 0) {
-            // User has no product assignments, return empty result
-            return res.json({
-              success: true,
-              data: [],
-              pagination: {
-                page: Number(page),
-                limit: Number(limit),
-                total: 0,
-                totalPages: 0,
-              },
-              message: 'No products found - user has no assigned products',
-            });
-          }
-          whereSql.push(`id = ANY($${paramIndex}::int[])`);
-          values.push(parsedProductIds);
-          paramIndex++;
-        }
-      } catch (error) {
-        logger.error('Error parsing productIds filter:', error);
-      }
+    const built = buildProductsWhereClause(req);
+    if (built === null) {
+      return res.json({
+        success: true,
+        data: [],
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total: 0,
+          totalPages: 0,
+        },
+        message: 'No products found - user has no assigned products',
+      });
     }
-
-    // Add search filter if provided
-    if (search && typeof search === 'string') {
-      whereSql.push(
-        `(COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex + 1})`
-      );
-      values.push(`%${search}%`, `%${search}%`);
-      paramIndex += 2;
-    }
-
-    const whereClause = whereSql.length ? `WHERE ${whereSql.join(' AND ')}` : '';
+    const { whereClause, queryParams: values } = built;
+    const paramIndex = built.nextParamIndex;
 
     // Get total count
     const countRes = await query<{ count: string }>(
@@ -210,7 +246,7 @@ export const createProduct = async (req: AuthenticatedRequest, res: Response) =>
 export const updateProduct = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id || '');
-    const updateData = req.body as { name?: string; code?: string };
+    const updateData = req.body as { name?: string; code?: string; isActive?: boolean };
 
     // Check if product exists
     const existingRes = await query(`SELECT id, name, code FROM products WHERE id = $1`, [id]);
@@ -244,6 +280,9 @@ export const updateProduct = async (req: AuthenticatedRequest, res: Response) =>
     }
     if (updateData.code) {
       updatePayload.code = updateData.code;
+    }
+    if (typeof updateData.isActive === 'boolean') {
+      updatePayload.is_active = updateData.isActive;
     }
 
     // Build dynamic update
@@ -647,5 +686,133 @@ export const bulkImportProducts = async (
   } catch (error) {
     logger.error('Error in bulk import products:', error);
     return sendError(res, 500, 'Failed to bulk import products', 'INTERNAL_ERROR');
+  }
+};
+
+// GET /api/products/export - xlsx download mirroring getProducts filters.
+// Same scope (addProductFiltering) + same search/isActive/date-range. Hard
+// cap at EXPORT_ROW_LIMIT. Every user-controlled cell through escapeFormulaRow.
+const EXPORT_ROW_LIMIT = 10000;
+
+export const exportProducts = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { sortBy = 'name', sortOrder = 'asc' } = req.query;
+    const built = buildProductsWhereClause(req);
+
+    const sortByStr = typeof sortBy === 'string' ? sortBy : 'name';
+    const sortOrderStr = typeof sortOrder === 'string' ? sortOrder : 'asc';
+    const sortCol: string = ['name', 'code', 'createdAt', 'updatedAt'].includes(sortByStr)
+      ? sortByStr
+      : 'name';
+    const sortDir: 'ASC' | 'DESC' = sortOrderStr.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+
+    let rows: Array<{
+      id: number;
+      name: string;
+      code: string;
+      description: string | null;
+      isActive: boolean;
+      createdAt: Date;
+      hasRates: boolean;
+    }> = [];
+
+    if (built !== null) {
+      const { whereClause, queryParams: values } = built;
+      const listRes = await query<{
+        id: number;
+        name: string;
+        code: string;
+        description: string | null;
+        isActive: boolean;
+        createdAt: Date;
+        hasRates: boolean;
+      }>(
+        `SELECT id, name, code, description, is_active, created_at,
+                EXISTS (
+                  SELECT 1 FROM rates r WHERE r.product_id = products.id AND r.is_active = true
+                ) as "hasRates"
+           FROM products
+           ${whereClause}
+           ORDER BY "${sortCol}" ${sortDir}
+           LIMIT $${built.nextParamIndex}`,
+        [...values, EXPORT_ROW_LIMIT]
+      );
+      rows = listRes.rows;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('Products');
+    ws.columns = [
+      { header: 'Name', key: 'name', width: 30 },
+      { header: 'Code', key: 'code', width: 14 },
+      { header: 'Description', key: 'description', width: 40 },
+      { header: 'Has Rates', key: 'hasRates', width: 10 },
+      { header: 'Created Date', key: 'createdAt', width: 20 },
+      { header: 'Status', key: 'status', width: 12 },
+    ];
+    ws.getRow(1).font = { bold: true };
+    ws.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE6E6FA' },
+    };
+
+    for (const r of rows) {
+      ws.addRow(
+        escapeFormulaRow({
+          name: r.name,
+          code: r.code,
+          description: r.description || '',
+          hasRates: r.hasRates ? 'YES' : 'NO',
+          createdAt: r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : '',
+          status: r.isActive ? 'ACTIVE' : 'INACTIVE',
+        })
+      );
+    }
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const filename = `products_${dateStr}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    void createAuditLog({
+      action: 'PRODUCT_EXPORTED',
+      entityType: 'PRODUCT',
+      entityId: undefined,
+      userId: req.user!.id,
+      details: {
+        rowCount: rows.length,
+        filename,
+        filters: {
+          search: typeof req.query.search === 'string' ? req.query.search : null,
+          isActive:
+            typeof req.query.isActive === 'string' || typeof req.query.isActive === 'boolean'
+              ? String(req.query.isActive)
+              : null,
+          createdFrom: typeof req.query.createdFrom === 'string' ? req.query.createdFrom : null,
+          createdTo: typeof req.query.createdTo === 'string' ? req.query.createdTo : null,
+          sortBy: sortByStr,
+          sortOrder: sortDir.toLowerCase(),
+        },
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
+
+    await workbook.xlsx.write(res);
+    res.end();
+    logger.info(`Products exported: ${filename}, ${rows.length} rows`);
+  } catch (error) {
+    logger.error('Error exporting products:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export products',
+        error: { code: 'INTERNAL_ERROR' },
+      });
+    }
   }
 };

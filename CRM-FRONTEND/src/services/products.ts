@@ -1,3 +1,4 @@
+import type { AxiosResponse } from 'axios';
 import { apiService } from './api';
 import type { ApiResponse, PaginatedResponse } from '@/types/api';
 import type {
@@ -23,6 +24,15 @@ export class ProductsService {
       });
     }
     return response as PaginatedResponse<Product>;
+  }
+
+  // xlsx export — mirrors getProducts filters.
+  async exportProducts(
+    query: Omit<ProductListQuery, 'page' | 'limit'> = {}
+  ): Promise<AxiosResponse<Blob>> {
+    return apiService.getRaw<Blob>('/products/export', query, {
+      responseType: 'blob',
+    });
   }
 
   async getProductById(id: string): Promise<ApiResponse<Product>> {

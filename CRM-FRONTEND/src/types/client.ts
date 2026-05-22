@@ -68,6 +68,7 @@ export interface CreateProductData {
 export interface UpdateProductData {
   name?: string;
   code?: string;
+  isActive?: boolean;
 }
 
 export interface CreateVerificationTypeData {

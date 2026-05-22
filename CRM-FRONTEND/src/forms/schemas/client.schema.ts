@@ -45,6 +45,11 @@ export const productFormSchema = z.object({
 });
 export type ProductFormData = z.infer<typeof productFormSchema>;
 
+export const editProductFormSchema = productFormSchema.extend({
+  isActive: z.boolean().optional(),
+});
+export type EditProductFormData = z.infer<typeof editProductFormSchema>;
+
 const baseVerificationTypeShape = {
   name: z.string().min(1, 'Verification type name is required').max(100, 'Name too long'),
   code: z.string().min(2, 'Code is required').max(50, 'Code too long'),

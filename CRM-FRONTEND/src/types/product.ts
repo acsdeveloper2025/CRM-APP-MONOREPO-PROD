@@ -48,7 +48,10 @@ export type UpdateProductData = Partial<CreateProductData>;
 export interface ProductListQuery extends PaginationQuery {
   clientId?: string;
   category?: string;
-  isActive?: boolean;
+  // 'all' sent verbatim so URL/cache key stays stable; BE treats it as no-filter.
+  isActive?: 'true' | 'false' | 'all' | boolean;
+  createdFrom?: string;
+  createdTo?: string;
   search?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';

@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
-import { productFormSchema, type ProductFormData } from '@/forms/schemas/client.schema';
+import { editProductFormSchema, type EditProductFormData } from '@/forms/schemas/client.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,6 +22,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { clientsService } from '@/services/clients';
 import { Product } from '@/types/client';
 
@@ -32,11 +33,12 @@ interface EditProductDialogProps {
 }
 
 export function EditProductDialog({ product, open, onOpenChange }: EditProductDialogProps) {
-  const form = useForm<ProductFormData>({
-    resolver: zodResolver(productFormSchema),
+  const form = useForm<EditProductFormData>({
+    resolver: zodResolver(editProductFormSchema),
     defaultValues: {
       name: product.name,
       code: product.code,
+      isActive: product.isActive ?? true,
     },
   });
 
@@ -45,12 +47,13 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
       form.reset({
         name: product.name,
         code: product.code,
+        isActive: product.isActive ?? true,
       });
     }
   }, [product, form]);
 
   const updateMutation = useCRUDMutation({
-    mutationFn: (data: ProductFormData) => clientsService.updateProduct(product.id, data),
+    mutationFn: (data: EditProductFormData) => clientsService.updateProduct(product.id, data),
     queryKey: ['products'],
     resourceName: 'Product',
     operation: 'update',
@@ -60,7 +63,7 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
     },
   });
 
-  const onSubmit = (data: ProductFormData) => {
+  const onSubmit = (data: EditProductFormData) => {
     updateMutation.mutate(data);
   };
 
@@ -100,6 +103,25 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
                   </FormControl>
                   <FormDescription>The name of the product or service</FormDescription>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Active</FormLabel>
+                    <FormDescription>
+                      Inactive products are hidden from the Active filter and excluded from new-case
+                      scope.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
+                  </FormControl>
                 </FormItem>
               )}
             />
