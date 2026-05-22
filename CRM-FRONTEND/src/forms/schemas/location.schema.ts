@@ -80,3 +80,8 @@ export const areaFormSchema = z.object({
     .max(100, 'Area name must be less than 100 characters'),
 });
 export type AreaFormData = z.infer<typeof areaFormSchema>;
+
+export const editAreaFormSchema = areaFormSchema.extend({
+  isActive: z.boolean().optional(),
+});
+export type EditAreaFormData = z.infer<typeof editAreaFormSchema>;

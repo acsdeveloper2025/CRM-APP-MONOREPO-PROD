@@ -39,6 +39,17 @@ export interface PincodeArea extends Omit<BaseEntity, 'id'> {
   pincodeId?: number;
 }
 
+// Standalone area row shape returned by GET /api/areas (master list).
+// PincodeArea is the M2M-junction shape; Area is the master shape.
+export interface Area {
+  id: string;
+  name: string;
+  usageCount: number;
+  isActive?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface LocationFilters extends BaseFilters {
   countryId?: number;
   stateId?: number;

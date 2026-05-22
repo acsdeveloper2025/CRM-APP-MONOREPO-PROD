@@ -11,13 +11,15 @@ import {
   deleteArea,
   getStandaloneAreas,
   getAreasByPincodes,
+  getAreasStats,
+  exportAreas,
 } from '@/controllers/areasController';
 
 const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
-// Validation schemas
+
 const createAreaValidation = [
   body('name')
     .trim()
@@ -28,6 +30,7 @@ const createAreaValidation = [
 const updateAreaValidation = [
   param('id').trim().notEmpty().withMessage('Area ID is required'),
   body('name')
+    .optional()
     .trim()
     .isLength({ min: 2, max: 100 })
     .withMessage('Area name must be between 2 and 100 characters'),
@@ -35,6 +38,7 @@ const updateAreaValidation = [
     .optional()
     .isInt({ min: 1, max: 50 })
     .withMessage('Display order must be between 1 and 50'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 const listAreasValidation = [
@@ -44,6 +48,7 @@ const listAreasValidation = [
     .isInt({ min: 1, max: 10000 })
     .withMessage('Limit must be between 1 and 10000'),
   query('cityId').optional().trim(),
+  query('pincodeId').optional(),
   query('state')
     .optional()
     .trim()
@@ -61,9 +66,15 @@ const listAreasValidation = [
     .withMessage('Search term must be less than 100 characters'),
   query('sortBy')
     .optional()
-    .isIn(['name', 'usageCount', 'createdAt'])
+    .isIn(['name', 'usageCount', 'createdAt', 'updatedAt'])
     .withMessage('Invalid sort field'),
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
+  query('isActive')
+    .optional()
+    .isIn(['true', 'false', 'all'])
+    .withMessage('isActive must be true, false, or all'),
+  query('createdFrom').optional().isISO8601().withMessage('createdFrom must be ISO 8601 date'),
+  query('createdTo').optional().isISO8601().withMessage('createdTo must be ISO 8601 date'),
 ];
 
 // Standalone areas route (must come before /:id route)
@@ -71,6 +82,11 @@ router.get('/standalone', getStandaloneAreas);
 
 // Batch fetch areas by pincodes (must come before /:id route)
 router.get('/by-pincodes', getAreasByPincodes);
+
+router.get('/stats', getAreasStats);
+
+// /export MUST precede /:id (Express matches in declaration order).
+router.get('/export', listAreasValidation, validate, exportAreas);
 
 // Core CRUD routes
 router.get('/', listAreasValidation, validate, getAreas);

@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -9,17 +11,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { editAreaFormSchema, type EditAreaFormData } from '@/forms/schemas/location.schema';
 import { locationsService } from '@/services/locations';
-
-interface Area {
-  id: string | number;
-  name: string;
-  usageCount?: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
+import type { Area } from '@/types/location';
 
 interface EditAreaDialogProps {
   area: Area;
@@ -28,16 +33,28 @@ interface EditAreaDialogProps {
 }
 
 export function EditAreaDialog({ area, open, onOpenChange }: EditAreaDialogProps) {
-  const [name, setName] = useState(area.name);
+  const form = useForm<EditAreaFormData>({
+    resolver: zodResolver(editAreaFormSchema),
+    defaultValues: {
+      name: area.name,
+      isActive: area.isActive ?? true,
+    },
+  });
 
-  // Reset form when area changes
   useEffect(() => {
-    setName(area.name);
-  }, [area]);
+    form.reset({
+      name: area.name,
+      isActive: area.isActive ?? true,
+    });
+  }, [area, form]);
 
   const updateMutation = useMutationWithInvalidation({
-    mutationFn: (data: { name: string }) => locationsService.updateArea(String(area.id), data),
-    invalidateKeys: [['areas'], ['pincodes']],
+    mutationFn: (data: EditAreaFormData) =>
+      locationsService.updateArea(String(area.id), {
+        name: data.name,
+        isActive: data.isActive,
+      }),
+    invalidateKeys: [['areas'], ['pincodes'], ['area-stats']],
     successMessage: 'Area updated successfully',
     errorContext: 'Area Update',
     errorFallbackMessage: 'Failed to update area',
@@ -46,14 +63,8 @@ export function EditAreaDialog({ area, open, onOpenChange }: EditAreaDialogProps
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!name.trim()) {
-      return;
-    }
-
-    updateMutation.mutate({ name: name.trim() });
+  const onSubmit = (data: EditAreaFormData) => {
+    updateMutation.mutate(data);
   };
 
   return (
@@ -65,39 +76,67 @@ export function EditAreaDialog({ area, open, onOpenChange }: EditAreaDialogProps
             Update the area name. This will affect all pincodes using this area.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Area Name</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter area name"
-                required
-              />
-            </div>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Area Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter area name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {area.usageCount !== undefined && area.usageCount > 0 && (
-              <div className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 This area is currently used in {area.usageCount} pincode(s).
-              </div>
+              </p>
             )}
-          </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="w-full sm:w-auto"
-              disabled={updateMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={updateMutation.isPending} className="w-full sm:w-auto">
-              {updateMutation.isPending ? 'Updating...' : 'Update Area'}
-            </Button>
-          </DialogFooter>
-        </form>
+
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Active</FormLabel>
+                    <FormDescription>
+                      Inactive areas are hidden from the Active filter.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto"
+                disabled={updateMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={updateMutation.isPending}
+                className="w-full sm:w-auto"
+              >
+                {updateMutation.isPending ? 'Updating...' : 'Update Area'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

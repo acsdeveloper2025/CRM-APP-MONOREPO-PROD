@@ -6,6 +6,7 @@ import type {
   City,
   Pincode,
   PincodeArea,
+  Area,
   CreateCountryData,
   UpdateCountryData,
   CreateStateData,
@@ -348,16 +349,8 @@ export class LocationsService {
   }
 
   // Area operations
-  async getAreas(
-    query: LocationQuery = {}
-  ): Promise<
-    ApiResponse<
-      { id: string; name: string; usageCount: number; createdAt: string; updatedAt: string }[]
-    >
-  > {
-    const response = await apiService.get<
-      { id: string; name: string; usageCount: number; createdAt: string; updatedAt: string }[]
-    >('/areas', query);
+  async getAreas(query: LocationQuery = {}): Promise<ApiResponse<Area[]>> {
+    const response = await apiService.get<Area[]>('/areas', query);
     if (response?.success && Array.isArray(response.data)) {
       validateResponse(GenericEntityListSchema, response.data, {
         service: 'locations',
@@ -367,22 +360,8 @@ export class LocationsService {
     return response;
   }
 
-  async getAreaById(id: string): Promise<
-    ApiResponse<{
-      id: string;
-      name: string;
-      usageCount: number;
-      createdAt: string;
-      updatedAt: string;
-    }>
-  > {
-    const response = await apiService.get<{
-      id: string;
-      name: string;
-      usageCount: number;
-      createdAt: string;
-      updatedAt: string;
-    }>(`/areas/${id}`);
+  async getAreaById(id: string): Promise<ApiResponse<Area>> {
+    const response = await apiService.get<Area>(`/areas/${id}`);
     if (response?.success && response.data) {
       validateResponse(GenericEntitySchema, response.data, {
         service: 'locations',
@@ -392,16 +371,34 @@ export class LocationsService {
     return response;
   }
 
-  async createArea(data: {
-    name: string;
-  }): Promise<ApiResponse<{ id: string; name: string; createdAt: string; updatedAt: string }>> {
+  async getAreasStats(): Promise<
+    ApiResponse<{
+      total: number;
+      active: number;
+      inactive: number;
+      recentlyAddedCount: number;
+      mappedCount: number;
+    }>
+  > {
+    return apiService.get('/areas/stats');
+  }
+
+  async exportAreas(
+    query: Omit<LocationQuery, 'page' | 'limit'> = {}
+  ): Promise<AxiosResponse<Blob>> {
+    return apiService.getRaw<Blob>('/areas/export', query, {
+      responseType: 'blob',
+    });
+  }
+
+  async createArea(data: { name: string }): Promise<ApiResponse<Area>> {
     return apiService.post('/areas', data);
   }
 
   async updateArea(
     id: string,
-    data: { name: string }
-  ): Promise<ApiResponse<{ id: string; name: string; updatedAt: string }>> {
+    data: { name?: string; isActive?: boolean }
+  ): Promise<ApiResponse<Area>> {
     return apiService.put(`/areas/${id}`, data);
   }
 
