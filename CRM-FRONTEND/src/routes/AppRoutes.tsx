@@ -97,8 +97,20 @@ const CommissionManagementPage = React.lazy(() =>
 const CommissionsPage = React.lazy(() =>
   import('@/pages/CommissionsPage').then((module) => ({ default: module.CommissionsPage }))
 );
-const LocationsPage = React.lazy(() =>
-  import('@/pages/LocationsPage').then((module) => ({ default: module.LocationsPage }))
+const CountriesPage = React.lazy(() =>
+  import('@/pages/CountriesPage').then((module) => ({ default: module.CountriesPage }))
+);
+const StatesPage = React.lazy(() =>
+  import('@/pages/StatesPage').then((module) => ({ default: module.StatesPage }))
+);
+const CitiesPage = React.lazy(() =>
+  import('@/pages/CitiesPage').then((module) => ({ default: module.CitiesPage }))
+);
+const PincodesPage = React.lazy(() =>
+  import('@/pages/PincodesPage').then((module) => ({ default: module.PincodesPage }))
+);
+const AreasPage = React.lazy(() =>
+  import('@/pages/AreasPage').then((module) => ({ default: module.AreasPage }))
 );
 // FormViewerPage removed — route was unused (RBAC audit 2026-04-16)
 const SystemHealthPage = React.lazy(() =>
@@ -526,17 +538,45 @@ export const AppRoutes: React.FC = () => {
           />
           <Route
             path="/location-management"
+            element={<Navigate to="/location-management/countries" replace />}
+          />
+          <Route
+            path="/location-management/countries"
             element={
               <ProtectedRoute permission="page.masterdata">
-                <LocationsPage />
+                <CountriesPage />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/location-management/:tab"
+            path="/location-management/states"
             element={
               <ProtectedRoute permission="page.masterdata">
-                <LocationsPage />
+                <StatesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/location-management/cities"
+            element={
+              <ProtectedRoute permission="page.masterdata">
+                <CitiesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/location-management/pincodes"
+            element={
+              <ProtectedRoute permission="page.masterdata">
+                <PincodesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/location-management/areas"
+            element={
+              <ProtectedRoute permission="page.masterdata">
+                <AreasPage />
               </ProtectedRoute>
             }
           />
