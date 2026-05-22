@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import type { Response } from 'express';
+import ExcelJS from 'exceljs';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import {
   FieldMonitoringService,
@@ -7,8 +8,12 @@ import {
 } from '@/services/fieldMonitoringService';
 import { getScopedOperationalUserIds } from '@/security/userScope';
 import { PushNotificationService } from '@/services/PushNotificationService';
+import { createAuditLog } from '@/utils/auditLogger';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
 import { errorMessage } from '@/utils/errorMessage';
 import { logger } from '@/config/logger';
+
+const FIELD_MONITORING_EXPORT_LIMIT = 10000;
 
 const pushNotificationService = PushNotificationService.getInstance();
 
@@ -93,6 +98,35 @@ export const getFieldMonitoringStats = async (
   }
 };
 
+const parseOptionalSortBy = (value: unknown): 'name' | 'createdAt' | undefined => {
+  const raw = parseOptionalString(value);
+  if (raw === 'name' || raw === 'createdAt') {
+    return raw;
+  }
+  return undefined;
+};
+
+const parseOptionalSortOrder = (value: unknown): 'asc' | 'desc' | undefined => {
+  const raw = parseOptionalString(value);
+  if (raw === 'asc' || raw === 'desc') {
+    return raw;
+  }
+  return undefined;
+};
+
+const buildRosterParams = (req: AuthenticatedRequest) => ({
+  page: parsePositiveInt(req.query.page, 1),
+  limit: parsePositiveInt(req.query.limit, 20),
+  search: parseOptionalString(req.query.search),
+  pincode: parseOptionalString(req.query.pincode),
+  areaId: parseOptionalAreaId(req.query.areaId),
+  status: parseOptionalStatus(req.query.status),
+  sortBy: parseOptionalSortBy(req.query.sortBy),
+  sortOrder: parseOptionalSortOrder(req.query.sortOrder),
+  createdFrom: parseOptionalString(req.query.createdFrom),
+  createdTo: parseOptionalString(req.query.createdTo),
+});
+
 export const getFieldMonitoringUsers = async (
   req: AuthenticatedRequest,
   res: Response
@@ -100,14 +134,7 @@ export const getFieldMonitoringUsers = async (
   try {
     const scopedUserIds = await resolveScopedUserIds(req);
     const data = await FieldMonitoringService.getMonitoringRoster(
-      {
-        page: parsePositiveInt(req.query.page, 1),
-        limit: parsePositiveInt(req.query.limit, 20),
-        search: parseOptionalString(req.query.search),
-        pincode: parseOptionalString(req.query.pincode),
-        areaId: parseOptionalAreaId(req.query.areaId),
-        status: parseOptionalStatus(req.query.status),
-      },
+      buildRosterParams(req),
       scopedUserIds
     );
 
@@ -122,6 +149,97 @@ export const getFieldMonitoringUsers = async (
       message: 'Failed to retrieve field monitoring roster',
       error: {
         code: 'FIELD_MONITORING_ROSTER_ERROR',
+        details: errorMessage(error),
+      },
+    });
+  }
+};
+
+// GET /api/field-monitoring/export — xlsx mirroring list WHERE.
+// escapeFormulaRow (CWE-1236) on every user-controlled cell.
+// FIELD_MONITORING_EXPORTED audit row written PRE-stream. Hard cap.
+export const exportFieldMonitoring = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const scopedUserIds = await resolveScopedUserIds(req);
+    const rows = await FieldMonitoringService.exportMonitoringRoster(
+      buildRosterParams(req),
+      scopedUserIds,
+      FIELD_MONITORING_EXPORT_LIMIT
+    );
+
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'FIELD_MONITORING_EXPORTED',
+      entityType: 'field_monitoring',
+      details: { recordCount: rows.length, filters: req.query },
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Field Monitoring');
+    worksheet.columns = [
+      { header: 'Name', key: 'name', width: 25 },
+      { header: 'Username', key: 'username', width: 20 },
+      { header: 'Employee ID', key: 'employeeId', width: 15 },
+      { header: 'Phone', key: 'phone', width: 18 },
+      { header: 'Live Status', key: 'liveStatus', width: 14 },
+      { header: 'Operating Area', key: 'operatingArea', width: 25 },
+      { header: 'Operating Pincode', key: 'operatingPincode', width: 14 },
+      { header: 'Assigned Areas', key: 'totalAreas', width: 14 },
+      { header: 'Assigned Pincodes', key: 'totalPincodes', width: 16 },
+      { header: 'Active Assignments', key: 'activeAssignmentCount', width: 16 },
+      { header: 'Last Activity', key: 'lastActivity', width: 22 },
+      { header: 'Last Location Lat', key: 'lat', width: 14 },
+      { header: 'Last Location Lng', key: 'lng', width: 14 },
+      { header: 'Last Location Time', key: 'locTime', width: 22 },
+    ];
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' },
+    };
+
+    rows.forEach(row => {
+      worksheet.addRow(
+        escapeFormulaRow({
+          name: row.name,
+          username: row.username,
+          employeeId: row.employeeId,
+          phone: row.phone,
+          liveStatus: row.liveStatus,
+          operatingArea: row.operatingArea,
+          operatingPincode: row.operatingPincode,
+          totalAreas: row.assignedTerritory.totalAreas,
+          totalPincodes: row.assignedTerritory.totalPincodes,
+          activeAssignmentCount: row.activeAssignmentCount,
+          lastActivity: row.lastActivityAt ? new Date(row.lastActivityAt).toISOString() : '',
+          lat: row.lastLocation?.lat ?? '',
+          lng: row.lastLocation?.lng ?? '',
+          locTime: row.lastLocation?.time ? new Date(row.lastLocation.time).toISOString() : '',
+        })
+      );
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=field_monitoring_${new Date().toISOString().split('T')[0]}.xlsx`
+    );
+    res.send(buffer);
+  } catch (error) {
+    logger.error('Error exporting field monitoring roster:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export field monitoring roster',
+      error: {
+        code: 'FIELD_MONITORING_EXPORT_ERROR',
         details: errorMessage(error),
       },
     });

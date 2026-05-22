@@ -1,9 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Activity, ArrowLeft, Eye, Navigation, Radio, RefreshCw, UserCheck } from 'lucide-react';
+import {
+  Activity,
+  ArrowLeft,
+  CheckSquare,
+  Download,
+  Eye,
+  Navigation,
+  Radio,
+  RefreshCw,
+  UserCheck,
+} from 'lucide-react';
 import { format } from 'date-fns';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +40,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { useAreas } from '@/hooks/useAreas';
 import { usePincodes } from '@/hooks/useLocations';
@@ -44,7 +55,7 @@ import { frontendSocketService } from '@/services/socket';
 import { logger } from '@/utils/logger';
 
 const REFRESH_INTERVAL = 60_000; // 60s refresh for 1000+ field users (was 30s)
-const PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [20, 50, 100];
 const MAP_PAGE_SIZE = 200; // Reduced from 500 for better map performance at scale
 const STATUS_OPTIONS: FieldMonitoringLiveStatus[] = [
   'Idle',
@@ -52,6 +63,19 @@ const STATUS_OPTIONS: FieldMonitoringLiveStatus[] = [
   'At Location',
   'Submitted',
   'Offline',
+];
+
+type SortOption = 'name_asc' | 'name_desc' | 'createdAt_desc' | 'createdAt_asc';
+const SORT_OPTIONS: {
+  value: SortOption;
+  label: string;
+  sortBy: 'name' | 'createdAt';
+  sortOrder: 'asc' | 'desc';
+}[] = [
+  { value: 'name_asc', label: 'Name A → Z', sortBy: 'name', sortOrder: 'asc' },
+  { value: 'name_desc', label: 'Name Z → A', sortBy: 'name', sortOrder: 'desc' },
+  { value: 'createdAt_desc', label: 'Newest first', sortBy: 'createdAt', sortOrder: 'desc' },
+  { value: 'createdAt_asc', label: 'Oldest first', sortBy: 'createdAt', sortOrder: 'asc' },
 ];
 
 type FieldMonitoringFilters = {
@@ -324,7 +348,32 @@ function FieldMonitoringDetailView({ userId }: { userId: string }) {
 function FieldMonitoringRosterView() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const page = Number(searchParams.get('page') || 1);
+  const pageSize = Number(searchParams.get('pageSize') || 20);
+  const sort = (searchParams.get('sort') || 'name_asc') as SortOption;
+  const dateFrom = searchParams.get('dateFrom') || '';
+  const dateTo = searchParams.get('dateTo') || '';
+  const updateParam = useCallback(
+    (key: string, value: string | null) => {
+      const next = new URLSearchParams(searchParams);
+      if (value === null || value === '' || value === 'all') {
+        next.delete(key);
+      } else {
+        next.set(key, value);
+      }
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams]
+  );
+  const setPage = useCallback(
+    (newPage: number) => {
+      updateParam('page', newPage <= 1 ? null : String(newPage));
+    },
+    [updateParam]
+  );
   // Reset roster pagination when scope toggles so a stale page index
   // from the prior tenant can't strand the user on an empty page.
   useScopePageReset(() => setPage(1));
@@ -345,12 +394,19 @@ function FieldMonitoringRosterView() {
   });
 
   useEffect(() => {
-    setPage(1);
+    if (page !== 1) {
+      setPage(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     search.debouncedSearchValue,
     filters.filters.pincode,
     filters.filters.areaId,
     filters.filters.status,
+    sort,
+    dateFrom,
+    dateTo,
+    pageSize,
   ]);
 
   // 2026-05-13: subscribe to `field-monitoring:location-updated` WS
@@ -494,23 +550,40 @@ function FieldMonitoringRosterView() {
   const { data: pincodesResponse } = usePincodes({ limit: 500 });
   const { data: areasResponse } = useAreas();
 
-  const commonRosterFilters = {
-    search: search.debouncedSearchValue || undefined,
-    pincode: filters.filters.pincode || undefined,
-    areaId: filters.filters.areaId ? Number(filters.filters.areaId) : undefined,
-    status: filters.filters.status || undefined,
-  };
+  const sortOption = SORT_OPTIONS.find((o) => o.value === sort) ?? SORT_OPTIONS[0];
+  const commonRosterFilters = useMemo(
+    () => ({
+      search: search.debouncedSearchValue || undefined,
+      pincode: filters.filters.pincode || undefined,
+      areaId: filters.filters.areaId ? Number(filters.filters.areaId) : undefined,
+      status: filters.filters.status || undefined,
+      sortBy: sortOption.sortBy,
+      sortOrder: sortOption.sortOrder,
+      createdFrom: dateFrom || undefined,
+      createdTo: dateTo || undefined,
+    }),
+    [
+      search.debouncedSearchValue,
+      filters.filters.pincode,
+      filters.filters.areaId,
+      filters.filters.status,
+      sortOption.sortBy,
+      sortOption.sortOrder,
+      dateFrom,
+      dateTo,
+    ]
+  );
 
   const {
     data: rosterResponse,
     isLoading: rosterLoading,
     refetch: refetchRoster,
   } = useQuery({
-    queryKey: ['field-monitoring', 'users', 'table', page, PAGE_SIZE, commonRosterFilters],
+    queryKey: ['field-monitoring', 'users', 'table', page, pageSize, commonRosterFilters],
     queryFn: () =>
       fieldMonitoringService.getMonitoringRoster({
         page,
-        limit: PAGE_SIZE,
+        limit: pageSize,
         ...commonRosterFilters,
       }),
     staleTime: REFRESH_INTERVAL,
@@ -539,6 +612,7 @@ function FieldMonitoringRosterView() {
     totalFieldUsers: 0,
     activeToday: 0,
     activeNow: 0,
+    submissionsToday: 0,
     offlineCount: 0,
   };
 
@@ -546,10 +620,28 @@ function FieldMonitoringRosterView() {
   const roster = rosterPayload?.data || [];
   const pagination = rosterPayload?.pagination || {
     page,
-    limit: PAGE_SIZE,
+    limit: pageSize,
     total: 0,
     totalPages: 0,
   };
+
+  const handleExport = useCallback(async () => {
+    setIsExporting(true);
+    try {
+      const blob = await fieldMonitoringService.exportRoster(commonRosterFilters);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `field_monitoring_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      logger.error('Failed to export field monitoring roster:', error);
+      toast.error('Failed to export roster');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [commonRosterFilters]);
 
   const mapRoster = useMemo(() => mapRosterResponse?.data?.data || [], [mapRosterResponse]);
   const mapMarkers = useMemo<GoogleMarkerMapItem[]>(
@@ -577,7 +669,17 @@ function FieldMonitoringRosterView() {
     filters.filters.pincode,
     filters.filters.areaId,
     filters.filters.status,
+    sort !== 'name_asc' ? sort : null,
+    dateFrom,
+    dateTo,
   ].filter(Boolean).length;
+
+  const handleClearFilters = useCallback(() => {
+    filters.clearFilters();
+    const next = new URLSearchParams(searchParams);
+    ['sort', 'dateFrom', 'dateTo'].forEach((k) => next.delete(k));
+    setSearchParams(next, { replace: true });
+  }, [filters, searchParams, setSearchParams]);
 
   const handleRefresh = () => {
     void refetchStats();
@@ -605,7 +707,7 @@ function FieldMonitoringRosterView() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <StatsCard
           title="Total Field Users"
           value={stats.totalFieldUsers}
@@ -628,9 +730,16 @@ function FieldMonitoringRosterView() {
           color="text-amber-600"
         />
         <StatsCard
+          title="Submissions Today"
+          value={stats.submissionsToday}
+          description="Form submissions today"
+          icon={CheckSquare}
+          color="text-purple-600"
+        />
+        <StatsCard
           title="Offline"
           value={stats.offlineCount}
-          description="No recent heartbeat"
+          description="No recent operational activity"
           icon={Navigation}
           color="text-red-600"
         />
@@ -652,7 +761,18 @@ function FieldMonitoringRosterView() {
             searchPlaceholder="Search by executive name or mobile number..."
             hasActiveFilters={activeFilterCount > 0}
             activeFilterCount={activeFilterCount}
-            onClearFilters={filters.clearFilters}
+            onClearFilters={handleClearFilters}
+            actions={
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                disabled={isExporting || rosterLoading}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                {isExporting ? 'Exporting…' : 'Export'}
+              </Button>
+            }
             filterContent={
               <FilterGrid columns={3}>
                 <div className="space-y-2">
@@ -722,6 +842,49 @@ function FieldMonitoringRosterView() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="field-monitoring-sort">Sort by</Label>
+                  <Select
+                    value={sort}
+                    onValueChange={(value) =>
+                      updateParam('sort', value === 'name_asc' ? null : value)
+                    }
+                  >
+                    <SelectTrigger id="field-monitoring-sort">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SORT_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="field-monitoring-date-from">Date From</Label>
+                  <Input
+                    id="field-monitoring-date-from"
+                    type="date"
+                    placeholder="(YYYY-MM-DD)"
+                    value={dateFrom}
+                    onChange={(e) => updateParam('dateFrom', e.target.value || null)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="field-monitoring-date-to">Date To</Label>
+                  <Input
+                    id="field-monitoring-date-to"
+                    type="date"
+                    placeholder="(YYYY-MM-DD)"
+                    value={dateTo}
+                    onChange={(e) => updateParam('dateTo', e.target.value || null)}
+                  />
                 </div>
               </FilterGrid>
             }
@@ -857,26 +1020,48 @@ function FieldMonitoringRosterView() {
                     </Table>
                   </div>
 
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm text-muted-foreground">
-                      Showing {roster.length} of {pagination.total} field executives
-                    </p>
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                    <div className="text-sm text-muted-foreground">
+                      {pagination.total > 0
+                        ? `Showing ${roster.length} of ${pagination.total} field executives`
+                        : 'No field executives to show'}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="field-monitoring-page-size">Rows</Label>
+                        <Select
+                          value={String(pageSize)}
+                          onValueChange={(value) =>
+                            updateParam('pageSize', value === '20' ? null : value)
+                          }
+                        >
+                          <SelectTrigger id="field-monitoring-page-size" className="w-20">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PAGE_SIZE_OPTIONS.map((size) => (
+                              <SelectItem key={size} value={String(size)}>
+                                {size}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setPage((current) => Math.max(1, current - 1))}
+                        onClick={() => setPage(Math.max(1, page - 1))}
                         disabled={page <= 1}
                       >
                         Previous
                       </Button>
-                      <span className="text-sm text-muted-foreground">
+                      <span className="text-sm">
                         Page {pagination.page} of {Math.max(pagination.totalPages, 1)}
                       </span>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setPage((current) => current + 1)}
+                        onClick={() => setPage(page + 1)}
                         disabled={page >= pagination.totalPages}
                       >
                         Next

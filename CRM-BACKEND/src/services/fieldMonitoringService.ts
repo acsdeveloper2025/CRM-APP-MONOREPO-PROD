@@ -2,6 +2,13 @@ import { query } from '@/config/database';
 import { deriveCapabilitiesFromPermissionCodes } from '@/security/rbacAccess';
 
 const ACTIVE_ASSIGNMENT_STATUSES = ['ASSIGNED', 'IN_PROGRESS', 'PENDING'] as const;
+const ALLOWED_STATUSES = [
+  'Offline',
+  'Submitted',
+  'At Location',
+  'Travelling',
+  'Idle',
+] as const;
 const OFFLINE_THRESHOLD_MS = 15 * 60 * 1000;
 const SUBMITTED_THRESHOLD_MS = 10 * 60 * 1000;
 const AT_LOCATION_THRESHOLD_MS = 15 * 60 * 1000;
@@ -173,6 +180,7 @@ export type MonitoringStats = {
   totalFieldUsers: number;
   activeToday: number;
   activeNow: number;
+  submissionsToday: number;
   offlineCount: number;
 };
 
@@ -183,6 +191,33 @@ export type MonitoringRosterParams = {
   pincode?: string;
   areaId?: number;
   status?: FieldUserLiveStatus;
+  sortBy?: 'name' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
+  createdFrom?: string;
+  createdTo?: string;
+};
+
+type RosterRow = {
+  id: string;
+  name: string;
+  username: string;
+  phone: string | null;
+  employeeId: string | null;
+  created_at: Date | string | null;
+  last_heartbeat_at: Date | string | null;
+  last_task_activity_at: Date | string | null;
+  last_location_at: Date | string | null;
+  last_submission_at: Date | string | null;
+  assignment_count: string | number;
+  lat: string | number | null;
+  lng: string | number | null;
+  accuracy: string | number | null;
+  loc_recorded_at: Date | string | null;
+  loc_source: string | null;
+  ping_source: 'TASK' | 'ADMIN_PING' | null;
+  requested_by_id: string | null;
+  requested_by_name: string | null;
+  live_status: string;
 };
 
 export type MonitoringRosterItem = {
@@ -351,12 +386,26 @@ export class FieldMonitoringService {
         totalFieldUsers: 0,
         activeToday: 0,
         activeNow: 0,
+        submissionsToday: 0,
         offlineCount: 0,
       };
     }
 
     const activities = await this.getUserActivities(userIds);
     const startOfToday = this.getStartOfToday();
+
+    // 5th card aggregate (canonical §9): count of form submissions today
+    // restricted to the field-user population.
+    const submissionsTodayResult = await query<{ submissions_today: string }>(
+      `
+        SELECT COUNT(*) AS submissions_today
+        FROM form_submissions
+        WHERE submitted_by = ANY($1::uuid[])
+          AND submitted_at >= $2
+      `,
+      [userIds, startOfToday]
+    );
+    const submissionsToday = parseInt(submissionsTodayResult.rows[0]?.submissions_today || '0', 10);
 
     let activeToday = 0;
     let activeNow = 0;
@@ -391,8 +440,29 @@ export class FieldMonitoringService {
       totalFieldUsers: userIds.length,
       activeToday,
       activeNow,
+      submissionsToday,
       offlineCount,
     };
+  }
+
+  // 2026-05-23: xlsx export mirroring list WHERE clause. Hard-capped at
+  // FIELD_MONITORING_EXPORT_LIMIT rows (defaults to 10000 — see
+  // controller). Returns the same rich roster shape as the list.
+  static async exportMonitoringRoster(
+    params: MonitoringRosterParams,
+    scopeUserIds?: string[],
+    limit = 10000
+  ): Promise<MonitoringRosterItem[]> {
+    const population = await this.getFieldUserPopulation(scopeUserIds);
+    const userIds = population.map(user => user.id);
+    if (userIds.length === 0) {
+      return [];
+    }
+    const result = await this.queryRosterRows(userIds, params, scopeUserIds, {
+      page: 1,
+      limit,
+    });
+    return result.rows;
   }
 
   static async getMonitoringRoster(
@@ -416,129 +486,23 @@ export class FieldMonitoringService {
       };
     }
 
-    const [activities, locations, operatingContexts, territories, assignments] = await Promise.all([
-      this.getUserActivities(userIds),
-      this.getLatestLocations(userIds),
-      this.getCurrentOperatingContexts(userIds),
-      this.getAssignedTerritories(userIds),
-      this.getOpenAssignments(userIds),
-    ]);
-
-    const roster = population.map<MonitoringRosterItem>(user => {
-      const activity = activities.get(user.id) || this.emptyActivity();
-      const latestLocation = locations.get(user.id) || null;
-      const openAssignments = assignments.get(user.id) || [];
-      const liveStatus = this.deriveLiveStatus(activity, latestLocation, openAssignments);
-      const currentOperating = operatingContexts.get(user.id);
-      const territory = territories.get(user.id) || { areas: [], pincodes: [] };
-      const currentCase = openAssignments[0] || null;
-
-      return {
-        id: user.id,
-        name: user.name,
-        username: user.username,
-        employeeId: user.employeeId,
-        phone: user.phone,
-        liveStatus,
-        lastHeartbeatAt: activity.lastHeartbeatAt,
-        lastActivityAt: this.getLatestOverallActivity(activity),
-        lastLocation: latestLocation
-          ? {
-              lat: latestLocation.lat,
-              lng: latestLocation.lng,
-              time: latestLocation.recordedAt,
-              freshness: this.isFresh(latestLocation.recordedAt, AT_LOCATION_THRESHOLD_MS)
-                ? 'fresh'
-                : 'stale',
-              source: latestLocation.source,
-              pingSource: latestLocation.pingSource ?? null,
-              requestedById: latestLocation.requestedById ?? null,
-              requestedByName: latestLocation.requestedByName ?? null,
-            }
-          : null,
-        operatingArea: currentOperating?.areaName ?? null,
-        operatingPincode:
-          currentOperating?.pincode ??
-          territory.areas[0]?.pincodeCode ??
-          territory.pincodes[0]?.pincodeCode ??
-          null,
-        assignedTerritory: (() => {
-          const uniquePincodeCodes = [
-            ...new Set([
-              ...territory.areas.map(area => area.pincodeCode),
-              ...territory.pincodes.map(pincode => pincode.pincodeCode),
-            ]),
-          ];
-          return {
-            totalAreas: territory.areas.length,
-            // 2026-05-23: was `pincodes.length + areas.length` which
-            // double-counted a pincode if the user had both a direct
-            // pincode assignment AND an area assignment in that pincode.
-            totalPincodes: uniquePincodeCodes.length,
-            areaNames: territory.areas.map(area => area.areaName),
-            pincodeCodes: uniquePincodeCodes,
-          };
-        })(),
-        activeAssignmentCount: openAssignments.length,
-        currentCaseSummary: currentCase
-          ? {
-              caseId: currentCase.case.id,
-              caseNumber: currentCase.case.caseNumber,
-              customerName: currentCase.case.customerName,
-              status: currentCase.case.status,
-              taskId: currentCase.task.id,
-              taskNumber: currentCase.task.taskNumber,
-              taskStatus: currentCase.task.status,
-            }
-          : null,
-      };
+    // 2026-05-23: SQL-side WHERE + LIMIT/OFFSET + COUNT(*) replacing the
+    // prior load-everything-then-JS-paginate pattern. liveStatus is
+    // computed inline via CASE so the status filter can be applied SQL-
+    // side (mirrors deriveLiveStatus exactly — see also-modified JS
+    // helper for the detail-view path).
+    const filtered = await this.queryRosterRows(userIds, params, scopeUserIds, {
+      page: normalizedPage,
+      limit: normalizedLimit,
     });
-
-    const normalizedSearch = params.search?.trim().toLowerCase();
-    const filteredRoster = roster.filter(item => {
-      if (normalizedSearch) {
-        const haystack = [item.name, item.phone || ''].map(value => value.toLowerCase());
-        const matchesSearch = haystack.some(value => value.includes(normalizedSearch));
-        if (!matchesSearch) {
-          return false;
-        }
-      }
-
-      if (params.pincode) {
-        const matchesPincode =
-          item.operatingPincode === params.pincode ||
-          item.assignedTerritory.pincodeCodes.includes(params.pincode);
-        if (!matchesPincode) {
-          return false;
-        }
-      }
-
-      if (typeof params.areaId === 'number') {
-        const territory = territories.get(item.id) || { areas: [], pincodes: [] };
-        const matchesArea = territory.areas.some(area => area.areaId === params.areaId);
-        if (!matchesArea) {
-          return false;
-        }
-      }
-
-      if (params.status && item.liveStatus !== params.status) {
-        return false;
-      }
-
-      return true;
-    });
-
-    const total = filteredRoster.length;
-    const startIndex = (normalizedPage - 1) * normalizedLimit;
-    const data = filteredRoster.slice(startIndex, startIndex + normalizedLimit);
 
     return {
-      data,
+      data: filtered.rows,
       pagination: {
         page: normalizedPage,
         limit: normalizedLimit,
-        total,
-        totalPages: total === 0 ? 0 : Math.ceil(total / normalizedLimit),
+        total: filtered.total,
+        totalPages: filtered.total === 0 ? 0 : Math.ceil(filtered.total / normalizedLimit),
       },
     };
   }
@@ -584,6 +548,253 @@ export class FieldMonitoringService {
         assignedTerritory: territories.get(userId) || operatingTerritory.assignedTerritory,
       },
     };
+  }
+
+  // 2026-05-23: SINGLE-query roster path. Computes liveStatus inline via
+  // SQL CASE so the status filter is SQL-side. Filters (search/pincode/
+  // areaId/status/createdFrom/createdTo) all push down. LIMIT/OFFSET +
+  // COUNT(*) sit on the same WHERE. Used for both list (paginated) and
+  // export (capped via params.exportLimit). Returns rich roster rows
+  // ready for FE consumption.
+  private static async queryRosterRows(
+    userIds: string[],
+    params: MonitoringRosterParams,
+    _scopeUserIds: string[] | undefined,
+    pagination: { page: number; limit: number }
+  ): Promise<{ rows: MonitoringRosterItem[]; total: number }> {
+    const queryParams: (string | number | string[])[] = [userIds];
+    const conditions: string[] = ['u.id = ANY($1::uuid[])', 'u.deleted_at IS NULL'];
+    let paramIndex = 2;
+
+    if (params.search && typeof params.search === 'string' && params.search.trim()) {
+      conditions.push(`(u.name ILIKE $${paramIndex} OR COALESCE(u.phone, '') ILIKE $${paramIndex})`);
+      queryParams.push(`%${params.search.trim()}%`);
+      paramIndex++;
+    }
+    if (params.pincode && typeof params.pincode === 'string' && params.pincode.trim()) {
+      conditions.push(`(
+        EXISTS (
+          SELECT 1 FROM user_pincode_assignments upa
+          JOIN pincodes p ON p.id = upa.pincode_id
+          WHERE upa.user_id = u.id AND upa.is_active = true AND p.code = $${paramIndex}
+        )
+        OR EXISTS (
+          SELECT 1 FROM user_area_assignments uaa
+          JOIN pincodes p ON p.id = uaa.pincode_id
+          WHERE uaa.user_id = u.id AND uaa.is_active = true AND p.code = $${paramIndex}
+        )
+      )`);
+      queryParams.push(params.pincode.trim());
+      paramIndex++;
+    }
+    if (typeof params.areaId === 'number') {
+      conditions.push(`EXISTS (
+        SELECT 1 FROM user_area_assignments uaa
+        WHERE uaa.user_id = u.id AND uaa.is_active = true AND uaa.area_id = $${paramIndex}
+      )`);
+      queryParams.push(params.areaId);
+      paramIndex++;
+    }
+    if (typeof params.createdFrom === 'string' && params.createdFrom) {
+      conditions.push(`u.created_at >= $${paramIndex}`);
+      queryParams.push(params.createdFrom);
+      paramIndex++;
+    }
+    if (typeof params.createdTo === 'string' && params.createdTo) {
+      conditions.push(`u.created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
+      queryParams.push(params.createdTo);
+      paramIndex++;
+    }
+
+    const baseConditions = conditions.join(' AND ');
+    const statusFilter =
+      params.status && ALLOWED_STATUSES.includes(params.status) ? params.status : null;
+    const statusPlaceholder = statusFilter ? `$${paramIndex}` : null;
+    if (statusFilter) {
+      queryParams.push(statusFilter);
+      paramIndex++;
+    }
+
+    const sortBy = params.sortBy === 'createdAt' ? 'u.created_at' : 'u.name';
+    const sortOrder: 'ASC' | 'DESC' = params.sortOrder === 'desc' ? 'DESC' : 'ASC';
+
+    const rosterCte = `
+      WITH base AS (
+        SELECT
+          u.id,
+          u.name,
+          u.username,
+          u.phone,
+          u.employee_id AS "employeeId",
+          u.created_at AS created_at,
+          (SELECT MAX(last_sync_at) FROM mobile_device_sync m WHERE m.user_id = u.id) AS last_heartbeat_at,
+          (SELECT MAX(GREATEST(
+              vt.started_at::timestamptz,
+              vt.completed_at::timestamptz,
+              vt.updated_at::timestamptz,
+              vt.current_assigned_at,
+              vt.assigned_at::timestamptz
+          )) FROM verification_tasks vt WHERE vt.assigned_to = u.id) AS last_task_activity_at,
+          (SELECT MAX(recorded_at) FROM locations l WHERE l.recorded_by = u.id) AS last_location_at,
+          (SELECT MAX(submitted_at) FROM form_submissions f WHERE f.submitted_by = u.id) AS last_submission_at,
+          (SELECT COUNT(*) FROM verification_tasks vt
+            WHERE vt.assigned_to = u.id
+              AND vt.status = ANY(ARRAY['ASSIGNED','IN_PROGRESS','PENDING']::text[])
+          ) AS assignment_count
+        FROM users u
+        WHERE ${baseConditions}
+      ),
+      with_location AS (
+        SELECT b.*,
+          loc.lat, loc.lng, loc.accuracy, loc.recorded_at AS loc_recorded_at,
+          loc.source AS loc_source, loc.requested_by_id, loc.requested_by_name, loc.ping_source
+        FROM base b
+        LEFT JOIN LATERAL (
+          SELECT l.latitude AS lat, l.longitude AS lng, l.accuracy, l.recorded_at,
+            'locations'::text AS source, l.source AS ping_source,
+            requester.id AS requested_by_id, requester.name AS requested_by_name
+          FROM locations l
+          LEFT JOIN users requester ON requester.id = l.requested_by_user_id
+          WHERE l.recorded_by = b.id
+          ORDER BY l.recorded_at DESC, l.id DESC
+          LIMIT 1
+        ) loc ON true
+      ),
+      with_status AS (
+        SELECT w.*,
+          CASE
+            WHEN GREATEST(w.last_task_activity_at, w.last_location_at, w.last_submission_at) IS NULL
+              OR GREATEST(w.last_task_activity_at, w.last_location_at, w.last_submission_at)
+                 < NOW() - INTERVAL '15 minutes'
+              THEN 'Offline'
+            WHEN w.last_submission_at >= NOW() - INTERVAL '10 minutes'
+              THEN 'Submitted'
+            WHEN w.loc_source = 'locations'
+              AND w.last_location_at >= NOW() - INTERVAL '15 minutes'
+              AND w.assignment_count > 0
+              THEN 'At Location'
+            WHEN w.assignment_count > 0
+              THEN 'Travelling'
+            ELSE 'Idle'
+          END AS live_status
+        FROM with_location w
+      ),
+      filtered AS (
+        SELECT * FROM with_status
+        ${statusPlaceholder ? `WHERE live_status = ${statusPlaceholder}` : ''}
+      )
+    `;
+
+    const countSql = `${rosterCte} SELECT COUNT(*) AS total FROM filtered`;
+    const countResult = await query<{ total: string }>(countSql, queryParams);
+    const total = parseInt(countResult.rows[0]?.total || '0', 10);
+
+    const limitPlaceholder = `$${paramIndex}`;
+    const offsetPlaceholder = `$${paramIndex + 1}`;
+    queryParams.push(pagination.limit, (pagination.page - 1) * pagination.limit);
+
+    // 'filtered' CTE projects unprefixed columns (name, created_at, …),
+    // so ORDER BY must reference those — not the `u.`-prefixed names
+    // used inside the base CTE.
+    const orderColumn = sortBy === 'u.created_at' ? 'created_at' : 'name';
+    const dataSql = `
+      ${rosterCte}
+      SELECT * FROM filtered
+      ORDER BY ${orderColumn} ${sortOrder}, id ASC
+      LIMIT ${limitPlaceholder} OFFSET ${offsetPlaceholder}
+    `;
+
+    const dataResult = await query<RosterRow>(dataSql, queryParams);
+    const rosterUserIds = dataResult.rows.map(r => r.id);
+
+    // Hydrate operating-context + assigned-territory + current-case for
+    // ONLY the paginated user set (cheap join after SQL-side WHERE).
+    if (rosterUserIds.length === 0) {
+      return { rows: [], total };
+    }
+    // Hydrate operating-context + assigned-territory + current-case +
+    // latest location for ONLY the paginated user set. Locations use the
+    // existing 3-source priority helper (locations -> formSubmissions ->
+    // verificationTasks) so users with no `locations` row but recent
+    // form submissions still appear on the map.
+    const [operatingContexts, territories, openAssignments, latestLocations] = await Promise.all([
+      this.getCurrentOperatingContexts(rosterUserIds),
+      this.getAssignedTerritories(rosterUserIds),
+      this.getOpenAssignments(rosterUserIds),
+      this.getLatestLocations(rosterUserIds),
+    ]);
+
+    const rows = dataResult.rows.map<MonitoringRosterItem>(row => {
+      const territory = territories.get(row.id) || { areas: [], pincodes: [] };
+      const currentOperating = operatingContexts.get(row.id);
+      const assignments = openAssignments.get(row.id) || [];
+      const currentCase = assignments[0] || null;
+      const latestLocation = latestLocations.get(row.id) || null;
+      const uniquePincodeCodes = [
+        ...new Set([
+          ...territory.areas.map(area => area.pincodeCode),
+          ...territory.pincodes.map(pincode => pincode.pincodeCode),
+        ]),
+      ];
+
+      const overallActivityAt = this.maxDate([
+        row.last_heartbeat_at,
+        row.last_task_activity_at,
+        row.last_location_at,
+        row.last_submission_at,
+      ]);
+
+      return {
+        id: row.id,
+        name: row.name,
+        username: row.username,
+        employeeId: row.employeeId,
+        phone: row.phone,
+        liveStatus: row.live_status as FieldUserLiveStatus,
+        lastHeartbeatAt: this.toDate(row.last_heartbeat_at),
+        lastActivityAt: overallActivityAt,
+        lastLocation: latestLocation
+          ? {
+              lat: latestLocation.lat,
+              lng: latestLocation.lng,
+              time: latestLocation.recordedAt,
+              freshness: this.isFresh(latestLocation.recordedAt, AT_LOCATION_THRESHOLD_MS)
+                ? 'fresh'
+                : 'stale',
+              source: latestLocation.source,
+              pingSource: latestLocation.pingSource ?? null,
+              requestedById: latestLocation.requestedById ?? null,
+              requestedByName: latestLocation.requestedByName ?? null,
+            }
+          : null,
+        operatingArea: currentOperating?.areaName ?? null,
+        operatingPincode:
+          currentOperating?.pincode ??
+          territory.areas[0]?.pincodeCode ??
+          territory.pincodes[0]?.pincodeCode ??
+          null,
+        assignedTerritory: {
+          totalAreas: territory.areas.length,
+          totalPincodes: uniquePincodeCodes.length,
+          areaNames: territory.areas.map(area => area.areaName),
+          pincodeCodes: uniquePincodeCodes,
+        },
+        activeAssignmentCount: assignments.length,
+        currentCaseSummary: currentCase
+          ? {
+              caseId: currentCase.case.id,
+              caseNumber: currentCase.case.caseNumber,
+              customerName: currentCase.case.customerName,
+              status: currentCase.case.status,
+              taskId: currentCase.task.id,
+              taskNumber: currentCase.task.taskNumber,
+              taskStatus: currentCase.task.status,
+            }
+          : null,
+      };
+    });
+
+    return { rows, total };
   }
 
   private static async getUserActivities(

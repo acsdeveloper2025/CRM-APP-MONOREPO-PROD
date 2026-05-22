@@ -7,6 +7,7 @@ export type FieldMonitoringStats = {
   totalFieldUsers: number;
   activeToday: number;
   activeNow: number;
+  submissionsToday: number;
   offlineCount: number;
 };
 
@@ -24,6 +25,10 @@ export type FieldMonitoringRosterQuery = {
   pincode?: string;
   areaId?: number;
   status?: FieldMonitoringLiveStatus;
+  sortBy?: 'name' | 'createdAt';
+  sortOrder?: 'asc' | 'desc';
+  createdFrom?: string;
+  createdTo?: string;
 };
 
 export type FieldMonitoringRosterItem = {
@@ -194,6 +199,13 @@ class FieldMonitoringService {
       `${this.baseUrl}/users/${userId}/request-location`,
       {}
     );
+  }
+
+  async exportRoster(query: FieldMonitoringRosterQuery = {}): Promise<Blob> {
+    const response = await apiService.getRaw<Blob>(`${this.baseUrl}/export`, query, {
+      responseType: 'blob',
+    });
+    return response.data;
   }
 }
 
