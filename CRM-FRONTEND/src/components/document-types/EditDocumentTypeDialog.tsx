@@ -3,8 +3,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import {
-  documentTypeFormSchema,
-  type DocumentTypeFormData,
+  editDocumentTypeFormSchema,
+  type EditDocumentTypeFormData,
 } from '@/forms/schemas/documentType.schema';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,12 +18,14 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { documentTypesService } from '@/services/documentTypes';
 import type { DocumentType } from '@/types/documentType';
 
@@ -38,9 +40,9 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
   open,
   onOpenChange,
 }) => {
-  const form = useForm<DocumentTypeFormData>({
-    resolver: zodResolver(documentTypeFormSchema),
-    defaultValues: { name: '', code: '' },
+  const form = useForm<EditDocumentTypeFormData>({
+    resolver: zodResolver(editDocumentTypeFormSchema),
+    defaultValues: { name: '', code: '', isActive: true },
   });
 
   useEffect(() => {
@@ -48,12 +50,13 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
       form.reset({
         name: documentType.name,
         code: documentType.code,
+        isActive: documentType.isActive ?? true,
       });
     }
   }, [documentType, form]);
 
   const updateDocumentTypeMutation = useMutationWithInvalidation({
-    mutationFn: (data: DocumentTypeFormData) => {
+    mutationFn: (data: EditDocumentTypeFormData) => {
       if (!documentType) {
         throw new Error('Document Type is missing');
       }
@@ -68,7 +71,7 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
     },
   });
 
-  const onSubmit = (data: DocumentTypeFormData) => {
+  const onSubmit = (data: EditDocumentTypeFormData) => {
     if (!documentType) {
       return;
     }
@@ -128,6 +131,25 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
                     <Input placeholder="e.g., Aadhaar Card" {...field} />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Active</FormLabel>
+                    <FormDescription>
+                      Inactive document types are hidden from the Active filter and excluded
+                      from new product/client mappings.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
+                  </FormControl>
                 </FormItem>
               )}
             />

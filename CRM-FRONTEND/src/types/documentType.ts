@@ -120,14 +120,24 @@ export interface DocumentTypeFilters {
   limit?: number;
   search?: string;
   category?: DocumentCategory;
-  isActive?: boolean;
+  // 'all' sent verbatim so URL/cache key stays stable; BE treats it as no-filter.
+  isActive?: 'true' | 'false' | 'all' | boolean;
   isGovernmentIssued?: boolean;
   requiresVerification?: boolean;
+  createdFrom?: string;
+  createdTo?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
 
 export interface DocumentTypeStats {
+  // Canonical 5-card shape.
+  total: number;
+  active: number;
+  inactive: number;
+  recentlyAddedCount: number;
+  mappedCount: number;
+  // Legacy aliases kept for downstream consumers — same data.
   totalDocumentTypes: number;
   activeDocumentTypes: number;
   inactiveDocumentTypes: number;

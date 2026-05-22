@@ -9,3 +9,8 @@ export const documentTypeFormSchema = z.object({
     .regex(/^[A-Z0-9_]+$/, 'Code must contain only uppercase letters, numbers, and underscores'),
 });
 export type DocumentTypeFormData = z.infer<typeof documentTypeFormSchema>;
+
+export const editDocumentTypeFormSchema = documentTypeFormSchema.extend({
+  isActive: z.boolean().optional(),
+});
+export type EditDocumentTypeFormData = z.infer<typeof editDocumentTypeFormSchema>;

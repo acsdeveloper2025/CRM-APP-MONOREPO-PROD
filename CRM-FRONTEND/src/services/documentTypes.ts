@@ -1,3 +1,4 @@
+import type { AxiosResponse } from 'axios';
 import { apiService } from './api';
 import type {
   ApiResponse,
@@ -30,6 +31,15 @@ class DocumentTypesService {
       });
     }
     return response;
+  }
+
+  // xlsx export — mirrors getDocumentTypes filters.
+  async exportDocumentTypes(
+    query: Omit<DocumentTypeFilters, 'page' | 'limit'> = {}
+  ): Promise<AxiosResponse<Blob>> {
+    return apiService.getRaw<Blob>('/document-types/export', query, {
+      responseType: 'blob',
+    });
   }
 
   /** DocTypes scoped to one (client, product) tuple — uses client_product_documents. */

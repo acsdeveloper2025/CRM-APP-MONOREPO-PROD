@@ -1,6 +1,18 @@
 import React, { useState } from 'react';
-import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { MoreHorizontal, Edit, Trash2, Eye, FileText } from 'lucide-react';
+import {
+  useMutationWithInvalidation,
+  useStandardizedMutation,
+} from '@/hooks/useStandardizedMutation';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Eye,
+  FileText,
+  ToggleLeft,
+  ToggleRight,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { baseBadgeStyle, formatBadgeLabel } from '@/lib/badgeStyles';
@@ -35,11 +47,23 @@ interface DocumentTypesTableProps {
 export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({ data, isLoading }) => {
   const [editingDocumentType, setEditingDocumentType] = useState<DocumentType | null>(null);
   const [viewingDocumentType, setViewingDocumentType] = useState<DocumentType | null>(null);
+  const queryClient = useQueryClient();
   const deleteDocumentTypeMutation = useMutationWithInvalidation({
     mutationFn: (id: number) => documentTypesService.deleteDocumentType(id),
     invalidateKeys: [['document-types'], ['document-types-stats']],
     successMessage: 'Document type deleted',
     errorContext: 'Document Type Deletion',
+  });
+
+  const toggleActiveMutation = useStandardizedMutation({
+    mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
+      documentTypesService.updateDocumentType(id, { isActive }),
+    errorContext: 'Document Type Status Toggle',
+    errorFallbackMessage: 'Failed to update document type status',
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['document-types'] });
+      queryClient.invalidateQueries({ queryKey: ['document-types-stats'] });
+    },
   });
 
   const handleDelete = async (documentType: DocumentType) => {
@@ -54,7 +78,7 @@ export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({ data, is
   };
 
   if (isLoading) {
-    return <TableSkeleton headers={['Name', 'Code', 'Usage', 'Actions']} />;
+    return <TableSkeleton headers={['Name', 'Code', 'Usage', 'Status', 'Actions']} />;
   }
 
   return (
@@ -66,13 +90,14 @@ export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({ data, is
               <TableHead>Name</TableHead>
               <TableHead>Code</TableHead>
               <TableHead>Usage</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="w-[70px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                   No document types found
                 </TableCell>
               </TableRow>
@@ -96,6 +121,13 @@ export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({ data, is
                     </div>
                   </TableCell>
                   <TableCell>
+                    {documentType.isActive === false ? (
+                      <Badge variant="secondary">INACTIVE</Badge>
+                    ) : (
+                      <Badge variant="default">ACTIVE</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
@@ -111,6 +143,27 @@ export const DocumentTypesTable: React.FC<DocumentTypesTableProps> = ({ data, is
                         <DropdownMenuItem onClick={() => setEditingDocumentType(documentType)}>
                           <Edit className="mr-2 h-4 w-4" />
                           Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled={toggleActiveMutation.isPending}
+                          onClick={() =>
+                            toggleActiveMutation.mutate({
+                              id: documentType.id,
+                              isActive: !(documentType.isActive ?? true),
+                            })
+                          }
+                        >
+                          {documentType.isActive === false ? (
+                            <>
+                              <ToggleRight className="mr-2 h-4 w-4" />
+                              Activate
+                            </>
+                          ) : (
+                            <>
+                              <ToggleLeft className="mr-2 h-4 w-4" />
+                              Deactivate
+                            </>
+                          )}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
