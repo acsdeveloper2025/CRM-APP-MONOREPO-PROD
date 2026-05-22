@@ -142,7 +142,6 @@ export interface CascadingEditPincodeData {
 
 export interface UpdatePincodeData {
   code?: string;
-  area?: string;
   cityId?: string;
   isActive?: boolean;
 }

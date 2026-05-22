@@ -97,8 +97,20 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     if (path === '/billing-and-commission') {
       return 'Billing';
     }
-    if (path === '/location-management') {
-      return 'Locations';
+    if (path === '/location-management' || path === '/location-management/countries') {
+      return 'Countries';
+    }
+    if (path === '/location-management/states') {
+      return 'States';
+    }
+    if (path === '/location-management/cities') {
+      return 'Cities';
+    }
+    if (path === '/location-management/pincodes') {
+      return 'Pincodes';
+    }
+    if (path === '/location-management/areas') {
+      return 'Areas';
     }
     if (path === '/forms') {
       return 'Forms';

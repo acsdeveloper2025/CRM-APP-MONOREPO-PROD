@@ -13,7 +13,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Form } from '@/components/ui/form';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+} from '@/components/ui/form';
+import { Switch } from '@/components/ui/switch';
 import { locationsService } from '@/services/locations';
 import { Pincode, City, State, Country } from '@/types/location';
 import { ApiResponse } from '@/types/api';
@@ -32,6 +40,7 @@ const cascadingEditPincodeSchema = z.object({
     .array(z.string())
     .min(1, 'At least one area must be selected')
     .max(15, 'Maximum 15 areas allowed'),
+  isActive: z.boolean().optional(),
 });
 
 type CascadingEditPincodeFormData = z.infer<typeof cascadingEditPincodeSchema>;
@@ -55,6 +64,7 @@ export function CascadingEditPincodeDialog({
       cityId: '',
       pincodeCode: '',
       areas: [],
+      isActive: true,
     },
   });
 
@@ -98,6 +108,7 @@ export function CascadingEditPincodeDialog({
           cityId: String(pincode.cityId),
           pincodeCode: String(pincode.code),
           areas: pincode.areas?.map((area) => String(area.id)) || [],
+          isActive: pincode.isActive ?? true,
         });
       }
     }
@@ -105,10 +116,11 @@ export function CascadingEditPincodeDialog({
 
   const updateMutation = useMutationWithInvalidation({
     mutationFn: async (data: CascadingEditPincodeFormData) => {
-      // 1. Update core pincode fields (code + cityId).
+      // 1. Update core pincode fields (code + cityId + isActive).
       const result = await locationsService.updatePincode(pincode.id, {
         code: data.pincodeCode,
         cityId: data.cityId,
+        isActive: data.isActive,
       });
 
       // 2. Diff selected areas against the originals and sync via the
@@ -129,7 +141,7 @@ export function CascadingEditPincodeDialog({
 
       return result;
     },
-    invalidateKeys: [['pincodes'], ['cities']],
+    invalidateKeys: [['pincodes'], ['cities'], ['pincode-stats']],
     successMessage: 'Pincode updated successfully',
     errorContext: 'Pincode Update',
     errorFallbackMessage: 'Failed to update pincode',
@@ -188,6 +200,24 @@ export function CascadingEditPincodeDialog({
               cityField="cityId"
               pincodeField="pincodeCode"
               areasField="areas"
+            />
+
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Active</FormLabel>
+                    <FormDescription>
+                      Inactive pincodes are hidden from the Active filter.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
             />
 
             <DialogFooter className="flex-col sm:flex-row gap-2">

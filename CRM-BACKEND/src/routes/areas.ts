@@ -47,18 +47,7 @@ const listAreasValidation = [
     .optional()
     .isInt({ min: 1, max: 10000 })
     .withMessage('Limit must be between 1 and 10000'),
-  query('cityId').optional().trim(),
   query('pincodeId').optional(),
-  query('state')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('State must be less than 100 characters'),
-  query('country')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('Country must be less than 100 characters'),
   query('search')
     .optional()
     .trim()

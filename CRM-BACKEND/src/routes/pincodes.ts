@@ -31,6 +31,8 @@ const createPincodeValidation = [
     .withMessage('Pincode must be between 4 and 10 characters')
     .matches(/^[0-9]+$/)
     .withMessage('Pincode must contain only numbers'),
+  // 'area' is the back-compat single-area name; controller converts it to an
+  // area_id via lookup. 'areas' is the multi-area path.
   body('area')
     .optional()
     .trim()
@@ -45,47 +47,6 @@ const createPincodeValidation = [
     .isInt({ min: 1 })
     .withMessage('Each area must be a valid positive integer'),
   body('cityId').notEmpty().withMessage('City ID is required'),
-  body('cityName')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage('City name must be less than 100 characters'),
-  body('state')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage('State must be less than 100 characters'),
-  body('country')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage('Country must be less than 100 characters'),
-  body('district')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('District must be less than 100 characters'),
-  body('region')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('Region must be less than 100 characters'),
-  body('coordinates.latitude')
-    .optional()
-    .isFloat({ min: -90, max: 90 })
-    .withMessage('Latitude must be between -90 and 90'),
-  body('coordinates.longitude')
-    .optional()
-    .isFloat({ min: -180, max: 180 })
-    .withMessage('Longitude must be between -180 and 180'),
-  body('deliveryStatus')
-    .optional()
-    .isIn(['DELIVERY', 'NON_DELIVERY', 'SUB_OFFICE', 'HEAD_OFFICE'])
-    .withMessage('Invalid delivery status'),
-  body('officeType')
-    .optional()
-    .isIn(['Head Office', 'Sub Office', 'Branch Office'])
-    .withMessage('Invalid office type'),
   body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
@@ -97,53 +58,7 @@ const updatePincodeValidation = [
     .withMessage('Pincode must be between 4 and 10 characters')
     .matches(/^[0-9]+$/)
     .withMessage('Pincode must contain only numbers'),
-  body('area')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 200 })
-    .withMessage('Area name must be between 1 and 200 characters'),
   body('cityId').optional().notEmpty().withMessage('City ID must not be empty'),
-  body('cityName')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage('City name must be less than 100 characters'),
-  body('state')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage('State must be less than 100 characters'),
-  body('country')
-    .optional()
-    .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage('Country must be less than 100 characters'),
-  body('district')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('District must be less than 100 characters'),
-  body('region')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('Region must be less than 100 characters'),
-  body('coordinates.latitude')
-    .optional()
-    .isFloat({ min: -90, max: 90 })
-    .withMessage('Latitude must be between -90 and 90'),
-  body('coordinates.longitude')
-    .optional()
-    .isFloat({ min: -180, max: 180 })
-    .withMessage('Longitude must be between -180 and 180'),
-  body('deliveryStatus')
-    .optional()
-    .isIn(['DELIVERY', 'NON_DELIVERY', 'SUB_OFFICE', 'HEAD_OFFICE'])
-    .withMessage('Invalid delivery status'),
-  body('officeType')
-    .optional()
-    .isIn(['Head Office', 'Sub Office', 'Branch Office'])
-    .withMessage('Invalid office type'),
   body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
@@ -159,20 +74,6 @@ const listPincodesValidation = [
     .trim()
     .isLength({ max: 100 })
     .withMessage('State must be less than 100 characters'),
-  query('district')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('District must be less than 100 characters'),
-  query('region')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('Region must be less than 100 characters'),
-  query('deliveryStatus')
-    .optional()
-    .isIn(['DELIVERY', 'NON_DELIVERY', 'SUB_OFFICE', 'HEAD_OFFICE'])
-    .withMessage('Invalid delivery status'),
   query('isActive')
     .optional()
     .isIn(['true', 'false', 'all'])
@@ -184,7 +85,7 @@ const listPincodesValidation = [
     .withMessage('Search term must be less than 100 characters'),
   query('sortBy')
     .optional()
-    .isIn(['code', 'area', 'cityName', 'state', 'district', 'createdAt', 'updatedAt'])
+    .isIn(['code', 'cityName', 'state', 'country', 'createdAt', 'updatedAt'])
     .withMessage('Invalid sort field'),
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
   query('createdFrom').optional().isISO8601().withMessage('createdFrom must be ISO 8601 date'),

@@ -262,52 +262,6 @@ export class RateManagementService {
   async getKYCRateStats(): Promise<ApiResponse<KYCRateStats>> {
     return kycRatesService.getKYCRateStats();
   }
-
-  // Statistics and reporting
-  async getRateManagementStats(): Promise<
-    ApiResponse<{
-      rateTypes: { total: number; active: number; inactive: number };
-      rates: {
-        total: number;
-        active: number;
-        inactive: number;
-        averageAmount: number | string;
-      };
-      kycRates?: KYCRateStats;
-    }>
-  > {
-    try {
-      const [rateTypeStats, rateStats, documentTypeRateStats] = await Promise.all([
-        rateTypesService.getRateTypeStats(),
-        ratesService.getRateStats(),
-        kycRatesService.getKYCRateStats(),
-      ]);
-
-      if (!rateTypeStats.success || !rateStats.success) {
-        return {
-          success: false,
-          message: 'Failed to retrieve statistics',
-          error: { code: 'STATS_RETRIEVAL_ERROR' },
-        };
-      }
-
-      return {
-        success: true,
-        message: 'Statistics retrieved successfully',
-        data: {
-          rateTypes: rateTypeStats.data || { total: 0, active: 0, inactive: 0 },
-          rates: rateStats.data || { total: 0, active: 0, inactive: 0, averageAmount: 0 },
-          kycRates: documentTypeRateStats.data,
-        },
-      };
-    } catch (_error) {
-      return {
-        success: false,
-        message: 'Failed to retrieve statistics',
-        error: { code: 'STATS_ERROR' },
-      };
-    }
-  }
 }
 
 export const rateManagementService = new RateManagementService();
