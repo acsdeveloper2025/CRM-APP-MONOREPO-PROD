@@ -1,3 +1,4 @@
+import type { AxiosResponse } from 'axios';
 import { apiService } from './api';
 import type { ApiResponse, PaginationQuery, PaginatedResponse } from '@/types/api';
 import { validateResponse } from './schemas/runtime';
@@ -46,7 +47,10 @@ export type UpdateVerificationTypeData = Partial<CreateVerificationTypeData>;
 
 export interface VerificationTypeListQuery extends PaginationQuery {
   category?: string;
-  isActive?: boolean;
+  // 'all' sent verbatim so URL/cache key stays stable; BE treats it as no-filter.
+  isActive?: 'true' | 'false' | 'all' | boolean;
+  createdFrom?: string;
+  createdTo?: string;
   search?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
@@ -64,6 +68,15 @@ export class VerificationTypesService {
       });
     }
     return response as PaginatedResponse<VerificationType>;
+  }
+
+  // xlsx export — mirrors getVerificationTypes filters.
+  async exportVerificationTypes(
+    query: Omit<VerificationTypeListQuery, 'page' | 'limit'> = {}
+  ): Promise<AxiosResponse<Blob>> {
+    return apiService.getRaw<Blob>('/verification-types/export', query, {
+      responseType: 'blob',
+    });
   }
 
   async getVerificationTypeById(id: string): Promise<ApiResponse<VerificationType>> {
@@ -109,6 +122,7 @@ export class VerificationTypesService {
       total: number;
       active: number;
       inactive: number;
+      recentlyAddedCount?: number;
       byCategory: Record<string, number>;
     }>
   > {
@@ -116,6 +130,7 @@ export class VerificationTypesService {
       total: number;
       active: number;
       inactive: number;
+      recentlyAddedCount?: number;
       byCategory: Record<string, number>;
     }>('/verification-types/stats');
     if (response?.success && response.data && typeof response.data === 'object') {

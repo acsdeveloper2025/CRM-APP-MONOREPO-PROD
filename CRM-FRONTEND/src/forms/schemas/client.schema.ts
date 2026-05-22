@@ -61,5 +61,8 @@ const baseVerificationTypeShape = {
 export const createVerificationTypeFormSchema = z.object(baseVerificationTypeShape);
 export type CreateVerificationTypeFormData = z.infer<typeof createVerificationTypeFormSchema>;
 
-export const editVerificationTypeFormSchema = z.object(baseVerificationTypeShape);
+export const editVerificationTypeFormSchema = z.object({
+  ...baseVerificationTypeShape,
+  isActive: z.boolean().optional(),
+});
 export type EditVerificationTypeFormData = z.infer<typeof editVerificationTypeFormSchema>;

@@ -1,48 +1,87 @@
 import type { Response } from 'express';
+import ExcelJS from 'exceljs';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
 import type { QueryParams } from '@/types/database';
+import { createAuditLog } from '@/utils/auditLogger';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
+
+// Shared WHERE-clause builder for getVerificationTypes + exportVerificationTypes.
+// Returns SQL `WHERE …` fragment + params.
+const buildVerificationTypesWhereClause = (
+  req: AuthenticatedRequest
+): { whereClause: string; queryParams: QueryParams; nextParamIndex: number } => {
+  const { search, isActive, createdFrom, createdTo } = req.query;
+  const whereConditions: string[] = [];
+  const queryParams: QueryParams = [];
+  let paramIndex = 1;
+
+  if (search && typeof search === 'string' && search.trim()) {
+    const searchTerm = `%${search.trim()}%`;
+    whereConditions.push(
+      `(COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex} OR COALESCE(description, '') ILIKE $${paramIndex})`
+    );
+    queryParams.push(searchTerm);
+    paramIndex++;
+  }
+
+  if (typeof isActive === 'boolean') {
+    whereConditions.push(`is_active = $${paramIndex}`);
+    queryParams.push(isActive);
+    paramIndex++;
+  } else if (isActive === 'true' || isActive === 'false') {
+    whereConditions.push(`is_active = $${paramIndex}`);
+    queryParams.push(isActive === 'true');
+    paramIndex++;
+  }
+
+  if (typeof createdFrom === 'string' && createdFrom) {
+    whereConditions.push(`created_at >= $${paramIndex}`);
+    queryParams.push(createdFrom);
+    paramIndex++;
+  }
+  if (typeof createdTo === 'string' && createdTo) {
+    whereConditions.push(`created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
+    queryParams.push(createdTo);
+    paramIndex++;
+  }
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+  return { whereClause, queryParams, nextParamIndex: paramIndex };
+};
+
+const SORT_COLUMN_MAP: Record<string, string> = {
+  name: 'name',
+  code: 'code',
+  category: 'category',
+  basePrice: 'base_price',
+  estimatedTime: 'estimated_time',
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+};
 
 // GET /api/verification-types - List verification types with pagination and filters
 export const getVerificationTypes = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { page = 1, limit = 20, search, sortBy = 'name', sortOrder = 'asc' } = req.query;
 
-    // Build where clause for search
-    let whereClause = '';
-    const queryParams: QueryParams = [];
-    let paramIndex = 1;
+    const {
+      whereClause,
+      queryParams,
+      nextParamIndex: paramIndex,
+    } = buildVerificationTypesWhereClause(req);
 
-    if (search && typeof search === 'string' && search.trim()) {
-      const searchTerm = `%${search.trim()}%`;
-      whereClause = `WHERE COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex} OR COALESCE(description, '') ILIKE $${paramIndex}`;
-      queryParams.push(searchTerm);
-      paramIndex++;
-    }
-
-    // Get total count with search filter
     const countQuery = `SELECT COUNT(*)::text as count FROM verification_types ${whereClause}`;
     const countRes = await query<{ count: string }>(countQuery, queryParams);
     const totalCount = Number(countRes.rows[0]?.count || 0);
 
-    // API contract: sortBy is camelCase; map to snake_case DB column.
-    const sortColumnMap: Record<string, string> = {
-      name: 'name',
-      code: 'code',
-      category: 'category',
-      basePrice: 'base_price',
-      estimatedTime: 'estimated_time',
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-    };
-    const sortCol = sortColumnMap[typeof sortBy === 'string' ? sortBy : ''] || 'name';
+    const sortCol = SORT_COLUMN_MAP[typeof sortBy === 'string' ? sortBy : ''] || 'name';
     const sortDir =
       typeof sortOrder === 'string' && sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
     // M10: secondary ORDER BY id so OFFSET pagination is deterministic
-    // when rows share the same sort column value (many verification
-    // types share created_at after a batch import).
+    // when rows share the same sort column value.
     const dataQuery = `SELECT id, name, code, description, is_active, created_at, updated_at,
        EXISTS (
          SELECT 1 FROM rates r WHERE r.verification_type_id = verification_types.id AND r.is_active = true
@@ -131,9 +170,8 @@ export const createVerificationType = async (req: AuthenticatedRequest, res: Res
       });
     }
 
-    // Create verification type in database
     const newRes = await query(
-      `INSERT INTO verification_types (id, name, code, created_at, updated_at) VALUES (gen_random_uuid(), $1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *`,
+      `INSERT INTO verification_types (name, code, created_at, updated_at) VALUES ($1, $2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *`,
       [name, code]
     );
     const newVerificationType = newRes.rows[0];
@@ -163,9 +201,8 @@ export const createVerificationType = async (req: AuthenticatedRequest, res: Res
 export const updateVerificationType = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    const updateData = req.body as { name?: string; code?: string; isActive?: boolean };
 
-    // Check if verification type exists
     const exRes2 = await query(
       `SELECT id, name, code, description, is_active, created_at, updated_at FROM verification_types WHERE id = $1`,
       [id]
@@ -180,7 +217,6 @@ export const updateVerificationType = async (req: AuthenticatedRequest, res: Res
       });
     }
 
-    // Check for duplicate code if being updated
     if (updateData.code && updateData.code !== existingVerificationType.code) {
       const dupRes = await query(`SELECT id FROM verification_types WHERE code = $1`, [
         updateData.code,
@@ -196,17 +232,17 @@ export const updateVerificationType = async (req: AuthenticatedRequest, res: Res
       }
     }
 
-    // Prepare update data
     const updatePayload: Record<string, unknown> = {};
-
     if (updateData.name) {
       updatePayload.name = updateData.name;
     }
     if (updateData.code) {
       updatePayload.code = updateData.code;
     }
+    if (typeof updateData.isActive === 'boolean') {
+      updatePayload.is_active = updateData.isActive;
+    }
 
-    // Update verification type
     const sets: string[] = [];
     const vals: QueryParams = [];
     let idx = 1;
@@ -248,7 +284,6 @@ export const deleteVerificationType = async (req: AuthenticatedRequest, res: Res
   try {
     const { id } = req.params;
 
-    // Check if verification type exists
     const exRes3 = await query(
       `SELECT id, name, code, description, is_active, created_at, updated_at FROM verification_types WHERE id = $1`,
       [id]
@@ -263,7 +298,6 @@ export const deleteVerificationType = async (req: AuthenticatedRequest, res: Res
       });
     }
 
-    // Delete verification type
     await query(`DELETE FROM verification_types WHERE id = $1`, [id]);
 
     logger.info(`Deleted verification type: ${id}`, {
@@ -289,18 +323,23 @@ export const deleteVerificationType = async (req: AuthenticatedRequest, res: Res
 // GET /api/verification-types/stats - Get verification type statistics
 export const getVerificationTypeStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // Get total count
-    const totalRes = await query(`SELECT COUNT(*)::int as total FROM verification_types`);
-    const total = totalRes.rows[0]?.total || 0;
-
-    // For now, return basic stats since the verification_types table doesn't have isActive or category columns
+    const statsRes = await query(`
+      SELECT
+        COUNT(*)::int as total,
+        COUNT(CASE WHEN is_active = true THEN 1 END)::int as active,
+        COUNT(CASE WHEN is_active = false THEN 1 END)::int as inactive,
+        COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END)::int as recently_added_count
+      FROM verification_types
+    `);
+    const row = statsRes.rows[0] || {};
     const stats = {
-      total,
-      active: total, // Assuming all verification types are active since no isActive column
-      inactive: 0,
-      byCategory: {
-        OTHER: total, // Default category since no category column
-      },
+      total: row.total ?? 0,
+      active: row.active ?? 0,
+      inactive: row.inactive ?? 0,
+      recentlyAddedCount: row.recently_added_count ?? 0,
+      // verification_types has no category column; keep the bucket so
+      // downstream FE/MIS that expect this shape doesn't break.
+      byCategory: { OTHER: row.total ?? 0 },
     };
 
     res.json({
@@ -315,5 +354,118 @@ export const getVerificationTypeStats = async (req: AuthenticatedRequest, res: R
       message: 'Failed to retrieve verification type statistics',
       error: { code: 'INTERNAL_ERROR' },
     });
+  }
+};
+
+// GET /api/verification-types/export - xlsx download mirroring list filters.
+const EXPORT_ROW_LIMIT = 10000;
+
+export const exportVerificationTypes = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { sortBy = 'name', sortOrder = 'asc' } = req.query;
+    const {
+      whereClause,
+      queryParams,
+      nextParamIndex: paramIndex,
+    } = buildVerificationTypesWhereClause(req);
+
+    const sortCol = SORT_COLUMN_MAP[typeof sortBy === 'string' ? sortBy : ''] || 'name';
+    const sortDir =
+      typeof sortOrder === 'string' && sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+
+    const listRes = await query<{
+      id: number;
+      name: string;
+      code: string;
+      description: string | null;
+      isActive: boolean;
+      createdAt: Date;
+      hasRates: boolean;
+    }>(
+      `SELECT id, name, code, description, is_active, created_at,
+              EXISTS (
+                SELECT 1 FROM rates r WHERE r.verification_type_id = verification_types.id AND r.is_active = true
+              ) as "hasRates"
+         FROM verification_types ${whereClause}
+         ORDER BY ${sortCol} ${sortDir}, id ASC
+         LIMIT $${paramIndex}`,
+      [...queryParams, EXPORT_ROW_LIMIT]
+    );
+    const rows = listRes.rows;
+
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('Verification Types');
+    ws.columns = [
+      { header: 'Name', key: 'name', width: 30 },
+      { header: 'Code', key: 'code', width: 20 },
+      { header: 'Description', key: 'description', width: 40 },
+      { header: 'Has Rates', key: 'hasRates', width: 10 },
+      { header: 'Created Date', key: 'createdAt', width: 20 },
+      { header: 'Status', key: 'status', width: 12 },
+    ];
+    ws.getRow(1).font = { bold: true };
+    ws.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE6E6FA' },
+    };
+
+    for (const r of rows) {
+      ws.addRow(
+        escapeFormulaRow({
+          name: r.name,
+          code: r.code,
+          description: r.description || '',
+          hasRates: r.hasRates ? 'YES' : 'NO',
+          createdAt: r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : '',
+          status: r.isActive ? 'ACTIVE' : 'INACTIVE',
+        })
+      );
+    }
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const filename = `verification_types_${dateStr}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    void createAuditLog({
+      action: 'VERIFICATION_TYPE_EXPORTED',
+      entityType: 'VERIFICATION_TYPE',
+      entityId: undefined,
+      userId: req.user!.id,
+      details: {
+        rowCount: rows.length,
+        filename,
+        filters: {
+          search: typeof req.query.search === 'string' ? req.query.search : null,
+          isActive:
+            typeof req.query.isActive === 'string' || typeof req.query.isActive === 'boolean'
+              ? String(req.query.isActive)
+              : null,
+          createdFrom: typeof req.query.createdFrom === 'string' ? req.query.createdFrom : null,
+          createdTo: typeof req.query.createdTo === 'string' ? req.query.createdTo : null,
+          sortBy: typeof sortBy === 'string' ? sortBy : 'name',
+          sortOrder: sortDir.toLowerCase(),
+        },
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
+
+    await workbook.xlsx.write(res);
+    res.end();
+    logger.info(`Verification types exported: ${filename}, ${rows.length} rows`);
+  } catch (error) {
+    logger.error('Error exporting verification types:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export verification types',
+        error: { code: 'INTERNAL_ERROR' },
+      });
+    }
   }
 };

@@ -79,4 +79,5 @@ export interface CreateVerificationTypeData {
 export interface UpdateVerificationTypeData {
   name?: string;
   code?: string;
+  isActive?: boolean;
 }

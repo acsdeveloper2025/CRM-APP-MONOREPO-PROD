@@ -15,6 +15,7 @@ import {
   updateVerificationType,
   deleteVerificationType,
   getVerificationTypeStats,
+  exportVerificationTypes,
 } from '@/controllers/verificationTypesController';
 
 const router = express.Router();
@@ -48,6 +49,7 @@ const updateVerificationTypeValidation = [
     .withMessage('Code must be between 2 and 50 characters')
     .matches(/^[A-Z0-9_]+$/)
     .withMessage('Code must contain only uppercase letters, numbers, and underscores'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 const listVerificationTypesValidation = [
@@ -67,7 +69,12 @@ const listVerificationTypesValidation = [
       'OTHER',
     ])
     .withMessage('Invalid category'),
-  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+  query('isActive')
+    .optional()
+    .custom(v => v === 'true' || v === 'false' || v === 'all' || typeof v === 'boolean')
+    .withMessage("isActive must be 'true', 'false', or 'all'"),
+  query('createdFrom').optional().isISO8601().withMessage('createdFrom must be ISO 8601'),
+  query('createdTo').optional().isISO8601().withMessage('createdTo must be ISO 8601'),
   query('search')
     .optional()
     .trim()
@@ -93,6 +100,15 @@ router.get(
   '/stats',
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getVerificationTypeStats
+);
+
+// GET /api/verification-types/export - xlsx download mirroring list filters.
+// NOT cached. MUST stay above /:id so Express route-matching catches /export first.
+router.get(
+  '/export',
+  listVerificationTypesValidation,
+  handleValidationErrors,
+  exportVerificationTypes
 );
 
 router.post(

@@ -25,6 +25,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { clientsService } from '@/services/clients';
 import { VerificationType } from '@/types/client';
 
@@ -44,6 +45,7 @@ export function EditVerificationTypeDialog({
     defaultValues: {
       name: verificationType.name,
       code: verificationType.code || '',
+      isActive: verificationType.isActive ?? true,
     },
   });
 
@@ -52,6 +54,7 @@ export function EditVerificationTypeDialog({
       form.reset({
         name: verificationType.name,
         code: verificationType.code || '',
+        isActive: verificationType.isActive ?? true,
       });
     }
   }, [verificationType, form]);
@@ -108,6 +111,25 @@ export function EditVerificationTypeDialog({
                   </FormControl>
                   <FormDescription>The name of the verification type</FormDescription>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Active</FormLabel>
+                    <FormDescription>
+                      Inactive types are hidden from the Active filter and excluded from new-case
+                      product mappings.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
+                  </FormControl>
                 </FormItem>
               )}
             />

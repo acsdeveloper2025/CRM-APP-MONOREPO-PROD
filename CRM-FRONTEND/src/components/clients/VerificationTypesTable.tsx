@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
-import { MoreHorizontal, Edit, Trash2, CheckCircle } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { MoreHorizontal, Edit, Trash2, CheckCircle, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -45,6 +46,8 @@ export function VerificationTypesTable({ data, isLoading }: VerificationTypesTab
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [typeToDelete, setTypeToDelete] = useState<VerificationType | null>(null);
 
+  const queryClient = useQueryClient();
+
   const deleteMutation = useStandardizedMutation({
     mutationFn: (id: number) => clientsService.deleteVerificationType(id),
     successMessage: 'Verification type deleted successfully',
@@ -57,6 +60,17 @@ export function VerificationTypesTable({ data, isLoading }: VerificationTypesTab
     onErrorCallback: () => {
       setShowDeleteDialog(false);
       setTypeToDelete(null);
+    },
+  });
+
+  const toggleActiveMutation = useStandardizedMutation({
+    mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
+      clientsService.updateVerificationType(id, { isActive }),
+    errorContext: 'Verification Type Status Toggle',
+    errorFallbackMessage: 'Failed to update verification type status',
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['verification-types'] });
+      queryClient.invalidateQueries({ queryKey: ['verification-types-stats'] });
     },
   });
 
@@ -118,7 +132,11 @@ export function VerificationTypesTable({ data, isLoading }: VerificationTypesTab
 
                 <TableCell>{new Date(type.createdAt).toLocaleDateString()}</TableCell>
                 <TableCell>
-                  <Badge variant="default">Active</Badge>
+                  {type.isActive === false ? (
+                    <Badge variant="secondary">INACTIVE</Badge>
+                  ) : (
+                    <Badge variant="default">ACTIVE</Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
@@ -133,6 +151,27 @@ export function VerificationTypesTable({ data, isLoading }: VerificationTypesTab
                       <DropdownMenuItem onClick={() => handleEdit(type)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Edit Type
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={toggleActiveMutation.isPending}
+                        onClick={() =>
+                          toggleActiveMutation.mutate({
+                            id: type.id,
+                            isActive: !(type.isActive ?? true),
+                          })
+                        }
+                      >
+                        {type.isActive === false ? (
+                          <>
+                            <ToggleRight className="mr-2 h-4 w-4" />
+                            Activate
+                          </>
+                        ) : (
+                          <>
+                            <ToggleLeft className="mr-2 h-4 w-4" />
+                            Deactivate
+                          </>
+                        )}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
