@@ -236,13 +236,12 @@ export class MobileSyncController {
         }
       }
 
-      // Update device sync timestamp
-      if (deviceInfo?.deviceId) {
-        await query(
-          `UPDATE devices SET last_used = CURRENT_TIMESTAMP WHERE user_id = $1 AND device_id = $2`,
-          [userId, deviceInfo.deviceId]
-        );
-      }
+      // 2026-05-23: removed `UPDATE devices SET last_used = ...` —
+      // table `devices` does not exist in the schema (verified via
+      // \d devices → ERROR: Did not find any relation). The UPDATE
+      // was throwing on every sync that carried deviceInfo.deviceId,
+      // tripping the outer catch and 500ing the request. Drop until
+      // a real per-device tracking table is introduced.
 
       await createAuditLog({
         action: 'MOBILE_SYNC_UPLOAD',

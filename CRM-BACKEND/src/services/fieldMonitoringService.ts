@@ -378,7 +378,11 @@ export class FieldMonitoringService {
         activeNow += 1;
       }
 
-      if (!this.isFresh(activity.lastHeartbeatAt, OFFLINE_THRESHOLD_MS)) {
+      // 2026-05-23: 'Offline' = no operational activity in last 15min
+      // (matches the updated deriveLiveStatus check; mobile_device_sync
+      // heartbeat is never written so the legacy lastHeartbeatAt gate
+      // permanently marked everyone Offline).
+      if (!this.isFresh(latestOperationalActivity, OFFLINE_THRESHOLD_MS)) {
         offlineCount += 1;
       }
     });
@@ -458,17 +462,23 @@ export class FieldMonitoringService {
           territory.areas[0]?.pincodeCode ??
           territory.pincodes[0]?.pincodeCode ??
           null,
-        assignedTerritory: {
-          totalAreas: territory.areas.length,
-          totalPincodes: territory.pincodes.length + territory.areas.length,
-          areaNames: territory.areas.map(area => area.areaName),
-          pincodeCodes: [
+        assignedTerritory: (() => {
+          const uniquePincodeCodes = [
             ...new Set([
               ...territory.areas.map(area => area.pincodeCode),
               ...territory.pincodes.map(pincode => pincode.pincodeCode),
             ]),
-          ],
-        },
+          ];
+          return {
+            totalAreas: territory.areas.length,
+            // 2026-05-23: was `pincodes.length + areas.length` which
+            // double-counted a pincode if the user had both a direct
+            // pincode assignment AND an area assignment in that pincode.
+            totalPincodes: uniquePincodeCodes.length,
+            areaNames: territory.areas.map(area => area.areaName),
+            pincodeCodes: uniquePincodeCodes,
+          };
+        })(),
         activeAssignmentCount: openAssignments.length,
         currentCaseSummary: currentCase
           ? {
@@ -1086,7 +1096,20 @@ export class FieldMonitoringService {
     location: FieldUserLatestLocation | null,
     assignments: FieldUserActiveAssignment[]
   ): FieldUserLiveStatus {
-    if (!this.isFresh(activity.lastHeartbeatAt, OFFLINE_THRESHOLD_MS)) {
+    // 2026-05-23: dropped the `lastHeartbeatAt`-first gate. No code path
+    // writes to mobile_device_sync (the heartbeat source), so every user
+    // was permanently 'Offline'. Live status now falls back to operational
+    // activity freshness (tasks / locations / submissions). Admin-triggered
+    // FCM ping (source='ADMIN_PING') still inserts into `locations`, which
+    // refreshes lastLocationAt and lets the Submitted / At Location /
+    // Travelling branches resolve.
+    const latestOperationalActivity = this.maxDate([
+      activity.lastTaskActivityAt,
+      activity.lastLocationAt,
+      activity.lastSubmissionAt,
+    ]);
+
+    if (!this.isFresh(latestOperationalActivity, OFFLINE_THRESHOLD_MS)) {
       return 'Offline';
     }
 
