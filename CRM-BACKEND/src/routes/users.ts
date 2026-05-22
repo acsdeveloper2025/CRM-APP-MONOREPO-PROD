@@ -31,7 +31,11 @@ import {
   getDepartments,
   getDesignations,
   getUserActivities,
+  getUserActivitiesStats,
+  exportUserActivities,
   getUserSessions,
+  getUserSessionsStats,
+  exportUserSessions,
   getRolePermissions,
   getUserClientAssignments,
   assignClientsToUser,
@@ -474,6 +478,18 @@ router.get(
   getDesignations
 );
 
+// /activities/stats + /activities/export MUST be declared BEFORE
+// /activities (Express matches in order; stats + export are sub-paths).
+router.get(
+  '/activities/stats',
+  authenticateToken,
+  authorize('user.view'),
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
+  getUserActivitiesStats
+);
+
+router.get('/activities/export', authenticateToken, authorize('user.view'), exportUserActivities);
+
 router.get(
   '/activities',
   authenticateToken,
@@ -481,6 +497,17 @@ router.get(
   EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getUserActivities
 );
+
+// Sessions: stats + export sub-routes before the list.
+router.get(
+  '/sessions/stats',
+  authenticateToken,
+  authorize('user.view'),
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
+  getUserSessionsStats
+);
+
+router.get('/sessions/export', authenticateToken, authorize('user.view'), exportUserSessions);
 
 router.get(
   '/sessions',

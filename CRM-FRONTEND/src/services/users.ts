@@ -45,13 +45,35 @@ export interface UserQuery extends PaginationQuery {
 export interface ActivityQuery extends PaginationQuery {
   userId?: string;
   action?: string;
-  dateFrom?: string;
-  dateTo?: string;
+  search?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface ActivityStats {
+  total: number;
+  today: number;
+  last7Days: number;
+  last30Days: number;
+  uniqueUsers: number;
 }
 
 export interface SessionQuery extends PaginationQuery {
   userId?: string;
-  isActive?: boolean;
+  isActive?: 'true' | 'false' | 'all';
+  search?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface SessionStats {
+  total: number;
+  active: number;
+  expired: number;
+  revoked: number;
+  uniqueUsers: number;
 }
 
 export interface UserConsentRecord {
@@ -157,6 +179,17 @@ export class UsersService {
     return apiService.get<UserActivity[]>('/users/activities', query);
   }
 
+  async getUserActivitiesStats(query: ActivityQuery = {}): Promise<ApiResponse<ActivityStats>> {
+    return apiService.get<ActivityStats>('/users/activities/stats', query);
+  }
+
+  async exportUserActivities(query: ActivityQuery = {}): Promise<Blob> {
+    const response = await apiService.getRaw<Blob>('/users/activities/export', query, {
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
   // 2026-05-13: Field Executive Acknowledgement audit trail. One row
   // per (user, policy_version) — admin uses this on the user-detail
   // dialog to confirm acceptance during disputes / compliance review.
@@ -179,6 +212,17 @@ export class UsersService {
   // User sessions
   async getUserSessions(query: SessionQuery = {}): Promise<ApiResponse<UserSession[]>> {
     return apiService.get<UserSession[]>('/users/sessions', query);
+  }
+
+  async getUserSessionsStats(query: SessionQuery = {}): Promise<ApiResponse<SessionStats>> {
+    return apiService.get<SessionStats>('/users/sessions/stats', query);
+  }
+
+  async exportUserSessions(query: SessionQuery = {}): Promise<Blob> {
+    const response = await apiService.getRaw<Blob>('/users/sessions/export', query, {
+      responseType: 'blob',
+    });
+    return response.data;
   }
 
   async terminateSession(sessionId: string): Promise<ApiResponse<void>> {

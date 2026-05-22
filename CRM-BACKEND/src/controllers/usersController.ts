@@ -1682,93 +1682,124 @@ export const getDesignations = async (req: AuthenticatedRequest, res: Response) 
 };
 
 // GET /api/users/activities - Get user activity logs
-export const getUserActivities = async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { page = 1, limit = 20, search, userId, fromDate, toDate } = req.query;
-    const canViewAllActivities =
-      hasSystemScopeBypass(req.user) ||
-      userHasPermission(req.user, 'permission.manage') ||
-      userHasPermission(req.user, 'role.manage');
+// Shared WHERE-clause builder for user activities (audit_logs). SINGLE
+// source of WHERE-truth for list + stats + export. Resolves the
+// hierarchy-scope filter so a TEAM_LEADER sees own + subordinates only.
+const buildUserActivitiesWhereClause = async (
+  req: AuthenticatedRequest
+): Promise<{
+  whereClause: string;
+  queryParams: (string | number | string[])[];
+  nextParamIndex: number;
+}> => {
+  const { search, userId, action, createdFrom, createdTo } = req.query;
+  const canViewAllActivities =
+    hasSystemScopeBypass(req.user) ||
+    userHasPermission(req.user, 'permission.manage') ||
+    userHasPermission(req.user, 'role.manage');
 
-    // Build query conditions
-    const conditions: string[] = [];
-    const params: (string | number | string[])[] = [];
-    let paramIndex = 1;
+  const conditions: string[] = [];
+  const params: (string | number | string[])[] = [];
+  let paramIndex = 1;
 
-    if (canViewAllActivities) {
-      // Super admin / permission managers: filter by optional userId or see all
-      if (userId && typeof userId === 'string') {
-        conditions.push(`al.user_id = $${paramIndex++}`);
-        params.push(userId);
-      }
-    } else {
-      // Scoped users: see own + subordinates' activities
-      const hierarchyUserIds = req.user?.id
-        ? await getScopedOperationalUserIds(req.user.id)
-        : undefined;
-
-      if (hierarchyUserIds && hierarchyUserIds.length > 0) {
-        conditions.push(`al.user_id = ANY($${paramIndex++}::uuid[])`);
-        params.push(hierarchyUserIds);
-      } else if (req.user?.id) {
-        conditions.push(`al.user_id = $${paramIndex++}`);
-        params.push(req.user.id);
-      }
-    }
-
-    if (search && typeof search === 'string') {
-      conditions.push(`(al.action ILIKE $${paramIndex} OR al.details::text ILIKE $${paramIndex})`);
-      params.push(`%${search}%`);
+  if (canViewAllActivities) {
+    if (userId && typeof userId === 'string') {
+      conditions.push(`al.user_id = $${paramIndex}`);
+      params.push(userId);
       paramIndex++;
     }
+  } else {
+    const hierarchyUserIds = req.user?.id
+      ? await getScopedOperationalUserIds(req.user.id)
+      : undefined;
 
-    if (fromDate) {
-      conditions.push(`al.created_at >= $${paramIndex++}`);
-      params.push(fromDate as string);
+    if (hierarchyUserIds && hierarchyUserIds.length > 0) {
+      conditions.push(`al.user_id = ANY($${paramIndex}::uuid[])`);
+      params.push(hierarchyUserIds);
+      paramIndex++;
+    } else if (req.user?.id) {
+      conditions.push(`al.user_id = $${paramIndex}`);
+      params.push(req.user.id);
+      paramIndex++;
     }
+  }
 
-    if (toDate) {
-      conditions.push(`al.created_at <= $${paramIndex++}`);
-      params.push(toDate as string);
-    }
+  if (search && typeof search === 'string') {
+    conditions.push(`(al.action ILIKE $${paramIndex} OR al.details::text ILIKE $${paramIndex})`);
+    params.push(`%${search}%`);
+    paramIndex++;
+  }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  if (action && typeof action === 'string') {
+    conditions.push(`al.action = $${paramIndex}`);
+    params.push(action);
+    paramIndex++;
+  }
 
-    // Get total count
+  if (typeof createdFrom === 'string' && createdFrom) {
+    conditions.push(`al.created_at >= $${paramIndex}`);
+    params.push(createdFrom);
+    paramIndex++;
+  }
+  if (typeof createdTo === 'string' && createdTo) {
+    conditions.push(`al.created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
+    params.push(createdTo);
+    paramIndex++;
+  }
+
+  return {
+    whereClause: conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '',
+    queryParams: params,
+    nextParamIndex: paramIndex,
+  };
+};
+
+export const getUserActivities = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 20);
+    const sortOrder = req.query.sortOrder === 'asc' ? 'ASC' : 'DESC';
+
+    const {
+      whereClause,
+      queryParams,
+      nextParamIndex: paramIndex,
+    } = await buildUserActivitiesWhereClause(req);
+
     const countQuery = `SELECT COUNT(*) as total FROM audit_logs al ${whereClause}`;
-    const countResult = await query(countQuery, params);
+    const countResult = await query(countQuery, queryParams);
     const total = parseInt(countResult.rows[0].total);
 
-    // Get paginated results
-    const offset = (Number(page) - 1) * Number(limit);
+    const offset = (page - 1) * limit;
     const activitiesQuery = `
-      SELECT 
-        al.id, 
-        al.action, 
-        al.created_at, 
-        al.ip_address, 
-        al.user_agent, 
-        al.details, 
+      SELECT
+        al.id,
+        al.action,
+        al.entity_type,
+        al.entity_id,
+        al.created_at,
+        al.ip_address,
+        al.user_agent,
+        al.details,
         al.user_id,
         u.name as user_name
       FROM audit_logs al
       LEFT JOIN users u ON al.user_id = u.id
       ${whereClause}
-      ORDER BY al.created_at DESC
+      ORDER BY al.created_at ${sortOrder}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
-    params.push(Number(limit), offset);
-    const result = await query(activitiesQuery, params);
+    const result = await query(activitiesQuery, [...queryParams, limit, offset]);
 
     res.json({
       success: true,
       data: result.rows,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page,
+        limit,
         total,
-        totalPages: Math.ceil(total / Number(limit)),
+        totalPages: Math.ceil(total / limit),
       },
     });
   } catch (error) {
@@ -1781,31 +1812,228 @@ export const getUserActivities = async (req: AuthenticatedRequest, res: Response
   }
 };
 
+// GET /api/users/activities/stats — canonical 5-card aggregate.
+export const getUserActivitiesStats = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { whereClause, queryParams } = await buildUserActivitiesWhereClause(req);
+    const statsQuery = `
+      SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE al.created_at >= CURRENT_DATE) as today,
+        COUNT(*) FILTER (WHERE al.created_at >= NOW() - INTERVAL '7 days') as last7days,
+        COUNT(*) FILTER (WHERE al.created_at >= NOW() - INTERVAL '30 days') as last30days,
+        COUNT(DISTINCT al.user_id) as unique_users
+      FROM audit_logs al
+      ${whereClause}
+    `;
+    const result = await query(statsQuery, queryParams);
+    const row = (result.rows[0] || {}) as Record<string, unknown>;
+    const num = (k: string) => Number(row[k] ?? 0);
+    res.json({
+      success: true,
+      data: {
+        total: num('total'),
+        today: num('today'),
+        last7Days: num('last7days'),
+        last30Days: num('last30days'),
+        uniqueUsers: num('unique_users'),
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching user activities stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch user activities stats',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+// GET /api/users/activities/export — xlsx using shared WHERE helper.
+export const exportUserActivities = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const sortOrder = req.query.sortOrder === 'asc' ? 'ASC' : 'DESC';
+    const {
+      whereClause,
+      queryParams,
+      nextParamIndex: paramIndex,
+    } = await buildUserActivitiesWhereClause(req);
+
+    const dataQuery = `
+      SELECT
+        al.action,
+        al.entity_type as "entityType",
+        al.entity_id as "entityId",
+        al.created_at as "createdAt",
+        al.ip_address as "ipAddress",
+        al.user_agent as "userAgent",
+        al.details,
+        u.name as "userName",
+        u.username
+      FROM audit_logs al
+      LEFT JOIN users u ON al.user_id = u.id
+      ${whereClause}
+      ORDER BY al.created_at ${sortOrder}
+      LIMIT $${paramIndex}
+    `;
+    const result = await query(dataQuery, [...queryParams, USER_EXPORT_ROW_LIMIT]);
+    const rows = result.rows;
+
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'USER_ACTIVITY_EXPORTED',
+      entityType: 'audit_logs',
+      details: { recordCount: rows.length, filters: req.query },
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('User Activity');
+    worksheet.columns = [
+      { header: 'Date', key: 'createdAt', width: 22 },
+      { header: 'User', key: 'userName', width: 25 },
+      { header: 'Username', key: 'username', width: 20 },
+      { header: 'Action', key: 'action', width: 28 },
+      { header: 'Entity', key: 'entityType', width: 18 },
+      { header: 'Entity ID', key: 'entityId', width: 28 },
+      { header: 'IP Address', key: 'ipAddress', width: 18 },
+      { header: 'User Agent', key: 'userAgent', width: 40 },
+      { header: 'Details', key: 'details', width: 60 },
+    ];
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' },
+    };
+
+    rows.forEach(
+      (r: {
+        createdAt: string;
+        userName?: string;
+        username?: string;
+        action: string;
+        entityType?: string;
+        entityId?: string;
+        ipAddress?: string;
+        userAgent?: string;
+        details?: unknown;
+      }) => {
+        worksheet.addRow(
+          escapeFormulaRow({
+            createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : '',
+            userName: r.userName,
+            username: r.username,
+            action: r.action,
+            entityType: r.entityType,
+            entityId: r.entityId,
+            ipAddress: r.ipAddress,
+            userAgent: r.userAgent,
+            details: r.details ? JSON.stringify(r.details) : '',
+          })
+        );
+      }
+    );
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=user_activity_${new Date().toISOString().split('T')[0]}.xlsx`
+    );
+    res.send(buffer);
+  } catch (error) {
+    logger.error('Error exporting user activities:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export user activities',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+// Shared WHERE-clause builder for user sessions (refresh_tokens).
+// Computes is_active inline (`rt.expires_at > NOW() AND rt.revoked_at IS NULL`).
+const buildUserSessionsWhereClause = (
+  req: AuthenticatedRequest
+): { whereClause: string; queryParams: (string | number)[]; nextParamIndex: number } => {
+  const { userId, isActive, search, createdFrom, createdTo } = req.query;
+  const canViewOtherSessions =
+    hasSystemScopeBypass(req.user) ||
+    userHasAnyPermission(req.user, ['user.update', 'territory.assign']);
+  const targetUserId = canViewOtherSessions ? (userId as string | undefined) : req.user?.id;
+
+  const conditions: string[] = [];
+  const params: (string | number)[] = [];
+  let paramIndex = 1;
+
+  if (targetUserId) {
+    conditions.push(`rt.user_id = $${paramIndex}`);
+    params.push(targetUserId);
+    paramIndex++;
+  }
+
+  // 'all' (or undefined) → no filter; 'true' → active (not expired AND not
+  // revoked); 'false' → expired OR revoked.
+  if (isActive === 'true') {
+    conditions.push(`(rt.expires_at > CURRENT_TIMESTAMP AND rt.revoked_at IS NULL)`);
+  } else if (isActive === 'false') {
+    conditions.push(`(rt.expires_at <= CURRENT_TIMESTAMP OR rt.revoked_at IS NOT NULL)`);
+  }
+
+  if (search && typeof search === 'string') {
+    conditions.push(
+      `(COALESCE(u.name, '') ILIKE $${paramIndex} OR COALESCE(u.username, '') ILIKE $${paramIndex} OR COALESCE(rt.ip_address, '') ILIKE $${paramIndex})`
+    );
+    params.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  if (typeof createdFrom === 'string' && createdFrom) {
+    conditions.push(`rt.created_at >= $${paramIndex}`);
+    params.push(createdFrom);
+    paramIndex++;
+  }
+  if (typeof createdTo === 'string' && createdTo) {
+    conditions.push(`rt.created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
+    params.push(createdTo);
+    paramIndex++;
+  }
+
+  return {
+    whereClause: conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '',
+    queryParams: params,
+    nextParamIndex: paramIndex,
+  };
+};
+
 // GET /api/users/sessions - Get user refresh token sessions
 export const getUserSessions = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { userId } = req.query;
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 20);
+    const sortOrder = req.query.sortOrder === 'asc' ? 'ASC' : 'DESC';
 
-    const canViewOtherSessions =
-      hasSystemScopeBypass(req.user) ||
-      userHasAnyPermission(req.user, ['user.update', 'territory.assign']);
-    const targetUserId = canViewOtherSessions ? (userId as string) : req.user?.id;
+    const {
+      whereClause,
+      queryParams,
+      nextParamIndex: paramIndex,
+    } = buildUserSessionsWhereClause(req);
 
-    // We only filter by targetUserId if provided (for Admin) or enforced (for regular user)
-    const conditions: string[] = [];
-    const params: (string | number)[] = [];
-    let paramIndex = 1;
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM refresh_tokens rt
+      LEFT JOIN users u ON rt.user_id = u.id
+      ${whereClause}
+    `;
+    const countResult = await query(countQuery, queryParams);
+    const total = parseInt(countResult.rows[0].total);
 
-    if (targetUserId) {
-      conditions.push(`rt.user_id = $${paramIndex++}`);
-      params.push(targetUserId);
-    }
-
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
-    // Join with users to get name/username, and calculate isActive
+    const offset = (page - 1) * limit;
     const sessionsQuery = `
-      SELECT 
+      SELECT
         rt.id,
         rt.user_id,
         rt.created_at,
@@ -1821,22 +2049,177 @@ export const getUserSessions = async (req: AuthenticatedRequest, res: Response) 
       FROM refresh_tokens rt
       LEFT JOIN users u ON rt.user_id = u.id
       ${whereClause}
-      ORDER BY rt.created_at DESC
+      ORDER BY rt.created_at ${sortOrder}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
-
-    const result = await query(sessionsQuery, params);
+    const result = await query(sessionsQuery, [...queryParams, limit, offset]);
 
     res.json({
       success: true,
       data: result.rows,
-      message:
-        result.rows.length > 0 ? 'Sessions retrieved successfully' : 'No active sessions found',
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     logger.error('Error fetching user sessions:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch user sessions',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+// GET /api/users/sessions/stats — canonical 5-card aggregate.
+export const getUserSessionsStats = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { whereClause, queryParams } = buildUserSessionsWhereClause(req);
+    const statsQuery = `
+      SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (
+          WHERE rt.expires_at > CURRENT_TIMESTAMP AND rt.revoked_at IS NULL
+        ) as active,
+        COUNT(*) FILTER (
+          WHERE rt.expires_at <= CURRENT_TIMESTAMP AND rt.revoked_at IS NULL
+        ) as expired,
+        COUNT(*) FILTER (WHERE rt.revoked_at IS NOT NULL) as revoked,
+        COUNT(DISTINCT rt.user_id) as unique_users
+      FROM refresh_tokens rt
+      LEFT JOIN users u ON rt.user_id = u.id
+      ${whereClause}
+    `;
+    const result = await query(statsQuery, queryParams);
+    const row = (result.rows[0] || {}) as Record<string, unknown>;
+    const num = (k: string) => Number(row[k] ?? 0);
+    res.json({
+      success: true,
+      data: {
+        total: num('total'),
+        active: num('active'),
+        expired: num('expired'),
+        revoked: num('revoked'),
+        uniqueUsers: num('unique_users'),
+      },
+    });
+  } catch (error) {
+    logger.error('Error fetching user sessions stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch user sessions stats',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+// GET /api/users/sessions/export — xlsx using shared WHERE helper.
+export const exportUserSessions = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const sortOrder = req.query.sortOrder === 'asc' ? 'ASC' : 'DESC';
+    const {
+      whereClause,
+      queryParams,
+      nextParamIndex: paramIndex,
+    } = buildUserSessionsWhereClause(req);
+
+    const dataQuery = `
+      SELECT
+        u.name as "userName",
+        u.username,
+        rt.ip_address as "ipAddress",
+        rt.user_agent as "userAgent",
+        rt.device_label as "deviceLabel",
+        (rt.expires_at > CURRENT_TIMESTAMP AND rt.revoked_at IS NULL) as "isActive",
+        rt.created_at as "createdAt",
+        rt.expires_at as "expiresAt",
+        rt.revoked_at as "revokedAt",
+        rt.revoked_reason as "revokedReason"
+      FROM refresh_tokens rt
+      LEFT JOIN users u ON rt.user_id = u.id
+      ${whereClause}
+      ORDER BY rt.created_at ${sortOrder}
+      LIMIT $${paramIndex}
+    `;
+    const result = await query(dataQuery, [...queryParams, USER_EXPORT_ROW_LIMIT]);
+    const rows = result.rows;
+
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'USER_SESSION_EXPORTED',
+      entityType: 'refresh_tokens',
+      details: { recordCount: rows.length, filters: req.query },
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('User Sessions');
+    worksheet.columns = [
+      { header: 'User', key: 'userName', width: 25 },
+      { header: 'Username', key: 'username', width: 20 },
+      { header: 'IP Address', key: 'ipAddress', width: 18 },
+      { header: 'User Agent', key: 'userAgent', width: 40 },
+      { header: 'Device', key: 'deviceLabel', width: 22 },
+      { header: 'Status', key: 'isActive', width: 10 },
+      { header: 'Created At', key: 'createdAt', width: 22 },
+      { header: 'Expires At', key: 'expiresAt', width: 22 },
+      { header: 'Revoked At', key: 'revokedAt', width: 22 },
+      { header: 'Revoked Reason', key: 'revokedReason', width: 30 },
+    ];
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' },
+    };
+
+    rows.forEach(
+      (r: {
+        userName?: string;
+        username?: string;
+        ipAddress?: string;
+        userAgent?: string;
+        deviceLabel?: string;
+        isActive: boolean;
+        createdAt: string;
+        expiresAt?: string;
+        revokedAt?: string;
+        revokedReason?: string;
+      }) => {
+        worksheet.addRow(
+          escapeFormulaRow({
+            userName: r.userName,
+            username: r.username,
+            ipAddress: r.ipAddress,
+            userAgent: r.userAgent,
+            deviceLabel: r.deviceLabel,
+            isActive: r.isActive ? 'Active' : 'Inactive',
+            createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : '',
+            expiresAt: r.expiresAt ? new Date(r.expiresAt).toISOString() : '',
+            revokedAt: r.revokedAt ? new Date(r.revokedAt).toISOString() : '',
+            revokedReason: r.revokedReason,
+          })
+        );
+      }
+    );
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=user_sessions_${new Date().toISOString().split('T')[0]}.xlsx`
+    );
+    res.send(buffer);
+  } catch (error) {
+    logger.error('Error exporting user sessions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export user sessions',
       error: { code: 'INTERNAL_ERROR' },
     });
   }
