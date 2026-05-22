@@ -138,6 +138,10 @@ const clientListQueryValidation = [
     .withMessage("isActive must be 'true', 'false', or 'all'"),
   query('createdFrom').optional().isISO8601().withMessage('createdFrom must be ISO 8601'),
   query('createdTo').optional().isISO8601().withMessage('createdTo must be ISO 8601'),
+  query('productId')
+    .optional()
+    .custom(v => v === 'all' || /^[1-9][0-9]*$/.test(String(v)))
+    .withMessage("productId must be a positive integer or 'all'"),
   query('sortBy').optional().isIn(['name', 'createdAt', 'updatedAt']).withMessage('Invalid sortBy'),
   query('sortOrder')
     .optional()

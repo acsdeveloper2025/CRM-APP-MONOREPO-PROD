@@ -21,6 +21,9 @@ export interface ClientListQuery extends PaginationQuery {
   isActive?: 'true' | 'false' | 'all';
   createdFrom?: string; // ISO 8601 (date-only is fine)
   createdTo?: string; // ISO 8601 (treated as end-of-day inclusive by BE)
+  // Single-select product filter. 'all' or undefined → no filter; numeric
+  // string narrows to clients mapped to that product (client_products).
+  productId?: number | 'all';
 }
 
 export class ClientsService {

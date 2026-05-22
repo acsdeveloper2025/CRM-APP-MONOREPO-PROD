@@ -26,7 +26,7 @@ interface DatabaseError extends Error {
 const buildClientsWhereClause = (
   req: AuthenticatedRequest
 ): { whereClause: string; queryParams: QueryParams; nextParamIndex: number } | null => {
-  const { search, isActive, createdFrom, createdTo } = req.query;
+  const { search, isActive, createdFrom, createdTo, productId } = req.query;
   const clientFilter = (req as AuthenticatedRequest & { clientFilter?: unknown }).clientFilter;
   const whereConditions: string[] = [];
   const queryParams: QueryParams = [];
@@ -61,6 +61,19 @@ const buildClientsWhereClause = (
     whereConditions.push(`is_active = $${paramIndex}`);
     queryParams.push(isActive === 'true');
     paramIndex++;
+  }
+
+  // productId: clients mapped to this product via client_products. Validator
+  // already restricted to positive integer string or 'all'.
+  if (typeof productId === 'string' && productId !== '' && productId !== 'all') {
+    const pid = parseInt(productId, 10);
+    if (Number.isFinite(pid) && pid > 0) {
+      whereConditions.push(
+        `EXISTS (SELECT 1 FROM client_products cp WHERE cp.client_id = clients.id AND cp.product_id = $${paramIndex})`
+      );
+      queryParams.push(pid);
+      paramIndex++;
+    }
   }
 
   if (typeof createdFrom === 'string' && createdFrom) {

@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { clientsService } from '@/services/clients';
+import { productsService } from '@/services/products';
 import { ClientsTable } from '@/components/clients/ClientsTable';
 import { CreateClientDialog } from '@/components/clients/CreateClientDialog';
 import { BulkImportDialog } from '@/components/clients/BulkImportDialog';
@@ -68,6 +69,7 @@ export function ClientsPage() {
   const page = Math.max(1, Number(searchParams.get('page')) || 1);
   const dateFrom = searchParams.get('dateFrom') || '';
   const dateTo = searchParams.get('dateTo') || '';
+  const product = searchParams.get('product') || 'all';
 
   const [showCreateClient, setShowCreateClient] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
@@ -94,7 +96,7 @@ export function ClientsPage() {
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchValue, status, sort, pageSize, dateFrom, dateTo]);
+  }, [debouncedSearchValue, status, sort, pageSize, dateFrom, dateTo, product]);
 
   const updateParam = (key: string, value: string | null) => {
     setSearchParams(
@@ -117,12 +119,13 @@ export function ClientsPage() {
       isActive: status === 'all' ? undefined : (status as 'true' | 'false'),
       createdFrom: dateFrom || undefined,
       createdTo: dateTo || undefined,
+      productId: product === 'all' ? undefined : Number(product),
       sortBy: sortConfig.sortBy,
       sortOrder: sortConfig.sortOrder,
       page,
       limit: pageSize,
     }),
-    [debouncedSearchValue, status, dateFrom, dateTo, sortConfig, page, pageSize]
+    [debouncedSearchValue, status, dateFrom, dateTo, product, sortConfig, page, pageSize]
   );
 
   const { data: clientsData, isLoading } = useQuery({
@@ -134,6 +137,23 @@ export function ClientsPage() {
     queryKey: ['clients-stats'],
     queryFn: () => clientsService.getClientStats(),
   });
+
+  // Active products for the Product filter dropdown. Limit 500 matches the
+  // BE `limit` validator ceiling — every active product loads in one call.
+  const { data: productsData } = useQuery({
+    queryKey: ['products', 'filter-options'],
+    queryFn: () =>
+      productsService.getProducts({
+        isActive: 'true',
+        limit: 500,
+        sortBy: 'name',
+        sortOrder: 'asc',
+      }),
+  });
+  const productOptions = (productsData?.data ?? []).map((p) => ({
+    id: p.id,
+    name: p.name,
+  }));
   const stats = statsData?.data || {
     total: 0,
     active: 0,
@@ -149,7 +169,8 @@ export function ClientsPage() {
     (status !== DEFAULT_STATUS ? 1 : 0) +
     (sort !== DEFAULT_SORT ? 1 : 0) +
     (dateFrom ? 1 : 0) +
-    (dateTo ? 1 : 0);
+    (dateTo ? 1 : 0) +
+    (product !== 'all' ? 1 : 0);
 
   const handleClearFilters = () => {
     setSearchParams(
@@ -159,6 +180,7 @@ export function ClientsPage() {
         next.delete('sort');
         next.delete('dateFrom');
         next.delete('dateTo');
+        next.delete('product');
         return next;
       },
       { replace: true }
@@ -173,6 +195,7 @@ export function ClientsPage() {
         isActive: queryArgs.isActive,
         createdFrom: queryArgs.createdFrom,
         createdTo: queryArgs.createdTo,
+        productId: queryArgs.productId,
         sortBy: queryArgs.sortBy,
         sortOrder: queryArgs.sortOrder,
       });
@@ -208,6 +231,23 @@ export function ClientsPage() {
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="true">Active</SelectItem>
             <SelectItem value="false">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1">
+        <Label htmlFor="client-product-filter">Product</Label>
+        <Select value={product} onValueChange={(v) => updateParam('product', v)}>
+          <SelectTrigger id="client-product-filter">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All products</SelectItem>
+            {productOptions.map((p) => (
+              <SelectItem key={p.id} value={String(p.id)}>
+                {p.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
