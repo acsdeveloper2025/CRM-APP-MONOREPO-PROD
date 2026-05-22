@@ -29,7 +29,10 @@ export const reportTemplateKeys = {
 export interface UseReportTemplatesParams {
   clientId?: number;
   productId?: number;
-  isActive?: boolean;
+  // 'all' / 'true' / 'false' sent verbatim so URL/cache key stays stable;
+  // BE treats 'all' as no-filter. Matches the canonical list-page contract
+  // (feedback_fe_code_standards.md §9 + ClientListQuery / RateListQuery).
+  isActive?: boolean | 'true' | 'false' | 'all';
   search?: string;
   page?: number;
   limit?: number;

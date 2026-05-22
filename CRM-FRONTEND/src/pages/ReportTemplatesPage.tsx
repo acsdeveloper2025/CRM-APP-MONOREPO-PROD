@@ -203,7 +203,15 @@ export function ReportTemplatesPage() {
       page: currentPage,
       limit: pageSize,
     }),
-    [filterClientId, filterProductId, status, debouncedSearchValue, sortConfig, currentPage, pageSize]
+    [
+      filterClientId,
+      filterProductId,
+      status,
+      debouncedSearchValue,
+      sortConfig,
+      currentPage,
+      pageSize,
+    ]
   );
 
   // Reset to page 1 when any filter narrows results.
@@ -745,10 +753,7 @@ export function ReportTemplatesPage() {
                 <Label htmlFor="rt-page-size" className="text-sm text-muted-foreground">
                   Rows
                 </Label>
-                <Select
-                  value={String(pageSize)}
-                  onValueChange={(v) => updateParam('pageSize', v)}
-                >
+                <Select value={String(pageSize)} onValueChange={(v) => updateParam('pageSize', v)}>
                   <SelectTrigger id="rt-page-size" className="w-[80px] h-8">
                     <SelectValue />
                   </SelectTrigger>
@@ -777,8 +782,7 @@ export function ReportTemplatesPage() {
                 size="sm"
                 onClick={() => setCurrentPage((p) => p + 1)}
                 disabled={
-                  !listRes?.pagination ||
-                  listRes.pagination.page >= listRes.pagination.totalPages
+                  !listRes?.pagination || listRes.pagination.page >= listRes.pagination.totalPages
                 }
               >
                 Next

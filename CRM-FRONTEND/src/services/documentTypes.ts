@@ -11,7 +11,6 @@ import type {
   ClientDocumentType,
   DocumentValidationResult,
   ValidateDocumentRequest,
-  DocumentTypeExportData,
 } from '@/types';
 import { validateResponse } from './schemas/runtime';
 import {
