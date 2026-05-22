@@ -149,6 +149,29 @@ export class LocationsService {
     return apiService.delete(`/states/${id}`);
   }
 
+  async getStatesStats(): Promise<
+    ApiResponse<{
+      total: number;
+      active: number;
+      inactive: number;
+      recentlyAddedCount: number;
+      withCitiesCount: number;
+      totalStates?: number;
+      statesByCountry?: Record<string, number>;
+      countries?: number;
+    }>
+  > {
+    return apiService.get('/states/stats');
+  }
+
+  async exportStates(
+    query: Omit<LocationQuery, 'page' | 'limit'> = {}
+  ): Promise<AxiosResponse<Blob>> {
+    return apiService.getRaw<Blob>('/states/export', query, {
+      responseType: 'blob',
+    });
+  }
+
   async getStatesByCountry(country: string): Promise<ApiResponse<State[]>> {
     return this.getStates({ country });
   }

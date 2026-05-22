@@ -1,13 +1,5 @@
 import { useState } from 'react';
-import {
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  Eye,
-  Globe,
-  ToggleLeft,
-  ToggleRight,
-} from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, Eye, Globe, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useMutationWithInvalidation,
@@ -107,9 +99,7 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
 
   if (isLoading) {
     return (
-      <TableSkeleton
-        headers={['Country', 'Code', 'Continent', 'Created', 'Status', 'Actions']}
-      />
+      <TableSkeleton headers={['Country', 'Code', 'Continent', 'Created', 'Status', 'Actions']} />
     );
   }
 

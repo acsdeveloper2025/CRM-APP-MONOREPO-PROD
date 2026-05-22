@@ -1,152 +1,134 @@
 import type { Response } from 'express';
+import ExcelJS from 'exceljs';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
+import type { QueryParams } from '@/types/database';
 import { sendError, errors } from '@/utils/apiResponse';
+import { createAuditLog } from '@/utils/auditLogger';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
 
-// Database-driven states controller - no more mock data
+// Shared WHERE-clause builder for getStates + exportStates.
+const buildStatesWhereClause = (
+  req: AuthenticatedRequest
+): { whereClause: string; queryParams: QueryParams; nextParamIndex: number } => {
+  const { search, country, countryId, isActive, createdFrom, createdTo } = req.query;
+  const whereConditions: string[] = [];
+  const queryParams: QueryParams = [];
+  let paramIndex = 1;
+
+  if (search && typeof search === 'string') {
+    whereConditions.push(
+      `(COALESCE(s.name, '') ILIKE $${paramIndex} OR COALESCE(s.code, '') ILIKE $${paramIndex})`
+    );
+    queryParams.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  if (country && typeof country === 'string') {
+    whereConditions.push(`UPPER(co.name) = UPPER($${paramIndex})`);
+    queryParams.push(country);
+    paramIndex++;
+  }
+
+  if (countryId !== undefined && countryId !== null && countryId !== '' && countryId !== 'all') {
+    const cidNum = Number(countryId);
+    if (Number.isFinite(cidNum)) {
+      whereConditions.push(`s.country_id = $${paramIndex}`);
+      queryParams.push(cidNum);
+      paramIndex++;
+    }
+  }
+
+  if (isActive === 'true' || isActive === 'false') {
+    whereConditions.push(`s.is_active = $${paramIndex}`);
+    queryParams.push(isActive === 'true');
+    paramIndex++;
+  }
+
+  if (typeof createdFrom === 'string' && createdFrom) {
+    whereConditions.push(`s.created_at >= $${paramIndex}`);
+    queryParams.push(createdFrom);
+    paramIndex++;
+  }
+  if (typeof createdTo === 'string' && createdTo) {
+    whereConditions.push(`s.created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
+    queryParams.push(createdTo);
+    paramIndex++;
+  }
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+  return { whereClause, queryParams, nextParamIndex: paramIndex };
+};
+
+const SORT_COLUMNS: Record<string, string> = {
+  country: 'co.name',
+  name: 's.name',
+  code: 's.code',
+  createdAt: 's.created_at',
+  updatedAt: 's.updated_at',
+};
 
 // GET /api/states - List states with pagination and filters
 export const getStates = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      country,
-      countryId,
-      search,
-      sortBy = 'name',
-      sortOrder = 'asc',
-    } = req.query;
+    const { page = 1, limit = 20, sortBy = 'name', sortOrder = 'asc' } = req.query;
 
-    // Build SQL query with joins to get country names and city counts
-    let sql = `
-      SELECT
-        s.id,
-        s.name,
-        s.code,
-        co.name as country,
-        s.created_at,
-        s.updated_at,
-        COALESCE(c."city_count", 0) as "city_count"
-      FROM states s
-      JOIN countries co ON s.country_id = co.id
-      LEFT JOIN (
-        SELECT state_id, COUNT(*) as "city_count"
-        FROM cities
-        GROUP BY state_id
-      ) c ON s.id = c.state_id
-      WHERE 1=1
-    `;
+    const { whereClause, queryParams, nextParamIndex } = buildStatesWhereClause(req);
 
-    const params: (string | number)[] = [];
-    let paramCount = 0;
-
-    // Apply filters
-    if (country && typeof country === 'string') {
-      paramCount++;
-      sql += ` AND UPPER(co.name) = UPPER($${paramCount})`;
-      params.push(country);
-    }
-
-    // 2026-05-06 bug 79: accept countryId in addition to country (name).
-    // Eliminates the FE-side parent-name lookup race in CascadingLocationSelector.
-    if (countryId !== undefined && countryId !== null && countryId !== '') {
-      const cidNum = Number(countryId);
-      if (Number.isFinite(cidNum)) {
-        paramCount++;
-        sql += ` AND s.country_id = $${paramCount}`;
-        params.push(cidNum);
-      }
-    }
-
-    if (search && typeof search === 'string') {
-      paramCount++;
-      sql += ` AND (COALESCE(s.name, '') ILIKE $${paramCount} OR COALESCE(s.code, '') ILIKE $${paramCount})`;
-      params.push(`%${search}%`);
-    }
-
-    // API contract: sortBy is camelCase; map to snake_case DB column (or joined table).
-    const sortColumnMap: Record<string, string> = {
-      country: 'co.name',
-      name: 's.name',
-      code: 's.code',
-      createdAt: 's.created_at',
-      updatedAt: 's.updated_at',
-    };
+    const sortExpr = SORT_COLUMNS[sortBy as string] || 's.name';
     const sortDirection: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
-    const sortExpr = sortColumnMap[sortBy as string] || 's.name';
-    sql += ` ORDER BY ${sortExpr} ${sortDirection}`;
 
-    // Apply pagination
     const pageNum = parseInt(page as string, 10);
     const limitNum = parseInt(limit as string, 10);
     const offset = (pageNum - 1) * limitNum;
 
-    paramCount++;
-    sql += ` LIMIT $${paramCount}`;
-    params.push(limitNum);
-
-    paramCount++;
-    sql += ` OFFSET $${paramCount}`;
-    params.push(offset);
-
-    // Execute query
-    const result = await query(sql, params);
-
-    // Get total count for pagination
-    let countSql = `
-      SELECT COUNT(*)
+    const sql = `
+      SELECT
+        s.id,
+        s.name,
+        s.code,
+        s.country_id AS "countryId",
+        co.name AS country,
+        s.is_active AS "isActive",
+        s.created_at AS "createdAt",
+        s.updated_at AS "updatedAt",
+        COALESCE(c."city_count", 0) AS "cityCount"
       FROM states s
       JOIN countries co ON s.country_id = co.id
-      WHERE 1=1
+      LEFT JOIN (
+        SELECT state_id, COUNT(*) AS "city_count"
+        FROM cities
+        GROUP BY state_id
+      ) c ON s.id = c.state_id
+      ${whereClause}
+      ORDER BY ${sortExpr} ${sortDirection}
+      LIMIT $${nextParamIndex} OFFSET $${nextParamIndex + 1}
     `;
-    const countParams: (string | number)[] = [];
-    let countParamCount = 0;
+    const result = await query(sql, [...queryParams, limitNum, offset]);
 
-    if (country && typeof country === 'string') {
-      countParamCount++;
-      countSql += ` AND UPPER(co.name) = UPPER($${countParamCount})`;
-      countParams.push(country);
-    }
-
-    if (countryId !== undefined && countryId !== null && countryId !== '') {
-      const cidNum = Number(countryId);
-      if (Number.isFinite(cidNum)) {
-        countParamCount++;
-        countSql += ` AND s.country_id = $${countParamCount}`;
-        countParams.push(cidNum);
-      }
-    }
-
-    if (search && typeof search === 'string') {
-      countParamCount++;
-      countSql += ` AND (s.name ILIKE $${countParamCount} OR s.code ILIKE $${countParamCount})`;
-      countParams.push(`%${search}%`);
-    }
-
-    const countResult = await query<{ count: string }>(countSql, countParams);
+    const countSql = `
+      SELECT COUNT(*) FROM states s
+      JOIN countries co ON s.country_id = co.id
+      ${whereClause}
+    `;
+    const countResult = await query<{ count: string }>(countSql, queryParams);
     const totalCount = parseInt(countResult.rows[0].count, 10);
     const totalPages = Math.ceil(totalCount / limitNum);
-
-    logger.info(`Retrieved ${result.rows.length} states`, {
-      userId: req.user?.id,
-      filters: { country, search },
-      pagination: { page: pageNum, limit: limitNum },
-    });
 
     res.json({
       success: true,
       data: result.rows.map(state => ({
         ...state,
-        id: state.id.toString(), // Convert integer ID to string
-        countryId: state.countryId ? state.countryId.toString() : null, // Convert integer countryId to string if exists
+        id: state.id.toString(),
+        countryId: state.countryId != null ? state.countryId.toString() : null,
       })),
       pagination: {
         page: pageNum,
         limit: limitNum,
         total: totalCount,
         pages: totalPages,
+        totalPages,
         hasNext: pageNum < totalPages,
         hasPrev: pageNum > 1,
       },
@@ -157,13 +139,14 @@ export const getStates = async (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
-// GET /api/states/:id - Get state by ID
+// GET /api/states/:id
 export const getStateById = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id || '');
 
     const result = await query(
-      `SELECT s.id, s.name, s.code, c.name as country, s.created_at, s.updated_at
+      `SELECT s.id, s.name, s.code, s.country_id AS "countryId", c.name AS country,
+              s.is_active AS "isActive", s.created_at AS "createdAt", s.updated_at AS "updatedAt"
        FROM states s
        JOIN countries c ON s.country_id = c.id
        WHERE s.id = $1`,
@@ -176,16 +159,12 @@ export const getStateById = async (req: AuthenticatedRequest, res: Response) => 
 
     const state = result.rows[0];
 
-    logger.info(`Retrieved state: ${state.name}`, {
-      userId: req.user?.id,
-      stateId: id,
-    });
-
     res.json({
       success: true,
       data: {
         ...state,
-        id: state.id.toString(), // Convert integer ID to string
+        id: state.id.toString(),
+        countryId: state.countryId != null ? state.countryId.toString() : null,
       },
     });
   } catch (error) {
@@ -194,47 +173,34 @@ export const getStateById = async (req: AuthenticatedRequest, res: Response) => 
   }
 };
 
-// POST /api/states - Create new state
+// POST /api/states
 export const createState = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { name, code, country } = req.body;
 
-    logger.info('Creating state with data:', { name, code, country, userId: req.user?.id });
-
-    // Get countryId from country name
     const countryResult = await query('SELECT id FROM countries WHERE name = $1', [country]);
 
     if (countryResult.rows.length === 0) {
-      logger.warn('Country not found:', { country });
       return sendError(res, 400, 'Country not found', 'COUNTRY_NOT_FOUND');
     }
 
     const countryId = countryResult.rows[0].id;
 
-    // Check if state code already exists in this country
     const existingStateResult = await query(
       'SELECT id FROM states WHERE code = $1 AND country_id = $2',
       [code.toUpperCase(), countryId]
     );
 
     if (existingStateResult.rows.length > 0) {
-      logger.warn('Duplicate state code:', { code, country });
       return sendError(res, 400, 'State code already exists in this country', 'DUPLICATE_CODE');
     }
 
-    // Create new state in database
     const result = await query(
       'INSERT INTO states (name, code, country_id) VALUES ($1, $2, $3) RETURNING *',
       [name, code.toUpperCase(), countryId]
     );
 
     const newState = result.rows[0];
-
-    logger.info(`Created new state: ${newState.name}`, {
-      userId: req.user?.id,
-      stateId: newState.id,
-      stateData: newState,
-    });
 
     res.status(201).json({
       success: true,
@@ -243,8 +209,9 @@ export const createState = async (req: AuthenticatedRequest, res: Response) => {
         name: newState.name,
         code: newState.code,
         country,
-        createdAt: newState.createdAt,
-        updatedAt: newState.updatedAt,
+        isActive: newState.is_active,
+        createdAt: newState.created_at,
+        updatedAt: newState.updated_at,
       },
       message: 'State created successfully',
     });
@@ -254,15 +221,14 @@ export const createState = async (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
-// PUT /api/states/:id - Update state
+// PUT /api/states/:id
 export const updateState = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id || '');
     const updateData = req.body;
 
-    // Check if state exists
     const existingResult = await query(
-      'SELECT s.*, c.name as country FROM states s JOIN countries c ON s.country_id = c.id WHERE s.id = $1',
+      'SELECT s.*, c.name AS country FROM states s JOIN countries c ON s.country_id = c.id WHERE s.id = $1',
       [id]
     );
 
@@ -272,11 +238,8 @@ export const updateState = async (req: AuthenticatedRequest, res: Response) => {
 
     const existingState = existingResult.rows[0];
 
-    // Check for duplicate code if being updated
     if (updateData.code) {
-      let countryId = existingState.countryId;
-
-      // If country is being updated, get new countryId
+      let countryId = existingState.country_id;
       if (updateData.country && updateData.country !== existingState.country) {
         const countryResult = await query('SELECT id FROM countries WHERE name = $1', [
           updateData.country,
@@ -297,9 +260,8 @@ export const updateState = async (req: AuthenticatedRequest, res: Response) => {
       }
     }
 
-    // Build update query
     const updateFields: string[] = [];
-    const updateValues: (string | number | Date)[] = [];
+    const updateValues: QueryParams = [];
     let paramCount = 0;
 
     if (updateData.name) {
@@ -325,43 +287,36 @@ export const updateState = async (req: AuthenticatedRequest, res: Response) => {
       }
     }
 
+    if (typeof updateData.isActive === 'boolean') {
+      paramCount++;
+      updateFields.push(`is_active = $${paramCount}`);
+      updateValues.push(updateData.isActive);
+    }
+
     if (updateFields.length === 0) {
       return sendError(res, 400, 'No valid fields to update', 'NO_UPDATE_FIELDS');
     }
 
-    // Add updatedAt
     paramCount++;
     updateFields.push(`updated_at = $${paramCount}`);
     updateValues.push(new Date());
 
-    // Add id for WHERE clause
     paramCount++;
     updateValues.push(String(id));
 
-    const updateQuery = `
-      UPDATE states
-      SET ${updateFields.join(', ')}
-      WHERE id = $${paramCount}
-      RETURNING *
-    `;
+    await query(
+      `UPDATE states SET ${updateFields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+      updateValues
+    );
 
-    const result = await query(updateQuery, updateValues);
-    const updatedState = result.rows[0];
-
-    // Get the updated state with country name
     const finalResult = await query(
-      `SELECT s.id, s.name, s.code, c.name as country, s.created_at, s.updated_at
+      `SELECT s.id, s.name, s.code, c.name AS country, s.is_active AS "isActive",
+              s.created_at AS "createdAt", s.updated_at AS "updatedAt"
        FROM states s
        JOIN countries c ON s.country_id = c.id
        WHERE s.id = $1`,
       [id]
     );
-
-    logger.info(`Updated state: ${updatedState.name}`, {
-      userId: req.user?.id,
-      stateId: id,
-      updateData,
-    });
 
     res.json({
       success: true,
@@ -374,32 +329,22 @@ export const updateState = async (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
-// DELETE /api/states/:id - Delete state
+// DELETE /api/states/:id
 export const deleteState = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const id = String(req.params.id || '');
 
-    // Check if state exists and get its details
-    const existingResult = await query(
-      `SELECT s.id, s.name, s.code, c.name as country
-       FROM states s
-       JOIN countries c ON s.country_id = c.id
-       WHERE s.id = $1`,
-      [id]
-    );
+    const existingResult = await query('SELECT id, name FROM states WHERE id = $1', [id]);
 
     if (existingResult.rows.length === 0) {
       return errors.notFound(res, 'State');
     }
 
-    const stateToDelete = existingResult.rows[0];
-
-    // Check if state is being used by cities
-    const citiesResult = await query('SELECT COUNT(*) as count FROM cities WHERE state_id = $1', [
-      id,
-    ]);
-
-    const citiesCount = parseInt(citiesResult.rows[0].count);
+    const citiesResult = await query<{ count: string }>(
+      'SELECT COUNT(*) AS count FROM cities WHERE state_id = $1',
+      [id]
+    );
+    const citiesCount = parseInt(citiesResult.rows[0].count, 10);
     if (citiesCount > 0) {
       return sendError(
         res,
@@ -409,68 +354,183 @@ export const deleteState = async (req: AuthenticatedRequest, res: Response) => {
       );
     }
 
-    // Delete the state
     await query('DELETE FROM states WHERE id = $1', [id]);
 
-    logger.info(`Deleted state: ${stateToDelete.name}`, {
-      userId: req.user?.id,
-      stateId: id,
-      stateName: stateToDelete.name,
-    });
-
-    res.json({
-      success: true,
-      message: 'State deleted successfully',
-    });
+    res.json({ success: true, message: 'State deleted successfully' });
   } catch (error) {
     logger.error('Error deleting state:', error);
     errors.internal(res, 'Failed to delete state');
   }
 };
 
-// GET /api/states/stats - Get states statistics
+// GET /api/states/stats - Canonical 5-card aggregate
 export const getStatesStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // Get total states count
-    const totalResult = await query('SELECT COUNT(*) as total FROM states');
-    const totalStates = parseInt(totalResult.rows[0].total);
+    const aggRes = await query<{
+      total: string;
+      active: string;
+      inactive: string;
+      recentlyAdded: string;
+      withCities: string;
+    }>(
+      `SELECT
+         COUNT(*)::text AS total,
+         COUNT(*) FILTER (WHERE is_active = true)::text AS active,
+         COUNT(*) FILTER (WHERE is_active = false)::text AS inactive,
+         COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days')::text AS "recentlyAdded",
+         COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM cities c WHERE c.state_id = s.id))::text AS "withCities"
+       FROM states s`
+    );
 
-    // Get states count by country
-    const countryResult = await query(`
-      SELECT c.name as country, COUNT(s.id) as count
-      FROM countries c
-      LEFT JOIN states s ON c.id = s.country_id
-      GROUP BY c.id, c.name
-      HAVING COUNT(s.id) > 0
-      ORDER BY c.name
-    `);
+    const row = aggRes.rows[0];
 
-    const statesByCountry = countryResult.rows.reduce(
-      (acc, row) => {
-        acc[row.country] = parseInt(row.count);
+    // Legacy: states per country
+    const countryRes = await query<{ country: string; count: string }>(
+      `SELECT c.name AS country, COUNT(s.id) AS count
+       FROM countries c
+       LEFT JOIN states s ON c.id = s.country_id
+       GROUP BY c.id, c.name
+       HAVING COUNT(s.id) > 0
+       ORDER BY c.name`
+    );
+
+    const statesByCountry = countryRes.rows.reduce(
+      (acc, r) => {
+        acc[r.country] = parseInt(r.count, 10);
         return acc;
       },
       {} as Record<string, number>
     );
 
-    const stats = {
-      totalStates,
-      statesByCountry,
-      countries: Object.keys(statesByCountry).length,
-    };
-
-    logger.info('Retrieved states statistics', {
-      userId: req.user?.id,
-      stats,
-    });
-
     res.json({
       success: true,
-      data: stats,
+      data: {
+        // canonical
+        total: parseInt(row.total, 10),
+        active: parseInt(row.active, 10),
+        inactive: parseInt(row.inactive, 10),
+        recentlyAddedCount: parseInt(row.recentlyAdded, 10),
+        withCitiesCount: parseInt(row.withCities, 10),
+        // legacy
+        totalStates: parseInt(row.total, 10),
+        statesByCountry,
+        countries: Object.keys(statesByCountry).length,
+      },
     });
   } catch (error) {
     logger.error('Error getting states stats:', error);
     errors.internal(res, 'Failed to get states statistics');
+  }
+};
+
+// GET /api/states/export - xlsx download mirroring getStates filters.
+const EXPORT_ROW_LIMIT = 10000;
+
+export const exportStates = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { sortBy = 'name', sortOrder = 'asc' } = req.query;
+
+    const { whereClause, queryParams, nextParamIndex } = buildStatesWhereClause(req);
+
+    const sortExpr = SORT_COLUMNS[sortBy as string] || 's.name';
+    const sortDirection: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
+
+    const rowsRes = await query<{
+      name: string;
+      code: string;
+      country: string;
+      cityCount: string;
+      isActive: boolean;
+      createdAt: Date;
+    }>(
+      `SELECT s.name, s.code, co.name AS country, s.is_active AS "isActive",
+              s.created_at AS "createdAt",
+              COALESCE(cc.city_count, 0)::text AS "cityCount"
+       FROM states s
+       JOIN countries co ON s.country_id = co.id
+       LEFT JOIN (
+         SELECT state_id, COUNT(*) AS city_count FROM cities GROUP BY state_id
+       ) cc ON s.id = cc.state_id
+       ${whereClause}
+       ORDER BY ${sortExpr} ${sortDirection}
+       LIMIT $${nextParamIndex}`,
+      [...queryParams, EXPORT_ROW_LIMIT]
+    );
+    const rows = rowsRes.rows;
+
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('States');
+    ws.columns = [
+      { header: 'Name', key: 'name', width: 30 },
+      { header: 'Code', key: 'code', width: 10 },
+      { header: 'Country', key: 'country', width: 25 },
+      { header: 'Cities', key: 'cityCount', width: 12 },
+      { header: 'Created Date', key: 'createdAt', width: 20 },
+      { header: 'Status', key: 'status', width: 12 },
+    ];
+    ws.getRow(1).font = { bold: true };
+    ws.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE6E6FA' },
+    };
+
+    for (const r of rows) {
+      ws.addRow(
+        escapeFormulaRow({
+          name: r.name,
+          code: r.code,
+          country: r.country,
+          cityCount: Number(r.cityCount),
+          createdAt: r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : '',
+          status: r.isActive ? 'ACTIVE' : 'INACTIVE',
+        })
+      );
+    }
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const filename = `states_${dateStr}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    void createAuditLog({
+      action: 'STATE_EXPORTED',
+      entityType: 'STATE',
+      entityId: undefined,
+      userId: req.user!.id,
+      details: {
+        rowCount: rows.length,
+        filename,
+        filters: {
+          search: typeof req.query.search === 'string' ? req.query.search : null,
+          isActive: typeof req.query.isActive === 'string' ? req.query.isActive : null,
+          country: typeof req.query.country === 'string' ? req.query.country : null,
+          countryId: typeof req.query.countryId === 'string' ? req.query.countryId : null,
+          createdFrom: typeof req.query.createdFrom === 'string' ? req.query.createdFrom : null,
+          createdTo: typeof req.query.createdTo === 'string' ? req.query.createdTo : null,
+          sortBy: sortExpr,
+          sortOrder: sortDirection.toLowerCase(),
+        },
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
+
+    await workbook.xlsx.write(res);
+    res.end();
+    logger.info(`States exported: ${filename}, ${rows.length} rows`);
+  } catch (error) {
+    logger.error('Error exporting states:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export states',
+        error: { code: 'INTERNAL_ERROR' },
+      });
+    }
   }
 };
 
@@ -495,34 +555,23 @@ export const bulkImportStates = async (
       errors: [] as Array<{ row: number; data: Record<string, unknown>; error: string }>,
     };
 
-    // Process each row
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
 
       try {
-        // Validate required fields
         const validationError = validateCSVRow(row, ['name', 'code', 'country']);
         if (validationError) {
           results.failed++;
-          results.errors.push({
-            row: i + 1,
-            data: row,
-            error: validationError,
-          });
+          results.errors.push({ row: i + 1, data: row, error: validationError });
           continue;
         }
 
         const { name, code, country, gstStateCode } = row;
-        // Normalize gstStateCode to NULL when blank/missing; the table
-        // CHECK constraint enforces /^[0-9]{2}$/ when not null.
         const gstCode: string | null =
           typeof gstStateCode === 'string' && gstStateCode.trim() !== ''
             ? gstStateCode.trim()
             : null;
 
-        // Country must exist. Auto-creation was removed because it
-        // hardcoded continent='Asia' and a 3-char-truncated code,
-        // producing junk rows.
         const countryResult = await query(
           'SELECT id FROM countries WHERE LOWER(name) = LOWER($1)',
           [country]
@@ -539,15 +588,12 @@ export const bulkImportStates = async (
         }
         const countryId = countryResult.rows[0].id;
 
-        // Check if state already exists
         const existingState = await query(
           'SELECT id FROM states WHERE code = $1 AND country_id = $2',
           [code.toUpperCase(), countryId]
         );
 
         if (existingState.rows.length > 0) {
-          // Update existing state. gst_state_code only updated when CSV
-          // supplies it — preserves prior value otherwise.
           if (gstCode !== null) {
             await query(
               `UPDATE states
@@ -565,7 +611,6 @@ export const bulkImportStates = async (
           }
           results.updated++;
         } else {
-          // Create new state
           await query(
             `INSERT INTO states (name, code, country_id, gst_state_code)
              VALUES ($1, $2, $3, $4)`,
@@ -583,11 +628,6 @@ export const bulkImportStates = async (
         logger.error(`Error importing state at row ${i + 1}:`, error);
       }
     }
-
-    logger.info('Bulk import states completed', {
-      userId: req.user?.id,
-      results,
-    });
 
     res.status(200).json({
       success: true,

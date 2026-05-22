@@ -12,13 +12,14 @@ import {
   deleteState,
   getStatesStats,
   bulkImportStates,
+  exportStates,
 } from '@/controllers/statesController';
 
 const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
-// Validation schemas
+
 const listStatesValidation = [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
@@ -30,6 +31,7 @@ const listStatesValidation = [
     .trim()
     .isLength({ min: 1, max: 100 })
     .withMessage('Country must be between 1 and 100 characters'),
+  query('countryId').optional(),
   query('search')
     .optional()
     .trim()
@@ -45,6 +47,12 @@ const listStatesValidation = [
     .isIn(['name', 'code', 'country', 'createdAt', 'updatedAt'])
     .withMessage('Invalid sort field'),
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
+  query('isActive')
+    .optional()
+    .isIn(['true', 'false', 'all'])
+    .withMessage('isActive must be true, false, or all'),
+  query('createdFrom').optional().isISO8601().withMessage('createdFrom must be ISO 8601 date'),
+  query('createdTo').optional().isISO8601().withMessage('createdTo must be ISO 8601 date'),
 ];
 
 const createStateValidation = [
@@ -88,10 +96,10 @@ const updateStateValidation = [
     .trim()
     .isLength({ min: 1, max: 100 })
     .withMessage('Country must be between 1 and 100 characters'),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 const _bulkImportValidation = [
-  // File validation would be handled by multer middleware
   body('overwrite').optional().isBoolean().withMessage('Overwrite must be a boolean'),
 ];
 
@@ -99,6 +107,9 @@ const _bulkImportValidation = [
 router.get('/', listStatesValidation, handleValidationErrors, getStates);
 
 router.get('/stats', getStatesStats);
+
+// /export MUST precede /:id (Express matches in declaration order).
+router.get('/export', listStatesValidation, handleValidationErrors, exportStates);
 
 router.post(
   '/',

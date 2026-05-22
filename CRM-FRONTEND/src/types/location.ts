@@ -15,6 +15,7 @@ export interface State extends Omit<BaseEntity, 'id'> {
   code: string;
   countryId: number;
   country: string;
+  isActive?: boolean;
   cities?: City[];
   cityCount?: number;
 }
@@ -83,6 +84,7 @@ export interface UpdateStateData {
   name?: string;
   code?: string;
   country?: string;
+  isActive?: boolean;
 }
 
 export interface CreateCityData {

@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import { useStandardizedQuery } from '@/hooks/useStandardizedQuery';
-import { stateFormSchema, type StateFormData } from '@/forms/schemas/location.schema';
+import { editStateFormSchema, type EditStateFormData } from '@/forms/schemas/location.schema';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,6 +16,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -29,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { locationsService } from '@/services/locations';
 import type { State, UpdateStateData } from '@/types/location';
 
@@ -39,27 +41,27 @@ interface EditStateDialogProps {
 }
 
 export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogProps) {
-  const form = useForm<StateFormData>({
-    resolver: zodResolver(stateFormSchema),
+  const form = useForm<EditStateFormData>({
+    resolver: zodResolver(editStateFormSchema),
     defaultValues: {
       name: state.name,
       code: state.code,
       country: state.country,
+      isActive: state.isActive ?? true,
     },
   });
 
-  // Reset form when state changes
   useEffect(() => {
     if (state) {
       form.reset({
         name: state.name,
         code: state.code,
         country: state.country,
+        isActive: state.isActive ?? true,
       });
     }
   }, [state, form]);
 
-  // Fetch countries for dropdown
   const { data: countriesData } = useStandardizedQuery({
     queryKey: ['countries'],
     queryFn: () => locationsService.getCountries(),
@@ -73,13 +75,13 @@ export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogPr
     queryKey: ['states'],
     resourceName: 'State',
     operation: 'update',
-    additionalInvalidateKeys: [['dashboard']],
+    additionalInvalidateKeys: [['state-stats']],
     onSuccess: () => {
       onOpenChange(false);
     },
   });
 
-  const onSubmit = (data: StateFormData) => {
+  const onSubmit = (data: EditStateFormData) => {
     updateStateMutation.mutate(data);
   };
 
@@ -145,7 +147,7 @@ export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogPr
                       {countries.map((country) => (
                         <SelectItem key={country.id} value={country.name}>
                           <div className="flex items-center space-x-2">
-                            <span className="font-mono text-xs bg-green-50 text-green-700 border border-green-100 px-1 rounded">
+                            <span className="font-mono text-xs bg-muted px-1 rounded">
                               {country.code}
                             </span>
                             <span>{country.name}</span>
@@ -155,6 +157,24 @@ export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogPr
                     </SelectContent>
                   </Select>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Active</FormLabel>
+                    <FormDescription>
+                      Inactive states are hidden from the Active filter.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
+                  </FormControl>
                 </FormItem>
               )}
             />
