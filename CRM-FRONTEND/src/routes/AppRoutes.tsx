@@ -60,6 +60,12 @@ const ClientsPage = React.lazy(() =>
 const UsersPage = React.lazy(() =>
   import('@/pages/UsersPage').then((module) => ({ default: module.UsersPage }))
 );
+const UserActivityPage = React.lazy(() =>
+  import('@/pages/UserActivityPage').then((module) => ({ default: module.UserActivityPage }))
+);
+const UserSessionsPage = React.lazy(() =>
+  import('@/pages/UserSessionsPage').then((module) => ({ default: module.UserSessionsPage }))
+);
 const UserPermissionsPage = React.lazy(() =>
   import('@/pages/UserPermissionsPage').then((module) => ({ default: module.UserPermissionsPage }))
 );
@@ -640,6 +646,10 @@ export const AppRoutes: React.FC = () => {
           />
 
           <Route
+            path="/user-management"
+            element={<Navigate to="/user-management/users" replace />}
+          />
+          <Route
             path="/user-management/users"
             element={
               <ProtectedRoute permission="page.users">
@@ -648,10 +658,18 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/user-management/:tab"
+            path="/user-management/user-activity"
             element={
               <ProtectedRoute permission="page.users">
-                <UsersPage />
+                <UserActivityPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/user-management/user-sessions"
+            element={
+              <ProtectedRoute permission="page.users">
+                <UserSessionsPage />
               </ProtectedRoute>
             }
           />
