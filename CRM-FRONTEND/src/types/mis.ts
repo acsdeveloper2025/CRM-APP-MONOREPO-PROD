@@ -20,6 +20,8 @@ export interface MISFilters {
   priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   page?: number;
   limit?: number;
+  sortBy?: 'taskCreatedDate' | 'taskCompletionDate' | 'caseCreatedDate' | 'amount';
+  sortOrder?: 'asc' | 'desc';
 }
 
 // TASK-CENTRIC DATA STRUCTURE
@@ -101,5 +103,3 @@ export interface MISDataResponse {
   pagination: MISPagination;
   message: string;
 }
-
-export type ExportFormat = 'EXCEL' | 'CSV';

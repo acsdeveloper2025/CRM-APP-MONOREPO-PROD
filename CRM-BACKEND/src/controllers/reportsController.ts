@@ -8,8 +8,20 @@ import { getAssignedProductIds } from '@/middleware/productAccess';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
 import { resolveDataScope } from '@/security/dataScope';
+import { createAuditLog } from '@/utils/auditLogger';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
 import { CaseAnalyticsRow } from '../types/reports';
 import ExcelJS from 'exceljs';
+
+const MIS_EXPORT_ROW_LIMIT = 10000;
+
+// MIS sortBy → SQL column mapping. Allowed values mirror the FE Sort dropdown.
+const MIS_SORT_MAP: Record<string, string> = {
+  taskCreatedDate: 'vt.created_at',
+  taskCompletionDate: 'vt.completed_at',
+  caseCreatedDate: 'c.created_at',
+  amount: 'vt.actual_amount',
+};
 
 interface MISReportRow {
   taskId: number;
@@ -1428,124 +1440,122 @@ export const getDashboardReport = async (req: AuthenticatedRequest, res: Respons
 // ===== MIS DASHBOARD APIs =====
 
 // GET /api/reports/mis-dashboard-data - Get comprehensive MIS data with case and task details
+// Shared WHERE-builder — single source of truth for list + export + summary.
+// Returns the assembled WHERE clause + params array (postgres positional).
+// Adding a new MIS filter goes ONCE in this helper.
+async function buildMISWhereClause(req: AuthenticatedRequest): Promise<{
+  whereClause: string;
+  params: QueryParams;
+}> {
+  const {
+    search,
+    dateFrom,
+    dateTo,
+    clientId,
+    productId,
+    verificationTypeId,
+    caseStatus,
+    fieldAgentId,
+    backendUserId,
+    priority,
+  } = req.query;
+
+  const conditions: string[] = [];
+  const params: QueryParams = [];
+  let paramIndex = 1;
+  const backendScope = await getBackendUserReportScope(req);
+
+  if (search && typeof search === 'string' && search.trim()) {
+    conditions.push(`(
+      c.case_id ILIKE $${paramIndex} OR
+      c.customer_name ILIKE $${paramIndex} OR
+      c.customer_phone ILIKE $${paramIndex} OR
+      vt.task_number ILIKE $${paramIndex}
+    )`);
+    params.push(`%${search.trim()}%`);
+    paramIndex++;
+  }
+
+  if (dateFrom) {
+    conditions.push(`vt.created_at >= $${paramIndex}`);
+    params.push(dateFrom as string);
+    paramIndex++;
+  }
+  if (dateTo) {
+    conditions.push(`vt.created_at <= $${paramIndex}`);
+    params.push(dateTo as string);
+    paramIndex++;
+  }
+  if (clientId) {
+    conditions.push(`c.client_id = $${paramIndex}`);
+    params.push(parseInt(clientId as string));
+    paramIndex++;
+  }
+  if (productId) {
+    conditions.push(`c.product_id = $${paramIndex}`);
+    params.push(parseInt(productId as string));
+    paramIndex++;
+  }
+  if (verificationTypeId) {
+    conditions.push(`vt.verification_type_id = $${paramIndex}`);
+    params.push(parseInt(verificationTypeId as string));
+    paramIndex++;
+  }
+  if (caseStatus) {
+    conditions.push(`vt.status = $${paramIndex}`);
+    params.push(caseStatus as string);
+    paramIndex++;
+  }
+  if (backendUserId) {
+    conditions.push(`c.created_by_backend_user = $${paramIndex}`);
+    params.push(backendUserId as string);
+    paramIndex++;
+  }
+  if (priority) {
+    conditions.push(`vt.priority = $${paramIndex}`);
+    params.push(priority as string);
+    paramIndex++;
+  }
+  if (fieldAgentId) {
+    conditions.push(`vt.assigned_to = $${paramIndex}`);
+    params.push(fieldAgentId as string);
+    paramIndex++;
+  }
+
+  if (backendScope.creatorUserIds) {
+    conditions.push(`(
+      c.created_by_backend_user = ANY($${paramIndex}::uuid[])
+      OR EXISTS (
+        SELECT 1 FROM verification_tasks vt_scope
+        WHERE vt_scope.case_id = c.id
+          AND vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
+      )
+    )`);
+    params.push(backendScope.creatorUserIds);
+    paramIndex++;
+  }
+  if (backendScope.clientIds) {
+    conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
+    params.push(backendScope.clientIds);
+    paramIndex++;
+  }
+  if (backendScope.productIds) {
+    conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
+    params.push(backendScope.productIds);
+    paramIndex++;
+  }
+
+  return {
+    whereClause: conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '',
+    params,
+  };
+}
+
 export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      search,
-      dateFrom,
-      dateTo,
-      clientId,
-      productId,
-      verificationTypeId,
-      caseStatus,
-      fieldAgentId,
-      backendUserId,
-      priority,
-      page = 1,
-      limit = 50,
-    } = req.query;
-
-    // Build WHERE conditions - TASK-CENTRIC
-    const conditions: string[] = [];
-    const params: QueryParams = [];
-    let paramIndex = 1;
-    const backendScope = await getBackendUserReportScope(req);
-
-    // Search across case number, customer name, customer phone, task number
-    if (search && typeof search === 'string' && search.trim()) {
-      conditions.push(`(
-        c.case_id ILIKE $${paramIndex} OR
-        c.customer_name ILIKE $${paramIndex} OR
-        c.customer_phone ILIKE $${paramIndex} OR
-        vt.task_number ILIKE $${paramIndex}
-      )`);
-      params.push(`%${search.trim()}%`);
-      paramIndex++;
-    }
-
-    // Date filters - use task created date
-    if (dateFrom) {
-      conditions.push(`vt.created_at >= $${paramIndex}`);
-      params.push(dateFrom as string);
-      paramIndex++;
-    }
-    if (dateTo) {
-      conditions.push(`vt.created_at <= $${paramIndex}`);
-      params.push(dateTo as string);
-      paramIndex++;
-    }
-
-    // Client and Product filters
-    if (clientId) {
-      conditions.push(`c.client_id = $${paramIndex}`);
-      params.push(parseInt(clientId as string));
-      paramIndex++;
-    }
-    if (productId) {
-      conditions.push(`c.product_id = $${paramIndex}`);
-      params.push(parseInt(productId as string));
-      paramIndex++;
-    }
-
-    // Verification Type filter - use task verification type
-    if (verificationTypeId) {
-      conditions.push(`vt.verification_type_id = $${paramIndex}`);
-      params.push(parseInt(verificationTypeId as string));
-      paramIndex++;
-    }
-
-    // Status filter - use TASK status (not case status)
-    if (caseStatus) {
-      conditions.push(`vt.status = $${paramIndex}`);
-      params.push(caseStatus as string);
-      paramIndex++;
-    }
-
-    // Backend User filter
-    if (backendUserId) {
-      conditions.push(`c.created_by_backend_user = $${paramIndex}`);
-      params.push(backendUserId as string);
-      paramIndex++;
-    }
-
-    // Priority filter - use task priority
-    if (priority) {
-      conditions.push(`vt.priority = $${paramIndex}`);
-      params.push(priority as string);
-      paramIndex++;
-    }
-
-    // Field Agent filter - direct task assignment
-    if (fieldAgentId) {
-      conditions.push(`vt.assigned_to = $${paramIndex}`);
-      params.push(fieldAgentId as string);
-      paramIndex++;
-    }
-
-    if (backendScope.creatorUserIds) {
-      conditions.push(`(
-        c.created_by_backend_user = ANY($${paramIndex}::uuid[])
-        OR EXISTS (
-          SELECT 1 FROM verification_tasks vt_scope
-          WHERE vt_scope.case_id = c.id
-            AND vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
-        )
-      )`);
-      params.push(backendScope.creatorUserIds);
-      paramIndex++;
-    }
-    if (backendScope.clientIds) {
-      conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
-      params.push(backendScope.clientIds);
-      paramIndex++;
-    }
-    if (backendScope.productIds) {
-      conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
-      params.push(backendScope.productIds);
-      paramIndex++;
-    }
-
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const { page = 1, limit = 50, sortBy, sortOrder } = req.query;
+    const { whereClause, params } = await buildMISWhereClause(req);
+    const paramIndex = params.length + 1;
 
     // Calculate pagination
     const pageNum = parseInt(page as string);
@@ -1661,7 +1671,9 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
 
       ${whereClause}
 
-      ORDER BY vt.created_at DESC
+      ORDER BY ${MIS_SORT_MAP[sortBy as string] ?? 'vt.created_at'} ${
+        (sortOrder as string)?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
+      } NULLS LAST
       LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}
     `;
 
@@ -1732,124 +1744,13 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
-// GET /api/reports/mis-dashboard-data/export - Export MIS data to Excel or CSV
+// GET /api/reports/mis-dashboard-data/export — xlsx mirroring list WHERE.
+// escapeFormulaRow (CWE-1236) on every user-controlled cell.
+// MIS_EXPORTED audit row written PRE-stream. Hard cap MIS_EXPORT_ROW_LIMIT.
 export const exportMISData = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      search,
-      dateFrom,
-      dateTo,
-      clientId,
-      productId,
-      verificationTypeId,
-      caseStatus,
-      fieldAgentId,
-      backendUserId,
-      priority,
-      format = 'EXCEL',
-    } = req.query;
-
-    // Build WHERE conditions - TASK-CENTRIC (same as getMISData)
-    const conditions: string[] = [];
-    const params: QueryParams = [];
-    let paramIndex = 1;
-    const backendScope = await getBackendUserReportScope(req);
-
-    // Search across case number, customer name, customer phone, task number
-    if (search && typeof search === 'string' && search.trim()) {
-      conditions.push(`(
-        c.case_id ILIKE $${paramIndex} OR
-        c.customer_name ILIKE $${paramIndex} OR
-        c.customer_phone ILIKE $${paramIndex} OR
-        vt.task_number ILIKE $${paramIndex}
-      )`);
-      params.push(`%${search.trim()}%`);
-      paramIndex++;
-    }
-
-    // Date filters - use task created date
-    if (dateFrom) {
-      conditions.push(`vt.created_at >= $${paramIndex}`);
-      params.push(dateFrom as string);
-      paramIndex++;
-    }
-    if (dateTo) {
-      conditions.push(`vt.created_at <= $${paramIndex}`);
-      params.push(dateTo as string);
-      paramIndex++;
-    }
-
-    // Client and Product filters
-    if (clientId) {
-      conditions.push(`c.client_id = $${paramIndex}`);
-      params.push(parseInt(clientId as string));
-      paramIndex++;
-    }
-    if (productId) {
-      conditions.push(`c.product_id = $${paramIndex}`);
-      params.push(parseInt(productId as string));
-      paramIndex++;
-    }
-
-    // Verification Type filter - use task verification type
-    if (verificationTypeId) {
-      conditions.push(`vt.verification_type_id = $${paramIndex}`);
-      params.push(parseInt(verificationTypeId as string));
-      paramIndex++;
-    }
-
-    // Status filter - use TASK status (not case status)
-    if (caseStatus) {
-      conditions.push(`vt.status = $${paramIndex}`);
-      params.push(caseStatus as string);
-      paramIndex++;
-    }
-
-    // Backend User filter
-    if (backendUserId) {
-      conditions.push(`c.created_by_backend_user = $${paramIndex}`);
-      params.push(backendUserId as string);
-      paramIndex++;
-    }
-
-    // Priority filter - use task priority
-    if (priority) {
-      conditions.push(`vt.priority = $${paramIndex}`);
-      params.push(priority as string);
-      paramIndex++;
-    }
-
-    // Field Agent filter - direct task assignment
-    if (fieldAgentId) {
-      conditions.push(`vt.assigned_to = $${paramIndex}`);
-      params.push(fieldAgentId as string);
-      paramIndex++;
-    }
-
-    if (backendScope.creatorUserIds) {
-      conditions.push(`(
-        c.created_by_backend_user = ANY($${paramIndex}::uuid[])
-        OR EXISTS (
-          SELECT 1 FROM verification_tasks vt_scope
-          WHERE vt_scope.case_id = c.id
-            AND vt_scope.assigned_to = ANY($${paramIndex}::uuid[])
-        )
-      )`);
-      params.push(backendScope.creatorUserIds);
-      paramIndex++;
-    }
-    if (backendScope.clientIds) {
-      conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
-      params.push(backendScope.clientIds);
-      paramIndex++;
-    }
-    if (backendScope.productIds) {
-      conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
-      params.push(backendScope.productIds);
-      paramIndex++;
-    }
-
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const { whereClause, params } = await buildMISWhereClause(req);
+    const limitParamIndex = params.length + 1;
 
     // Get all data without pagination for export - TASK-CENTRIC
     const query = `
@@ -1922,11 +1823,20 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       ) tfs ON true
       ${whereClause}
       ORDER BY vt.created_at DESC
+      LIMIT $${limitParamIndex}
     `;
 
+    params.push(MIS_EXPORT_ROW_LIMIT);
     const result = await dbQuery<MISReportRow>(query, params);
 
-    if (format === 'EXCEL') {
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'MIS_EXPORTED',
+      entityType: 'mis_report',
+      details: { recordCount: result.rows.length, filters: req.query },
+    });
+
+    {
       // Create Excel workbook
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('MIS Report');
@@ -1985,9 +1895,9 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       };
       worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
 
-      // Add data rows
+      // Add data rows — escapeFormulaRow on every cell (CWE-1236)
       result.rows.forEach(row => {
-        worksheet.addRow(row);
+        worksheet.addRow(escapeFormulaRow(row));
       });
 
       // Auto-filter
@@ -2009,108 +1919,10 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
         `attachment; filename=MIS_Report_${new Date().toISOString().split('T')[0]}.xlsx`
       );
       res.send(buffer);
-    } else if (format === 'CSV') {
-      // Generate CSV - TASK-FIRST ORDER
-      const headers = [
-        // Task-Level Data (PRIMARY)
-        'Task ID',
-        'Task Number',
-        'Task Title',
-        'Verification Type',
-        'Task Status',
-        'Task Priority',
-        'Field Agent',
-        'Field Agent ID',
-        'Address',
-        'Pincode',
-        'Rate Type',
-        'Estimated Amount',
-        'Actual Amount',
-        'Task Created Date',
-        'Task Started Date',
-        'Task Completion Date',
-        'Task TAT (Days)',
-        'Trigger',
-        'Applicant Type',
-        // Form Submission Data
-        'Form Submission ID',
-        'Form Type',
-        'Form Submitted Date',
-        'Form Validation Status',
-        // Case-Level Data (SECONDARY/REFERENCE)
-        'Case Number',
-        'Customer Name',
-        'Customer Phone',
-        'Calling Code',
-        'Client Name',
-        'Client Code',
-        'Product',
-        'Case Status',
-        'Case Priority',
-        'Case Created Date',
-        'Backend User',
-        'Backend User ID',
-      ];
-
-      const csvRows = [headers.join(',')];
-
-      result.rows.forEach(row => {
-        const values = [
-          // Task-Level Data (PRIMARY)
-          row.taskId || '',
-          row.taskNumber || '',
-          `"${row.taskTitle || ''}"`,
-          `"${row.taskVerificationType || ''}"`,
-          row.taskStatus || '',
-          row.taskPriority || '',
-          `"${row.assignedFieldUser || ''}"`,
-          row.fieldUserEmployeeId || '',
-          `"${row.address || ''}"`,
-          row.pincode || '',
-          row.rateType || '',
-          row.estimatedAmount || 0,
-          row.actualAmount || 0,
-          row.taskCreatedDate || '',
-          row.taskStartedDate || '',
-          row.taskCompletionDate || '',
-          row.taskTatDays || '',
-          `"${row.trigger || ''}"`,
-          row.applicantType || '',
-          // Form Submission Data
-          row.formSubmissionId || '',
-          row.formType || '',
-          row.formSubmittedDate || '',
-          row.formValidationStatus || '',
-          // Case-Level Data (SECONDARY/REFERENCE)
-          row.caseNumber,
-          `"${row.customerName || ''}"`,
-          row.customerPhone || '',
-          row.customerCallingCode || '',
-          `"${row.clientName || ''}"`,
-          row.clientCode || '',
-          `"${row.productName || ''}"`,
-          row.caseStatus || '',
-          row.casePriority || '',
-          row.caseCreatedDate || '',
-          `"${row.backendUserName || ''}"`,
-          row.backendUserEmployeeId || '',
-        ];
-        csvRows.push(values.join(','));
-      });
-
-      const csvContent = csvRows.join('\n');
-
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename=MIS_Report_${new Date().toISOString().split('T')[0]}.csv`
-      );
-      res.send(csvContent);
     }
 
     logger.info('MIS data exported', {
       userId: req.user?.id,
-      format,
       recordCount: result.rows.length,
     });
   } catch (error) {

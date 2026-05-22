@@ -332,8 +332,13 @@ const misDashboardValidation = [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
-    .isInt({ min: 1, max: 1000 })
-    .withMessage('Limit must be between 1 and 5000'),
+    .isInt({ min: 1, max: 100 })
+    .withMessage('Limit must be between 1 and 100'),
+  query('sortBy')
+    .optional()
+    .isIn(['taskCreatedDate', 'taskCompletionDate', 'caseCreatedDate', 'amount'])
+    .withMessage('Invalid sortBy'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Invalid sortOrder'),
 ];
 
 // MIS Dashboard Data
@@ -346,13 +351,10 @@ router.get(
   getMISData
 );
 
-// MIS Dashboard Export
+// MIS Dashboard Export — xlsx only (CSV path removed per §9 canonical contract).
 router.get(
   '/mis-dashboard-data/export',
-  [
-    ...misDashboardValidation,
-    query('format').isIn(['EXCEL', 'CSV']).withMessage('Format must be EXCEL or CSV'),
-  ],
+  misDashboardValidation,
   validate,
   exportRateLimit,
   validateClientAccess('query'),
