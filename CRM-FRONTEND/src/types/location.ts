@@ -57,6 +57,7 @@ export interface Pincode {
   cityName: string;
   state: string;
   country: string;
+  isActive?: boolean;
   createdAt: string;
   updatedAt: string;
   city?: City;
@@ -132,6 +133,7 @@ export interface UpdatePincodeData {
   code?: string;
   area?: string;
   cityId?: string;
+  isActive?: boolean;
 }
 
 export interface AddPincodeAreasData {

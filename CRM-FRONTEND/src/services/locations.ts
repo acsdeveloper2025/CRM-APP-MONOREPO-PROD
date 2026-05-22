@@ -284,6 +284,26 @@ export class LocationsService {
     return apiService.delete(`/pincodes/${id}`);
   }
 
+  async getPincodesStats(): Promise<
+    ApiResponse<{
+      total: number;
+      active: number;
+      inactive: number;
+      recentlyAddedCount: number;
+      withAreasCount: number;
+    }>
+  > {
+    return apiService.get('/pincodes/stats');
+  }
+
+  async exportPincodes(
+    query: Omit<LocationQuery, 'page' | 'limit'> = {}
+  ): Promise<AxiosResponse<Blob>> {
+    return apiService.getRaw<Blob>('/pincodes/export', query, {
+      responseType: 'blob',
+    });
+  }
+
   async searchPincodes(query: string): Promise<ApiResponse<Pincode[]>> {
     const response = await apiService.get<Pincode[]>('/pincodes/search', { q: query });
     if (response?.success && Array.isArray(response.data)) {

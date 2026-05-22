@@ -68,6 +68,11 @@ export const pincodeFormSchema = z.object({
 });
 export type PincodeFormData = z.infer<typeof pincodeFormSchema>;
 
+export const editPincodeFormSchema = pincodeFormSchema.extend({
+  isActive: z.boolean().optional(),
+});
+export type EditPincodeFormData = z.infer<typeof editPincodeFormSchema>;
+
 export const areaFormSchema = z.object({
   name: z
     .string()

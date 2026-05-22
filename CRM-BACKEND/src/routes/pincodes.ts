@@ -15,6 +15,8 @@ import {
   getPincodeAreas,
   addPincodeAreas,
   removePincodeArea,
+  getPincodesStats,
+  exportPincodes,
 } from '@/controllers/pincodesController';
 
 const router = express.Router();
@@ -171,7 +173,10 @@ const listPincodesValidation = [
     .optional()
     .isIn(['DELIVERY', 'NON_DELIVERY', 'SUB_OFFICE', 'HEAD_OFFICE'])
     .withMessage('Invalid delivery status'),
-  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+  query('isActive')
+    .optional()
+    .isIn(['true', 'false', 'all'])
+    .withMessage('isActive must be true, false, or all'),
   query('search')
     .optional()
     .trim()
@@ -179,9 +184,11 @@ const listPincodesValidation = [
     .withMessage('Search term must be less than 100 characters'),
   query('sortBy')
     .optional()
-    .isIn(['code', 'area', 'cityName', 'state', 'district', 'createdAt'])
+    .isIn(['code', 'area', 'cityName', 'state', 'district', 'createdAt', 'updatedAt'])
     .withMessage('Invalid sort field'),
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
+  query('createdFrom').optional().isISO8601().withMessage('createdFrom must be ISO 8601 date'),
+  query('createdTo').optional().isISO8601().withMessage('createdTo must be ISO 8601 date'),
 ];
 
 const searchValidation = [
@@ -217,6 +224,11 @@ const _bulkImportValidation = [
 
 // Core CRUD routes
 router.get('/', listPincodesValidation, validate, getPincodes);
+
+router.get('/stats', getPincodesStats);
+
+// /export MUST precede /:id (Express matches in declaration order).
+router.get('/export', listPincodesValidation, validate, exportPincodes);
 
 router.get('/search', searchValidation, validate, searchPincodes);
 

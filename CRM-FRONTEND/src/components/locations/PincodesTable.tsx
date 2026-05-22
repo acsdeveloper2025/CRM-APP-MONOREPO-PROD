@@ -1,6 +1,18 @@
 import { useState } from 'react';
-import { MoreHorizontal, Edit, Trash2, MapPin, Building } from 'lucide-react';
-import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
+import {
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  MapPin,
+  Building,
+  ToggleLeft,
+  ToggleRight,
+} from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  useMutationWithInvalidation,
+  useStandardizedMutation,
+} from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -42,6 +54,7 @@ interface PincodesTableProps {
 }
 
 export function PincodesTable({ data, isLoading }: PincodesTableProps) {
+  const queryClient = useQueryClient();
   const [selectedPincode, setSelectedPincode] = useState<Pincode | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -49,13 +62,24 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
 
   const deleteMutation = useMutationWithInvalidation({
     mutationFn: (id: string) => locationsService.deletePincode(id),
-    invalidateKeys: [['pincodes']],
+    invalidateKeys: [['pincodes'], ['pincode-stats']],
     successMessage: 'Pincode deleted successfully',
     errorContext: 'Pincode Deletion',
     errorFallbackMessage: 'Failed to delete pincode',
     onSuccess: () => {
       setShowDeleteDialog(false);
       setPincodeToDelete(null);
+    },
+  });
+
+  const toggleActiveMutation = useStandardizedMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      locationsService.updatePincode(id, { isActive }),
+    errorContext: 'Pincode Status Toggle',
+    errorFallbackMessage: 'Failed to update pincode status',
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pincodes'] });
+      queryClient.invalidateQueries({ queryKey: ['pincode-stats'] });
     },
   });
 
@@ -77,7 +101,9 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
 
   if (isLoading) {
     return (
-      <TableSkeleton headers={['Pincode', 'Areas', 'City', 'State', 'Created Date', 'Actions']} />
+      <TableSkeleton
+        headers={['Pincode', 'Areas', 'City', 'State', 'Created Date', 'Status', 'Actions']}
+      />
     );
   }
 
@@ -102,6 +128,7 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
               <TableHead>City</TableHead>
               <TableHead>State</TableHead>
               <TableHead>Created Date</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -143,6 +170,13 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
                   )}
                 </TableCell>
                 <TableCell>{new Date(pincode.createdAt).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  {pincode.isActive === false ? (
+                    <Badge variant="secondary">INACTIVE</Badge>
+                  ) : (
+                    <Badge variant="default">ACTIVE</Badge>
+                  )}
+                </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -156,6 +190,27 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
                       <DropdownMenuItem onClick={() => handleEdit(pincode)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Edit Pincode
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={toggleActiveMutation.isPending}
+                        onClick={() =>
+                          toggleActiveMutation.mutate({
+                            id: pincode.id,
+                            isActive: !(pincode.isActive ?? true),
+                          })
+                        }
+                      >
+                        {pincode.isActive === false ? (
+                          <>
+                            <ToggleRight className="mr-2 h-4 w-4" />
+                            Activate
+                          </>
+                        ) : (
+                          <>
+                            <ToggleLeft className="mr-2 h-4 w-4" />
+                            Deactivate
+                          </>
+                        )}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
@@ -174,7 +229,6 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
         </Table>
       </div>
 
-      {/* Edit Pincode Dialog */}
       {selectedPincode && (
         <CascadingEditPincodeDialog
           pincode={selectedPincode}
@@ -183,7 +237,6 @@ export function PincodesTable({ data, isLoading }: PincodesTableProps) {
         />
       )}
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>

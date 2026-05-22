@@ -1,31 +1,101 @@
 import type { Response } from 'express';
+import ExcelJS from 'exceljs';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
 import type { QueryParams, DatabaseError } from '@/types/database';
 import { sendError, errors } from '@/utils/apiResponse';
+import { createAuditLog } from '@/utils/auditLogger';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
 
-// Database-driven pincodes controller - no more mock data
+// Shared WHERE-clause builder for getPincodes + exportPincodes so the two stay
+// in lockstep (same filters). Operates on the shape:
+//   pincodes p JOIN cities c JOIN states s JOIN countries co
+//             LEFT JOIN pincode_areas pa LEFT JOIN areas a
+// Returns the SQL `WHERE …` fragment + the positional parameter array.
+const buildPincodesWhereClause = (
+  req: AuthenticatedRequest
+): { whereClause: string; queryParams: QueryParams; nextParamIndex: number } => {
+  const { search, cityId, state, isActive, createdFrom, createdTo } = req.query;
+  const whereConditions: string[] = [];
+  const queryParams: QueryParams = [];
+  let paramIndex = 1;
+
+  if (cityId !== undefined && cityId !== null && cityId !== '' && cityId !== 'all') {
+    whereConditions.push(`p.city_id = $${paramIndex}`);
+    queryParams.push(cityId as string);
+    paramIndex++;
+  }
+
+  if (state && typeof state === 'string') {
+    whereConditions.push(`COALESCE(s.name, '') ILIKE $${paramIndex}`);
+    queryParams.push(`%${state}%`);
+    paramIndex++;
+  }
+
+  if (search) {
+    whereConditions.push(`(
+      COALESCE(p.code, '') ILIKE $${paramIndex} OR
+      COALESCE(c.name, '') ILIKE $${paramIndex} OR
+      COALESCE(s.name, '') ILIKE $${paramIndex} OR
+      COALESCE(a.name, '') ILIKE $${paramIndex}
+    )`);
+    queryParams.push(
+      `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
+    );
+    paramIndex++;
+  }
+
+  if (isActive === 'true' || isActive === 'false') {
+    whereConditions.push(`p.is_active = $${paramIndex}`);
+    queryParams.push(isActive === 'true');
+    paramIndex++;
+  }
+
+  if (typeof createdFrom === 'string' && createdFrom) {
+    whereConditions.push(`p.created_at >= $${paramIndex}`);
+    queryParams.push(createdFrom);
+    paramIndex++;
+  }
+  if (typeof createdTo === 'string' && createdTo) {
+    whereConditions.push(`p.created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
+    queryParams.push(createdTo);
+    paramIndex++;
+  }
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+  return { whereClause, queryParams, nextParamIndex: paramIndex };
+};
 
 // GET /api/pincodes - List pincodes with pagination and filters
 export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      cityId,
-      state,
-      district,
-      region,
-      deliveryStatus: _deliveryStatus,
-      isActive: _isActive,
-      search,
-      sortBy = 'code',
-      sortOrder = 'asc',
-    } = req.query;
+    const { page = 1, limit = 20, sortBy = 'code', sortOrder = 'asc' } = req.query;
 
-    // Build SQL query with joins to get pincode data and associated areas
-    let sql = `
+    const { whereClause, queryParams, nextParamIndex } = buildPincodesWhereClause(req);
+
+    const sortDirection = sortOrder === 'desc' ? 'DESC' : 'ASC';
+    const sortField = sortBy as string;
+    let orderBy: string;
+    if (sortField === 'cityName') {
+      orderBy = `c.name ${sortDirection}`;
+    } else if (sortField === 'state') {
+      orderBy = `s.name ${sortDirection}`;
+    } else if (sortField === 'country') {
+      orderBy = `co.name ${sortDirection}`;
+    } else if (sortField === 'createdAt') {
+      orderBy = `p.created_at ${sortDirection}`;
+    } else if (sortField === 'updatedAt') {
+      orderBy = `p.updated_at ${sortDirection}`;
+    } else {
+      orderBy = `p.code ${sortDirection}`;
+    }
+
+    const pageNum = parseInt(page as string, 10);
+    const limitNum = parseInt(limit as string, 10);
+    const offset = (pageNum - 1) * limitNum;
+
+    const sql = `
       SELECT
         p.id,
         p.code,
@@ -35,6 +105,7 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
         s.name as state_name,
         s.country_id as country_id,
         co.name as country_name,
+        p.is_active AS "isActive",
         p.created_at as created_at,
         p.updated_at as updated_at,
         COALESCE(
@@ -53,75 +124,14 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
       JOIN countries co ON s.country_id = co.id
       LEFT JOIN pincode_areas pa ON p.id = pa.pincode_id
       LEFT JOIN areas a ON pa.area_id = a.id
-      WHERE 1=1
+      ${whereClause}
+      GROUP BY p.id, p.code, p.city_id, c.name, c.state_id, s.name, s.country_id, co.name, p.is_active, p.created_at, p.updated_at
+      ORDER BY ${orderBy}
+      LIMIT $${nextParamIndex} OFFSET $${nextParamIndex + 1}
     `;
+    const result = await query(sql, [...queryParams, limitNum, offset]);
 
-    const params: QueryParams = [];
-    let paramCount = 0;
-
-    // Apply filters
-    if (cityId) {
-      paramCount++;
-      sql += ` AND p.city_id = $${paramCount}`;
-      params.push(cityId as string);
-    }
-
-    if (state) {
-      paramCount++;
-      sql += ` AND COALESCE(s.name, '') ILIKE $${paramCount}`;
-      params.push(
-        `%${typeof state === 'string' || typeof state === 'number' ? String(state) : ''}%`
-      );
-    }
-
-    if (search) {
-      paramCount++;
-      sql += ` AND (
-        COALESCE(p.code, '') ILIKE $${paramCount} OR
-        COALESCE(c.name, '') ILIKE $${paramCount} OR
-        COALESCE(s.name, '') ILIKE $${paramCount} OR
-        COALESCE(a.name, '') ILIKE $${paramCount}
-      )`;
-      params.push(
-        `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
-      );
-    }
-
-    // Add GROUP BY clause for area aggregation
-    sql += ` GROUP BY p.id, p.code, p.city_id, c.name, c.state_id, s.name, s.country_id, co.name, p.created_at, p.updated_at`;
-
-    // Apply sorting
-    const sortDirection = sortOrder === 'desc' ? 'DESC' : 'ASC';
-    const sortField = sortBy as string;
-
-    if (sortField === 'cityName') {
-      sql += ` ORDER BY c.name ${sortDirection}`;
-    } else if (sortField === 'state') {
-      sql += ` ORDER BY s.name ${sortDirection}`;
-    } else if (sortField === 'country') {
-      sql += ` ORDER BY co.name ${sortDirection}`;
-    } else {
-      sql += ` ORDER BY p.${sortField} ${sortDirection}`;
-    }
-
-    // Apply pagination
-    const pageNum = parseInt(page as string, 10);
-    const limitNum = parseInt(limit as string, 10);
-    const offset = (pageNum - 1) * limitNum;
-
-    paramCount++;
-    sql += ` LIMIT $${paramCount}`;
-    params.push(limitNum);
-
-    paramCount++;
-    sql += ` OFFSET $${paramCount}`;
-    params.push(offset);
-
-    // Execute query
-    const result = await query(sql, params);
-
-    // Get total count for pagination
-    let countSql = `
+    const countSql = `
       SELECT COUNT(DISTINCT p.id)
       FROM pincodes p
       JOIN cities c ON p.city_id = c.id
@@ -129,47 +139,11 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
       JOIN countries co ON s.country_id = co.id
       LEFT JOIN pincode_areas pa ON p.id = pa.pincode_id
       LEFT JOIN areas a ON pa.area_id = a.id
-      WHERE 1=1
+      ${whereClause}
     `;
-    const countParams: QueryParams = [];
-    let countParamCount = 0;
-
-    if (cityId) {
-      countParamCount++;
-      countSql += ` AND p.city_id = $${countParamCount}`;
-      countParams.push(cityId as string);
-    }
-
-    if (state) {
-      countParamCount++;
-      countSql += ` AND s.name ILIKE $${countParamCount}`;
-      countParams.push(
-        `%${typeof state === 'string' || typeof state === 'number' ? String(state) : ''}%`
-      );
-    }
-
-    if (search) {
-      countParamCount++;
-      countSql += ` AND (
-        p.code ILIKE $${countParamCount} OR
-        c.name ILIKE $${countParamCount} OR
-        s.name ILIKE $${countParamCount} OR
-        a.name ILIKE $${countParamCount}
-      )`;
-      countParams.push(
-        `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
-      );
-    }
-
-    const countResult = await query<{ count: string }>(countSql, countParams);
+    const countResult = await query<{ count: string }>(countSql, queryParams);
     const totalCount = parseInt(countResult.rows[0].count, 10);
     const totalPages = Math.ceil(totalCount / limitNum);
-
-    logger.info(`Retrieved ${result.rows.length} pincodes`, {
-      userId: req.user?.id,
-      filters: { cityId, state, district, region, search },
-      pagination: { page: pageNum, limit: limitNum },
-    });
 
     res.json({
       success: true,
@@ -192,6 +166,7 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
         limit: limitNum,
         total: totalCount,
         pages: totalPages,
+        totalPages,
         hasNext: pageNum < totalPages,
         hasPrev: pageNum > 1,
       },
@@ -199,6 +174,178 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
   } catch (error) {
     logger.error('Error retrieving pincodes:', error);
     errors.internal(res, 'Failed to retrieve pincodes');
+  }
+};
+
+// GET /api/pincodes/stats - Canonical 5-card aggregate
+export const getPincodesStats = async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const aggRes = await query<{
+      total: string;
+      active: string;
+      inactive: string;
+      recentlyAdded: string;
+      withAreas: string;
+    }>(
+      `SELECT
+         COUNT(*)::text AS total,
+         COUNT(*) FILTER (WHERE is_active = true)::text AS active,
+         COUNT(*) FILTER (WHERE is_active = false)::text AS inactive,
+         COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days')::text AS "recentlyAdded",
+         COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM pincode_areas pa WHERE pa.pincode_id = p.id))::text AS "withAreas"
+       FROM pincodes p`
+    );
+
+    const row = aggRes.rows[0];
+
+    res.json({
+      success: true,
+      data: {
+        total: parseInt(row.total, 10),
+        active: parseInt(row.active, 10),
+        inactive: parseInt(row.inactive, 10),
+        recentlyAddedCount: parseInt(row.recentlyAdded, 10),
+        withAreasCount: parseInt(row.withAreas, 10),
+      },
+    });
+  } catch (error) {
+    logger.error('Error getting pincodes stats:', error);
+    errors.internal(res, 'Failed to get pincodes statistics');
+  }
+};
+
+// GET /api/pincodes/export - xlsx download mirroring getPincodes filters.
+const EXPORT_ROW_LIMIT = 10000;
+
+export const exportPincodes = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { sortBy = 'code', sortOrder = 'asc' } = req.query;
+
+    const { whereClause, queryParams, nextParamIndex } = buildPincodesWhereClause(req);
+
+    const sortDirection = sortOrder === 'desc' ? 'DESC' : 'ASC';
+    const sortField = sortBy as string;
+    let orderBy: string;
+    if (sortField === 'cityName') {
+      orderBy = `c.name ${sortDirection}`;
+    } else if (sortField === 'state') {
+      orderBy = `s.name ${sortDirection}`;
+    } else if (sortField === 'createdAt') {
+      orderBy = `p.created_at ${sortDirection}`;
+    } else {
+      orderBy = `p.code ${sortDirection}`;
+    }
+
+    const rowsRes = await query<{
+      code: string;
+      city: string;
+      state: string;
+      country: string;
+      areaCount: string;
+      areaNames: string | null;
+      isActive: boolean;
+      createdAt: Date;
+    }>(
+      `SELECT
+         p.code,
+         c.name AS city,
+         s.name AS state,
+         co.name AS country,
+         p.is_active AS "isActive",
+         p.created_at AS "createdAt",
+         COUNT(DISTINCT a.id)::text AS "areaCount",
+         STRING_AGG(DISTINCT a.name, ', ' ORDER BY a.name) AS "areaNames"
+       FROM pincodes p
+       JOIN cities c ON p.city_id = c.id
+       JOIN states s ON c.state_id = s.id
+       JOIN countries co ON s.country_id = co.id
+       LEFT JOIN pincode_areas pa ON p.id = pa.pincode_id
+       LEFT JOIN areas a ON pa.area_id = a.id
+       ${whereClause}
+       GROUP BY p.id, p.code, c.name, s.name, co.name, p.is_active, p.created_at
+       ORDER BY ${orderBy}
+       LIMIT $${nextParamIndex}`,
+      [...queryParams, EXPORT_ROW_LIMIT]
+    );
+    const rows = rowsRes.rows;
+
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('Pincodes');
+    ws.columns = [
+      { header: 'Code', key: 'code', width: 12 },
+      { header: 'City', key: 'city', width: 25 },
+      { header: 'State', key: 'state', width: 25 },
+      { header: 'Country', key: 'country', width: 20 },
+      { header: 'Areas', key: 'areaNames', width: 40 },
+      { header: 'Area Count', key: 'areaCount', width: 12 },
+      { header: 'Created Date', key: 'createdAt', width: 20 },
+      { header: 'Status', key: 'status', width: 12 },
+    ];
+    ws.getRow(1).font = { bold: true };
+    ws.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE6E6FA' },
+    };
+
+    for (const r of rows) {
+      ws.addRow(
+        escapeFormulaRow({
+          code: r.code,
+          city: r.city,
+          state: r.state,
+          country: r.country,
+          areaNames: r.areaNames || '',
+          areaCount: Number(r.areaCount || 0),
+          createdAt: r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : '',
+          status: r.isActive ? 'ACTIVE' : 'INACTIVE',
+        })
+      );
+    }
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const filename = `pincodes_${dateStr}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    void createAuditLog({
+      action: 'PINCODE_EXPORTED',
+      entityType: 'PINCODE',
+      entityId: undefined,
+      userId: req.user!.id,
+      details: {
+        rowCount: rows.length,
+        filename,
+        filters: {
+          search: typeof req.query.search === 'string' ? req.query.search : null,
+          isActive: typeof req.query.isActive === 'string' ? req.query.isActive : null,
+          cityId: typeof req.query.cityId === 'string' ? req.query.cityId : null,
+          state: typeof req.query.state === 'string' ? req.query.state : null,
+          createdFrom: typeof req.query.createdFrom === 'string' ? req.query.createdFrom : null,
+          createdTo: typeof req.query.createdTo === 'string' ? req.query.createdTo : null,
+          sortBy: sortField,
+          sortOrder: sortDirection.toLowerCase(),
+        },
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
+
+    await workbook.xlsx.write(res);
+    res.end();
+    logger.info(`Pincodes exported: ${filename}, ${rows.length} rows`);
+  } catch (error) {
+    logger.error('Error exporting pincodes:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export pincodes',
+        error: { code: 'INTERNAL_ERROR' },
+      });
+    }
   }
 };
 
@@ -445,6 +592,12 @@ export const updatePincode = async (req: AuthenticatedRequest, res: Response) =>
       paramCount++;
       updateFields.push(`city_id = $${paramCount}`);
       updateValues.push(updateData.cityId);
+    }
+
+    if (typeof updateData.isActive === 'boolean') {
+      paramCount++;
+      updateFields.push(`is_active = $${paramCount}`);
+      updateValues.push(updateData.isActive);
     }
 
     if (updateFields.length === 0) {
