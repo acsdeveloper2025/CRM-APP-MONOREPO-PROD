@@ -46,6 +46,19 @@ export class ClientsService {
     });
   }
 
+  // 5-card stats aggregate for ClientsPage shell.
+  async getClientStats(): Promise<
+    ApiResponse<{
+      total: number;
+      active: number;
+      inactive: number;
+      recentlyAddedCount: number;
+      withoutProductsCount: number;
+    }>
+  > {
+    return apiService.get('/clients/stats');
+  }
+
   async getClientById(id: number): Promise<ApiResponse<Client>> {
     const response = await apiService.get<Client>(`/clients/${id}`);
     if (response.success && response.data) {

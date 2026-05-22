@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, FileCheck, CheckCircle, XCircle, Calendar, Download } from 'lucide-react';
+import {
+  Plus,
+  FileCheck,
+  CheckCircle,
+  XCircle,
+  Calendar,
+  Download,
+  IndianRupee,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -126,6 +134,7 @@ export function VerificationTypesPage() {
     active: 0,
     inactive: 0,
     recentlyAddedCount: 0,
+    withRatesCount: 0,
     byCategory: {},
   };
 
@@ -250,7 +259,7 @@ export function VerificationTypesPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Types</CardTitle>
@@ -264,7 +273,7 @@ export function VerificationTypesPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Types</CardTitle>
+            <CardTitle className="text-sm font-medium">Active</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
@@ -275,7 +284,7 @@ export function VerificationTypesPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inactive Types</CardTitle>
+            <CardTitle className="text-sm font-medium">Inactive</CardTitle>
             <XCircle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
@@ -292,6 +301,17 @@ export function VerificationTypesPage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.recentlyAddedCount ?? 0}</div>
             <p className="text-xs text-muted-foreground">Last 30 days</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">With Rates</CardTitle>
+            <IndianRupee className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.withRatesCount ?? 0}</div>
+            <p className="text-xs text-muted-foreground">Billable</p>
           </CardContent>
         </Card>
       </div>

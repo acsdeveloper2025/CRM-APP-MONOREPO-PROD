@@ -434,7 +434,10 @@ export const getProductStats = async (req: AuthenticatedRequest, res: Response) 
         COUNT(*)::int as total,
         COUNT(CASE WHEN is_active = true THEN 1 END)::int as active,
         COUNT(CASE WHEN is_active = false THEN 1 END)::int as inactive,
-        COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END)::int as recently_added_count
+        COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END)::int as recently_added_count,
+        COUNT(CASE WHEN EXISTS (
+          SELECT 1 FROM rates r WHERE r.product_id = products.id AND r.is_active = true
+        ) THEN 1 END)::int as with_rates_count
       FROM products
     `);
     const row = statsRes.rows[0] || {};
@@ -444,6 +447,7 @@ export const getProductStats = async (req: AuthenticatedRequest, res: Response) 
       active: row.active ?? 0,
       inactive: row.inactive ?? 0,
       recentlyAddedCount: row.recently_added_count ?? 0,
+      withRatesCount: row.with_rates_count ?? 0,
       byCategory: {
         // products table has no category column; keep the bucket so
         // downstream FE/MIS that expect this shape doesn't break.

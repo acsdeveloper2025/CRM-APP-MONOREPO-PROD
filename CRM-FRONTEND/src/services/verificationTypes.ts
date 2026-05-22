@@ -123,6 +123,7 @@ export class VerificationTypesService {
       active: number;
       inactive: number;
       recentlyAddedCount?: number;
+      withRatesCount?: number;
       byCategory: Record<string, number>;
     }>
   > {
@@ -131,6 +132,7 @@ export class VerificationTypesService {
       active: number;
       inactive: number;
       recentlyAddedCount?: number;
+      withRatesCount?: number;
       byCategory: Record<string, number>;
     }>('/verification-types/stats');
     if (response?.success && response.data && typeof response.data === 'object') {

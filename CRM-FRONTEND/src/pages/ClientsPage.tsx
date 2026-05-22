@@ -1,10 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Upload, Download } from 'lucide-react';
+import {
+  Plus,
+  Upload,
+  Download,
+  Building2,
+  CheckCircle,
+  XCircle,
+  Calendar,
+  AlertCircle,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -120,6 +129,18 @@ export function ClientsPage() {
     queryKey: ['clients', queryArgs],
     queryFn: () => clientsService.getClients(queryArgs),
   });
+
+  const { data: statsData } = useQuery({
+    queryKey: ['clients-stats'],
+    queryFn: () => clientsService.getClientStats(),
+  });
+  const stats = statsData?.data || {
+    total: 0,
+    active: 0,
+    inactive: 0,
+    recentlyAddedCount: 0,
+    withoutProductsCount: 0,
+  };
 
   const totalPages = clientsData?.pagination?.totalPages ?? 1;
   const total = clientsData?.pagination?.total ?? 0;
@@ -240,6 +261,59 @@ export function ClientsPage() {
             Manage clients and their product / verification-type mappings.
           </p>
         </div>
+      </div>
+
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">All clients</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.active}</div>
+            <p className="text-xs text-muted-foreground">Currently active</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Inactive</CardTitle>
+            <XCircle className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.inactive}</div>
+            <p className="text-xs text-muted-foreground">Disabled clients</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Recently Added</CardTitle>
+            <Calendar className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.recentlyAddedCount}</div>
+            <p className="text-xs text-muted-foreground">Last 30 days</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Without Products</CardTitle>
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.withoutProductsCount}</div>
+            <p className="text-xs text-muted-foreground">No mapping yet</p>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>

@@ -1906,6 +1906,82 @@ export const bulkImportClients = async (
   }
 };
 
+// GET /api/clients/stats - 5-card stats aggregate for ClientsPage shell.
+// Honors the same addClientFiltering scope as the list endpoint so a
+// BACKEND_USER's counts only reflect clients they actually see.
+export const getClientStats = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const clientFilter = (req as AuthenticatedRequest & { clientFilter?: unknown }).clientFilter;
+
+    let scopeClause = '';
+    const params: QueryParams = [];
+    if (clientFilter !== undefined) {
+      if (!Array.isArray(clientFilter)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid client filter format',
+          error: { code: 'INVALID_CLIENT_FILTER' },
+        });
+      }
+      if (clientFilter.length === 0) {
+        return res.json({
+          success: true,
+          data: {
+            total: 0,
+            active: 0,
+            inactive: 0,
+            recentlyAddedCount: 0,
+            withoutProductsCount: 0,
+          },
+          message: 'No clients found - user has no assigned clients',
+        });
+      }
+      scopeClause = 'WHERE id = ANY($1::int[])';
+      params.push(clientFilter);
+    }
+
+    const statsRes = await query<{
+      total: number;
+      active: number;
+      inactive: number;
+      recentlyAddedCount: number;
+      withoutProductsCount: number;
+    }>(
+      `SELECT
+         COUNT(*)::int as total,
+         COUNT(CASE WHEN is_active = true THEN 1 END)::int as active,
+         COUNT(CASE WHEN is_active = false THEN 1 END)::int as inactive,
+         COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END)::int as "recentlyAddedCount",
+         COUNT(CASE WHEN NOT EXISTS (
+           SELECT 1 FROM client_products cp WHERE cp.client_id = clients.id
+         ) THEN 1 END)::int as "withoutProductsCount"
+       FROM clients
+       ${scopeClause}`,
+      params
+    );
+    const row = statsRes.rows[0] || {
+      total: 0,
+      active: 0,
+      inactive: 0,
+      recentlyAddedCount: 0,
+      withoutProductsCount: 0,
+    };
+
+    res.json({
+      success: true,
+      data: row,
+      message: 'Client statistics retrieved successfully',
+    });
+  } catch (error) {
+    logger.error('Error retrieving client statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve client statistics',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
 // GET /api/clients/export - xlsx download mirroring getClients filters.
 // Same scope (addClientFiltering middleware) + same search/isActive/date-range
 // filters. Pagination is intentionally absent — capped at EXPORT_ROW_LIMIT

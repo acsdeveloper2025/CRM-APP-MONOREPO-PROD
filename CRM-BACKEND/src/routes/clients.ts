@@ -29,6 +29,7 @@ import {
   deleteClientStamp,
   bulkImportClients,
   exportClients,
+  getClientStats,
 } from '@/controllers/clientsController';
 import { upload } from '@/middleware/upload';
 
@@ -179,6 +180,16 @@ router.get(
   markCrossTenant,
   addClientFiltering,
   exportClients
+);
+
+// GET /api/clients/stats - 5-card stats aggregate. MUST stay above /:id.
+router.get(
+  '/stats',
+  authenticateToken,
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
+  markCrossTenant,
+  addClientFiltering,
+  getClientStats
 );
 
 // GET /api/clients/:id - Get client by ID (CACHED)

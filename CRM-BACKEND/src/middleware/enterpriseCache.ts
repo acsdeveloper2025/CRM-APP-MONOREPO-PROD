@@ -390,7 +390,11 @@ export const EnterpriseCacheConfigs = {
     ttl: 1800, // 30 minutes (was 15 minutes)
     keyGenerator: (req: Request) => {
       const userId = (req as AuthenticatedRequest).user?.id || 'anon';
-      const path = req.path.replace('/api/', '');
+      // Bug fix 2026-05-22: req.path inside a sub-router is router-relative
+      // (e.g. "/stats" for both /api/products/stats and /api/clients/stats),
+      // so the key collided across resources. req.baseUrl + req.path is the
+      // full app-rooted path (e.g. "/api/products/stats").
+      const path = `${req.baseUrl}${req.path}`.replace('/api/', '');
       const query = JSON.stringify(req.query);
       return `analytics:${userId}:${path}:${crypto.createHash('md5').update(query).digest('hex')}`;
     },
