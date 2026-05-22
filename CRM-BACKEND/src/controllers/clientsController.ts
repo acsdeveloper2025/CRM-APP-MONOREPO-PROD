@@ -1244,7 +1244,7 @@ export const deleteClient = async (req: AuthenticatedRequest, res: Response) => 
     //     commission_calculations         — RBI 7-yr
     //     field_user_commission_assignments — assignment history
     //   DROP (operational pricing / scope config; recoverable from grants):
-    //     rates, document_type_rates, rate_type_assignments,
+    //     rates, kyc_rates, rate_type_assignments,
     //     client_products (cascades to client_product_documents +
     //     client_product_verifications via existing FKs),
     //     user_client_assignments
@@ -1258,7 +1258,7 @@ export const deleteClient = async (req: AuthenticatedRequest, res: Response) => 
       // Drop operational config — these are user/client-scope mappings and
       // pricing configs, not financial history.
       await cx.query(`DELETE FROM rates WHERE client_id = $1`, [id]);
-      await cx.query(`DELETE FROM document_type_rates WHERE client_id = $1`, [id]);
+      await cx.query(`DELETE FROM kyc_rates WHERE client_id = $1`, [id]);
       await cx.query(`DELETE FROM rate_type_assignments WHERE client_id = $1`, [id]);
       await cx.query(`DELETE FROM client_products WHERE client_id = $1`, [id]);
       await cx.query(`DELETE FROM user_client_assignments WHERE client_id = $1`, [id]);

@@ -903,7 +903,7 @@ const loadCompletedUnbilledTasks = async (
 // KYC candidate row — sourced from verification_tasks where task_type='KYC',
 // joined to kyc_document_verifications + document_types for description.
 // Billing amount is the FROZEN snapshot from verification_tasks.estimated_amount
-// (populated at case-create from document_type_rates per business rule).
+// (populated at case-create from kyc_rates per business rule).
 type InvoiceKycTaskCandidateRow = {
   id: string;
   caseId: string;
@@ -930,9 +930,9 @@ const loadCompletedUnbilledKycTasks = async (
   // C-2 + KYC billing (audit 2026-05-11): KYC tasks land in invoice_items
   // with frozen pricing from verification_tasks.estimated_amount.
   // KYC tasks don't have verification_type_id / pincode_id / area_id /
-  // rate_type_id — they're priced via document_type_rates(client, product,
+  // rate_type_id — they're priced via kyc_rates(client, product,
   // document_type) at case-create time and the snapshot is stored on the
-  // task row. We do NOT re-resolve from document_type_rates here.
+  // task row. We do NOT re-resolve from kyc_rates here.
   const conditions: string[] = [
     `c.client_id = $1`,
     `vt.status = 'COMPLETED'`,
@@ -1005,7 +1005,7 @@ const loadCompletedUnbilledKycTasks = async (
 
 // Resolve the billing amount for a KYC task. Fails LOUD on missing snapshot
 // to match the field-task contract (B-1 audit fix). KYC pricing is FROZEN at
-// case-create time from document_type_rates; we never re-resolve.
+// case-create time from kyc_rates; we never re-resolve.
 const resolveKycTaskBillingAmount = (task: InvoiceKycTaskCandidateRow): { amount: number } => {
   const candidate = task.actualAmount ?? task.estimatedAmount;
   const parsed = candidate !== null && candidate !== undefined ? Number(candidate) : NaN;
@@ -1013,8 +1013,8 @@ const resolveKycTaskBillingAmount = (task: InvoiceKycTaskCandidateRow): { amount
     throw new Error(
       `Billing amount cannot be resolved for KYC task ${task.id} — ` +
         `verification_tasks.actual_amount and estimated_amount are both NULL/invalid. ` +
-        `KYC pricing snapshot is populated at case-create from document_type_rates; ` +
-        `reconfigure document_type_rates for client=${task.clientId} product=${task.productId} ` +
+        `KYC pricing snapshot is populated at case-create from kyc_rates; ` +
+        `reconfigure kyc_rates for client=${task.clientId} product=${task.productId} ` +
         `documentType=${task.documentTypeId ?? 'null'} and re-create the task before billing.`
     );
   }
@@ -1139,7 +1139,7 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
         // C-2 + KYC billing (audit 2026-05-11): KYC tasks land in invoice_items
         // with frozen pricing (no runtime re-resolution). verification_type_id
         // and rate_type_id are NULL (KYC pricing is keyed on document_type
-        // via document_type_rates, snapshotted onto verification_tasks at
+        // via kyc_rates, snapshotted onto verification_tasks at
         // case-create).
         for (const kycTask of kycTaskCandidates) {
           const resolved = resolveKycTaskBillingAmount(kycTask);

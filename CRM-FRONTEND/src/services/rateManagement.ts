@@ -17,11 +17,11 @@ import {
   type CreateOrUpdateRateData,
 } from './rates';
 import {
-  documentTypeRatesService,
-  type DocumentTypeRate,
-  type CreateDocumentTypeRateData,
-  type DocumentTypeRateStats,
-} from './documentTypeRates';
+  kycRatesService,
+  type KYCRate,
+  type CreateKYCRateData,
+  type KYCRateStats,
+} from './kycRates';
 import type { ApiResponse } from '@/types/api';
 
 export interface RateManagementWorkflow {
@@ -241,28 +241,26 @@ export class RateManagementService {
   }
 
   // Tab 5: Document Type Rates Management
-  async getDocumentTypeRates(filters?: {
+  async getKYCRates(filters?: {
     clientId?: number;
     productId?: number;
     documentTypeId?: number;
     search?: string;
     isActive?: boolean;
   }) {
-    return documentTypeRatesService.getDocumentTypeRates(filters);
+    return kycRatesService.getKYCRates(filters);
   }
 
-  async createOrUpdateDocumentTypeRate(
-    data: CreateDocumentTypeRateData
-  ): Promise<ApiResponse<void>> {
-    return documentTypeRatesService.createOrUpdateDocumentTypeRate(data);
+  async createOrUpdateKYCRate(data: CreateKYCRateData): Promise<ApiResponse<void>> {
+    return kycRatesService.createOrUpdateKYCRate(data);
   }
 
-  async deleteDocumentTypeRate(rateId: number): Promise<ApiResponse<void>> {
-    return documentTypeRatesService.deleteDocumentTypeRate(rateId);
+  async deleteKYCRate(rateId: number): Promise<ApiResponse<void>> {
+    return kycRatesService.deleteKYCRate(rateId);
   }
 
-  async getDocumentTypeRateStats(): Promise<ApiResponse<DocumentTypeRateStats>> {
-    return documentTypeRatesService.getDocumentTypeRateStats();
+  async getKYCRateStats(): Promise<ApiResponse<KYCRateStats>> {
+    return kycRatesService.getKYCRateStats();
   }
 
   // Statistics and reporting
@@ -270,14 +268,14 @@ export class RateManagementService {
     ApiResponse<{
       rateTypes: { total: number; active: number; inactive: number };
       rates: { total: number; active: number; inactive: number; averageAmount: number };
-      documentTypeRates?: DocumentTypeRateStats;
+      kycRates?: KYCRateStats;
     }>
   > {
     try {
       const [rateTypeStats, rateStats, documentTypeRateStats] = await Promise.all([
         rateTypesService.getRateTypeStats(),
         ratesService.getRateStats(),
-        documentTypeRatesService.getDocumentTypeRateStats(),
+        kycRatesService.getKYCRateStats(),
       ]);
 
       if (!rateTypeStats.success || !rateStats.success) {
@@ -294,7 +292,7 @@ export class RateManagementService {
         data: {
           rateTypes: rateTypeStats.data || { total: 0, active: 0, inactive: 0 },
           rates: rateStats.data || { total: 0, active: 0, inactive: 0, averageAmount: 0 },
-          documentTypeRates: documentTypeRateStats.data,
+          kycRates: documentTypeRateStats.data,
         },
       };
     } catch (_error) {
@@ -310,7 +308,7 @@ export class RateManagementService {
 export const rateManagementService = new RateManagementService();
 
 // Re-export individual services for direct access if needed
-export { rateTypesService, rateTypeAssignmentsService, ratesService, documentTypeRatesService };
+export { rateTypesService, rateTypeAssignmentsService, ratesService, kycRatesService };
 
 // Re-export types
 export type {
@@ -322,7 +320,7 @@ export type {
   Rate,
   AvailableRateType,
   CreateOrUpdateRateData,
-  DocumentTypeRate,
-  CreateDocumentTypeRateData,
-  DocumentTypeRateStats,
+  KYCRate,
+  CreateKYCRateData,
+  KYCRateStats,
 };

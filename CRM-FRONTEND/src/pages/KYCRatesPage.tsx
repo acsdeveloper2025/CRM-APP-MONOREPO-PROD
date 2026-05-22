@@ -1,4 +1,4 @@
-import { DocumentTypeRatesTab } from '@/components/rate-management/DocumentTypeRatesTab';
+import { KYCRatesTab } from '@/components/rate-management/KYCRatesTab';
 
 export function KYCRatesPage() {
   return (
@@ -9,7 +9,7 @@ export function KYCRatesPage() {
           Configure pricing for KYC document verification per client and product.
         </p>
       </div>
-      <DocumentTypeRatesTab />
+      <KYCRatesTab />
     </div>
   );
 }

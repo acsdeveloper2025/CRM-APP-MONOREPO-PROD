@@ -68,7 +68,7 @@ const requireKycRowAccess = async (
 // by (clientId, productId) using TWO joins:
 //   - INNER JOIN `client_product_documents` → only return doc types
 //     assigned to this (client, product) pair
-//   - LEFT  JOIN `document_type_rates`     → annotate each row with
+//   - LEFT  JOIN `kyc_rates`     → annotate each row with
 //     `rate_amount` + `has_rate`. Doc types without a rate still come
 //     through but with `has_rate=false` so the frontend can warn the
 //     user (mirrors how the field-verification flow surfaces missing
@@ -79,7 +79,7 @@ const requireKycRowAccess = async (
 //                       ↓
 //   client_product_documents(client_product_id, document_type_id, is_mandatory, display_order)
 //                       ↓
-//                document_types ←→ document_type_rates (LEFT JOIN, optional)
+//                document_types ←→ kyc_rates (LEFT JOIN, optional)
 //
 // Without clientId+productId, returns ALL active doc types (admin
 // catalog use case unchanged).
@@ -121,7 +121,7 @@ export const listDocumentTypes = async (req: AuthenticatedRequest, res: Response
           AND cp.client_id = $1
           AND cp.product_id = $2
           AND cp.is_active = true
-         LEFT JOIN document_type_rates dtr
+         LEFT JOIN kyc_rates dtr
            ON dtr.document_type_id = dt.id
           AND dtr.client_id = $1
           AND dtr.product_id = $2
@@ -603,7 +603,7 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
 
         // Snapshot financial state via shared finalizer (frozen actual_amount
         // for KYC tasks pulls from estimated_amount populated at case-create
-        // from document_type_rates). Keeps KYC + field completion symmetric.
+        // from kyc_rates). Keeps KYC + field completion symmetric.
         await TaskCompletionFinalizer.snapshotFinancials(client, verificationTaskId);
 
         // Delegate to canonical 5-rule formula in CaseStatusSyncService.

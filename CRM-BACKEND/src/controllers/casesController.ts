@@ -2992,7 +2992,7 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
           throw assigneeError;
         }
 
-        // Look up KYC rate from documentTypeRates (client + product + kycDocumentType)
+        // Look up KYC rate from kycRates (client + product + kycDocumentType)
         // Round 2 #4 (2026-05-04): backend defense-in-depth — if no active
         // rate exists for the (client, product, doc_type) tuple, REJECT
         // the request rather than silently inserting `rate_amount=null`.
@@ -3013,7 +3013,7 @@ export const createCase = async (req: AuthenticatedRequest, res: Response) => {
         }
         const kycDocTypeId = kycDocTypeRes.rows[0].id;
         const rateRes = await client.query(
-          `SELECT amount FROM document_type_rates
+          `SELECT amount FROM kyc_rates
              WHERE client_id = $1 AND product_id = $2 AND document_type_id = $3 AND is_active = true
              ORDER BY effective_from DESC NULLS LAST
              LIMIT 1`,

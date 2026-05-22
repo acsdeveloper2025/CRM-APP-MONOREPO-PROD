@@ -317,7 +317,7 @@ export const navigationItems: NavigationItem[] = [
         permission: { resource: 'rateManagement', action: 'read' },
       },
       {
-        id: 'document-type-rates',
+        id: 'kyc-rates',
         label: 'KYC Rates',
         href: '/rate-management/kyc-rates',
         icon: FileText,
