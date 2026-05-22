@@ -197,6 +197,11 @@ services:
     init: true
     environment:
       NODE_ENV: development
+      # Vite dev-server proxy target — '/api/*' requests from the
+      # browser proxy through this address. Inside the compose network
+      # the api service resolves as `api:3000`, not `localhost:3000`.
+      # Read by CRM-FRONTEND/vite.config.ts.
+      VITE_API_PROXY_TARGET: http://api:3000
     env_file:
       - CRM-FRONTEND/.env
     ports:

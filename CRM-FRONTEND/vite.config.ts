@@ -38,12 +38,16 @@ export default defineConfig({
     cors: true, // Enable CORS for cross-origin requests
     allowedHosts,
     proxy: {
+      // Honor VITE_API_PROXY_TARGET when set (the docker FE container
+      // sets it to http://api:3000 so /api requests reach the api
+      // service over the compose network). Falls back to localhost
+      // for plain `npm run dev` outside docker.
       '/api': {
-         target: 'http://localhost:3000', // Default local backend
-         changeOrigin: true,
-         secure: false,
-      }
-    }
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   preview: {
     host: '0.0.0.0',
