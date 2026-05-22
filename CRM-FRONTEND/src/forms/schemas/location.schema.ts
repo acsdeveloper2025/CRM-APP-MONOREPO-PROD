@@ -21,6 +21,11 @@ export const countryFormSchema = z.object({
 });
 export type CountryFormData = z.infer<typeof countryFormSchema>;
 
+export const editCountryFormSchema = countryFormSchema.extend({
+  isActive: z.boolean().optional(),
+});
+export type EditCountryFormData = z.infer<typeof editCountryFormSchema>;
+
 export const stateFormSchema = z.object({
   name: z.string().min(1, 'State name is required').max(100, 'State name is too long'),
   code: z

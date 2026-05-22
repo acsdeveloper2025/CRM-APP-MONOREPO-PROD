@@ -3,8 +3,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCRUDMutation } from '@/hooks/useStandardizedMutation';
 import {
-  countryFormSchema,
-  type CountryFormData,
+  editCountryFormSchema,
+  type EditCountryFormData,
   CONTINENTS,
 } from '@/forms/schemas/location.schema';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -32,6 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { locationsService } from '@/services/locations';
 import { Country } from '@/types/location';
 
@@ -42,28 +44,29 @@ interface EditCountryDialogProps {
 }
 
 export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDialogProps) {
-  const form = useForm<CountryFormData>({
-    resolver: zodResolver(countryFormSchema),
+  const form = useForm<EditCountryFormData>({
+    resolver: zodResolver(editCountryFormSchema),
     defaultValues: {
       name: country.name,
       code: country.code,
       continent: country.continent,
+      isActive: country.isActive ?? true,
     },
   });
 
-  // Update form when country changes
   useEffect(() => {
     if (country) {
       form.reset({
         name: country.name,
         code: country.code,
         continent: country.continent,
+        isActive: country.isActive ?? true,
       });
     }
   }, [country, form]);
 
   const updateCountryMutation = useCRUDMutation({
-    mutationFn: (data: CountryFormData) =>
+    mutationFn: (data: EditCountryFormData) =>
       locationsService.updateCountry(country.id.toString(), {
         ...data,
         code: data.code.toUpperCase(),
@@ -71,18 +74,17 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
     queryKey: ['countries'],
     resourceName: 'Country',
     operation: 'update',
-    additionalInvalidateKeys: [['dashboard']],
+    additionalInvalidateKeys: [['country-stats']],
     onSuccess: () => {
       onOpenChange(false);
     },
   });
 
-  const onSubmit = (data: CountryFormData) => {
+  const onSubmit = (data: EditCountryFormData) => {
     updateCountryMutation.mutate(data);
   };
 
   const handleCodeChange = (value: string) => {
-    // Auto-uppercase the country code
     form.setValue('code', value.toUpperCase());
   };
 
@@ -154,6 +156,24 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
                     </SelectContent>
                   </Select>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Active</FormLabel>
+                    <FormDescription>
+                      Inactive countries are hidden from the Active filter.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
+                  </FormControl>
                 </FormItem>
               )}
             />

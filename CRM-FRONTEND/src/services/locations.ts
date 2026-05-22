@@ -1,3 +1,4 @@
+import type { AxiosResponse } from 'axios';
 import { apiService } from './api';
 import type {
   Country,
@@ -33,6 +34,25 @@ export interface LocationQuery extends PaginationQuery {
   // loaded yet (cities query firing before states list arrived → empty dropdown).
   stateId?: string | number;
   countryId?: string | number;
+  cityId?: string | number;
+  pincodeId?: string | number;
+  isActive?: 'true' | 'false' | 'all';
+  createdFrom?: string;
+  createdTo?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface CountryStats {
+  total: number;
+  active: number;
+  inactive: number;
+  recentlyAddedCount: number;
+  withStatesCount: number;
+  // legacy
+  totalCountries?: number;
+  countriesByContinent?: Record<string, number>;
+  continents?: number;
 }
 
 export class LocationsService {
@@ -71,8 +91,8 @@ export class LocationsService {
     return apiService.delete(`/countries/${id}`);
   }
 
-  async getCountriesStats(): Promise<ApiResponse<unknown>> {
-    const response = await apiService.get<unknown>('/countries/stats');
+  async getCountriesStats(): Promise<ApiResponse<CountryStats>> {
+    const response = await apiService.get<CountryStats>('/countries/stats');
     if (response?.success && response.data && typeof response.data === 'object') {
       validateResponse(GenericObjectSchema, response.data, {
         service: 'locations',
@@ -80,6 +100,14 @@ export class LocationsService {
       });
     }
     return response;
+  }
+
+  async exportCountries(
+    query: Omit<LocationQuery, 'page' | 'limit'> = {}
+  ): Promise<AxiosResponse<Blob>> {
+    return apiService.getRaw<Blob>('/countries/export', query, {
+      responseType: 'blob',
+    });
   }
 
   async getCountriesByContinent(continent: string): Promise<ApiResponse<Country[]>> {

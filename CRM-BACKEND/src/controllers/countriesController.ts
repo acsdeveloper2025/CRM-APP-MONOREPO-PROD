@@ -1,125 +1,120 @@
 import type { Response } from 'express';
+import ExcelJS from 'exceljs';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/db';
 import type { QueryParams } from '@/types/database';
 import { sendError, errors } from '@/utils/apiResponse';
+import { createAuditLog } from '@/utils/auditLogger';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
 
 interface Country {
   id: string;
   name: string;
   code: string;
   continent: string;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
+// Shared WHERE-clause builder for getCountries + exportCountries so list +
+// export stay in lockstep (same filters, same scope). Returns the SQL
+// `WHERE …` fragment + positional parameter array.
+const buildCountriesWhereClause = (
+  req: AuthenticatedRequest
+): { whereClause: string; queryParams: QueryParams; nextParamIndex: number } => {
+  const { search, continent, isActive, createdFrom, createdTo } = req.query;
+  const whereConditions: string[] = [];
+  const queryParams: QueryParams = [];
+  let paramIndex = 1;
+
+  if (search && typeof search === 'string') {
+    whereConditions.push(
+      `(COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(code, '') ILIKE $${paramIndex})`
+    );
+    queryParams.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  if (continent && typeof continent === 'string') {
+    whereConditions.push(`continent = $${paramIndex}`);
+    queryParams.push(continent);
+    paramIndex++;
+  }
+
+  if (isActive === 'true' || isActive === 'false') {
+    whereConditions.push(`is_active = $${paramIndex}`);
+    queryParams.push(isActive === 'true');
+    paramIndex++;
+  }
+
+  if (typeof createdFrom === 'string' && createdFrom) {
+    whereConditions.push(`created_at >= $${paramIndex}`);
+    queryParams.push(createdFrom);
+    paramIndex++;
+  }
+  if (typeof createdTo === 'string' && createdTo) {
+    whereConditions.push(`created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
+    queryParams.push(createdTo);
+    paramIndex++;
+  }
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+  return { whereClause, queryParams, nextParamIndex: paramIndex };
+};
+
+const SORT_COLUMNS: Record<string, string> = {
+  name: 'name',
+  code: 'code',
+  continent: 'continent',
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+};
+
 // GET /api/countries - List countries with pagination and filters
 export const getCountries = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      continent,
-      search,
-      sortBy = 'name',
-      sortOrder = 'asc',
-    } = req.query;
+    const { page = 1, limit = 20, sortBy = 'name', sortOrder = 'asc' } = req.query;
 
-    // Build SQL query with filters and field name transformation
-    let sql = `
-      SELECT
-        id,
-        name,
-        code,
-        continent,
-        created_at,
-        updated_at
-      FROM countries
-      WHERE 1=1
-    `;
-    const params: QueryParams = [];
-    let paramCount = 0;
+    const { whereClause, queryParams, nextParamIndex } = buildCountriesWhereClause(req);
 
-    // Apply filters
-    if (continent) {
-      paramCount++;
-      sql += ` AND continent = $${paramCount}`;
-      params.push(continent as string);
-    }
-
-    if (search && typeof search === 'string') {
-      paramCount++;
-      sql += ` AND (COALESCE(name, '') ILIKE $${paramCount} OR COALESCE(code, '') ILIKE $${paramCount})`;
-      params.push(`%${search}%`);
-    }
-
-    // API contract: sortBy is camelCase; map to snake_case DB column.
-    const sortColumnMap: Record<string, string> = {
-      name: 'name',
-      code: 'code',
-      continent: 'continent',
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-    };
-    const sortField: string = sortColumnMap[sortBy as string] || 'name';
+    const sortField = SORT_COLUMNS[sortBy as string] || 'name';
     const sortDirection: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
-    sql += ` ORDER BY ${sortField} ${sortDirection}`;
 
-    // Apply pagination
     const pageNum = parseInt(page as string, 10);
     const limitNum = parseInt(limit as string, 10);
     const offset = (pageNum - 1) * limitNum;
 
-    paramCount++;
-    sql += ` LIMIT $${paramCount}`;
-    params.push(limitNum);
+    const sql = `
+      SELECT
+        id, name, code, continent, is_active, created_at, updated_at
+      FROM countries
+      ${whereClause}
+      ORDER BY ${sortField} ${sortDirection}
+      LIMIT $${nextParamIndex} OFFSET $${nextParamIndex + 1}
+    `;
+    const result = await query<Country>(sql, [...queryParams, limitNum, offset]);
 
-    paramCount++;
-    sql += ` OFFSET $${paramCount}`;
-    params.push(offset);
-
-    // Execute query
-    const result = await query<Country>(sql, params);
-
-    // Get total count for pagination
-    let countSql = 'SELECT COUNT(*) FROM countries WHERE 1=1';
-    const countParams: QueryParams = [];
-    let countParamCount = 0;
-
-    if (continent) {
-      countParamCount++;
-      countSql += ` AND continent = $${countParamCount}`;
-      countParams.push(continent as string);
-    }
-
-    if (search && typeof search === 'string') {
-      countParamCount++;
-      countSql += ` AND (COALESCE(name, '') ILIKE $${countParamCount} OR COALESCE(code, '') ILIKE $${countParamCount})`;
-      countParams.push(`%${search}%`);
-    }
-
-    const countResult = await query<{ count: string }>(countSql, countParams);
+    const countResult = await query<{ count: string }>(
+      `SELECT COUNT(*) FROM countries ${whereClause}`,
+      queryParams
+    );
     const totalCount = parseInt(countResult.rows[0].count, 10);
     const totalPages = Math.ceil(totalCount / limitNum);
-
-    logger.info(`Retrieved ${result.rows.length} countries`, {
-      userId: req.user?.id,
-      filters: { continent, search },
-      pagination: { page: pageNum, limit: limitNum },
-    });
 
     res.json({
       success: true,
       data: result.rows.map(country => ({
         ...country,
-        id: country.id.toString(), // Convert integer ID to string
+        id: country.id.toString(),
       })),
       pagination: {
         page: pageNum,
         limit: limitNum,
         total: totalCount,
         pages: totalPages,
+        totalPages,
         hasNext: pageNum < totalPages,
         hasPrev: pageNum > 1,
       },
@@ -136,13 +131,7 @@ export const getCountryById = async (req: AuthenticatedRequest, res: Response) =
     const { id } = req.params;
 
     const result = await query<Country>(
-      `SELECT
-        id,
-        name,
-        code,
-        continent,
-        created_at,
-        updated_at
+      `SELECT id, name, code, continent, is_active, created_at, updated_at
       FROM countries
       WHERE id = $1`,
       [Number(id)]
@@ -154,16 +143,11 @@ export const getCountryById = async (req: AuthenticatedRequest, res: Response) =
 
     const country = result.rows[0];
 
-    logger.info(`Retrieved country: ${country.name}`, {
-      userId: req.user?.id,
-      countryId: id,
-    });
-
     res.json({
       success: true,
       data: {
         ...country,
-        id: country.id.toString(), // Convert integer ID to string
+        id: country.id.toString(),
       },
     });
   } catch (error) {
@@ -177,7 +161,6 @@ export const createCountry = async (req: AuthenticatedRequest, res: Response) =>
   try {
     const { name, code, continent } = req.body;
 
-    // Check if country code already exists
     const existingResult = await query<Country>(
       'SELECT id FROM countries WHERE code = $1 OR name = $2',
       [code.toUpperCase(), name]
@@ -187,11 +170,10 @@ export const createCountry = async (req: AuthenticatedRequest, res: Response) =>
       return sendError(res, 400, 'Country code or name already exists', 'DUPLICATE_ENTRY');
     }
 
-    // Create new country
     const result = await query<Country>(
       `INSERT INTO countries (name, code, continent)
        VALUES ($1, $2, $3)
-       RETURNING id, name, code, continent, created_at, updated_at`,
+       RETURNING id, name, code, continent, is_active, created_at, updated_at`,
       [name, code.toUpperCase(), continent]
     );
 
@@ -200,7 +182,6 @@ export const createCountry = async (req: AuthenticatedRequest, res: Response) =>
     logger.info(`Created new country: ${newCountry.name}`, {
       userId: req.user?.id,
       countryId: newCountry.id,
-      countryData: newCountry,
     });
 
     res.status(201).json({
@@ -220,17 +201,12 @@ export const updateCountry = async (req: AuthenticatedRequest, res: Response) =>
     const { id } = req.params;
     const updateData = req.body;
 
-    // Check if country exists
-    const countryResult = await query<Country>(
-      'SELECT id, name, code, is_active, created_at, updated_at FROM countries WHERE id = $1',
-      [id]
-    );
+    const countryResult = await query<Country>('SELECT id FROM countries WHERE id = $1', [id]);
 
     if (countryResult.rows.length === 0) {
       return errors.notFound(res, 'Country');
     }
 
-    // Check for duplicate code if being updated
     if (updateData.code) {
       const existingResult = await query<Country>(
         'SELECT id FROM countries WHERE code = $1 AND id != $2',
@@ -242,7 +218,6 @@ export const updateCountry = async (req: AuthenticatedRequest, res: Response) =>
       }
     }
 
-    // Build update query
     const updateFields: string[] = [];
     const updateValues: QueryParams = [];
     let paramCount = 0;
@@ -265,30 +240,28 @@ export const updateCountry = async (req: AuthenticatedRequest, res: Response) =>
       updateValues.push(updateData.continent);
     }
 
+    if (typeof updateData.isActive === 'boolean') {
+      paramCount++;
+      updateFields.push(`is_active = $${paramCount}`);
+      updateValues.push(updateData.isActive);
+    }
+
     if (updateFields.length === 0) {
       return sendError(res, 400, 'No valid fields to update', 'NO_UPDATE_FIELDS');
     }
 
-    // Add updatedAt
     paramCount++;
     updateFields.push(`updated_at = $${paramCount}`);
     updateValues.push(new Date().toISOString());
 
-    // Add id for WHERE clause
     paramCount++;
     updateValues.push(id);
 
     const updateSql = `UPDATE countries SET ${updateFields.join(', ')} WHERE id = $${paramCount}
-                       RETURNING id, name, code, continent, created_at, updated_at`;
+                       RETURNING id, name, code, continent, is_active, created_at, updated_at`;
     const result = await query<Country>(updateSql, updateValues);
 
     const updatedCountry = result.rows[0];
-
-    logger.info(`Updated country: ${updatedCountry.name}`, {
-      userId: req.user?.id,
-      countryId: id,
-      updateData,
-    });
 
     res.json({
       success: true,
@@ -306,17 +279,14 @@ export const deleteCountry = async (req: AuthenticatedRequest, res: Response) =>
   try {
     const { id } = req.params;
 
-    // Check if country exists
-    const countryResult = await query<Country>(
-      'SELECT id, name, code, is_active, created_at, updated_at FROM countries WHERE id = $1',
-      [id]
-    );
+    const countryResult = await query<Country>('SELECT id, name FROM countries WHERE id = $1', [
+      id,
+    ]);
 
     if (countryResult.rows.length === 0) {
       return errors.notFound(res, 'Country');
     }
 
-    // Check for associated states before deletion
     const statesResult = await query<{ count: string }>(
       'SELECT COUNT(*) FROM states WHERE country_id = $1',
       [id]
@@ -332,15 +302,7 @@ export const deleteCountry = async (req: AuthenticatedRequest, res: Response) =>
       );
     }
 
-    const deletedCountry = countryResult.rows[0];
-
-    // Delete the country
     await query('DELETE FROM countries WHERE id = $1', [id]);
-
-    logger.info(`Deleted country: ${deletedCountry.name}`, {
-      userId: req.user?.id,
-      countryId: id,
-    });
 
     res.json({
       success: true,
@@ -352,39 +314,159 @@ export const deleteCountry = async (req: AuthenticatedRequest, res: Response) =>
   }
 };
 
-// GET /api/countries/stats - Get countries statistics
+// GET /api/countries/stats - Canonical 5-card aggregate
 export const getCountriesStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // Get total countries
-    const totalResult = await query<{ count: string }>('SELECT COUNT(*) FROM countries');
-    const totalCountries = parseInt(totalResult.rows[0].count, 10);
+    const aggRes = await query<{
+      total: string;
+      active: string;
+      inactive: string;
+      recentlyAdded: string;
+      withStates: string;
+    }>(
+      `SELECT
+         COUNT(*)::text AS total,
+         COUNT(*) FILTER (WHERE is_active = true)::text AS active,
+         COUNT(*) FILTER (WHERE is_active = false)::text AS inactive,
+         COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days')::text AS "recentlyAdded",
+         COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM states s WHERE s.country_id = c.id))::text AS "withStates"
+       FROM countries c`
+    );
 
-    // Get countries by continent
+    const row = aggRes.rows[0];
+
+    // Continent distribution kept for back-compat consumers (DashboardPage etc).
     const continentResult = await query<{ continent: string; count: string }>(
       'SELECT continent, COUNT(*) FROM countries GROUP BY continent ORDER BY continent'
     );
 
     const countriesByContinent = continentResult.rows.reduce(
-      (acc, row) => {
-        acc[row.continent] = parseInt(row.count, 10);
+      (acc, r) => {
+        acc[r.continent] = parseInt(r.count, 10);
         return acc;
       },
       {} as Record<string, number>
     );
 
-    const stats = {
-      totalCountries,
-      countriesByContinent,
-      continents: Object.keys(countriesByContinent).length,
-    };
-
     res.json({
       success: true,
-      data: stats,
+      data: {
+        // canonical
+        total: parseInt(row.total, 10),
+        active: parseInt(row.active, 10),
+        inactive: parseInt(row.inactive, 10),
+        recentlyAddedCount: parseInt(row.recentlyAdded, 10),
+        withStatesCount: parseInt(row.withStates, 10),
+        // legacy
+        totalCountries: parseInt(row.total, 10),
+        countriesByContinent,
+        continents: Object.keys(countriesByContinent).length,
+      },
     });
   } catch (error) {
     logger.error('Error getting countries stats:', error);
     errors.internal(res, 'Failed to get countries statistics');
+  }
+};
+
+// GET /api/countries/export - xlsx download mirroring getCountries filters.
+const EXPORT_ROW_LIMIT = 10000;
+
+export const exportCountries = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { sortBy = 'name', sortOrder = 'asc' } = req.query;
+
+    const { whereClause, queryParams, nextParamIndex } = buildCountriesWhereClause(req);
+
+    const sortField = SORT_COLUMNS[sortBy as string] || 'name';
+    const sortDirection: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
+
+    const rowsRes = await query<{
+      name: string;
+      code: string;
+      continent: string;
+      isActive: boolean;
+      createdAt: Date;
+    }>(
+      `SELECT name, code, continent, is_active, created_at
+         FROM countries
+         ${whereClause}
+         ORDER BY ${sortField} ${sortDirection}
+         LIMIT $${nextParamIndex}`,
+      [...queryParams, EXPORT_ROW_LIMIT]
+    );
+    const rows = rowsRes.rows;
+
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('Countries');
+    ws.columns = [
+      { header: 'Name', key: 'name', width: 30 },
+      { header: 'Code', key: 'code', width: 10 },
+      { header: 'Continent', key: 'continent', width: 20 },
+      { header: 'Created Date', key: 'createdAt', width: 20 },
+      { header: 'Status', key: 'status', width: 12 },
+    ];
+    ws.getRow(1).font = { bold: true };
+    ws.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE6E6FA' },
+    };
+
+    for (const r of rows) {
+      ws.addRow(
+        escapeFormulaRow({
+          name: r.name,
+          code: r.code,
+          continent: r.continent,
+          createdAt: r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : '',
+          status: r.isActive ? 'ACTIVE' : 'INACTIVE',
+        })
+      );
+    }
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const filename = `countries_${dateStr}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    void createAuditLog({
+      action: 'COUNTRY_EXPORTED',
+      entityType: 'COUNTRY',
+      entityId: undefined,
+      userId: req.user!.id,
+      details: {
+        rowCount: rows.length,
+        filename,
+        filters: {
+          search: typeof req.query.search === 'string' ? req.query.search : null,
+          isActive: typeof req.query.isActive === 'string' ? req.query.isActive : null,
+          continent: typeof req.query.continent === 'string' ? req.query.continent : null,
+          createdFrom: typeof req.query.createdFrom === 'string' ? req.query.createdFrom : null,
+          createdTo: typeof req.query.createdTo === 'string' ? req.query.createdTo : null,
+          sortBy: sortField,
+          sortOrder: sortDirection.toLowerCase(),
+        },
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
+
+    await workbook.xlsx.write(res);
+    res.end();
+    logger.info(`Countries exported: ${filename}, ${rows.length} rows`);
+  } catch (error) {
+    logger.error('Error exporting countries:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export countries',
+        error: { code: 'INTERNAL_ERROR' },
+      });
+    }
   }
 };
 
@@ -409,26 +491,19 @@ export const bulkImportCountries = async (
       errors: [] as Array<{ row: number; data: Record<string, unknown>; error: string }>,
     };
 
-    // Process each row
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
 
       try {
-        // Validate required fields
         const validationError = validateCSVRow(row, ['name', 'code', 'continent']);
         if (validationError) {
           results.failed++;
-          results.errors.push({
-            row: i + 1,
-            data: row,
-            error: validationError,
-          });
+          results.errors.push({ row: i + 1, data: row, error: validationError });
           continue;
         }
 
         const { name, code, continent } = row;
 
-        // Validate continent
         const validContinents = [
           'Africa',
           'Antarctica',
@@ -448,14 +523,12 @@ export const bulkImportCountries = async (
           continue;
         }
 
-        // Check if country already exists
         const existingCountry = await query(
           'SELECT id FROM countries WHERE code = $1 OR name = $2',
           [code.toUpperCase(), name]
         );
 
         if (existingCountry.rows.length > 0) {
-          // Update existing country
           await query(
             `UPDATE countries
              SET name = $1, continent = $2, updated_at = NOW()
@@ -464,7 +537,6 @@ export const bulkImportCountries = async (
           );
           results.updated++;
         } else {
-          // Create new country
           await query(
             `INSERT INTO countries (name, code, continent)
              VALUES ($1, $2, $3)`,
@@ -483,10 +555,7 @@ export const bulkImportCountries = async (
       }
     }
 
-    logger.info('Bulk import countries completed', {
-      userId: req.user?.id,
-      results,
-    });
+    logger.info('Bulk import countries completed', { userId: req.user?.id, results });
 
     res.status(200).json({
       success: true,

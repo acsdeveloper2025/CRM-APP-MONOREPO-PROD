@@ -1,6 +1,18 @@
 import { useState } from 'react';
-import { MoreHorizontal, Edit, Trash2, Eye, Globe } from 'lucide-react';
-import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
+import {
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Eye,
+  Globe,
+  ToggleLeft,
+  ToggleRight,
+} from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  useMutationWithInvalidation,
+  useStandardizedMutation,
+} from '@/hooks/useStandardizedMutation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -42,6 +54,7 @@ interface CountriesTableProps {
 }
 
 export function CountriesTable({ data, isLoading }: CountriesTableProps) {
+  const queryClient = useQueryClient();
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -50,13 +63,24 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
 
   const deleteCountryMutation = useMutationWithInvalidation({
     mutationFn: (id: number) => locationsService.deleteCountry(id.toString()),
-    invalidateKeys: [['countries']],
+    invalidateKeys: [['countries'], ['country-stats']],
     successMessage: 'Country deleted successfully',
     errorContext: 'Country Deletion',
     errorFallbackMessage: 'Failed to delete country',
     onSuccess: () => {
       setShowDeleteDialog(false);
       setCountryToDelete(null);
+    },
+  });
+
+  const toggleActiveMutation = useStandardizedMutation({
+    mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) =>
+      locationsService.updateCountry(id.toString(), { isActive }),
+    errorContext: 'Country Status Toggle',
+    errorFallbackMessage: 'Failed to update country status',
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['countries'] });
+      queryClient.invalidateQueries({ queryKey: ['country-stats'] });
     },
   });
 
@@ -82,7 +106,11 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
   };
 
   if (isLoading) {
-    return <TableSkeleton headers={['Country', 'Code', 'Continent', 'Created', 'Actions']} />;
+    return (
+      <TableSkeleton
+        headers={['Country', 'Code', 'Continent', 'Created', 'Status', 'Actions']}
+      />
+    );
   }
 
   if (!data.length) {
@@ -105,6 +133,7 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
               <TableHead>Code</TableHead>
               <TableHead>Continent</TableHead>
               <TableHead>Created</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -126,6 +155,13 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
                 <TableCell className="text-muted-foreground">
                   {new Date(country.createdAt).toLocaleDateString()}
                 </TableCell>
+                <TableCell>
+                  {country.isActive === false ? (
+                    <Badge variant="secondary">INACTIVE</Badge>
+                  ) : (
+                    <Badge variant="default">ACTIVE</Badge>
+                  )}
+                </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -144,10 +180,31 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
                         <Edit className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
+                      <DropdownMenuItem
+                        disabled={toggleActiveMutation.isPending}
+                        onClick={() =>
+                          toggleActiveMutation.mutate({
+                            id: country.id,
+                            isActive: !(country.isActive ?? true),
+                          })
+                        }
+                      >
+                        {country.isActive === false ? (
+                          <>
+                            <ToggleRight className="mr-2 h-4 w-4" />
+                            Activate
+                          </>
+                        ) : (
+                          <>
+                            <ToggleLeft className="mr-2 h-4 w-4" />
+                            Deactivate
+                          </>
+                        )}
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => handleDelete(country)}
-                        className="text-red-600"
+                        className="text-destructive"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete
@@ -161,7 +218,6 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
         </Table>
       </div>
 
-      {/* Dialogs */}
       {selectedCountry && (
         <>
           <EditCountryDialog
@@ -177,7 +233,6 @@ export function CountriesTable({ data, isLoading }: CountriesTableProps) {
         </>
       )}
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>

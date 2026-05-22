@@ -12,6 +12,7 @@ import {
   deleteCountry,
   getCountriesStats,
   bulkImportCountries,
+  exportCountries,
 } from '@/controllers/countriesController';
 
 const router = express.Router();
@@ -45,6 +46,12 @@ const listCountriesValidation = [
     .isIn(['name', 'code', 'continent', 'createdAt', 'updatedAt'])
     .withMessage('Invalid sort field'),
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
+  query('isActive')
+    .optional()
+    .isIn(['true', 'false', 'all'])
+    .withMessage('isActive must be true, false, or all'),
+  query('createdFrom').optional().isISO8601().withMessage('createdFrom must be ISO 8601 date'),
+  query('createdTo').optional().isISO8601().withMessage('createdTo must be ISO 8601 date'),
 ];
 
 const createCountryValidation = [
@@ -92,6 +99,7 @@ const updateCountryValidation = [
     .withMessage(
       'Invalid continent. Must be one of: Africa, Antarctica, Asia, Europe, North America, Oceania, South America'
     ),
+  body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
 const _bulkImportValidation = [
@@ -103,6 +111,9 @@ const _bulkImportValidation = [
 router.get('/', listCountriesValidation, handleValidationErrors, getCountries);
 
 router.get('/stats', getCountriesStats);
+
+// /export MUST precede /:id (Express matches in declaration order).
+router.get('/export', listCountriesValidation, handleValidationErrors, exportCountries);
 
 router.post(
   '/',

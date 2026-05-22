@@ -5,6 +5,7 @@ export interface Country extends Omit<BaseEntity, 'id'> {
   name: string;
   code: string;
   continent: string;
+  isActive?: boolean;
   states?: State[];
 }
 
@@ -69,6 +70,7 @@ export interface UpdateCountryData {
   name?: string;
   code?: string;
   continent?: string;
+  isActive?: boolean;
 }
 
 export interface CreateStateData {
