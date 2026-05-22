@@ -122,7 +122,10 @@ export interface VerificationType {
 // Query interfaces
 export interface RateTypeListQuery {
   search?: string;
-  isActive?: boolean;
+  // 'all' is sent verbatim so the URL/cache key stays stable; BE treats it as no-filter.
+  isActive?: boolean | 'true' | 'false' | 'all';
+  createdFrom?: string; // ISO 8601 (date-only fine)
+  createdTo?: string; // ISO 8601 (treated as end-of-day inclusive by BE)
   limit?: number;
   offset?: number;
   page?: number;
@@ -158,7 +161,10 @@ export interface RateTypeStats {
   total: number;
   active: number;
   inactive: number;
-  byName: Record<string, number>;
+  // Filter-standardization sweep Page 1 (2026-05-22) — 5-card aggregate.
+  recentlyAddedCount: number;
+  usedInRatesCount: number;
+  byName?: Record<string, number>;
 }
 
 export interface RateStats {

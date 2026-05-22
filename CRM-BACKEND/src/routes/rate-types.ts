@@ -12,6 +12,7 @@ import {
   deleteRateType,
   getRateTypeStats,
   getAvailableRateTypesForCase,
+  exportRateTypes,
 } from '@/controllers/rateTypesController';
 
 const router = express.Router();
@@ -46,23 +47,34 @@ const updateRateTypeValidation = [
   body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 
+// Reusable query-param validators for list + export (kept in lockstep with
+// buildRateTypesWhereClause in rateTypesController.ts).
+const rateTypesQueryValidation = [
+  query('search')
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage('Search term must be less than 100 characters'),
+  query('isActive')
+    .optional()
+    .isIn(['true', 'false', 'all'])
+    .withMessage("isActive must be 'true', 'false', or 'all'"),
+  query('createdFrom').optional().isISO8601().withMessage('createdFrom must be ISO 8601'),
+  query('createdTo').optional().isISO8601().withMessage('createdTo must be ISO 8601'),
+  query('sortBy')
+    .optional()
+    .isIn(['name', 'description', 'isActive', 'createdAt', 'updatedAt'])
+    .withMessage('Invalid sort field'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
+];
+
 const listRateTypesValidation = [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 500 })
     .withMessage('Limit must be between 1 and 500'),
-  query('search')
-    .optional()
-    .trim()
-    .isLength({ max: 100 })
-    .withMessage('Search term must be less than 100 characters'),
-  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
-  query('sortBy')
-    .optional()
-    .isIn(['name', 'description', 'isActive', 'createdAt', 'updatedAt'])
-    .withMessage('Invalid sort field'),
-  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
+  ...rateTypesQueryValidation,
 ];
 
 const availableRateTypesValidation = [
@@ -93,6 +105,16 @@ router.get(
 );
 
 router.get('/stats', authorize('page.masterdata'), getRateTypeStats);
+
+// GET /api/rate-types/export - xlsx download mirroring list filters. MUST
+// stay declared BEFORE /:id (Express matches in declaration order).
+router.get(
+  '/export',
+  authorize('page.masterdata'),
+  rateTypesQueryValidation,
+  handleValidationErrors,
+  exportRateTypes
+);
 
 // GET /api/rate-types/available-for-case - Get available rate types for case assignment
 router.get(

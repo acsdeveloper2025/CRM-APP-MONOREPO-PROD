@@ -1,3 +1,4 @@
+import type { AxiosResponse } from 'axios';
 import { apiService } from './api';
 import type { ApiResponse, PaginatedResponse } from '@/types/api';
 import type {
@@ -57,6 +58,15 @@ export class RateTypesService {
 
   async deleteRateType(id: number): Promise<ApiResponse<void>> {
     return apiService.delete(`/rate-types/${id}`);
+  }
+
+  // xlsx export — mirrors getRateTypes filters (shared BE WHERE-helper).
+  async exportRateTypes(
+    query: Omit<RateTypeListQuery, 'page' | 'limit' | 'offset'> = {}
+  ): Promise<AxiosResponse<Blob>> {
+    return apiService.getRaw<Blob>('/rate-types/export', query, {
+      responseType: 'blob',
+    });
   }
 
   async getRateTypeStats(): Promise<ApiResponse<RateTypeStats>> {

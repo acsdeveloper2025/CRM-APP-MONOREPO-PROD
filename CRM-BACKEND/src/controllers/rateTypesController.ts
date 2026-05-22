@@ -1,37 +1,65 @@
 import type { Response } from 'express';
+import ExcelJS from 'exceljs';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
 import type { QueryParams } from '@/types/database';
+import { createAuditLog } from '@/utils/auditLogger';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
+
+const EXPORT_ROW_LIMIT = 10000;
+
+// Shared WHERE-clause builder for getRateTypes + exportRateTypes so the two
+// stay in lockstep. Returns SQL `WHERE …` fragment + positional params.
+// Mirrors the Client Mgmt pattern (buildClientsWhereClause).
+const buildRateTypesWhereClause = (
+  req: AuthenticatedRequest
+): { whereClause: string; queryParams: QueryParams; nextParamIndex: number } => {
+  const { search, isActive, createdFrom, createdTo } = req.query;
+  const whereConditions: string[] = [];
+  const queryParams: QueryParams = [];
+  let paramIndex = 1;
+
+  if (search && typeof search === 'string') {
+    whereConditions.push(
+      `(COALESCE(name, '') ILIKE $${paramIndex} OR COALESCE(description, '') ILIKE $${paramIndex})`
+    );
+    queryParams.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  // 'all' / undefined → no filter; 'true'/'false' (string or boolean) → flip is_active branch.
+  if (isActive === 'true' || isActive === 'false') {
+    whereConditions.push(`is_active = $${paramIndex}`);
+    queryParams.push(isActive === 'true');
+    paramIndex++;
+  } else if (typeof isActive === 'boolean') {
+    whereConditions.push(`is_active = $${paramIndex}`);
+    queryParams.push(isActive);
+    paramIndex++;
+  }
+
+  if (typeof createdFrom === 'string' && createdFrom) {
+    whereConditions.push(`created_at >= $${paramIndex}`);
+    queryParams.push(createdFrom);
+    paramIndex++;
+  }
+  if (typeof createdTo === 'string' && createdTo) {
+    whereConditions.push(`created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
+    queryParams.push(createdTo);
+    paramIndex++;
+  }
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+  return { whereClause, queryParams, nextParamIndex: paramIndex };
+};
 
 // GET /api/rate-types - List rate types with pagination and filters
 export const getRateTypes = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      search,
-      sortBy = 'name',
-      sortOrder = 'asc',
-      isActive,
-    } = req.query;
+    const { page = 1, limit = 20, search, sortBy = 'name', sortOrder = 'asc' } = req.query;
 
-    // Build where clause
-    const values: QueryParams = [];
-    const whereSql: string[] = [];
-
-    if (search && typeof search === 'string') {
-      values.push(`%${String(search)}%`);
-      values.push(`%${String(search)}%`);
-      whereSql.push('(name ILIKE $1 OR description ILIKE $2)');
-    }
-
-    if (typeof isActive !== 'undefined') {
-      values.push(typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive));
-      whereSql.push(`is_active = $${values.length}`);
-    }
-
-    const whereClause = whereSql.length ? `WHERE ${whereSql.join(' AND ')}` : '';
+    const { whereClause, queryParams: values } = buildRateTypesWhereClause(req);
 
     // Get total count
     const countRes = await query<{ count: string }>(
@@ -422,17 +450,36 @@ export const deleteRateType = async (req: AuthenticatedRequest, res: Response) =
   }
 };
 
-// GET /api/rate-types/stats - Get rate type statistics
+// GET /api/rate-types/stats - 5-card stats aggregate. Filter-standardization
+// sweep Page 1 (2026-05-22) extended this with recentlyAddedCount (last 30
+// days) + usedInRatesCount (EXISTS in rates) to fill out the canonical
+// 5-card shell (§9.1 feedback_fe_code_standards.md).
 export const getRateTypeStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const statsRes = await query(`
-      SELECT 
+    const statsRes = await query<{
+      total: number;
+      active: number;
+      inactive: number;
+      recentlyAddedCount: number;
+      usedInRatesCount: number;
+    }>(`
+      SELECT
         COUNT(*)::int as total,
         COUNT(CASE WHEN is_active = true THEN 1 END)::int as active,
-        COUNT(CASE WHEN is_active = false THEN 1 END)::int as inactive
+        COUNT(CASE WHEN is_active = false THEN 1 END)::int as inactive,
+        COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END)::int as "recentlyAddedCount",
+        COUNT(CASE WHEN EXISTS (
+          SELECT 1 FROM rates r WHERE r.rate_type_id = rate_types.id
+        ) THEN 1 END)::int as "usedInRatesCount"
       FROM rate_types
     `);
-    const stats = statsRes.rows[0];
+    const stats = statsRes.rows[0] || {
+      total: 0,
+      active: 0,
+      inactive: 0,
+      recentlyAddedCount: 0,
+      usedInRatesCount: 0,
+    };
 
     res.json({
       success: true,
@@ -444,6 +491,87 @@ export const getRateTypeStats = async (req: AuthenticatedRequest, res: Response)
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve rate type statistics',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+// GET /api/rate-types/export - xlsx download mirroring list filters via the
+// shared buildRateTypesWhereClause helper. Hard cap EXPORT_ROW_LIMIT rows;
+// every user-controlled cell passes through escapeFormulaRow (CWE-1236).
+// MUST stay declared BEFORE /:id in the router.
+export const exportRateTypes = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { sortBy = 'name', sortOrder = 'asc' } = req.query;
+
+    const { whereClause, queryParams, nextParamIndex } = buildRateTypesWhereClause(req);
+
+    const sortColumnMap: Record<string, string> = {
+      name: 'name',
+      description: 'description',
+      isActive: 'is_active',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    };
+    const sortCol = sortColumnMap[typeof sortBy === 'string' ? sortBy : ''] || 'name';
+    const sortDir =
+      typeof sortOrder === 'string' && sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+
+    const listRes = await query<{
+      id: number;
+      name: string;
+      description: string | null;
+      isActive: boolean;
+      createdAt: Date;
+      updatedAt: Date | null;
+    }>(
+      `SELECT id, name, description, is_active AS "isActive",
+              created_at AS "createdAt", updated_at AS "updatedAt"
+         FROM rate_types
+         ${whereClause}
+         ORDER BY ${sortCol} ${sortDir}
+         LIMIT $${nextParamIndex}`,
+      [...queryParams, EXPORT_ROW_LIMIT]
+    );
+
+    await createAuditLog({
+      action: 'RATE_TYPE_EXPORTED',
+      entityType: 'RATE_TYPE',
+      entityId: undefined,
+      userId: req.user?.id,
+      details: { rowCount: listRes.rows.length, filters: req.query },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Rate Types');
+    ws.addRow(['Name', 'Description', 'Created Date', 'Updated Date', 'Status']);
+    for (const r of listRes.rows) {
+      ws.addRow(
+        escapeFormulaRow([
+          r.name,
+          r.description ?? '',
+          r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : '',
+          r.updatedAt ? new Date(r.updatedAt).toISOString().slice(0, 10) : '',
+          r.isActive ? 'ACTIVE' : 'INACTIVE',
+        ])
+      );
+    }
+
+    const filename = `rate_types_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    const buf = await wb.xlsx.writeBuffer();
+    res.send(Buffer.from(buf));
+  } catch (error) {
+    logger.error('Error exporting rate types:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export rate types',
       error: { code: 'INTERNAL_ERROR' },
     });
   }
