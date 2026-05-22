@@ -655,3 +655,42 @@ export const parseUpload = async (req: AuthenticatedRequest, res: Response) => {
     });
   }
 };
+
+// ---------------------------------------------------------------------------
+// GET /api/case-data-templates/stats — 5-card stats aggregate.
+// Mirrors the canonical Client Mgmt stats shape (Total / Active / Inactive /
+// Recently Added / 5th = Distinct Client-Product Pairs covered).
+// ---------------------------------------------------------------------------
+export const getCaseDataTemplateStats = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const statsRes = await query(`
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(CASE WHEN is_active = true THEN 1 END)::int AS active,
+        COUNT(CASE WHEN is_active = false THEN 1 END)::int AS inactive,
+        COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END)::int AS recently_added_count,
+        COUNT(DISTINCT (client_id, product_id))::int AS client_product_pair_count
+      FROM case_data_templates
+    `);
+    const row = statsRes.rows[0] || {};
+    const stats = {
+      total: row.total ?? 0,
+      active: row.active ?? 0,
+      inactive: row.inactive ?? 0,
+      recentlyAddedCount: row.recently_added_count ?? 0,
+      clientProductPairCount: row.client_product_pair_count ?? 0,
+    };
+    res.json({
+      success: true,
+      data: stats,
+      message: 'Case data template statistics retrieved successfully',
+    });
+  } catch (error) {
+    logger.error('Error retrieving case data template statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve case data template statistics',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};

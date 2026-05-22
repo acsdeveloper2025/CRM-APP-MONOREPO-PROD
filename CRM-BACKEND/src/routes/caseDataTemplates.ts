@@ -12,6 +12,7 @@ import {
   updateTemplate,
   deleteTemplate,
   parseUpload,
+  getCaseDataTemplateStats,
 } from '@/controllers/caseDataTemplatesController';
 import { PREFILL_SOURCE_KEYS } from '@/config/templateFieldPrefillCatalog';
 
@@ -297,6 +298,9 @@ router.get(
   handleValidationErrors,
   getTemplates
 );
+
+// 5-card stats aggregate. MUST stay above /:id.
+router.get('/stats', authorize('case.view'), getCaseDataTemplateStats);
 
 // Get active template by client+product config
 router.get(

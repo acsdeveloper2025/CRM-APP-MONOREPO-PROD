@@ -163,21 +163,8 @@ class DocumentTypesService {
   }
 
   // Import/Export Operations
-  async exportDocumentTypes(
-    filters: DocumentTypeFilters = {}
-  ): Promise<ApiResponse<DocumentTypeExportData[]>> {
-    const response = await apiService.get<DocumentTypeExportData[]>(
-      '/document-types/export',
-      filters
-    );
-    if (response?.success && Array.isArray(response.data)) {
-      validateResponse(GenericEntityListSchema, response.data, {
-        service: 'documentTypes',
-        endpoint: 'GET /document-types/export',
-      });
-    }
-    return response;
-  }
+  // (exportDocumentTypes is defined earlier in this class — returns Blob via
+  //  apiService.getRaw for the xlsx download flow shipped 2026-05-22.)
 
   async importDocumentTypes(
     file: File

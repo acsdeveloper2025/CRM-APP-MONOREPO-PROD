@@ -81,6 +81,10 @@ class CaseDataService {
     clientId?: number;
     productId?: number;
     search?: string;
+    // 'all' sent verbatim so URL/cache key stays stable; BE treats it as no-filter.
+    isActive?: 'true' | 'false' | 'all' | boolean;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
     page?: number;
     limit?: number;
   }): Promise<
@@ -90,6 +94,18 @@ class CaseDataService {
     }>
   > {
     return apiService.get('/case-data-templates', params);
+  }
+
+  async getCaseDataTemplateStats(): Promise<
+    ApiResponse<{
+      total: number;
+      active: number;
+      inactive: number;
+      recentlyAddedCount: number;
+      clientProductPairCount: number;
+    }>
+  > {
+    return apiService.get('/case-data-templates/stats');
   }
 
   async getTemplateById(id: number): Promise<ApiResponse<CaseDataTemplate>> {

@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import {
   Plus,
@@ -14,6 +15,8 @@ import {
   FileText,
   CheckCircle,
   XCircle,
+  Calendar,
+  Layers,
 } from 'lucide-react';
 import { TemplateImportDialog } from '@/components/cases/TemplateImportDialog';
 import { UnifiedSearchFilterLayout } from '@/components/ui/unified-search-filter-layout';
@@ -425,27 +428,115 @@ export const CaseDataTemplatesPage: React.FC = () => {
     fields: [createEmptyField(1)],
   });
 
-  // Queries
-  // Search + pagination (matching ClientsPage / ProductsPage pattern)
-  const pageSize = 20;
-  const [currentPage, setCurrentPage] = useState(1);
+  // URL-synced filter state (matching the canonical list-page shell —
+  // see feedback_fe_code_standards.md §9).
+  const [searchParams, setSearchParams] = useSearchParams();
+  type SortValue = 'name_asc' | 'name_desc' | 'created_desc' | 'created_asc' | 'updated_desc';
+  type StatusValue = 'all' | 'true' | 'false';
+  const SORT_OPTIONS: Array<{
+    value: SortValue;
+    label: string;
+    sortBy: string;
+    sortOrder: 'asc' | 'desc';
+  }> = useMemo(
+    () => [
+      { value: 'name_asc', label: 'Name A → Z', sortBy: 'name', sortOrder: 'asc' },
+      { value: 'name_desc', label: 'Name Z → A', sortBy: 'name', sortOrder: 'desc' },
+      { value: 'created_desc', label: 'Newest first', sortBy: 'createdAt', sortOrder: 'desc' },
+      { value: 'created_asc', label: 'Oldest first', sortBy: 'createdAt', sortOrder: 'asc' },
+      { value: 'updated_desc', label: 'Recently updated', sortBy: 'updatedAt', sortOrder: 'desc' },
+    ],
+    []
+  );
+  const PAGE_SIZE_OPTIONS = useMemo(() => [20, 50, 100] as const, []);
+  const status = (searchParams.get('status') as StatusValue) || 'all';
+  const sort = (searchParams.get('sort') as SortValue) || 'name_asc';
+  const pageSizeRaw = Number(searchParams.get('pageSize')) || 20;
+  const pageSize: 20 | 50 | 100 = (PAGE_SIZE_OPTIONS as readonly number[]).includes(pageSizeRaw)
+    ? (pageSizeRaw as 20 | 50 | 100)
+    : 20;
+  const currentPage = Math.max(1, Number(searchParams.get('page')) || 1);
+  const sortConfig = useMemo(
+    () => SORT_OPTIONS.find((o) => o.value === sort) ?? SORT_OPTIONS[0],
+    [sort, SORT_OPTIONS]
+  );
+
   const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
     useUnifiedSearch({ syncWithUrl: true });
 
-  // Reset to page 1 when search changes.
+  const updateParam = useCallback(
+    (key: string, value: string | null) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (value === null || value === '' || value === 'all') {
+            next.delete(key);
+          } else {
+            next.set(key, value);
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
+
+  // Reset to page 1 when any filter narrows results.
   useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearchValue]);
+    if (currentPage !== 1) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('page', '1');
+          return next;
+        },
+        { replace: true }
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearchValue, status, sort, pageSize]);
+
+  const setCurrentPage = useCallback(
+    (updater: number | ((p: number) => number)) => {
+      const next = typeof updater === 'function' ? updater(currentPage) : updater;
+      updateParam('page', String(Math.max(1, next)));
+    },
+    [currentPage, updateParam]
+  );
 
   const { data: templatesRes, isLoading: templatesLoading } = useQuery({
-    queryKey: ['case-data-templates', debouncedSearchValue, currentPage, pageSize],
+    queryKey: [
+      'case-data-templates',
+      debouncedSearchValue,
+      currentPage,
+      pageSize,
+      status,
+      sortConfig.sortBy,
+      sortConfig.sortOrder,
+    ],
     queryFn: () =>
       caseDataService.getTemplates({
         search: debouncedSearchValue || undefined,
+        isActive: status === 'all' ? undefined : (status as 'true' | 'false'),
+        sortBy: sortConfig.sortBy,
+        sortOrder: sortConfig.sortOrder,
         page: currentPage,
         limit: pageSize,
       }),
   });
+
+  const { data: statsRes } = useQuery({
+    queryKey: ['case-data-templates-stats'],
+    queryFn: () => caseDataService.getCaseDataTemplateStats(),
+  });
+  const stats = statsRes?.data || {
+    total: 0,
+    active: 0,
+    inactive: 0,
+    recentlyAddedCount: 0,
+    clientProductPairCount: 0,
+  };
 
   const { data: clientsRes } = useClients({ limit: 200 });
   const clients = useMemo(() => {
@@ -484,9 +575,6 @@ export const CaseDataTemplatesPage: React.FC = () => {
     }
     return { total: templates.length, page: 1, limit: pageSize, totalPages: 1 };
   }, [templatesRes, templates.length, pageSize]);
-
-  const activeCount = templates.filter((t) => t.isActive).length;
-  const inactiveCount = templates.length - activeCount;
 
   // Mutations
   const createMutation = useMutationWithInvalidation({
@@ -681,51 +769,112 @@ export const CaseDataTemplatesPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-        <Card className="transition-all duration-200 hover:shadow-md">
+      {/* Stats Cards — 5-card shell per feedback_fe_code_standards.md §9 */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Templates</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pagination.total}</div>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">All templates</p>
           </CardContent>
         </Card>
-        <Card className="transition-all duration-200 hover:shadow-md">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{activeCount}</div>
+            <div className="text-2xl font-bold">{stats.active}</div>
+            <p className="text-xs text-muted-foreground">Current versions</p>
           </CardContent>
         </Card>
-        <Card className="transition-all duration-200 hover:shadow-md">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Inactive</CardTitle>
-            <XCircle className="h-4 w-4 text-muted-foreground" />
+            <XCircle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{inactiveCount}</div>
+            <div className="text-2xl font-bold">{stats.inactive}</div>
+            <p className="text-xs text-muted-foreground">Superseded versions</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Recently Added</CardTitle>
+            <Calendar className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.recentlyAddedCount}</div>
+            <p className="text-xs text-muted-foreground">Last 30 days</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Client-Product Pairs</CardTitle>
+            <Layers className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.clientProductPairCount}</div>
+            <p className="text-xs text-muted-foreground">Distinct mappings</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Search + Actions */}
+      {/* Search + Filters + Actions */}
       <UnifiedSearchFilterLayout
         searchValue={searchValue}
         onSearchChange={setSearchValue}
         onSearchClear={clearSearch}
         isSearchLoading={isDebouncing}
         searchPlaceholder="Search by template name, client, or product..."
+        filterContent={
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="cdt-status">Status</Label>
+              <Select value={status} onValueChange={(v) => updateParam('status', v)}>
+                <SelectTrigger id="cdt-status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="true">Active</SelectItem>
+                  <SelectItem value="false">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="cdt-sort">Sort by</Label>
+              <Select value={sort} onValueChange={(v) => updateParam('sort', v)}>
+                <SelectTrigger id="cdt-sort">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SORT_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        }
+        hasActiveFilters={status !== 'all' || sort !== 'name_asc'}
+        activeFilterCount={(status !== 'all' ? 1 : 0) + (sort !== 'name_asc' ? 1 : 0)}
+        onClearFilters={() => {
+          updateParam('status', null);
+          updateParam('sort', null);
+        }}
         actions={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setImportOpen(true)}>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
               <Upload className="h-4 w-4 mr-2" />
               Upload Excel / CSV
             </Button>
-            <Button onClick={openCreate}>
+            <Button size="sm" onClick={openCreate}>
               <Plus className="h-4 w-4 mr-2" />
               Create Template
             </Button>
@@ -801,37 +950,56 @@ export const CaseDataTemplatesPage: React.FC = () => {
               </div>
 
               {/* Pagination */}
-              {pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4 border-t mt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Showing {(currentPage - 1) * pageSize + 1}–
-                    {Math.min(currentPage * pageSize, pagination.total)} of {pagination.total}
-                  </p>
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t mt-4">
+                <p className="text-sm text-muted-foreground">
+                  {pagination.total > 0
+                    ? `Showing ${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, pagination.total)} of ${pagination.total}`
+                    : 'No templates to show'}
+                </p>
+                <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage <= 1}
-                      onClick={() => setCurrentPage((p) => p - 1)}
+                    <Label htmlFor="cdt-page-size" className="text-sm text-muted-foreground">
+                      Rows
+                    </Label>
+                    <Select
+                      value={String(pageSize)}
+                      onValueChange={(v) => updateParam('pageSize', v)}
                     >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Previous
-                    </Button>
-                    <span className="text-sm text-muted-foreground">
-                      Page {currentPage} of {pagination.totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={currentPage >= pagination.totalPages}
-                      onClick={() => setCurrentPage((p) => p + 1)}
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
+                      <SelectTrigger id="cdt-page-size" className="w-[80px] h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAGE_SIZE_OPTIONS.map((n) => (
+                          <SelectItem key={n} value={String(n)}>
+                            {n}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage <= 1}
+                    onClick={() => setCurrentPage((p) => p - 1)}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <span className="text-sm">
+                    Page {currentPage} of {pagination.totalPages || 1}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage >= pagination.totalPages}
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
                 </div>
-              )}
+              </div>
             </>
           )}
         </CardContent>

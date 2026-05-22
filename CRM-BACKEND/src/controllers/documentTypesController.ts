@@ -57,8 +57,11 @@ export const getDocumentTypes = async (req: AuthenticatedRequest, res: Response)
     const { page = 1, limit = 20, sortBy = 'name', sortOrder = 'asc' } = req.query;
 
     const offset = (Number(page) - 1) * Number(limit);
-    const { whereClause, queryParams: params, nextParamIndex: paramIndex } =
-      buildDocumentTypesWhereClause(req);
+    const {
+      whereClause,
+      queryParams: params,
+      nextParamIndex: paramIndex,
+    } = buildDocumentTypesWhereClause(req);
 
     // API contract: sortBy is camelCase; map to snake_case DB column.
     const sortColumnMap: Record<string, string> = {
@@ -528,8 +531,11 @@ const EXPORT_ROW_LIMIT = 10000;
 export const exportDocumentTypes = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { sortBy = 'name', sortOrder = 'asc' } = req.query;
-    const { whereClause, queryParams: params, nextParamIndex: paramIndex } =
-      buildDocumentTypesWhereClause(req);
+    const {
+      whereClause,
+      queryParams: params,
+      nextParamIndex: paramIndex,
+    } = buildDocumentTypesWhereClause(req);
 
     const sortColumnMap: Record<string, string> = {
       name: 'name',

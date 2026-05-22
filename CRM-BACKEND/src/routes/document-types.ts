@@ -89,12 +89,7 @@ router.get('/categories', getDocumentTypeCategories);
 
 // GET /api/document-types/export - xlsx download mirroring list filters.
 // NOT cached. MUST stay above /:id so Express route-matching catches /export first.
-router.get(
-  '/export',
-  listDocumentTypesValidation,
-  handleValidationErrors,
-  exportDocumentTypes
-);
+router.get('/export', listDocumentTypesValidation, handleValidationErrors, exportDocumentTypes);
 
 router.post(
   '/',

@@ -143,8 +143,8 @@ export const EditDocumentTypeDialog: React.FC<EditDocumentTypeDialogProps> = ({
                   <div className="space-y-0.5">
                     <FormLabel className="text-base">Active</FormLabel>
                     <FormDescription>
-                      Inactive document types are hidden from the Active filter and excluded
-                      from new product/client mappings.
+                      Inactive document types are hidden from the Active filter and excluded from
+                      new product/client mappings.
                     </FormDescription>
                   </div>
                   <FormControl>
