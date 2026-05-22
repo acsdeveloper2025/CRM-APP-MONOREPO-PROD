@@ -10,18 +10,17 @@ import {
   listServiceZoneRules,
   listServiceZones,
   updateServiceZoneRule,
+  getServiceZoneRuleStats,
+  exportServiceZoneRules,
 } from '@/controllers/serviceZoneRulesController';
 
 const router = express.Router();
 
 router.use(authenticateToken);
 
-const listValidation = [
-  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit')
-    .optional()
-    .isInt({ min: 1, max: 500 })
-    .withMessage('Limit must be between 1 and 500'),
+// Reusable query-param validators for list + export (kept in lockstep with
+// buildServiceZoneRulesWhereClause in serviceZoneRulesController.ts).
+const szrQueryValidation = [
   query('clientId').optional().isInt({ min: 1 }).withMessage('Client ID must be a valid integer'),
   query('productId').optional().isInt({ min: 1 }).withMessage('Product ID must be a valid integer'),
   query('pincodeId').optional().isInt({ min: 1 }).withMessage('Pincode ID must be a valid integer'),
@@ -34,8 +33,25 @@ const listValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Verification type ID must be a valid integer'),
-  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+  query('isActive')
+    .optional()
+    .isIn(['true', 'false', 'all'])
+    .withMessage("isActive must be 'true', 'false', or 'all'"),
   query('search').optional().isString().withMessage('Search must be a string'),
+  query('sortBy')
+    .optional()
+    .isIn(['name', 'createdAt', 'updatedAt'])
+    .withMessage('Invalid sort field'),
+  query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
+];
+
+const listValidation = [
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 500 })
+    .withMessage('Limit must be between 1 and 500'),
+  ...szrQueryValidation,
 ];
 
 const ruleValidation = [
@@ -62,6 +78,18 @@ router.get(
   authorize('page.masterdata'),
   handleValidationErrors,
   listServiceZones
+);
+
+// 5-card stats — no filter params (global counters).
+router.get('/stats', authorize('page.masterdata'), getServiceZoneRuleStats);
+
+// xlsx export — MUST stay declared BEFORE /:id (Express matches in order).
+router.get(
+  '/export',
+  authorize('page.masterdata'),
+  szrQueryValidation,
+  handleValidationErrors,
+  exportServiceZoneRules
 );
 
 router.post(

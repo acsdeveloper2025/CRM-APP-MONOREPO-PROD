@@ -1,8 +1,102 @@
 import type { Response } from 'express';
+import ExcelJS from 'exceljs';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import type { QueryParams } from '@/types/database';
+import { createAuditLog } from '@/utils/auditLogger';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
+
+const EXPORT_ROW_LIMIT = 10000;
+
+// Shared WHERE-clause builder for list + export + stats. Uses table aliases
+// szr/c/p/pin/a/rt/vt — see baseFrom in listServiceZoneRules. Filter-
+// standardization sweep Page 2 (2026-05-22).
+const buildServiceZoneRulesWhereClause = (
+  req: AuthenticatedRequest
+): { whereClause: string; queryParams: QueryParams; nextParamIndex: number } => {
+  const {
+    clientId,
+    productId,
+    pincodeId,
+    areaId,
+    rateTypeId,
+    verificationTypeId,
+    isActive,
+    search,
+  } = req.query;
+  const whereConditions: string[] = [];
+  const queryParams: QueryParams = [];
+  let paramIndex = 1;
+
+  if (clientId) {
+    whereConditions.push(`szr.client_id = $${paramIndex}`);
+    queryParams.push(Number(clientId));
+    paramIndex++;
+  }
+  if (productId) {
+    whereConditions.push(`szr.product_id = $${paramIndex}`);
+    queryParams.push(Number(productId));
+    paramIndex++;
+  }
+  if (pincodeId) {
+    whereConditions.push(`szr.pincode_id = $${paramIndex}`);
+    queryParams.push(Number(pincodeId));
+    paramIndex++;
+  }
+  if (areaId) {
+    whereConditions.push(`szr.area_id = $${paramIndex}`);
+    queryParams.push(Number(areaId));
+    paramIndex++;
+  }
+  if (rateTypeId) {
+    whereConditions.push(`szr.rate_type_id = $${paramIndex}`);
+    queryParams.push(Number(rateTypeId));
+    paramIndex++;
+  }
+  if (verificationTypeId) {
+    whereConditions.push(`szr.verification_type_id = $${paramIndex}`);
+    queryParams.push(Number(verificationTypeId));
+    paramIndex++;
+  }
+  if (isActive === 'true' || isActive === 'false') {
+    whereConditions.push(`szr.is_active = $${paramIndex}`);
+    queryParams.push(isActive === 'true');
+    paramIndex++;
+  } else if (typeof isActive === 'boolean') {
+    whereConditions.push(`szr.is_active = $${paramIndex}`);
+    queryParams.push(isActive);
+    paramIndex++;
+  }
+  if (search && typeof search === 'string') {
+    whereConditions.push(
+      `(c.name ILIKE $${paramIndex} OR p.name ILIKE $${paramIndex} OR pin.code ILIKE $${paramIndex} OR a.name ILIKE $${paramIndex} OR rt.name ILIKE $${paramIndex})`
+    );
+    queryParams.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+  return { whereClause, queryParams, nextParamIndex: paramIndex };
+};
+
+// Matches the FROM clause inside the existing listServiceZoneRules query —
+// preserve INNER JOINs to keep behavior identical (Karpathy surgical).
+const SZR_BASE_FROM = `
+  FROM service_zone_rules szr
+  JOIN clients c ON c.id = szr.client_id
+  JOIN products p ON p.id = szr.product_id
+  JOIN pincodes pin ON pin.id = szr.pincode_id
+  JOIN areas a ON a.id = szr.area_id
+  LEFT JOIN rate_types rt ON rt.id = szr.rate_type_id
+  LEFT JOIN verification_types vt ON vt.id = szr.verification_type_id
+`;
+
+const SZR_SORT_COLUMNS: Record<string, string> = {
+  name: 'c.name',
+  createdAt: 'szr.created_at',
+  updatedAt: 'szr.updated_at',
+};
 
 type ServiceZoneRulePayload = {
   clientId: number;
@@ -110,75 +204,21 @@ const validateReferences = async (
 
 export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const { page = 1, limit = 20, sortBy = 'name', sortOrder = 'asc' } = req.query;
+
     const {
-      page = 1,
-      limit = 20,
-      clientId,
-      productId,
-      pincodeId,
-      areaId,
-      rateTypeId,
-      isActive,
-      search,
-    } = req.query;
+      whereClause,
+      queryParams: values,
+      nextParamIndex,
+    } = buildServiceZoneRulesWhereClause(req);
 
-    const values: QueryParams = [];
-    const whereSql: string[] = [];
+    const sortCol =
+      SZR_SORT_COLUMNS[typeof sortBy === 'string' ? sortBy : ''] || SZR_SORT_COLUMNS.name;
+    const sortDir =
+      typeof sortOrder === 'string' && sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
-    if (clientId) {
-      values.push(Number(clientId));
-      whereSql.push(`szr.client_id = $${values.length}`);
-    }
-    if (productId) {
-      values.push(Number(productId));
-      whereSql.push(`szr.product_id = $${values.length}`);
-    }
-    if (pincodeId) {
-      values.push(Number(pincodeId));
-      whereSql.push(`szr.pincode_id = $${values.length}`);
-    }
-    if (areaId) {
-      values.push(Number(areaId));
-      whereSql.push(`szr.area_id = $${values.length}`);
-    }
-    if (rateTypeId) {
-      values.push(Number(rateTypeId));
-      whereSql.push(`szr.rate_type_id = $${values.length}`);
-    }
-    // Phase 1 (refactor 2026-05-10): VT filter additive; ignored if undefined.
-    const verificationTypeId = (req.query as { verificationTypeId?: string | number })
-      .verificationTypeId;
-    if (verificationTypeId) {
-      values.push(Number(verificationTypeId));
-      whereSql.push(`szr.verification_type_id = $${values.length}`);
-    }
-    if (typeof isActive !== 'undefined') {
-      values.push(typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive));
-      whereSql.push(`szr.is_active = $${values.length}`);
-    }
-    if (search && typeof search === 'string') {
-      values.push(`%${search}%`);
-      values.push(`%${search}%`);
-      values.push(`%${search}%`);
-      values.push(`%${search}%`);
-      values.push(`%${search}%`);
-      whereSql.push(
-        `(c.name ILIKE $${values.length - 4} OR p.name ILIKE $${values.length - 3} OR pin.code ILIKE $${values.length - 2} OR a.name ILIKE $${values.length - 1} OR rt.name ILIKE $${values.length})`
-      );
-    }
-
-    const whereClause = whereSql.length ? `WHERE ${whereSql.join(' AND ')}` : '';
-    const baseFrom = `
-      FROM service_zone_rules szr
-      JOIN clients c ON c.id = szr.client_id
-      JOIN products p ON p.id = szr.product_id
-      JOIN pincodes pin ON pin.id = szr.pincode_id
-      JOIN areas a ON a.id = szr.area_id
-      LEFT JOIN rate_types rt ON rt.id = szr.rate_type_id
-      LEFT JOIN verification_types vt ON vt.id = szr.verification_type_id
-    `;
     const countRes = await query<{ count: string }>(
-      `SELECT COUNT(*)::text as count ${baseFrom} ${whereClause}`,
+      `SELECT COUNT(*)::text as count ${SZR_BASE_FROM} ${whereClause}`,
       values
     );
     const total = Number(countRes.rows[0]?.count || 0);
@@ -203,10 +243,10 @@ export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Respo
         rt.name as rate_type_name,
         vt.code as verification_type_code,
         vt.name as verification_type_name
-       ${baseFrom}
+       ${SZR_BASE_FROM}
        ${whereClause}
-       ORDER BY c.name, p.name, pin.code, a.name
-       LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
+       ORDER BY ${sortCol} ${sortDir}, p.name, pin.code, a.name
+       LIMIT $${nextParamIndex} OFFSET $${nextParamIndex + 1}`,
       [...values, Number(limit), offset]
     );
 
@@ -445,3 +485,139 @@ export const activateServiceZoneRule = async (req: AuthenticatedRequest, res: Re
 
 export const deactivateServiceZoneRule = async (req: AuthenticatedRequest, res: Response) =>
   setRuleStatus(req, res, false);
+
+// GET /api/service-zone-rules/stats - 5-card stats aggregate. No filter
+// params — global counters. Filter-standardization sweep Page 2 (2026-05-22).
+export const getServiceZoneRuleStats = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const statsRes = await query<{
+      total: number;
+      active: number;
+      inactive: number;
+      recentlyAddedCount: number;
+      pincodesCoveredCount: number;
+    }>(`
+      SELECT
+        COUNT(*)::int as total,
+        COUNT(CASE WHEN is_active = true THEN 1 END)::int as active,
+        COUNT(CASE WHEN is_active = false THEN 1 END)::int as inactive,
+        COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END)::int as "recentlyAddedCount",
+        COUNT(DISTINCT CASE WHEN is_active = true THEN pincode_id END)::int as "pincodesCoveredCount"
+      FROM service_zone_rules
+    `);
+    const stats = statsRes.rows[0] || {
+      total: 0,
+      active: 0,
+      inactive: 0,
+      recentlyAddedCount: 0,
+      pincodesCoveredCount: 0,
+    };
+    res.json({ success: true, data: stats, message: 'Stats retrieved' });
+  } catch (error) {
+    logger.error('Error retrieving SZR stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve service zone rule statistics',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+// GET /api/service-zone-rules/export - xlsx mirroring list filters via the
+// shared buildServiceZoneRulesWhereClause helper. Cap EXPORT_ROW_LIMIT;
+// every cell through escapeFormulaRow (CWE-1236). Audit row pre-stream.
+// Route MUST stay declared BEFORE /:id (Express order).
+export const exportServiceZoneRules = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { sortBy = 'name', sortOrder = 'asc' } = req.query;
+    const {
+      whereClause,
+      queryParams: values,
+      nextParamIndex,
+    } = buildServiceZoneRulesWhereClause(req);
+
+    const sortCol =
+      SZR_SORT_COLUMNS[typeof sortBy === 'string' ? sortBy : ''] || SZR_SORT_COLUMNS.name;
+    const sortDir =
+      typeof sortOrder === 'string' && sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+
+    const listRes = await query<{
+      clientName: string;
+      productName: string;
+      verificationTypeName: string | null;
+      pincodeCode: string;
+      areaName: string;
+      rateTypeName: string | null;
+      isActive: boolean;
+      createdAt: Date;
+    }>(
+      `SELECT
+         c.name AS "clientName",
+         p.name AS "productName",
+         vt.name AS "verificationTypeName",
+         pin.code AS "pincodeCode",
+         a.name AS "areaName",
+         rt.name AS "rateTypeName",
+         szr.is_active AS "isActive",
+         szr.created_at AS "createdAt"
+         ${SZR_BASE_FROM}
+         ${whereClause}
+         ORDER BY ${sortCol} ${sortDir}, p.name, pin.code, a.name
+         LIMIT $${nextParamIndex}`,
+      [...values, EXPORT_ROW_LIMIT]
+    );
+
+    await createAuditLog({
+      action: 'SZR_EXPORTED',
+      entityType: 'SERVICE_ZONE_RULE',
+      entityId: undefined,
+      userId: req.user?.id,
+      details: { rowCount: listRes.rows.length, filters: req.query },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Service Zone Rules');
+    ws.addRow([
+      'Client',
+      'Product',
+      'Verification Type',
+      'Pincode',
+      'Area',
+      'Rate Type',
+      'Created Date',
+      'Status',
+    ]);
+    for (const r of listRes.rows) {
+      ws.addRow(
+        escapeFormulaRow([
+          r.clientName,
+          r.productName,
+          r.verificationTypeName ?? '',
+          r.pincodeCode,
+          r.areaName,
+          r.rateTypeName ?? '',
+          r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : '',
+          r.isActive ? 'ACTIVE' : 'INACTIVE',
+        ])
+      );
+    }
+
+    const filename = `service_zone_rules_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    const buf = await wb.xlsx.writeBuffer();
+    res.send(Buffer.from(buf));
+  } catch (error) {
+    logger.error('Error exporting service zone rules:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export service zone rules',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};

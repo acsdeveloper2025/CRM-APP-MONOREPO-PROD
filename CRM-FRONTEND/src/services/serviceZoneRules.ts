@@ -1,5 +1,7 @@
+import type { AxiosResponse } from 'axios';
+import { apiService } from './api';
 import { BaseApiService } from './base';
-import type { ApiResponse } from '@/types/api';
+import type { ApiResponse, PaginatedResponse } from '@/types/api';
 import type {
   RateType,
   ServiceZoneRule,
@@ -15,7 +17,22 @@ export interface ServiceZoneRuleListQuery {
   pincodeId?: number;
   areaId?: number;
   rateTypeId?: number;
-  isActive?: boolean;
+  verificationTypeId?: number;
+  // 'all' is sent verbatim so URL/cache key stays stable; BE treats it as no-filter.
+  isActive?: boolean | 'true' | 'false' | 'all';
+  search?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: 'name' | 'createdAt' | 'updatedAt';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface ServiceZoneRuleStats {
+  total: number;
+  active: number;
+  inactive: number;
+  recentlyAddedCount: number;
+  pincodesCoveredCount: number;
 }
 
 class ServiceZoneRulesService extends BaseApiService {
@@ -23,7 +40,9 @@ class ServiceZoneRulesService extends BaseApiService {
     super('/service-zone-rules');
   }
 
-  async listRules(query: ServiceZoneRuleListQuery = {}): Promise<ApiResponse<ServiceZoneRule[]>> {
+  async listRules(
+    query: ServiceZoneRuleListQuery = {}
+  ): Promise<PaginatedResponse<ServiceZoneRule>> {
     const response = await this.get<ServiceZoneRule[]>('', query as Record<string, unknown>);
     if (response?.success && Array.isArray(response.data)) {
       validateResponse(GenericEntityListSchema, response.data, {
@@ -31,7 +50,20 @@ class ServiceZoneRulesService extends BaseApiService {
         endpoint: 'GET /service-zone-rules',
       });
     }
-    return response;
+    return response as unknown as PaginatedResponse<ServiceZoneRule>;
+  }
+
+  async getStats(): Promise<ApiResponse<ServiceZoneRuleStats>> {
+    return apiService.get('/service-zone-rules/stats');
+  }
+
+  // xlsx export — mirrors listRules filters via shared BE WHERE-helper.
+  async exportRules(
+    query: Omit<ServiceZoneRuleListQuery, 'page' | 'limit'> = {}
+  ): Promise<AxiosResponse<Blob>> {
+    return apiService.getRaw<Blob>('/service-zone-rules/export', query, {
+      responseType: 'blob',
+    });
   }
 
   async listServiceZones(): Promise<ApiResponse<RateType[]>> {
