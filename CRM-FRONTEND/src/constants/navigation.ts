@@ -21,6 +21,7 @@ import {
   FileCheck,
   ClipboardList,
   Stethoscope,
+  Radio,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -210,6 +211,22 @@ export const navigationItems: NavigationItem[] = [
         icon: List,
         permissionCode: 'page.kyc',
         permission: { resource: 'kyc', action: 'read' },
+      },
+    ],
+  },
+  {
+    id: 'operations',
+    label: 'Operations',
+    href: '#',
+    icon: Radio,
+    permissionCode: 'page.field_monitoring',
+    children: [
+      {
+        id: 'field-monitoring',
+        label: 'Field Monitoring',
+        href: '/operations/field-monitoring',
+        icon: MapPin,
+        permissionCode: 'page.field_monitoring',
       },
     ],
   },
@@ -482,13 +499,6 @@ export const navigationItems: NavigationItem[] = [
         href: '/user-management/rbac-administration',
         icon: Shield,
         permissionCode: 'page.rbac',
-      },
-      {
-        id: 'field-monitoring',
-        label: 'Field Monitoring',
-        href: '/user-management/field-monitoring',
-        icon: MapPin,
-        permissionCode: 'page.field_monitoring',
       },
     ],
   },
