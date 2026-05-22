@@ -267,7 +267,12 @@ export class RateManagementService {
   async getRateManagementStats(): Promise<
     ApiResponse<{
       rateTypes: { total: number; active: number; inactive: number };
-      rates: { total: number; active: number; inactive: number; averageAmount: number };
+      rates: {
+        total: number;
+        active: number;
+        inactive: number;
+        averageAmount: number | string;
+      };
       kycRates?: KYCRateStats;
     }>
   > {

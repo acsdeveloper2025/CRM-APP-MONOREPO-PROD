@@ -10,19 +10,16 @@ import {
   createOrUpdateRate,
   deleteRate,
   getRateStats,
+  exportRates,
 } from '@/controllers/ratesController';
 
 const router = express.Router();
 
 // Apply authentication
 router.use(authenticateToken);
-// Validation schemas
-const listRatesValidation = [
-  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit')
-    .optional()
-    .isInt({ min: 1, max: 1000 })
-    .withMessage('Limit must be between 1 and 1000'),
+// Reusable query-param validators for list + export — kept in lockstep with
+// buildRatesWhereClause in ratesController.ts.
+const ratesQueryValidation = [
   query('clientId').optional().isInt({ min: 1 }).withMessage('Client ID must be a valid integer'),
   query('productId').optional().isInt({ min: 1 }).withMessage('Product ID must be a valid integer'),
   query('verificationTypeId')
@@ -33,12 +30,17 @@ const listRatesValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Rate Type ID must be a valid integer'),
-  query('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+  query('isActive')
+    .optional()
+    .isIn(['true', 'false', 'all'])
+    .withMessage("isActive must be 'true', 'false', or 'all'"),
   query('search')
     .optional()
     .trim()
     .isLength({ max: 100 })
     .withMessage('Search term must be less than 100 characters'),
+  query('createdFrom').optional().isISO8601().withMessage('createdFrom must be ISO 8601'),
+  query('createdTo').optional().isISO8601().withMessage('createdTo must be ISO 8601'),
   query('sortBy')
     .optional()
     .isIn([
@@ -52,6 +54,15 @@ const listRatesValidation = [
     ])
     .withMessage('Invalid sort field'),
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
+];
+
+const listRatesValidation = [
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 1000 })
+    .withMessage('Limit must be between 1 and 1000'),
+  ...ratesQueryValidation,
 ];
 
 const availableRateTypesValidation = [
@@ -105,6 +116,17 @@ router.get(
 );
 
 router.get('/stats', authorize('page.masterdata'), getRateStats);
+
+// GET /api/rates/export - xlsx mirroring list filters via shared helper.
+// MUST stay declared BEFORE /:id (no /:id GET exists today but reserve the
+// order for future-proofing per the canonical contract).
+router.get(
+  '/export',
+  authorize('page.masterdata'),
+  ratesQueryValidation,
+  handleValidationErrors,
+  exportRates
+);
 
 router.post(
   '/',

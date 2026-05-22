@@ -1,66 +1,102 @@
 import type { Response } from 'express';
+import ExcelJS from 'exceljs';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query, withTransaction } from '@/config/database';
 import type { QueryParams } from '@/types/database';
 import { createAuditLog } from '@/utils/auditLogger';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
+
+const EXPORT_ROW_LIMIT = 10000;
+
+// Shared WHERE-clause builder for getRates + exportRates so the two stay in
+// lockstep. Operates against rate_management_view columns (client_name,
+// product_name, verification_type_name, rate_type_name). Page 4 of the
+// filter-standardization sweep (2026-05-22).
+const buildRatesWhereClause = (
+  req: AuthenticatedRequest
+): { whereClause: string; queryParams: QueryParams; nextParamIndex: number } => {
+  const {
+    search,
+    isActive,
+    clientId,
+    productId,
+    verificationTypeId,
+    rateTypeId,
+    createdFrom,
+    createdTo,
+  } = req.query;
+  const whereConditions: string[] = [];
+  const queryParams: QueryParams = [];
+  let paramIndex = 1;
+
+  if (clientId) {
+    whereConditions.push(`client_id = $${paramIndex}`);
+    queryParams.push(Number(clientId));
+    paramIndex++;
+  }
+  if (productId) {
+    whereConditions.push(`product_id = $${paramIndex}`);
+    queryParams.push(Number(productId));
+    paramIndex++;
+  }
+  if (verificationTypeId) {
+    whereConditions.push(`verification_type_id = $${paramIndex}`);
+    queryParams.push(Number(verificationTypeId));
+    paramIndex++;
+  }
+  if (rateTypeId) {
+    whereConditions.push(`rate_type_id = $${paramIndex}`);
+    queryParams.push(Number(rateTypeId));
+    paramIndex++;
+  }
+  if (isActive === 'true' || isActive === 'false') {
+    whereConditions.push(`is_active = $${paramIndex}`);
+    queryParams.push(isActive === 'true');
+    paramIndex++;
+  } else if (typeof isActive === 'boolean') {
+    whereConditions.push(`is_active = $${paramIndex}`);
+    queryParams.push(isActive);
+    paramIndex++;
+  }
+  if (search && typeof search === 'string') {
+    whereConditions.push(
+      `(client_name ILIKE $${paramIndex} OR product_name ILIKE $${paramIndex} OR verification_type_name ILIKE $${paramIndex} OR rate_type_name ILIKE $${paramIndex})`
+    );
+    queryParams.push(`%${search}%`);
+    paramIndex++;
+  }
+  if (typeof createdFrom === 'string' && createdFrom) {
+    whereConditions.push(`created_at >= $${paramIndex}`);
+    queryParams.push(createdFrom);
+    paramIndex++;
+  }
+  if (typeof createdTo === 'string' && createdTo) {
+    whereConditions.push(`created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
+    queryParams.push(createdTo);
+    paramIndex++;
+  }
+
+  const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+  return { whereClause, queryParams, nextParamIndex: paramIndex };
+};
+
+const RATES_SORT_COLUMNS: Record<string, string> = {
+  clientName: 'client_name',
+  productName: 'product_name',
+  verificationTypeName: 'verification_type_name',
+  rateTypeName: 'rate_type_name',
+  amount: 'amount',
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+};
 
 // GET /api/rates - List rates with comprehensive filtering and pagination
 export const getRates = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      page = 1,
-      limit = 20,
-      clientId,
-      productId,
-      verificationTypeId,
-      rateTypeId,
-      isActive,
-      search,
-      sortBy = 'clientName',
-      sortOrder = 'asc',
-    } = req.query;
+    const { page = 1, limit = 20, sortBy = 'clientName', sortOrder = 'asc' } = req.query;
 
-    // Build where clause
-    const values: QueryParams = [];
-    const whereSql: string[] = [];
-
-    if (clientId) {
-      values.push(Number(clientId));
-      whereSql.push(`client_id = $${values.length}`);
-    }
-
-    if (productId) {
-      values.push(Number(productId));
-      whereSql.push(`product_id = $${values.length}`);
-    }
-
-    if (verificationTypeId) {
-      values.push(Number(verificationTypeId));
-      whereSql.push(`verification_type_id = $${values.length}`);
-    }
-
-    if (rateTypeId) {
-      values.push(Number(rateTypeId));
-      whereSql.push(`rate_type_id = $${values.length}`);
-    }
-
-    if (typeof isActive !== 'undefined') {
-      values.push(typeof isActive === 'string' ? isActive === 'true' : Boolean(isActive));
-      whereSql.push(`is_active = $${values.length}`);
-    }
-
-    if (search && typeof search === 'string') {
-      values.push(`%${String(search)}%`);
-      values.push(`%${String(search)}%`);
-      values.push(`%${String(search)}%`);
-      values.push(`%${String(search)}%`);
-      whereSql.push(
-        `(client_name ILIKE $${values.length - 3} OR product_name ILIKE $${values.length - 2} OR verification_type_name ILIKE $${values.length - 1} OR rate_type_name ILIKE $${values.length})`
-      );
-    }
-
-    const whereClause = whereSql.length ? `WHERE ${whereSql.join(' AND ')}` : '';
+    const { whereClause, queryParams: values } = buildRatesWhereClause(req);
 
     // Get total count
     const countRes = await query<{ count: string }>(
@@ -71,18 +107,8 @@ export const getRates = async (req: AuthenticatedRequest, res: Response) => {
 
     // Get rates with pagination
     const offset = (Number(page) - 1) * Number(limit);
-    // API contract: sortBy is camelCase; map to snake_case view column.
-    const sortColumnMap: Record<string, string> = {
-      clientName: 'client_name',
-      productName: 'product_name',
-      verificationTypeName: 'verification_type_name',
-      rateTypeName: 'rate_type_name',
-      amount: 'amount',
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-    };
     const sortCol: string =
-      sortColumnMap[typeof sortBy === 'string' ? sortBy : ''] || 'client_name';
+      RATES_SORT_COLUMNS[typeof sortBy === 'string' ? sortBy : ''] || 'client_name';
     const sortOrderStr = typeof sortOrder === 'string' ? sortOrder : 'asc';
     const sortDir: 'ASC' | 'DESC' = sortOrderStr.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
@@ -99,7 +125,7 @@ export const getRates = async (req: AuthenticatedRequest, res: Response) => {
       userId: req.user?.id,
       page: Number(page),
       limit: Number(limit),
-      search: search || '',
+      search: req.query.search || '',
       total: totalCount,
     });
 
@@ -383,10 +409,11 @@ export const getRateStats = async (req: AuthenticatedRequest, res: Response) => 
         COUNT(*)::int as total,
         COUNT(CASE WHEN is_active = true THEN 1 END)::int as active,
         COUNT(CASE WHEN is_active = false THEN 1 END)::int as inactive,
-        AVG(amount)::numeric(10,2) as average_amount,
-        MIN(amount)::numeric(10,2) as min_amount,
-        MAX(amount)::numeric(10,2) as max_amount,
-        COUNT(DISTINCT client_id)::int as unique_clients
+        COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END)::int as "recentlyAddedCount",
+        COALESCE(AVG(amount), 0)::numeric(10,2) as "averageAmount",
+        COALESCE(MIN(amount), 0)::numeric(10,2) as "minAmount",
+        COALESCE(MAX(amount), 0)::numeric(10,2) as "maxAmount",
+        COUNT(DISTINCT client_id)::int as "uniqueClients"
       FROM rates
     `);
     const stats = statsRes.rows[0];
@@ -401,6 +428,99 @@ export const getRateStats = async (req: AuthenticatedRequest, res: Response) => 
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve rate statistics',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+// GET /api/rates/export - xlsx download mirroring list filters via the
+// shared buildRatesWhereClause helper. Cap EXPORT_ROW_LIMIT; every cell
+// through escapeFormulaRow (CWE-1236). Audit row RATE_EXPORTED pre-stream.
+// Route MUST stay declared BEFORE /:id (Express matches in order).
+export const exportRates = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { sortBy = 'clientName', sortOrder = 'asc' } = req.query;
+    const { whereClause, queryParams, nextParamIndex } = buildRatesWhereClause(req);
+
+    const sortCol = RATES_SORT_COLUMNS[typeof sortBy === 'string' ? sortBy : ''] || 'client_name';
+    const sortDir =
+      typeof sortOrder === 'string' && sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+
+    const listRes = await query<{
+      clientName: string;
+      productName: string;
+      verificationTypeName: string | null;
+      rateTypeName: string | null;
+      amount: string;
+      currency: string;
+      isActive: boolean;
+      createdAt: Date;
+    }>(
+      `SELECT client_name AS "clientName",
+              product_name AS "productName",
+              verification_type_name AS "verificationTypeName",
+              rate_type_name AS "rateTypeName",
+              amount,
+              currency,
+              is_active AS "isActive",
+              created_at AS "createdAt"
+         FROM rate_management_view
+         ${whereClause}
+         ORDER BY ${sortCol} ${sortDir}
+         LIMIT $${nextParamIndex}`,
+      [...queryParams, EXPORT_ROW_LIMIT]
+    );
+
+    await createAuditLog({
+      action: 'RATE_EXPORTED',
+      entityType: 'RATE',
+      entityId: undefined,
+      userId: req.user?.id,
+      details: { rowCount: listRes.rows.length, filters: req.query },
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Rates');
+    ws.addRow([
+      'Client',
+      'Product',
+      'Verification Type',
+      'Rate Type',
+      'Amount',
+      'Currency',
+      'Created Date',
+      'Status',
+    ]);
+    for (const r of listRes.rows) {
+      ws.addRow(
+        escapeFormulaRow([
+          r.clientName,
+          r.productName,
+          r.verificationTypeName ?? '',
+          r.rateTypeName ?? '',
+          r.amount,
+          r.currency,
+          r.createdAt ? new Date(r.createdAt).toISOString().slice(0, 10) : '',
+          r.isActive ? 'ACTIVE' : 'INACTIVE',
+        ])
+      );
+    }
+
+    const filename = `rates_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    const buf = await wb.xlsx.writeBuffer();
+    res.send(Buffer.from(buf));
+  } catch (error) {
+    logger.error('Error exporting rates:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to export rates',
       error: { code: 'INTERNAL_ERROR' },
     });
   }

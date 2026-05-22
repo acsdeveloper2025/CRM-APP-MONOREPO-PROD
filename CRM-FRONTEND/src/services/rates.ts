@@ -1,3 +1,4 @@
+import type { AxiosResponse } from 'axios';
 import { apiService } from './api';
 import type { ApiResponse, PaginationQuery, PaginatedResponse } from '@/types/api';
 import type { Rate, AvailableRateType } from '@/types/rateManagement';
@@ -16,12 +17,15 @@ export interface CreateOrUpdateRateData {
 }
 
 export interface RateListQuery extends PaginationQuery {
-  clientId?: number; // Changed from string to number
-  productId?: number; // Changed from string to number
-  verificationTypeId?: number; // Changed from string to number
-  rateTypeId?: number; // Changed from string to number
-  isActive?: boolean;
+  clientId?: number;
+  productId?: number;
+  verificationTypeId?: number;
+  rateTypeId?: number;
+  // 'all' sent verbatim so URL/cache key stays stable; BE treats it as no-filter.
+  isActive?: boolean | 'true' | 'false' | 'all';
   search?: string;
+  createdFrom?: string;
+  createdTo?: string;
   sortBy?:
     | 'clientName'
     | 'productName'
@@ -43,9 +47,11 @@ export interface RateStats {
   total: number;
   active: number;
   inactive: number;
-  averageAmount: number;
-  minAmount: number;
-  maxAmount: number;
+  // Page 4 sweep (2026-05-22): canonical 5-card alongside operational signals.
+  recentlyAddedCount: number;
+  averageAmount: number | string;
+  minAmount: number | string;
+  maxAmount: number | string;
   uniqueClients: number;
 }
 
@@ -83,6 +89,13 @@ export class RatesService {
 
   async deleteRate(id: number): Promise<ApiResponse<void>> {
     return apiService.delete(`/rates/${id}`);
+  }
+
+  // xlsx export — mirrors getRates filters via shared BE WHERE-helper.
+  async exportRates(
+    query: Omit<RateListQuery, 'page' | 'limit'> = {}
+  ): Promise<AxiosResponse<Blob>> {
+    return apiService.getRaw<Blob>('/rates/export', query, { responseType: 'blob' });
   }
 
   async getRateStats(): Promise<ApiResponse<RateStats>> {
