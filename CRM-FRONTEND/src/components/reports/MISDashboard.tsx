@@ -484,9 +484,9 @@ export function MISDashboard() {
                       totalPages: 0,
                     }
                   }
-                  onPageChange={() => {
-                    /* §9.3 pagination row below owns page navigation */
-                  }}
+                  onPageChange={(nextPage) =>
+                    updateParam('page', nextPage > 1 ? String(nextPage) : null)
+                  }
                   isLoading={isLoading}
                 />
               ) : (

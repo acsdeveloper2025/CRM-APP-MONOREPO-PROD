@@ -1752,6 +1752,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
 // MIS_EXPORTED audit row written PRE-stream. Hard cap MIS_EXPORT_ROW_LIMIT.
 export const exportMISData = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const { sortBy, sortOrder } = req.query;
     const { whereClause, params } = await buildMISWhereClause(req);
     const limitParamIndex = params.length + 1;
 
@@ -1825,7 +1826,9 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
         LIMIT 1
       ) tfs ON true
       ${whereClause}
-      ORDER BY vt.created_at DESC
+      ORDER BY ${MIS_SORT_MAP[sortBy as string] ?? 'vt.created_at'} ${
+        (sortOrder as string)?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
+      } NULLS LAST
       LIMIT $${limitParamIndex}
     `;
 
