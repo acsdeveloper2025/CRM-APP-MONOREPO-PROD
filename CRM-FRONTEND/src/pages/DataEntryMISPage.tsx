@@ -1,6 +1,16 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Download, FileText, CheckCircle, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Download,
+  FileText,
+  CheckCircle,
+  Clock,
+  Percent,
+  Briefcase,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,7 +34,9 @@ import {
 import { useClients, useProductsByClient } from '@/hooks/useClients';
 import { apiService } from '@/services/api';
 import { DownloadReportButton } from '@/components/reports/DownloadReportButton';
+import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 interface MISField {
   id: number;
@@ -51,15 +63,42 @@ interface MISResponse {
   pagination: { total: number; page: number; limit: number; totalPages: number };
 }
 
+interface MISStats {
+  total: number;
+  completed: number;
+  inProgress: number;
+  completionRate: number;
+  uniqueCases: number;
+}
+
+const PAGE_SIZE_OPTIONS = [20, 50, 100];
+
 export function DataEntryMISPage() {
-  const [clientId, setClientId] = useState('');
-  const [productId, setProductId] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [exporting, setExporting] = useState(false);
-  const pageSize = 20;
+
+  // URL state — every filter survives reload + is shareable.
+  const clientId = searchParams.get('clientId') || '';
+  const productId = searchParams.get('productId') || '';
+  const dateFrom = searchParams.get('dateFrom') || '';
+  const dateTo = searchParams.get('dateTo') || '';
+  const statusFilter = searchParams.get('status') || 'all';
+  const page = Number(searchParams.get('page') || '1');
+  const pageSize = Number(searchParams.get('pageSize') || '20');
+
+  const updateParam = (key: string, value: string | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (value === null || value === '' || value === 'all') {
+      next.delete(key);
+    } else {
+      next.set(key, value);
+    }
+    setSearchParams(next, { replace: false });
+  };
+
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch } = useUnifiedSearch({
+    syncWithUrl: true,
+  });
 
   const { data: clientsRes } = useClients({ limit: 200 });
   const clients = useMemo(() => {
@@ -77,27 +116,61 @@ export function DataEntryMISPage() {
     return Array.isArray(productsRes.data) ? productsRes.data : [];
   }, [productsRes]);
 
+  // Reset to page 1 when any filter changes.
   useEffect(() => {
-    setCurrentPage(1);
-  }, [clientId, productId, dateFrom, dateTo, statusFilter]);
+    if (page !== 1 && searchParams.get('page')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('page');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId, productId, dateFrom, dateTo, statusFilter, debouncedSearchValue, pageSize]);
+
+  // Clear product when client changes — but only AFTER products have
+  // loaded for the new client. Otherwise the initial render (empty
+  // products array) would clobber a valid URL-loaded productId.
+  useEffect(() => {
+    if (
+      productId &&
+      productsRes !== undefined &&
+      products.length > 0 &&
+      !products.find((p) => String(p.id) === productId)
+    ) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('productId');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId, products, productsRes]);
 
   const ready = !!(clientId && productId);
 
+  const baseFilters = {
+    clientId: clientId ? Number(clientId) : undefined,
+    productId: productId ? Number(productId) : undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    search: debouncedSearchValue || undefined,
+  };
+
   const { data: misRes, isLoading } = useQuery({
-    queryKey: ['data-entry-mis', clientId, productId, dateFrom, dateTo, statusFilter, currentPage],
+    queryKey: [
+      'data-entry-mis',
+      clientId,
+      productId,
+      dateFrom,
+      dateTo,
+      statusFilter,
+      debouncedSearchValue,
+      page,
+      pageSize,
+    ],
     queryFn: async () => {
       const params: Record<string, string | number> = {
-        clientId: Number(clientId),
-        productId: Number(productId),
-        page: currentPage,
+        ...(baseFilters as Record<string, string | number>),
+        page,
         limit: pageSize,
       };
-      if (dateFrom) {
-        params.dateFrom = dateFrom;
-      }
-      if (dateTo) {
-        params.dateTo = dateTo;
-      }
       if (statusFilter !== 'all') {
         params.dataEntryStatus = statusFilter;
       }
@@ -105,6 +178,20 @@ export function DataEntryMISPage() {
     },
     enabled: ready,
   });
+
+  // 5-card stats from new /mis/stats endpoint. Ignores statusFilter so
+  // partition counters reflect the full population (Completed / In Progress
+  // cards remain meaningful even when narrowed by the dropdown).
+  const { data: statsRes } = useQuery({
+    queryKey: ['data-entry-mis-stats', clientId, productId, dateFrom, dateTo, debouncedSearchValue],
+    queryFn: async () =>
+      apiService.get<MISStats>(
+        '/case-data-entries/mis/stats',
+        baseFilters as Record<string, unknown>
+      ),
+    enabled: ready,
+  });
+  const stats = (statsRes?.data as unknown as MISStats) || null;
 
   const misData: MISResponse | null = useMemo(() => {
     const raw = misRes?.data;
@@ -119,15 +206,13 @@ export function DataEntryMISPage() {
   const pagination = misData?.pagination ?? { total: 0, page: 1, limit: pageSize, totalPages: 0 };
   const fields = template?.fields ?? [];
 
-  const completedCount = rows.filter((r) => r.dataEntryStatus === 'completed').length;
-  const inProgressCount = rows.length - completedCount;
-
   const handleExport = async () => {
     if (!clientId || !productId) {
       return;
     }
     setExporting(true);
     try {
+      toast.info('Generating Excel export...');
       const params: Record<string, string | number> = {
         clientId: Number(clientId),
         productId: Number(productId),
@@ -140,6 +225,9 @@ export function DataEntryMISPage() {
       }
       if (statusFilter !== 'all') {
         params.dataEntryStatus = statusFilter;
+      }
+      if (debouncedSearchValue) {
+        params.search = debouncedSearchValue;
       }
       const response = await apiService.getRaw<Blob>('/case-data-entries/mis/export', {
         params,
@@ -161,7 +249,7 @@ export function DataEntryMISPage() {
       toast.success('Excel downloaded');
     } catch (err) {
       toast.error('Export failed');
-      console.error('Export error:', err);
+      logger.error('Export error:', err);
     } finally {
       setExporting(false);
     }
@@ -180,26 +268,35 @@ export function DataEntryMISPage() {
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Data Entry MIS</h1>
-        <p className="text-muted-foreground text-sm">
-          View and export data entry records by client and product
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Data Entry MIS</h1>
+        <p className="text-sm text-muted-foreground">
+          View and export data entry records by client and product.
         </p>
       </div>
 
-      {/* Selector + Filters */}
+      {/* Selector + Filters — form-driven contract per §9 deviation
+          (client+product required to seed the page; can't show stats without
+          knowing which template to scope to). */}
       <Card>
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
             <div>
-              <Label>Client</Label>
+              <Label htmlFor="client">Client</Label>
               <Select
                 value={clientId}
                 onValueChange={(v) => {
-                  setClientId(v);
-                  setProductId('');
+                  const next = new URLSearchParams(searchParams);
+                  if (v) {
+                    next.set('clientId', v);
+                  } else {
+                    next.delete('clientId');
+                  }
+                  next.delete('productId');
+                  next.delete('page');
+                  setSearchParams(next, { replace: false });
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger id="client">
                   <SelectValue placeholder="Select client" />
                 </SelectTrigger>
                 <SelectContent>
@@ -212,9 +309,13 @@ export function DataEntryMISPage() {
               </Select>
             </div>
             <div>
-              <Label>Product</Label>
-              <Select value={productId} onValueChange={setProductId} disabled={!clientId}>
-                <SelectTrigger>
+              <Label htmlFor="product">Product</Label>
+              <Select
+                value={productId}
+                onValueChange={(v) => updateParam('productId', v)}
+                disabled={!clientId}
+              >
+                <SelectTrigger id="product">
                   <SelectValue placeholder={clientId ? 'Select product' : 'Pick client first'} />
                 </SelectTrigger>
                 <SelectContent>
@@ -227,23 +328,33 @@ export function DataEntryMISPage() {
               </Select>
             </div>
             <div>
-              <Label>
+              <Label htmlFor="dateFrom">
                 Date From{' '}
                 <span className="text-xs font-normal text-muted-foreground">(YYYY-MM-DD)</span>
               </Label>
-              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+              <Input
+                id="dateFrom"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => updateParam('dateFrom', e.target.value)}
+              />
             </div>
             <div>
-              <Label>
+              <Label htmlFor="dateTo">
                 Date To{' '}
                 <span className="text-xs font-normal text-muted-foreground">(YYYY-MM-DD)</span>
               </Label>
-              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+              <Input
+                id="dateTo"
+                type="date"
+                value={dateTo}
+                onChange={(e) => updateParam('dateTo', e.target.value)}
+              />
             </div>
             <div>
-              <Label>Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
+              <Label htmlFor="status">Status</Label>
+              <Select value={statusFilter} onValueChange={(v) => updateParam('status', v)}>
+                <SelectTrigger id="status">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -253,15 +364,14 @@ export function DataEntryMISPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-end">
-              <Button
-                onClick={handleExport}
-                disabled={!ready || exporting || rows.length === 0}
-                className="w-full"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                {exporting ? 'Exporting...' : 'Export Excel'}
-              </Button>
+            <div>
+              <Label htmlFor="search">Search</Label>
+              <Input
+                id="search"
+                placeholder="Customer name or case #"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+              />
             </div>
           </div>
         </CardContent>
@@ -277,15 +387,15 @@ export function DataEntryMISPage() {
 
       {ready && (
         <>
-          {/* Stats */}
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+          {/* 5-card stats from /mis/stats */}
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Entries</CardTitle>
                 <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{pagination.total}</div>
+                <div className="text-2xl font-bold">{stats?.total ?? '—'}</div>
               </CardContent>
             </Card>
             <Card>
@@ -294,7 +404,7 @@ export function DataEntryMISPage() {
                 <CheckCircle className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{completedCount}</div>
+                <div className="text-2xl font-bold">{stats?.completed ?? '—'}</div>
               </CardContent>
             </Card>
             <Card>
@@ -303,9 +413,42 @@ export function DataEntryMISPage() {
                 <Clock className="h-4 w-4 text-yellow-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">{inProgressCount}</div>
+                <div className="text-2xl font-bold">{stats?.inProgress ?? '—'}</div>
               </CardContent>
             </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
+                <Percent className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {stats !== null ? `${stats.completionRate}%` : '—'}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Unique Cases</CardTitle>
+                <Briefcase className="h-4 w-4 text-purple-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats?.uniqueCases ?? '—'}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2">
+            {searchValue && (
+              <Button variant="outline" size="sm" onClick={clearSearch}>
+                Clear search
+              </Button>
+            )}
+            <Button onClick={handleExport} disabled={exporting || rows.length === 0}>
+              <Download className="h-4 w-4 mr-2" />
+              {exporting ? 'Exporting…' : 'Export Excel'}
+            </Button>
           </div>
 
           {/* Table */}
@@ -386,30 +529,50 @@ export function DataEntryMISPage() {
                     </Table>
                   </div>
 
-                  {pagination.totalPages > 1 && (
-                    <div className="flex items-center justify-between pt-4 border-t mt-4">
+                  {pagination.total > 0 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t mt-4">
                       <p className="text-sm text-muted-foreground">
-                        Showing {(currentPage - 1) * pageSize + 1}–
-                        {Math.min(currentPage * pageSize, pagination.total)} of {pagination.total}
+                        Showing {(page - 1) * pageSize + 1}–
+                        {Math.min(page * pageSize, pagination.total)} of {pagination.total}
                       </p>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="pageSize" className="text-sm">
+                            Rows
+                          </Label>
+                          <Select
+                            value={String(pageSize)}
+                            onValueChange={(v) => updateParam('pageSize', v === '20' ? null : v)}
+                          >
+                            <SelectTrigger id="pageSize" className="w-20">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PAGE_SIZE_OPTIONS.map((n) => (
+                                <SelectItem key={n} value={String(n)}>
+                                  {n}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={currentPage <= 1}
-                          onClick={() => setCurrentPage((p) => p - 1)}
+                          disabled={page <= 1}
+                          onClick={() => updateParam('page', page <= 2 ? null : String(page - 1))}
                         >
                           <ChevronLeft className="h-4 w-4 mr-1" />
                           Previous
                         </Button>
                         <span className="text-sm text-muted-foreground">
-                          Page {currentPage} of {pagination.totalPages}
+                          Page {page} of {pagination.totalPages || 1}
                         </span>
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={currentPage >= pagination.totalPages}
-                          onClick={() => setCurrentPage((p) => p + 1)}
+                          disabled={page >= pagination.totalPages}
+                          onClick={() => updateParam('page', String(page + 1))}
                         >
                           Next
                           <ChevronRight className="h-4 w-4 ml-1" />
