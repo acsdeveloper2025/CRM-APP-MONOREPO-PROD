@@ -17,6 +17,20 @@ import { escapeFormulaRow } from '@/utils/formulaGuard';
 // Shared helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Sort-column whitelist for /case-data-entries/mis list + export. Maps
+ * FE camelCase keys to SQL columns. Lifted out as a module constant
+ * 2026-05-23 so list + export consume the same SORT_MAP — operators
+ * expect xlsx ORDER to match on-screen (filter-sweep §6 invariant).
+ */
+const DATA_ENTRY_MIS_SORT_MAP: Record<string, string> = {
+  caseCreatedAt: 'c.created_at',
+  caseNumber: 'c.case_id',
+  customerName: 'c.customer_name',
+  caseStatus: 'c.status',
+  instanceIndex: 'e.instance_index',
+};
+
 interface TemplateFieldRow {
   id: number;
   fieldKey: string;
@@ -355,6 +369,18 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
       scopedUserIds,
     });
 
+    // Sort via shared DATA_ENTRY_MIS_SORT_MAP. Default is most-recent-case-
+    // first (the previous hardcoded behaviour) — preserved when no sortBy.
+    const sortByRaw = req.query.sortBy as string | undefined;
+    const sortOrder = (req.query.sortOrder as string)?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+    const sortCol =
+      sortByRaw && DATA_ENTRY_MIS_SORT_MAP[sortByRaw]
+        ? DATA_ENTRY_MIS_SORT_MAP[sortByRaw]
+        : 'c.created_at';
+    const orderByClause = sortByRaw
+      ? `ORDER BY ${sortCol} ${sortOrder} NULLS LAST, e.instance_index ASC`
+      : `ORDER BY c.created_at DESC, e.instance_index ASC`;
+
     const countRes = await query(
       `SELECT COUNT(*)::int AS total FROM case_data_entries e JOIN cases c ON c.id = e.case_id JOIN clients cl ON cl.id = c.client_id JOIN products p ON p.id = c.product_id LEFT JOIN verification_tasks vt ON vt.id = e.verification_task_id ${where}`,
       params
@@ -363,7 +389,7 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
 
     params.push(limit, offset);
     const dataRes = await query(
-      `${ENTRIES_SQL} ${where} ORDER BY c.created_at DESC, e.instance_index ASC LIMIT $${nextIdx} OFFSET $${nextIdx + 1}`,
+      `${ENTRIES_SQL} ${where} ${orderByClause} LIMIT $${nextIdx} OFFSET $${nextIdx + 1}`,
       params
     );
     const rows = dataRes.rows as EntryRow[];
@@ -491,11 +517,20 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       });
     }
 
+    // Sort via shared DATA_ENTRY_MIS_SORT_MAP — operators expect xlsx
+    // ORDER to match on-screen (filter-sweep §6 invariant).
+    const sortByRaw = req.query.sortBy as string | undefined;
+    const sortOrder = (req.query.sortOrder as string)?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+    const sortCol =
+      sortByRaw && DATA_ENTRY_MIS_SORT_MAP[sortByRaw]
+        ? DATA_ENTRY_MIS_SORT_MAP[sortByRaw]
+        : 'c.created_at';
+    const orderByClause = sortByRaw
+      ? `ORDER BY ${sortCol} ${sortOrder} NULLS LAST, e.instance_index ASC`
+      : `ORDER BY c.created_at DESC, e.instance_index ASC`;
+
     // Fetch all matching rows up to the cap.
-    const dataRes = await query(
-      `${ENTRIES_SQL} ${where} ORDER BY c.created_at DESC, e.instance_index ASC`,
-      params
-    );
+    const dataRes = await query(`${ENTRIES_SQL} ${where} ${orderByClause}`, params);
     const rows = dataRes.rows as EntryRow[];
 
     // Batch-resolve prefill.

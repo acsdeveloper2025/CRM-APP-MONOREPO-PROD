@@ -73,6 +73,33 @@ interface MISStats {
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
+const SORT_OPTIONS: Array<{
+  value: string;
+  label: string;
+  sortBy: string;
+  sortOrder: 'asc' | 'desc';
+}> = [
+  {
+    value: 'caseCreatedAt_desc',
+    label: 'Newest case first',
+    sortBy: 'caseCreatedAt',
+    sortOrder: 'desc',
+  },
+  {
+    value: 'caseCreatedAt_asc',
+    label: 'Oldest case first',
+    sortBy: 'caseCreatedAt',
+    sortOrder: 'asc',
+  },
+  {
+    value: 'caseNumber_desc',
+    label: 'Case # (high → low)',
+    sortBy: 'caseNumber',
+    sortOrder: 'desc',
+  },
+  { value: 'customerName_asc', label: 'Customer A → Z', sortBy: 'customerName', sortOrder: 'asc' },
+];
+
 export function DataEntryMISPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [exporting, setExporting] = useState(false);
@@ -83,8 +110,14 @@ export function DataEntryMISPage() {
   const dateFrom = searchParams.get('dateFrom') || '';
   const dateTo = searchParams.get('dateTo') || '';
   const statusFilter = searchParams.get('status') || 'all';
+  const sort = searchParams.get('sort') || 'caseCreatedAt_desc';
   const page = Number(searchParams.get('page') || '1');
   const pageSize = Number(searchParams.get('pageSize') || '20');
+
+  const sortPair = useMemo(
+    () => SORT_OPTIONS.find((o) => o.value === sort) || SORT_OPTIONS[0],
+    [sort]
+  );
 
   const updateParam = (key: string, value: string | null) => {
     const next = new URLSearchParams(searchParams);
@@ -124,7 +157,7 @@ export function DataEntryMISPage() {
       setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId, productId, dateFrom, dateTo, statusFilter, debouncedSearchValue, pageSize]);
+  }, [clientId, productId, dateFrom, dateTo, statusFilter, sort, debouncedSearchValue, pageSize]);
 
   // Clear product when client changes — but only AFTER products have
   // loaded for the new client. Otherwise the initial render (empty
@@ -161,6 +194,7 @@ export function DataEntryMISPage() {
       dateFrom,
       dateTo,
       statusFilter,
+      sort,
       debouncedSearchValue,
       page,
       pageSize,
@@ -170,6 +204,8 @@ export function DataEntryMISPage() {
         ...(baseFilters as Record<string, string | number>),
         page,
         limit: pageSize,
+        sortBy: sortPair.sortBy,
+        sortOrder: sortPair.sortOrder,
       };
       if (statusFilter !== 'all') {
         params.dataEntryStatus = statusFilter;
@@ -229,6 +265,8 @@ export function DataEntryMISPage() {
       if (debouncedSearchValue) {
         params.search = debouncedSearchValue;
       }
+      params.sortBy = sortPair.sortBy;
+      params.sortOrder = sortPair.sortOrder;
       const response = await apiService.getRaw<Blob>('/case-data-entries/mis/export', {
         params,
         responseType: 'blob',
@@ -361,6 +399,21 @@ export function DataEntryMISPage() {
                   <SelectItem value="all">All</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="sort">Sort by</Label>
+              <Select value={sort} onValueChange={(v) => updateParam('sort', v)}>
+                <SelectTrigger id="sort">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SORT_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
