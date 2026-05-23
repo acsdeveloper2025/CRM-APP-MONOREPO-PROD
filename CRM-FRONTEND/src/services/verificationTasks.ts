@@ -385,6 +385,11 @@ export class VerificationTasksService {
     dateFrom?: string;
     dateTo?: string;
     taskType?: string;
+    excludeTaskType?: string;
+    excludeUnassignedRevisit?: string;
+    reassignedFilter?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
   }): Promise<Blob> {
     const params = new URLSearchParams();
     if (filters) {
@@ -401,6 +406,66 @@ export class VerificationTasksService {
     );
     return response.data;
   }
+
+  /**
+   * Canonical 5-card stats for /task-management/* pages.
+   * Mirrors the list endpoint's WHERE clause via the shared BE helper
+   * (buildVerificationTasksWhereClause) — pages pass the same filters
+   * they pass to /verification-tasks and stats are scoped accordingly.
+   */
+  static async getStats(filters?: {
+    status?: string;
+    priority?: string;
+    assignedTo?: string;
+    verificationTypeId?: number;
+    clientId?: number;
+    productId?: number;
+    search?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    taskType?: string;
+    excludeTaskType?: string;
+    excludeUnassignedRevisit?: string;
+    reassignedFilter?: string;
+  }): Promise<VerificationTaskStats> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      });
+    }
+    const envelope = await apiService.get<VerificationTaskStats>(
+      `/verification-tasks/stats?${params.toString()}`
+    );
+    return envelope.data as VerificationTaskStats;
+  }
+}
+
+export interface VerificationTaskStats {
+  total: number;
+  pending: number;
+  assigned: number;
+  inProgress: number;
+  completed: number;
+  revoked: number;
+  open: number;
+  urgent: number;
+  highPriority: number;
+  completedToday: number;
+  completedThisWeek: number;
+  revokedToday: number;
+  agingOver3Days: number;
+  longRunning: number;
+  avgTurnaroundDays: number;
+  avgTimeInStatusHours: number;
+  avgTimeToReassignHours: number;
+  reassigned: number;
+  awaitingReassignment: number;
+  revisitTotal: number;
+  revisitParentLinked: number;
+  revisitParentLinkedPct: number;
 }
 
 /**
