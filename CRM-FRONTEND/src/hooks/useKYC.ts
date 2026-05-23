@@ -46,17 +46,13 @@ export const useKYCTasks = (query: KYCTaskListQuery = {}) => {
     queryKey: kycKeys.tasks(query, { c: selectedClientId, p: selectedProductId }),
     queryFn: () => kycService.listTasks(query),
     select: (response) => {
+      // 2026-05-23: statistics wrap dropped — KYCDashboardPage now consumes
+      // GET /api/kyc/tasks/stats directly. BE list endpoint no longer
+      // returns the bundled stats block.
       const payload = response.data;
       return {
         data: payload?.data || [],
         pagination: payload?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 },
-        statistics: payload?.statistics || {
-          total: 0,
-          pending: 0,
-          passed: 0,
-          failed: 0,
-          referred: 0,
-        },
       };
     },
   });

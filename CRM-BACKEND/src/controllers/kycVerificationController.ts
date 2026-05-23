@@ -398,31 +398,13 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
       [...params, limitNum, offset]
     );
 
-    // Stats — uses ONLY the base WHERE (scope + soft-delete). User filters
-    // (status/documentType/caseId/search/date) are intentionally omitted
-    // so partition counters reflect the full in-scope KYC pool regardless
-    // of the active route narrowing. Replaces the prior brittle string-
-    // filtering with a clean second call to the shared helper.
-    const statsWhereClause = `WHERE ${baseWhere.baseConditions.join(' AND ')}`;
-    const statsParamsCount = baseWhere.baseParams;
-    const statsResult = await query(
-      `SELECT
-        COUNT(*) as total,
-        COUNT(*) FILTER (WHERE kdv.verification_status = 'PENDING') as pending,
-        COUNT(*) FILTER (WHERE kdv.verification_status = 'IN_PROGRESS') as in_progress,
-        COUNT(*) FILTER (WHERE kdv.verification_status = 'COMPLETED') as completed,
-        COUNT(*) FILTER (WHERE kdv.final_status = 'Positive') as positive,
-        COUNT(*) FILTER (WHERE kdv.final_status = 'Negative') as negative,
-        COUNT(*) FILTER (WHERE kdv.final_status = 'Refer') as referred,
-        COUNT(*) FILTER (WHERE kdv.final_status = 'Fraud') as fraud
-       FROM kyc_document_verifications kdv
-       JOIN cases c ON c.id = kdv.case_id
-       JOIN verification_tasks vt ON vt.id = kdv.verification_task_id
-       ${statsWhereClause}`,
-      // NEW-CRIT-1 (AUDIT 2026-05-17): deleted_at filter now propagates via
-      // conditions.unshift at line 285 → statsConditions filter preserves it.
-      statsParamsCount
-    );
+    // Inline statistics block REMOVED 2026-05-23 (post-filter-sweep cleanup).
+    // All FE consumers migrated to GET /api/kyc/tasks/stats during the KYC
+    // sub-sweep (commit afce2107). The inline stats query was a wasted SQL
+    // round-trip per list fetch — KYCDashboardPage no longer reads
+    // `taskData.statistics`. The dedicated /kyc/tasks/stats endpoint
+    // (getKYCTaskStats) is the single source for KYC aggregates and stays
+    // cached via analytics keyGen.
 
     res.json({
       success: true,
@@ -434,7 +416,6 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
           total,
           totalPages: Math.ceil(total / limitNum),
         },
-        statistics: statsResult.rows[0],
       },
     });
   } catch (error) {

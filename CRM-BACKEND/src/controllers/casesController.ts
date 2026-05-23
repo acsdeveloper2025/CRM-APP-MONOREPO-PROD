@@ -518,11 +518,8 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     const isExecutionActor = isFieldExecutionActor(req.user);
     const isScopedOps = isScopedOperationsUser(req.user);
 
-    // Build BASE WHERE clause for statistics
-    const baseWhereClause =
-      baseConditions.length > 0 ? `WHERE ${baseConditions.join(' AND ')}` : '';
-
-    // Build FULL WHERE conditions for listing
+    // Build FULL WHERE conditions for listing (statistics block was removed
+    // 2026-05-23 along with its dedicated baseWhereClause).
     const conditions = [...baseConditions];
     const params = [...baseParams];
     let paramIndex = baseParamIndex;
@@ -575,52 +572,13 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     const countResult = await dbQuery(countQuery, params);
     const total = parseInt(countResult.rows[0].total);
 
-    // Get case statistics for metric cards (ignoring the active tab's status filter).
-    // Extended 2026-05-23 for filter-sweep §9 (Case Mgmt): fixed
-    // hardcoded highPriority:0; added open/completedToday/completedThisWeek/
-    // longRunning/avgPendingDays/activeAgentsAny for canonical 5-card picks.
-    const statsQuery = `
-      SELECT
-        COUNT(DISTINCT c.id) as total_cases,
-        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'PENDING') as pending,
-        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'ASSIGNED') as assigned,
-        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'IN_PROGRESS') as "inProgress",
-        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'COMPLETED') as completed,
-        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'REVOKED') as revoked,
-        COUNT(DISTINCT c.id) FILTER (
-          WHERE c.status IN ('PENDING','ASSIGNED','IN_PROGRESS')
-        ) as open,
-        COUNT(DISTINCT c.id) FILTER (
-          WHERE c.status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED')
-          AND c.created_at < NOW() - INTERVAL '48 hours'
-        ) as overdue,
-        COUNT(DISTINCT c.id) FILTER (
-          WHERE c.priority IN ('HIGH', 'URGENT')
-        ) as "highPriority",
-        COUNT(DISTINCT vt.assigned_to) FILTER (WHERE c.status = 'IN_PROGRESS' AND vt.assigned_to IS NOT NULL) as "activeAgentsInProgress",
-        COUNT(DISTINCT vt.assigned_to) FILTER (WHERE vt.assigned_to IS NOT NULL) as "activeAgentsAny",
-        AVG(EXTRACT(EPOCH FROM (NOW() - c.created_at))/86400) FILTER (WHERE c.status = 'IN_PROGRESS') as "avgDurationDaysInProgress",
-        AVG(EXTRACT(EPOCH FROM (NOW() - c.created_at))/86400) FILTER (
-          WHERE c.status IN ('PENDING','ASSIGNED')
-        ) as "avgPendingDays",
-        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'COMPLETED' AND c.completed_at >= CURRENT_DATE) as "completedToday",
-        COUNT(DISTINCT c.id) FILTER (
-          WHERE c.status = 'COMPLETED'
-          AND c.completed_at >= date_trunc('week', CURRENT_DATE)
-        ) as "completedThisWeek",
-        COUNT(DISTINCT c.id) FILTER (
-          WHERE c.status NOT IN ('COMPLETED','REVOKED')
-          AND c.created_at < NOW() - INTERVAL '3 days'
-        ) as "longRunning",
-        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'COMPLETED' AND c.completed_at >= DATE_TRUNC('month', NOW())) as "completedThisMonth",
-        COUNT(DISTINCT vt.assigned_to) FILTER (WHERE c.status = 'COMPLETED' AND vt.assigned_to IS NOT NULL) as "activeAgentsCompleted",
-        AVG(EXTRACT(EPOCH FROM (c.completed_at - c.created_at))/86400) FILTER (WHERE c.status = 'COMPLETED') as "avgTATDays"
-      FROM cases c
-      LEFT JOIN verification_tasks vt ON c.id = vt.case_id
-      ${baseWhereClause}
-    `;
-    const statsResult = await dbQuery(statsQuery, baseParams);
-    const statistics = statsResult.rows[0];
+    // Inline statistics block REMOVED 2026-05-23 (post-filter-sweep cleanup).
+    // All FE consumers migrated to GET /api/cases/stats during the Case
+    // Management sub-sweep (commits dd52c9ea / d0102a25 / 6fadb2df). The
+    // inline statsQuery was a wasted SQL round-trip per list fetch — zero
+    // refs to `casesData.data.statistics` confirmed via grep before removal.
+    // The dedicated /cases/stats endpoint (getCaseStats) is the single
+    // source for case aggregates and stays cached via analytics keyGen.
 
     // Enhanced query with all 13 required fields for mobile app and custom sorting
     let orderByClause;
@@ -801,7 +759,6 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
           total,
           totalPages,
         },
-        statistics,
       },
       metadata: {
         queryTime,
