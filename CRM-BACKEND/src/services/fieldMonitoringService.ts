@@ -2,13 +2,7 @@ import { query } from '@/config/database';
 import { deriveCapabilitiesFromPermissionCodes } from '@/security/rbacAccess';
 
 const ACTIVE_ASSIGNMENT_STATUSES = ['ASSIGNED', 'IN_PROGRESS', 'PENDING'] as const;
-const ALLOWED_STATUSES = [
-  'Offline',
-  'Submitted',
-  'At Location',
-  'Travelling',
-  'Idle',
-] as const;
+const ALLOWED_STATUSES = ['Offline', 'Submitted', 'At Location', 'Travelling', 'Idle'] as const;
 const OFFLINE_THRESHOLD_MS = 15 * 60 * 1000;
 const SUBMITTED_THRESHOLD_MS = 10 * 60 * 1000;
 const AT_LOCATION_THRESHOLD_MS = 15 * 60 * 1000;
@@ -567,7 +561,9 @@ export class FieldMonitoringService {
     let paramIndex = 2;
 
     if (params.search && typeof params.search === 'string' && params.search.trim()) {
-      conditions.push(`(u.name ILIKE $${paramIndex} OR COALESCE(u.phone, '') ILIKE $${paramIndex})`);
+      conditions.push(
+        `(u.name ILIKE $${paramIndex} OR COALESCE(u.phone, '') ILIKE $${paramIndex})`
+      );
       queryParams.push(`%${params.search.trim()}%`);
       paramIndex++;
     }
