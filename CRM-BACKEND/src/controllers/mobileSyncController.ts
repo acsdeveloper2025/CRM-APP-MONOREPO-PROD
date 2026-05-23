@@ -243,10 +243,16 @@ export class MobileSyncController {
       // tripping the outer catch and 500ing the request. Drop until
       // a real per-device tracking table is introduced.
 
+      // 2026-05-23 cleanup: drop `deviceInfo.deviceId` from entityId
+      // fallback. The deviceId was a client-supplied opaque string with
+      // no FK relationship — using it as entityId muddied audit grouping
+      // (entityType=SYNC entries grouped by random deviceIds instead of
+      // by user). userId is the only reliable scope key. deviceId stays
+      // in `details` for forensic lookup if needed.
       await createAuditLog({
         action: 'MOBILE_SYNC_UPLOAD',
         entityType: 'SYNC',
-        entityId: deviceInfo?.deviceId || userId,
+        entityId: userId,
         userId,
         details: {
           deviceId: deviceInfo?.deviceId || null,
