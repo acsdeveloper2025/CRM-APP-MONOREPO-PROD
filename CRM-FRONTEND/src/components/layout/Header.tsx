@@ -151,6 +151,15 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     if (path === '/location-management/areas') {
       return 'Areas';
     }
+    if (path === '/data-entry-management' || path === '/data-entry-management/data-entry') {
+      return 'Data Entry';
+    }
+    if (path === '/data-entry-management/data-entry-mis') {
+      return 'Data Entry MIS';
+    }
+    if (path === '/dedupe') {
+      return 'Dedupe';
+    }
     if (path === '/forms') {
       return 'Forms';
     }

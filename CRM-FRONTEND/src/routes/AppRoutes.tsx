@@ -405,13 +405,14 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/case-management/dedupe"
+            path="/dedupe"
             element={
               <ProtectedRoute permission="page.cases">
                 <DedupePage />
               </ProtectedRoute>
             }
           />
+          <Route path="/case-management/dedupe" element={<Navigate to="/dedupe" replace />} />
 
           <Route
             path="/task-management/all-tasks"
@@ -837,7 +838,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/case-management/data-entry"
+            path="/data-entry-management/data-entry"
             element={
               <ProtectedRoute permission="page.cases">
                 <DataEntryDashboardPage />
@@ -845,12 +846,20 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
-            path="/case-management/data-entry-mis"
+            path="/data-entry-management/data-entry-mis"
             element={
               <ProtectedRoute permission="page.cases">
                 <DataEntryMISPage />
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="/case-management/data-entry"
+            element={<Navigate to="/data-entry-management/data-entry" replace />}
+          />
+          <Route
+            path="/case-management/data-entry-mis"
+            element={<Navigate to="/data-entry-management/data-entry-mis" replace />}
           />
         </Route>
 
