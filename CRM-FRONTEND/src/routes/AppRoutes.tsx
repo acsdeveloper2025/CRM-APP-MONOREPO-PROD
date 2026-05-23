@@ -109,8 +109,8 @@ const AnalyticsAgentsPage = React.lazy(() =>
 const MISDashboardPage = React.lazy(() =>
   import('@/pages/MISDashboardPage').then((module) => ({ default: module.MISDashboardPage }))
 );
-const BillingPage = React.lazy(() =>
-  import('@/pages/BillingPage').then((module) => ({ default: module.BillingPage }))
+const InvoicesPage = React.lazy(() =>
+  import('@/pages/InvoicesPage').then((module) => ({ default: module.InvoicesPage }))
 );
 const CommissionManagementPage = React.lazy(() =>
   import('@/pages/CommissionManagementPage').then((module) => ({
@@ -659,17 +659,13 @@ export const AppRoutes: React.FC = () => {
 
           <Route
             path="/billing-and-commission"
-            element={
-              <ProtectedRoute permission="page.billing">
-                <BillingPage />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/billing-and-commission/invoices" replace />}
           />
           <Route
             path="/billing-and-commission/invoices"
             element={
               <ProtectedRoute permission="page.billing">
-                <BillingPage />
+                <InvoicesPage />
               </ProtectedRoute>
             }
           />

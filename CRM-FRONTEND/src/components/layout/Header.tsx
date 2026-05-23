@@ -121,8 +121,14 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     if (path === '/reports-and-mis/mis-dashboard') {
       return 'MIS Dashboard';
     }
-    if (path === '/billing-and-commission') {
-      return 'Billing';
+    if (path === '/billing-and-commission' || path === '/billing-and-commission/invoices') {
+      return 'Invoices';
+    }
+    if (path === '/billing-and-commission/commissions') {
+      return 'Commissions';
+    }
+    if (path === '/billing-and-commission/commission-management') {
+      return 'Commission Management';
     }
     if (path === '/location-management' || path === '/location-management/countries') {
       return 'Countries';

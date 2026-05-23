@@ -21,6 +21,9 @@ export interface InvoiceQuery extends PaginationQuery {
   status?: string;
   dateFrom?: string;
   dateTo?: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface CommissionQuery extends PaginationQuery {
@@ -214,17 +217,16 @@ export class BillingService {
     return response.data;
   }
 
-  async exportInvoicesToExcel(filters?: {
-    status?: string;
-    clientId?: string;
-    dateFrom?: string;
-    dateTo?: string;
-  }): Promise<Blob> {
+  /**
+   * Export invoices to xlsx. Mirrors list filters via the shared BE
+   * WHERE-builder. 10k row hard cap server-side. Respects sortBy/sortOrder.
+   */
+  async exportInvoicesToExcel(filters?: InvoiceQuery): Promise<Blob> {
     const params = new URLSearchParams();
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
-        if (value) {
-          params.append(key, value);
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
         }
       });
     }
