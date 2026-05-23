@@ -32,9 +32,13 @@ export interface GetCommissionCalculationsParams {
   limit?: number;
   search?: string;
   userId?: string;
+  clientId?: number;
+  rateTypeId?: number;
   startDate?: string;
   endDate?: string;
   status?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export const commissionManagementApi = {
@@ -157,6 +161,12 @@ export const commissionManagementApi = {
     if (params.userId) {
       queryParams.userId = params.userId;
     }
+    if (params.clientId) {
+      queryParams.clientId = params.clientId;
+    }
+    if (params.rateTypeId) {
+      queryParams.rateTypeId = params.rateTypeId;
+    }
     if (params.startDate) {
       queryParams.startDate = params.startDate;
     }
@@ -165,6 +175,12 @@ export const commissionManagementApi = {
     }
     if (params.status) {
       queryParams.status = params.status;
+    }
+    if (params.sortBy) {
+      queryParams.sortBy = params.sortBy;
+    }
+    if (params.sortOrder) {
+      queryParams.sortOrder = params.sortOrder;
     }
 
     const response = await apiService.get<CommissionCalculation[]>(

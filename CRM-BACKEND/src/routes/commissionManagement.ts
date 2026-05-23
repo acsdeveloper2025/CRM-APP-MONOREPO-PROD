@@ -177,19 +177,22 @@ const commissionCalculationsQueryValidation = [
     .optional()
     .isIn(['PENDING', 'APPROVED', 'PAID', 'REJECTED'])
     .withMessage('Status must be one of: PENDING, APPROVED, PAID, REJECTED'),
-  query('dateFrom').optional().isISO8601().withMessage('Date from must be a valid date'),
-  query('dateTo').optional().isISO8601().withMessage('Date to must be a valid date'),
+  query('startDate').optional().isISO8601().withMessage('Start date must be a valid date'),
+  query('endDate').optional().isISO8601().withMessage('End date must be a valid date'),
+  query('search').optional().isString().withMessage('Search must be a string'),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 1000 })
     .withMessage('Limit must be between 1 and 1000'),
+  query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('offset').optional().isInt({ min: 0 }).withMessage('Offset must be a non-negative integer'),
   query('sortBy')
     .optional()
-    .isIn(['createdAt', 'caseCompletedAt', 'calculatedCommission', 'status'])
-    .withMessage(
-      'Sort by must be one of: createdAt, caseCompletedAt, calculatedCommission, status'
-    ),
+    // Enum mirrors COMMISSION_SORT_MAP keys (controller); add new keys here
+    // when extending the SORT_MAP. Filter-sweep §6: FE Select enums + BE
+    // validator + SORT_MAP must stay in lockstep.
+    .isIn(['createdAt', 'amount', 'baseAmount', 'status'])
+    .withMessage('Sort by must be one of: createdAt, amount, baseAmount, status'),
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc'),
 ];
 

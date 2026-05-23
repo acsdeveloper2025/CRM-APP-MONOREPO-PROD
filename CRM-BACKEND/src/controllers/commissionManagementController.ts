@@ -890,10 +890,13 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
       clientId,
       rateTypeId,
       status,
+      search,
       startDate,
       endDate,
       page = 1,
       limit = 20,
+      sortBy,
+      sortOrder,
     } = req.query;
 
     let whereClause = '';
@@ -932,8 +935,25 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
 
     if (endDate) {
       paramCount++;
-      whereClause += `${whereClause ? ' AND' : ''} cc.created_at <= $${paramCount}`;
+      // Canonical inclusive-end-of-day semantic (mirrors invoices/MIS/tasks/cases).
+      whereClause += `${whereClause ? ' AND' : ''} cc.created_at < ($${paramCount}::date + INTERVAL '1 day')`;
       queryParams.push(endDate as string);
+    }
+
+    // Search across user / client / product / task identifiers — matches the
+    // FE search box semantics. case_id::text cast for the INT column.
+    if (search && typeof search === 'string') {
+      paramCount++;
+      whereClause +=
+        `${whereClause ? ' AND' : ''} (` +
+        `u.name ILIKE $${paramCount} OR ` +
+        `u.email ILIKE $${paramCount} OR ` +
+        `c.name ILIKE $${paramCount} OR ` +
+        `p.name ILIKE $${paramCount} OR ` +
+        `vt.task_number ILIKE $${paramCount} OR ` +
+        `cases.case_id::text ILIKE $${paramCount}` +
+        `)`;
+      queryParams.push(`%${search}%`);
     }
 
     const scopeConditions: string[] = whereClause ? [whereClause] : [];
@@ -979,24 +999,32 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
       LEFT JOIN verification_tasks vt ON cc.verification_task_id = vt.id
       LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
       ${whereClause ? `WHERE ${whereClause}` : ''}
-      ORDER BY cc.created_at DESC
+      ORDER BY ${COMMISSION_SORT_MAP[sortBy as string] || 'cc.created_at'} ${
+        (sortOrder as string)?.toLowerCase() === 'asc' ? 'ASC' : 'DESC'
+      } NULLS LAST
       LIMIT $${paramCount - 1} OFFSET $${paramCount}
     `;
 
     const calculations = await query(calculationsQuery, queryParams);
 
-    // Get total count
+    // Count query mirrors list query's join set so search clauses
+    // referencing u/c/p/vt resolve correctly.
     const countQuery = `
       SELECT COUNT(*) as total
       FROM commission_calculations cc
+      LEFT JOIN users u ON cc.user_id = u.id
+      LEFT JOIN clients c ON cc.client_id = c.id
       LEFT JOIN cases ON cc.case_id = cases.id
+      LEFT JOIN products p ON cases.product_id = p.id
+      LEFT JOIN verification_tasks vt ON cc.verification_task_id = vt.id
       ${whereClause ? `WHERE ${whereClause}` : ''}
     `;
     const countParams = queryParams.slice(0, -2); // Remove limit and offset
     const totalResult = await query(countQuery, countParams);
     const total = parseInt(totalResult.rows[0].total);
 
-    // Get summary statistics
+    // Summary query mirrors list/count join set so search clauses that
+    // reference u/c/p/vt resolve correctly here too.
     const summaryQuery = `
       SELECT
         COUNT(*) as total_calculations,
@@ -1005,7 +1033,11 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
         COUNT(CASE WHEN cc.status = 'APPROVED' THEN 1 END) as approved_count,
         COUNT(CASE WHEN cc.status = 'PAID' THEN 1 END) as paid_count
       FROM commission_calculations cc
+      LEFT JOIN users u ON cc.user_id = u.id
+      LEFT JOIN clients c ON cc.client_id = c.id
       LEFT JOIN cases ON cc.case_id = cases.id
+      LEFT JOIN products p ON cases.product_id = p.id
+      LEFT JOIN verification_tasks vt ON cc.verification_task_id = vt.id
       ${whereClause ? `WHERE ${whereClause}` : ''}
     `;
     const summaryResult = await query(summaryQuery, countParams);
