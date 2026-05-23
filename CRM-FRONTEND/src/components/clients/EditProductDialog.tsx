@@ -52,6 +52,20 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
     }
   }, [product, form]);
 
+  // Reset form to the current `product` prop when closing so an edit-then-
+  // cancel followed by reopen of the same record doesn't show dirty values.
+  // useEffect deps would not re-fire on same-prop reopen.
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
+      form.reset({
+        name: product.name,
+        code: product.code,
+        isActive: product.isActive ?? true,
+      });
+    }
+    onOpenChange(next);
+  };
+
   const updateMutation = useCRUDMutation({
     mutationFn: (data: EditProductFormData) => clientsService.updateProduct(product.id, data),
     queryKey: ['products'],
@@ -59,7 +73,7 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
     operation: 'update',
     additionalInvalidateKeys: [['product-stats'], ['dashboard']],
     onSuccess: () => {
-      onOpenChange(false);
+      handleOpenChange(false);
     },
   });
 
@@ -68,7 +82,7 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Product</DialogTitle>
@@ -130,7 +144,7 @@ export function EditProductDialog({ product, open, onOpenChange }: EditProductDi
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
                 className="w-full sm:w-auto"
                 disabled={updateMutation.isPending}
               >

@@ -158,7 +158,7 @@ export const getProductById = async (req: AuthenticatedRequest, res: Response) =
   try {
     const id = String(req.params.id || '');
     const productRes = await query(
-      `SELECT id, name, code, created_at, updated_at FROM products WHERE id = $1`,
+      `SELECT id, name, code, is_active, created_at, updated_at FROM products WHERE id = $1`,
       [Number(id)]
     );
     const product = productRes.rows[0];

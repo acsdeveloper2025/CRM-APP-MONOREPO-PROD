@@ -463,7 +463,9 @@ export const EnterpriseCacheConfigs = {
     keyGenerator: (req: Request) => {
       const userId = (req as AuthenticatedRequest).user?.id || 'anon';
       const query = JSON.stringify(req.query);
-      return `products:list:${userId}:${crypto.createHash('md5').update(query).digest('hex')}`;
+      // Include req.baseUrl+req.path so /products/list, /products/:id, etc.
+      // don't collide on the same key. Same shape as clientList fix.
+      return `products:list:${userId}:${req.baseUrl}${req.path}:${crypto.createHash('md5').update(query).digest('hex')}`;
     },
     condition: (req: Request) => req.method === 'GET',
   },
