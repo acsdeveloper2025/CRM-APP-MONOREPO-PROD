@@ -269,6 +269,19 @@ const validateHierarchyAssignments = async (
 // Pagination is intentionally absent on export; rows are hard-capped here.
 const USER_EXPORT_ROW_LIMIT = 10000;
 
+// SORT maps mirror FE SORT_OPTIONS values. Adding a new sort key requires
+// updating BOTH the map AND the route validator AND the FE SORT_OPTIONS.
+const ACTIVITY_SORT_MAP: Record<string, string> = {
+  createdAt: 'al.created_at',
+  action: 'al.action',
+  entityType: 'al.entity_type',
+};
+const SESSION_SORT_MAP: Record<string, string> = {
+  createdAt: 'rt.created_at',
+  expiresAt: 'rt.expires_at',
+  ipAddress: 'rt.ip_address',
+};
+
 // Shared WHERE-clause builder. SINGLE source of WHERE-truth for getUsers
 // + exportUsers + getUserStats (when scoped). Assumes the calling query
 // JOINs `departments d ON u.department_id = d.id` (so the `d.name`
@@ -1786,7 +1799,7 @@ export const getUserActivities = async (req: AuthenticatedRequest, res: Response
       FROM audit_logs al
       LEFT JOIN users u ON al.user_id = u.id
       ${whereClause}
-      ORDER BY al.created_at ${sortOrder}
+      ORDER BY ${ACTIVITY_SORT_MAP[req.query.sortBy as string] ?? 'al.created_at'} ${sortOrder} NULLS LAST
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
@@ -1873,7 +1886,7 @@ export const exportUserActivities = async (req: AuthenticatedRequest, res: Respo
       FROM audit_logs al
       LEFT JOIN users u ON al.user_id = u.id
       ${whereClause}
-      ORDER BY al.created_at ${sortOrder}
+      ORDER BY ${ACTIVITY_SORT_MAP[req.query.sortBy as string] ?? 'al.created_at'} ${sortOrder} NULLS LAST
       LIMIT $${paramIndex}
     `;
     const result = await query(dataQuery, [...queryParams, USER_EXPORT_ROW_LIMIT]);
@@ -2049,7 +2062,7 @@ export const getUserSessions = async (req: AuthenticatedRequest, res: Response) 
       FROM refresh_tokens rt
       LEFT JOIN users u ON rt.user_id = u.id
       ${whereClause}
-      ORDER BY rt.created_at ${sortOrder}
+      ORDER BY ${SESSION_SORT_MAP[req.query.sortBy as string] ?? 'rt.created_at'} ${sortOrder} NULLS LAST
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
     const result = await query(sessionsQuery, [...queryParams, limit, offset]);
@@ -2141,7 +2154,7 @@ export const exportUserSessions = async (req: AuthenticatedRequest, res: Respons
       FROM refresh_tokens rt
       LEFT JOIN users u ON rt.user_id = u.id
       ${whereClause}
-      ORDER BY rt.created_at ${sortOrder}
+      ORDER BY ${SESSION_SORT_MAP[req.query.sortBy as string] ?? 'rt.created_at'} ${sortOrder} NULLS LAST
       LIMIT $${paramIndex}
     `;
     const result = await query(dataQuery, [...queryParams, USER_EXPORT_ROW_LIMIT]);
