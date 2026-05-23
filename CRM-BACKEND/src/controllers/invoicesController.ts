@@ -14,6 +14,18 @@ import {
 import { financialConfigurationValidator } from '@/services/financialConfigurationValidator';
 import { resolveInvoiceGst, GstConfigError } from '@/services/gstResolver';
 import { createAuditLog } from '@/utils/auditLogger';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
+
+const INVOICE_EXPORT_ROW_LIMIT = 10000;
+const INVOICE_SORT_MAP: Record<string, string> = {
+  invoiceNumber: 'i.invoice_number',
+  clientName: 'c.name',
+  issueDate: 'i.issue_date',
+  dueDate: 'i.due_date',
+  totalAmount: 'i.total_amount',
+  amount: 'i.total_amount',
+  status: 'i.status',
+};
 
 // Single 2dp rounder shared with gstResolver for arithmetic parity.
 // NEW-MED-1 (AUDIT 2026-05-16): Math.round(n*100)/100 is FP-unsafe — e.g.
@@ -2160,7 +2172,7 @@ export const downloadInvoice = async (req: AuthenticatedRequest, res: Response) 
 export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const scope = await resolveDataScope(req);
-    const { status, clientId, dateFrom, dateTo } = req.query;
+    const { status, clientId, dateFrom, dateTo, search, sortBy, sortOrder } = req.query;
 
     // M-4 (audit 2026-05-11): use the central scope helper so empty
     // assignedClientIds falls back to '1=0' (zero results) instead of
@@ -2176,6 +2188,13 @@ export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Resp
     });
     let idx = params.length + 1;
 
+    if (search && typeof search === 'string' && search.trim()) {
+      conditions.push(
+        `(i.invoice_number ILIKE $${idx} OR c.name ILIKE $${idx} OR COALESCE(i.notes, '') ILIKE $${idx})`
+      );
+      params.push(`%${search.trim()}%`);
+      idx++;
+    }
     if (status) {
       conditions.push(`i.status = $${idx++}`);
       params.push(status as string);
@@ -2194,6 +2213,10 @@ export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Resp
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const orderByColumn = INVOICE_SORT_MAP[sortBy as string] ?? 'i.created_at';
+    const orderByDirection = (sortOrder as string)?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const limitParamIndex = params.length + 1;
+    params.push(INVOICE_EXPORT_ROW_LIMIT);
 
     const result = await query(
       `
@@ -2219,10 +2242,18 @@ export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Resp
       FROM invoices i
       LEFT JOIN clients c ON i.client_id = c.id
       ${whereClause}
-      ORDER BY i.created_at DESC
+      ORDER BY ${orderByColumn} ${orderByDirection} NULLS LAST
+      LIMIT $${limitParamIndex}
     `,
       params
     );
+
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'INVOICE_EXPORTED',
+      entityType: 'invoice',
+      details: { recordCount: result.rows.length, filters: req.query },
+    });
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Invoices');
@@ -2252,26 +2283,28 @@ export const exportInvoicesToExcel = async (req: AuthenticatedRequest, res: Resp
     worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
 
     result.rows.forEach((row: Record<string, unknown>) => {
-      worksheet.addRow({
-        ...row,
-        subtotal: row.subtotal ? Number(row.subtotal) : 0,
-        taxAmount: row.taxAmount ? Number(row.taxAmount) : 0,
-        totalAmount: row.totalAmount ? Number(row.totalAmount) : 0,
-        supplyType: row.supplyType ?? '',
-        placeOfSupply: row.placeOfSupply ?? '',
-        cgstRate: row.cgstRate !== null && row.cgstRate !== undefined ? Number(row.cgstRate) : '',
-        cgstAmount:
-          row.cgstAmount !== null && row.cgstAmount !== undefined ? Number(row.cgstAmount) : '',
-        sgstRate: row.sgstRate !== null && row.sgstRate !== undefined ? Number(row.sgstRate) : '',
-        sgstAmount:
-          row.sgstAmount !== null && row.sgstAmount !== undefined ? Number(row.sgstAmount) : '',
-        igstRate: row.igstRate !== null && row.igstRate !== undefined ? Number(row.igstRate) : '',
-        igstAmount:
-          row.igstAmount !== null && row.igstAmount !== undefined ? Number(row.igstAmount) : '',
-        issueDate: row.issueDate ? new Date(row.issueDate as string).toLocaleDateString() : '',
-        dueDate: row.dueDate ? new Date(row.dueDate as string).toLocaleDateString() : '',
-        createdAt: row.createdAt ? new Date(row.createdAt as string).toLocaleString() : '',
-      });
+      worksheet.addRow(
+        escapeFormulaRow({
+          ...row,
+          subtotal: row.subtotal ? Number(row.subtotal) : 0,
+          taxAmount: row.taxAmount ? Number(row.taxAmount) : 0,
+          totalAmount: row.totalAmount ? Number(row.totalAmount) : 0,
+          supplyType: row.supplyType ?? '',
+          placeOfSupply: row.placeOfSupply ?? '',
+          cgstRate: row.cgstRate !== null && row.cgstRate !== undefined ? Number(row.cgstRate) : '',
+          cgstAmount:
+            row.cgstAmount !== null && row.cgstAmount !== undefined ? Number(row.cgstAmount) : '',
+          sgstRate: row.sgstRate !== null && row.sgstRate !== undefined ? Number(row.sgstRate) : '',
+          sgstAmount:
+            row.sgstAmount !== null && row.sgstAmount !== undefined ? Number(row.sgstAmount) : '',
+          igstRate: row.igstRate !== null && row.igstRate !== undefined ? Number(row.igstRate) : '',
+          igstAmount:
+            row.igstAmount !== null && row.igstAmount !== undefined ? Number(row.igstAmount) : '',
+          issueDate: row.issueDate ? new Date(row.issueDate as string).toLocaleDateString() : '',
+          dueDate: row.dueDate ? new Date(row.dueDate as string).toLocaleDateString() : '',
+          createdAt: row.createdAt ? new Date(row.createdAt as string).toLocaleString() : '',
+        })
+      );
     });
 
     worksheet.autoFilter = { from: 'A1', to: `R${result.rows.length + 1}` };

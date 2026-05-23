@@ -13,6 +13,15 @@ import type { QueryParams } from '../types/database';
 import { isExecutionEligibleUser, loadUserCapabilityProfile } from '../security/userCapabilities';
 import { requireControllerPermission } from '@/security/controllerAuthorization';
 import { createAuditLog } from '../utils/auditLogger';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
+
+const COMMISSION_EXPORT_ROW_LIMIT = 10000;
+const COMMISSION_SORT_MAP: Record<string, string> = {
+  createdAt: 'cc.created_at',
+  amount: 'cc.calculated_commission',
+  baseAmount: 'cc.base_amount',
+  status: 'cc.status',
+};
 import {
   appendOperationalScopeConditions,
   resolveDataScope,
@@ -1418,7 +1427,7 @@ export const exportCommissionsToExcel = async (req: AuthenticatedRequest, res: R
     // their client/user/product scope — DPDP / multi-tenant breach.
     const scope = await resolveDataScope(req as never);
 
-    const { status, startDate, endDate } = req.query;
+    const { status, startDate, endDate, sortBy, sortOrder } = req.query;
     const conditions: string[] = [];
     const params: Array<string | number | boolean | string[] | number[]> = [];
     appendOperationalScopeConditions({
@@ -1445,6 +1454,10 @@ export const exportCommissionsToExcel = async (req: AuthenticatedRequest, res: R
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const orderByColumn = COMMISSION_SORT_MAP[sortBy as string] ?? 'cc.created_at';
+    const orderByDirection = (sortOrder as string)?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const limitParamIndex = params.length + 1;
+    params.push(COMMISSION_EXPORT_ROW_LIMIT);
 
     const result = await query(
       `
@@ -1475,10 +1488,18 @@ export const exportCommissionsToExcel = async (req: AuthenticatedRequest, res: R
       LEFT JOIN verification_tasks vt ON cc.verification_task_id = vt.id
       LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
       ${whereClause}
-      ORDER BY cc.created_at DESC
+      ORDER BY ${orderByColumn} ${orderByDirection} NULLS LAST
+      LIMIT $${limitParamIndex}
     `,
       params
     );
+
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'COMMISSION_EXPORTED',
+      entityType: 'commission',
+      details: { recordCount: result.rows.length, filters: req.query },
+    });
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Commissions');
@@ -1507,15 +1528,17 @@ export const exportCommissionsToExcel = async (req: AuthenticatedRequest, res: R
     worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
 
     result.rows.forEach((row: Record<string, unknown>) => {
-      worksheet.addRow({
-        ...row,
-        baseAmount: row.baseAmount ? Number(row.baseAmount) : null,
-        calculatedCommission: row.calculatedCommission ? Number(row.calculatedCommission) : null,
-        taskCompletedAt: row.taskCompletedAt
-          ? new Date(row.taskCompletedAt as string).toLocaleString()
-          : '',
-        createdAt: row.createdAt ? new Date(row.createdAt as string).toLocaleString() : '',
-      });
+      worksheet.addRow(
+        escapeFormulaRow({
+          ...row,
+          baseAmount: row.baseAmount ? Number(row.baseAmount) : null,
+          calculatedCommission: row.calculatedCommission ? Number(row.calculatedCommission) : null,
+          taskCompletedAt: row.taskCompletedAt
+            ? new Date(row.taskCompletedAt as string).toLocaleString()
+            : '',
+          createdAt: row.createdAt ? new Date(row.createdAt as string).toLocaleString() : '',
+        })
+      );
     });
 
     worksheet.autoFilter = { from: 'A1', to: `Q${result.rows.length + 1}` };
