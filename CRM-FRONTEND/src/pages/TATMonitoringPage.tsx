@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -53,11 +53,28 @@ interface TATMonitoringFilters {
 
 export const TATMonitoringPage: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'critical' | 'all'>('critical');
-  const [criticalPage, setCriticalPage] = useState(1);
-  const [allPage, setAllPage] = useState(1);
-  const [sortBy, setSortBy] = useState('daysOverdue');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [isExporting, setIsExporting] = useState(false);
+
+  // URL state — both tab paginators + sort + active tab live in the
+  // query string (filter-sweep §9.4). Inner-pagination invariant from
+  // the Reports & MIS sub-sweep (commit ab5cb48a): every Prev/Next must
+  // flip URL via the same updateParam helper, not local useState.
+  const activeTab = (searchParams.get('tab') === 'all' ? 'all' : 'critical') as 'critical' | 'all';
+  const criticalPage = Number(searchParams.get('pageCritical') || '1');
+  const allPage = Number(searchParams.get('pageAll') || '1');
+  const sortBy = searchParams.get('sortBy') || 'daysOverdue';
+  const sortOrder = (searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc';
+
+  const updateParam = (key: string, value: string | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (value === null || value === '') {
+      next.delete(key);
+    } else {
+      next.set(key, value);
+    }
+    setSearchParams(next, { replace: false });
+  };
 
   // Unified search with 800ms debounce
   const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
@@ -75,18 +92,32 @@ export const TATMonitoringPage: React.FC = () => {
     syncWithUrl: true,
   });
 
-  // Reset pagination when search or filters change
+  // Reset both tab paginators when search/filters/sort/tab change.
   useEffect(() => {
-    setCriticalPage(1);
-    setAllPage(1);
-  }, [debouncedSearchValue, activeFilters]);
+    const next = new URLSearchParams(searchParams);
+    let dirty = false;
+    if (next.has('pageCritical')) {
+      next.delete('pageCritical');
+      dirty = true;
+    }
+    if (next.has('pageAll')) {
+      next.delete('pageAll');
+      dirty = true;
+    }
+    if (dirty) {
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearchValue, activeFilters, sortBy, sortOrder]);
 
   // Reset both paginators when the user toggles the active scope so a
   // stale page index from the previous scope can't strand them on an
   // empty page.
   useScopePageReset(() => {
-    setCriticalPage(1);
-    setAllPage(1);
+    const next = new URLSearchParams(searchParams);
+    next.delete('pageCritical');
+    next.delete('pageAll');
+    setSearchParams(next, { replace: true });
   });
 
   // Fetch TAT Statistics for the cards
@@ -150,11 +181,19 @@ export const TATMonitoringPage: React.FC = () => {
   };
 
   const handleSort = (column: string) => {
+    // Toggle sortOrder if same column, otherwise switch column + default desc.
+    // Wires to URL (filter-sweep §9.4 — sort state must survive reload).
     if (sortBy === column) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+      updateParam('sortOrder', sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
-      setSortBy(column);
-      setSortOrder('desc');
+      const next = new URLSearchParams(searchParams);
+      if (column === 'daysOverdue') {
+        next.delete('sortBy');
+      } else {
+        next.set('sortBy', column);
+      }
+      next.delete('sortOrder');
+      setSearchParams(next, { replace: false });
     }
   };
 
@@ -478,9 +517,20 @@ export const TATMonitoringPage: React.FC = () => {
             <Button
               variant="outline"
               onClick={async () => {
+                setIsExporting(true);
                 try {
                   toast.info('Generating Excel export...');
-                  const blob = await VerificationTasksService.exportToExcel({});
+                  // Pass current filter+sort context through to BE so
+                  // the xlsx ORDER + WHERE match the on-screen tables
+                  // (export-sort respect invariant, filter-sweep §6).
+                  const blob = await VerificationTasksService.exportToExcel({
+                    priority: activeFilters.priority || undefined,
+                    status: activeFilters.status || undefined,
+                    search: debouncedSearchValue || undefined,
+                    excludeTaskType: 'KYC',
+                    sortBy: sortBy === 'daysOverdue' ? 'createdAt' : sortBy,
+                    sortOrder,
+                  });
                   const url = window.URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
@@ -491,11 +541,14 @@ export const TATMonitoringPage: React.FC = () => {
                 } catch (err) {
                   logger.error('Export failed:', err);
                   toast.error('Export failed');
+                } finally {
+                  setIsExporting(false);
                 }
               }}
+              disabled={isExporting || criticalLoading || allLoading}
             >
               <Download className="h-4 w-4 mr-2" />
-              Export
+              {isExporting ? 'Exporting…' : 'Export'}
             </Button>
             <Button
               variant="outline"
@@ -521,7 +574,7 @@ export const TATMonitoringPage: React.FC = () => {
         <CardContent>
           <Tabs
             value={activeTab}
-            onValueChange={(value) => setActiveTab(value as 'critical' | 'all')}
+            onValueChange={(value) => updateParam('tab', value === 'critical' ? null : value)}
           >
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="critical" className="flex items-center space-x-2">
@@ -534,10 +587,14 @@ export const TATMonitoringPage: React.FC = () => {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="critical" className="mt-6">
-              {renderTaskTable(criticalTasks, criticalLoading, criticalPagination, setCriticalPage)}
+              {renderTaskTable(criticalTasks, criticalLoading, criticalPagination, (p) =>
+                updateParam('pageCritical', p <= 1 ? null : String(p))
+              )}
             </TabsContent>
             <TabsContent value="all" className="mt-6">
-              {renderTaskTable(allTasks, allLoading, allPagination, setAllPage)}
+              {renderTaskTable(allTasks, allLoading, allPagination, (p) =>
+                updateParam('pageAll', p <= 1 ? null : String(p))
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
