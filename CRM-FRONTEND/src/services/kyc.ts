@@ -171,26 +171,58 @@ class KYCService {
   // bearer token (Phase E5 hardening), so this returns the bytes via axios
   // and the caller is responsible for triggering the browser save.
   async exportToExcel(
-    filters: { status?: string; documentType?: string; dateFrom?: string; dateTo?: string } = {}
+    filters: {
+      status?: string;
+      statusNot?: string;
+      documentType?: string;
+      search?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+    } = {}
   ): Promise<Blob> {
     const params: Record<string, string> = {};
-    if (filters.status) {
-      params.status = filters.status;
-    }
-    if (filters.documentType) {
-      params.documentType = filters.documentType;
-    }
-    if (filters.dateFrom) {
-      params.dateFrom = filters.dateFrom;
-    }
-    if (filters.dateTo) {
-      params.dateTo = filters.dateTo;
-    }
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params[key] = String(value);
+      }
+    });
     const response = await apiService.getRaw<Blob>('/kyc/export', params, {
       responseType: 'blob',
     });
     return response.data;
   }
+
+  /**
+   * Canonical 5-card stats for /kyc-verification/* pages.
+   * Mirrors the list endpoint's BASE WHERE (scope + soft-delete) via
+   * shared BE helper — partition counters reflect the full in-scope
+   * KYC pool regardless of route narrowing.
+   */
+  async getStats(): Promise<KYCTaskStats> {
+    const envelope = await apiService.get<KYCTaskStats>('/kyc/tasks/stats');
+    return envelope.data as KYCTaskStats;
+  }
+}
+
+export interface KYCTaskStats {
+  total: number;
+  pending: number;
+  assigned: number;
+  inProgress: number;
+  completed: number;
+  revoked: number;
+  open: number;
+  positive: number;
+  negative: number;
+  referred: number;
+  fraud: number;
+  positiveRate: number;
+  completedToday: number;
+  completedThisWeek: number;
+  agingOver3Days: number;
+  avgVerifyHours: number;
 }
 
 export const kycService = new KYCService();
