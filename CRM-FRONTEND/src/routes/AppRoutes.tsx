@@ -117,8 +117,15 @@ const CommissionManagementPage = React.lazy(() =>
     default: module.CommissionManagementPage,
   }))
 );
-const CommissionsPage = React.lazy(() =>
-  import('@/pages/CommissionsPage').then((module) => ({ default: module.CommissionsPage }))
+const CommissionCalculationsPage = React.lazy(() =>
+  import('@/pages/billing/CommissionCalculationsPage').then((module) => ({
+    default: module.CommissionCalculationsPage,
+  }))
+);
+const CommissionStatisticsPage = React.lazy(() =>
+  import('@/pages/billing/CommissionStatisticsPage').then((module) => ({
+    default: module.CommissionStatisticsPage,
+  }))
 );
 const CountriesPage = React.lazy(() =>
   import('@/pages/CountriesPage').then((module) => ({ default: module.CountriesPage }))
@@ -671,9 +678,21 @@ export const AppRoutes: React.FC = () => {
           />
           <Route
             path="/billing-and-commission/commissions"
+            element={<Navigate to="/billing-and-commission/commissions/calculations" replace />}
+          />
+          <Route
+            path="/billing-and-commission/commissions/calculations"
             element={
               <ProtectedRoute permission="page.billing">
-                <CommissionsPage />
+                <CommissionCalculationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/billing-and-commission/commissions/statistics"
+            element={
+              <ProtectedRoute permission="page.billing">
+                <CommissionStatisticsPage />
               </ProtectedRoute>
             }
           />

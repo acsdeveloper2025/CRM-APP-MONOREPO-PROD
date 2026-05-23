@@ -124,8 +124,14 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     if (path === '/billing-and-commission' || path === '/billing-and-commission/invoices') {
       return 'Invoices';
     }
-    if (path === '/billing-and-commission/commissions') {
-      return 'Commissions';
+    if (
+      path === '/billing-and-commission/commissions' ||
+      path === '/billing-and-commission/commissions/calculations'
+    ) {
+      return 'Commission Calculations';
+    }
+    if (path === '/billing-and-commission/commissions/statistics') {
+      return 'Commission Statistics';
     }
     if (path === '/billing-and-commission/commission-management') {
       return 'Commission Management';
