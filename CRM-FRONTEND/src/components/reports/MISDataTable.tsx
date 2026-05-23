@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { MISTaskRowData, MISPagination } from '@/types/mis';
@@ -160,18 +161,24 @@ export function MISDataTable({ data, pagination, onPageChange, isLoading }: MISD
               {!showSkeleton &&
                 data.map((taskRow) => (
                   <tr key={taskRow.taskId} className="hover:bg-green-50 transition-colors">
-                    {/* 1. Verification Task Column */}
+                    {/* 1. Verification Task Column — links to task detail */}
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-foreground">
-                        {taskRow.taskNumber}
-                      </div>
+                      <Link
+                        to={`/task-management/${taskRow.taskId}`}
+                        className="text-sm font-medium text-primary hover:underline"
+                      >
+                        {taskRow.taskNumber || `#${taskRow.taskId}`}
+                      </Link>
                     </td>
 
-                    {/* 2. Case ID Column */}
+                    {/* 2. Case ID Column — links to case detail */}
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-foreground">
-                        #{taskRow.caseNumber}
-                      </div>
+                      <Link
+                        to={`/case-management/${taskRow.caseNumber || taskRow.caseId}`}
+                        className="text-sm font-medium text-primary hover:underline"
+                      >
+                        #{taskRow.caseNumber || taskRow.caseId}
+                      </Link>
                     </td>
 
                     {/* 3. Customer Name Column */}
