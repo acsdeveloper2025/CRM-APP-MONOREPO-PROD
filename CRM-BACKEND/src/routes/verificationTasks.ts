@@ -19,7 +19,11 @@ import {
 import { pool, query as dbQuery, wrapClient } from '../config/db';
 import { authorize } from '@/middleware/authorize';
 import { isScopedOperationsUser } from '@/security/rbacAccess';
-import { EnterpriseCache, CacheInvalidationPatterns } from '@/middleware/enterpriseCache';
+import {
+  EnterpriseCache,
+  EnterpriseCacheConfigs,
+  CacheInvalidationPatterns,
+} from '@/middleware/enterpriseCache';
 import { TaskCompletionValidator } from '@/services/taskCompletionValidator';
 import { CaseStatusSyncService } from '@/services/caseStatusSyncService';
 import { createAuditLog } from '@/utils/auditLogger';
@@ -81,6 +85,21 @@ router.get(
   authenticateToken,
   authorize('case.view'),
   exportTasksToExcel
+);
+
+/**
+ * 5-card stats for /task-management/* list pages
+ * GET /api/verification-tasks/stats
+ * IMPORTANT: Must come before generic /verification-tasks/:taskId routes.
+ * Cached via EnterpriseCacheConfigs.analytics (req.baseUrl + req.path
+ * keyGen — collision-safe across resources per filter-sweep §9.7).
+ */
+router.get(
+  '/verification-tasks/stats',
+  authenticateToken,
+  authorize('case.view'),
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
+  VerificationTasksController.getStats.bind(VerificationTasksController)
 );
 
 /**

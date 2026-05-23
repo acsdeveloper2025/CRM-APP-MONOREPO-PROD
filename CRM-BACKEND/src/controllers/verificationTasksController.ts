@@ -8,6 +8,7 @@ import type {
   CompleteVerificationTaskData,
 } from '../types/verificationTask';
 import { createAuditLog } from '../utils/auditLogger';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
 import { logger } from '../utils/logger';
 import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
@@ -42,6 +43,250 @@ import {
   VerificationTaskCreationError,
   VerificationTaskCreationService,
 } from '../services/verificationTaskCreationService';
+
+// =====================================================
+// Module-scope export + sort constants (filter-sweep 2026-05-23)
+// =====================================================
+//
+// Single source of WHERE-truth for list + export + stats. Mirrors the
+// canonical pattern locked in invoicesController / clientsController /
+// reportsController. Any new filter param goes in
+// `buildVerificationTasksWhereClause` ONCE and all 3 endpoints inherit
+// it (closes the export-vs-list drift class).
+const TASK_EXPORT_ROW_LIMIT = 10000;
+const TASK_SORT_MAP: Record<string, string> = {
+  createdAt: 'vt.created_at',
+  updatedAt: 'vt.updated_at',
+  assignedAt: 'vt.assigned_at',
+  completedAt: 'vt.completed_at',
+  startedAt: 'vt.started_at',
+  priority: 'vt.priority',
+  status: 'vt.status',
+  taskNumber: 'vt.task_number',
+};
+
+type TaskWhereResult = {
+  conditions: string[];
+  params: (string | number | boolean | null | string[] | number[])[];
+  paramIndex: number;
+};
+
+async function buildVerificationTasksWhereClause(
+  req: AuthenticatedRequest
+): Promise<TaskWhereResult> {
+  const conditions: string[] = [];
+  const params: (string | number | boolean | null | string[] | number[])[] = [];
+  let paramIndex = 1;
+
+  const userId = req.user!.id;
+  const isExecutionActor = isFieldExecutionActor(req.user);
+  const isScopedOps = isScopedOperationsUser(req.user);
+  const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
+
+  // Role-based filtering — FIELD_AGENT users see tasks assigned to them
+  // OR in their assigned pincodes/areas.
+  if (isExecutionActor) {
+    const { getAssignedPincodeIds } = await import('@/middleware/pincodeAccess');
+    const { getAssignedAreaIds } = await import('@/middleware/areaAccess');
+
+    const assignedPincodeIds = await getAssignedPincodeIds(userId);
+    const assignedAreaIds = await getAssignedAreaIds(userId);
+
+    const fieldAgentConditions: string[] = [];
+    fieldAgentConditions.push(`vt.assigned_to = $${paramIndex}`);
+    params.push(userId);
+    paramIndex++;
+
+    if (assignedPincodeIds && assignedPincodeIds.length > 0) {
+      fieldAgentConditions.push(`vt.pincode_id = ANY($${paramIndex}::int[])`);
+      params.push(assignedPincodeIds);
+      paramIndex++;
+    }
+    if (assignedAreaIds && assignedAreaIds.length > 0) {
+      fieldAgentConditions.push(`vt.area_id = ANY($${paramIndex}::int[])`);
+      params.push(assignedAreaIds);
+      paramIndex++;
+    }
+
+    if (fieldAgentConditions.length > 0) {
+      conditions.push(`(${fieldAgentConditions.join(' OR ')})`);
+    } else {
+      conditions.push('FALSE');
+    }
+  } else if (isScopedOps) {
+    if (hierarchyUserIds) {
+      if (hierarchyUserIds.length === 0) {
+        conditions.push('FALSE');
+      } else {
+        // Creator OR assignment scope. BACKEND_USER [self]: creator-only
+        // (no tasks assigned to them). TL/Manager: created by subordinates
+        // OR tasks assigned to them.
+        conditions.push(`(
+          c.created_by_backend_user = ANY($${paramIndex}::uuid[])
+          OR vt.assigned_to = ANY($${paramIndex}::uuid[])
+        )`);
+        params.push(hierarchyUserIds);
+        paramIndex++;
+      }
+    } else {
+      const [assignedClientIds, assignedProductIds] = await Promise.all([
+        getAssignedClientIds(userId),
+        getAssignedProductIds(userId),
+      ]);
+      if (
+        !assignedClientIds ||
+        !assignedProductIds ||
+        assignedClientIds.length === 0 ||
+        assignedProductIds.length === 0
+      ) {
+        conditions.push('FALSE');
+      } else {
+        conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
+        params.push(assignedClientIds);
+        paramIndex++;
+        conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
+        params.push(assignedProductIds);
+        paramIndex++;
+      }
+    }
+  }
+
+  // P11.A.3 — active-scope narrowing (mirrors site 1 in this controller
+  // + P11.A.1/A.2 in cases). Closes leak L-C from the post-P10 re-audit.
+  if (req.activeScope?.clientId != null) {
+    conditions.push(`c.client_id = $${paramIndex}`);
+    params.push(req.activeScope.clientId);
+    paramIndex++;
+  }
+  if (req.activeScope?.productId != null) {
+    conditions.push(`c.product_id = $${paramIndex}`);
+    params.push(req.activeScope.productId);
+    paramIndex++;
+  }
+
+  const {
+    status,
+    priority,
+    assignedTo,
+    verificationTypeId,
+    clientId,
+    productId,
+    search,
+    dateFrom,
+    dateTo,
+    taskType,
+    excludeTaskType,
+    excludeUnassignedRevisit,
+    reassignedFilter,
+  } = req.query;
+
+  if (!isExecutionActor && assignedTo) {
+    conditions.push(`vt.assigned_to = $${paramIndex}`);
+    params.push(assignedTo as string);
+    paramIndex++;
+  }
+
+  // Status filter (comma-separated). Skip when 'all' (export contract).
+  if (status && status !== 'all') {
+    const statuses = (status as string).split(',');
+    const statusPlaceholders = statuses.map((_, idx) => `$${paramIndex + idx}`).join(',');
+    conditions.push(`vt.status IN (${statusPlaceholders})`);
+    params.push(...statuses);
+    paramIndex += statuses.length;
+  }
+
+  // 2026-05-16 (+2026-05-17 fix): reassignedFilter narrows REVOKED list
+  // views by whether an ACTIVE REPLACEMENT TASK exists. See B-152 in
+  // memory for full rationale.
+  if (reassignedFilter === 'awaiting') {
+    conditions.push(`NOT EXISTS (
+      SELECT 1 FROM verification_tasks repl
+      WHERE repl.parent_task_id = vt.id
+        AND repl.status NOT IN ('REVOKED', 'COMPLETED')
+    )`);
+  } else if (reassignedFilter === 'reassigned') {
+    conditions.push(`EXISTS (
+      SELECT 1 FROM verification_tasks repl
+      WHERE repl.parent_task_id = vt.id
+        AND repl.status NOT IN ('REVOKED', 'COMPLETED')
+    )`);
+  }
+
+  if (priority) {
+    conditions.push(`vt.priority = $${paramIndex}`);
+    params.push(priority as string);
+    paramIndex++;
+  }
+
+  if (verificationTypeId) {
+    conditions.push(`vt.verification_type_id = $${paramIndex}`);
+    params.push(verificationTypeId as string);
+    paramIndex++;
+  }
+
+  if (taskType) {
+    conditions.push(`vt.task_type = $${paramIndex}`);
+    params.push(taskType as string);
+    paramIndex++;
+  }
+
+  if (excludeTaskType) {
+    conditions.push(`(vt.task_type IS NULL OR vt.task_type != $${paramIndex})`);
+    params.push(excludeTaskType as string);
+    paramIndex++;
+  }
+
+  if (excludeUnassignedRevisit === 'true') {
+    conditions.push(`NOT (vt.task_type = 'REVISIT' AND vt.assigned_to IS NULL)`);
+  }
+
+  if (clientId) {
+    conditions.push(`c.client_id = $${paramIndex}`);
+    params.push(parseInt(clientId as string));
+    paramIndex++;
+  }
+
+  if (productId) {
+    conditions.push(`c.product_id = $${paramIndex}`);
+    params.push(parseInt(productId as string));
+    paramIndex++;
+  }
+
+  // Search across customer/title/address/task#/trigger/applicantType/case#.
+  // case_id is integer; ::text cast required (CWE class flagged in
+  // Reports&MIS sub-sweep, commit 59b23553).
+  if (search) {
+    conditions.push(`(
+      COALESCE(c.customer_name, '') ILIKE $${paramIndex} OR
+      COALESCE(vt.task_title, '') ILIKE $${paramIndex} OR
+      COALESCE(vt.address, '') ILIKE $${paramIndex} OR
+      COALESCE(vt.task_number, '') ILIKE $${paramIndex} OR
+      COALESCE(vt.trigger, '') ILIKE $${paramIndex} OR
+      COALESCE(vt.applicant_type, '') ILIKE $${paramIndex} OR
+      COALESCE(c.case_id::text, '') ILIKE $${paramIndex}
+    )`);
+    params.push(
+      `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
+    );
+    paramIndex++;
+  }
+
+  if (dateFrom) {
+    conditions.push(`vt.created_at >= $${paramIndex}`);
+    params.push(dateFrom as string);
+    paramIndex++;
+  }
+  if (dateTo) {
+    // Canonical inclusive-end-of-day semantic (mirrors invoices/MIS):
+    // < (dateTo::date + INTERVAL '1 day') captures the full dateTo day
+    // regardless of timestamp precision.
+    conditions.push(`vt.created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
+    params.push(dateTo as string);
+    paramIndex++;
+  }
+
+  return { conditions, params, paramIndex };
+}
 
 export class VerificationTasksController {
   private static async ensureTaskRevokeAccess(
@@ -732,271 +977,22 @@ export class VerificationTasksController {
    * GET /api/verification-tasks
    */
   static async getAllTasks(req: AuthenticatedRequest, res: Response): Promise<void> {
-    const {
-      page = 1,
-      limit = 50,
-      sortBy = 'createdAt',
-      sortOrder = 'desc',
-      status,
-      priority,
-      assignedTo,
-      verificationTypeId,
-      clientId,
-      productId,
-      search,
-      dateFrom,
-      dateTo,
-      taskType: taskType,
-    } = req.query;
+    const { page = 1, limit = 50, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
 
     try {
       const offset = (Number(page) - 1) * Number(limit);
 
-      // Build WHERE conditions
-      const conditions: string[] = [];
-      const params: (string | number | boolean | null | string[] | number[])[] = [];
-      let paramIndex = 1;
-
-      // Role-based filtering - FIELD_AGENT users can see tasks assigned to them OR in their territory
-      const userId = req.user!.id;
-      const isExecutionActor = isFieldExecutionActor(req.user);
-      const isScopedOps = isScopedOperationsUser(req.user);
-      const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
-
-      if (isExecutionActor) {
-        // FIELD_AGENT can see tasks if:
-        // 1. They are assigned to the task, OR
-        // 2. The task is in their assigned pincodes/areas
-        const { getAssignedPincodeIds } = await import('@/middleware/pincodeAccess');
-        const { getAssignedAreaIds } = await import('@/middleware/areaAccess');
-
-        const assignedPincodeIds = await getAssignedPincodeIds(userId);
-        const assignedAreaIds = await getAssignedAreaIds(userId);
-
-        const fieldAgentConditions: string[] = [];
-
-        // Condition 1: Directly assigned to task
-        fieldAgentConditions.push(`vt.assigned_to = $${paramIndex}`);
-        params.push(userId);
-        paramIndex++;
-
-        // Condition 2: Task in assigned pincode (F5.1.2 Phase B: int FK swap)
-        if (assignedPincodeIds && assignedPincodeIds.length > 0) {
-          fieldAgentConditions.push(`vt.pincode_id = ANY($${paramIndex}::int[])`);
-          params.push(assignedPincodeIds);
-          paramIndex++;
-        }
-
-        // Condition 3: Task in assigned area
-        if (assignedAreaIds && assignedAreaIds.length > 0) {
-          fieldAgentConditions.push(`vt.area_id = ANY($${paramIndex}::int[])`);
-          params.push(assignedAreaIds);
-          paramIndex++;
-        }
-
-        // Apply the combined filter
-        if (fieldAgentConditions.length > 0) {
-          conditions.push(`(${fieldAgentConditions.join(' OR ')})`);
-        } else {
-          // No assignments, show nothing
-          conditions.push('FALSE');
-        }
-      } else if (isScopedOps) {
-        if (hierarchyUserIds) {
-          if (hierarchyUserIds.length === 0) {
-            conditions.push('FALSE');
-          } else {
-            // Creator OR assignment scope:
-            // BACKEND_USER [self]: creator-only (no tasks assigned to them)
-            // TL/Manager: created by subordinates OR tasks assigned to them
-            conditions.push(`(
-              c.created_by_backend_user = ANY($${paramIndex}::uuid[])
-              OR vt.assigned_to = ANY($${paramIndex}::uuid[])
-            )`);
-            params.push(hierarchyUserIds);
-            paramIndex++;
-          }
-        } else {
-          const [assignedClientIds, assignedProductIds] = await Promise.all([
-            getAssignedClientIds(userId),
-            getAssignedProductIds(userId),
-          ]);
-
-          if (
-            !assignedClientIds ||
-            !assignedProductIds ||
-            assignedClientIds.length === 0 ||
-            assignedProductIds.length === 0
-          ) {
-            conditions.push('FALSE');
-          } else {
-            conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
-            params.push(assignedClientIds);
-            paramIndex++;
-
-            conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
-            params.push(assignedProductIds);
-            paramIndex++;
-          }
-        }
-      }
-
-      // P11.A.3 — apply active-scope narrowing to verification-tasks
-      // list. Mirrors P11.A.1/A.2 in casesController — composes on top
-      // of the existing baseline scope filter (which uses raw
-      // getAssignedClientIds and does not honor resolveDataScope's P2
-      // narrowing). validateActiveScope (P1) has already authorized
-      // any non-null req.activeScope value. Closes leak L-C (site 1)
-      // from the post-P10 re-audit.
-      if (req.activeScope?.clientId != null) {
-        conditions.push(`c.client_id = $${paramIndex}`);
-        params.push(req.activeScope.clientId);
-        paramIndex++;
-      }
-      if (req.activeScope?.productId != null) {
-        conditions.push(`c.product_id = $${paramIndex}`);
-        params.push(req.activeScope.productId);
-        paramIndex++;
-      }
-
-      if (!isExecutionActor && assignedTo) {
-        conditions.push(`vt.assigned_to = $${paramIndex}`);
-        params.push(assignedTo as string);
-        paramIndex++;
-      }
-
-      // Status filter (can be multiple statuses separated by comma)
-      if (status) {
-        const statuses = (status as string).split(',');
-        const statusPlaceholders = statuses.map((_, idx) => `$${paramIndex + idx}`).join(',');
-        conditions.push(`vt.status IN (${statusPlaceholders})`);
-        params.push(...statuses);
-        paramIndex += statuses.length;
-      }
-
-      // 2026-05-16 (+2026-05-17 fix): reassignedFilter narrows REVOKED
-      // list views by whether an ACTIVE REPLACEMENT TASK exists. A
-      // replacement is a verification_tasks row with
-      //   parent_task_id = vt.id AND status NOT IN ('REVOKED','COMPLETED').
-      // This is the canonical signal — the admin's queue is "revoked
-      // tasks that still need a successor". Looking at
-      // verification_tasks directly also handles historical revocations
-      // from before TaskRevocationService.recordRevocation was wired
-      // (revoked May 3 etc) and any case where the
-      // `task_revocations.reassigned` flag was never flipped — the
-      // audit-row state is not the authority on whether work is done.
-      //   awaiting   → no active replacement exists yet.
-      //   reassigned → an active replacement already exists.
-      //   all / unset → no narrowing.
-      const reassignedFilter = req.query.reassignedFilter as string | undefined;
-      if (reassignedFilter === 'awaiting') {
-        conditions.push(`NOT EXISTS (
-          SELECT 1 FROM verification_tasks repl
-          WHERE repl.parent_task_id = vt.id
-            AND repl.status NOT IN ('REVOKED', 'COMPLETED')
-        )`);
-      } else if (reassignedFilter === 'reassigned') {
-        conditions.push(`EXISTS (
-          SELECT 1 FROM verification_tasks repl
-          WHERE repl.parent_task_id = vt.id
-            AND repl.status NOT IN ('REVOKED', 'COMPLETED')
-        )`);
-      }
-
-      // Priority filter
-      if (priority) {
-        conditions.push(`vt.priority = $${paramIndex}`);
-        params.push(priority as string);
-        paramIndex++;
-      }
-
-      // Verification type filter
-      if (verificationTypeId) {
-        conditions.push(`vt.verification_type_id = $${paramIndex}`);
-        params.push(verificationTypeId as string);
-        paramIndex++;
-      }
-
-      // Task type filter
-      if (taskType) {
-        conditions.push(`vt.task_type = $${paramIndex}`);
-        params.push(taskType as string);
-        paramIndex++;
-      }
-
-      // Exclude task type filter (e.g., exclude REVISIT from pending page)
-      const excludeTaskType = req.query.excludeTaskType;
-      if (excludeTaskType) {
-        conditions.push(`(vt.task_type IS NULL OR vt.task_type != $${paramIndex})`);
-        params.push(excludeTaskType as string);
-        paramIndex++;
-      }
-
-      // Exclude unassigned revisit tasks (they have their own Revisit tab)
-      // Assigned revisit tasks should flow through normal tabs
-      if (req.query.excludeUnassignedRevisit === 'true') {
-        conditions.push(`NOT (vt.task_type = 'REVISIT' AND vt.assigned_to IS NULL)`);
-      }
-
-      // Client filter
-      if (clientId) {
-        conditions.push(`c.client_id = $${paramIndex}`);
-        params.push(parseInt(clientId as string));
-        paramIndex++;
-      }
-
-      // Product filter
-      if (productId) {
-        conditions.push(`c.product_id = $${paramIndex}`);
-        params.push(parseInt(productId as string));
-        paramIndex++;
-      }
-
-      // Search filter (customer name, task title, address, task number, trigger, applicant type)
-      if (search) {
-        conditions.push(`(
-          COALESCE(c.customer_name, '') ILIKE $${paramIndex} OR
-          COALESCE(vt.task_title, '') ILIKE $${paramIndex} OR
-          COALESCE(vt.address, '') ILIKE $${paramIndex} OR
-          COALESCE(vt.task_number, '') ILIKE $${paramIndex} OR
-          COALESCE(vt.trigger, '') ILIKE $${paramIndex} OR
-          COALESCE(vt.applicant_type, '') ILIKE $${paramIndex} OR
-          COALESCE(c.case_id::text, '') ILIKE $${paramIndex}
-        )`);
-        params.push(
-          `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
-        );
-        paramIndex++;
-      }
-
-      // Date range filter
-      if (dateFrom) {
-        conditions.push(`vt.created_at >= $${paramIndex}`);
-        params.push(dateFrom as string);
-        paramIndex++;
-      }
-
-      if (dateTo) {
-        conditions.push(`vt.created_at <= $${paramIndex}`);
-        params.push(dateTo as string);
-        paramIndex++;
-      }
+      // Build WHERE via shared helper (single source of WHERE-truth shared
+      // with /export + /stats). See module-scope buildVerificationTasksWhereClause.
+      const where = await buildVerificationTasksWhereClause(req);
+      const conditions = where.conditions;
+      const params = where.params;
+      const paramIndex = where.paramIndex;
 
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-      // API contract: sortBy is camelCase; we map it to the snake_case DB column.
-      // Whitelist prevents SQL injection.
-      const sortFieldMap: Record<string, string> = {
-        createdAt: 'created_at',
-        updatedAt: 'updated_at',
-        assignedAt: 'assigned_at',
-        completedAt: 'completed_at',
-        startedAt: 'started_at',
-        priority: 'priority',
-        status: 'status',
-        taskNumber: 'task_number',
-      };
-      const safeSortColumn = sortFieldMap[sortBy as string] || 'created_at';
+      // Sort via shared module-scope TASK_SORT_MAP (shared with /export).
+      const safeSortColumn = TASK_SORT_MAP[sortBy as string] || 'vt.created_at';
       const safeSortOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
       // Get total count
@@ -1044,7 +1040,7 @@ export class VerificationTasksController {
         LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
         LEFT JOIN commission_calculations cc ON vt.id = cc.verification_task_id
         ${whereClause}
-        ORDER BY vt.${safeSortColumn} ${safeSortOrder}
+        ORDER BY ${safeSortColumn} ${safeSortOrder} NULLS LAST
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `,
         [...params, Number(limit), offset]
@@ -1204,6 +1200,146 @@ export class VerificationTasksController {
       res.status(500).json({
         success: false,
         message: 'Failed to get verification tasks',
+        error: { code: 'INTERNAL_ERROR' },
+      });
+    }
+  }
+
+  /**
+   * Canonical 5-card stats endpoint for /task-management/* pages.
+   * GET /api/verification-tasks/stats
+   *
+   * Returns ONE shape with all aggregates each of the 6 list pages needs;
+   * each FE page picks the 5 it cares about (AllTasks / Pending /
+   * InProgress / Completed / Revisit / Revoked). WHERE clause mirrors
+   * the list endpoint via shared helper — every page passes the same
+   * filters it passes to the list, and stats are scoped accordingly.
+   */
+  static async getStats(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const where = await buildVerificationTasksWhereClause(req);
+      const whereClause =
+        where.conditions.length > 0 ? `WHERE ${where.conditions.join(' AND ')}` : '';
+
+      const result = await dbQuery(
+        `
+        SELECT
+          COUNT(*) as total,
+          -- Status partitions
+          COUNT(*) FILTER (WHERE vt.status = 'PENDING') as pending_count,
+          COUNT(*) FILTER (WHERE vt.status = 'ASSIGNED') as assigned_count,
+          COUNT(*) FILTER (WHERE vt.status = 'IN_PROGRESS') as in_progress_count,
+          COUNT(*) FILTER (WHERE vt.status = 'COMPLETED') as completed_count,
+          COUNT(*) FILTER (WHERE vt.status = 'REVOKED') as revoked_count,
+          COUNT(*) FILTER (WHERE vt.status IN ('PENDING','ASSIGNED','IN_PROGRESS')) as open_count,
+          -- Priority
+          COUNT(*) FILTER (WHERE vt.priority = 'URGENT') as urgent_count,
+          COUNT(*) FILTER (WHERE vt.priority IN ('HIGH','URGENT')) as high_priority_count,
+          -- Today / week
+          COUNT(*) FILTER (
+            WHERE vt.status = 'COMPLETED' AND vt.completed_at >= CURRENT_DATE
+          ) as completed_today_count,
+          COUNT(*) FILTER (
+            WHERE vt.status = 'COMPLETED' AND vt.completed_at >= date_trunc('week', CURRENT_DATE)
+          ) as completed_this_week_count,
+          COUNT(*) FILTER (
+            WHERE vt.status = 'REVOKED' AND vt.revoked_at >= CURRENT_DATE
+          ) as revoked_today_count,
+          -- Aging / long-running
+          COUNT(*) FILTER (
+            WHERE vt.status IN ('PENDING','ASSIGNED')
+              AND vt.created_at < NOW() - INTERVAL '3 days'
+          ) as aging_over_3_days_count,
+          COUNT(*) FILTER (
+            WHERE vt.status = 'IN_PROGRESS'
+              AND vt.started_at < NOW() - INTERVAL '3 days'
+          ) as long_running_count,
+          -- Time aggregates (days for turnaround, hours for in-status / reassign)
+          AVG(CASE
+            WHEN vt.status = 'COMPLETED' AND vt.completed_at IS NOT NULL
+            THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.created_at)) / 86400.0
+          END) as avg_turnaround_days,
+          AVG(CASE
+            WHEN vt.status = 'IN_PROGRESS' AND vt.started_at IS NOT NULL
+            THEN EXTRACT(EPOCH FROM (NOW() - vt.started_at)) / 3600.0
+          END) as avg_time_in_status_hours,
+          -- Revoke reassignment metrics (mirrors getAllTasks inline stats)
+          COUNT(*) FILTER (
+            WHERE vt.status = 'REVOKED'
+              AND EXISTS (
+                SELECT 1 FROM verification_tasks repl
+                 WHERE repl.parent_task_id = vt.id
+                   AND repl.status NOT IN ('REVOKED', 'COMPLETED')
+              )
+          ) as reassigned_count,
+          COUNT(*) FILTER (
+            WHERE vt.status = 'REVOKED'
+              AND NOT EXISTS (
+                SELECT 1 FROM verification_tasks repl
+                 WHERE repl.parent_task_id = vt.id
+                   AND repl.status NOT IN ('REVOKED', 'COMPLETED')
+              )
+          ) as awaiting_reassignment_count,
+          AVG(
+            CASE WHEN vt.status = 'REVOKED' THEN (
+              SELECT EXTRACT(EPOCH FROM (MIN(repl.created_at) - vt.revoked_at)) / 3600.0
+              FROM verification_tasks repl
+              WHERE repl.parent_task_id = vt.id
+            ) END
+          ) as avg_time_to_reassign_hours,
+          -- Revisit parent linkage
+          COUNT(*) FILTER (
+            WHERE vt.task_type = 'REVISIT' AND vt.parent_task_id IS NOT NULL
+          ) as revisit_parent_linked_count,
+          COUNT(*) FILTER (WHERE vt.task_type = 'REVISIT') as revisit_total_count
+        FROM verification_tasks vt
+        LEFT JOIN cases c ON vt.case_id = c.id
+        ${whereClause}
+      `,
+        where.params
+      );
+
+      const row = result.rows[0] || {};
+      const num = (key: string): number => parseInt(row[key] || '0', 10);
+      const flt = (key: string): number => parseFloat(row[key] || '0');
+
+      const revisitTotal = num('revisitTotalCount');
+      const revisitParentLinked = num('revisitParentLinkedCount');
+
+      res.json({
+        success: true,
+        data: {
+          total: num('total'),
+          pending: num('pendingCount'),
+          assigned: num('assignedCount'),
+          inProgress: num('inProgressCount'),
+          completed: num('completedCount'),
+          revoked: num('revokedCount'),
+          open: num('openCount'),
+          urgent: num('urgentCount'),
+          highPriority: num('highPriorityCount'),
+          completedToday: num('completedTodayCount'),
+          completedThisWeek: num('completedThisWeekCount'),
+          revokedToday: num('revokedTodayCount'),
+          agingOver3Days: num('agingOver3DaysCount'),
+          longRunning: num('longRunningCount'),
+          avgTurnaroundDays: flt('avgTurnaroundDays'),
+          avgTimeInStatusHours: flt('avgTimeInStatusHours'),
+          avgTimeToReassignHours: flt('avgTimeToReassignHours'),
+          reassigned: num('reassignedCount'),
+          awaitingReassignment: num('awaitingReassignmentCount'),
+          revisitTotal,
+          revisitParentLinked,
+          revisitParentLinkedPct:
+            revisitTotal > 0 ? Math.round((revisitParentLinked / revisitTotal) * 100) : 0,
+        },
+        message: 'Verification task stats retrieved successfully',
+      });
+    } catch (error) {
+      logger.error('Error getting verification task stats:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get verification task stats',
         error: { code: 'INTERNAL_ERROR' },
       });
     }
@@ -2759,122 +2895,23 @@ export class VerificationTasksController {
 // Export verification tasks to Excel
 export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const {
-      status,
-      priority,
-      assignedTo,
-      verificationTypeId,
-      clientId,
-      productId,
-      search,
-      dateFrom,
-      dateTo,
-      taskType: taskType,
-    } = req.query;
+    const { sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
 
-    const conditions: string[] = [];
-    const params: (string | number | boolean | null | string[] | number[])[] = [];
-    let paramIndex = 1;
-    const userId = req.user!.id;
-    const isScopedOps = isScopedOperationsUser(req.user);
-    const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
+    // Build WHERE via shared helper (lockstep with /verification-tasks list).
+    const where = await buildVerificationTasksWhereClause(req);
+    const params = where.params;
+    const whereClause =
+      where.conditions.length > 0 ? `WHERE ${where.conditions.join(' AND ')}` : '';
 
-    // Scoped access — creator OR assignment (RBAC audit)
-    if (isScopedOps && userId) {
-      if (hierarchyUserIds && hierarchyUserIds.length > 0) {
-        conditions.push(
-          `(c.created_by_backend_user = ANY($${paramIndex}::uuid[]) OR vt.assigned_to = ANY($${paramIndex}::uuid[]))`
-        );
-        params.push(hierarchyUserIds);
-        paramIndex++;
-      } else {
-        const [assignedClientIds, assignedProductIds] = await Promise.all([
-          getAssignedClientIds(userId),
-          getAssignedProductIds(userId),
-        ]);
-        if (assignedClientIds && assignedClientIds.length > 0) {
-          conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
-          params.push(assignedClientIds);
-          paramIndex++;
-        }
-        if (assignedProductIds && assignedProductIds.length > 0) {
-          conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
-          params.push(assignedProductIds);
-          paramIndex++;
-        }
-      }
-    }
+    // Sort via shared SORT_MAP — operators expect xlsx ORDER to match the
+    // on-screen list (filter-sweep audit invariant, kickoff §9).
+    const safeSortColumn = TASK_SORT_MAP[sortBy as string] || 'vt.created_at';
+    const safeSortOrder = (sortOrder as string)?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
-    // P11.A.3 — apply active-scope narrowing to tasks Excel export.
-    // Mirrors site 1 in this controller + P11.A.1/A.2 in cases.
-    // Closes leak L-C (site 3) from the post-P10 re-audit.
-    if (req.activeScope?.clientId != null) {
-      conditions.push(`c.client_id = $${paramIndex}`);
-      params.push(req.activeScope.clientId);
-      paramIndex++;
-    }
-    if (req.activeScope?.productId != null) {
-      conditions.push(`c.product_id = $${paramIndex}`);
-      params.push(req.activeScope.productId);
-      paramIndex++;
-    }
-
-    if (status && status !== 'all') {
-      const statuses = (status as string).split(',');
-      const placeholders = statuses.map((_, idx) => `$${paramIndex + idx}`).join(',');
-      conditions.push(`vt.status IN (${placeholders})`);
-      params.push(...statuses);
-      paramIndex += statuses.length;
-    }
-    if (priority) {
-      conditions.push(`vt.priority = $${paramIndex}`);
-      params.push(priority as string);
-      paramIndex++;
-    }
-    if (assignedTo) {
-      conditions.push(`vt.assigned_to = $${paramIndex}`);
-      params.push(assignedTo as string);
-      paramIndex++;
-    }
-    if (verificationTypeId) {
-      conditions.push(`vt.verification_type_id = $${paramIndex}`);
-      params.push(verificationTypeId as string);
-      paramIndex++;
-    }
-    if (clientId) {
-      conditions.push(`c.client_id = $${paramIndex}`);
-      params.push(parseInt(clientId as string));
-      paramIndex++;
-    }
-    if (productId) {
-      conditions.push(`c.product_id = $${paramIndex}`);
-      params.push(parseInt(productId as string));
-      paramIndex++;
-    }
-    if (taskType) {
-      conditions.push(`vt.task_type = $${paramIndex}`);
-      params.push(taskType as string);
-      paramIndex++;
-    }
-    if (search) {
-      conditions.push(
-        `(c.customer_name ILIKE $${paramIndex} OR vt.task_title ILIKE $${paramIndex} OR vt.address ILIKE $${paramIndex} OR vt.task_number ILIKE $${paramIndex})`
-      );
-      params.push(`%${search as string}%`);
-      paramIndex++;
-    }
-    if (dateFrom) {
-      conditions.push(`vt.created_at >= $${paramIndex}`);
-      params.push(dateFrom as string);
-      paramIndex++;
-    }
-    if (dateTo) {
-      conditions.push(`vt.created_at <= $${paramIndex}`);
-      params.push(`${dateTo as string} 23:59:59`);
-      paramIndex++;
-    }
-
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    // 10k row cap via SQL LIMIT (kickoff §6; memory
+    // project_csv_xlsx_audit_followup_2026_05_12 don't-regress #5).
+    const limitParamIndex = params.length + 1;
+    params.push(TASK_EXPORT_ROW_LIMIT);
 
     const result = await dbQuery(
       `
@@ -2918,12 +2955,21 @@ export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Respons
       LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
       LEFT JOIN areas a ON vt.area_id = a.id
       ${whereClause}
-      ORDER BY vt.created_at DESC
+      ORDER BY ${safeSortColumn} ${safeSortOrder} NULLS LAST
+      LIMIT $${limitParamIndex}
     `,
       params
     );
 
     const tasks = result.rows;
+
+    // Audit PRE-stream (mirrors invoices/MIS/clients exports).
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'TASK_EXPORTED',
+      entityType: 'verification_task',
+      details: { recordCount: tasks.length, filters: req.query },
+    });
 
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'CRM System';
@@ -2966,35 +3012,41 @@ export const exportTasksToExcel = async (req: AuthenticatedRequest, res: Respons
     worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
 
     tasks.forEach((task: Record<string, unknown>) => {
-      worksheet.addRow({
-        taskNumber: task.taskNumber,
-        caseNumber: task.caseNumber,
-        customerName: task.customerName,
-        customerPhone: task.customerPhone,
-        taskTitle: task.taskTitle,
-        taskType: task.taskType || 'NORMAL',
-        verificationTypeName: task.verificationTypeName,
-        clientName: task.clientName,
-        productName: task.productName,
-        address: task.address,
-        pincode: task.pincode,
-        areaName: task.areaName,
-        status: task.status,
-        priority: task.priority,
-        assignedToName: task.assignedToName || 'Unassigned',
-        assignedToEmployeeId: task.assignedToEmployeeId,
-        assignedByName: task.assignedByName,
-        rateTypeName: task.rateTypeName,
-        estimatedAmount: task.estimatedAmount ? Number(task.estimatedAmount) : null,
-        actualAmount: task.actualAmount ? Number(task.actualAmount) : null,
-        trigger: task.trigger,
-        applicantType: task.applicantType,
-        createdAt: task.createdAt ? new Date(task.createdAt as string).toLocaleString() : '',
-        assignedAt: task.assignedAt ? new Date(task.assignedAt as string).toLocaleString() : '',
-        startedAt: task.startedAt ? new Date(task.startedAt as string).toLocaleString() : '',
-        completedAt: task.completedAt ? new Date(task.completedAt as string).toLocaleString() : '',
-        tatDays: task.tatDays ? Number(task.tatDays) : null,
-      });
+      // escapeFormulaRow on every user-controlled cell (CWE-1236);
+      // numbers/booleans/Dates pass through unchanged.
+      worksheet.addRow(
+        escapeFormulaRow({
+          taskNumber: task.taskNumber,
+          caseNumber: task.caseNumber,
+          customerName: task.customerName,
+          customerPhone: task.customerPhone,
+          taskTitle: task.taskTitle,
+          taskType: task.taskType || 'NORMAL',
+          verificationTypeName: task.verificationTypeName,
+          clientName: task.clientName,
+          productName: task.productName,
+          address: task.address,
+          pincode: task.pincode,
+          areaName: task.areaName,
+          status: task.status,
+          priority: task.priority,
+          assignedToName: task.assignedToName || 'Unassigned',
+          assignedToEmployeeId: task.assignedToEmployeeId,
+          assignedByName: task.assignedByName,
+          rateTypeName: task.rateTypeName,
+          estimatedAmount: task.estimatedAmount ? Number(task.estimatedAmount) : null,
+          actualAmount: task.actualAmount ? Number(task.actualAmount) : null,
+          trigger: task.trigger,
+          applicantType: task.applicantType,
+          createdAt: task.createdAt ? new Date(task.createdAt as string).toLocaleString() : '',
+          assignedAt: task.assignedAt ? new Date(task.assignedAt as string).toLocaleString() : '',
+          startedAt: task.startedAt ? new Date(task.startedAt as string).toLocaleString() : '',
+          completedAt: task.completedAt
+            ? new Date(task.completedAt as string).toLocaleString()
+            : '',
+          tatDays: task.tatDays ? Number(task.tatDays) : null,
+        })
+      );
     });
 
     worksheet.autoFilter = { from: 'A1', to: `AA${tasks.length + 1}` };
