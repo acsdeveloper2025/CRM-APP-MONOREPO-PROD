@@ -206,9 +206,13 @@ export class CasesService extends BaseApiService {
       search?: string;
       assignedTo?: string;
       clientId?: string;
+      productId?: string | number;
+      verificationTypeId?: string | number;
       priority?: string;
       dateFrom?: string;
       dateTo?: string;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
     } = {}
   ): Promise<{ blob: Blob; filename: string }> {
     const queryParams: Record<string, string> = {};
@@ -237,6 +241,56 @@ export class CasesService extends BaseApiService {
 
     return { blob: response.data, filename };
   }
+
+  /**
+   * Canonical 5-card stats for /case-management/* list pages.
+   * Mirrors the list endpoint's WHERE via shared BE helper — pages
+   * pass the same filters they pass to /cases and stats are scoped
+   * accordingly. Ignores `status` filter so partition counters reflect
+   * all statuses (for cross-tab navigation visibility).
+   */
+  async getStats(
+    params: {
+      search?: string;
+      clientId?: string;
+      productId?: string | number;
+      verificationTypeId?: string | number;
+      priority?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      assignedTo?: string;
+    } = {}
+  ): Promise<CaseStats> {
+    const queryParams: Record<string, string> = {};
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams[key] = String(value);
+      }
+    });
+
+    const envelope = await apiService.get<CaseStats>('/cases/stats', queryParams);
+    return envelope.data as CaseStats;
+  }
+}
+
+export interface CaseStats {
+  total: number;
+  pending: number;
+  assigned: number;
+  inProgress: number;
+  completed: number;
+  revoked: number;
+  open: number;
+  highPriority: number;
+  longRunning: number;
+  overdue: number;
+  completedToday: number;
+  completedThisWeek: number;
+  activeAgentsInProgress: number;
+  activeAgentsAny: number;
+  avgPendingDays: number;
+  avgInProgressDays: number;
+  avgTATDays: number;
 }
 
 export const casesService = new CasesService();
