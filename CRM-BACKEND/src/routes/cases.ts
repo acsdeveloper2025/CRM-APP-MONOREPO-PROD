@@ -13,6 +13,7 @@ import { validateCaseAccess, validateCaseCreationAccess } from '@/middleware/cli
 import { validateCaseProductAccess } from '@/middleware/productAccess';
 import {
   getCases,
+  getCaseStats,
   getCaseById,
   createCase,
   createCaseValidation,
@@ -340,6 +341,17 @@ router.get(
   validateCaseAccess,
   EnterpriseCache.create(EnterpriseCacheConfigs.caseDetails),
   getCaseSummaryWithTasks
+);
+
+// 5-card stats for /case-management/* list pages - MUST be before /:id route.
+// Cached via EnterpriseCacheConfigs.analytics (req.baseUrl + req.path
+// keyGen — collision-safe across resources per filter-sweep §9.7).
+router.get(
+  '/stats',
+  authorize('case.view'),
+  roleBasedRateLimit,
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
+  getCaseStats
 );
 
 // Export cases to Excel - MUST be before /:id route

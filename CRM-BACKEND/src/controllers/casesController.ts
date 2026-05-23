@@ -28,6 +28,213 @@ import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAc
 import { getScopedOperationalUserIds } from '@/security/userScope';
 import { requireControllerPermission } from '@/security/controllerAuthorization';
 import { createAuditLog } from '../utils/auditLogger';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
+
+// =====================================================
+// Module-scope export + sort constants (filter-sweep 2026-05-23)
+// =====================================================
+//
+// Single source of WHERE-truth for list + export + stats. Mirrors the
+// canonical pattern locked in invoicesController / verificationTasksController.
+// Any new filter param goes in `buildCasesBaseWhereClause` ONCE and all 3
+// endpoints inherit it.
+const CASE_EXPORT_ROW_LIMIT = 10000;
+const CASE_SORT_MAP: Record<string, string> = {
+  createdAt: 'c.created_at',
+  updatedAt: 'c.updated_at',
+  customerName: 'c.customer_name',
+  priority: 'c.priority',
+  status: 'c.status',
+  caseId: 'c.case_id',
+  completedAt: 'c.completed_at',
+  // pendingDuration is a computed expression — handled inline in getCases.
+};
+
+type CasesBaseWhereResult = {
+  baseConditions: string[];
+  baseParams: (string | number | boolean | string[] | number[])[];
+  baseParamIndex: number;
+};
+
+/**
+ * Build the BASE WHERE clause shared by list + export + stats — every
+ * filter EXCEPT `status` and `exportType` (those are caller-specific —
+ * stats endpoint ignores them; list applies status; export applies
+ * exportType + optional status). Preserves all scope branches
+ * (FIELD_AGENT pincode+area / scoped-ops hierarchy+client/product /
+ * activeScope narrowing).
+ */
+async function buildCasesBaseWhereClause(req: AuthenticatedRequest): Promise<CasesBaseWhereResult> {
+  const baseConditions: string[] = [];
+  const baseParams: (string | number | boolean | string[] | number[])[] = [];
+  let baseParamIndex = 1;
+
+  const userId = req.user!.id;
+  const isExecutionActor = isFieldExecutionActor(req.user);
+  const isScopedOps = isScopedOperationsUser(req.user);
+  const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
+
+  if (isExecutionActor) {
+    const { getAssignedPincodeIds } = await import('@/middleware/pincodeAccess');
+    const { getAssignedAreaIds } = await import('@/middleware/areaAccess');
+
+    const assignedPincodeIds = await getAssignedPincodeIds(userId);
+    const assignedAreaIds = await getAssignedAreaIds(userId);
+
+    const fieldAgentConditions: string[] = [];
+
+    fieldAgentConditions.push(`EXISTS (
+      SELECT 1 FROM verification_tasks vt
+      WHERE vt.case_id = c.id
+      AND vt.assigned_to = $${baseParamIndex}
+    )`);
+    baseParams.push(userId);
+    baseParamIndex++;
+
+    if (assignedPincodeIds && assignedPincodeIds.length > 0) {
+      fieldAgentConditions.push(`EXISTS (
+        SELECT 1 FROM verification_tasks vt
+        WHERE vt.case_id = c.id
+        AND vt.pincode_id = ANY($${baseParamIndex}::int[])
+      )`);
+      baseParams.push(assignedPincodeIds);
+      baseParamIndex++;
+    }
+
+    if (assignedAreaIds && assignedAreaIds.length > 0) {
+      fieldAgentConditions.push(`EXISTS (
+        SELECT 1 FROM verification_tasks vt
+        WHERE vt.case_id = c.id
+        AND vt.area_id = ANY($${baseParamIndex}::int[])
+      )`);
+      baseParams.push(assignedAreaIds);
+      baseParamIndex++;
+    }
+
+    if (fieldAgentConditions.length > 0) {
+      baseConditions.push(`(${fieldAgentConditions.join(' OR ')})`);
+    } else {
+      baseConditions.push('FALSE');
+    }
+  } else if (isScopedOps) {
+    if (hierarchyUserIds) {
+      if (hierarchyUserIds.length === 0) {
+        baseConditions.push('FALSE');
+      } else {
+        baseConditions.push(`(
+          c.created_by_backend_user = ANY($${baseParamIndex}::uuid[])
+          OR EXISTS (
+            SELECT 1 FROM verification_tasks vt_scope
+            WHERE vt_scope.case_id = c.id
+              AND vt_scope.assigned_to = ANY($${baseParamIndex}::uuid[])
+          )
+        )`);
+        baseParams.push(hierarchyUserIds);
+        baseParamIndex++;
+      }
+    } else {
+      const { getAssignedClientIds } = await import('@/middleware/clientAccess');
+      const { getAssignedProductIds } = await import('@/middleware/productAccess');
+
+      const assignedClientIds = await getAssignedClientIds(userId);
+      const assignedProductIds = await getAssignedProductIds(userId);
+
+      if (assignedClientIds && assignedClientIds.length > 0) {
+        baseConditions.push(`c.client_id = ANY($${baseParamIndex}::int[])`);
+        baseParams.push(assignedClientIds);
+        baseParamIndex++;
+      } else if (assignedClientIds && assignedClientIds.length === 0) {
+        baseConditions.push('FALSE');
+      }
+
+      if (assignedProductIds && assignedProductIds.length > 0) {
+        baseConditions.push(`c.product_id = ANY($${baseParamIndex}::int[])`);
+        baseParams.push(assignedProductIds);
+        baseParamIndex++;
+      } else if (assignedProductIds && assignedProductIds.length === 0) {
+        baseConditions.push('FALSE');
+      }
+    }
+  } else if (req.query.assignedTo) {
+    baseConditions.push(`EXISTS (
+      SELECT 1 FROM verification_tasks vt
+      WHERE vt.case_id = c.id
+      AND vt.assigned_to = $${baseParamIndex}
+    )`);
+    baseParams.push(req.query.assignedTo as string);
+    baseParamIndex++;
+  }
+
+  // P11.A.1/A.2 — active-scope narrowing.
+  if (req.activeScope?.clientId != null) {
+    baseConditions.push(`c.client_id = $${baseParamIndex}`);
+    baseParams.push(req.activeScope.clientId);
+    baseParamIndex++;
+  }
+  if (req.activeScope?.productId != null) {
+    baseConditions.push(`c.product_id = $${baseParamIndex}`);
+    baseParams.push(req.activeScope.productId);
+    baseParamIndex++;
+  }
+
+  // Search (case_id::text cast required — case_id is INTEGER).
+  const search = req.query.search;
+  if (search) {
+    baseConditions.push(`(
+      COALESCE(c.customer_name, '') ILIKE $${baseParamIndex} OR
+      COALESCE(c.case_id::text, '') ILIKE $${baseParamIndex} OR
+      EXISTS (
+        SELECT 1 FROM verification_tasks vt
+        WHERE vt.case_id = c.id AND vt.address ILIKE $${baseParamIndex}
+      ) OR
+      COALESCE(c.customer_phone, '') ILIKE $${baseParamIndex} OR
+      COALESCE(c.trigger, '') ILIKE $${baseParamIndex} OR
+      COALESCE(c.applicant_type, '') ILIKE $${baseParamIndex}
+    )`);
+    baseParams.push(
+      `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
+    );
+    baseParamIndex++;
+  }
+
+  const { clientId, productId, verificationTypeId, priority, dateFrom, dateTo } = req.query;
+
+  if (clientId) {
+    baseConditions.push(`c.client_id = $${baseParamIndex}`);
+    baseParams.push(parseInt(clientId as string));
+    baseParamIndex++;
+  }
+  if (productId) {
+    baseConditions.push(`c.product_id = $${baseParamIndex}`);
+    baseParams.push(parseInt(productId as string));
+    baseParamIndex++;
+  }
+  if (verificationTypeId) {
+    baseConditions.push(`c.verification_type_id = $${baseParamIndex}`);
+    baseParams.push(verificationTypeId as string);
+    baseParamIndex++;
+  }
+  if (priority) {
+    baseConditions.push(`c.priority = $${baseParamIndex}`);
+    baseParams.push(priority as string);
+    baseParamIndex++;
+  }
+
+  if (dateFrom) {
+    baseConditions.push(`c.created_at >= $${baseParamIndex}`);
+    baseParams.push(dateFrom as string);
+    baseParamIndex++;
+  }
+  if (dateTo) {
+    // Canonical inclusive-end-of-day semantic (mirrors invoices/MIS/tasks):
+    // < (dateTo::date + INTERVAL '1 day') captures the full dateTo day.
+    baseConditions.push(`c.created_at < ($${baseParamIndex}::date + INTERVAL '1 day')`);
+    baseParams.push(dateTo as string);
+    baseParamIndex++;
+  }
+
+  return { baseConditions, baseParams, baseParamIndex };
+}
 
 interface DatabaseError extends Error {
   code?: string;
@@ -297,175 +504,19 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
       Array.isArray(req.query.sortOrder) ? req.query.sortOrder[0] : req.query.sortOrder || 'desc'
     ) as string;
     const status = req.query.status as string;
-    const search = req.query.search as string;
-    const assignedTo = req.query.assignedTo as string;
-    const clientId = req.query.clientId as string;
-    const dateFrom = req.query.dateFrom as string;
-    const dateTo = req.query.dateTo as string;
-    // Build WHERE conditions
-    const baseConditions: string[] = [];
-    const baseParams: (string | number | boolean | string[] | number[])[] = [];
-    let baseParamIndex = 1;
 
-    // Role-based filtering - FIELD_AGENT users can only see cases with their assigned tasks
-    const userId = req.user!.id;
+    // Build WHERE via shared helper (single source of WHERE-truth shared
+    // with /export + /stats). All filters EXCEPT `status` live in the
+    // base (so the stats query can ignore the active tab's status filter
+    // and report partition counters for ALL statuses).
+    const where = await buildCasesBaseWhereClause(req);
+    const baseConditions = where.baseConditions;
+    const baseParams = where.baseParams;
+    const baseParamIndex = where.baseParamIndex;
+
+    // Track scope flags for downstream logging (preserved from old code).
     const isExecutionActor = isFieldExecutionActor(req.user);
     const isScopedOps = isScopedOperationsUser(req.user);
-    const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
-
-    if (isExecutionActor) {
-      const { getAssignedPincodeIds } = await import('@/middleware/pincodeAccess');
-      const { getAssignedAreaIds } = await import('@/middleware/areaAccess');
-
-      const assignedPincodeIds = await getAssignedPincodeIds(userId);
-      const assignedAreaIds = await getAssignedAreaIds(userId);
-
-      const fieldAgentConditions: string[] = [];
-
-      fieldAgentConditions.push(`EXISTS (
-        SELECT 1 FROM verification_tasks vt
-        WHERE vt.case_id = c.id
-        AND vt.assigned_to = $${baseParamIndex}
-      )`);
-      baseParams.push(userId);
-      baseParamIndex++;
-
-      if (assignedPincodeIds && assignedPincodeIds.length > 0) {
-        // F5.1.2 Phase B: int FK swap, JOIN no longer needed
-        fieldAgentConditions.push(`EXISTS (
-          SELECT 1 FROM verification_tasks vt
-          WHERE vt.case_id = c.id
-          AND vt.pincode_id = ANY($${baseParamIndex}::int[])
-        )`);
-        baseParams.push(assignedPincodeIds);
-        baseParamIndex++;
-      }
-
-      if (assignedAreaIds && assignedAreaIds.length > 0) {
-        fieldAgentConditions.push(`EXISTS (
-          SELECT 1 FROM verification_tasks vt
-          WHERE vt.case_id = c.id
-          AND vt.area_id = ANY($${baseParamIndex}::int[])
-        )`);
-        baseParams.push(assignedAreaIds);
-        baseParamIndex++;
-      }
-
-      if (fieldAgentConditions.length > 0) {
-        baseConditions.push(`(${fieldAgentConditions.join(' OR ')})`);
-      } else {
-        baseConditions.push('FALSE');
-      }
-    } else if (isScopedOps) {
-      if (hierarchyUserIds) {
-        if (hierarchyUserIds.length === 0) {
-          baseConditions.push('FALSE');
-        } else {
-          // Creator OR task-assignment scope:
-          // - BACKEND_USER [self]: effectively creator-only (no tasks
-          //   assigned to them, so vt.assigned_to never matches)
-          // - TL [self+team]: cases created by team OR tasks assigned
-          //   to team members (field agents)
-          // - Manager [self+tree]: same but wider tree
-          baseConditions.push(`(
-            c.created_by_backend_user = ANY($${baseParamIndex}::uuid[])
-            OR EXISTS (
-              SELECT 1 FROM verification_tasks vt_scope
-              WHERE vt_scope.case_id = c.id
-                AND vt_scope.assigned_to = ANY($${baseParamIndex}::uuid[])
-            )
-          )`);
-          baseParams.push(hierarchyUserIds);
-          baseParamIndex++;
-        }
-      } else {
-        const { getAssignedClientIds } = await import('@/middleware/clientAccess');
-        const { getAssignedProductIds } = await import('@/middleware/productAccess');
-
-        const assignedClientIds = await getAssignedClientIds(userId);
-        const assignedProductIds = await getAssignedProductIds(userId);
-
-        if (assignedClientIds && assignedClientIds.length > 0) {
-          baseConditions.push(`c.client_id = ANY($${baseParamIndex}::int[])`);
-          baseParams.push(assignedClientIds);
-          baseParamIndex++;
-        } else if (assignedClientIds && assignedClientIds.length === 0) {
-          baseConditions.push('FALSE');
-        }
-
-        if (assignedProductIds && assignedProductIds.length > 0) {
-          baseConditions.push(`c.product_id = ANY($${baseParamIndex}::int[])`);
-          baseParams.push(assignedProductIds);
-          baseParamIndex++;
-        } else if (assignedProductIds && assignedProductIds.length === 0) {
-          baseConditions.push('FALSE');
-        }
-      }
-    } else if (assignedTo) {
-      baseConditions.push(`EXISTS (
-        SELECT 1 FROM verification_tasks vt
-        WHERE vt.case_id = c.id
-        AND vt.assigned_to = $${baseParamIndex}
-      )`);
-      baseParams.push(assignedTo);
-      baseParamIndex++;
-    }
-
-    // P11.A.1 — apply active-scope narrowing on top of the existing
-    // baseline scope filter (project_scope_control_audit_2026_05_14.md).
-    // validateActiveScope (P1) has already verified the header values
-    // against req.user.assignedClientIds, so any non-null value here is
-    // authorized. Composes with the pre-existing assignedClientIds
-    // intersection above to produce the effective narrowing for the
-    // cases list — closes leak L-A.
-    if (req.activeScope?.clientId != null) {
-      baseConditions.push(`c.client_id = $${baseParamIndex}`);
-      baseParams.push(req.activeScope.clientId);
-      baseParamIndex++;
-    }
-    if (req.activeScope?.productId != null) {
-      baseConditions.push(`c.product_id = $${baseParamIndex}`);
-      baseParams.push(req.activeScope.productId);
-      baseParamIndex++;
-    }
-
-    // Search filter (customer name, case ID, address, phone, trigger, applicant type)
-    if (search) {
-      baseConditions.push(`(
-        COALESCE(c.customer_name, '') ILIKE $${baseParamIndex} OR
-        COALESCE(c.case_id::text, '') ILIKE $${baseParamIndex} OR
-        EXISTS (
-          SELECT 1 FROM verification_tasks vt 
-          WHERE vt.case_id = c.id AND vt.address ILIKE $${baseParamIndex}
-        ) OR
-        COALESCE(c.customer_phone, '') ILIKE $${baseParamIndex} OR
-        COALESCE(c.trigger, '') ILIKE $${baseParamIndex} OR
-        COALESCE(c.applicant_type, '') ILIKE $${baseParamIndex}
-      )`);
-      baseParams.push(
-        `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
-      );
-      baseParamIndex++;
-    }
-
-    // Client filter
-    if (clientId) {
-      baseConditions.push(`c.client_id = $${baseParamIndex}`);
-      baseParams.push(parseInt(clientId));
-      baseParamIndex++;
-    }
-
-    // Date range filter
-    if (dateFrom) {
-      baseConditions.push(`c.created_at >= $${baseParamIndex}`);
-      baseParams.push(dateFrom);
-      baseParamIndex++;
-    }
-    if (dateTo) {
-      baseConditions.push(`c.created_at <= $${baseParamIndex}`);
-      baseParams.push(dateTo);
-      baseParamIndex++;
-    }
 
     // Build BASE WHERE clause for statistics
     const baseWhereClause =
@@ -486,19 +537,10 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     // Build FINAL WHERE clause for listing
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // API contract: sortBy is camelCase; map to snake_case DB column name.
-    // `pendingDuration` is a computed expression handled below.
-    const sortColumnMap: Record<string, string> = {
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-      customerName: 'customer_name',
-      priority: 'priority',
-      status: 'status',
-      caseId: 'case_id',
-      completedAt: 'completed_at',
-    };
+    // API contract: sortBy is camelCase. Validated against shared
+    // CASE_SORT_MAP (module-scope) — pendingDuration is computed below.
     let safeSortBy =
-      sortBy && (sortColumnMap[sortBy] || sortBy === 'pendingDuration') ? sortBy : 'caseId';
+      sortBy && (CASE_SORT_MAP[sortBy] || sortBy === 'pendingDuration') ? sortBy : 'caseId';
     let safeSortOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
 
     // Custom sorting logic based on status filter
@@ -533,21 +575,43 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     const countResult = await dbQuery(countQuery, params);
     const total = parseInt(countResult.rows[0].total);
 
-    // Get case statistics for metric cards (ignoring the active tab's status filter)
+    // Get case statistics for metric cards (ignoring the active tab's status filter).
+    // Extended 2026-05-23 for filter-sweep §9 (Case Mgmt): fixed
+    // hardcoded highPriority:0; added open/completedToday/completedThisWeek/
+    // longRunning/avgPendingDays/activeAgentsAny for canonical 5-card picks.
     const statsQuery = `
       SELECT
         COUNT(DISTINCT c.id) as total_cases,
         COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'PENDING') as pending,
+        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'ASSIGNED') as assigned,
         COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'IN_PROGRESS') as "inProgress",
         COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'COMPLETED') as completed,
         COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'REVOKED') as revoked,
         COUNT(DISTINCT c.id) FILTER (
+          WHERE c.status IN ('PENDING','ASSIGNED','IN_PROGRESS')
+        ) as open,
+        COUNT(DISTINCT c.id) FILTER (
           WHERE c.status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED')
           AND c.created_at < NOW() - INTERVAL '48 hours'
         ) as overdue,
-        0 as "highPriority",
+        COUNT(DISTINCT c.id) FILTER (
+          WHERE c.priority IN ('HIGH', 'URGENT')
+        ) as "highPriority",
         COUNT(DISTINCT vt.assigned_to) FILTER (WHERE c.status = 'IN_PROGRESS' AND vt.assigned_to IS NOT NULL) as "activeAgentsInProgress",
+        COUNT(DISTINCT vt.assigned_to) FILTER (WHERE vt.assigned_to IS NOT NULL) as "activeAgentsAny",
         AVG(EXTRACT(EPOCH FROM (NOW() - c.created_at))/86400) FILTER (WHERE c.status = 'IN_PROGRESS') as "avgDurationDaysInProgress",
+        AVG(EXTRACT(EPOCH FROM (NOW() - c.created_at))/86400) FILTER (
+          WHERE c.status IN ('PENDING','ASSIGNED')
+        ) as "avgPendingDays",
+        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'COMPLETED' AND c.completed_at >= CURRENT_DATE) as "completedToday",
+        COUNT(DISTINCT c.id) FILTER (
+          WHERE c.status = 'COMPLETED'
+          AND c.completed_at >= date_trunc('week', CURRENT_DATE)
+        ) as "completedThisWeek",
+        COUNT(DISTINCT c.id) FILTER (
+          WHERE c.status NOT IN ('COMPLETED','REVOKED')
+          AND c.created_at < NOW() - INTERVAL '3 days'
+        ) as "longRunning",
         COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'COMPLETED' AND c.completed_at >= DATE_TRUNC('month', NOW())) as "completedThisMonth",
         COUNT(DISTINCT vt.assigned_to) FILTER (WHERE c.status = 'COMPLETED' AND vt.assigned_to IS NOT NULL) as "activeAgentsCompleted",
         AVG(EXTRACT(EPOCH FROM (c.completed_at - c.created_at))/86400) FILTER (WHERE c.status = 'COMPLETED') as "avgTATDays"
@@ -581,8 +645,8 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
           END ${safeSortOrder}
       `;
     } else {
-      const safeColumn = sortColumnMap[safeSortBy] || 'created_at';
-      orderByClause = `ORDER BY c.${safeColumn} ${safeSortOrder}`;
+      const safeColumn = CASE_SORT_MAP[safeSortBy] || 'c.created_at';
+      orderByClause = `ORDER BY ${safeColumn} ${safeSortOrder}`;
     }
 
     const casesQuery = `
@@ -772,6 +836,110 @@ export const getCases = async (req: AuthenticatedRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve cases',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+/**
+ * Canonical 5-card stats endpoint for /case-management/* pages.
+ * GET /api/cases/stats
+ *
+ * Mirrors the getCases inline statistics shape but ignores the caller's
+ * `status` filter (returns partition counters for ALL statuses scoped
+ * by the user's other filters). Each FE list page picks 5 from this
+ * shape (AllCases / InProgressCases / CompletedCases).
+ */
+export const getCaseStats = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const where = await buildCasesBaseWhereClause(req);
+    const whereClause =
+      where.baseConditions.length > 0 ? `WHERE ${where.baseConditions.join(' AND ')}` : '';
+
+    const result = await dbQuery(
+      `
+      SELECT
+        COUNT(DISTINCT c.id) as total,
+        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'PENDING') as pending,
+        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'ASSIGNED') as assigned,
+        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'IN_PROGRESS') as "inProgress",
+        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'COMPLETED') as completed,
+        COUNT(DISTINCT c.id) FILTER (WHERE c.status = 'REVOKED') as revoked,
+        COUNT(DISTINCT c.id) FILTER (
+          WHERE c.status IN ('PENDING','ASSIGNED','IN_PROGRESS')
+        ) as open,
+        COUNT(DISTINCT c.id) FILTER (
+          WHERE c.priority IN ('HIGH', 'URGENT')
+        ) as "highPriority",
+        COUNT(DISTINCT c.id) FILTER (
+          WHERE c.status NOT IN ('COMPLETED','REVOKED')
+          AND c.created_at < NOW() - INTERVAL '3 days'
+        ) as "longRunning",
+        COUNT(DISTINCT c.id) FILTER (
+          WHERE c.status NOT IN ('COMPLETED','REVOKED','CANCELLED')
+          AND c.created_at < NOW() - INTERVAL '48 hours'
+        ) as overdue,
+        COUNT(DISTINCT c.id) FILTER (
+          WHERE c.status = 'COMPLETED' AND c.completed_at >= CURRENT_DATE
+        ) as "completedToday",
+        COUNT(DISTINCT c.id) FILTER (
+          WHERE c.status = 'COMPLETED'
+          AND c.completed_at >= date_trunc('week', CURRENT_DATE)
+        ) as "completedThisWeek",
+        COUNT(DISTINCT vt.assigned_to) FILTER (
+          WHERE c.status = 'IN_PROGRESS' AND vt.assigned_to IS NOT NULL
+        ) as "activeAgentsInProgress",
+        COUNT(DISTINCT vt.assigned_to) FILTER (
+          WHERE vt.assigned_to IS NOT NULL
+        ) as "activeAgentsAny",
+        AVG(EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 86400) FILTER (
+          WHERE c.status IN ('PENDING','ASSIGNED')
+        ) as "avgPendingDays",
+        AVG(EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 86400) FILTER (
+          WHERE c.status = 'IN_PROGRESS'
+        ) as "avgInProgressDays",
+        AVG(EXTRACT(EPOCH FROM (c.completed_at - c.created_at)) / 86400) FILTER (
+          WHERE c.status = 'COMPLETED'
+        ) as "avgTATDays"
+      FROM cases c
+      LEFT JOIN verification_tasks vt ON c.id = vt.case_id
+      ${whereClause}
+    `,
+      where.baseParams
+    );
+
+    const row = result.rows[0] || {};
+    const num = (key: string): number => parseInt(row[key] || '0', 10);
+    const flt = (key: string): number => parseFloat(row[key] || '0');
+
+    res.json({
+      success: true,
+      data: {
+        total: num('total'),
+        pending: num('pending'),
+        assigned: num('assigned'),
+        inProgress: num('inProgress'),
+        completed: num('completed'),
+        revoked: num('revoked'),
+        open: num('open'),
+        highPriority: num('highPriority'),
+        longRunning: num('longRunning'),
+        overdue: num('overdue'),
+        completedToday: num('completedToday'),
+        completedThisWeek: num('completedThisWeek'),
+        activeAgentsInProgress: num('activeAgentsInProgress'),
+        activeAgentsAny: num('activeAgentsAny'),
+        avgPendingDays: flt('avgPendingDays'),
+        avgInProgressDays: flt('avgInProgressDays'),
+        avgTATDays: flt('avgTATDays'),
+      },
+      message: 'Case stats retrieved successfully',
+    });
+  } catch (error) {
+    logger.error('Error getting case stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get case stats',
       error: { code: 'INTERNAL_ERROR' },
     });
   }
@@ -1430,28 +1598,23 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
     const {
       status,
       search,
-      assignedTo,
       clientId,
       productId,
-      verificationTypeId,
-      stateId,
-      cityId,
-      pincodeId,
-      priority,
-      dateFrom,
-      dateTo,
       exportType = 'all', // 'all', 'pending', 'in-progress', 'completed'
+      sortBy,
+      sortOrder,
     } = req.query;
 
-    // Build the query based on filters
-    const whereConditions: string[] = [];
-    const queryParams: QueryParams = [];
-    let paramIndex = 1;
     const userId = req.user!.id;
     const isScopedOps = isScopedOperationsUser(req.user);
-    const hierarchyUserIds = userId ? await getScopedOperationalUserIds(userId) : undefined;
 
-    // Filter by export type (status)
+    // Build the query via shared helper (lockstep with /cases list + /cases/stats).
+    const where = await buildCasesBaseWhereClause(req);
+    const whereConditions = where.baseConditions;
+    const queryParams: QueryParams = where.baseParams;
+    let paramIndex = where.baseParamIndex;
+
+    // Export-only filters: exportType (legacy tab selector) + optional status.
     if (exportType && exportType !== 'all') {
       if (exportType === 'pending') {
         whereConditions.push(`c.status IN ('PENDING', 'IN_PROGRESS')`);
@@ -1461,137 +1624,22 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
         whereConditions.push(`c.status = 'COMPLETED'`);
       }
     }
-
-    // Additional filters
     if (status && status !== 'all') {
       whereConditions.push(`c.status = $${paramIndex}`);
       queryParams.push(status as string);
       paramIndex++;
     }
 
-    if (search) {
-      whereConditions.push(`(
-        c.customer_name ILIKE $${paramIndex} OR
-        c.customer_phone ILIKE $${paramIndex} OR
-        c.case_id::text ILIKE $${paramIndex}
-      )`);
-      queryParams.push(
-        `%${typeof search === 'string' || typeof search === 'number' ? String(search) : ''}%`
-      );
-      paramIndex++;
-    }
-
-    if (assignedTo) {
-      whereConditions.push(
-        `EXISTS (SELECT 1 FROM verification_tasks vte WHERE vte.case_id = c.id AND vte.assigned_to = $${paramIndex})`
-      );
-      queryParams.push(assignedTo as string);
-      paramIndex++;
-    }
-
-    if (clientId) {
-      whereConditions.push(`c.client_id = $${paramIndex}`);
-      queryParams.push(clientId as string);
-      paramIndex++;
-    }
-
-    if (productId) {
-      whereConditions.push(`c.product_id = $${paramIndex}`);
-      queryParams.push(productId as string);
-      paramIndex++;
-    }
-
-    if (verificationTypeId) {
-      whereConditions.push(`c.verification_type_id = $${paramIndex}`);
-      queryParams.push(verificationTypeId as string);
-      paramIndex++;
-    }
-
-    // F5.1.x: cases.state_id / city_id / pincode_id filters were dead code —
-    // those columns don't exist on `cases` (location lives at task level).
-    // If we ever need case-level location filtering, route through
-    // verification_tasks JOINs.
-    if (stateId || cityId || pincodeId) {
-      // intentional no-op — reserved for a future task-level filter rewrite
-    }
-
-    if (priority) {
-      whereConditions.push(`c.priority = $${paramIndex}`);
-      queryParams.push(priority as string);
-      paramIndex++;
-    }
-
-    if (dateFrom) {
-      whereConditions.push(`c.created_at >= $${paramIndex}`);
-      queryParams.push(dateFrom as string);
-      paramIndex++;
-    }
-
-    if (dateTo) {
-      whereConditions.push(`c.created_at <= $${paramIndex}`);
-      queryParams.push(
-        `${typeof dateTo === 'string' || typeof dateTo === 'number' ? String(dateTo) : new Date().toISOString().split('T')[0]} 23:59:59`
-      );
-      paramIndex++;
-    }
-
-    if (isScopedOps && userId) {
-      if (hierarchyUserIds) {
-        if (hierarchyUserIds.length === 0) {
-          whereConditions.push('FALSE');
-        } else {
-          whereConditions.push(`EXISTS (
-            SELECT 1 FROM verification_tasks vts
-            WHERE vts.case_id = c.id
-              AND vts.assigned_to = ANY($${paramIndex}::uuid[])
-          )`);
-          queryParams.push(hierarchyUserIds);
-          paramIndex++;
-        }
-      } else {
-        const { getAssignedClientIds } = await import('@/middleware/clientAccess');
-        const { getAssignedProductIds } = await import('@/middleware/productAccess');
-        const [assignedClientIds, assignedProductIds] = await Promise.all([
-          getAssignedClientIds(userId),
-          getAssignedProductIds(userId),
-        ]);
-
-        if (!assignedClientIds || assignedClientIds.length === 0) {
-          whereConditions.push('FALSE');
-        } else {
-          whereConditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
-          queryParams.push(assignedClientIds);
-          paramIndex++;
-        }
-
-        if (!assignedProductIds || assignedProductIds.length === 0) {
-          whereConditions.push('FALSE');
-        } else {
-          whereConditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
-          queryParams.push(assignedProductIds);
-          paramIndex++;
-        }
-      }
-    }
-
-    // P11.A.2 — apply active-scope narrowing to cases export. Mirrors
-    // getCases (P11.A.1) — composes on top of the existing baseline
-    // filter rather than refactoring it. validateActiveScope (P1) has
-    // already verified header values against assignedClientIds, so any
-    // non-null req.activeScope value here is authorized. Closes leak
-    // L-B from the post-P10 re-audit.
-    if (req.activeScope?.clientId != null) {
-      whereConditions.push(`c.client_id = $${paramIndex}`);
-      queryParams.push(req.activeScope.clientId);
-      paramIndex++;
-    }
-    if (req.activeScope?.productId != null) {
-      whereConditions.push(`c.product_id = $${paramIndex}`);
-      queryParams.push(req.activeScope.productId);
-      paramIndex++;
-    }
-
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    // Sort via shared CASE_SORT_MAP — operators expect xlsx ORDER to
+    // match the on-screen list (filter-sweep §6 audit invariant).
+    const safeSortColumn = CASE_SORT_MAP[sortBy as string] || 'c.case_id';
+    const safeSortOrder = (sortOrder as string)?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+
+    // 10k row cap via SQL LIMIT (kickoff §6; CWE-class don't-regress).
+    const limitParamIndex = paramIndex;
+    queryParams.push(CASE_EXPORT_ROW_LIMIT);
 
     // Query to get cases data
     const query = `
@@ -1635,7 +1683,8 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
       ) assigned_user ON true
       LEFT JOIN users bu ON c.created_by_backend_user = bu.id
       ${whereClause}
-      ORDER BY c.case_id DESC
+      ORDER BY ${safeSortColumn} ${safeSortOrder} NULLS LAST
+      LIMIT $${limitParamIndex}
     `;
 
     const result = await dbQuery(query, queryParams);
@@ -1739,7 +1788,9 @@ export const exportCases = async (req: AuthenticatedRequest, res: Response) => {
         pendingTasks: Number(caseItem.pendingTasks) || 0,
       };
 
-      worksheet.addRow(rowData);
+      // escapeFormulaRow on every user-controlled cell (CWE-1236);
+      // numbers/booleans/Dates pass through unchanged.
+      worksheet.addRow(escapeFormulaRow(rowData));
     });
 
     // Auto-fit columns
