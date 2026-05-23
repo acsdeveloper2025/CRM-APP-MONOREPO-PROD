@@ -319,9 +319,13 @@ const misDashboardValidation = [
     .optional()
     .isInt({ min: 1 })
     .withMessage('Verification Type ID must be a positive integer'),
+  // Mirrors verification_tasks.status — REVOKED is a real DB value (FE
+  // dropdown lists it), the prior enum omitted it and 400-rejected the FE
+  // request. CANCELLED + IN_PROGRESS kept for forward-compat with other task
+  // surfaces that use them.
   query('caseStatus')
     .optional()
-    .isIn(['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'])
+    .isIn(['PENDING', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'REVOKED'])
     .withMessage('Invalid case status'),
   query('fieldAgentId').optional().isUUID().withMessage('Field Agent ID must be a valid UUID'),
   query('backendUserId').optional().isUUID().withMessage('Backend User ID must be a valid UUID'),

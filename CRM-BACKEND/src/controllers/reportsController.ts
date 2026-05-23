@@ -1466,8 +1466,11 @@ async function buildMISWhereClause(req: AuthenticatedRequest): Promise<{
   const backendScope = await getBackendUserReportScope(req);
 
   if (search && typeof search === 'string' && search.trim()) {
+    // cases.case_id is an INTEGER column — must cast to text for ILIKE.
+    // Pre-existing bug surfaced by Reports & MIS sweep: ILIKE on an integer
+    // column raised `42883 operator does not exist: integer ~~* unknown`.
     conditions.push(`(
-      c.case_id ILIKE $${paramIndex} OR
+      c.case_id::text ILIKE $${paramIndex} OR
       c.customer_name ILIKE $${paramIndex} OR
       c.customer_phone ILIKE $${paramIndex} OR
       vt.task_number ILIKE $${paramIndex}
