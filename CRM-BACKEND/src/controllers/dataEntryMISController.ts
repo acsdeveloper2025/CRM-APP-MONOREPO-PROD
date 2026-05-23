@@ -10,6 +10,8 @@ import {
 } from '@/services/templateFieldPrefillResolver';
 import { hasSystemScopeBypass } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
+import { createAuditLog } from '@/utils/auditLogger';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -171,6 +173,115 @@ const buildFieldValues = (
     }
   }
   return vals;
+};
+
+// ---------------------------------------------------------------------------
+// GET /api/case-data-entries/mis/stats — 5-card stats for DataEntryMISPage
+// ---------------------------------------------------------------------------
+export const getMISStats = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const clientId = Number(req.query.clientId);
+    const productId = Number(req.query.productId);
+    if (!clientId || !productId) {
+      return res.status(400).json({
+        success: false,
+        message: 'clientId and productId are required',
+        error: { code: 'MISSING_PARAMS' },
+      });
+    }
+
+    // P13.E — activeScope intersection (same as getMISData / exportMISData).
+    if (req.activeScope?.clientId != null && req.activeScope.clientId !== clientId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Requested client is outside your active scope',
+        error: { code: 'CLIENT_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
+    if (req.activeScope?.productId != null && req.activeScope.productId !== productId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Requested product is outside your active scope',
+        error: { code: 'PRODUCT_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
+
+    const isAdmin = hasSystemScopeBypass(req.user);
+    let scopedUserIds: string[] | undefined;
+    if (!isAdmin) {
+      scopedUserIds = await getScopedOperationalUserIds(req.user!.id);
+      if (!scopedUserIds) {
+        scopedUserIds = [req.user!.id];
+      }
+    }
+
+    const template = await getActiveTemplate(clientId, productId);
+    if (!template) {
+      return res.json({
+        success: true,
+        data: {
+          total: 0,
+          completed: 0,
+          inProgress: 0,
+          completionRate: 0,
+          uniqueCases: 0,
+        },
+      });
+    }
+
+    // Build WHERE WITHOUT dataEntryStatus narrowing — stats partition
+    // is the point (Completed / In Progress / Completion Rate cards).
+    const { where, params } = buildWhereAndParams(clientId, productId, template.id, {
+      dateFrom: req.query.dateFrom as string,
+      dateTo: req.query.dateTo as string,
+      search: typeof req.query.search === 'string' ? req.query.search.trim() : undefined,
+      scopedUserIds,
+    });
+
+    const statsRes = await query(
+      `
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE e.is_completed = true)::int AS completed,
+        COUNT(*) FILTER (WHERE e.is_completed = false)::int AS in_progress,
+        COUNT(DISTINCT c.id)::int AS unique_cases
+      FROM case_data_entries e
+      JOIN cases c ON c.id = e.case_id
+      JOIN clients cl ON cl.id = c.client_id
+      JOIN products p ON p.id = c.product_id
+      LEFT JOIN verification_tasks vt ON vt.id = e.verification_task_id
+      ${where}
+      `,
+      params
+    );
+
+    const row = statsRes.rows[0] as {
+      total: number;
+      completed: number;
+      in_progress: number;
+      unique_cases: number;
+    };
+    const completionRate = row.total > 0 ? Math.round((row.completed / row.total) * 100) : 0;
+
+    return res.json({
+      success: true,
+      data: {
+        total: row.total,
+        completed: row.completed,
+        inProgress: row.in_progress,
+        completionRate,
+        uniqueCases: row.unique_cases,
+      },
+      message: 'Data entry MIS stats retrieved successfully',
+    });
+  } catch (error) {
+    logger.error('Error fetching data entry MIS stats:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch data entry MIS stats',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -452,7 +563,8 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
               ? JSON.stringify(val)
               : val;
       }
-      ws.addRow(rowData);
+      // escapeFormulaRow on every user-controlled cell (CWE-1236).
+      ws.addRow(escapeFormulaRow(rowData));
     }
 
     // AutoFilter.
@@ -483,6 +595,27 @@ export const exportMISData = async (req: AuthenticatedRequest, res: Response) =>
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    // DPDP §11 audit trail on bulk PII export — written BEFORE the stream
+    // starts so the audit row exists even if the network write fails
+    // partway. Mirrors CASE_EXPORTED / INVOICE_EXPORTED patterns.
+    await createAuditLog({
+      action: 'DATA_ENTRY_MIS_EXPORTED',
+      entityType: 'CASE_DATA_ENTRY',
+      userId: req.user?.id,
+      details: {
+        rowCount: rows.length,
+        filename,
+        templateId: template.id,
+        templateName: template.name,
+        clientId,
+        productId,
+        filters: req.query,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
+
     // Pipe directly to the HTTP response stream. Avoids materialising the
     // entire xlsx as a Buffer in Node heap before send — at the 50k-row
     // cap this saves ~20-40 MB of peak RSS compared to the old

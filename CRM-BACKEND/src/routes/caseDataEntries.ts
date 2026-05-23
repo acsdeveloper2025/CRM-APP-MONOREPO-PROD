@@ -14,7 +14,8 @@ import {
   completeCase,
 } from '@/controllers/caseDataEntriesController';
 import { getDataEntryDashboard } from '@/controllers/dataEntryDashboardController';
-import { getMISData, exportMISData } from '@/controllers/dataEntryMISController';
+import { getMISData, getMISStats, exportMISData } from '@/controllers/dataEntryMISController';
+import { EnterpriseCache, EnterpriseCacheConfigs } from '@/middleware/enterpriseCache';
 
 const router = express.Router();
 
@@ -33,12 +34,16 @@ router.get(
   validateProductAccess('query'),
   getDataEntryDashboard
 );
+// /mis/stats MUST come before /mis (Express routes match by declaration
+// order — /mis would also match /mis/stats otherwise). Cached via
+// EnterpriseCacheConfigs.analytics (baseUrl+path keyGen, collision-safe).
 router.get(
-  '/mis',
+  '/mis/stats',
   authorize('case.view'),
   validateClientAccess('query'),
   validateProductAccess('query'),
-  getMISData
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
+  getMISStats
 );
 router.get(
   '/mis/export',
@@ -46,6 +51,13 @@ router.get(
   validateClientAccess('query'),
   validateProductAccess('query'),
   exportMISData
+);
+router.get(
+  '/mis',
+  authorize('case.view'),
+  validateClientAccess('query'),
+  validateProductAccess('query'),
+  getMISData
 );
 
 // ---------------------------------------------------------------------------
