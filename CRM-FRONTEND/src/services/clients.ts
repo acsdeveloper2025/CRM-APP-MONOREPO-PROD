@@ -10,6 +10,7 @@ import type {
   UpdateProductData,
   CreateVerificationTypeData,
   UpdateVerificationTypeData,
+  ProductMappingPayload,
 } from '@/types/client';
 import type { ApiResponse, PaginationQuery } from '@/types/api';
 import { z } from 'zod';
@@ -71,6 +72,10 @@ export class ClientsService {
       });
     }
     return response;
+  }
+
+  async getClientProductMappings(id: number): Promise<ApiResponse<ProductMappingPayload[]>> {
+    return apiService.get<ProductMappingPayload[]>(`/clients/${id}/product-mappings`);
   }
 
   async createClient(data: CreateClientData): Promise<ApiResponse<Client>> {

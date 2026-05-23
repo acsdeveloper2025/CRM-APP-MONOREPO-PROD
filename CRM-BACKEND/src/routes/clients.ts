@@ -21,6 +21,7 @@ import {
   getClientVerificationTypes,
   getVerificationTypesForClientProduct,
   getDocumentTypesForClientProduct,
+  getClientProductMappings,
   getPincodesForClientProduct,
   getAreasForClientProductPincode,
   uploadClientLogo,
@@ -204,6 +205,16 @@ router.get(
   validate([param('id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer')]),
   validateClientAccess(),
   getClientById
+);
+
+// GET /api/clients/:id/product-mappings - per-(client,product) VT + DocType ids
+router.get(
+  '/:id/product-mappings',
+  authenticateToken,
+  EnterpriseCache.create(EnterpriseCacheConfigs.clientList),
+  validate([param('id').isInt({ min: 1 }).withMessage('Client ID must be a positive integer')]),
+  validateClientAccess(),
+  getClientProductMappings
 );
 
 // GET /api/clients/:id/verification-types - Get verification types by client (CACHED)

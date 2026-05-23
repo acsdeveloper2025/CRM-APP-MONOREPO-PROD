@@ -267,7 +267,7 @@ export const getClientById = async (req: AuthenticatedRequest, res: Response) =>
     const { id } = req.params;
 
     const baseRes = await query(
-      `SELECT id, name, code, logo_url, stamp_url, primary_color, header_color,
+      `SELECT id, name, code, is_active, logo_url, stamp_url, primary_color, header_color,
               created_at, updated_at
        FROM clients WHERE id = $1`,
       [Number(id)]
@@ -421,6 +421,52 @@ export const getDocumentTypesForClientProduct = async (
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve document types',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
+// GET /api/clients/:id/product-mappings
+// Returns per-(client, product) VT + DocType id arrays — one row per product the
+// client owns. Powers the Edit Client dialog so per-product mappings pre-fill
+// correctly instead of cross-spreading the flat aggregated lists.
+export const getClientProductMappings = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const clientId = Number(req.params.id);
+    if (req.activeScope?.clientId != null && req.activeScope.clientId !== clientId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Client is outside your active scope',
+        error: { code: 'CLIENT_NOT_IN_ACTIVE_SCOPE' },
+      });
+    }
+    const r = await query(
+      `SELECT
+         cp.product_id AS "productId",
+         COALESCE(
+           ARRAY_AGG(DISTINCT cpv.verification_type_id)
+             FILTER (WHERE cpv.verification_type_id IS NOT NULL AND cpv.is_active = true),
+           '{}'
+         ) AS "verificationTypeIds",
+         COALESCE(
+           ARRAY_AGG(DISTINCT cpd.document_type_id)
+             FILTER (WHERE cpd.document_type_id IS NOT NULL AND cpd.is_active = true),
+           '{}'
+         ) AS "documentTypeIds"
+       FROM client_products cp
+       LEFT JOIN client_product_verifications cpv ON cpv.client_product_id = cp.id
+       LEFT JOIN client_product_documents cpd ON cpd.client_product_id = cp.id
+       WHERE cp.client_id = $1
+       GROUP BY cp.product_id
+       ORDER BY cp.product_id`,
+      [clientId]
+    );
+    res.json({ success: true, data: r.rows });
+  } catch (error) {
+    logger.error('Error retrieving client product mappings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve client product mappings',
       error: { code: 'INTERNAL_ERROR' },
     });
   }

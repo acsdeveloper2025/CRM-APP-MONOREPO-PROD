@@ -438,7 +438,10 @@ export const EnterpriseCacheConfigs = {
     keyGenerator: (req: Request) => {
       const userId = (req as AuthenticatedRequest).user?.id || 'anon';
       const query = JSON.stringify(req.query);
-      return `clients:list:${userId}:${crypto.createHash('md5').update(query).digest('hex')}`;
+      // Include req.baseUrl+req.path so /clients/list, /clients/:id,
+      // /clients/:id/product-mappings etc. don't collide on the same key.
+      // Same fix shape as the analytics keyGen fix (commit 74e24d06).
+      return `clients:list:${userId}:${req.baseUrl}${req.path}:${crypto.createHash('md5').update(query).digest('hex')}`;
     },
     condition: (req: Request) => req.method === 'GET',
   },
