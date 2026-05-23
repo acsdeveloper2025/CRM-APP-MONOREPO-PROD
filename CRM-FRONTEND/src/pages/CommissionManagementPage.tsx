@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,12 @@ import {
 } from 'lucide-react';
 import { FieldUserAssignmentsTab } from '@/components/commission/FieldUserAssignmentsTab';
 import { commissionManagementService } from '@/services/commissionManagement';
+import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 
 export const CommissionManagementPage: React.FC = () => {
+  const [isExporting, setIsExporting] = useState(false);
+
   // Fetch commission statistics
   const { data: statsData } = useQuery({
     queryKey: ['commission-stats'],
@@ -45,13 +49,34 @@ export const CommissionManagementPage: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          <Button variant="outline" size="sm" className="w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full sm:w-auto"
+            disabled={isExporting}
+            onClick={async () => {
+              setIsExporting(true);
+              try {
+                const blob = await commissionManagementService.exportToExcel();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `commission_management_${new Date().toISOString().split('T')[0]}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                toast.success('Commissions exported successfully');
+              } catch (error) {
+                logger.error('Failed to export commissions:', error);
+                toast.error('Failed to export commissions');
+              } finally {
+                setIsExporting(false);
+              }
+            }}
+          >
             <Download className="h-4 w-4 mr-2" />
-            Export Report
-          </Button>
-          <Button variant="outline" size="sm" className="w-full sm:w-auto">
-            <FileText className="h-4 w-4 mr-2" />
-            Documentation
+            {isExporting ? 'Exporting...' : 'Export Report'}
           </Button>
         </div>
       </div>
