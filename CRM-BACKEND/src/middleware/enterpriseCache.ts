@@ -452,7 +452,10 @@ export const EnterpriseCacheConfigs = {
     keyGenerator: (req: Request) => {
       const userId = (req as AuthenticatedRequest).user?.id || 'anon';
       const query = JSON.stringify(req.query);
-      return `verification-types:list:${userId}:${crypto.createHash('md5').update(query).digest('hex')}`;
+      // Include req.baseUrl+req.path so /verification-types/list,
+      // /verification-types/:id, etc. don't collide. Same shape as
+      // clientList + products fixes.
+      return `verification-types:list:${userId}:${req.baseUrl}${req.path}:${crypto.createHash('md5').update(query).digest('hex')}`;
     },
     condition: (req: Request) => req.method === 'GET',
   },

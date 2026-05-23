@@ -59,6 +59,20 @@ export function EditVerificationTypeDialog({
     }
   }, [verificationType, form]);
 
+  // Reset form to the current prop on close so edit-then-cancel-then-reopen
+  // of the SAME record doesn't show dirty values (useEffect deps would not
+  // re-fire on same-prop reopen).
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
+      form.reset({
+        name: verificationType.name,
+        code: verificationType.code || '',
+        isActive: verificationType.isActive ?? true,
+      });
+    }
+    onOpenChange(next);
+  };
+
   const updateMutation = useCRUDMutation({
     mutationFn: (data: EditVerificationTypeFormData) =>
       clientsService.updateVerificationType(verificationType.id, data),
@@ -67,7 +81,7 @@ export function EditVerificationTypeDialog({
     operation: 'update',
     additionalInvalidateKeys: [['verification-types-stats'], ['dashboard']],
     onSuccess: () => {
-      onOpenChange(false);
+      handleOpenChange(false);
     },
   });
 
@@ -76,7 +90,7 @@ export function EditVerificationTypeDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Verification Type</DialogTitle>
@@ -138,7 +152,7 @@ export function EditVerificationTypeDialog({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
                 className="w-full sm:w-auto"
                 disabled={updateMutation.isPending}
               >
