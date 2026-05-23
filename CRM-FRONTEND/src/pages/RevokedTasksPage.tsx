@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -9,118 +12,193 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
-import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
-import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
-import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
-import { useScopePageReset } from '@/hooks/useScopePageReset';
 import {
   UnifiedSearchFilterLayout,
   FilterGrid,
 } from '@/components/ui/unified-search-filter-layout';
-import { XCircle, AlertTriangle, RefreshCw, Package, UserCheck, Download } from 'lucide-react';
+import { TasksListFlat } from '@/components/verification-tasks/TasksListFlat';
+import { TaskAssignmentModal } from '@/components/verification-tasks/TaskAssignmentModal';
+import { useAllVerificationTasks } from '@/hooks/useVerificationTasks';
+import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { useScopePageReset } from '@/hooks/useScopePageReset';
+import { useActiveScope } from '@/hooks/useActiveScope';
 import { VerificationTasksService } from '@/services/verificationTasks';
-import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { XCircle, Calendar, Hourglass, UserCheck, Timer, Download, RefreshCw } from 'lucide-react';
 
-interface RevokedTaskFilters {
-  [key: string]: unknown;
-  priority?: string;
-}
+const PAGE_SIZE_OPTIONS = [20, 50, 100];
+
+const SORT_OPTIONS: Array<{
+  value: string;
+  label: string;
+  sortBy: string;
+  sortOrder: 'asc' | 'desc';
+}> = [
+  { value: 'createdAt_desc', label: 'Newest first', sortBy: 'createdAt', sortOrder: 'desc' },
+  { value: 'createdAt_asc', label: 'Oldest first', sortBy: 'createdAt', sortOrder: 'asc' },
+  { value: 'updatedAt_desc', label: 'Recently updated', sortBy: 'updatedAt', sortOrder: 'desc' },
+  { value: 'priority_desc', label: 'Priority (high → low)', sortBy: 'priority', sortOrder: 'desc' },
+  { value: 'taskNumber_asc', label: 'Task # (A → Z)', sortBy: 'taskNumber', sortOrder: 'asc' },
+];
+
+const REVOKED_STATUS = 'REVOKED';
 
 export const RevokedTasksPage: React.FC = () => {
   const navigate = useNavigate();
-
-  // Unified search with 800ms debounce
-  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
-    useUnifiedSearch({
-      syncWithUrl: true,
-    });
-
-  // Unified filters with URL sync
-  const {
-    filters: activeFilters,
-    setFilter,
-    clearFilters,
-    hasActiveFilters,
-  } = useUnifiedFilters<RevokedTaskFilters>({
-    syncWithUrl: true,
-  });
-
-  const [paginationState, setPaginationState] = useState({
-    page: 1,
-    limit: 20,
-    sortBy: 'revokedAt',
-    sortOrder: 'desc' as 'asc' | 'desc',
-    status: 'REVOKED',
-    // 2026-05-16: filter out revoked tasks that have already been
-    // reassigned — their replacement task now lives in the
-    // Assigned / In Progress tabs and there is no longer an action
-    // to take on the original revoked row.
-    reassignedFilter: 'awaiting' as 'awaiting' | 'reassigned' | 'all',
-  });
-
+  const [searchParams, setSearchParams] = useSearchParams();
   const [reassignTaskId, setReassignTaskId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const { selectedClientId, selectedProductId } = useActiveScope();
 
-  // P18.M-04: reset to page 1 on scope toggle.
-  useScopePageReset(() => setPaginationState((prev) => ({ ...prev, page: 1 })));
+  const page = Number(searchParams.get('page') || '1');
+  const pageSize = Number(searchParams.get('pageSize') || '20');
+  const priority = searchParams.get('priority') || 'all';
+  // Default reassignedFilter='awaiting' — that's the operator's queue
+  // (revoked tasks still needing a successor). User can flip to all/reassigned.
+  const reassignedFilter = searchParams.get('reassigned') || 'awaiting';
+  const sort = searchParams.get('sort') || 'updatedAt_desc';
+  const dateFrom = searchParams.get('dateFrom') || '';
+  const dateTo = searchParams.get('dateTo') || '';
 
-  const queryFilters = {
-    ...paginationState,
-    search: debouncedSearchValue || undefined,
-    priority: activeFilters.priority || undefined,
+  const sortPair = useMemo(
+    () => SORT_OPTIONS.find((o) => o.value === sort) || SORT_OPTIONS[2],
+    [sort]
+  );
+
+  const updateParam = (key: string, value: string | null) => {
+    const next = new URLSearchParams(searchParams);
+    if (value === null || value === '' || value === 'all') {
+      next.delete(key);
+    } else {
+      next.set(key, value);
+    }
+    setSearchParams(next, { replace: false });
   };
 
-  const { tasks, loading, error, pagination, statistics, refreshTasks } =
-    useAllVerificationTasks(queryFilters);
+  const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
+    useUnifiedSearch({ syncWithUrl: true });
 
-  const activeFilterCount = Object.keys(activeFilters).filter(
-    (key) => activeFilters[key as keyof RevokedTaskFilters] !== undefined
-  ).length;
+  useEffect(() => {
+    if (page !== 1 && searchParams.get('page')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('page');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearchValue, priority, reassignedFilter, sort, dateFrom, dateTo, pageSize]);
 
-  // B-153 (2026-05-16): card metrics from BE statistics aggregate scoped to
-  // status=REVOKED. Replaced the previous broken "Unique Cases" + "Field
-  // Agents" cards (page-paginated array counts; field-agent card was 0
-  // because revoke nulls assigned_to). Standard 5-card layout per design.
-  const totalRevoked = statistics?.revoked || pagination?.total || 0;
-  const highPriorityCount = (statistics?.highPriority || 0) + (statistics?.urgent || 0);
-  const revokedToday = statistics?.revokedToday || 0;
-  const reassigned = statistics?.reassigned || 0;
-  const awaitingReassignment = statistics?.awaitingReassignment || 0;
+  useScopePageReset(() => updateParam('page', null));
+
+  const baseFilters = {
+    status: REVOKED_STATUS,
+    priority: priority === 'all' ? undefined : priority,
+    reassignedFilter: reassignedFilter === 'all' ? undefined : reassignedFilter,
+    search: debouncedSearchValue || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+  };
+
+  const queryFilters = {
+    ...baseFilters,
+    page,
+    limit: pageSize,
+    sortBy: sortPair.sortBy,
+    sortOrder: sortPair.sortOrder,
+  };
+
+  const { tasks, loading, error, pagination, refreshTasks } = useAllVerificationTasks(queryFilters);
+
+  // 5-card stats — query without the reassignedFilter narrowing so all
+  // 4 lifecycle counters (Total / Today / Awaiting / Reassigned) reflect
+  // the full revoked population, not just the awaiting slice. The list
+  // table still respects the user's reassignedFilter selection.
+  const statsFilters = {
+    status: REVOKED_STATUS,
+    priority: priority === 'all' ? undefined : priority,
+    search: debouncedSearchValue || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+  };
+  const { data: stats } = useQuery({
+    queryKey: [
+      'verification-tasks-stats',
+      'revoked-tasks',
+      statsFilters,
+      { c: selectedClientId, p: selectedProductId },
+    ],
+    queryFn: () => VerificationTasksService.getStats({ ...statsFilters, excludeTaskType: 'KYC' }),
+  });
+
+  const activeFilterCount =
+    (priority !== 'all' ? 1 : 0) +
+    (reassignedFilter !== 'awaiting' ? 1 : 0) +
+    (dateFrom ? 1 : 0) +
+    (dateTo ? 1 : 0);
+
+  const clearAllFilters = () => {
+    const next = new URLSearchParams(searchParams);
+    ['priority', 'reassigned', 'dateFrom', 'dateTo', 'sort', 'page'].forEach((k) => next.delete(k));
+    setSearchParams(next, { replace: false });
+    clearSearch();
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      toast.info('Generating Excel export...');
+      const blob = await VerificationTasksService.exportToExcel({
+        ...baseFilters,
+        excludeTaskType: 'KYC',
+        sortBy: sortPair.sortBy,
+        sortOrder: sortPair.sortOrder,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `revoked_tasks_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success('Export downloaded successfully');
+    } catch (err) {
+      logger.error('Export failed:', err);
+      toast.error('Failed to export tasks');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleViewTask = (taskId: string) => {
     navigate(`/task-management/${taskId}`);
   };
-
   const handleViewCase = (caseId: string) => {
     if (caseId) {
       navigate(`/case-management/${caseId}`);
     }
   };
-
   const handleEditCase = (caseId: string, taskId?: string) => {
-    if (caseId) {
-      const url = taskId
-        ? `/case-management/create-new-case?edit=${caseId}&taskId=${taskId}`
-        : `/case-management/create-new-case?edit=${caseId}`;
-      navigate(url);
+    if (!caseId) {
+      return;
     }
+    const url = taskId
+      ? `/case-management/create-new-case?edit=${caseId}&taskId=${taskId}`
+      : `/case-management/create-new-case?edit=${caseId}`;
+    navigate(url);
   };
+
+  const totalPages = pagination.totalPages || 1;
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Revoke Tasks</h1>
-          <p className="mt-2 text-muted-foreground">
-            Verification tasks that have been revoked by field agents
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Revoked Tasks</h1>
+          <p className="text-sm text-muted-foreground">
+            Verification tasks that have been revoked by field agents.
           </p>
         </div>
       </div>
 
-      {/* Statistics Cards — 5-card standard layout */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-6">
@@ -128,7 +206,7 @@ export const RevokedTasksPage: React.FC = () => {
               <XCircle className="h-8 w-8 text-red-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">Total Revoked</p>
-                <p className="text-2xl font-bold text-foreground">{totalRevoked}</p>
+                <p className="text-2xl font-bold">{stats?.total ?? '—'}</p>
               </div>
             </div>
           </CardContent>
@@ -137,10 +215,22 @@ export const RevokedTasksPage: React.FC = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <AlertTriangle className="h-8 w-8 text-amber-600" />
+              <Calendar className="h-8 w-8 text-blue-600" />
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">Revoked Today</p>
+                <p className="text-2xl font-bold">{stats?.revokedToday ?? '—'}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Hourglass className="h-8 w-8 text-amber-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">Awaiting Reassignment</p>
-                <p className="text-2xl font-bold text-foreground">{awaitingReassignment}</p>
+                <p className="text-2xl font-bold">{stats?.awaitingReassignment ?? '—'}</p>
               </div>
             </div>
           </CardContent>
@@ -152,7 +242,7 @@ export const RevokedTasksPage: React.FC = () => {
               <UserCheck className="h-8 w-8 text-green-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">Reassigned</p>
-                <p className="text-2xl font-bold text-foreground">{reassigned}</p>
+                <p className="text-2xl font-bold">{stats?.reassigned ?? '—'}</p>
               </div>
             </div>
           </CardContent>
@@ -161,99 +251,129 @@ export const RevokedTasksPage: React.FC = () => {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <AlertTriangle className="h-8 w-8 text-orange-600" />
+              <Timer className="h-8 w-8 text-purple-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">High Priority</p>
-                <p className="text-2xl font-bold text-foreground">{highPriorityCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <Package className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Revoked Today</p>
-                <p className="text-2xl font-bold text-foreground">{revokedToday}</p>
+                <p className="text-sm font-medium text-muted-foreground">Avg Time-to-Reassign</p>
+                <p className="text-2xl font-bold">
+                  {stats?.avgTimeToReassignHours ? stats.avgTimeToReassignHours.toFixed(1) : '—'}
+                </p>
+                <p className="text-xs text-muted-foreground">Hours revoked → replacement</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Unified Search & Filter */}
       <UnifiedSearchFilterLayout
         searchValue={searchValue}
         onSearchChange={setSearchValue}
         onSearchClear={clearSearch}
         isSearchLoading={isDebouncing}
-        searchPlaceholder="Search by task number, case number, customer name..."
-        hasActiveFilters={hasActiveFilters}
+        searchPlaceholder="Search by task #, case #, customer, title, address..."
+        hasActiveFilters={activeFilterCount > 0}
         activeFilterCount={activeFilterCount}
-        onClearFilters={clearFilters}
+        onClearFilters={clearAllFilters}
         filterContent={
-          <FilterGrid columns={3}>
-            <div className="space-y-2">
-              <Label htmlFor="priority">Priority</Label>
+          <FilterGrid columns={4}>
+            <div className="space-y-1">
+              <Label htmlFor="reassigned">Reassignment</Label>
               <Select
-                value={activeFilters.priority || 'all'}
-                onValueChange={(value) =>
-                  setFilter('priority', value === 'all' ? undefined : value)
-                }
+                value={reassignedFilter}
+                onValueChange={(v) => updateParam('reassigned', v === 'awaiting' ? null : v)}
               >
+                <SelectTrigger id="reassigned">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="awaiting">Awaiting</SelectItem>
+                  <SelectItem value="reassigned">Reassigned</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="priority">Priority</Label>
+              <Select value={priority} onValueChange={(v) => updateParam('priority', v)}>
                 <SelectTrigger id="priority">
-                  <SelectValue placeholder="All Priorities" />
+                  <SelectValue placeholder="All priorities" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Priorities</SelectItem>
-                  <SelectItem value="URGENT">Urgent</SelectItem>
-                  <SelectItem value="HIGH">High</SelectItem>
-                  <SelectItem value="MEDIUM">Medium</SelectItem>
                   <SelectItem value="LOW">Low</SelectItem>
+                  <SelectItem value="MEDIUM">Medium</SelectItem>
+                  <SelectItem value="HIGH">High</SelectItem>
+                  <SelectItem value="URGENT">Urgent</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="sort">Sort by</Label>
+              <Select value={sort} onValueChange={(v) => updateParam('sort', v)}>
+                <SelectTrigger id="sort">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SORT_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="dateFrom">Date From</Label>
+              <Input
+                id="dateFrom"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => updateParam('dateFrom', e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="dateTo">Date To</Label>
+              <Input
+                id="dateTo"
+                type="date"
+                value={dateTo}
+                onChange={(e) => updateParam('dateTo', e.target.value)}
+              />
             </div>
           </FilterGrid>
         }
         actions={
-          <div className="flex gap-2">
+          <>
             <Button
               variant="outline"
-              onClick={async () => {
-                try {
-                  toast.info('Generating Excel export...');
-                  const blob = await VerificationTasksService.exportToExcel({ status: 'REVOKED' });
-                  const url = window.URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `revoked_tasks_${new Date().toISOString().split('T')[0]}.xlsx`;
-                  a.click();
-                  window.URL.revokeObjectURL(url);
-                  toast.success('Export downloaded');
-                } catch (err) {
-                  logger.error('Export failed:', err);
-                  toast.error('Export failed');
-                }
-              }}
+              size="sm"
+              onClick={handleExport}
+              disabled={isExporting || loading}
             >
               <Download className="h-4 w-4 mr-2" />
-              Export
+              {isExporting ? 'Exporting…' : 'Export'}
             </Button>
-            <Button variant="outline" onClick={() => refreshTasks()} disabled={loading}>
+            <Button variant="outline" size="sm" onClick={() => refreshTasks()} disabled={loading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-          </div>
+          </>
         }
       />
 
-      {/* Tasks List */}
       {error && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="py-4">
-            <p className="text-red-600">Error loading tasks: {error}</p>
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-destructive">
+              Could not load tasks. Check your connection and try again.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refreshTasks()}
+              className="border-destructive text-destructive hover:bg-destructive/20"
+            >
+              Retry
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -278,39 +398,55 @@ export const RevokedTasksPage: React.FC = () => {
         />
       )}
 
-      {/* Pagination - Always show for better UX */}
       {pagination.total > 0 && (
         <Card>
           <CardContent className="py-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <p className="text-sm text-muted-foreground">
-                Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
-                {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                {pagination.total} tasks
+                Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, pagination.total)}{' '}
+                of {pagination.total} tasks
               </p>
-              {pagination.totalPages > 1 && (
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPaginationState((prev) => ({ ...prev, page: prev.page - 1 }))}
-                    disabled={pagination.page === 1}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="pageSize" className="text-sm">
+                    Rows
+                  </Label>
+                  <Select
+                    value={String(pageSize)}
+                    onValueChange={(v) => updateParam('pageSize', v === '20' ? null : v)}
                   >
-                    Previous
-                  </Button>
-                  <span className="text-sm">
-                    Page {pagination.page} of {pagination.totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPaginationState((prev) => ({ ...prev, page: prev.page + 1 }))}
-                    disabled={pagination.page === pagination.totalPages}
-                  >
-                    Next
-                  </Button>
+                    <SelectTrigger id="pageSize" className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAGE_SIZE_OPTIONS.map((n) => (
+                        <SelectItem key={n} value={String(n)}>
+                          {n}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => updateParam('page', page <= 2 ? null : String(page - 1))}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => updateParam('page', String(page + 1))}
+                  disabled={page >= totalPages}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
