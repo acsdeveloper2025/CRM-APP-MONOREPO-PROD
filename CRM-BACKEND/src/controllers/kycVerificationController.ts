@@ -20,6 +20,126 @@ import { getScopedOperationalUserIds } from '@/security/userScope';
 import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
 import { enforceBackendUserCaseScope } from '@/controllers/attachmentsController';
+import { createAuditLog } from '@/utils/auditLogger';
+
+// =====================================================
+// Module-scope export + sort constants (filter-sweep 2026-05-23)
+// =====================================================
+//
+// Single source of WHERE-truth for list + export + stats. Mirrors the
+// canonical pattern locked in invoicesController / verificationTasksController /
+// casesController. Any new filter goes in `buildKycTasksBaseWhereClause`
+// ONCE and all 3 endpoints inherit it (closes the export-vs-list drift
+// class).
+const KYC_EXPORT_ROW_LIMIT = 10000;
+const KYC_TASKS_SORT_MAP: Record<string, string> = {
+  createdAt: 'kdv.created_at',
+  documentType: 'kdt.code',
+  verificationStatus: 'kdv.verification_status',
+  customerName: 'c.customer_name',
+  caseNumber: 'c.case_id',
+  verifiedAt: 'kdv.verified_at',
+  assignedAt: 'kdv.assigned_at',
+};
+
+type KycBaseWhereResult = {
+  baseConditions: string[];
+  baseParams: QueryParams;
+  baseParamIndex: number;
+};
+
+/**
+ * Build BASE WHERE clause for KYC tasks — scope + soft-delete only.
+ * Caller (list / export / stats) appends user filters (status / statusNot /
+ * documentType / caseId / search / dateFrom / dateTo) as needed; stats
+ * intentionally omits them so partition counters reflect the full
+ * in-scope KYC pool.
+ *
+ * Preserves all three-tier scope branches (P13.F / P15.M-7):
+ *   - SUPER_ADMIN bypass
+ *   - field-execution actors (assigned_to = self)
+ *   - scoped-ops (hierarchy / assigned client+product) + activeScope overlay
+ * + NEW-CRIT-1 soft-delete filter unconditionally.
+ */
+async function buildKycTasksBaseWhereClause(
+  req: AuthenticatedRequest
+): Promise<KycBaseWhereResult> {
+  const baseConditions: string[] = [];
+  const baseParams: QueryParams = [];
+  let baseParamIndex = 1;
+
+  const isAdmin = hasSystemScopeBypass(req.user);
+  const isExecutionActor = isFieldExecutionActor(req.user);
+  const isScopedOps = isScopedOperationsUser(req.user);
+
+  if (req.user?.id && !isAdmin) {
+    const userId = req.user.id;
+    if (isExecutionActor) {
+      baseConditions.push(
+        `(kdv.assigned_to = $${baseParamIndex} OR vt.assigned_to = $${baseParamIndex})`
+      );
+      baseParams.push(userId);
+      baseParamIndex++;
+    } else if (isScopedOps) {
+      const hierarchyUserIds = await getScopedOperationalUserIds(userId);
+      if (hierarchyUserIds) {
+        if (hierarchyUserIds.length === 0) {
+          baseConditions.push('FALSE');
+        } else {
+          baseConditions.push(
+            `(c.created_by_backend_user = ANY($${baseParamIndex}::uuid[]) OR vt.assigned_to = ANY($${baseParamIndex}::uuid[]))`
+          );
+          baseParams.push(hierarchyUserIds);
+          baseParamIndex++;
+        }
+      } else {
+        let effectiveClientIds = await getAssignedClientIds(userId);
+        let effectiveProductIds = await getAssignedProductIds(userId);
+        if (req.activeScope?.clientId != null && effectiveClientIds) {
+          effectiveClientIds = effectiveClientIds.includes(req.activeScope.clientId)
+            ? [req.activeScope.clientId]
+            : [-1];
+        }
+        if (req.activeScope?.productId != null && effectiveProductIds) {
+          effectiveProductIds = effectiveProductIds.includes(req.activeScope.productId)
+            ? [req.activeScope.productId]
+            : [-1];
+        }
+        if (!effectiveClientIds || effectiveClientIds.length === 0) {
+          baseConditions.push('FALSE');
+        } else {
+          baseConditions.push(`c.client_id = ANY($${baseParamIndex}::int[])`);
+          baseParams.push(effectiveClientIds);
+          baseParamIndex++;
+        }
+        if (!effectiveProductIds || effectiveProductIds.length === 0) {
+          baseConditions.push('FALSE');
+        } else {
+          baseConditions.push(`c.product_id = ANY($${baseParamIndex}::int[])`);
+          baseParams.push(effectiveProductIds);
+          baseParamIndex++;
+        }
+      }
+      // Active scope still applies on top of the hierarchy branch.
+      if (req.activeScope?.clientId != null) {
+        baseConditions.push(`c.client_id = $${baseParamIndex}`);
+        baseParams.push(req.activeScope.clientId);
+        baseParamIndex++;
+      }
+      if (req.activeScope?.productId != null) {
+        baseConditions.push(`c.product_id = $${baseParamIndex}`);
+        baseParams.push(req.activeScope.productId);
+        baseParamIndex++;
+      }
+    }
+  }
+
+  // NEW-CRIT-1 (AUDIT 2026-05-17): soft-delete filter unconditional
+  // across list + export + stats — DPDP erasure intent.
+  baseConditions.push('kdv.deleted_at IS NULL');
+
+  return { baseConditions, baseParams, baseParamIndex };
+}
 
 /**
  * P15.M-6: row-level scope helper used by every KYC handler that
@@ -156,122 +276,46 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
       statusNot,
       documentType,
       search,
-      sortBy = 'created_at',
+      sortBy = 'createdAt',
       sortOrder = 'desc',
       caseId,
+      dateFrom,
+      dateTo,
     } = req.query;
 
     const pageNum = Math.max(1, parseInt(page as string));
     const limitNum = Math.min(100, Math.max(1, parseInt(limit as string)));
     const offset = (pageNum - 1) * limitNum;
 
-    const conditions: string[] = [];
-    const params: QueryParams = [];
-    let paramIndex = 1;
+    // BASE WHERE via shared helper (scope + soft-delete; used by stats too).
+    const baseWhere = await buildKycTasksBaseWhereClause(req);
+    const conditions = [...baseWhere.baseConditions];
+    const params = [...baseWhere.baseParams];
+    let paramIndex = baseWhere.baseParamIndex;
 
-    // P13.F — full scope enforcement. Previously this handler emitted
-    // every KYC record in the database to anyone with the route
-    // permission. We rebuild the WHERE here using the same three-tier
-    // pattern the rest of the operational controllers use:
-    //   1. SUPER_ADMIN / settings.manage → no scope filter
-    //   2. field-execution actors → kdv.assigned_to OR vt.assigned_to = self
-    //   3. scoped-operations users → either hierarchy (creator + team)
-    //      or baseline assigned-client/product narrowing, intersected
-    //      with req.activeScope.
-    const isAdmin = hasSystemScopeBypass(req.user);
-    const isExecutionActor = isFieldExecutionActor(req.user);
-    const isScopedOps = isScopedOperationsUser(req.user);
-    if (req.user?.id && !isAdmin) {
-      const userId = req.user.id;
-      if (isExecutionActor) {
-        conditions.push(`(kdv.assigned_to = $${paramIndex} OR vt.assigned_to = $${paramIndex})`);
-        params.push(userId);
-        paramIndex++;
-      } else if (isScopedOps) {
-        const hierarchyUserIds = await getScopedOperationalUserIds(userId);
-        if (hierarchyUserIds) {
-          if (hierarchyUserIds.length === 0) {
-            conditions.push('FALSE');
-          } else {
-            conditions.push(
-              `(c.created_by_backend_user = ANY($${paramIndex}::uuid[]) OR vt.assigned_to = ANY($${paramIndex}::uuid[]))`
-            );
-            params.push(hierarchyUserIds);
-            paramIndex++;
-          }
-        } else {
-          let effectiveClientIds = await getAssignedClientIds(userId);
-          let effectiveProductIds = await getAssignedProductIds(userId);
-          if (req.activeScope?.clientId != null && effectiveClientIds) {
-            effectiveClientIds = effectiveClientIds.includes(req.activeScope.clientId)
-              ? [req.activeScope.clientId]
-              : [-1];
-          }
-          if (req.activeScope?.productId != null && effectiveProductIds) {
-            effectiveProductIds = effectiveProductIds.includes(req.activeScope.productId)
-              ? [req.activeScope.productId]
-              : [-1];
-          }
-          if (!effectiveClientIds || effectiveClientIds.length === 0) {
-            conditions.push('FALSE');
-          } else {
-            conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
-            params.push(effectiveClientIds);
-            paramIndex++;
-          }
-          if (!effectiveProductIds || effectiveProductIds.length === 0) {
-            conditions.push('FALSE');
-          } else {
-            conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
-            params.push(effectiveProductIds);
-            paramIndex++;
-          }
-        }
-
-        // Active scope still applies on top of the hierarchy branch so
-        // that a creator who has access to multiple clients via their
-        // hierarchy cannot bypass Demo-Mode narrowing.
-        if (req.activeScope?.clientId != null) {
-          conditions.push(`c.client_id = $${paramIndex}`);
-          params.push(req.activeScope.clientId);
-          paramIndex++;
-        }
-        if (req.activeScope?.productId != null) {
-          conditions.push(`c.product_id = $${paramIndex}`);
-          params.push(req.activeScope.productId);
-          paramIndex++;
-        }
-      }
-    }
-
+    // USER FILTERS (NOT applied to stats — see getKYCTaskStats below).
     if (status && status !== 'ALL') {
       conditions.push(`kdv.verification_status = $${paramIndex}`);
       params.push(status as string);
       paramIndex++;
     }
-
-    // Exclude a status (e.g. ?statusNot=PENDING for completed KYC page)
     if (statusNot) {
       conditions.push(`kdv.verification_status != $${paramIndex}`);
       params.push(statusNot as string);
       paramIndex++;
     }
-
     if (documentType) {
-      // F8.2.2: API still receives the code string; resolve to FK id at filter time
       conditions.push(
         `kdv.document_type_id = (SELECT id FROM document_types WHERE code = $${paramIndex} AND is_active = true LIMIT 1)`
       );
       params.push(documentType as string);
       paramIndex++;
     }
-
     if (caseId) {
       conditions.push(`kdv.case_id = $${paramIndex}`);
       params.push(caseId as string);
       paramIndex++;
     }
-
     if (search) {
       conditions.push(
         `(c.customer_name ILIKE $${paramIndex} OR kdv.document_number ILIKE $${paramIndex} OR kdv.document_holder_name ILIKE $${paramIndex})`
@@ -279,22 +323,22 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
       params.push(`%${search as string}%`);
       paramIndex++;
     }
+    if (dateFrom) {
+      conditions.push(`kdv.created_at >= $${paramIndex}`);
+      params.push(dateFrom as string);
+      paramIndex++;
+    }
+    if (dateTo) {
+      // Canonical inclusive-end-of-day semantic (mirrors invoices/MIS/tasks/cases).
+      conditions.push(`kdv.created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
+      params.push(dateTo as string);
+      paramIndex++;
+    }
 
-    // NEW-CRIT-1 (AUDIT 2026-05-17): soft-delete filter is unconditional —
-    // hide deleted KYC docs from list + count + stats.
-    conditions.unshift('kdv.deleted_at IS NULL');
     const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
-    // API contract: sortBy is sent as camelCase by the frontend; we map it to
-    // the snake_case DB column here.
-    const allowedSortColumns: Record<string, string> = {
-      createdAt: 'kdv.created_at',
-      documentType: 'kdt.code',
-      verificationStatus: 'kdv.verification_status',
-      customerName: 'c.customer_name',
-      caseNumber: 'c.case_id',
-    };
-    const sortCol = allowedSortColumns[sortBy as string] || 'kdv.created_at';
+    // Sort via shared module-scope KYC_TASKS_SORT_MAP.
+    const sortCol = KYC_TASKS_SORT_MAP[sortBy as string] || 'kdv.created_at';
     const sortDir = (sortOrder as string)?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
     // Count — JOIN vt added so scope conditions that reference
@@ -354,55 +398,13 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
       [...params, limitNum, offset]
     );
 
-    // Stats — same scope conditions as the list, applied via the
-    // joined whereClause. The stats query previously ran unscoped
-    // (`WHERE deleted_at IS NULL`) and leaked global KYC counts to
-    // every authorised user; now it mirrors the list scope so a HDFC
-    // scope sees only HDFC KYC totals. The status/documentType/etc.
-    // user filters are intentionally NOT applied to stats so the cards
-    // continue to show "ALL pending / completed" totals within scope
-    // (matches the FE expectation that switching the status filter
-    // leaves the stat cards unchanged).
-    const statsConditions = conditions.filter(
-      c =>
-        !c.startsWith('kdv.verification_status') &&
-        !c.startsWith('kdv.document_type_id') &&
-        !c.startsWith('kdv.case_id') &&
-        !c.startsWith('(c.customer_name') // search filter
-    );
-    const statsParamsCount: QueryParams = [];
-    // Rebuild params in the order they appear in statsConditions by
-    // replaying the same indexing logic — easier to just rerun the
-    // scope-only path. Since the filtered-out conditions are the
-    // tail of the conditions list (added after the scope block),
-    // statsParamsCount is simply the first N params consumed by the
-    // surviving conditions. We track this by counting how many of the
-    // ORIGINAL conditions (before the user filters) we added.
-    // Simplest: count the leading scope conditions vs the user
-    // filters. The scope block above pushes a contiguous prefix.
-    const userFilterStarted = conditions.findIndex(
-      c =>
-        c.startsWith('kdv.verification_status') ||
-        c.startsWith('kdv.document_type_id') ||
-        c.startsWith('kdv.case_id') ||
-        c.startsWith('(c.customer_name')
-    );
-    const scopeConditionCount = userFilterStarted === -1 ? conditions.length : userFilterStarted;
-    // Walk conditions to count placeholders → maps to params length.
-    let scopeParamCount = 0;
-    for (let i = 0; i < scopeConditionCount; i++) {
-      const matches = conditions[i].match(/\$\d+/g);
-      if (matches) {
-        // De-duplicate $N references within a single condition (e.g.
-        // the execution-actor self-OR uses $N twice).
-        scopeParamCount += new Set(matches).size;
-      }
-    }
-    for (let i = 0; i < scopeParamCount; i++) {
-      statsParamsCount.push(params[i]);
-    }
-    const statsWhereClause =
-      statsConditions.length > 0 ? `WHERE ${statsConditions.join(' AND ')}` : '';
+    // Stats — uses ONLY the base WHERE (scope + soft-delete). User filters
+    // (status/documentType/caseId/search/date) are intentionally omitted
+    // so partition counters reflect the full in-scope KYC pool regardless
+    // of the active route narrowing. Replaces the prior brittle string-
+    // filtering with a clean second call to the shared helper.
+    const statsWhereClause = `WHERE ${baseWhere.baseConditions.join(' AND ')}`;
+    const statsParamsCount = baseWhere.baseParams;
     const statsResult = await query(
       `SELECT
         COUNT(*) as total,
@@ -442,6 +444,95 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
 };
 
 // Get single KYC task detail
+/**
+ * Canonical 5-card stats endpoint for /kyc-verification/* dashboard pages.
+ * GET /api/kyc/tasks/stats
+ *
+ * Returns aggregates over the scope-narrowed KYC pool (ignores route-
+ * specific status/statusNot/documentType/search filters — partition
+ * counters reflect the FULL in-scope KYC tasks so cards stay meaningful
+ * regardless of which route the user is on).
+ */
+export const getKYCTaskStats = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const baseWhere = await buildKycTasksBaseWhereClause(req);
+    const whereClause =
+      baseWhere.baseConditions.length > 0 ? `WHERE ${baseWhere.baseConditions.join(' AND ')}` : '';
+
+    const result = await query(
+      `SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE kdv.verification_status = 'PENDING') as pending,
+        COUNT(*) FILTER (WHERE kdv.verification_status = 'ASSIGNED') as assigned,
+        COUNT(*) FILTER (WHERE kdv.verification_status = 'IN_PROGRESS') as "inProgress",
+        COUNT(*) FILTER (WHERE kdv.verification_status = 'COMPLETED') as completed,
+        COUNT(*) FILTER (WHERE kdv.verification_status = 'REVOKED') as revoked,
+        COUNT(*) FILTER (WHERE kdv.verification_status IN ('PENDING','ASSIGNED','IN_PROGRESS')) as open,
+        COUNT(*) FILTER (WHERE kdv.final_status = 'Positive') as positive,
+        COUNT(*) FILTER (WHERE kdv.final_status = 'Negative') as negative,
+        COUNT(*) FILTER (WHERE kdv.final_status = 'Refer') as referred,
+        COUNT(*) FILTER (WHERE kdv.final_status = 'Fraud') as fraud,
+        COUNT(*) FILTER (
+          WHERE kdv.verification_status = 'COMPLETED' AND kdv.verified_at >= CURRENT_DATE
+        ) as "completedToday",
+        COUNT(*) FILTER (
+          WHERE kdv.verification_status = 'COMPLETED'
+          AND kdv.verified_at >= date_trunc('week', CURRENT_DATE)
+        ) as "completedThisWeek",
+        COUNT(*) FILTER (
+          WHERE kdv.verification_status NOT IN ('COMPLETED','REVOKED')
+          AND kdv.created_at < NOW() - INTERVAL '3 days'
+        ) as "agingOver3Days",
+        AVG(EXTRACT(EPOCH FROM (kdv.verified_at - kdv.created_at)) / 3600.0) FILTER (
+          WHERE kdv.verification_status = 'COMPLETED' AND kdv.verified_at IS NOT NULL
+        ) as "avgVerifyHours"
+       FROM kyc_document_verifications kdv
+       JOIN cases c ON c.id = kdv.case_id
+       JOIN verification_tasks vt ON vt.id = kdv.verification_task_id
+       ${whereClause}`,
+      baseWhere.baseParams
+    );
+
+    const row = result.rows[0] || {};
+    const num = (key: string): number => parseInt(row[key] || '0', 10);
+    const flt = (key: string): number => parseFloat(row[key] || '0');
+
+    const completed = num('completed');
+    const positive = num('positive');
+    const positiveRate = completed > 0 ? Math.round((positive / completed) * 100) : 0;
+
+    res.json({
+      success: true,
+      data: {
+        total: num('total'),
+        pending: num('pending'),
+        assigned: num('assigned'),
+        inProgress: num('inProgress'),
+        completed,
+        revoked: num('revoked'),
+        open: num('open'),
+        positive,
+        negative: num('negative'),
+        referred: num('referred'),
+        fraud: num('fraud'),
+        positiveRate,
+        completedToday: num('completedToday'),
+        completedThisWeek: num('completedThisWeek'),
+        agingOver3Days: num('agingOver3Days'),
+        avgVerifyHours: flt('avgVerifyHours'),
+      },
+      message: 'KYC task stats retrieved successfully',
+    });
+  } catch (error) {
+    logger.error('Error getting KYC task stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get KYC task stats',
+      error: { code: 'INTERNAL_ERROR' },
+    });
+  }
+};
+
 export const getKYCTaskDetail = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const taskId = String(req.params.taskId || '');
@@ -838,90 +929,37 @@ export const getKYCTasksForCase = async (req: AuthenticatedRequest, res: Respons
 // Export KYC data as Excel (one row per document per case)
 export const exportKYCToExcel = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { status, documentType, dateFrom, dateTo } = req.query;
+    const { status, statusNot, documentType, search, dateFrom, dateTo, sortBy, sortOrder } =
+      req.query;
 
-    const conditions: string[] = [];
-    const params: QueryParams = [];
-    let paramIndex = 1;
-
-    // P15.M-7: full three-tier scope identical to listKYCTasks (P13.F).
-    // Without this the Excel export was a global multi-tenant dump for
-    // anyone with the route permission. Order matters: scope conditions
-    // come BEFORE user filters so they always apply.
-    const isAdmin = hasSystemScopeBypass(req.user);
-    const isExecutionActor = isFieldExecutionActor(req.user);
-    const isScopedOps = isScopedOperationsUser(req.user);
-    if (req.user?.id && !isAdmin) {
-      const userId = req.user.id;
-      if (isExecutionActor) {
-        conditions.push(`(kdv.assigned_to = $${paramIndex} OR vt.assigned_to = $${paramIndex})`);
-        params.push(userId);
-        paramIndex++;
-      } else if (isScopedOps) {
-        const hierarchyUserIds = await getScopedOperationalUserIds(userId);
-        if (hierarchyUserIds) {
-          if (hierarchyUserIds.length === 0) {
-            conditions.push('FALSE');
-          } else {
-            conditions.push(
-              `(c.created_by_backend_user = ANY($${paramIndex}::uuid[]) OR vt.assigned_to = ANY($${paramIndex}::uuid[]))`
-            );
-            params.push(hierarchyUserIds);
-            paramIndex++;
-          }
-        } else {
-          let effectiveClientIds = await getAssignedClientIds(userId);
-          let effectiveProductIds = await getAssignedProductIds(userId);
-          if (req.activeScope?.clientId != null && effectiveClientIds) {
-            effectiveClientIds = effectiveClientIds.includes(req.activeScope.clientId)
-              ? [req.activeScope.clientId]
-              : [-1];
-          }
-          if (req.activeScope?.productId != null && effectiveProductIds) {
-            effectiveProductIds = effectiveProductIds.includes(req.activeScope.productId)
-              ? [req.activeScope.productId]
-              : [-1];
-          }
-          if (!effectiveClientIds || effectiveClientIds.length === 0) {
-            conditions.push('FALSE');
-          } else {
-            conditions.push(`c.client_id = ANY($${paramIndex}::int[])`);
-            params.push(effectiveClientIds);
-            paramIndex++;
-          }
-          if (!effectiveProductIds || effectiveProductIds.length === 0) {
-            conditions.push('FALSE');
-          } else {
-            conditions.push(`c.product_id = ANY($${paramIndex}::int[])`);
-            params.push(effectiveProductIds);
-            paramIndex++;
-          }
-        }
-        // Active scope still applies on top of hierarchy.
-        if (req.activeScope?.clientId != null) {
-          conditions.push(`c.client_id = $${paramIndex}`);
-          params.push(req.activeScope.clientId);
-          paramIndex++;
-        }
-        if (req.activeScope?.productId != null) {
-          conditions.push(`c.product_id = $${paramIndex}`);
-          params.push(req.activeScope.productId);
-          paramIndex++;
-        }
-      }
-    }
+    // BASE WHERE via shared helper (lockstep with /kyc/tasks list + /kyc/tasks/stats).
+    const baseWhere = await buildKycTasksBaseWhereClause(req);
+    const conditions = [...baseWhere.baseConditions];
+    const params: QueryParams = [...baseWhere.baseParams];
+    let paramIndex = baseWhere.baseParamIndex;
 
     if (status && status !== 'ALL') {
       conditions.push(`kdv.verification_status = $${paramIndex}`);
       params.push(status as string);
       paramIndex++;
     }
+    if (statusNot) {
+      conditions.push(`kdv.verification_status != $${paramIndex}`);
+      params.push(statusNot as string);
+      paramIndex++;
+    }
     if (documentType) {
-      // F8.2.2: API still receives the code string; resolve to FK id at filter time
       conditions.push(
         `kdv.document_type_id = (SELECT id FROM document_types WHERE code = $${paramIndex} AND is_active = true LIMIT 1)`
       );
       params.push(documentType as string);
+      paramIndex++;
+    }
+    if (search) {
+      conditions.push(
+        `(c.customer_name ILIKE $${paramIndex} OR kdv.document_number ILIKE $${paramIndex} OR kdv.document_holder_name ILIKE $${paramIndex})`
+      );
+      params.push(`%${search as string}%`);
       paramIndex++;
     }
     if (dateFrom) {
@@ -930,15 +968,22 @@ export const exportKYCToExcel = async (req: AuthenticatedRequest, res: Response)
       paramIndex++;
     }
     if (dateTo) {
-      conditions.push(`kdv.created_at <= $${paramIndex}`);
+      // Canonical inclusive-end-of-day semantic.
+      conditions.push(`kdv.created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
       params.push(dateTo as string);
       paramIndex++;
     }
 
-    // NEW-CRIT-1 (AUDIT 2026-05-17): soft-delete filter is unconditional —
-    // hide deleted KYC docs from list + count + stats.
-    conditions.unshift('kdv.deleted_at IS NULL');
     const whereClause = `WHERE ${conditions.join(' AND ')}`;
+
+    // Sort via shared KYC_TASKS_SORT_MAP — operators expect xlsx ORDER to
+    // match the on-screen list (filter-sweep §6 audit invariant).
+    const sortCol = KYC_TASKS_SORT_MAP[sortBy as string] || 'kdv.created_at';
+    const sortDir = (sortOrder as string)?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+
+    // 10k row cap via SQL LIMIT.
+    const limitParamIndex = paramIndex;
+    params.push(KYC_EXPORT_ROW_LIMIT);
 
     const result = await query(
       `SELECT
@@ -965,9 +1010,22 @@ export const exportKYCToExcel = async (req: AuthenticatedRequest, res: Response)
        LEFT JOIN users u_verified ON u_verified.id = kdv.verified_by
        LEFT JOIN users u_assigned ON u_assigned.id = kdv.assigned_to
        ${whereClause}
-       ORDER BY c.case_id, kdt.sort_order, kdv.created_at`,
+       ORDER BY ${sortCol} ${sortDir} NULLS LAST
+       LIMIT $${limitParamIndex}`,
       params
     );
+
+    // DPDP §11 audit row PRE-stream (mirrors CASE_EXPORTED / INVOICE_EXPORTED
+    // / TASK_EXPORTED). Captured before the network write starts so the
+    // intent is logged even if streaming fails partway.
+    await createAuditLog({
+      action: 'KYC_EXPORTED',
+      entityType: 'KYC_DOCUMENT_VERIFICATION',
+      userId: req.user?.id,
+      details: { rowCount: result.rows.length, filters: req.query },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
 
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'CRM System';

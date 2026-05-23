@@ -9,6 +9,7 @@ import { validateProductAccess } from '@/middleware/productAccess';
 import {
   listDocumentTypes,
   listKYCTasks,
+  getKYCTaskStats,
   getKYCTaskDetail,
   verifyKYCDocument,
   assignKYCTask,
@@ -16,6 +17,7 @@ import {
   getKYCTasksForCase,
   exportKYCToExcel,
 } from '@/controllers/kycVerificationController';
+import { EnterpriseCache, EnterpriseCacheConfigs } from '@/middleware/enterpriseCache';
 
 const router = express.Router();
 
@@ -71,6 +73,17 @@ router.get(
 
 // KYC task listing (dashboard)
 router.get('/tasks', authorize('kyc.view'), listKYCTasks);
+
+// 5-card stats for /kyc-verification/* pages.
+// MUST come before /tasks/:taskId (Express matches in declaration order
+// — /tasks/:taskId would also match /tasks/stats otherwise). Cached via
+// EnterpriseCacheConfigs.analytics (baseUrl+path keyGen, collision-safe).
+router.get(
+  '/tasks/stats',
+  authorize('kyc.view'),
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
+  getKYCTaskStats
+);
 
 // KYC tasks for a specific case
 // 2026-05-05 (bug 48): widen to include case.view so case creators
