@@ -22,16 +22,45 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   UnifiedSearchFilterLayout,
   FilterGrid,
 } from '@/components/ui/unified-search-filter-layout';
-import { Calculator, Download, Calendar } from 'lucide-react';
+import {
+  Calculator,
+  Download,
+  Calendar,
+  MoreHorizontal,
+  CheckCircle,
+  DollarSign,
+} from 'lucide-react';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
+import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
+import { usePermission } from '@/hooks/usePermissions';
 import { commissionManagementApi } from '../../services/commissionManagementApi';
 import { commissionManagementService } from '../../services/commissionManagement';
+import { billingService } from '@/services/billing';
 import { CommissionCalculation } from '../../types/commission';
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
+
+type ConfirmAction = { action: 'approve' | 'markPaid'; row: CommissionCalculation } | null;
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
@@ -55,6 +84,37 @@ export const CommissionCalculationsTab: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalRows, setTotalRows] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
+  const [confirm, setConfirm] = useState<ConfirmAction>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const canApprove = usePermission('billing.approve');
+
+  const refetch = () => setReloadKey((k) => k + 1);
+
+  const approveMutation = useMutationWithInvalidation({
+    mutationFn: (id: string) => billingService.approveCommission(id),
+    invalidateKeys: [['commission-stats']],
+    successMessage: 'Commission approved',
+    errorContext: 'Commission Approval',
+    errorFallbackMessage: 'Failed to approve commission',
+    onSuccess: () => {
+      setConfirm(null);
+      refetch();
+    },
+  });
+
+  const markPaidMutation = useMutationWithInvalidation({
+    mutationFn: (id: string) => billingService.markCommissionPaid(id),
+    invalidateKeys: [['commission-stats']],
+    successMessage: 'Commission marked as paid',
+    errorContext: 'Commission Mark Paid',
+    errorFallbackMessage: 'Failed to mark commission as paid',
+    onSuccess: () => {
+      setConfirm(null);
+      refetch();
+    },
+  });
+
+  const mutationPending = approveMutation.isPending || markPaidMutation.isPending;
 
   // URL state — every filter survives reload + is shareable.
   const page = Number(searchParams.get('page') || '1');
@@ -134,6 +194,7 @@ export const CommissionCalculationsTab: React.FC = () => {
     dateTo,
     sortPair.sortBy,
     sortPair.sortOrder,
+    reloadKey,
   ]);
 
   const formatMonth = (dateString: string): string => {
@@ -275,12 +336,13 @@ export const CommissionCalculationsTab: React.FC = () => {
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Commission</TableHead>
                   <TableHead>Month</TableHead>
+                  {canApprove && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {calculations.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-64 text-center">
+                    <TableCell colSpan={canApprove ? 9 : 8} className="h-64 text-center">
                       <div className="flex flex-col items-center justify-center text-muted-foreground">
                         <Calculator className="h-12 w-12 mb-4" />
                         <p className="text-lg font-semibold">No commission calculations found</p>
@@ -343,6 +405,57 @@ export const CommissionCalculationsTab: React.FC = () => {
                           <span className="text-sm">{formatMonth(calculation.createdAt)}</span>
                         </div>
                       </TableCell>
+                      {canApprove && (
+                        <TableCell className="text-right">
+                          {(() => {
+                            const rowStatus = (calculation.status || 'PENDING').toUpperCase();
+                            const canRowApprove = rowStatus === 'PENDING';
+                            const canRowMarkPaid = rowStatus === 'APPROVED';
+                            if (!canRowApprove && !canRowMarkPaid) {
+                              return (
+                                <span className="text-xs text-muted-foreground">No actions</span>
+                              );
+                            }
+                            return (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    aria-label="Open actions"
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  {canRowApprove && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        setConfirm({ action: 'approve', row: calculation })
+                                      }
+                                    >
+                                      <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                                      Approve
+                                    </DropdownMenuItem>
+                                  )}
+                                  {canRowMarkPaid && (
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        setConfirm({ action: 'markPaid', row: calculation })
+                                      }
+                                    >
+                                      <DollarSign className="mr-2 h-4 w-4 text-green-600" />
+                                      Mark as Paid
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            );
+                          })()}
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 )}
@@ -351,6 +464,53 @@ export const CommissionCalculationsTab: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog
+        open={confirm !== null}
+        onOpenChange={(next) => {
+          if (!next && !mutationPending) {
+            setConfirm(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirm?.action === 'approve' ? 'Approve commission?' : 'Mark commission as paid?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirm
+                ? `${confirm.row.userName || 'Field user'} · ${confirm.row.currency} ${Number(
+                    confirm.row.commissionAmount
+                  ).toFixed(2)} · Task ${confirm.row.taskNumber || 'N/A'}`
+                : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={mutationPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={mutationPending}
+              onClick={() => {
+                if (!confirm) {
+                  return;
+                }
+                const id = String(confirm.row.id);
+                if (confirm.action === 'approve') {
+                  approveMutation.mutate(id);
+                } else {
+                  markPaidMutation.mutate(id);
+                }
+              }}
+            >
+              {mutationPending
+                ? 'Working…'
+                : confirm?.action === 'approve'
+                  ? 'Approve'
+                  : 'Mark as Paid'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {totalRows > 0 && (
         <Card>
