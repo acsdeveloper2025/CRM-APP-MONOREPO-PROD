@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -82,6 +88,16 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
     }
   };
 
+  // B4 defensive: parent VerificationTasksManager already conditionally
+  // unmounts via `{showCompleteModal && ...}`, so local state resets between
+  // sessions. Wrapper still adds the !loading guard to prevent close-during-
+  // submit races.
+  const handleOpenChange = (next: boolean) => {
+    if (next === false && !loading) {
+      onClose();
+    }
+  };
+
   const clearError = (field: string) => {
     if (errors[field]) {
       setErrors((prev) => {
@@ -98,7 +114,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
   };
 
   return (
-    <Dialog open onOpenChange={onClose}>
+    <Dialog open onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
@@ -128,7 +144,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
             {/* Verification Outcome */}
             <div className="space-y-2">
               <Label htmlFor="verificationOutcome">
-                Verification Outcome <span className="text-red-500">*</span>
+                Verification Outcome <span className="text-destructive">*</span>
               </Label>
               <Select
                 value={verificationOutcome}
@@ -137,7 +153,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
                   clearError('verificationOutcome');
                 }}
               >
-                <SelectTrigger className={errors.verificationOutcome ? 'border-red-500' : ''}>
+                <SelectTrigger className={errors.verificationOutcome ? 'border-destructive' : ''}>
                   <SelectValue placeholder="Select verification outcome">
                     {verificationOutcome && (
                       <Badge className={getOutcomeColor(verificationOutcome)}>
@@ -155,7 +171,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
                 </SelectContent>
               </Select>
               {errors.verificationOutcome && (
-                <p className="text-sm text-red-600 flex items-center space-x-1">
+                <p className="text-sm text-destructive flex items-center space-x-1">
                   <AlertCircle className="h-4 w-4" />
                   <span>{errors.verificationOutcome}</span>
                 </p>
@@ -178,11 +194,11 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
                     clearError('actualAmount');
                   }}
                   placeholder="0.00"
-                  className={`pl-10 ${errors.actualAmount ? 'border-red-500' : ''}`}
+                  className={`pl-10 ${errors.actualAmount ? 'border-destructive' : ''}`}
                 />
               </div>
               {errors.actualAmount && (
-                <p className="text-sm text-red-600 flex items-center space-x-1">
+                <p className="text-sm text-destructive flex items-center space-x-1">
                   <AlertCircle className="h-4 w-4" />
                   <span>{errors.actualAmount}</span>
                 </p>
@@ -209,7 +225,7 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
             {/* Completion Notes */}
             <div className="space-y-2">
               <Label htmlFor="completionNotes">
-                Completion Notes <span className="text-red-500">*</span>
+                Completion Notes <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 id="completionNotes"
@@ -220,10 +236,10 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
                 }}
                 placeholder="Provide detailed notes about the verification process and findings..."
                 rows={4}
-                className={errors.completionNotes ? 'border-red-500' : ''}
+                className={errors.completionNotes ? 'border-destructive' : ''}
               />
               {errors.completionNotes && (
-                <p className="text-sm text-red-600 flex items-center space-x-1">
+                <p className="text-sm text-destructive flex items-center space-x-1">
                   <AlertCircle className="h-4 w-4" />
                   <span>{errors.completionNotes}</span>
                 </p>
@@ -236,26 +252,27 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
 
           {/* Completion Summary */}
           {verificationOutcome && (
-            <Card className="bg-green-50 border-green-200">
+            <Card className="bg-muted">
               <CardContent className="p-4">
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-green-900">Completion Summary</p>
-                  <div className="text-sm text-green-800 space-y-1">
+                  <p className="text-sm font-medium text-foreground">Completion Summary</p>
+                  <div className="text-sm text-muted-foreground space-y-1">
                     <p>
-                      <span className="font-medium">Outcome:</span>{' '}
+                      <span className="font-medium text-foreground">Outcome:</span>{' '}
                       <Badge className={getOutcomeColor(verificationOutcome)}>
                         {outcomeOptions.find((opt) => opt.value === verificationOutcome)?.label}
                       </Badge>
                     </p>
                     {actualAmount && (
                       <p>
-                        <span className="font-medium">Amount:</span> ₹
+                        <span className="font-medium text-foreground">Amount:</span> ₹
                         {actualAmount.toLocaleString('en-IN')}
                       </p>
                     )}
                     {formSubmissionId && (
                       <p>
-                        <span className="font-medium">Form Ref:</span> {formSubmissionId}
+                        <span className="font-medium text-foreground">Form Ref:</span>{' '}
+                        {formSubmissionId}
                       </p>
                     )}
                   </div>
@@ -263,17 +280,25 @@ export const TaskCompletionModal: React.FC<TaskCompletionModalProps> = ({
               </CardContent>
             </Card>
           )}
-
-          {/* Actions */}
-          <div className="flex justify-end space-x-3">
-            <Button onClick={onClose} variant="outline">
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={loading || !verificationOutcome}>
-              {loading ? 'Completing...' : 'Complete Task'}
-            </Button>
-          </div>
         </div>
+
+        <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+          <Button
+            onClick={() => handleOpenChange(false)}
+            variant="outline"
+            disabled={loading}
+            className="w-full sm:w-auto"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={loading || !verificationOutcome}
+            className="w-full sm:w-auto"
+          >
+            {loading ? 'Completing...' : 'Complete Task'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
