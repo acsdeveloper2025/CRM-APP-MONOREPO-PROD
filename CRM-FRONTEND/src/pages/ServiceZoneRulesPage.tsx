@@ -363,7 +363,17 @@ export function ServiceZoneRulesPage() {
     if (areas.length === 1 && formState.areaId !== String(areas[0].id)) {
       setFormState((prev) => ({ ...prev, areaId: String(areas[0].id) }));
     }
-    if (formState.areaId && !areas.some((area) => String(area.id) === formState.areaId)) {
+    // Guard with `areas.length > 0`: without it, clicking Edit on a rule with
+    // a multi-area pincode wipes the prefilled areaId during the brief window
+    // before the `areas` useQuery resolves (initial `[]` doesn't contain the
+    // prefilled id → wipe). With the guard, the wipe only fires after areas
+    // genuinely loads — handling the legitimate "user changed pincode → old
+    // area no longer applies" case.
+    if (
+      formState.areaId &&
+      areas.length > 0 &&
+      !areas.some((area) => String(area.id) === formState.areaId)
+    ) {
       setFormState((prev) => ({ ...prev, areaId: '' }));
     }
   }, [areas, formState.areaId, formState.pincodeId]);
