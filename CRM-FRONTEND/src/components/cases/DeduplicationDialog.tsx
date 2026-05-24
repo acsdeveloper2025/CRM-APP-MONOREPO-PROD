@@ -74,6 +74,18 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
     onUseExisting(selectedCaseId, rationale);
   };
 
+  // B4: dialog mounted unconditionally by CaseCreationStepper; this wrapper
+  // resets local state (selectedCaseId + rationale) on every close path so
+  // a previously-selected duplicate or typed rationale doesn't leak across
+  // reopen. The parent's onClose still handles its own state reset.
+  const handleOpenChange = (next: boolean) => {
+    if (next === false && !isProcessing) {
+      setSelectedCaseId(null);
+      setRationale('');
+      onClose();
+    }
+  };
+
   const getMatchTypeColor = (matchType: string) => {
     switch (matchType) {
       case 'PAN':
@@ -107,7 +119,7 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -291,10 +303,10 @@ export const DeduplicationDialog: React.FC<DeduplicationDialogProps> = ({
           </div>
         </div>
 
-        <DialogFooter className="flex gap-2">
+        <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
           <Button
             variant="outline"
-            onClick={onClose}
+            onClick={() => handleOpenChange(false)}
             disabled={isProcessing}
             className="w-full sm:w-auto"
           >
