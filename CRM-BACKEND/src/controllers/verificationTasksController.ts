@@ -9,6 +9,7 @@ import type {
 } from '../types/verificationTask';
 import { createAuditLog } from '../utils/auditLogger';
 import { escapeFormulaRow } from '@/utils/formulaGuard';
+import { checkEditable, buildEditBlockedResponse } from '@/utils/editLockGuard';
 import { logger } from '../utils/logger';
 import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
@@ -1661,49 +1662,42 @@ export class VerificationTasksController {
       const currentTask = currentTaskResult.rows[0];
       const _isRevisitTask = currentTask.taskType === 'REVISIT';
 
-      // Work Order Protection: Lock operational fields if task has started
-      const isLocked =
-        currentTask.status === 'IN_PROGRESS' ||
-        currentTask.status === 'COMPLETED' ||
-        currentTask.status === 'REVOKED' ||
-        currentTask.startedAt !== null;
-
-      if (isLocked) {
-        const restrictedFields = [
-          'address',
-          'pincode',
-          'areaId',
-          'areaId',
-          'rateTypeId',
-          'rateTypeId',
-          'verificationTypeId',
-          'verificationTypeId',
-        ];
-
-        const attemptedRestrictedUpdates = Object.keys(updateData).filter(
-          key =>
-            restrictedFields.includes(key) &&
-            updateData[key as keyof UpdateVerificationTaskData] !== undefined
-        );
-
-        if (attemptedRestrictedUpdates.length > 0) {
-          logger.warn('⚠️ Rejected update to locked operational fields', {
-            taskId,
-            userId,
-            attemptedFields: attemptedRestrictedUpdates,
-            taskStatus: currentTask.status,
-          });
-
-          res.status(409).json({
-            success: false,
-            message: 'Verification already started. Task data cannot be modified.',
-            error: {
-              code: 'TASK_LOCKED',
-              details: { lockedFields: attemptedRestrictedUpdates },
-            },
-          });
-          return;
-        }
+      // IN_PROGRESS edit-lock — see project_in_progress_edit_lock_audit_2026_05_24.md.
+      // Pre-fix this only guarded a hand-curated subset of operational
+      // fields (address / pincode / areaId / rateTypeId / verificationTypeId
+      // — array had duplicate entries) so taskTitle/taskDescription/
+      // priority mutated freely on IN_PROGRESS. Now ANY update to a
+      // locked task is rejected (except assignment which has its own
+      // re-route flow for REVOKED tasks).
+      const isAssignmentOnly =
+        updateData.assignedTo !== undefined &&
+        Object.keys(updateData).every(k => k === 'assignedTo');
+      const editCheck = checkEditable(currentTask.status);
+      // started_at !== null is a secondary lock signal — covers the
+      // edge case where a task is somehow in PENDING/ASSIGNED but
+      // mobile has already started it locally (race window). Keep.
+      const startedLock = currentTask.startedAt !== null;
+      if ((!editCheck.editable || startedLock) && !isAssignmentOnly) {
+        logger.warn('⚠️ Rejected task update — IN_PROGRESS/terminal status', {
+          taskId,
+          userId,
+          attemptedFields: Object.keys(updateData),
+          taskStatus: currentTask.status,
+          startedLock,
+        });
+        const result = !editCheck.editable
+          ? buildEditBlockedResponse('Task', editCheck)
+          : {
+              success: false as const,
+              message: 'Verification already started. Task data cannot be modified.',
+              error: {
+                code: 'EDIT_BLOCKED' as const,
+                currentStatus: currentTask.status,
+                reason: 'IN_PROGRESS' as const,
+              },
+            };
+        res.status(409).json(result);
+        return;
       }
 
       // Check if this is an assignment update
@@ -1745,7 +1739,8 @@ export class VerificationTasksController {
         updateData: updateDataAny,
         isAssignment,
         currentTask,
-        isLocked,
+        editable: editCheck.editable,
+        startedLock,
       });
 
       // Build dynamic update query
