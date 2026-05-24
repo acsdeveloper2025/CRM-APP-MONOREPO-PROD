@@ -62,7 +62,7 @@ export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogPr
     }
   }, [state, form]);
 
-  const { data: countriesData } = useStandardizedQuery({
+  const { data: countriesData, isLoading: countriesLoading } = useStandardizedQuery({
     queryKey: ['countries'],
     queryFn: () => locationsService.getCountries(),
     enabled: open,
@@ -77,7 +77,7 @@ export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogPr
     operation: 'update',
     additionalInvalidateKeys: [['state-stats']],
     onSuccess: () => {
-      onOpenChange(false);
+      handleOpenChange(false);
     },
   });
 
@@ -85,10 +85,26 @@ export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogPr
     updateStateMutation.mutate(data);
   };
 
+  // B4 fix: parent table renders `{selectedState && <Edit/>}` but never nulls
+  // selectedState on close. Re-opening Edit on the same row keeps the same
+  // `state` prop reference → useEffect [state, form] doesn't re-fire → dirty
+  // form state persists. Reset on close prevents that.
+  const handleOpenChange = (next: boolean) => {
+    if (!next && !updateStateMutation.isPending) {
+      form.reset({
+        name: state.name,
+        code: state.code,
+        country: state.country,
+        isActive: state.isActive ?? true,
+      });
+    }
+    onOpenChange(next);
+  };
+
   const countries = countriesData?.data || [];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit State</DialogTitle>
@@ -144,16 +160,26 @@ export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogPr
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {countries.map((country) => (
-                        <SelectItem key={country.id} value={country.name}>
-                          <div className="flex items-center space-x-2">
-                            <span className="font-mono text-xs bg-muted px-1 rounded">
-                              {country.code}
-                            </span>
-                            <span>{country.name}</span>
-                          </div>
+                      {countriesLoading ? (
+                        <SelectItem value="loading" disabled>
+                          Loading countries...
                         </SelectItem>
-                      ))}
+                      ) : countries.length === 0 ? (
+                        <SelectItem value="empty" disabled>
+                          No countries available
+                        </SelectItem>
+                      ) : (
+                        countries.map((country) => (
+                          <SelectItem key={country.id} value={country.name}>
+                            <div className="flex items-center space-x-2">
+                              <span className="font-mono text-xs bg-muted px-1 rounded">
+                                {country.code}
+                              </span>
+                              <span>{country.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -179,11 +205,12 @@ export function EditStateDialog({ state, open, onOpenChange }: EditStateDialogPr
               )}
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
+                disabled={updateStateMutation.isPending}
                 className="w-full sm:w-auto"
               >
                 Cancel

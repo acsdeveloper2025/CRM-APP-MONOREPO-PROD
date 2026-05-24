@@ -47,7 +47,7 @@ export function CreateStateDialog({ open, onOpenChange }: CreateStateDialogProps
   });
 
   // Fetch countries for dropdown
-  const { data: countriesData } = useStandardizedQuery({
+  const { data: countriesData, isLoading: countriesLoading } = useStandardizedQuery({
     queryKey: ['countries'],
     queryFn: () => locationsService.getCountries(),
     enabled: open,
@@ -61,8 +61,7 @@ export function CreateStateDialog({ open, onOpenChange }: CreateStateDialogProps
     resourceName: 'State',
     operation: 'create',
     onSuccess: () => {
-      form.reset();
-      onOpenChange(false);
+      handleOpenChange(false);
     },
   });
 
@@ -71,7 +70,7 @@ export function CreateStateDialog({ open, onOpenChange }: CreateStateDialogProps
   };
 
   const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen) {
+    if (!newOpen && !createStateMutation.isPending) {
       form.reset();
     }
     onOpenChange(newOpen);
@@ -136,16 +135,26 @@ export function CreateStateDialog({ open, onOpenChange }: CreateStateDialogProps
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {countries.map((country) => (
-                        <SelectItem key={country.id} value={country.name}>
-                          <div className="flex items-center space-x-2">
-                            <span className="font-mono text-xs bg-green-50 text-green-700 border border-green-100 px-1 rounded">
-                              {country.code}
-                            </span>
-                            <span>{country.name}</span>
-                          </div>
+                      {countriesLoading ? (
+                        <SelectItem value="loading" disabled>
+                          Loading countries...
                         </SelectItem>
-                      ))}
+                      ) : countries.length === 0 ? (
+                        <SelectItem value="empty" disabled>
+                          No countries available
+                        </SelectItem>
+                      ) : (
+                        countries.map((country) => (
+                          <SelectItem key={country.id} value={country.name}>
+                            <div className="flex items-center space-x-2">
+                              <span className="font-mono text-xs bg-muted px-1 rounded">
+                                {country.code}
+                              </span>
+                              <span>{country.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -153,11 +162,12 @@ export function CreateStateDialog({ open, onOpenChange }: CreateStateDialogProps
               )}
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => handleOpenChange(false)}
+                disabled={createStateMutation.isPending}
                 className="w-full sm:w-auto"
               >
                 Cancel
