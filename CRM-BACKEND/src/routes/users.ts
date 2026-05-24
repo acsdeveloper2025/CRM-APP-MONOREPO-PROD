@@ -112,30 +112,26 @@ const createUserValidation = [
       return true;
     }),
   body('role').optional().isIn(SUPPORTED_USER_ROLES).withMessage(SUPPORTED_USER_ROLES_MESSAGE),
-  body('departmentId')
-    .optional()
-    .custom(value => {
-      if (value && value.toString().trim() !== '') {
-        // If provided and not empty, must be a valid integer
-        const intValue = parseInt(value, 10);
-        if (isNaN(intValue) || intValue < 1) {
-          throw new Error('Department ID must be a valid positive integer');
-        }
-      }
-      return true;
-    }),
-  body('designationId')
-    .optional()
-    .custom(value => {
-      if (value && value.toString().trim() !== '') {
-        // If provided and not empty, must be a valid integer
-        const intValue = parseInt(value, 10);
-        if (isNaN(intValue) || intValue < 1) {
-          throw new Error('Designation ID must be a valid positive integer');
-        }
-      }
-      return true;
-    }),
+  body('departmentId').custom(value => {
+    if (value === undefined || value === null || value.toString().trim() === '') {
+      throw new Error('Department is required');
+    }
+    const intValue = parseInt(value, 10);
+    if (isNaN(intValue) || intValue < 1) {
+      throw new Error('Department ID must be a valid positive integer');
+    }
+    return true;
+  }),
+  body('designationId').custom(value => {
+    if (value === undefined || value === null || value.toString().trim() === '') {
+      throw new Error('Designation is required');
+    }
+    const intValue = parseInt(value, 10);
+    if (isNaN(intValue) || intValue < 1) {
+      throw new Error('Designation ID must be a valid positive integer');
+    }
+    return true;
+  }),
   body('teamLeaderId')
     .optional({ nullable: true })
     .custom(value => {
@@ -173,10 +169,11 @@ const createUserValidation = [
     .isLength({ max: 50 })
     .withMessage('Employee ID must be less than 50 characters'),
   body('phone')
-    .optional()
     .trim()
+    .notEmpty()
+    .withMessage('Phone is required')
     .matches(/^\+?[1-9]\d{1,14}$/)
-    .withMessage('Phone number must be valid'),
+    .withMessage('Phone number must be valid E.164 (e.g. +919876543210)'),
   body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
   // Custom validation to ensure either roleId or role is provided
   body().custom((_value, { req }) => {
@@ -224,30 +221,26 @@ const updateUserValidation = [
       }
       return true;
     }),
-  body('departmentId')
-    .optional()
-    .custom(value => {
-      if (value && value.toString().trim() !== '') {
-        // If provided and not empty, must be a valid integer
-        const intValue = parseInt(value, 10);
-        if (isNaN(intValue) || intValue < 1) {
-          throw new Error('Department ID must be a valid positive integer');
-        }
-      }
-      return true;
-    }),
-  body('designationId')
-    .optional()
-    .custom(value => {
-      if (value && value.toString().trim() !== '') {
-        // If provided and not empty, must be a valid integer
-        const intValue = parseInt(value, 10);
-        if (isNaN(intValue) || intValue < 1) {
-          throw new Error('Designation ID must be a valid positive integer');
-        }
-      }
-      return true;
-    }),
+  body('departmentId').custom(value => {
+    if (value === undefined || value === null || value.toString().trim() === '') {
+      throw new Error('Department is required');
+    }
+    const intValue = parseInt(value, 10);
+    if (isNaN(intValue) || intValue < 1) {
+      throw new Error('Department ID must be a valid positive integer');
+    }
+    return true;
+  }),
+  body('designationId').custom(value => {
+    if (value === undefined || value === null || value.toString().trim() === '') {
+      throw new Error('Designation is required');
+    }
+    const intValue = parseInt(value, 10);
+    if (isNaN(intValue) || intValue < 1) {
+      throw new Error('Designation ID must be a valid positive integer');
+    }
+    return true;
+  }),
   body('teamLeaderId')
     .optional({ nullable: true })
     .custom(value => {
@@ -279,10 +272,11 @@ const updateUserValidation = [
       return true;
     }),
   body('phone')
-    .optional()
     .trim()
+    .notEmpty()
+    .withMessage('Phone is required')
     .matches(/^\+?[1-9]\d{1,14}$/)
-    .withMessage('Phone number must be valid'),
+    .withMessage('Phone number must be valid E.164 (e.g. +919876543210)'),
   body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
 ];
 

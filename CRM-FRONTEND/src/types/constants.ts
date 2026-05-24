@@ -12,6 +12,7 @@ export const USER_ROLES = {
   TEAM_LEADER: 'TEAM_LEADER',
   BACKEND_USER: 'BACKEND_USER',
   FIELD_AGENT: 'FIELD_AGENT',
+  KYC_VERIFIER: 'KYC_VERIFIER',
 } as const;
 
 export type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES];
@@ -29,6 +30,7 @@ export const USER_ROLE_OPTIONS: ReadonlyArray<{ value: UserRole; label: string }
   { value: USER_ROLES.TEAM_LEADER, label: 'Team Leader' },
   { value: USER_ROLES.BACKEND_USER, label: 'Backend User' },
   { value: USER_ROLES.FIELD_AGENT, label: 'Field Agent' },
+  { value: USER_ROLES.KYC_VERIFIER, label: 'KYC Verifier' },
 ];
 
 export const normalizeUserRole = (role: string | null | undefined): UserRole | undefined => {

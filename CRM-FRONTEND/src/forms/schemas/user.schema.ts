@@ -2,14 +2,16 @@ import { z } from 'zod';
 import { PASSWORD_POLICY_REGEX } from '@/lib/passwordPolicy';
 
 // Phone validation mirrors the BE validator at routes/users.ts
-// (E.164: `^\+?[1-9]\d{1,14}$`). Empty string allowed; BE coerces '' → NULL.
+// (E.164: `^\+?[1-9]\d{1,14}$`). REQUIRED for both Create + Edit on the
+// admin user dialogs (post-2026-05-24 policy decision — backfilled all
+// pre-existing NULL phones to a placeholder).
 // No dashes / spaces / parens — keep both sides identical so the FE never
 // passes something the BE rejects.
 const phoneFieldSchema = z
   .string()
+  .min(1, 'Phone is required')
   .max(16, 'Phone too long')
-  .regex(/^$|^\+?[1-9]\d{1,14}$/, 'Use E.164 format, e.g. +919876543210')
-  .optional();
+  .regex(/^\+?[1-9]\d{1,14}$/, 'Use E.164 format, e.g. +919876543210');
 
 const baseUserShape = {
   name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
@@ -49,19 +51,18 @@ export const createUserFormSchema = z.object({
       PASSWORD_POLICY_REGEX,
       'Password must include uppercase, lowercase, number, and special character'
     ),
-  departmentId: z.string().optional(),
-  designationId: z.string().optional(),
+  // 2026-05-24 policy: department + designation are now REQUIRED on the
+  // admin user dialogs (matches phone). kyc.verifier (previously NULL dept)
+  // backfilled to Operations.
+  departmentId: z.string().min(1, 'Department is required'),
+  designationId: z.string().min(1, 'Designation is required'),
 });
 export type CreateUserFormData = z.infer<typeof createUserFormSchema>;
 
 export const editUserFormSchema = z.object({
   ...baseUserShape,
-  // Match Create + backend semantics: BE accepts NULL for both
-  // (usersController.updateUser cleanDepartmentId / cleanDesignationId
-  // coerce empty strings to null). Forcing .min(1) here blocked Edit on
-  // legacy users with no dept/desig and bounced new admin assignments.
-  designationId: z.string().optional(),
-  departmentId: z.string().optional(),
+  departmentId: z.string().min(1, 'Department is required'),
+  designationId: z.string().min(1, 'Designation is required'),
   isActive: z.boolean(),
 });
 export type EditUserFormData = z.infer<typeof editUserFormSchema>;

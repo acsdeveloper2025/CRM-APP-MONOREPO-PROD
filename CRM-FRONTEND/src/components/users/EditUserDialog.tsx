@@ -160,6 +160,9 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
         // See project_edit_dialog_audit_2026_05_23.md §Async-dropdown-handling.
         teamLeaderId: data.teamLeaderId || undefined,
         managerId: data.managerId || undefined,
+        // Phone is required (zod + BE notEmpty). Trim whitespace before
+        // submit; never coerce to undefined here (zod rejects empty first).
+        phone: data.phone.trim(),
       };
       return usersService.updateUser(user.id, cleanData as import('@/types/user').UpdateUserData);
     },
@@ -181,8 +184,13 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
   const selectedRoleName = roles
     .find((role) => String(role.id) === selectedRoleId)
     ?.name?.toUpperCase();
+  // 2026-05-24 policy: KYC_VERIFIER is OPERATIONAL_CHILD (needs both TL + Mgr)
+  // like FIELD_AGENT + BACKEND_USER. Aligns with BE classifyHierarchyTargetMode
+  // which short-circuits to OPERATIONAL_CHILD when both refs are present.
   const requiresTeamLeader =
-    selectedRoleName === USER_ROLES.FIELD_AGENT || selectedRoleName === USER_ROLES.BACKEND_USER;
+    selectedRoleName === USER_ROLES.FIELD_AGENT ||
+    selectedRoleName === USER_ROLES.BACKEND_USER ||
+    selectedRoleName === USER_ROLES.KYC_VERIFIER;
   const requiresManager = requiresTeamLeader || selectedRoleName === USER_ROLES.TEAM_LEADER;
   const disableTeamLeader = !requiresTeamLeader;
   const disableManager =

@@ -130,6 +130,9 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
         designationId: data.designationId ? parseInt(data.designationId, 10) : undefined,
         teamLeaderId: data.teamLeaderId || undefined,
         managerId: data.managerId || undefined,
+        // Phone is required (zod + BE notEmpty). Trim whitespace before
+        // submit; zod blocks empty string at the form level.
+        phone: data.phone.trim(),
       };
       return usersService.createUser(cleanData as CreateUserData);
     },
@@ -152,7 +155,9 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
     .find((role) => String(role.id) === selectedRoleId)
     ?.name?.toUpperCase();
   const requiresTeamLeader =
-    selectedRoleName === USER_ROLES.FIELD_AGENT || selectedRoleName === USER_ROLES.BACKEND_USER;
+    selectedRoleName === USER_ROLES.FIELD_AGENT ||
+    selectedRoleName === USER_ROLES.BACKEND_USER ||
+    selectedRoleName === USER_ROLES.KYC_VERIFIER;
   const requiresManager = requiresTeamLeader || selectedRoleName === USER_ROLES.TEAM_LEADER;
   const disableTeamLeader = !requiresTeamLeader;
   const disableManager =
