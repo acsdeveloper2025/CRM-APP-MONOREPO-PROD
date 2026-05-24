@@ -9,9 +9,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Users, X, UserCheck, AlertTriangle, User } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { isFieldAgentUser } from '@/utils/userPermissionProfiles';
@@ -31,7 +38,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
   const [assignmentReason, setAssignmentReason] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
-  const { data: usersData } = useUsers();
+  const { data: usersData, isLoading: usersLoading } = useUsers();
   const fieldUsers = usersData?.filter((user) => isFieldAgentUser(user)) || [];
 
   const [validationError, setValidationError] = useState<string>('');
@@ -46,18 +53,26 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
     setLoading(true);
     try {
       await onBulkAssign(assignedTo, assignmentReason || undefined);
-      setShowAssignModal(false);
-      setAssignedTo('');
-      setAssignmentReason('');
+      resetAndClose();
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCloseModal = () => {
+  const resetAndClose = () => {
     setShowAssignModal(false);
     setAssignedTo('');
     setAssignmentReason('');
+    setValidationError('');
+  };
+
+  // B4: accept Radix's (newOpen: boolean) arg + guard against close during
+  // submit. Also resets validationError so stale errors don't persist across
+  // close + reopen.
+  const handleCloseModal = (next: boolean) => {
+    if (!next && !loading) {
+      resetAndClose();
+    }
   };
 
   return (
@@ -135,7 +150,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
               {/* Field User Selection */}
               <div className="space-y-2">
                 <Label htmlFor="bulkAssignedTo">
-                  Assign To <span className="text-red-500">*</span>
+                  Assign To <span className="text-destructive">*</span>
                 </Label>
                 <Select
                   value={assignedTo}
@@ -155,10 +170,14 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {fieldUsers.length === 0 ? (
-                      <div className="p-2 text-sm text-muted-foreground">
+                    {usersLoading ? (
+                      <SelectItem value="loading" disabled>
+                        Loading field users...
+                      </SelectItem>
+                    ) : fieldUsers.length === 0 ? (
+                      <SelectItem value="empty" disabled>
                         No field users available
-                      </div>
+                      </SelectItem>
                     ) : (
                       fieldUsers.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
@@ -176,7 +195,7 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
                     )}
                   </SelectContent>
                 </Select>
-                {validationError && <p className="text-sm text-red-600">{validationError}</p>}
+                {validationError && <p className="text-sm text-destructive">{validationError}</p>}
               </div>
 
               {/* Assignment Reason */}
@@ -196,40 +215,34 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
             </div>
 
             {/* Warning */}
-            <Card className="bg-yellow-50 border-yellow-200">
-              <CardContent className="p-4">
-                <div className="flex items-start space-x-2">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                  <div className="text-sm text-yellow-800">
-                    <p className="font-medium">Bulk Assignment Warning</p>
-                    <p className="mt-1">
-                      This action will assign all {selectedCount} selected task
-                      {selectedCount !== 1 ? 's' : ''} to the chosen user. This action cannot be
-                      undone in bulk.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Bulk Assignment Warning</AlertTitle>
+              <AlertDescription>
+                This action will assign all {selectedCount} selected task
+                {selectedCount !== 1 ? 's' : ''} to the chosen user. This action cannot be undone in
+                bulk.
+              </AlertDescription>
+            </Alert>
 
             {/* Assignment Summary */}
             {assignedTo && (
-              <Card className="bg-green-50 border-green-200">
+              <Card className="bg-muted">
                 <CardContent className="p-4">
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-green-900">Assignment Summary</p>
-                    <div className="text-sm text-green-800">
+                    <p className="text-sm font-medium text-foreground">Assignment Summary</p>
+                    <div className="text-sm text-muted-foreground">
                       <p>
-                        <span className="font-medium">Assignee:</span>{' '}
+                        <span className="font-medium text-foreground">Assignee:</span>{' '}
                         {fieldUsers.find((user) => user.id === assignedTo)?.name}
                       </p>
                       <p>
-                        <span className="font-medium">Tasks:</span> {selectedCount} task
-                        {selectedCount !== 1 ? 's' : ''}
+                        <span className="font-medium text-foreground">Tasks:</span> {selectedCount}{' '}
+                        task{selectedCount !== 1 ? 's' : ''}
                       </p>
                       {assignmentReason && (
                         <p>
-                          <span className="font-medium">Reason:</span>{' '}
+                          <span className="font-medium text-foreground">Reason:</span>{' '}
                           {assignmentReason.length > 50
                             ? `${assignmentReason.substring(0, 50)}...`
                             : assignmentReason}
@@ -240,19 +253,27 @@ export const BulkActionsToolbar: React.FC<BulkActionsToolbarProps> = ({
                 </CardContent>
               </Card>
             )}
-
-            {/* Actions */}
-            <div className="flex justify-end space-x-3">
-              <Button onClick={handleCloseModal} variant="outline">
-                Cancel
-              </Button>
-              <Button onClick={handleBulkAssign} disabled={loading || !assignedTo}>
-                {loading
-                  ? 'Assigning...'
-                  : `Assign ${selectedCount} Task${selectedCount !== 1 ? 's' : ''}`}
-              </Button>
-            </div>
           </div>
+
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+            <Button
+              onClick={() => handleCloseModal(false)}
+              variant="outline"
+              disabled={loading}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBulkAssign}
+              disabled={loading || !assignedTo}
+              className="w-full sm:w-auto"
+            >
+              {loading
+                ? 'Assigning...'
+                : `Assign ${selectedCount} Task${selectedCount !== 1 ? 's' : ''}`}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
