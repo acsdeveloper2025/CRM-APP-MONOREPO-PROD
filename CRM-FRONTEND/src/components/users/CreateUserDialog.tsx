@@ -37,30 +37,42 @@ import { departmentsService } from '@/services/departments';
 import { designationsService } from '@/services/designations';
 import type { CreateUserData } from '@/types/user';
 import { USER_ROLES } from '@/types/constants';
-import { logger } from '@/utils/logger';
 
 interface CreateUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+const EMPTY_DEFAULTS: CreateUserFormData = {
+  name: '',
+  username: '',
+  email: '',
+  phone: '',
+  password: '',
+  roleId: '',
+  departmentId: '',
+  employeeId: '',
+  designationId: '',
+  teamLeaderId: '',
+  managerId: '',
+};
+
 export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) {
   const form = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserFormSchema),
-    defaultValues: {
-      name: '',
-      username: '',
-      email: '',
-      phone: '',
-      password: '',
-      roleId: '',
-      departmentId: '',
-      employeeId: '',
-      designationId: '',
-      teamLeaderId: '',
-      managerId: '',
-    },
+    defaultValues: EMPTY_DEFAULTS,
   });
+
+  // Reset form to empty defaults when the dialog closes so reopening
+  // after Cancel doesn't show stale partially-filled values. Page 2/3/7
+  // canonical close-pattern, adapted for Create (resets to empty, not
+  // to a current prop).
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
+      form.reset(EMPTY_DEFAULTS);
+    }
+    onOpenChange(next);
+  };
 
   // Fetch roles for dropdown
   const { data: rolesData, isLoading: rolesLoading } = useStandardizedQuery({
@@ -126,8 +138,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
     operation: 'create',
     additionalInvalidateKeys: [['user-stats'], ['dashboard']],
     onSuccess: () => {
-      form.reset();
-      onOpenChange(false);
+      handleOpenChange(false);
     },
   });
 
@@ -171,7 +182,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
@@ -288,13 +299,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                   <FormItem>
                     <FormLabel>Role</FormLabel>
 
-                    <Select
-                      onValueChange={(value) => {
-                        logger.warn('Role selected:', value);
-                        field.onChange(value);
-                      }}
-                      value={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select role" />
@@ -332,13 +337,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                   <FormItem>
                     <FormLabel>Designation</FormLabel>
 
-                    <Select
-                      onValueChange={(value) => {
-                        logger.warn('Designation selected:', value);
-                        field.onChange(value);
-                      }}
-                      value={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select designation" />
@@ -373,13 +372,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Department</FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        logger.warn('Department selected:', value);
-                        field.onChange(value);
-                      }}
-                      value={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select department" />
@@ -508,7 +501,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
                 disabled={createMutation.isPending}
                 className="w-full sm:w-auto"
               >
