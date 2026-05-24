@@ -59,7 +59,7 @@ export function EditAreaDialog({ area, open, onOpenChange }: EditAreaDialogProps
     errorContext: 'Area Update',
     errorFallbackMessage: 'Failed to update area',
     onSuccess: () => {
-      onOpenChange(false);
+      handleOpenChange(false);
     },
   });
 
@@ -67,8 +67,22 @@ export function EditAreaDialog({ area, open, onOpenChange }: EditAreaDialogProps
     updateMutation.mutate(data);
   };
 
+  // B4 fix: parent table renders `<EditAreaDialog area={areaToEdit} open=... />`
+  // without nulling areaToEdit on close. Re-opening Edit on the same row keeps
+  // the same `area` prop reference → useEffect [area, form] doesn't re-fire →
+  // dirty form state persists. Reset on close prevents that.
+  const handleOpenChange = (next: boolean) => {
+    if (!next && !updateMutation.isPending) {
+      form.reset({
+        name: area.name,
+        isActive: area.isActive ?? true,
+      });
+    }
+    onOpenChange(next);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Area</DialogTitle>
@@ -117,11 +131,11 @@ export function EditAreaDialog({ area, open, onOpenChange }: EditAreaDialogProps
               )}
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
                 className="w-full sm:w-auto"
                 disabled={updateMutation.isPending}
               >

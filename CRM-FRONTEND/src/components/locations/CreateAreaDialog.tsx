@@ -6,6 +6,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -53,8 +54,7 @@ export function CreateAreaDialog({ open, onOpenChange }: CreateAreaDialogProps) 
     operation: 'create',
     additionalInvalidateKeys: [['pincodes']],
     onSuccess: () => {
-      form.reset();
-      onOpenChange(false);
+      handleOpenChange(false);
     },
   });
 
@@ -62,13 +62,18 @@ export function CreateAreaDialog({ open, onOpenChange }: CreateAreaDialogProps) 
     createMutation.mutate(data);
   };
 
-  const handleClose = () => {
-    form.reset();
-    onOpenChange(false);
+  // B4 fix: route every close path (Cancel, Esc, click-outside, mutation
+  // success) through this wrapper so half-filled form doesn't persist
+  // across Cancel + reopen.
+  const handleOpenChange = (next: boolean) => {
+    if (!next && !createMutation.isPending) {
+      form.reset();
+    }
+    onOpenChange(next);
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Create New Area</DialogTitle>
@@ -101,20 +106,25 @@ export function CreateAreaDialog({ open, onOpenChange }: CreateAreaDialogProps) 
               )}
             />
 
-            <div className="flex justify-end space-x-2 pt-4">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleClose}
+                onClick={() => handleOpenChange(false)}
                 disabled={createMutation.isPending}
+                className="w-full sm:w-auto"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={createMutation.isPending}>
+              <Button
+                type="submit"
+                disabled={createMutation.isPending}
+                className="w-full sm:w-auto"
+              >
                 {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create Area
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </Form>
       </DialogContent>
