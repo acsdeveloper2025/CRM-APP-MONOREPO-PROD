@@ -536,6 +536,14 @@ export const navigationItems: NavigationItem[] = [
         permission: { resource: 'users', action: 'read' },
       },
       {
+        id: 'departments',
+        label: 'Departments',
+        href: '/user-management/departments',
+        icon: Building2,
+        permissionCode: 'page.users',
+        permission: { resource: 'users', action: 'read' },
+      },
+      {
         id: 'rbac-admin',
         label: 'RBAC Administration',
         href: '/user-management/rbac-administration',

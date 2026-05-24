@@ -73,6 +73,9 @@ const UserPermissionsPage = React.lazy(() =>
 const RBACAdminPage = React.lazy(() =>
   import('@/pages/RBACAdminPage').then((module) => ({ default: module.RBACAdminPage }))
 );
+const DepartmentsPage = React.lazy(() =>
+  import('@/pages/DepartmentsPage').then((module) => ({ default: module.DepartmentsPage }))
+);
 const UnauthorizedPage = React.lazy(() =>
   import('@/pages/UnauthorizedPage').then((module) => ({ default: module.UnauthorizedPage }))
 );
@@ -755,6 +758,14 @@ export const AppRoutes: React.FC = () => {
             element={
               <ProtectedRoute permission="page.field_monitoring">
                 <FieldMonitoringPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/user-management/departments"
+            element={
+              <ProtectedRoute permission="page.users">
+                <DepartmentsPage />
               </ProtectedRoute>
             }
           />
