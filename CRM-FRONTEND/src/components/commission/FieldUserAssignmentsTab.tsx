@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Plus, Edit, Trash2, Download } from 'lucide-react';
+import { Plus, Edit, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
@@ -154,9 +154,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
         await commissionManagementApi.createFieldUserCommissionAssignment(assignmentData);
       }
 
-      setShowForm(false);
-      setEditingAssignment(null);
-      resetForm();
+      handleFormOpenChange(false);
       loadData();
     } catch (error) {
       logger.error('Error saving assignment:', error);
@@ -169,7 +167,21 @@ export const FieldUserAssignmentsTab: React.FC = () => {
       rateTypeId: 0,
       commissionAmount: 0,
       currency: 'INR',
+      clientId: undefined,
+      effectiveFrom: undefined,
+      effectiveTo: undefined,
     });
+  };
+
+  // B4 fix: route every close path (Cancel, Esc, click-outside, submit success)
+  // through this wrapper so editingAssignment + leaked formData don't persist
+  // when reopening the dialog for a different action.
+  const handleFormOpenChange = (next: boolean) => {
+    if (!next) {
+      setEditingAssignment(null);
+      resetForm();
+    }
+    setShowForm(next);
   };
 
   const handleEdit = (assignment: FieldUserCommissionAssignment) => {
@@ -200,39 +212,6 @@ export const FieldUserAssignmentsTab: React.FC = () => {
         logger.error('Error deleting assignment:', error);
       }
     }
-  };
-
-  const exportData = () => {
-    const csvContent = [
-      [
-        'User Name',
-        'Rate Type',
-        'Commission Amount',
-        'Currency',
-        'Effective From',
-        'Effective To',
-        'Status',
-      ].join(','),
-      ...assignments.map((assignment) =>
-        [
-          assignment.userName || '',
-          assignment.rateTypeName || '',
-          assignment.commissionAmount,
-          assignment.currency,
-          assignment.effectiveFrom ? new Date(assignment.effectiveFrom).toLocaleDateString() : '',
-          assignment.effectiveTo ? new Date(assignment.effectiveTo).toLocaleDateString() : '',
-          assignment.isActive ? 'Active' : 'Inactive',
-        ].join(',')
-      ),
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `field-user-assignments-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
   };
 
   const userOptions = useMemo(
@@ -322,21 +301,16 @@ export const FieldUserAssignmentsTab: React.FC = () => {
             </FilterGrid>
           </UnifiedFilterPanel>
 
-          {/* Action Buttons */}
+          {/* Action Buttons — Export lives at page level (CommissionManagementPage)
+              and uses the hardened XLSX endpoint with escapeFormulaRow + audit row.
+              Don't re-add an in-tab CSV export — it bypasses CWE-1236 protection
+              and the COMMISSION_EXPORTED audit trail. */}
           <div className="flex flex-col sm:flex-row gap-2 mb-6">
             <Button
-              onClick={exportData}
-              variant="outline"
-              className="flex items-center gap-2 w-full sm:w-auto"
-            >
-              <Download className="h-4 w-4" />
-              Export
-            </Button>
-            <Button
               onClick={() => {
-                setShowForm(true);
                 setEditingAssignment(null);
                 resetForm();
+                setShowForm(true);
               }}
               className="flex items-center gap-2 w-full sm:w-auto"
             >
@@ -507,7 +481,7 @@ export const FieldUserAssignmentsTab: React.FC = () => {
       </Card>
 
       {/* Assignment Form Dialog */}
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={handleFormOpenChange}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
@@ -594,16 +568,8 @@ export const FieldUserAssignmentsTab: React.FC = () => {
               </div>
             </div>
 
-            <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setShowForm(false);
-                  setEditingAssignment(null);
-                  resetForm();
-                }}
-              >
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+              <Button type="button" variant="outline" onClick={() => handleFormOpenChange(false)}>
                 Cancel
               </Button>
               <Button type="submit">

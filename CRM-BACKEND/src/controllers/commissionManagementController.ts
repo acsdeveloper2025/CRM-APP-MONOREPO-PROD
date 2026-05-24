@@ -706,7 +706,11 @@ export const updateFieldUserCommissionAssignment = async (
       });
     }
 
-    // Update the assignment
+    // Update the assignment.
+    // B6 fix: COALESCE on optional FK / date columns — clientId/effectiveFrom/effectiveTo
+    // are validator-optional, so any caller that omits them must preserve existing values,
+    // not silently wipe them. user_id/rate_type_id/commission_amount/currency are pre-checked
+    // above so they're safe to set unconditionally.
     const updateQuery = `
       UPDATE field_user_commission_assignments
       SET
@@ -714,9 +718,9 @@ export const updateFieldUserCommissionAssignment = async (
         rate_type_id = $2,
         commission_amount = $3,
         currency = $4,
-        client_id = $5,
-        effective_from = $6,
-        effective_to = $7,
+        client_id = COALESCE($5, client_id),
+        effective_from = COALESCE($6, effective_from),
+        effective_to = COALESCE($7, effective_to),
         updated_at = CURRENT_TIMESTAMP
       WHERE id = $8
       RETURNING *
@@ -727,9 +731,9 @@ export const updateFieldUserCommissionAssignment = async (
       rateTypeId,
       commissionAmount,
       currency,
-      clientId || null,
-      effectiveFrom || new Date().toISOString(),
-      effectiveTo || null,
+      clientId ?? null,
+      effectiveFrom ?? null,
+      effectiveTo ?? null,
       Number(id),
     ]);
 
