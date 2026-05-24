@@ -151,8 +151,15 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
         roleId: data.roleId || undefined,
         departmentId: data.departmentId ? parseInt(data.departmentId, 10) : undefined,
         designationId: data.designationId ? parseInt(data.designationId, 10) : undefined,
-        teamLeaderId: data.teamLeaderId || null,
-        managerId: data.managerId || null,
+        // Send `undefined` (not `null`) when form value is empty so
+        // BE dynamic-field-build (`if (updateData[field] !== undefined)`)
+        // SKIPS the column rather than wiping it to NULL. Closes the
+        // async-race finding from 2026-05-24 audit (role dropdown loads
+        // async → conditional-disable useEffect could form.setValue
+        // teamLeaderId='' during ~300ms window → previously sent null).
+        // See project_edit_dialog_audit_2026_05_23.md §Async-dropdown-handling.
+        teamLeaderId: data.teamLeaderId || undefined,
+        managerId: data.managerId || undefined,
       };
       return usersService.updateUser(user.id, cleanData as import('@/types/user').UpdateUserData);
     },
