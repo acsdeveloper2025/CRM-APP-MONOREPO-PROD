@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { CaseAttachmentsSection } from '@/components/attachments/CaseAttachmentsSection';
 import { CaseNotificationsTab } from '@/components/cases/CaseNotificationsTab';
+import { isEditable } from '@/utils/editLock';
 import { VerificationTasksManager } from '@/components/verification-tasks';
 import { KYCTaskVerificationSection } from '@/components/kyc/KYCTaskVerificationSection';
 import { DownloadReportButton } from '@/components/reports/DownloadReportButton';
@@ -531,26 +532,17 @@ export const CaseDetailPage: React.FC = () => {
               <CardTitle>Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={handleEditCase}
-                disabled={
-                  caseItem.status === 'COMPLETED' &&
-                  (caseItem.pendingTasks || 0) === 0 &&
-                  (caseItem.inProgressTasks || 0) === 0
-                }
-                title={
-                  caseItem.status === 'COMPLETED' &&
-                  (caseItem.pendingTasks || 0) === 0 &&
-                  (caseItem.inProgressTasks || 0) === 0
-                    ? 'Cannot edit completed cases'
-                    : 'Edit case details'
-                }
-              >
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Case
-              </Button>
+              {isEditable(caseItem.status) && (
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={handleEditCase}
+                  title="Edit case details"
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Case
+                </Button>
+              )}
               {caseItem.status !== 'COMPLETED' && <Button className="w-full">Mark Complete</Button>}
             </CardContent>
           </Card>

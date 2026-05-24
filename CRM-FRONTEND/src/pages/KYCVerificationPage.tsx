@@ -20,6 +20,7 @@ import {
 import { useKYCTaskDetail, useVerifyKYCDocument } from '@/hooks/useKYC';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { extractEditBlockedError } from '@/utils/editLock';
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: 'bg-yellow-100 text-yellow-800',
@@ -58,8 +59,13 @@ export const KYCVerificationPage: React.FC = () => {
       });
       toast.success(`Document marked as ${status}`);
       navigate('/kyc-verification/all-kyc');
-    } catch {
-      toast.error('Failed to verify document');
+    } catch (error) {
+      const editBlocked = extractEditBlockedError(error);
+      const msg =
+        editBlocked?.message ||
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Failed to verify document';
+      toast.error(msg);
     }
   };
 
@@ -89,6 +95,33 @@ export const KYCVerificationPage: React.FC = () => {
           {task.verificationStatus}
         </Badge>
       </div>
+
+      {/* Non-PENDING info banner — explains why Pass/Fail/Refer buttons
+          are hidden. Before this, IN_PROGRESS / COMPLETED docs showed
+          the page with no action and no explanation. */}
+      {!isPending && (
+        <div className="bg-muted border border-border rounded-lg px-4 py-3 text-sm">
+          {task.verificationStatus === 'IN_PROGRESS' && (
+            <span>
+              This KYC document is currently being processed; verification actions are unavailable.
+            </span>
+          )}
+          {task.verificationStatus === 'COMPLETED' && (
+            <span>
+              This KYC document has already been verified. The outcome is final and cannot be
+              edited.
+            </span>
+          )}
+          {task.verificationStatus === 'REVOKED' && (
+            <span>
+              This KYC document has been revoked; no further verification actions can be taken.
+            </span>
+          )}
+          {task.verificationStatus === 'ASSIGNED' && (
+            <span>This KYC document is assigned but not yet picked up for verification.</span>
+          )}
+        </div>
+      )}
 
       {/* Customer Info */}
       <Card>

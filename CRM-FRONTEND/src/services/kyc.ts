@@ -45,7 +45,21 @@ export interface KYCTask {
   documentDetails: Record<string, string>;
   description: string | null;
   typeCustomFields: KYCCustomField[];
-  verificationStatus: 'PENDING' | 'PASS' | 'FAIL' | 'REFER';
+  // BE column `verification_status` is the workflow state (PENDING /
+  // ASSIGNED / IN_PROGRESS / COMPLETED / REVOKED). The legacy values
+  // PASS/FAIL/REFER are kept in the union for back-compat with existing
+  // FE consumers that compare against them — those comparisons never
+  // match real BE data (outcomes live in `finalStatus`, not here) and
+  // are flagged as a separate pre-existing display bug.
+  verificationStatus:
+    | 'PENDING'
+    | 'ASSIGNED'
+    | 'IN_PROGRESS'
+    | 'COMPLETED'
+    | 'REVOKED'
+    | 'PASS'
+    | 'FAIL'
+    | 'REFER';
   remarks: string | null;
   rejectionReason: string | null;
   verifiedAt: string | null;

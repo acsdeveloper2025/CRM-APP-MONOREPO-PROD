@@ -25,6 +25,7 @@ import { useVerificationTypes } from '@/hooks/useClients';
 import { toast } from 'sonner';
 import type { CaseFormAttachment } from '@/components/attachments/CaseFormAttachmentsSection';
 import { logger } from '@/utils/logger';
+import { extractEditBlockedError } from '@/utils/editLock';
 
 // Extended type for case updates that might include task ID
 interface UpdateCasePayload extends CreateCaseData {
@@ -643,7 +644,14 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       }
     } catch (error) {
       logger.error('Error creating case:', error);
-      toast.error('Failed to create case. Please check your input.');
+      const editBlocked = extractEditBlockedError(error);
+      if (editBlocked) {
+        toast.error(editBlocked.message);
+      } else {
+        const msg = (error as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message;
+        toast.error(msg || 'Failed to create case. Please check your input.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -829,7 +837,16 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
       }
     } catch (error) {
       logger.error('Error in handleCaseFormSubmit:', error);
-      toast.error('An unexpected error occurred. Please try again.');
+      // Surface BE EDIT_BLOCKED / TASK_LOCKED message verbatim — generic
+      // "unexpected error" copy was masking actionable 409 reasons.
+      const editBlocked = extractEditBlockedError(error);
+      if (editBlocked) {
+        toast.error(editBlocked.message);
+      } else {
+        const msg = (error as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message;
+        toast.error(msg || 'An unexpected error occurred. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }

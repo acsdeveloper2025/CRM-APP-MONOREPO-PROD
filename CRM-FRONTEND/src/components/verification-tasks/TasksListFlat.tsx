@@ -31,6 +31,7 @@ import {
   getStatusLabel,
 } from '@/lib/badgeStyles';
 import { LoadingState } from '@/components/ui/loading';
+import { isEditable } from '@/utils/editLock';
 
 interface TasksListFlatProps {
   tasks: VerificationTask[];
@@ -402,7 +403,7 @@ export const TasksListFlat: React.FC<TasksListFlatProps> = ({
                               Revisit Task
                             </DropdownMenuItem>
                           )}
-                          {onEditCase && (
+                          {onEditCase && isEditable(task.status) && (
                             <DropdownMenuItem onClick={() => onEditCase(task.caseId, task.id)}>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit

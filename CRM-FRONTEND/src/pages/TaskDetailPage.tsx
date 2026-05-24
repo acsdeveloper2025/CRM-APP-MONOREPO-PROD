@@ -24,6 +24,7 @@ import { EditTaskDetailsModal } from '@/components/verification-tasks/EditTaskDe
 import { KYCTaskVerificationSection } from '@/components/kyc/KYCTaskVerificationSection';
 import { useRevisitTaskAction } from '@/hooks/useRevisitTaskAction';
 import { logger } from '@/utils/logger';
+import { isEditable, extractEditBlockedError } from '@/utils/editLock';
 
 interface TaskDetail {
   id: string;
@@ -179,7 +180,9 @@ export const TaskDetailPage: React.FC = () => {
       }
     } catch (error) {
       logger.error('Failed to update task:', error);
+      const editBlocked = extractEditBlockedError(error);
       const errorMessage =
+        editBlocked?.message ||
         (error as { response?: { data?: { message?: string } } }).response?.data?.message ||
         'Failed to update task';
       toast.error(errorMessage);
@@ -269,10 +272,9 @@ export const TaskDetailPage: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          {/* Edit hidden on terminal statuses — BE locks operational fields
-              (address/pincode/etc) once the task starts; only PENDING +
-              ASSIGNED can fully edit. */}
-          {(task.status === 'PENDING' || task.status === 'ASSIGNED') && (
+          {/* Edit hidden on locked statuses — see editLock helper. BE
+              also enforces (defense-in-depth). */}
+          {isEditable(task.status) && (
             <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit Task
