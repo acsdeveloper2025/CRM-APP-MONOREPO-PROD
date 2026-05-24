@@ -59,8 +59,7 @@ export function CreateCountryDialog({ open, onOpenChange }: CreateCountryDialogP
     resourceName: 'Country',
     operation: 'create',
     onSuccess: () => {
-      form.reset();
-      onOpenChange(false);
+      handleOpenChange(false);
     },
   });
 
@@ -68,13 +67,18 @@ export function CreateCountryDialog({ open, onOpenChange }: CreateCountryDialogP
     createCountryMutation.mutate(data);
   };
 
-  const handleCodeChange = (value: string) => {
-    // Auto-uppercase the country code
-    form.setValue('code', value.toUpperCase());
+  // B4 fix: route every close path (Cancel, Esc, click-outside, mutation
+  // success) through this wrapper so a half-filled form doesn't persist
+  // across Cancel + reopen (parent doesn't unmount the dialog).
+  const handleOpenChange = (next: boolean) => {
+    if (!next && !createCountryMutation.isPending) {
+      form.reset();
+    }
+    onOpenChange(next);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New Country</DialogTitle>
@@ -110,10 +114,7 @@ export function CreateCountryDialog({ open, onOpenChange }: CreateCountryDialogP
                       placeholder="e.g., US, IN, GB"
                       maxLength={3}
                       {...field}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        handleCodeChange(e.target.value);
-                      }}
+                      onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                       className="font-mono uppercase"
                     />
                   </FormControl>
@@ -128,7 +129,7 @@ export function CreateCountryDialog({ open, onOpenChange }: CreateCountryDialogP
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Continent</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a continent" />
@@ -147,11 +148,12 @@ export function CreateCountryDialog({ open, onOpenChange }: CreateCountryDialogP
               )}
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
+                disabled={createCountryMutation.isPending}
                 className="w-full sm:w-auto"
               >
                 Cancel

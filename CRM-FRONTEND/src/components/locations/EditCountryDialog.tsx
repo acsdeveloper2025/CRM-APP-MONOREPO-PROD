@@ -76,7 +76,7 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
     operation: 'update',
     additionalInvalidateKeys: [['country-stats']],
     onSuccess: () => {
-      onOpenChange(false);
+      handleOpenChange(false);
     },
   });
 
@@ -84,12 +84,24 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
     updateCountryMutation.mutate(data);
   };
 
-  const handleCodeChange = (value: string) => {
-    form.setValue('code', value.toUpperCase());
+  // B4 fix: parent table renders `{selectedCountry && <Edit... />}` but never
+  // nulls selectedCountry on close. Re-opening Edit on the SAME row keeps the
+  // same `country` prop reference → useEffect [country, form] doesn't re-fire
+  // → dirty edit state persists. Reset on close prevents that.
+  const handleOpenChange = (next: boolean) => {
+    if (!next && !updateCountryMutation.isPending) {
+      form.reset({
+        name: country.name,
+        code: country.code,
+        continent: country.continent,
+        isActive: country.isActive ?? true,
+      });
+    }
+    onOpenChange(next);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Country</DialogTitle>
@@ -123,10 +135,7 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
                       placeholder="e.g., US, IN, GB"
                       maxLength={3}
                       {...field}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        handleCodeChange(e.target.value);
-                      }}
+                      onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                       className="font-mono uppercase"
                     />
                   </FormControl>
@@ -178,11 +187,12 @@ export function EditCountryDialog({ country, open, onOpenChange }: EditCountryDi
               )}
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
+                disabled={updateCountryMutation.isPending}
                 className="w-full sm:w-auto"
               >
                 Cancel
