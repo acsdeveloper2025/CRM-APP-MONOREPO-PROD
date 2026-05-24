@@ -49,7 +49,7 @@ export function CreatePincodeDialog({ open, onOpenChange }: CreatePincodeDialogP
   });
 
   // Fetch cities for the dropdown
-  const { data: citiesData } = useStandardizedQuery({
+  const { data: citiesData, isLoading: citiesLoading } = useStandardizedQuery({
     queryKey: ['cities'],
     queryFn: () => locationsService.getCities(),
     enabled: open,
@@ -66,10 +66,19 @@ export function CreatePincodeDialog({ open, onOpenChange }: CreatePincodeDialogP
     operation: 'create',
     additionalInvalidateKeys: [['cities']],
     onSuccess: () => {
-      form.reset();
-      onOpenChange(false);
+      handleOpenChange(false);
     },
   });
+
+  // B4 fix: route every close path (Cancel, Esc, click-outside, mutation
+  // success) through this wrapper so half-filled form doesn't persist
+  // across Cancel + reopen.
+  const handleOpenChange = (next: boolean) => {
+    if (!next && !createMutation.isPending) {
+      form.reset();
+    }
+    onOpenChange(next);
+  };
 
   const onSubmit = (data: PincodeFormData) => {
     // Find the selected city to get additional required fields
@@ -93,7 +102,7 @@ export function CreatePincodeDialog({ open, onOpenChange }: CreatePincodeDialogP
   const cities = citiesData?.data || [];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New Pincode</DialogTitle>
@@ -153,23 +162,33 @@ export function CreatePincodeDialog({ open, onOpenChange }: CreatePincodeDialogP
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>City</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a city" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {cities.map((city) => (
-                        <SelectItem key={city.id} value={String(city.id)}>
-                          <div className="flex flex-col">
-                            <span>{city.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {city.state}, {city.country}
-                            </span>
-                          </div>
+                      {citiesLoading ? (
+                        <SelectItem value="loading" disabled>
+                          Loading cities...
                         </SelectItem>
-                      ))}
+                      ) : cities.length === 0 ? (
+                        <SelectItem value="empty" disabled>
+                          No cities available
+                        </SelectItem>
+                      ) : (
+                        cities.map((city) => (
+                          <SelectItem key={city.id} value={String(city.id)}>
+                            <div className="flex flex-col">
+                              <span>{city.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {city.state}, {city.country}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormDescription>Select the city this pincode belongs to</FormDescription>
@@ -178,11 +197,11 @@ export function CreatePincodeDialog({ open, onOpenChange }: CreatePincodeDialogP
               )}
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
                 className="w-full sm:w-auto"
                 disabled={createMutation.isPending}
               >

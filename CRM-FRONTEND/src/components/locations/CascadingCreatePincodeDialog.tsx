@@ -67,8 +67,7 @@ export function CascadingCreatePincodeDialog({
     errorContext: 'Pincode Creation',
     errorFallbackMessage: 'Failed to create pincode',
     onSuccess: () => {
-      form.reset();
-      onOpenChange(false);
+      handleDialogClose(false);
     },
   });
 
@@ -77,7 +76,7 @@ export function CascadingCreatePincodeDialog({
   };
 
   const handleDialogClose = (open: boolean) => {
-    if (!open) {
+    if (!open && !createMutation.isPending) {
       form.reset();
     }
     onOpenChange(open);
@@ -109,7 +108,7 @@ export function CascadingCreatePincodeDialog({
               areasField="areas"
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
               <Button
                 type="button"
                 variant="outline"

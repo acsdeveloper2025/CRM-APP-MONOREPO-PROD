@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { z } from 'zod';
+import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,6 +23,8 @@ import {
   FormLabel,
 } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { LoadingSpinner } from '@/components/ui/loading';
 import { locationsService } from '@/services/locations';
 import { Pincode, City, State, Country } from '@/types/location';
 import { ApiResponse } from '@/types/api';
@@ -69,14 +72,14 @@ export function CascadingEditPincodeDialog({
   });
 
   // Fetch the city details to get the full hierarchy
-  const { data: cityData } = useQuery<ApiResponse<City>>({
+  const { data: cityData, isLoading: cityLoading } = useQuery<ApiResponse<City>>({
     queryKey: ['city', pincode.cityId],
     queryFn: () => locationsService.getCityById(pincode.cityId),
     enabled: open && !!pincode.cityId,
   });
 
   // Fetch states to find the state ID
-  const { data: statesData } = useQuery<ApiResponse<State[]>>({
+  const { data: statesData, isLoading: statesLoading } = useQuery<ApiResponse<State[]>>({
     queryKey: ['states-for-edit', cityData?.data?.country],
     queryFn: () => {
       if (!cityData?.data?.country) {
@@ -88,11 +91,18 @@ export function CascadingEditPincodeDialog({
   });
 
   // Fetch countries to find the country ID
-  const { data: countriesData } = useQuery<ApiResponse<Country[]>>({
+  const { data: countriesData, isLoading: countriesLoading } = useQuery<ApiResponse<Country[]>>({
     queryKey: ['countries-for-edit'],
     queryFn: () => locationsService.getCountries({ limit: 100 }),
     enabled: open,
   });
+
+  // B3: spinner shows while ANY of the 3 fetches is in flight; warning surfaces
+  // when state/country lookup fails (e.g. legacy data where the city's state
+  // or country was renamed or deleted). Without these, the dialog used to
+  // render an empty form silently.
+  const isHierarchyLoading = cityLoading || statesLoading || countriesLoading;
+  const [lookupFailed, setLookupFailed] = useState(false);
 
   // Pre-populate form when data is loaded
   useEffect(() => {
@@ -102,6 +112,7 @@ export function CascadingEditPincodeDialog({
       const country = countriesData.data.find((c: Country) => c.name === city.country);
 
       if (state && country) {
+        setLookupFailed(false);
         form.reset({
           countryId: String(country.id),
           stateId: String(state.id),
@@ -110,6 +121,8 @@ export function CascadingEditPincodeDialog({
           areas: pincode.areas?.map((area) => String(area.id)) || [],
           isActive: pincode.isActive ?? true,
         });
+      } else {
+        setLookupFailed(true);
       }
     }
   }, [pincode, cityData, statesData, countriesData, form]);
@@ -146,7 +159,7 @@ export function CascadingEditPincodeDialog({
     errorContext: 'Pincode Update',
     errorFallbackMessage: 'Failed to update pincode',
     onSuccess: () => {
-      onOpenChange(false);
+      handleDialogClose(false);
     },
   });
 
@@ -155,8 +168,9 @@ export function CascadingEditPincodeDialog({
   };
 
   const handleDialogClose = (open: boolean) => {
-    if (!open) {
-      // Reset form to original values when closing
+    if (!open && !updateMutation.isPending) {
+      // Reset form to original values when closing — include isActive so a
+      // toggled Switch doesn't persist across Cancel + reopen.
       if (pincode && cityData?.data && statesData?.data && countriesData?.data) {
         const city = cityData.data;
         const state = statesData.data.find((s: State) => s.name === city.state);
@@ -169,6 +183,7 @@ export function CascadingEditPincodeDialog({
             cityId: String(pincode.cityId),
             pincodeCode: String(pincode.code),
             areas: pincode.areas?.map((area) => String(area.id)) || [],
+            isActive: pincode.isActive ?? true,
           });
         }
       }
@@ -187,59 +202,81 @@ export function CascadingEditPincodeDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <CascadingLocationSelector
-              form={form}
-              mode="edit"
-              showPincodeInput={true}
-              showAreasSelect={true}
-              disabled={updateMutation.isPending}
-              countryField="countryId"
-              stateField="stateId"
-              cityField="cityId"
-              pincodeField="pincodeCode"
-              areasField="areas"
-            />
-
-            <FormField
-              control={form.control}
-              name="isActive"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Active</FormLabel>
-                    <FormDescription>
-                      Inactive pincodes are hidden from the Active filter.
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <DialogFooter className="flex-col sm:flex-row gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleDialogClose(false)}
-                className="w-full sm:w-auto"
-                disabled={updateMutation.isPending}
-              >
-                Cancel
+        {isHierarchyLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <LoadingSpinner size="lg" />
+          </div>
+        ) : lookupFailed ? (
+          <div className="space-y-4">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Could not resolve the city&apos;s state or country (possibly renamed or deleted).
+                Refresh data and try again; if the problem persists, fix the underlying state /
+                country record first.
+              </AlertDescription>
+            </Alert>
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => handleDialogClose(false)}>
+                Close
               </Button>
-              <Button
-                type="submit"
+            </div>
+          </div>
+        ) : (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <CascadingLocationSelector
+                form={form}
+                mode="edit"
+                showPincodeInput={true}
+                showAreasSelect={true}
                 disabled={updateMutation.isPending}
-                className="w-full sm:w-auto"
-              >
-                {updateMutation.isPending ? 'Updating...' : 'Update Pincode'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+                countryField="countryId"
+                stateField="stateId"
+                cityField="cityId"
+                pincodeField="pincodeCode"
+                areasField="areas"
+              />
+
+              <FormField
+                control={form.control}
+                name="isActive"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Active</FormLabel>
+                      <FormDescription>
+                        Inactive pincodes are hidden from the Active filter.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleDialogClose(false)}
+                  className="w-full sm:w-auto"
+                  disabled={updateMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={updateMutation.isPending}
+                  className="w-full sm:w-auto"
+                >
+                  {updateMutation.isPending ? 'Updating...' : 'Update Pincode'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        )}
       </DialogContent>
     </Dialog>
   );

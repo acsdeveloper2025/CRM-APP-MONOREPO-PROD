@@ -354,7 +354,9 @@ export const getPincodeById = async (req: AuthenticatedRequest, res: Response) =
   try {
     const { id } = req.params;
 
-    // Query pincode with associated areas
+    // Query pincode with associated areas.
+    // B1: p.is_active included so /pincodes/:id consumers (e.g. detail-page or
+    // adjacent dialogs that might re-fetch) get the canonical isActive flag.
     const sql = `
       SELECT
         p.id,
@@ -363,6 +365,7 @@ export const getPincodeById = async (req: AuthenticatedRequest, res: Response) =
         c.name as city_name,
         s.name as state,
         co.name as country,
+        p.is_active as "isActive",
         p.created_at as created_at,
         p.updated_at as updated_at,
         COALESCE(
@@ -382,7 +385,7 @@ export const getPincodeById = async (req: AuthenticatedRequest, res: Response) =
       LEFT JOIN pincode_areas pa ON p.id = pa.pincode_id
       LEFT JOIN areas a ON pa.area_id = a.id
       WHERE p.id = $1
-      GROUP BY p.id, p.code, p.city_id, c.name, s.name, co.name, p.created_at, p.updated_at
+      GROUP BY p.id, p.code, p.city_id, c.name, s.name, co.name, p.is_active, p.created_at, p.updated_at
     `;
 
     const result = await query(sql, [id]);
@@ -549,13 +552,9 @@ export const updatePincode = async (req: AuthenticatedRequest, res: Response) =>
     const { id } = req.params;
     const updateData = req.body;
 
-    // Check if pincode exists. Post-migration 010 the pincodes table
-    // only has: id, code, city_id, created_at, updated_at. The prior
-    // query selected 9 columns (pincode, area, city, state,
-    // country_id, is_active) that no longer exist — every updatePincode
-    // call threw "column does not exist".
+    // Check if pincode exists.
     const existingResult = await query(
-      'SELECT id, code, city_id, created_at, updated_at FROM pincodes WHERE id = $1',
+      'SELECT id, code, city_id, is_active, created_at, updated_at FROM pincodes WHERE id = $1',
       [id]
     );
 
@@ -575,7 +574,7 @@ export const updatePincode = async (req: AuthenticatedRequest, res: Response) =>
       }
     }
 
-    // Build update query — only code and city_id are updatable on the
+    // Build update query — code, city_id, is_active are updatable on the
     // pincodes table. Area management goes through the separate
     // /pincodes/:id/areas endpoint + pincode_areas junction table.
     const updateFields: string[] = [];
