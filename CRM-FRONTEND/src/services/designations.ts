@@ -1,5 +1,7 @@
+import type { AxiosResponse } from 'axios';
 import { apiService } from './api';
 import { Designation, CreateDesignationRequest, UpdateDesignationRequest } from '@/types/user';
+import { ApiResponse } from '@/types/api';
 import { validateResponse } from './schemas/runtime';
 import { GenericEntitySchema, GenericEntityListSchema } from './schemas/generic.schema';
 
@@ -21,12 +23,25 @@ export interface DesignationResponse {
   data: Designation;
 }
 
+export interface DesignationStats {
+  total: number;
+  active: number;
+  inactive: number;
+  recentlyAddedCount: number;
+  withoutDepartmentCount: number;
+}
+
 export interface DesignationsParams {
   page?: number;
   limit?: number;
   search?: string;
-  isActive?: boolean;
+  // §9 canonical isActive contract.
+  isActive?: 'true' | 'false' | 'all' | boolean;
   departmentId?: number;
+  sortBy?: 'name' | 'createdAt' | 'updatedAt';
+  sortOrder?: 'asc' | 'desc';
+  createdFrom?: string;
+  createdTo?: string;
 }
 
 class DesignationsService {
@@ -45,10 +60,22 @@ class DesignationsService {
       searchParams.append('search', params.search);
     }
     if (params.isActive !== undefined) {
-      searchParams.append('isActive', params.isActive.toString());
+      searchParams.append('isActive', String(params.isActive));
     }
     if (params.departmentId) {
       searchParams.append('departmentId', params.departmentId.toString());
+    }
+    if (params.sortBy) {
+      searchParams.append('sortBy', params.sortBy);
+    }
+    if (params.sortOrder) {
+      searchParams.append('sortOrder', params.sortOrder);
+    }
+    if (params.createdFrom) {
+      searchParams.append('createdFrom', params.createdFrom);
+    }
+    if (params.createdTo) {
+      searchParams.append('createdTo', params.createdTo);
     }
 
     const queryString = searchParams.toString();
@@ -62,6 +89,30 @@ class DesignationsService {
       });
     }
     return response as DesignationsResponse;
+  }
+
+  // 5-card stats aggregate for DesignationsPage shell.
+  async getDesignationStats(): Promise<ApiResponse<DesignationStats>> {
+    return apiService.get<DesignationStats>(`${this.baseUrl}/stats`);
+  }
+
+  // Excel export — mirrors getDesignations filters. Returns raw axios
+  // response so the caller can pull headers + blob body.
+  async exportDesignations(
+    params: Omit<DesignationsParams, 'page' | 'limit'> = {}
+  ): Promise<AxiosResponse<Blob>> {
+    const query: Record<string, string | undefined> = {
+      search: params.search,
+      isActive: params.isActive !== undefined ? String(params.isActive) : undefined,
+      departmentId: params.departmentId ? String(params.departmentId) : undefined,
+      sortBy: params.sortBy,
+      sortOrder: params.sortOrder,
+      createdFrom: params.createdFrom,
+      createdTo: params.createdTo,
+    };
+    return apiService.getRaw<Blob>(`${this.baseUrl}/export`, query, {
+      responseType: 'blob',
+    });
   }
 
   async getDesignationById(id: number): Promise<DesignationResponse> {
@@ -116,7 +167,7 @@ class DesignationsService {
 
   // Helper method to get designations for a specific department
   async getDesignationsByDepartment(departmentId: number): Promise<DesignationsResponse> {
-    return this.getDesignations({ departmentId, isActive: true });
+    return this.getDesignations({ departmentId, isActive: 'true' });
   }
 
   // Helper method to search designations
@@ -127,7 +178,7 @@ class DesignationsService {
     return this.getDesignations({
       search: searchTerm,
       departmentId,
-      isActive: true,
+      isActive: 'true',
     });
   }
 }

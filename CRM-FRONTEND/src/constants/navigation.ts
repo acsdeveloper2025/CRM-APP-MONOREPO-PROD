@@ -22,6 +22,7 @@ import {
   ClipboardList,
   Stethoscope,
   Radio,
+  Briefcase,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -540,6 +541,14 @@ export const navigationItems: NavigationItem[] = [
         label: 'Departments',
         href: '/user-management/departments',
         icon: Building2,
+        permissionCode: 'page.users',
+        permission: { resource: 'users', action: 'read' },
+      },
+      {
+        id: 'designations',
+        label: 'Designations',
+        href: '/user-management/designations',
+        icon: Briefcase,
         permissionCode: 'page.users',
         permission: { resource: 'users', action: 'read' },
       },
