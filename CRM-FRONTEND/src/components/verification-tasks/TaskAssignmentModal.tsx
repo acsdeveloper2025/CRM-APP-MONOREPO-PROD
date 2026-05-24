@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { UserCheck, AlertCircle, User, Loader2 } from 'lucide-react';
 import {
   AssignVerificationTaskRequest,
@@ -178,16 +185,20 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
 
           {/* Global Error */}
           {submitError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative text-sm">
-              <span className="block sm:inline">{submitError}</span>
-            </div>
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{submitError}</AlertDescription>
+            </Alert>
           )}
 
           {requiresRevokeFirst && (
-            <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded text-sm">
-              This task is already in progress. Revoke it from the task actions menu before
-              assigning it to a different field executive.
-            </div>
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                This task is already in progress. Revoke it from the task actions menu before
+                assigning it to a different field executive.
+              </AlertDescription>
+            </Alert>
           )}
 
           {/* Assignment Form */}
@@ -195,7 +206,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
             {/* Field User Selection */}
             <div className="space-y-2">
               <Label htmlFor="assignedTo">
-                Assign To <span className="text-red-500">*</span>
+                Assign To <span className="text-destructive">*</span>
                 {task?.pincode && (
                   <span className="text-xs text-muted-foreground ml-2">
                     (Showing users assigned to pincode {task.pincode})
@@ -210,7 +221,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                 }}
                 disabled={loadingUsers || !task || isAssigning || requiresRevokeFirst}
               >
-                <SelectTrigger className={errors.assignedTo ? 'border-red-500' : ''}>
+                <SelectTrigger className={errors.assignedTo ? 'border-destructive' : ''}>
                   <SelectValue
                     placeholder={loadingUsers ? 'Loading field users...' : 'Select a field user'}
                   >
@@ -232,22 +243,15 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   {loadingUsers ? (
-                    <div className="p-4 text-center">
-                      <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">Loading field users...</p>
-                    </div>
+                    <SelectItem value="loading" disabled>
+                      Loading field users...
+                    </SelectItem>
                   ) : fieldUsers.length === 0 ? (
-                    <div className="p-4 text-center">
-                      <AlertCircle className="h-4 w-4 text-yellow-500 mx-auto mb-2" />
-                      <p className="text-sm text-foreground font-medium">
-                        No field users available
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {task?.pincode
-                          ? `No field users are assigned to pincode ${task.pincode}`
-                          : 'No pincode specified for this task'}
-                      </p>
-                    </div>
+                    <SelectItem value="empty" disabled>
+                      {task?.pincode
+                        ? `No field users assigned to pincode ${task.pincode}`
+                        : 'No pincode specified for this task'}
+                    </SelectItem>
                   ) : (
                     fieldUsers.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
@@ -268,7 +272,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                 </SelectContent>
               </Select>
               {errors.assignedTo && (
-                <p className="text-sm text-red-600 flex items-center space-x-1">
+                <p className="text-sm text-destructive flex items-center space-x-1">
                   <AlertCircle className="h-4 w-4" />
                   <span>{errors.assignedTo}</span>
                 </p>
@@ -306,7 +310,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
             {/* Assignment Reason */}
             <div className="space-y-2">
               <Label htmlFor="assignmentReason">
-                Assignment Reason <span className="text-red-500">*</span>
+                Assignment Reason <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 id="assignmentReason"
@@ -317,11 +321,11 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                 }}
                 placeholder="Explain why this task is being assigned to this user..."
                 rows={3}
-                className={errors.assignmentReason ? 'border-red-500' : ''}
+                className={errors.assignmentReason ? 'border-destructive' : ''}
                 disabled={isAssigning || requiresRevokeFirst}
               />
               {errors.assignmentReason && (
-                <p className="text-sm text-red-600 flex items-center space-x-1">
+                <p className="text-sm text-destructive flex items-center space-x-1">
                   <AlertCircle className="h-4 w-4" />
                   <span>{errors.assignmentReason}</span>
                 </p>
@@ -334,13 +338,13 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
 
           {/* Assignment Summary */}
           {assignedTo && (
-            <Card className="bg-green-50 border-green-200">
+            <Card className="bg-muted">
               <CardContent className="p-4">
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-green-900">Assignment Summary</p>
-                  <div className="text-sm text-green-800">
+                  <p className="text-sm font-medium text-foreground">Assignment Summary</p>
+                  <div className="text-sm text-muted-foreground">
                     <p>
-                      <span className="font-medium">Assignee:</span>{' '}
+                      <span className="font-medium text-foreground">Assignee:</span>{' '}
                       {
                         fieldUsers.find(
                           (user) =>
@@ -349,7 +353,7 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
                       }
                     </p>
                     <div className="flex items-center gap-1">
-                      <span className="font-medium">Priority:</span>
+                      <span className="font-medium text-foreground">Priority:</span>
                       <span
                         className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getPriorityColor(priority)}`}
                       >
@@ -361,29 +365,34 @@ export const TaskAssignmentModal: React.FC<TaskAssignmentModalProps> = ({
               </CardContent>
             </Card>
           )}
-
-          {/* Actions */}
-          <div className="flex justify-end space-x-3">
-            <Button onClick={onClose} variant="outline" disabled={isAssigning}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={isAssigning || !assignedTo || requiresRevokeFirst}
-            >
-              {isAssigning ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Assigning...
-                </>
-              ) : requiresRevokeFirst ? (
-                'Revoke First'
-              ) : (
-                'Assign Task'
-              )}
-            </Button>
-          </div>
         </div>
+
+        <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+          <Button
+            onClick={onClose}
+            variant="outline"
+            disabled={isAssigning}
+            className="w-full sm:w-auto"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={isAssigning || !assignedTo || requiresRevokeFirst}
+            className="w-full sm:w-auto"
+          >
+            {isAssigning ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Assigning...
+              </>
+            ) : requiresRevokeFirst ? (
+              'Revoke First'
+            ) : (
+              'Assign Task'
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
