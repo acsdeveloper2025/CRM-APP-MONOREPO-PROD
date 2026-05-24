@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { LoadingSpinner } from '@/components/ui/loading';
 import { UnifiedSearchFilterLayout } from '@/components/ui/unified-search-filter-layout';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import {
@@ -237,7 +238,10 @@ export function ReportTemplatesPage() {
     return Array.isArray(listRes.data) ? listRes.data : [];
   }, [listRes]);
 
-  const { data: editingRes } = useReportTemplate(editingId);
+  const { data: editingRes, isLoading: editingLoading } = useReportTemplate(editingId);
+  // Only treat as loading when in edit mode (not create). Prevents the
+  // dialog body from flashing empty/stale form before detail arrives (B3).
+  const isDetailLoading = !!editingId && editingLoading;
   useEffect(() => {
     if (!editingId) {
       return;
@@ -811,217 +815,225 @@ export function ReportTemplatesPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <Label>Client</Label>
-              <Select
-                value={form.clientId}
-                onValueChange={handleClientChange}
-                disabled={!!editingId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select client" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {isDetailLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <LoadingSpinner size="lg" />
             </div>
-            <div>
-              <Label>Product</Label>
-              <Select
-                value={form.productId}
-                onValueChange={handleProductChange}
-                disabled={!!editingId || !form.clientId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select product" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formProducts.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="md:col-span-2">
-              <Label>Template Name</Label>
-              <Input
-                placeholder="e.g. HDFC Home Loan RCU Report"
-                value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              />
-            </div>
-            <div>
-              <Label>Page Size</Label>
-              <Select
-                value={form.pageSize}
-                onValueChange={(val) =>
-                  setForm((f) => ({ ...f, pageSize: val as ReportTemplatePageSize }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAGE_SIZES.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Orientation</Label>
-              <Select
-                value={form.pageOrientation}
-                onValueChange={(val) =>
-                  setForm((f) => ({
-                    ...f,
-                    pageOrientation: val as ReportTemplatePageOrientation,
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAGE_ORIENTATIONS.map((o) => (
-                    <SelectItem key={o} value={o}>
-                      {o}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="md:col-span-2">
-              <div className="flex items-center justify-between">
-                <Label>HTML / Handlebars</Label>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    {htmlBytes.toLocaleString()} / {MAX_HTML_BYTES.toLocaleString()} bytes
-                  </span>
-                  <label
-                    htmlFor="report-template-html-upload"
-                    className="inline-flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-accent"
+          ) : (
+            <>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label>Client</Label>
+                  <Select
+                    value={form.clientId}
+                    onValueChange={handleClientChange}
+                    disabled={!!editingId}
                   >
-                    <Upload className="h-3 w-3" /> Upload .html
-                  </label>
-                  <input
-                    id="report-template-html-upload"
-                    aria-label="Upload HTML template file"
-                    type="file"
-                    accept=".html,.htm,.hbs,text/html"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        void handleHtmlFileUpload(file);
-                      }
-                      e.target.value = '';
-                    }}
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select client" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map((c) => (
+                        <SelectItem key={c.id} value={String(c.id)}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Product</Label>
+                  <Select
+                    value={form.productId}
+                    onValueChange={handleProductChange}
+                    disabled={!!editingId || !form.clientId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select product" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formProducts.map((p) => (
+                        <SelectItem key={p.id} value={String(p.id)}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Template Name</Label>
+                  <Input
+                    placeholder="e.g. HDFC Home Loan RCU Report"
+                    value={form.name}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   />
-                  <label
-                    htmlFor="report-template-pdf-convert"
-                    className={`inline-flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-accent ${converting ? 'pointer-events-none opacity-60' : ''}`}
-                    title="Upload a bank's PDF report format — we extract text locally and bind known labels to placeholders"
+                </div>
+                <div>
+                  <Label>Page Size</Label>
+                  <Select
+                    value={form.pageSize}
+                    onValueChange={(val) =>
+                      setForm((f) => ({ ...f, pageSize: val as ReportTemplatePageSize }))
+                    }
                   >
-                    {converting ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Wand2 className="h-3 w-3" />
-                    )}{' '}
-                    {converting ? 'Converting...' : 'Convert from PDF'}
-                  </label>
-                  <input
-                    id="report-template-pdf-convert"
-                    aria-label="Convert PDF report to HTML template"
-                    type="file"
-                    accept="application/pdf,.pdf"
-                    className="hidden"
-                    disabled={converting}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        void handleConvertPdf(file);
-                      }
-                      e.target.value = '';
-                    }}
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAGE_SIZES.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Orientation</Label>
+                  <Select
+                    value={form.pageOrientation}
+                    onValueChange={(val) =>
+                      setForm((f) => ({
+                        ...f,
+                        pageOrientation: val as ReportTemplatePageOrientation,
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAGE_ORIENTATIONS.map((o) => (
+                        <SelectItem key={o} value={o}>
+                          {o}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <Label>HTML / Handlebars</Label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {htmlBytes.toLocaleString()} / {MAX_HTML_BYTES.toLocaleString()} bytes
+                      </span>
+                      <label
+                        htmlFor="report-template-html-upload"
+                        className="inline-flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-accent"
+                      >
+                        <Upload className="h-3 w-3" /> Upload .html
+                      </label>
+                      <input
+                        id="report-template-html-upload"
+                        aria-label="Upload HTML template file"
+                        type="file"
+                        accept=".html,.htm,.hbs,text/html"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            void handleHtmlFileUpload(file);
+                          }
+                          e.target.value = '';
+                        }}
+                      />
+                      <label
+                        htmlFor="report-template-pdf-convert"
+                        className={`inline-flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-accent ${converting ? 'pointer-events-none opacity-60' : ''}`}
+                        title="Upload a bank's PDF report format — we extract text locally and bind known labels to placeholders"
+                      >
+                        {converting ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Wand2 className="h-3 w-3" />
+                        )}{' '}
+                        {converting ? 'Converting...' : 'Convert from PDF'}
+                      </label>
+                      <input
+                        id="report-template-pdf-convert"
+                        aria-label="Convert PDF report to HTML template"
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        className="hidden"
+                        disabled={converting}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            void handleConvertPdf(file);
+                          }
+                          e.target.value = '';
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setForm((f) => ({ ...f, htmlContent: SAMPLE_REPORT_TEMPLATE_HTML }));
+                          setValidationMessage('');
+                          toast.info('Sample template loaded into editor');
+                        }}
+                        title="Replace editor content with a starter template"
+                      >
+                        <Sparkles className="mr-1 h-3 w-3" /> Sample
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handleValidate()}
+                        disabled={validateMutation.isPending}
+                      >
+                        <FileText className="mr-1 h-3 w-3" /> Validate
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handlePreview()}
+                        disabled={previewing}
+                        title="Open the rendered template (with sample data) in a new tab"
+                      >
+                        {previewing ? (
+                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                        ) : (
+                          <Eye className="mr-1 h-3 w-3" />
+                        )}
+                        {previewing ? 'Rendering...' : 'Preview'}
+                      </Button>
+                    </div>
+                  </div>
+                  <textarea
+                    aria-label="HTML template content"
+                    className="min-h-[260px] w-full resize-y rounded-md border bg-background p-2 font-mono text-xs"
+                    value={form.htmlContent}
+                    onChange={(e) => setForm((f) => ({ ...f, htmlContent: e.target.value }))}
+                    placeholder="<!DOCTYPE html>&#10;<html>&#10;<body>&#10;  <h1>{{case.customerName}}</h1>&#10;  ...&#10;</body>&#10;</html>"
+                    spellCheck={false}
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setForm((f) => ({ ...f, htmlContent: SAMPLE_REPORT_TEMPLATE_HTML }));
-                      setValidationMessage('');
-                      toast.info('Sample template loaded into editor');
-                    }}
-                    title="Replace editor content with a starter template"
-                  >
-                    <Sparkles className="mr-1 h-3 w-3" /> Sample
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void handleValidate()}
-                    disabled={validateMutation.isPending}
-                  >
-                    <FileText className="mr-1 h-3 w-3" /> Validate
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void handlePreview()}
-                    disabled={previewing}
-                    title="Open the rendered template (with sample data) in a new tab"
-                  >
-                    {previewing ? (
-                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                    ) : (
-                      <Eye className="mr-1 h-3 w-3" />
-                    )}
-                    {previewing ? 'Rendering...' : 'Preview'}
-                  </Button>
+                  {validationMessage && (
+                    <p className="mt-1 text-xs text-muted-foreground">{validationMessage}</p>
+                  )}
+                  <div className="mt-3">
+                    <PlaceholderReference
+                      clientId={form.clientId ? Number(form.clientId) : null}
+                      productId={form.productId ? Number(form.productId) : null}
+                    />
+                  </div>
                 </div>
               </div>
-              <textarea
-                aria-label="HTML template content"
-                className="min-h-[260px] w-full resize-y rounded-md border bg-background p-2 font-mono text-xs"
-                value={form.htmlContent}
-                onChange={(e) => setForm((f) => ({ ...f, htmlContent: e.target.value }))}
-                placeholder="<!DOCTYPE html>&#10;<html>&#10;<body>&#10;  <h1>{{case.customerName}}</h1>&#10;  ...&#10;</body>&#10;</html>"
-                spellCheck={false}
-              />
-              {validationMessage && (
-                <p className="mt-1 text-xs text-muted-foreground">{validationMessage}</p>
-              )}
-              <div className="mt-3">
-                <PlaceholderReference
-                  clientId={form.clientId ? Number(form.clientId) : null}
-                  productId={form.productId ? Number(form.productId) : null}
-                />
-              </div>
-            </div>
-          </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={closeDialog} disabled={isSaving}>
-              Cancel
-            </Button>
-            <Button onClick={() => void handleSave()} disabled={isSaving}>
-              {isSaving ? 'Saving...' : editingId ? 'Save Changes' : 'Create Template'}
-            </Button>
-          </DialogFooter>
+              <DialogFooter>
+                <Button variant="outline" onClick={closeDialog} disabled={isSaving}>
+                  Cancel
+                </Button>
+                <Button onClick={() => void handleSave()} disabled={isSaving}>
+                  {isSaving ? 'Saving...' : editingId ? 'Save Changes' : 'Create Template'}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
