@@ -121,16 +121,25 @@ function RoleModal({
             Cancel
           </Button>
           <Button
-            onClick={() =>
-              onSubmit({
+            onClick={() => {
+              // Only include parentRoleId on CREATE (clone-from). Sending it
+              // on EDIT would silently clobber the existing column to NULL
+              // (B6 — paired BE COALESCE in updateRbacRole as defense-in-
+              // depth, audit 2026-05-24).
+              const payload: {
+                name: string;
+                description?: string;
+                parentRoleId?: string | null;
+              } = {
                 name: form.name.trim(),
                 description: form.description.trim() || undefined,
-                parentRoleId:
-                  mode === 'create' && form.cloneFromRoleId !== 'none'
-                    ? form.cloneFromRoleId
-                    : null,
-              })
-            }
+              };
+              if (mode === 'create') {
+                payload.parentRoleId =
+                  form.cloneFromRoleId !== 'none' ? form.cloneFromRoleId : null;
+              }
+              onSubmit(payload);
+            }}
           >
             {mode === 'create' ? 'Create Role' : 'Save Role'}
           </Button>

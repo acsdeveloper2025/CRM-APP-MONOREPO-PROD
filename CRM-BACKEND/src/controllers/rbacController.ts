@@ -227,7 +227,10 @@ export const updateRbacRole = async (req: AuthenticatedRequest, res: Response) =
       `UPDATE roles_v2
        SET name = COALESCE($1, name),
            description = COALESCE($2, description),
-           parent_role_id = $3,
+           -- COALESCE preserves existing parent_role_id when not supplied
+           -- in the request body (prevents silent destructive-write on
+           -- name/description-only edits — bug class B6, audit 2026-05-24).
+           parent_role_id = COALESCE($3, parent_role_id),
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $4
        RETURNING id, name, description, parent_role_id as "parent_role_id", is_system as "is_system"`,
