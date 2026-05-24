@@ -26,6 +26,7 @@ import {
 } from '@/services/financialConfigurationValidator';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
+import { checkEditable, buildEditBlockedResponse } from '@/utils/editLockGuard';
 import { requireControllerPermission } from '@/security/controllerAuthorization';
 import { createAuditLog } from '../utils/auditLogger';
 import { escapeFormulaRow } from '@/utils/formulaGuard';
@@ -1277,6 +1278,51 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
         customerName,
       },
     });
+
+    // IN_PROGRESS edit-lock — see project_in_progress_edit_lock_audit_2026_05_24.md.
+    // Pre-fix, case-level fields (customerName, customerPhone, pincode,
+    // priority, trigger, applicantType, backendContactNumber, verificationTypeId)
+    // mutated freely while the case was being verified — operators could
+    // change the customer name mid-verification, breaking the audit trail
+    // and causing field-agent confusion. The legacy work-order lock at
+    // line ~1382 only covered task-level fields (rateTypeId/address) so
+    // direct API callers bypassed it for everything else.
+    const statusRow = await dbQuery<{ status: string }>(`SELECT status FROM cases WHERE id = $1`, [
+      id,
+    ]);
+    if (statusRow.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Case not found',
+        error: { code: 'NOT_FOUND' },
+      });
+    }
+    const caseEditCheck = checkEditable(statusRow.rows[0].status);
+    // Reassignment of a task (assignedToId only, no other field) is an
+    // exception — it stays allowed because the reassignment flow operates
+    // on REVOKED → ASSIGNED transitions and is the only legitimate way to
+    // re-route a stuck verification. All other mutations are blocked.
+    const isAssignmentOnly =
+      assignedToId !== undefined &&
+      customerName === undefined &&
+      customerPhone === undefined &&
+      customerCallingCode === undefined &&
+      verificationTypeId === undefined &&
+      pincode === undefined &&
+      priority === undefined &&
+      trigger === undefined &&
+      applicantType === undefined &&
+      backendContactNumber === undefined &&
+      rateTypeId === undefined &&
+      address === undefined;
+    if (!caseEditCheck.editable && !isAssignmentOnly) {
+      logger.warn('⚠️ Rejected Case update — IN_PROGRESS/terminal status', {
+        caseId: id,
+        currentStatus: statusRow.rows[0].status,
+        userId: req.user?.id,
+      });
+      return res.status(409).json(buildEditBlockedResponse('Case', caseEditCheck));
+    }
 
     // Build dynamic update query for cases table
     const updateFields: string[] = [];
