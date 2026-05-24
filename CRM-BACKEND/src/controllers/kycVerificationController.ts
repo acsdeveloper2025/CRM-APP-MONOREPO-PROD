@@ -21,6 +21,7 @@ import { getAssignedClientIds } from '@/middleware/clientAccess';
 import { getAssignedProductIds } from '@/middleware/productAccess';
 import { enforceBackendUserCaseScope } from '@/controllers/attachmentsController';
 import { createAuditLog } from '@/utils/auditLogger';
+import { checkEditable, buildEditBlockedResponse } from '@/utils/editLockGuard';
 
 // =====================================================
 // Module-scope export + sort constants (filter-sweep 2026-05-23)
@@ -608,6 +609,39 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
     const client = wrapClient(await pool.connect());
     try {
       await client.query('BEGIN');
+
+      // IN_PROGRESS edit-lock + state-transition guard — see
+      // project_in_progress_edit_lock_audit_2026_05_24.md. Without this,
+      // a direct API call could (a) skip the PENDING decision step or
+      // (b) overwrite a recorded final_status on an already-COMPLETED
+      // row, breaking the audit trail. PENDING is the only valid state
+      // for verify.
+      const statusCheck = await client.query<{ verificationStatus: string }>(
+        `SELECT verification_status FROM kyc_document_verifications
+         WHERE id = $1 AND deleted_at IS NULL`,
+        [taskId]
+      );
+      if (statusCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ success: false, message: 'KYC task not found' });
+      }
+      const currentStatus = statusCheck.rows[0].verificationStatus;
+      if (currentStatus !== 'PENDING') {
+        await client.query('ROLLBACK');
+        const editCheck = checkEditable(currentStatus);
+        // For IN_PROGRESS/COMPLETED/REVOKED return canonical EDIT_BLOCKED
+        // so FE can show the standard "cannot edit" copy. For ASSIGNED
+        // (currently editable in the shared helper but not a valid
+        // verify-source state) return INVALID_STATE_TRANSITION.
+        if (!editCheck.editable) {
+          return res.status(409).json(buildEditBlockedResponse('KYC document', editCheck));
+        }
+        return res.status(409).json({
+          success: false,
+          message: `KYC document must be in PENDING state to verify; current state is ${currentStatus}.`,
+          error: { code: 'INVALID_STATE_TRANSITION', currentStatus },
+        });
+      }
 
       // Workflow advances to COMPLETED; outcome lands in final_status.
       const updateResult = await client.query(
