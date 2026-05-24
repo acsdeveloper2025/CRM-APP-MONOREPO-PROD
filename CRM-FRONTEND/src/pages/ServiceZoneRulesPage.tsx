@@ -233,16 +233,16 @@ export function ServiceZoneRulesPage() {
   });
 
   // Form-dropdown data (cascading — depends on form's clientId/productId/VT).
-  const { data: clientsResponse } = useQuery({
+  const { data: clientsResponse, isLoading: clientsLoading } = useQuery({
     queryKey: ['clients', 'service-zone-rules'],
     queryFn: () => clientsService.getClients({ limit: 100 }),
   });
-  const { data: productsResponse } = useQuery({
+  const { data: productsResponse, isLoading: productsLoading } = useQuery({
     queryKey: ['service-zone-products', formState.clientId],
     queryFn: () => productsService.getProductsByClient(formState.clientId),
     enabled: Boolean(formState.clientId),
   });
-  const { data: vtsResponse } = useQuery({
+  const { data: vtsResponse, isLoading: vtsLoading } = useQuery({
     queryKey: ['service-zone-vts', formState.clientId, formState.productId],
     queryFn: () =>
       verificationTypesService.getVerificationTypesForClientProduct(
@@ -251,17 +251,17 @@ export function ServiceZoneRulesPage() {
       ),
     enabled: Boolean(formState.clientId && formState.productId),
   });
-  const { data: pincodesResponse } = useQuery({
+  const { data: pincodesResponse, isLoading: pincodesLoading } = useQuery({
     queryKey: ['service-zone-pincodes', pincodeSearchQuery],
     queryFn: () =>
       locationsService.getPincodes({ search: pincodeSearchQuery || undefined, limit: 30 }),
   });
-  const { data: areasResponse } = useQuery({
+  const { data: areasResponse, isLoading: areasLoading } = useQuery({
     queryKey: ['service-zone-areas', formState.pincodeId],
     queryFn: () => locationsService.getAreasByPincode(Number(formState.pincodeId)),
     enabled: Boolean(formState.pincodeId),
   });
-  const { data: rateTypeAssignmentsResponse } = useQuery({
+  const { data: rateTypeAssignmentsResponse, isLoading: rateTypesLoading } = useQuery({
     queryKey: [
       'service-zone-rate-types',
       formState.clientId,
@@ -649,11 +649,21 @@ export function ServiceZoneRulesPage() {
                   <SelectValue placeholder="Select client" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={String(client.id)}>
-                      {client.name}
+                  {clientsLoading ? (
+                    <SelectItem value="loading" disabled>
+                      Loading clients...
                     </SelectItem>
-                  ))}
+                  ) : clients.length === 0 ? (
+                    <SelectItem value="empty" disabled>
+                      No clients available
+                    </SelectItem>
+                  ) : (
+                    clients.map((client) => (
+                      <SelectItem key={client.id} value={String(client.id)}>
+                        {client.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -671,11 +681,21 @@ export function ServiceZoneRulesPage() {
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {products.map((product) => (
-                    <SelectItem key={product.id} value={String(product.id)}>
-                      {product.name}
+                  {productsLoading ? (
+                    <SelectItem value="loading" disabled>
+                      Loading products...
                     </SelectItem>
-                  ))}
+                  ) : products.length === 0 ? (
+                    <SelectItem value="empty" disabled>
+                      No products available
+                    </SelectItem>
+                  ) : (
+                    products.map((product) => (
+                      <SelectItem key={product.id} value={String(product.id)}>
+                        {product.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -695,11 +715,21 @@ export function ServiceZoneRulesPage() {
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {verificationTypes.map((vt) => (
-                    <SelectItem key={vt.id} value={String(vt.id)}>
-                      {vt.name}
+                  {vtsLoading ? (
+                    <SelectItem value="loading" disabled>
+                      Loading verification types...
                     </SelectItem>
-                  ))}
+                  ) : verificationTypes.length === 0 ? (
+                    <SelectItem value="empty" disabled>
+                      No verification types available
+                    </SelectItem>
+                  ) : (
+                    verificationTypes.map((vt) => (
+                      <SelectItem key={vt.id} value={String(vt.id)}>
+                        {vt.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -723,11 +753,21 @@ export function ServiceZoneRulesPage() {
                       onClick={(e) => e.stopPropagation()}
                     />
                   </div>
-                  {pincodes.map((pincode) => (
-                    <SelectItem key={pincode.id} value={String(pincode.id)}>
-                      {pincode.code}
+                  {pincodesLoading ? (
+                    <SelectItem value="loading" disabled>
+                      Loading pincodes...
                     </SelectItem>
-                  ))}
+                  ) : pincodes.length === 0 ? (
+                    <SelectItem value="empty" disabled>
+                      No pincodes found
+                    </SelectItem>
+                  ) : (
+                    pincodes.map((pincode) => (
+                      <SelectItem key={pincode.id} value={String(pincode.id)}>
+                        {pincode.code}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -745,11 +785,21 @@ export function ServiceZoneRulesPage() {
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {areas.map((area) => (
-                    <SelectItem key={area.id} value={String(area.id)}>
-                      {area.name}
+                  {areasLoading ? (
+                    <SelectItem value="loading" disabled>
+                      Loading areas...
                     </SelectItem>
-                  ))}
+                  ) : areas.length === 0 ? (
+                    <SelectItem value="empty" disabled>
+                      No areas for this pincode
+                    </SelectItem>
+                  ) : (
+                    areas.map((area) => (
+                      <SelectItem key={area.id} value={String(area.id)}>
+                        {area.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -773,11 +823,21 @@ export function ServiceZoneRulesPage() {
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {rateTypes.map((rt) => (
-                    <SelectItem key={rt.id} value={String(rt.id)}>
-                      {rt.name}
+                  {rateTypesLoading ? (
+                    <SelectItem value="loading" disabled>
+                      Loading rate types...
                     </SelectItem>
-                  ))}
+                  ) : rateTypes.length === 0 ? (
+                    <SelectItem value="empty" disabled>
+                      No rate types assigned
+                    </SelectItem>
+                  ) : (
+                    rateTypes.map((rt) => (
+                      <SelectItem key={rt.id} value={String(rt.id)}>
+                        {rt.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
