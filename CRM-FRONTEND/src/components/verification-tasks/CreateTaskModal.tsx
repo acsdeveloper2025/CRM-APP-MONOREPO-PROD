@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -59,7 +65,7 @@ const TaskAreaSelect: React.FC<TaskAreaSelectProps> = ({
   onChange,
   error,
 }) => {
-  const { data: areasData } = useAreasByPincode(pincodeId);
+  const { data: areasData, isLoading: areasLoading } = useAreasByPincode(pincodeId);
   const areas = areasData?.data || [];
 
   return (
@@ -70,19 +76,29 @@ const TaskAreaSelect: React.FC<TaskAreaSelectProps> = ({
         onValueChange={(value) => onChange(value || undefined)}
         disabled={!pincodeId}
       >
-        <SelectTrigger className={error ? 'border-red-500' : ''}>
+        <SelectTrigger className={error ? 'border-destructive' : ''}>
           <SelectValue placeholder={pincodeId ? 'Select area' : 'Select pincode first'} />
         </SelectTrigger>
         <SelectContent>
-          {areas.map((area) => (
-            <SelectItem key={area.id} value={area.id.toString()}>
-              {area.name}
+          {areasLoading ? (
+            <SelectItem value="loading" disabled>
+              Loading areas...
             </SelectItem>
-          ))}
+          ) : areas.length === 0 ? (
+            <SelectItem value="empty" disabled>
+              No areas for this pincode
+            </SelectItem>
+          ) : (
+            areas.map((area) => (
+              <SelectItem key={area.id} value={area.id.toString()}>
+                {area.name}
+              </SelectItem>
+            ))
+          )}
         </SelectContent>
       </Select>
       {error && (
-        <div className="flex items-center gap-1 text-sm text-red-600">
+        <div className="flex items-center gap-1 text-sm text-destructive">
           <AlertCircle className="h-4 w-4" />
           {error}
         </div>
@@ -109,8 +125,10 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const { data: verificationTypesData } = useVerificationTypes({ limit: 500 });
-  const { data: fieldUsers = [] } = useFieldUsers();
+  const { data: verificationTypesData, isLoading: verificationTypesLoading } = useVerificationTypes(
+    { limit: 500 }
+  );
+  const { data: fieldUsers = [], isLoading: fieldUsersLoading } = useFieldUsers();
 
   // Fetch case details to get client, product, and verification type for rate lookup
   const { data: caseData } = useQuery({
@@ -123,7 +141,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
   const verificationTypes = verificationTypesData?.data || [];
 
   // Fetch available rate types for the case's client/product/verification type combination
-  const { data: availableRateTypesData } = useQuery({
+  const { data: availableRateTypesData, isLoading: availableRateTypesLoading } = useQuery({
     queryKey: [
       'available-rate-types-for-case',
       caseDetails?.clientId,
@@ -142,8 +160,18 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
   const availableRateTypes = availableRateTypesData?.data || [];
 
   // Fetch pincodes and areas for location selection
-  const { data: pincodesData } = usePincodes();
+  const { data: pincodesData, isLoading: pincodesLoading } = usePincodes();
   const pincodes = pincodesData?.data || [];
+
+  // B4: route every close path through this wrapper so half-filled tasks
+  // don't persist if the parent ever stops conditionally unmounting us.
+  // Today VerificationTasksManager already wraps `{showCreateModal && ...}`
+  // which gives state-reset for free, but the defensive wrapper costs ~6 lines.
+  const handleOpenChange = (next: boolean) => {
+    if (next === false && !loading) {
+      onClose();
+    }
+  };
 
   // For areas, we'll fetch them dynamically per task when pincode is selected
   // This is a placeholder - we'll handle areas per task in the component
@@ -260,7 +288,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
   };
 
   return (
-    <Dialog open onOpenChange={onClose}>
+    <Dialog open onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
@@ -282,7 +310,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
                         onClick={() => removeTask(task.id)}
                         variant="ghost"
                         size="sm"
-                        className="text-red-600 hover:text-red-700"
+                        className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -295,17 +323,17 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
                     {/* Task Title */}
                     <div className="space-y-2">
                       <Label htmlFor={`title-${task.id}`}>
-                        Task Title <span className="text-red-500">*</span>
+                        Task Title <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id={`title-${task.id}`}
                         value={task.taskTitle}
                         onChange={(e) => updateTask(task.id, 'taskTitle', e.target.value)}
                         placeholder="Enter task title"
-                        className={getFieldError(task.id, 'taskTitle') ? 'border-red-500' : ''}
+                        className={getFieldError(task.id, 'taskTitle') ? 'border-destructive' : ''}
                       />
                       {getFieldError(task.id, 'taskTitle') && (
-                        <p className="text-sm text-red-600 flex items-center space-x-1">
+                        <p className="text-sm text-destructive flex items-center space-x-1">
                           <AlertCircle className="h-4 w-4" />
                           <span>{getFieldError(task.id, 'taskTitle')}</span>
                         </p>
@@ -315,7 +343,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
                     {/* Verification Type */}
                     <div className="space-y-2">
                       <Label htmlFor={`type-${task.id}`}>
-                        Verification Type <span className="text-red-500">*</span>
+                        Verification Type <span className="text-destructive">*</span>
                       </Label>
                       <Select
                         value={task.verificationTypeId?.toString() || ''}
@@ -325,21 +353,31 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
                       >
                         <SelectTrigger
                           className={
-                            getFieldError(task.id, 'verificationTypeId') ? 'border-red-500' : ''
+                            getFieldError(task.id, 'verificationTypeId') ? 'border-destructive' : ''
                           }
                         >
                           <SelectValue placeholder="Select verification type" />
                         </SelectTrigger>
                         <SelectContent>
-                          {verificationTypes.map((type) => (
-                            <SelectItem key={type.id} value={type.id.toString()}>
-                              {type.name}
+                          {verificationTypesLoading ? (
+                            <SelectItem value="loading" disabled>
+                              Loading verification types...
                             </SelectItem>
-                          ))}
+                          ) : verificationTypes.length === 0 ? (
+                            <SelectItem value="empty" disabled>
+                              No verification types available
+                            </SelectItem>
+                          ) : (
+                            verificationTypes.map((type) => (
+                              <SelectItem key={type.id} value={type.id.toString()}>
+                                {type.name}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                       {getFieldError(task.id, 'verificationTypeId') && (
-                        <p className="text-sm text-red-600 flex items-center space-x-1">
+                        <p className="text-sm text-destructive flex items-center space-x-1">
                           <AlertCircle className="h-4 w-4" />
                           <span>{getFieldError(task.id, 'verificationTypeId')}</span>
                         </p>
@@ -381,11 +419,21 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="unassigned">Unassigned</SelectItem>
-                          {fieldUsers.map((user) => (
-                            <SelectItem key={user.id} value={user.id}>
-                              {user.name}
+                          {fieldUsersLoading ? (
+                            <SelectItem value="loading" disabled>
+                              Loading field users...
                             </SelectItem>
-                          ))}
+                          ) : fieldUsers.length === 0 ? (
+                            <SelectItem value="empty" disabled>
+                              No field users available
+                            </SelectItem>
+                          ) : (
+                            fieldUsers.map((user) => (
+                              <SelectItem key={user.id} value={user.id}>
+                                {user.name}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -418,27 +466,37 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
                           />
                         </SelectTrigger>
                         <SelectContent>
-                          {availableRateTypes.map((rateType) => (
-                            <SelectItem key={rateType.id} value={rateType.id.toString()}>
-                              <div className="flex items-center justify-between w-full py-2">
-                                <div className="flex flex-col">
-                                  <span className="font-medium text-foreground">
-                                    {rateType.name}
-                                  </span>
-                                  {rateType.description && (
-                                    <span className="text-xs text-muted-foreground mt-1">
-                                      {rateType.description}
+                          {availableRateTypesLoading ? (
+                            <SelectItem value="loading" disabled>
+                              Loading rate types...
+                            </SelectItem>
+                          ) : availableRateTypes.length === 0 ? (
+                            <SelectItem value="empty" disabled>
+                              No rate types available for this combination
+                            </SelectItem>
+                          ) : (
+                            availableRateTypes.map((rateType) => (
+                              <SelectItem key={rateType.id} value={rateType.id.toString()}>
+                                <div className="flex items-center justify-between w-full py-2">
+                                  <div className="flex flex-col">
+                                    <span className="font-medium text-foreground">
+                                      {rateType.name}
+                                    </span>
+                                    {rateType.description && (
+                                      <span className="text-xs text-muted-foreground mt-1">
+                                        {rateType.description}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {rateType.hasRate && rateType.amount && (
+                                    <span className="text-sm font-semibold text-green-600 ml-4">
+                                      ₹{rateType.amount}
                                     </span>
                                   )}
                                 </div>
-                                {rateType.hasRate && rateType.amount && (
-                                  <span className="text-sm font-semibold text-green-600 ml-4">
-                                    ₹{rateType.amount}
-                                  </span>
-                                )}
-                              </div>
-                            </SelectItem>
-                          ))}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                       {task.rateTypeId &&
@@ -459,7 +517,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
                           ) : null;
                         })()}
                       {getFieldError(task.id, 'rateTypeId') && (
-                        <p className="text-sm text-red-600 flex items-center space-x-1">
+                        <p className="text-sm text-destructive flex items-center space-x-1">
                           <AlertCircle className="h-4 w-4" />
                           <span>{getFieldError(task.id, 'rateTypeId')}</span>
                         </p>
@@ -476,10 +534,12 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
                       onChange={(e) => updateTask(task.id, 'taskDescription', e.target.value)}
                       placeholder="Enter task description..."
                       rows={3}
-                      className={getFieldError(task.id, 'taskDescription') ? 'border-red-500' : ''}
+                      className={
+                        getFieldError(task.id, 'taskDescription') ? 'border-destructive' : ''
+                      }
                     />
                     {getFieldError(task.id, 'taskDescription') && (
-                      <p className="text-sm text-red-600 flex items-center space-x-1">
+                      <p className="text-sm text-destructive flex items-center space-x-1">
                         <AlertCircle className="h-4 w-4" />
                         <span>{getFieldError(task.id, 'taskDescription')}</span>
                       </p>
@@ -513,20 +573,32 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
                           }}
                         >
                           <SelectTrigger
-                            className={getFieldError(task.id, 'pincode') ? 'border-red-500' : ''}
+                            className={
+                              getFieldError(task.id, 'pincode') ? 'border-destructive' : ''
+                            }
                           >
                             <SelectValue placeholder="Select pincode" />
                           </SelectTrigger>
                           <SelectContent>
-                            {pincodes.map((pincode) => (
-                              <SelectItem key={pincode.id} value={pincode.id.toString()}>
-                                {pincode.code}
+                            {pincodesLoading ? (
+                              <SelectItem value="loading" disabled>
+                                Loading pincodes...
                               </SelectItem>
-                            ))}
+                            ) : pincodes.length === 0 ? (
+                              <SelectItem value="empty" disabled>
+                                No pincodes available
+                              </SelectItem>
+                            ) : (
+                              pincodes.map((pincode) => (
+                                <SelectItem key={pincode.id} value={pincode.id.toString()}>
+                                  {pincode.code}
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                         {getFieldError(task.id, 'pincode') && (
-                          <p className="text-sm text-red-600 flex items-center space-x-1">
+                          <p className="text-sm text-destructive flex items-center space-x-1">
                             <AlertCircle className="h-4 w-4" />
                             <span>{getFieldError(task.id, 'pincode')}</span>
                           </p>
@@ -556,12 +628,22 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="unassigned">Unassigned</SelectItem>
-                            {fieldUsers.map((user) => (
-                              <SelectItem key={user.id} value={user.id}>
-                                {user.name} (
-                                <span className="case-sensitive">{user.email || '—'}</span>)
+                            {fieldUsersLoading ? (
+                              <SelectItem value="loading" disabled>
+                                Loading field users...
                               </SelectItem>
-                            ))}
+                            ) : fieldUsers.length === 0 ? (
+                              <SelectItem value="empty" disabled>
+                                No field users available
+                              </SelectItem>
+                            ) : (
+                              fieldUsers.map((user) => (
+                                <SelectItem key={user.id} value={user.id}>
+                                  {user.name} (
+                                  <span className="case-sensitive">{user.email || '—'}</span>)
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
@@ -576,10 +658,10 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
                             updateTask(task.id, 'address', e.target.value || undefined)
                           }
                           placeholder="Verification address"
-                          className={getFieldError(task.id, 'address') ? 'border-red-500' : ''}
+                          className={getFieldError(task.id, 'address') ? 'border-destructive' : ''}
                         />
                         {getFieldError(task.id, 'address') && (
-                          <p className="text-sm text-red-600 flex items-center space-x-1">
+                          <p className="text-sm text-destructive flex items-center space-x-1">
                             <AlertCircle className="h-4 w-4" />
                             <span>{getFieldError(task.id, 'address')}</span>
                           </p>
@@ -599,14 +681,14 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
           </Button>
 
           {/* Summary */}
-          <Card className="bg-green-50 border-green-200">
+          <Card className="bg-muted">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-green-900">
+                  <p className="font-medium text-foreground">
                     Creating {tasks.length} verification task{tasks.length !== 1 ? 's' : ''}
                   </p>
-                  <p className="text-sm text-green-700">
+                  <p className="text-sm text-muted-foreground">
                     Total estimated amount: ₹
                     {tasks
                       .reduce((sum, task) => {
@@ -621,23 +703,27 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
                       .toLocaleString('en-IN')}
                   </p>
                 </div>
-                <Badge variant="secondary" className="bg-green-100 text-green-800">
+                <Badge variant="secondary">
                   {tasks.length} Task{tasks.length !== 1 ? 's' : ''}
                 </Badge>
               </div>
             </CardContent>
           </Card>
-
-          {/* Actions */}
-          <div className="flex justify-end space-x-3">
-            <Button onClick={onClose} variant="outline">
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={loading}>
-              {loading ? 'Creating...' : 'Create Tasks'}
-            </Button>
-          </div>
         </div>
+
+        <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+          <Button
+            onClick={() => handleOpenChange(false)}
+            variant="outline"
+            disabled={loading}
+            className="w-full sm:w-auto"
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={loading} className="w-full sm:w-auto">
+            {loading ? 'Creating...' : 'Create Tasks'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
