@@ -497,12 +497,19 @@ export const EnterpriseCacheConfigs = {
   },
 
   // Rate types caching - NEW
+  // B5 hardening: keyGen includes req.baseUrl+req.path so any future consumer
+  // wrapping multiple paths under /api/rate-types (e.g. /, /:id, /stats,
+  // /export, /available-for-case) doesn't collide on the same cache key.
+  // Matches the pattern applied to clientList/products/verificationTypes/usersList.
   rateTypes: {
     ttl: 3600, // 1 hour (rate types rarely change)
     keyGenerator: (req: Request) => {
       const userId = (req as AuthenticatedRequest).user?.id || 'anon';
       const query = JSON.stringify(req.query);
-      return `rate-types:list:${userId}:${crypto.createHash('md5').update(query).digest('hex')}`;
+      return `rate-types:list:${userId}:${req.baseUrl}${req.path}:${crypto
+        .createHash('md5')
+        .update(query)
+        .digest('hex')}`;
     },
     condition: (req: Request) => req.method === 'GET',
   },

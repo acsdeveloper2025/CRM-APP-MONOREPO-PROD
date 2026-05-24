@@ -142,7 +142,7 @@ export function EditRateTypeDialog({ rateType, open, onOpenChange }: EditRateTyp
               )}
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
