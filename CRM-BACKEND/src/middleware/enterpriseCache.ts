@@ -460,6 +460,18 @@ export const EnterpriseCacheConfigs = {
     condition: (req: Request) => req.method === 'GET',
   },
 
+  // Departments caching — keyGen is path-aware from day 1 (B5 fix shape
+  // applied pre-emptively to avoid the cache collision class).
+  departments: {
+    ttl: 3600, // 1 hour — master data, rarely changes
+    keyGenerator: (req: Request) => {
+      const userId = (req as AuthenticatedRequest).user?.id || 'anon';
+      const query = JSON.stringify(req.query);
+      return `departments:list:${userId}:${req.baseUrl}${req.path}:${crypto.createHash('md5').update(query).digest('hex')}`;
+    },
+    condition: (req: Request) => req.method === 'GET',
+  },
+
   // Products caching - NEW
   products: {
     ttl: 3600, // 1 hour (products rarely change)
@@ -614,6 +626,8 @@ export const CacheInvalidationPatterns = {
   ],
 
   documentTypeUpdate: ['document-types:*', 'api_cache:*:*document-types*'],
+
+  departmentUpdate: ['departments:*', 'api_cache:*:*departments*'],
 
   kycRateUpdate: ['kyc-rates:*', 'api_cache:*:*kyc-rates*', 'rate-management-stats:*'],
 
