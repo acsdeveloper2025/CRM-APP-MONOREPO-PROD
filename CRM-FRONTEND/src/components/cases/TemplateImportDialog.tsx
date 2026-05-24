@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
-import { Upload, Loader2, FileSpreadsheet, X, Plus } from 'lucide-react';
+import { Upload, Loader2, FileSpreadsheet, X, Plus, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useClients, useProductsByClient } from '@/hooks/useClients';
 import { caseDataService, type CaseDataTemplateField } from '@/services/caseDataService';
 import {
@@ -57,7 +58,7 @@ type Step = 'pick' | 'preview';
 
 export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialogProps) {
   const queryClient = useQueryClient();
-  const { data: clientsRes } = useClients({ limit: 200 });
+  const { data: clientsRes, isLoading: clientsLoading } = useClients({ limit: 200 });
   // The service returns `{ data: Client[] }` (see CaseDataTemplatesPage
   // which reads clientsRes.data as an array). Keep the same shape here
   // so both entry points go through the same unwrap.
@@ -77,7 +78,9 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
   const [existingTemplateId, setExistingTemplateId] = useState<number | null>(null);
   const [existingTemplateVersion, setExistingTemplateVersion] = useState<number | null>(null);
 
-  const { data: productsRes } = useProductsByClient(clientId || undefined);
+  const { data: productsRes, isLoading: productsLoading } = useProductsByClient(
+    clientId || undefined
+  );
   const products = useMemo<Array<{ id: number; name: string }>>(() => {
     const d = (productsRes as { data?: Array<{ id: number; name: string }> } | undefined)?.data;
     return Array.isArray(d) ? d : [];
@@ -97,6 +100,16 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
   const closeDialog = () => {
     resetAll();
     onOpenChange(false);
+  };
+
+  // B4: routes Dialog close (Esc, click-outside) through the same reset path
+  // as the Cancel button. !isPending guard prevents close-during-submit on
+  // either the parse or save mutation.
+  const handleOpenChange = (next: boolean) => {
+    if (next === false && !parseMutation.isPending && !saveMutation.isPending) {
+      resetAll();
+    }
+    onOpenChange(next);
   };
 
   const parseMutation = useStandardizedMutation({
@@ -222,15 +235,7 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
     });
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) {
-          resetAll();
-        }
-        onOpenChange(next);
-      }}
-    >
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -259,11 +264,21 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
                   <SelectValue placeholder="Select client…" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>
-                      {c.name}
+                  {clientsLoading ? (
+                    <SelectItem value="loading" disabled>
+                      Loading clients...
                     </SelectItem>
-                  ))}
+                  ) : clients.length === 0 ? (
+                    <SelectItem value="empty" disabled>
+                      No clients available
+                    </SelectItem>
+                  ) : (
+                    clients.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -274,11 +289,21 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
                   <SelectValue placeholder={clientId ? 'Select product…' : 'Pick a client first'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {products.map((p) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.name}
+                  {productsLoading ? (
+                    <SelectItem value="loading" disabled>
+                      Loading products...
                     </SelectItem>
-                  ))}
+                  ) : products.length === 0 ? (
+                    <SelectItem value="empty" disabled>
+                      No products available
+                    </SelectItem>
+                  ) : (
+                    products.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -307,17 +332,18 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
         {step === 'preview' && (
           <div className="space-y-4">
             {existingTemplateId !== null && (
-              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                <p className="font-medium">Replacing existing template</p>
-                <p className="text-xs">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Replacing existing template</AlertTitle>
+                <AlertDescription>
                   An active template (v{existingTemplateVersion}) already exists for this client +
                   product. Saving will{' '}
                   <strong>
                     create a new version if any case already has data on the current template
                   </strong>
                   ; otherwise fields are replaced in place.
-                </p>
-              </div>
+                </AlertDescription>
+              </Alert>
             )}
             <div>
               <Label htmlFor="import-name">Template Name</Label>
@@ -377,7 +403,7 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
                         variant="ghost"
                         size="icon"
                         onClick={() => removeField(idx)}
-                        className="mt-5 text-red-600"
+                        className="mt-5 text-destructive"
                         title="Remove field"
                       >
                         <X className="h-4 w-4" />
@@ -442,7 +468,7 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
                           </Button>
                         </div>
                         {(f.options ?? []).length === 0 && (
-                          <p className="text-xs text-red-500">
+                          <p className="text-xs text-destructive">
                             {f.fieldType} fields need at least one option.
                           </p>
                         )}
@@ -463,7 +489,7 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-red-600"
+                              className="h-7 w-7 text-destructive"
                               onClick={() => removeOption(idx, oi)}
                             >
                               <X className="h-3 w-3" />
@@ -479,8 +505,13 @@ export function TemplateImportDialog({ open, onOpenChange }: TemplateImportDialo
           </div>
         )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={closeDialog}>
+        <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+          <Button
+            variant="outline"
+            onClick={closeDialog}
+            disabled={parseMutation.isPending || saveMutation.isPending}
+            className="w-full sm:w-auto"
+          >
             Cancel
           </Button>
           {step === 'pick' && (
