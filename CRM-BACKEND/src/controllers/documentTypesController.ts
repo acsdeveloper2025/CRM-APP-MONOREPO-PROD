@@ -151,10 +151,11 @@ export const getDocumentTypeById = async (req: AuthenticatedRequest, res: Respon
     const id = String(req.params.id || '');
 
     const documentTypeQuery = `
-      SELECT 
+      SELECT
         dt.id,
         dt.name,
         dt.code,
+        dt.is_active,
         dt.created_at,
         dt.updated_at,
         COALESCE(cdt_count.client_count, 0) as "client_count",
