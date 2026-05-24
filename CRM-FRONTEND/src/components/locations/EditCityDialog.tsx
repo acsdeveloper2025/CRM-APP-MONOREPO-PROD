@@ -62,7 +62,7 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
     }
   }, [city, form]);
 
-  const { data: statesData } = useStandardizedQuery({
+  const { data: statesData, isLoading: statesLoading } = useStandardizedQuery({
     queryKey: ['states'],
     queryFn: () => locationsService.getStates(),
     enabled: open,
@@ -70,7 +70,7 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
     errorFallbackMessage: 'Failed to load states',
   });
 
-  const { data: countriesData } = useStandardizedQuery({
+  const { data: countriesData, isLoading: countriesLoading } = useStandardizedQuery({
     queryKey: ['countries'],
     queryFn: () => locationsService.getCountries(),
     enabled: open,
@@ -85,7 +85,7 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
     operation: 'update',
     additionalInvalidateKeys: [['city-stats']],
     onSuccess: () => {
-      onOpenChange(false);
+      handleOpenChange(false);
     },
   });
 
@@ -93,11 +93,27 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
     updateMutation.mutate(data);
   };
 
+  // B4 fix: parent table renders `{selectedCity && <Edit/>}` but never nulls
+  // selectedCity on close. Re-opening Edit on the same row keeps the same
+  // `city` prop reference → useEffect [city, form] doesn't re-fire → dirty
+  // form state persists. Reset on close prevents that.
+  const handleOpenChange = (next: boolean) => {
+    if (!next && !updateMutation.isPending) {
+      form.reset({
+        name: city.name,
+        state: city.state,
+        country: city.country,
+        isActive: city.isActive ?? true,
+      });
+    }
+    onOpenChange(next);
+  };
+
   const states = statesData?.data || [];
   const countries = countriesData?.data || [];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit City</DialogTitle>
@@ -133,11 +149,21 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {states.map((state) => (
-                        <SelectItem key={state.id} value={state.name}>
-                          {state.name}
+                      {statesLoading ? (
+                        <SelectItem value="loading" disabled>
+                          Loading states...
                         </SelectItem>
-                      ))}
+                      ) : states.length === 0 ? (
+                        <SelectItem value="empty" disabled>
+                          No states available
+                        </SelectItem>
+                      ) : (
+                        states.map((state) => (
+                          <SelectItem key={state.id} value={state.name}>
+                            {state.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -158,11 +184,21 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {countries.map((country) => (
-                        <SelectItem key={country.id} value={country.name}>
-                          {country.name}
+                      {countriesLoading ? (
+                        <SelectItem value="loading" disabled>
+                          Loading countries...
                         </SelectItem>
-                      ))}
+                      ) : countries.length === 0 ? (
+                        <SelectItem value="empty" disabled>
+                          No countries available
+                        </SelectItem>
+                      ) : (
+                        countries.map((country) => (
+                          <SelectItem key={country.id} value={country.name}>
+                            {country.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -188,11 +224,11 @@ export function EditCityDialog({ city, open, onOpenChange }: EditCityDialogProps
               )}
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
                 className="w-full sm:w-auto"
                 disabled={updateMutation.isPending}
               >

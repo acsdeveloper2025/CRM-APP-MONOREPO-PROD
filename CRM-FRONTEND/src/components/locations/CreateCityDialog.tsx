@@ -47,7 +47,7 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
   });
 
   // Fetch states and countries for dropdowns
-  const { data: statesData } = useStandardizedQuery({
+  const { data: statesData, isLoading: statesLoading } = useStandardizedQuery({
     queryKey: ['states'],
     queryFn: () => locationsService.getStates(),
     enabled: open,
@@ -55,7 +55,7 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
     errorFallbackMessage: 'Failed to load states',
   });
 
-  const { data: countriesData } = useStandardizedQuery({
+  const { data: countriesData, isLoading: countriesLoading } = useStandardizedQuery({
     queryKey: ['countries'],
     queryFn: () => locationsService.getCountries(),
     enabled: open,
@@ -69,8 +69,7 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
     resourceName: 'City',
     operation: 'create',
     onSuccess: () => {
-      form.reset();
-      onOpenChange(false);
+      handleOpenChange(false);
     },
   });
 
@@ -78,11 +77,21 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
     createMutation.mutate(data);
   };
 
+  // B4 fix: route every close path (Cancel, Esc, click-outside, mutation
+  // success) through this wrapper so half-filled form doesn't persist
+  // across Cancel + reopen.
+  const handleOpenChange = (next: boolean) => {
+    if (!next && !createMutation.isPending) {
+      form.reset();
+    }
+    onOpenChange(next);
+  };
+
   const states = statesData?.data || [];
   const countries = countriesData?.data || [];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New City</DialogTitle>
@@ -114,18 +123,28 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>State</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a state" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {states.map((state) => (
-                        <SelectItem key={state.id} value={state.name}>
-                          {state.name}
+                      {statesLoading ? (
+                        <SelectItem value="loading" disabled>
+                          Loading states...
                         </SelectItem>
-                      ))}
+                      ) : states.length === 0 ? (
+                        <SelectItem value="empty" disabled>
+                          No states available
+                        </SelectItem>
+                      ) : (
+                        states.map((state) => (
+                          <SelectItem key={state.id} value={state.name}>
+                            {state.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormDescription>The state or province where the city is located</FormDescription>
@@ -140,18 +159,28 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Country</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a country" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {countries.map((country) => (
-                        <SelectItem key={country.id} value={country.name}>
-                          {country.name}
+                      {countriesLoading ? (
+                        <SelectItem value="loading" disabled>
+                          Loading countries...
                         </SelectItem>
-                      ))}
+                      ) : countries.length === 0 ? (
+                        <SelectItem value="empty" disabled>
+                          No countries available
+                        </SelectItem>
+                      ) : (
+                        countries.map((country) => (
+                          <SelectItem key={country.id} value={country.name}>
+                            {country.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormDescription>The country where the city is located</FormDescription>
@@ -160,11 +189,11 @@ export function CreateCityDialog({ open, onOpenChange }: CreateCityDialogProps) 
               )}
             />
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
                 className="w-full sm:w-auto"
                 disabled={createMutation.isPending}
               >
