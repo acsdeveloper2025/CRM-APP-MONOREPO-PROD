@@ -42,13 +42,15 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
   onSubmit,
 }) => {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    taskTitle: '',
-    taskDescription: '',
-    priority: 'MEDIUM' as TaskPriority,
-    address: '',
-    pincode: '',
-  });
+  // B3 fix: lazy init from task prop so first render shows correct values
+  // (no empty-form flash on every reopen before useEffect catches up).
+  const [formData, setFormData] = useState(() => ({
+    taskTitle: task.taskTitle || '',
+    taskDescription: task.taskDescription || '',
+    priority: (task.priority as TaskPriority) || 'MEDIUM',
+    address: task.address || '',
+    pincode: task.pincode || '',
+  }));
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -63,6 +65,24 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
       setErrors({});
     }
   }, [task, open]);
+
+  // B4 fix: route every close path (Cancel, Esc, click-outside, submit
+  // success) through this wrapper so dirty formData doesn't persist between
+  // close and reopen. The useEffect above also resets on next open, but
+  // resetting immediately on close prevents the brief stale-state render.
+  const handleOpenChange = (next: boolean) => {
+    if (!next && !loading) {
+      setFormData({
+        taskTitle: task.taskTitle || '',
+        taskDescription: task.taskDescription || '',
+        priority: (task.priority as TaskPriority) || 'MEDIUM',
+        address: task.address || '',
+        pincode: task.pincode || '',
+      });
+      setErrors({});
+    }
+    onOpenChange(next);
+  };
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -110,7 +130,7 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
       };
 
       await onSubmit(task.id, updateData);
-      onOpenChange(false);
+      handleOpenChange(false);
     } catch (error) {
       logger.error('Failed to update task:', error);
     } finally {
@@ -119,7 +139,7 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
@@ -131,17 +151,17 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="taskTitle">
-              Task Title <span className="text-red-500">*</span>
+              Task Title <span className="text-destructive">*</span>
             </Label>
             <Input
               id="taskTitle"
               value={formData.taskTitle}
               onChange={(e) => handleChange('taskTitle', e.target.value)}
-              className={errors.taskTitle ? 'border-red-500' : ''}
+              className={errors.taskTitle ? 'border-destructive' : ''}
               placeholder="Enter task title"
             />
             {errors.taskTitle && (
-              <p className="text-sm text-red-500 flex items-center mt-1">
+              <p className="text-sm text-destructive flex items-center mt-1">
                 <AlertCircle className="h-4 w-4 mr-1" />
                 {errors.taskTitle}
               </p>
@@ -169,17 +189,17 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
 
             <div className="space-y-2">
               <Label htmlFor="pincode">
-                Pincode <span className="text-red-500">*</span>
+                Pincode <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="pincode"
                 value={formData.pincode}
                 onChange={(e) => handleChange('pincode', e.target.value)}
-                className={errors.pincode ? 'border-red-500' : ''}
+                className={errors.pincode ? 'border-destructive' : ''}
                 placeholder="Enter pincode"
               />
               {errors.pincode && (
-                <p className="text-sm text-red-500 flex items-center mt-1">
+                <p className="text-sm text-destructive flex items-center mt-1">
                   <AlertCircle className="h-4 w-4 mr-1" />
                   {errors.pincode}
                 </p>
@@ -189,18 +209,18 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
 
           <div className="space-y-2">
             <Label htmlFor="address">
-              Address <span className="text-red-500">*</span>
+              Address <span className="text-destructive">*</span>
             </Label>
             <Textarea
               id="address"
               value={formData.address}
               onChange={(e) => handleChange('address', e.target.value)}
-              className={errors.address ? 'border-red-500' : ''}
+              className={errors.address ? 'border-destructive' : ''}
               placeholder="Enter full address"
               rows={3}
             />
             {errors.address && (
-              <p className="text-sm text-red-500 flex items-center mt-1">
+              <p className="text-sm text-destructive flex items-center mt-1">
                 <AlertCircle className="h-4 w-4 mr-1" />
                 {errors.address}
               </p>
@@ -218,16 +238,17 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
             />
           </div>
 
-          <DialogFooter className="pt-4">
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-4">
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleOpenChange(false)}
               disabled={loading}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} className="w-full sm:w-auto">
               {loading ? 'Saving...' : 'Save Changes'}
             </Button>
           </DialogFooter>
