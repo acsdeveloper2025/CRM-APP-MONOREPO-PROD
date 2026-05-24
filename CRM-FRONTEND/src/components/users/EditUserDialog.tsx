@@ -122,6 +122,28 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
     }
   }, [user, form]);
 
+  // Reset form to current `user` prop on close so edit-then-cancel-then-
+  // reopen of the same record doesn't show dirty values (useEffect deps
+  // would not re-fire on same-prop reopen — parent table doesn't null
+  // out selectedUser on close, only flips showEditDialog).
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
+      form.reset({
+        name: user.name,
+        email: user.email ?? '',
+        phone: user.phone ?? '',
+        roleId: user.roleId ? String(user.roleId) : '',
+        employeeId: user.employeeId,
+        designationId: user.designationId ? String(user.designationId) : '',
+        departmentId: user.departmentId ? String(user.departmentId) : '',
+        teamLeaderId: user.teamLeaderId || '',
+        managerId: user.managerId || '',
+        isActive: user.isActive ?? false,
+      });
+    }
+    onOpenChange(next);
+  };
+
   const updateMutation = useCRUDMutation({
     mutationFn: (data: EditUserFormData) => {
       const cleanData = {
@@ -139,7 +161,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
     operation: 'update',
     additionalInvalidateKeys: [['user-stats'], ['dashboard']],
     onSuccess: () => {
-      onOpenChange(false);
+      handleOpenChange(false);
     },
   });
 
@@ -183,7 +205,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>
@@ -455,7 +477,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
                 className="w-full sm:w-auto"
                 disabled={updateMutation.isPending}
               >

@@ -599,6 +599,13 @@ router.delete(
   removeProductAssignment
 );
 
+// /users/:id intentionally UNCACHED — payload includes permissionCodes,
+// roles[], assignedClientsCount which mutate via paths that don't all
+// reliably fire CacheInvalidationPatterns.userUpdate (RBAC grants from
+// rbac-admin, scope assignments from other admin sessions, login events,
+// MFA setup). Stale cache here = authz drift visible to the FE. Don't
+// add EnterpriseCache.create without auditing every mutation path that
+// touches user_roles / user_scope / permissions / last_login.
 router.get(
   '/:id',
   authenticateToken,

@@ -490,7 +490,11 @@ export const EnterpriseCacheConfigs = {
     keyGenerator: (req: Request) => {
       const query = JSON.stringify(req.query);
       const userId = (req as AuthenticatedRequest).user?.id || 'anon';
-      return `users:list:${userId}:${crypto.createHash('md5').update(query).digest('hex')}`;
+      // Include req.baseUrl+req.path — this config wraps BOTH /users and
+      // /users/search; without the path component, /users?q=foo and
+      // /users/search?q=foo collide on the same key. Same shape as
+      // clientList / products / verificationTypes fixes.
+      return `users:list:${userId}:${req.baseUrl}${req.path}:${crypto.createHash('md5').update(query).digest('hex')}`;
     },
     condition: (req: Request) => req.method === 'GET',
     varyBy: ['X-User-Role'],
