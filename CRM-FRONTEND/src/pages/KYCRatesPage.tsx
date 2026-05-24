@@ -41,6 +41,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { documentTypesService } from '@/services/documentTypes';
@@ -102,6 +112,7 @@ export function KYCRatesPage() {
   const [formCurrency, setFormCurrency] = useState<string>('INR');
   const [editingRateId, setEditingRateId] = useState<number | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [rateToDelete, setRateToDelete] = useState<KYCRate | null>(null);
 
   const { searchValue, debouncedSearchValue, setSearchValue, clearSearch, isDebouncing } =
     useUnifiedSearch({ syncWithUrl: true });
@@ -185,7 +196,7 @@ export function KYCRatesPage() {
   };
 
   // Filter-dropdown data: full client list + active products + active doc types.
-  const { data: filterClientsResp } = useQuery({
+  const { data: filterClientsResp, isLoading: clientsLoading } = useQuery({
     queryKey: ['clients', 'filter-options'],
     queryFn: () => clientsService.getClients({ limit: 500 }),
   });
@@ -205,12 +216,12 @@ export function KYCRatesPage() {
   });
 
   // Form-dropdown data (cascading from form's client/product).
-  const { data: formProductsResp } = useQuery({
+  const { data: formProductsResp, isLoading: formProductsLoading } = useQuery({
     queryKey: ['client-products', formClientId],
     queryFn: () => productsService.getProductsByClient(String(formClientId || 0)),
     enabled: !!formClientId,
   });
-  const { data: formDocTypesResp } = useQuery({
+  const { data: formDocTypesResp, isLoading: formDocTypesLoading } = useQuery({
     queryKey: ['client-product-document-types', formClientId, formProductId],
     queryFn: () =>
       documentTypesService.getDocumentTypesForClientProduct(
@@ -301,11 +312,12 @@ export function KYCRatesPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleDeleteRate = async (rateId: number) => {
-    // eslint-disable-next-line no-alert
-    if (confirm('Are you sure you want to delete this rate?')) {
-      await deleteRateMutation.mutateAsync(rateId);
+  const confirmDeleteRate = async () => {
+    if (!rateToDelete) {
+      return;
     }
+    await deleteRateMutation.mutateAsync(rateToDelete.id);
+    setRateToDelete(null);
   };
 
   const canSave = formClientId && formProductId && formDocTypeId && formAmount;
@@ -524,11 +536,21 @@ export function KYCRatesPage() {
                   <SelectValue placeholder="Select a client" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={String(client.id)}>
-                      {client.name} ({client.code})
+                  {clientsLoading ? (
+                    <SelectItem value="loading" disabled>
+                      Loading clients...
                     </SelectItem>
-                  ))}
+                  ) : clients.length === 0 ? (
+                    <SelectItem value="empty" disabled>
+                      No clients available
+                    </SelectItem>
+                  ) : (
+                    clients.map((client) => (
+                      <SelectItem key={client.id} value={String(client.id)}>
+                        {client.name} ({client.code})
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -544,11 +566,21 @@ export function KYCRatesPage() {
                   <SelectValue placeholder="Select a product" />
                 </SelectTrigger>
                 <SelectContent>
-                  {formProducts.map((product) => (
-                    <SelectItem key={product.id} value={String(product.id)}>
-                      {product.name} ({product.code})
+                  {formProductsLoading ? (
+                    <SelectItem value="loading" disabled>
+                      Loading products...
                     </SelectItem>
-                  ))}
+                  ) : formProducts.length === 0 ? (
+                    <SelectItem value="empty" disabled>
+                      No products available
+                    </SelectItem>
+                  ) : (
+                    formProducts.map((product) => (
+                      <SelectItem key={product.id} value={String(product.id)}>
+                        {product.name} ({product.code})
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -564,11 +596,21 @@ export function KYCRatesPage() {
                   <SelectValue placeholder="Select a KYC document type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {formDocTypes.map((docType) => (
-                    <SelectItem key={docType.id} value={String(docType.id)}>
-                      {docType.name} {docType.category ? `[${docType.category}]` : ''}
+                  {formDocTypesLoading ? (
+                    <SelectItem value="loading" disabled>
+                      Loading document types...
                     </SelectItem>
-                  ))}
+                  ) : formDocTypes.length === 0 ? (
+                    <SelectItem value="empty" disabled>
+                      No document types available
+                    </SelectItem>
+                  ) : (
+                    formDocTypes.map((docType) => (
+                      <SelectItem key={docType.id} value={String(docType.id)}>
+                        {docType.name} {docType.category ? `[${docType.category}]` : ''}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -720,7 +762,7 @@ export function KYCRatesPage() {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => handleDeleteRate(rate.id)}
+                            onClick={() => setRateToDelete(rate)}
                             className="text-destructive"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
@@ -781,6 +823,32 @@ export function KYCRatesPage() {
           </div>
         </CardContent>
       </Card>
+
+      <AlertDialog
+        open={rateToDelete !== null}
+        onOpenChange={(next) => {
+          if (!next && !deleteRateMutation.isPending) {
+            setRateToDelete(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete KYC rate?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {rateToDelete
+                ? `${rateToDelete.clientName} · ${rateToDelete.productName} · ${rateToDelete.documentTypeName} · ${rateToDelete.currency} ${Number(rateToDelete.amount).toFixed(2)}`
+                : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteRateMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction disabled={deleteRateMutation.isPending} onClick={confirmDeleteRate}>
+              {deleteRateMutation.isPending ? 'Deleting…' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
