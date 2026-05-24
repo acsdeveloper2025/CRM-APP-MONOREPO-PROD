@@ -49,6 +49,12 @@ const createInvoiceSchema = z.object({
 
 type CreateInvoiceFormData = z.infer<typeof createInvoiceSchema>;
 
+const EMPTY_DEFAULTS: CreateInvoiceFormData = {
+  clientId: '',
+  dueDate: '',
+  items: [{ description: '', quantity: 1, unitPrice: 0, caseId: '' }],
+};
+
 interface CreateInvoiceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -57,11 +63,7 @@ interface CreateInvoiceDialogProps {
 export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogProps) {
   const form = useForm<CreateInvoiceFormData>({
     resolver: zodResolver(createInvoiceSchema),
-    defaultValues: {
-      clientId: '',
-      dueDate: '',
-      items: [{ description: '', quantity: 1, unitPrice: 0, caseId: '' }],
-    },
+    defaultValues: EMPTY_DEFAULTS,
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -70,9 +72,9 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
   });
 
   // Fetch clients for dropdown
-  const { data: clientsData } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => clientsService.getClients(),
+  const { data: clientsData, isLoading: clientsLoading } = useQuery({
+    queryKey: ['clients', { page: 1, limit: 100 }],
+    queryFn: () => clientsService.getClients({ page: 1, limit: 100 }),
     enabled: open,
   });
 
@@ -83,13 +85,21 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
     errorContext: 'Invoice Creation',
     errorFallbackMessage: 'Failed to create invoice',
     onSuccess: () => {
-      form.reset();
-      onOpenChange(false);
+      handleOpenChange(false);
     },
   });
 
   const onSubmit = (data: CreateInvoiceFormData) => {
     createMutation.mutate(data);
+  };
+
+  // B4 fix: reset form on every close (Cancel, escape, click-outside, mutation success).
+  // Parent doesn't unmount the dialog, so without this, half-filled state persists across reopen.
+  const handleOpenChange = (next: boolean) => {
+    if (!next) {
+      form.reset(EMPTY_DEFAULTS);
+    }
+    onOpenChange(next);
   };
 
   const addItem = () => {
@@ -110,7 +120,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
   const clients = clientsData?.data || [];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Invoice</DialogTitle>
@@ -127,21 +137,31 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Client</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a client" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id.toString()}>
-                          <div className="flex flex-col">
-                            <span>{client.name}</span>
-                            <span className="text-xs text-muted-foreground">{client.code}</span>
-                          </div>
+                      {clientsLoading ? (
+                        <SelectItem value="loading" disabled>
+                          Loading clients...
                         </SelectItem>
-                      ))}
+                      ) : clients.length === 0 ? (
+                        <SelectItem value="empty" disabled>
+                          No clients available
+                        </SelectItem>
+                      ) : (
+                        clients.map((client) => (
+                          <SelectItem key={client.id} value={String(client.id)}>
+                            <div className="flex flex-col">
+                              <span>{client.name}</span>
+                              <span className="text-xs text-muted-foreground">{client.code}</span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -201,7 +221,7 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
                               type="number"
                               min="1"
                               {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                              onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 1)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -251,11 +271,11 @@ export function CreateInvoiceDialog({ open, onOpenChange }: CreateInvoiceDialogP
               </div>
             </div>
 
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
                 className="w-full sm:w-auto"
                 disabled={createMutation.isPending}
               >
