@@ -21,6 +21,15 @@ import { AlertCircle, Edit } from 'lucide-react';
 import { TaskPriority, UpdateVerificationTaskRequest } from '@/types/verificationTask';
 import { logger } from '@/utils/logger';
 
+// KYC vs field verification — the dialog must render a different field
+// set per `task.taskType`. KYC tasks (verification_tasks rows with
+// taskType='KYC') have documentType + documentNumber populated and do
+// NOT carry an address/pincode; field tasks are the inverse. Wiring the
+// discriminator through the prop boundary lets the caller stay
+// type-agnostic. The kyc_document_verifications table is a separate
+// concept (KYCTaskVerificationSection) and does NOT use this modal.
+type TaskType = 'REVISIT' | 'KYC' | null | undefined;
+
 interface EditTaskDetailsModalProps {
   task: {
     id: string;
@@ -29,6 +38,9 @@ interface EditTaskDetailsModalProps {
     priority: string;
     address?: string;
     pincode?: string;
+    taskType?: TaskType;
+    documentType?: string;
+    documentNumber?: string;
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,6 +53,7 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
   onOpenChange,
   onSubmit,
 }) => {
+  const isKyc = task.taskType === 'KYC';
   const [loading, setLoading] = useState(false);
   // B3 fix: lazy init from task prop so first render shows correct values
   // (no empty-form flash on every reopen before useEffect catches up).
@@ -50,6 +63,8 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
     priority: (task.priority as TaskPriority) || 'MEDIUM',
     address: task.address || '',
     pincode: task.pincode || '',
+    documentType: task.documentType || '',
+    documentNumber: task.documentNumber || '',
   }));
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -61,6 +76,8 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
         priority: (task.priority as TaskPriority) || 'MEDIUM',
         address: task.address || '',
         pincode: task.pincode || '',
+        documentType: task.documentType || '',
+        documentNumber: task.documentNumber || '',
       });
       setErrors({});
     }
@@ -78,6 +95,8 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
         priority: (task.priority as TaskPriority) || 'MEDIUM',
         address: task.address || '',
         pincode: task.pincode || '',
+        documentType: task.documentType || '',
+        documentNumber: task.documentNumber || '',
       });
       setErrors({});
     }
@@ -101,11 +120,22 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
     if (!formData.taskTitle.trim()) {
       newErrors.taskTitle = 'Task title is required';
     }
-    if (!formData.address.trim()) {
-      newErrors.address = 'Address is required';
-    }
-    if (!formData.pincode.trim()) {
-      newErrors.pincode = 'Pincode is required';
+    // Branch validation by taskType — KYC tasks don't carry a physical
+    // address; field tasks don't carry a document identifier.
+    if (isKyc) {
+      if (!formData.documentType.trim()) {
+        newErrors.documentType = 'Document type is required';
+      }
+      if (!formData.documentNumber.trim()) {
+        newErrors.documentNumber = 'Document number is required';
+      }
+    } else {
+      if (!formData.address.trim()) {
+        newErrors.address = 'Address is required';
+      }
+      if (!formData.pincode.trim()) {
+        newErrors.pincode = 'Pincode is required';
+      }
     }
 
     setErrors(newErrors);
@@ -120,14 +150,26 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
 
     try {
       setLoading(true);
-      // Construct UpdateVerificationTaskRequest (camelCase for API)
-      const updateData: UpdateVerificationTaskRequest = {
-        taskTitle: formData.taskTitle,
-        taskDescription: formData.taskDescription,
-        priority: formData.priority,
-        address: formData.address,
-        pincode: formData.pincode,
-      };
+      // Only send the fields that apply to this task type. The BE
+      // updateTask handler builds a dynamic UPDATE from whichever
+      // camelCase keys arrive (verificationTasksController.ts:1763),
+      // so an undefined field is simply skipped — no need to clear
+      // the other axis explicitly.
+      const updateData: UpdateVerificationTaskRequest = isKyc
+        ? {
+            taskTitle: formData.taskTitle,
+            taskDescription: formData.taskDescription,
+            priority: formData.priority,
+            documentType: formData.documentType,
+            documentNumber: formData.documentNumber,
+          }
+        : {
+            taskTitle: formData.taskTitle,
+            taskDescription: formData.taskDescription,
+            priority: formData.priority,
+            address: formData.address,
+            pincode: formData.pincode,
+          };
 
       await onSubmit(task.id, updateData);
       handleOpenChange(false);
@@ -144,7 +186,7 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Edit className="h-5 w-5" />
-            <span>Edit Task Details</span>
+            <span>Edit {isKyc ? 'KYC ' : ''}Task Details</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -187,45 +229,87 @@ export const EditTaskDetailsModal: React.FC<EditTaskDetailsModalProps> = ({
               </Select>
             </div>
 
+            {isKyc ? (
+              <div className="space-y-2">
+                <Label htmlFor="documentType">
+                  Document Type <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="documentType"
+                  value={formData.documentType}
+                  onChange={(e) => handleChange('documentType', e.target.value)}
+                  className={errors.documentType ? 'border-destructive' : ''}
+                  placeholder="e.g. PAN, Aadhaar, Passport"
+                />
+                {errors.documentType && (
+                  <p className="text-sm text-destructive flex items-center mt-1">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {errors.documentType}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="pincode">
+                  Pincode <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="pincode"
+                  value={formData.pincode}
+                  onChange={(e) => handleChange('pincode', e.target.value)}
+                  className={errors.pincode ? 'border-destructive' : ''}
+                  placeholder="Enter pincode"
+                />
+                {errors.pincode && (
+                  <p className="text-sm text-destructive flex items-center mt-1">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {errors.pincode}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {isKyc ? (
             <div className="space-y-2">
-              <Label htmlFor="pincode">
-                Pincode <span className="text-destructive">*</span>
+              <Label htmlFor="documentNumber">
+                Document Number <span className="text-destructive">*</span>
               </Label>
               <Input
-                id="pincode"
-                value={formData.pincode}
-                onChange={(e) => handleChange('pincode', e.target.value)}
-                className={errors.pincode ? 'border-destructive' : ''}
-                placeholder="Enter pincode"
+                id="documentNumber"
+                value={formData.documentNumber}
+                onChange={(e) => handleChange('documentNumber', e.target.value)}
+                className={errors.documentNumber ? 'border-destructive' : ''}
+                placeholder="Enter document number"
               />
-              {errors.pincode && (
+              {errors.documentNumber && (
                 <p className="text-sm text-destructive flex items-center mt-1">
                   <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.pincode}
+                  {errors.documentNumber}
                 </p>
               )}
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="address">
-              Address <span className="text-destructive">*</span>
-            </Label>
-            <Textarea
-              id="address"
-              value={formData.address}
-              onChange={(e) => handleChange('address', e.target.value)}
-              className={errors.address ? 'border-destructive' : ''}
-              placeholder="Enter full address"
-              rows={3}
-            />
-            {errors.address && (
-              <p className="text-sm text-destructive flex items-center mt-1">
-                <AlertCircle className="h-4 w-4 mr-1" />
-                {errors.address}
-              </p>
-            )}
-          </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="address">
+                Address <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="address"
+                value={formData.address}
+                onChange={(e) => handleChange('address', e.target.value)}
+                className={errors.address ? 'border-destructive' : ''}
+                placeholder="Enter full address"
+                rows={3}
+              />
+              {errors.address && (
+                <p className="text-sm text-destructive flex items-center mt-1">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {errors.address}
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="taskDescription">Description</Label>

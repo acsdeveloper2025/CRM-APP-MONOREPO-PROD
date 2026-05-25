@@ -55,6 +55,10 @@ interface TaskDetail {
   commissionStatus?: string;
   calculatedCommission?: number;
   taskType?: 'REVISIT' | 'KYC' | null;
+  // KYC-only fields — populated when taskType === 'KYC'. Surfaced here
+  // so EditTaskDetailsModal can render the right field set per type.
+  documentType?: string;
+  documentNumber?: string;
   parentTaskId?: string;
   parentTaskNumber?: string;
   parentCompletedAt?: string;
@@ -143,6 +147,8 @@ export const TaskDetailPage: React.FC = () => {
           commissionStatus: taskData.commissionStatus,
           calculatedCommission: taskData.calculatedCommission,
           taskType: taskData.taskType || null,
+          documentType: taskData.documentType,
+          documentNumber: taskData.documentNumber,
           parentTaskId: taskData.parentTaskId,
           parentTaskNumber: taskData.parentTaskNumber,
           parentCompletedAt: taskData.parentCompletedAt,
@@ -345,6 +351,12 @@ export const TaskDetailPage: React.FC = () => {
           priority: task.priority,
           address: task.address,
           pincode: task.pincode,
+          // KYC vs field discriminator + the KYC-only fields. The modal
+          // branches its field set on taskType === 'KYC' — passing these
+          // unconditionally lets it pick.
+          taskType: task.taskType,
+          documentType: task.documentType,
+          documentNumber: task.documentNumber,
         }}
         onSubmit={handleUpdateTask}
       />

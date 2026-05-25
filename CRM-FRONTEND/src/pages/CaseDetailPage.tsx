@@ -33,6 +33,7 @@ import { VerificationTasksManager } from '@/components/verification-tasks';
 import { KYCTaskVerificationSection } from '@/components/kyc/KYCTaskVerificationSection';
 import { DownloadReportButton } from '@/components/reports/DownloadReportButton';
 import { useKYCTasksForCase } from '@/hooks/useKYC';
+import { useVerificationTasks } from '@/hooks/useVerificationTasks';
 import { formatDistanceToNow } from 'date-fns';
 import { LoadingState } from '@/components/ui/loading';
 
@@ -66,6 +67,12 @@ export const CaseDetailPage: React.FC = () => {
   const { data: formSubmissionsData, isLoading: formSubmissionsLoading } =
     useCaseFormSubmissions(safeId);
   const { data: kycTasks = [] } = useKYCTasksForCase(safeId);
+  // Field-task count for the tabs badge — symmetric with KYC Tasks
+  // badge. The same query is also used inside <VerificationTasksManager>
+  // below; react-query dedupes on key ['verification-tasks', caseId] so
+  // this does not double-fetch.
+  const { data: fieldTasksData } = useVerificationTasks(safeId);
+  const fieldTaskCount = fieldTasksData?.totalTasks ?? fieldTasksData?.tasks.length ?? 0;
 
   const caseItem = caseData?.data;
   const formSubmissions = formSubmissionsData?.data?.submissions || [];
@@ -219,16 +226,27 @@ export const CaseDetailPage: React.FC = () => {
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="field-tasks" className="flex items-center space-x-2">
-                <CheckSquare className="h-4 w-4" />
-                <span>Field Tasks</span>
-              </TabsTrigger>
+              {/*
+                2026-05-25: KYC tab now appears before Field tab. Most
+                cases that mix the two types start with the KYC review,
+                so surfacing KYC first matches the operational reading
+                order. Count badges on both for symmetry.
+              */}
               <TabsTrigger value="kyc-tasks" className="flex items-center space-x-2">
                 <FileCheck className="h-4 w-4" />
                 <span>KYC Tasks</span>
                 {kycTasks.length > 0 && (
                   <Badge variant="secondary" className="ml-1">
                     {kycTasks.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="field-tasks" className="flex items-center space-x-2">
+                <CheckSquare className="h-4 w-4" />
+                <span>Field Tasks</span>
+                {fieldTaskCount > 0 && (
+                  <Badge variant="secondary" className="ml-1">
+                    {fieldTaskCount}
                   </Badge>
                 )}
               </TabsTrigger>
@@ -450,15 +468,6 @@ export const CaseDetailPage: React.FC = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="field-tasks">
-              <VerificationTasksManager
-                caseId={safeId}
-                caseNumber={caseItem?.caseId?.toString()}
-                customerName={caseItem?.customerName}
-                readonly={false}
-              />
-            </TabsContent>
-
             <TabsContent value="kyc-tasks">
               {kycTasks.length > 0 ? (
                 <KYCTaskVerificationSection caseId={safeId} taskId="" readonly={false} />
@@ -473,6 +482,15 @@ export const CaseDetailPage: React.FC = () => {
                   </CardContent>
                 </Card>
               )}
+            </TabsContent>
+
+            <TabsContent value="field-tasks">
+              <VerificationTasksManager
+                caseId={safeId}
+                caseNumber={caseItem?.caseId?.toString()}
+                customerName={caseItem?.customerName}
+                readonly={false}
+              />
             </TabsContent>
 
             <TabsContent value="case-data">
