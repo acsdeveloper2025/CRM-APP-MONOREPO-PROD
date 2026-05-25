@@ -3,6 +3,7 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
+import { EnterpriseCache, CacheInvalidationPatterns } from '@/middleware/enterpriseCache';
 import {
   getFieldAgentTerritories,
   getFieldAgentTerritoryById,
@@ -110,6 +111,7 @@ router.get(
 router.post(
   '/field-agents/:userId/pincodes',
   authorize('territory.assign'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
   assignPincodesValidation,
   validate,
   assignPincodesToFieldAgent
@@ -119,6 +121,7 @@ router.post(
 router.post(
   '/field-agents/:userId/areas',
   authorize('territory.assign'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
   assignAreasValidation,
   validate,
   assignAreasToFieldAgent
@@ -128,6 +131,7 @@ router.post(
 router.post(
   '/field-agents/:userId/add-pincode',
   authorize('territory.assign'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
   [
     param('userId').isUUID().withMessage('User ID must be a valid UUID'),
     body('pincodeId').isInt({ min: 1 }).withMessage('Pincode ID must be a positive integer'),
@@ -145,6 +149,7 @@ router.post(
 router.delete(
   '/field-agents/:userId/pincodes/:pincodeId',
   authorize('territory.assign'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
   [
     param('userId').isUUID().withMessage('User ID must be a valid UUID'),
     param('pincodeId').isInt({ min: 1 }).withMessage('Pincode ID must be a positive integer'),
@@ -157,6 +162,7 @@ router.delete(
 router.delete(
   '/field-agents/:userId/areas/:areaId',
   authorize('territory.assign'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
   [
     param('userId').isUUID().withMessage('User ID must be a valid UUID'),
     param('areaId').isInt({ min: 1 }).withMessage('Area ID must be a positive integer'),
@@ -170,6 +176,7 @@ router.delete(
 router.delete(
   '/field-agents/:userId/all',
   authorize('territory.assign'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate),
   [param('userId').isUUID().withMessage('User ID must be a valid UUID')],
   validate,
   removeAllTerritoryAssignments

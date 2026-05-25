@@ -4,6 +4,7 @@ import { body, query as queryValidator, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { handleValidationErrors } from '@/middleware/validation';
+import { EnterpriseCache, CacheInvalidationPatterns } from '@/middleware/enterpriseCache';
 import {
   getTemplates,
   getTemplateById,
@@ -327,6 +328,7 @@ router.get(
 router.post(
   '/',
   authorize('case_data_template.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseDataTemplateUpdate),
   createTemplateValidation,
   handleValidationErrors,
   createTemplate
@@ -346,6 +348,7 @@ router.post(
 router.put(
   '/:id',
   authorize('case_data_template.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseDataTemplateUpdate),
   updateTemplateValidation,
   handleValidationErrors,
   updateTemplate
@@ -355,6 +358,7 @@ router.put(
 router.delete(
   '/:id',
   authorize('case_data_template.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseDataTemplateUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Template ID must be a positive integer')],
   handleValidationErrors,
   deleteTemplate

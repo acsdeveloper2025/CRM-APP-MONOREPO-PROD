@@ -4,6 +4,7 @@ import { authenticateToken } from '../middleware/auth';
 import { authorize } from '../middleware/authorize';
 import { validate } from '../middleware/validation';
 import { validateCaseRecordAccess } from '../middleware/recordAccess';
+import { EnterpriseCache, CacheInvalidationPatterns } from '../middleware/enterpriseCache';
 import {
   generateTemplateReport,
   getTemplateReport,
@@ -44,6 +45,7 @@ router.post(
   '/cases/:caseId/submissions/:submissionId/generate',
   authenticateToken,
   authorize('report.generate'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.reportTemplateUpdate),
   validate(caseAndSubmissionValidation),
   ...validateCaseRecordAccess,
   generateTemplateReport
@@ -74,6 +76,7 @@ router.delete(
   '/reports/:reportId',
   authenticateToken,
   authorize('report.generate'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.reportTemplateUpdate),
   validate(reportIdValidation),
   deleteTemplateReport
 );

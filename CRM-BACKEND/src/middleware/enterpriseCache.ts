@@ -812,11 +812,7 @@ export const CacheInvalidationPatterns = {
 
   // 2026-05-25: NEW — invoice mutations previously fired no invalidation.
   // /invoices list JOINs clients + products. Defense-in-depth pattern.
-  invoiceUpdate: [
-    'invoices:*',
-    'api_cache:*:*invoices*',
-    'analytics:*invoices*',
-  ],
+  invoiceUpdate: ['invoices:*', 'api_cache:*:*invoices*', 'analytics:*invoices*'],
 
   // 2026-05-25: NEW — commission mutations previously fired no
   // invalidation. /commissions list JOINs clients + users + rate_types.
@@ -826,6 +822,24 @@ export const CacheInvalidationPatterns = {
     'analytics:*commissions*',
     'commission-management:*',
     'api_cache:*:*commission-management*',
+  ],
+
+  // 2026-05-25: NEW — case_data_template (master) + case_data_entries
+  // mutation patterns. Defense-in-depth.
+  caseDataTemplateUpdate: [
+    'case-data-templates:*',
+    'api_cache:*:*case-data-templates*',
+    'analytics:*case-data-templates*',
+  ],
+
+  // 2026-05-25: NEW — report_template (master) + generated_report
+  // mutation patterns. Defense-in-depth.
+  reportTemplateUpdate: [
+    'report-templates:*',
+    'api_cache:*:*report-templates*',
+    'analytics:*report-templates*',
+    'template-reports:*',
+    'api_cache:*:*template-reports*',
   ],
 
   clientDocumentTypeUpdate: [

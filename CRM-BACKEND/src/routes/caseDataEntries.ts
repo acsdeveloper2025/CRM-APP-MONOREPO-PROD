@@ -15,7 +15,11 @@ import {
 } from '@/controllers/caseDataEntriesController';
 import { getDataEntryDashboard } from '@/controllers/dataEntryDashboardController';
 import { getMISData, getMISStats, exportMISData } from '@/controllers/dataEntryMISController';
-import { EnterpriseCache, EnterpriseCacheConfigs } from '@/middleware/enterpriseCache';
+import {
+  EnterpriseCache,
+  EnterpriseCacheConfigs,
+  CacheInvalidationPatterns,
+} from '@/middleware/enterpriseCache';
 
 const router = express.Router();
 
@@ -126,6 +130,7 @@ router.get(
 router.post(
   '/:caseId/instances',
   authorize('case.create'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
   caseIdValidation,
   createInstanceValidation,
   handleValidationErrors,
@@ -136,6 +141,7 @@ router.post(
 router.put(
   '/:caseId/instances/:instanceIndex',
   authorize('case.update'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
   caseIdValidation,
   instanceIndexValidation,
   saveValidation,
@@ -147,6 +153,7 @@ router.put(
 router.delete(
   '/:caseId/instances/:instanceIndex',
   authorize('case.update'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
   caseIdValidation,
   instanceIndexValidation,
   handleValidationErrors,
@@ -157,6 +164,7 @@ router.delete(
 router.post(
   '/:caseId/complete',
   authorize('case.update'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
   caseIdValidation,
   handleValidationErrors,
   requireCaseAccess,
