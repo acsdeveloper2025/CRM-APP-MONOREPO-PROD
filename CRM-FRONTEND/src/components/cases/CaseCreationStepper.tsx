@@ -438,7 +438,15 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           // show the new timestamps + assignment + history immediately
           // instead of waiting for the 2-min staleTime to expire.
           queryClient.invalidateQueries({ queryKey: caseKeys.all });
+          // Three separate task-query prefixes — different consumers use
+          // different keys (FE never collapsed them into one prefix):
+          //   ['verification-tasks', caseId]      → VerificationTasksManager
+          //   ['verification-task', taskId]       → useVerificationTask detail
+          //   ['all-verification-tasks', filters] → AllTasks/Pending/InProgress lists
           queryClient.invalidateQueries({ queryKey: ['verification-tasks'] });
+          queryClient.invalidateQueries({ queryKey: ['verification-task'] });
+          queryClient.invalidateQueries({ queryKey: ['all-verification-tasks'] });
+          queryClient.invalidateQueries({ queryKey: ['verification-tasks-stats'] });
           queryClient.invalidateQueries({ queryKey: ['dashboard'] });
 
           if (onSuccess) {

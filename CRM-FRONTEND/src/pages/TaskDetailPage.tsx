@@ -25,6 +25,7 @@ import { KYCTaskVerificationSection } from '@/components/kyc/KYCTaskVerification
 import { useRevisitTaskAction } from '@/hooks/useRevisitTaskAction';
 import { logger } from '@/utils/logger';
 import { isEditable, extractEditBlockedError } from '@/utils/editLock';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface TaskDetail {
   id: string;
@@ -87,6 +88,7 @@ interface TaskTimelineEvent {
 export const TaskDetailPage: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [task, setTask] = useState<TaskDetail | null>(null);
   const [assignmentHistory, setAssignmentHistory] = useState<TaskTimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -191,6 +193,15 @@ export const TaskDetailPage: React.FC = () => {
         // Assignment History card on the detail page stayed stale until
         // page reload.
         fetchAssignmentHistory();
+        // Invalidate React Query caches so any list/detail page the user
+        // navigates back to immediately shows the new assignment +
+        // status + timestamps (no hard refresh needed).
+        queryClient.invalidateQueries({ queryKey: ['verification-tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['verification-task'] });
+        queryClient.invalidateQueries({ queryKey: ['all-verification-tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['verification-tasks-stats'] });
+        queryClient.invalidateQueries({ queryKey: ['cases'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       } else {
         toast.error(response.message || 'Failed to update task');
       }
