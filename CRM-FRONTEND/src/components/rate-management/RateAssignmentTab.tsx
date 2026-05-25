@@ -26,6 +26,7 @@ import { clientsService } from '@/services/clients';
 import { productsService } from '@/services/products';
 import { verificationTypesService } from '@/services/verificationTypes';
 import { ratesService } from '@/services/rates';
+import { CURRENCIES } from '@/types/constants';
 
 interface RateInput {
   rateTypeId: string;
@@ -353,9 +354,11 @@ export function RateAssignmentTab() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="INR">INR</SelectItem>
-                                <SelectItem value="USD">USD</SelectItem>
-                                <SelectItem value="EUR">EUR</SelectItem>
+                                {CURRENCIES.map((c) => (
+                                  <SelectItem key={c.value} value={c.value}>
+                                    {c.label}
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </TableCell>

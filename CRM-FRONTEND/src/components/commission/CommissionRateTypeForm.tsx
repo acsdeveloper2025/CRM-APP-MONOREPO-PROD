@@ -16,6 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { commissionManagementService } from '@/services/commissionManagement';
 import { rateTypesService } from '@/services/rateTypes';
 import type { CommissionRateType, CommissionFormData } from '@/types/commission';
+import { CURRENCIES } from '@/types/constants';
 
 interface CommissionRateTypeFormProps {
   rateType?: CommissionRateType;
@@ -144,9 +145,11 @@ export const CommissionRateTypeForm: React.FC<CommissionRateTypeFormProps> = ({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="INR">INR</SelectItem>
-              <SelectItem value="USD">USD</SelectItem>
-              <SelectItem value="EUR">EUR</SelectItem>
+              {CURRENCIES.map((c) => (
+                <SelectItem key={c.value} value={c.value}>
+                  {c.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Input

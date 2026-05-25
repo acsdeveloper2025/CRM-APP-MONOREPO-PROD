@@ -52,6 +52,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { clientsService } from '@/services/clients';
+import { CURRENCIES } from '@/types/constants';
 import { productsService } from '@/services/products';
 import { documentTypesService } from '@/services/documentTypes';
 import { kycRatesService } from '@/services/kycRates';
@@ -642,9 +643,11 @@ export function KYCRatesPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="INR">INR (₹)</SelectItem>
-                  <SelectItem value="USD">USD ($)</SelectItem>
-                  <SelectItem value="EUR">EUR (€)</SelectItem>
+                  {CURRENCIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

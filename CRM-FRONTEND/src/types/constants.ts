@@ -215,12 +215,13 @@ export const COMMISSION_STATUS = {
 
 export type CommissionStatus = (typeof COMMISSION_STATUS)[keyof typeof COMMISSION_STATUS];
 
-// Currency
-export const CURRENCIES = {
-  INR: 'INR',
-  USD: 'USD',
-  EUR: 'EUR',
-} as const;
+// Currency dropdown options — single source of truth for INR/USD/EUR
+// Select components.
+export const CURRENCIES = [
+  { value: 'INR', label: 'INR (₹)' },
+  { value: 'USD', label: 'USD ($)' },
+  { value: 'EUR', label: 'EUR (€)' },
+] as const;
 
 export type Currency = (typeof CURRENCIES)[keyof typeof CURRENCIES];
 

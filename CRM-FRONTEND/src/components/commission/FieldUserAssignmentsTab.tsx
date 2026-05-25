@@ -41,6 +41,7 @@ import {
 import { logger } from '@/utils/logger';
 import { User } from '../../types/user';
 import { RateType } from '../../types/rateManagement';
+import { CURRENCIES } from '@/types/constants';
 import { userApi } from '../../services/userApi';
 import { rateTypeApi } from '../../services/rateTypeApi';
 
@@ -543,9 +544,11 @@ export const FieldUserAssignmentsTab: React.FC = () => {
                       <SelectValue placeholder="Select Currency" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="INR">INR</SelectItem>
-                      <SelectItem value="USD">USD</SelectItem>
-                      <SelectItem value="EUR">EUR</SelectItem>
+                      {CURRENCIES.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>
+                          {c.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
