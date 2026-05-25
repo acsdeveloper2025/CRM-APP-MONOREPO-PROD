@@ -1350,11 +1350,13 @@ export const updateCase = async (req: AuthenticatedRequest, res: Response) => {
       values.push(verificationTypeId);
       paramIndex++;
     }
-    if (pincode !== undefined) {
-      updateFields.push(`pincode = $${paramIndex}`);
-      values.push(pincode);
-      paramIndex++;
-    }
+    // `pincode` is intentionally NOT applied on the cases table — the
+    // column doesn't exist there (it lives on verification_tasks as
+    // pincode_id FK). Pre-fix the controller unconditionally appended
+    // `pincode = $N` if the field was present in the body, which 500'd
+    // every Edit-from-task save once the FE form populated `pincode`
+    // from the loaded task data. The body is destructured for the
+    // task-level pipeline only (NOT applied here on cases).
     if (priority !== undefined) {
       updateFields.push(`priority = $${paramIndex}`);
       values.push(priority);
