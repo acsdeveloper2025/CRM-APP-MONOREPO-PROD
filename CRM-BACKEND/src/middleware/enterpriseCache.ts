@@ -643,7 +643,8 @@ export const CacheInvalidationPatterns = {
   // client_product_verifications junctions (PUT /clients/:id rewrites
   // productMappings), which drives clientCount on /document-types and
   // hasRates / clientCount on /verification-types. Stats endpoints use
-  // the `analytics:` cache prefix so flush those too.
+  // the `analytics:` cache prefix so flush those too. kyc_rates_view
+  // JOINs clients for client_name so rename propagates there.
   clientUpdate: [
     'clients:*',
     'api_cache:*:*clients*',
@@ -654,6 +655,9 @@ export const CacheInvalidationPatterns = {
     'verification-types:*',
     'api_cache:*:*verification-types*',
     'analytics:*verification-types*',
+    'kyc-rates:*',
+    'api_cache:*:*kyc-rates*',
+    'analytics:*kyc-rates*',
   ],
 
   // 2026-05-25: verification-type mutation propagates to caseList /
@@ -672,6 +676,7 @@ export const CacheInvalidationPatterns = {
   // 2026-05-25: product mutation alters client_product_documents /
   // client_product_verifications counts on /document-types +
   // /verification-types lists. Stats endpoints under `analytics:`.
+  // kyc_rates_view JOINs products for product_name.
   productUpdate: [
     'products:*',
     'api_cache:*:*products*',
@@ -682,6 +687,9 @@ export const CacheInvalidationPatterns = {
     'verification-types:*',
     'api_cache:*:*verification-types*',
     'analytics:*verification-types*',
+    'kyc-rates:*',
+    'api_cache:*:*kyc-rates*',
+    'analytics:*kyc-rates*',
   ],
 
   // 2026-05-25: rate_type mutation propagates to case/task lists
@@ -729,6 +737,7 @@ export const CacheInvalidationPatterns = {
     'analytics:*clients*',
     'kyc-rates:*',
     'api_cache:*:*kyc-rates*',
+    'analytics:*kyc-rates*',
   ],
 
   // 2026-05-25: department mutation also affects the users-list cache
@@ -756,7 +765,23 @@ export const CacheInvalidationPatterns = {
     'analytics:*users*',
   ],
 
-  kycRateUpdate: ['kyc-rates:*', 'api_cache:*:*kyc-rates*', 'rate-management-stats:*'],
+  // 2026-05-25: kyc-rates analytics-stats key also needs flushing.
+  kycRateUpdate: [
+    'kyc-rates:*',
+    'api_cache:*:*kyc-rates*',
+    'analytics:*kyc-rates*',
+    'rate-management-stats:*',
+  ],
+
+  // 2026-05-25: NEW — service_zone_rules mutations previously fired no
+  // invalidation. SZR list/stats JOINs rate_types + verification_types
+  // (rate/vt rename should reflect on the SZR page).
+  serviceZoneRuleUpdate: [
+    'service-zone-rules:*',
+    'api_cache:*:*service-zone-rules*',
+    'analytics:*service-zone-rules*',
+    'rate-management-stats:*',
+  ],
 
   clientDocumentTypeUpdate: [
     'client-document-types:*',

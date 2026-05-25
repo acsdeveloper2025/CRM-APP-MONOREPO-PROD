@@ -3,6 +3,7 @@ import { body, param, query } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { handleValidationErrors } from '@/middleware/validation';
+import { EnterpriseCache, CacheInvalidationPatterns } from '@/middleware/enterpriseCache';
 import {
   activateServiceZoneRule,
   createServiceZoneRule,
@@ -95,6 +96,7 @@ router.get(
 router.post(
   '/',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.serviceZoneRuleUpdate),
   ruleValidation,
   handleValidationErrors,
   createServiceZoneRule
@@ -103,6 +105,7 @@ router.post(
 router.put(
   '/:id',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.serviceZoneRuleUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Rule ID must be a valid integer'), ...ruleValidation],
   handleValidationErrors,
   updateServiceZoneRule
@@ -111,6 +114,7 @@ router.put(
 router.post(
   '/:id/activate',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.serviceZoneRuleUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Rule ID must be a valid integer')],
   handleValidationErrors,
   activateServiceZoneRule
@@ -119,6 +123,7 @@ router.post(
 router.post(
   '/:id/deactivate',
   authorize('settings.manage'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.serviceZoneRuleUpdate),
   [param('id').isInt({ min: 1 }).withMessage('Rule ID must be a valid integer')],
   handleValidationErrors,
   deactivateServiceZoneRule
