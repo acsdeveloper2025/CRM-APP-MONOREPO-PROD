@@ -22,6 +22,8 @@ import { kycService } from '@/services/kyc';
 import { locationsService } from '@/services/locations';
 import type { Pincode } from '@/types/location';
 import { useVerificationTypes } from '@/hooks/useClients';
+import { useQueryClient } from '@tanstack/react-query';
+import { caseKeys } from '@/hooks/useCases';
 import { toast } from 'sonner';
 import type { CaseFormAttachment } from '@/components/attachments/CaseFormAttachmentsSection';
 import { logger } from '@/utils/logger';
@@ -74,6 +76,12 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
   editCaseId,
   initialData,
 }) => {
+  // Used to invalidate stale React Query cache after a Case/Task update
+  // — the stepper calls casesService.updateCaseDetails directly (not via
+  // useUpdateCase hook), so without this, CaseDetailPage / Tasks tab /
+  // task lists show stale data for the global staleTime window (2 min).
+  // See project_in_progress_edit_lock_audit_2026_05_24.md (refetch audit).
+  const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState<Step>(
     editMode ? 'multi-task-details' : 'customer-info'
   );
@@ -425,6 +433,13 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
           } else {
             toast.success('Case updated successfully!');
           }
+
+          // Invalidate cache so CaseDetailPage / Tasks tab / dashboards
+          // show the new timestamps + assignment + history immediately
+          // instead of waiting for the 2-min staleTime to expire.
+          queryClient.invalidateQueries({ queryKey: caseKeys.all });
+          queryClient.invalidateQueries({ queryKey: ['verification-tasks'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard'] });
 
           if (onSuccess) {
             onSuccess(editCaseId);
@@ -830,6 +845,10 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
 
         const action = editMode ? 'updated' : 'created';
         toast.success(`Case ${action} successfully! Case ID: ${caseId}`);
+        // Invalidate cache — same rationale as the other update branch above.
+        queryClient.invalidateQueries({ queryKey: caseKeys.all });
+        queryClient.invalidateQueries({ queryKey: ['verification-tasks'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
         onSuccess?.(String(caseId));
       } else {
         const action = editMode ? 'update' : 'create';

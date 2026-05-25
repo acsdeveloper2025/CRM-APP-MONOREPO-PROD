@@ -65,21 +65,30 @@ interface TaskDetail {
   updatedAt: string;
 }
 
-interface AssignmentHistory {
+// Unified timeline event — covers all task lifecycle transitions:
+// ASSIGNED (or reassigned), STARTED, COMPLETED, REVOKED, REVISIT_CREATED.
+// Backend endpoint /verification-tasks/:id/assignment-history aggregates
+// from task_assignment_history + task_revocations + verification_tasks
+// timestamps + child REVISIT rows.
+type TaskTimelineEventType = 'ASSIGNED' | 'STARTED' | 'COMPLETED' | 'REVOKED' | 'REVISIT_CREATED';
+
+interface TaskTimelineEvent {
   id: string;
-  assignedToName: string;
-  assignedByName: string;
-  assignedFromName?: string;
-  assignedAt: string;
-  assignmentReason?: string;
-  taskStatusAfter: string;
+  eventType: TaskTimelineEventType;
+  eventAt: string;
+  actorName?: string | null;
+  triggeredByName?: string | null;
+  statusBefore?: string | null;
+  statusAfter?: string | null;
+  reason?: string | null;
+  extra?: string | null;
 }
 
 export const TaskDetailPage: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
   const [task, setTask] = useState<TaskDetail | null>(null);
-  const [assignmentHistory, setAssignmentHistory] = useState<AssignmentHistory[]>([]);
+  const [assignmentHistory, setAssignmentHistory] = useState<TaskTimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -159,7 +168,7 @@ export const TaskDetailPage: React.FC = () => {
       const response = await apiService.get(`/verification-tasks/${taskId}/assignment-history`);
 
       if (response.success) {
-        setAssignmentHistory((response.data as AssignmentHistory[]) || []);
+        setAssignmentHistory((response.data as TaskTimelineEvent[]) || []);
       }
     } catch (err) {
       logger.error('Failed to fetch assignment history:', err);
@@ -174,7 +183,14 @@ export const TaskDetailPage: React.FC = () => {
       const response = await apiService.put(`/verification-tasks/${taskId}`, updateData);
       if (response.success) {
         toast.success('Task details updated successfully');
-        fetchTaskDetails(); // Refresh data
+        fetchTaskDetails(); // Refresh task fields (assignedTo, timestamps)
+        // Assignment history is raw apiService.get + useState (not React
+        // Query), so re-fetch it explicitly after any update — BE writes
+        // a task_assignment_history row whenever assignedTo changes
+        // (verificationTasksController.ts:1837). Without this the
+        // Assignment History card on the detail page stayed stale until
+        // page reload.
+        fetchAssignmentHistory();
       } else {
         toast.error(response.message || 'Failed to update task');
       }
@@ -401,40 +417,78 @@ export const TaskDetailPage: React.FC = () => {
             <KYCTaskVerificationSection caseId={task.caseId} taskId={task.id} />
           )}
 
-          {/* Assignment History */}
+          {/* Task Timeline — unified history of ALL lifecycle events
+              (assignment, start, complete, revoke, revisit-created) */}
           {assignmentHistory.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <History className="h-5 w-5 mr-2" />
-                  Assignment History
+                  Task Timeline
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {assignmentHistory.map((item) => (
-                    <div key={item.id} className="flex items-start space-x-4">
-                      <div className="shrink-0 w-2 h-2 mt-2 rounded-full bg-primary" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">
-                          Assigned to {item.assignedToName}
-                          {item.assignedFromName && ` (from ${item.assignedFromName})`}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          By {item.assignedByName} •{' '}
-                          {format(new Date(item.assignedAt), 'dd MMM yyyy, hh:mm a')}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Status: {item.taskStatusAfter}
-                        </p>
-                        {item.assignmentReason && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Reason: {item.assignmentReason}
+                  {assignmentHistory.map((item) => {
+                    const dotColor: Record<TaskTimelineEventType, string> = {
+                      ASSIGNED: 'bg-blue-500',
+                      STARTED: 'bg-amber-500',
+                      COMPLETED: 'bg-green-600',
+                      REVOKED: 'bg-red-600',
+                      REVISIT_CREATED: 'bg-purple-600',
+                    };
+                    const eventLabel: Record<TaskTimelineEventType, string> = {
+                      ASSIGNED: 'Assigned',
+                      STARTED: 'Started',
+                      COMPLETED: 'Completed',
+                      REVOKED: 'Revoked',
+                      REVISIT_CREATED: 'Revisit task created',
+                    };
+                    return (
+                      <div key={item.id} className="flex items-start space-x-4">
+                        <div
+                          className={`shrink-0 w-2 h-2 mt-2 rounded-full ${dotColor[item.eventType] || 'bg-primary'}`}
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            {eventLabel[item.eventType] || item.eventType}
+                            {item.eventType === 'ASSIGNED' && item.actorName && (
+                              <span className="font-normal"> to {item.actorName}</span>
+                            )}
+                            {item.eventType === 'REVOKED' && item.actorName && (
+                              <span className="font-normal"> from {item.actorName}</span>
+                            )}
+                            {item.eventType === 'STARTED' && item.actorName && (
+                              <span className="font-normal"> by {item.actorName}</span>
+                            )}
+                            {item.eventType === 'COMPLETED' && item.actorName && (
+                              <span className="font-normal"> by {item.actorName}</span>
+                            )}
+                            {item.eventType === 'REVISIT_CREATED' && item.extra && (
+                              <span className="font-normal"> (task {item.extra})</span>
+                            )}
                           </p>
-                        )}
+                          <p className="text-xs text-muted-foreground">
+                            {item.triggeredByName && `By ${item.triggeredByName} • `}
+                            {format(new Date(item.eventAt), 'dd MMM yyyy, hh:mm a')}
+                          </p>
+                          {item.statusBefore && item.statusAfter && (
+                            <p className="text-xs text-muted-foreground">
+                              Status: {item.statusBefore} → {item.statusAfter}
+                            </p>
+                          )}
+                          {item.eventType === 'COMPLETED' && item.extra && (
+                            <p className="text-xs text-muted-foreground">Outcome: {item.extra}</p>
+                          )}
+                          {item.reason && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {item.eventType === 'REVOKED' ? 'Reason' : 'Note'}: {item.reason}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>

@@ -27,6 +27,7 @@ import {
 import { TaskCompletionValidator } from '@/services/taskCompletionValidator';
 import { CaseStatusSyncService } from '@/services/caseStatusSyncService';
 import { createAuditLog } from '@/utils/auditLogger';
+import { logger } from '@/utils/logger';
 
 const router = express.Router();
 
@@ -259,19 +260,121 @@ router.get(
     try {
       const { taskId } = req.params;
 
+      // Unified task timeline. Aggregates events from FIVE sources so
+      // the operator sees the complete workflow lifecycle (not just
+      // assignment events):
+      //   1. ASSIGNED rows from task_assignment_history (assignment +
+      //      reassignment events)
+      //   2. STARTED — synthesized from verification_tasks.started_at
+      //      (ASSIGNED → IN_PROGRESS)
+      //   3. COMPLETED — synthesized from verification_tasks.completed_at
+      //      (IN_PROGRESS → COMPLETED). `extra` carries the
+      //      verification_outcome (Positive/Negative/etc).
+      //   4. REVOKED rows from task_revocations (PENDING/ASSIGNED/
+      //      IN_PROGRESS → REVOKED). `extra` carries the revoke role.
+      //   5. REVISIT_CREATED — for each child task with parent_task_id
+      //      = this task (COMPLETED → revisit). `extra` carries the
+      //      child task_number.
+      //
+      // Endpoint name kept as /assignment-history for back-compat (only
+      // consumer is TaskDetailPage, updated in same commit to render
+      // all event types via the new `eventType` field).
       const result = await dbQuery(
         `
-        SELECT 
-          tah.*,
-          u_to.name as assigned_to_name,
-          u_by.name as assigned_by_name,
-          u_from.name as assigned_from_name
-        FROM task_assignment_history tah
-        LEFT JOIN users u_to ON tah.assigned_to = u_to.id
-        LEFT JOIN users u_by ON tah.assigned_by = u_by.id
-        LEFT JOIN users u_from ON tah.assigned_from = u_from.id
-        WHERE tah.verification_task_id = $1
-        ORDER BY tah.assigned_at DESC
+        SELECT * FROM (
+          SELECT
+            tah.id::text AS id,
+            'ASSIGNED' AS event_type,
+            tah.assigned_at AS event_at,
+            tah.assigned_to AS actor_user_id,
+            u_to.name AS actor_name,
+            tah.assigned_by AS triggered_by_user_id,
+            u_by.name AS triggered_by_name,
+            tah.task_status_before AS status_before,
+            tah.task_status_after AS status_after,
+            tah.assignment_reason AS reason,
+            NULL::text AS extra
+          FROM task_assignment_history tah
+          LEFT JOIN users u_to ON tah.assigned_to = u_to.id
+          LEFT JOIN users u_by ON tah.assigned_by = u_by.id
+          WHERE tah.verification_task_id = $1
+
+          UNION ALL
+
+          SELECT
+            vt.id::text || '_started' AS id,
+            'STARTED' AS event_type,
+            vt.started_at AS event_at,
+            vt.assigned_to AS actor_user_id,
+            u_a.name AS actor_name,
+            NULL::uuid AS triggered_by_user_id,
+            NULL::text AS triggered_by_name,
+            'ASSIGNED' AS status_before,
+            'IN_PROGRESS' AS status_after,
+            NULL::text AS reason,
+            NULL::text AS extra
+          FROM verification_tasks vt
+          LEFT JOIN users u_a ON vt.assigned_to = u_a.id
+          WHERE vt.id = $1 AND vt.started_at IS NOT NULL
+
+          UNION ALL
+
+          SELECT
+            vt.id::text || '_completed' AS id,
+            'COMPLETED' AS event_type,
+            vt.completed_at AS event_at,
+            vt.assigned_to AS actor_user_id,
+            u_a.name AS actor_name,
+            NULL::uuid AS triggered_by_user_id,
+            NULL::text AS triggered_by_name,
+            'IN_PROGRESS' AS status_before,
+            'COMPLETED' AS status_after,
+            NULL::text AS reason,
+            vt.verification_outcome AS extra
+          FROM verification_tasks vt
+          LEFT JOIN users u_a ON vt.assigned_to = u_a.id
+          WHERE vt.id = $1 AND vt.completed_at IS NOT NULL
+
+          UNION ALL
+
+          SELECT
+            'rev_' || tr.id::text AS id,
+            'REVOKED' AS event_type,
+            tr.revoked_at AS event_at,
+            tr.revoked_from_user_id AS actor_user_id,
+            u_from.name AS actor_name,
+            tr.revoked_by_user_id AS triggered_by_user_id,
+            u_by.name AS triggered_by_name,
+            tr.previous_status AS status_before,
+            'REVOKED' AS status_after,
+            tr.revoke_reason AS reason,
+            tr.revoked_by_role::text AS extra
+          FROM task_revocations tr
+          LEFT JOIN users u_from ON tr.revoked_from_user_id = u_from.id
+          LEFT JOIN users u_by ON tr.revoked_by_user_id = u_by.id
+          WHERE tr.task_id = $1
+
+          UNION ALL
+
+          SELECT
+            child.id::text || '_revisit' AS id,
+            'REVISIT_CREATED' AS event_type,
+            child.created_at AS event_at,
+            child.assigned_to AS actor_user_id,
+            u_c.name AS actor_name,
+            child.created_by AS triggered_by_user_id,
+            u_creator.name AS triggered_by_name,
+            'COMPLETED' AS status_before,
+            child.status AS status_after,
+            NULL::text AS reason,
+            child.task_number::text AS extra
+          FROM verification_tasks child
+          LEFT JOIN users u_c ON child.assigned_to = u_c.id
+          LEFT JOIN users u_creator ON child.created_by = u_creator.id
+          WHERE child.parent_task_id = $1 AND child.task_type = 'REVISIT'
+        ) events
+        WHERE event_at IS NOT NULL
+        ORDER BY event_at DESC
       `,
         [taskId]
       );
@@ -279,9 +382,10 @@ router.get(
       res.json({
         success: true,
         data: result.rows,
-        message: 'Assignment history retrieved successfully',
+        message: 'Task timeline retrieved successfully',
       });
-    } catch (_error) {
+    } catch (error) {
+      logger.error('Failed to get task timeline', { error, taskId: req.params.taskId });
       res.status(500).json({
         success: false,
         message: 'Failed to get assignment history',
