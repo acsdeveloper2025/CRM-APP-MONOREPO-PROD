@@ -3,6 +3,7 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
+import { EnterpriseCache, CacheInvalidationPatterns } from '@/middleware/enterpriseCache';
 import {
   getCommissions,
   getCommissionById,
@@ -131,6 +132,7 @@ router.get(
 router.post(
   '/bulk-approve',
   authorize('billing.approve'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.commissionUpdate),
   bulkApproveValidation,
   validate,
   bulkApproveCommissions
@@ -139,6 +141,7 @@ router.post(
 router.post(
   '/bulk-mark-paid',
   authorize('billing.approve'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.commissionUpdate),
   bulkMarkPaidValidation,
   validate,
   bulkMarkCommissionsPaid
@@ -155,6 +158,7 @@ router.get(
 router.post(
   '/:id/approve',
   authorize('billing.approve'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.commissionUpdate),
   [param('id').trim().notEmpty().withMessage('Commission ID is required')],
   approveValidation,
   validate,
@@ -164,6 +168,7 @@ router.post(
 router.post(
   '/:id/mark-paid',
   authorize('billing.approve'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.commissionUpdate),
   [param('id').trim().notEmpty().withMessage('Commission ID is required')],
   markPaidValidation,
   validate,

@@ -3,6 +3,7 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
+import { EnterpriseCache, CacheInvalidationPatterns } from '@/middleware/enterpriseCache';
 import {
   getInvoices,
   getInvoiceById,
@@ -128,7 +129,14 @@ router.get('/stats', authorize('billing.download'), getInvoiceStats);
 
 router.get('/export', authorize('billing.download'), exportInvoicesToExcel);
 
-router.post('/', authorize('billing.generate'), createInvoiceValidation, validate, createInvoice);
+router.post(
+  '/',
+  authorize('billing.generate'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.invoiceUpdate),
+  createInvoiceValidation,
+  validate,
+  createInvoice
+);
 
 router.get(
   '/:id',
@@ -141,6 +149,7 @@ router.get(
 router.put(
   '/:id',
   authorize('billing.generate'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.invoiceUpdate),
   [param('id').trim().notEmpty().withMessage('Invoice ID is required')],
   updateInvoiceValidation,
   validate,
@@ -150,6 +159,7 @@ router.put(
 router.delete(
   '/:id',
   authorize('billing.generate'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.invoiceUpdate),
   [param('id').trim().notEmpty().withMessage('Invoice ID is required')],
   validate,
   deleteInvoice
@@ -158,6 +168,7 @@ router.delete(
 router.post(
   '/:id/regenerate',
   authorize('billing.generate'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.invoiceUpdate),
   [param('id').trim().notEmpty().withMessage('Invoice ID is required')],
   validate,
   regenerateInvoice
@@ -166,6 +177,7 @@ router.post(
 router.post(
   '/:id/cancel',
   authorize('billing.generate'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.invoiceUpdate),
   [
     param('id').trim().notEmpty().withMessage('Invoice ID is required'),
     body('reason')

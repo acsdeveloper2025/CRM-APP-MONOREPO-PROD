@@ -3,6 +3,7 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
+import { EnterpriseCache, CacheInvalidationPatterns } from '@/middleware/enterpriseCache';
 import {
   // Commission Rate Types
   getCommissionRateTypes,
@@ -80,6 +81,7 @@ router.get(
 router.post(
   '/rate-types',
   authorize('billing.approve'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.commissionUpdate),
   createCommissionRateTypeValidation,
   validate,
   createCommissionRateType as express.RequestHandler
@@ -88,6 +90,7 @@ router.post(
 router.put(
   '/rate-types/:id',
   authorize('billing.approve'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.commissionUpdate),
   updateCommissionRateTypeValidation,
   validate,
   updateCommissionRateType as express.RequestHandler
@@ -96,6 +99,7 @@ router.put(
 router.delete(
   '/rate-types/:id',
   authorize('billing.approve'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.commissionUpdate),
   commissionRateTypeIdValidation,
   validate,
   deleteCommissionRateType as express.RequestHandler
@@ -135,6 +139,7 @@ router.get(
 router.post(
   '/field-user-assignments',
   authorize('billing.approve'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.commissionUpdate),
   createFieldUserCommissionAssignmentValidation,
   validate,
   createFieldUserCommissionAssignment as express.RequestHandler
@@ -143,6 +148,7 @@ router.post(
 router.put(
   '/field-user-assignments/:id',
   authorize('billing.approve'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.commissionUpdate),
   [
     param('id').isInt({ min: 1 }).withMessage('Assignment ID must be a positive integer'),
     ...createFieldUserCommissionAssignmentValidation,
@@ -154,6 +160,7 @@ router.put(
 router.delete(
   '/field-user-assignments/:id',
   authorize('billing.approve'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.commissionUpdate),
   param('id').isInt({ min: 1 }).withMessage('Assignment ID must be a positive integer'),
   validate,
   deleteFieldUserCommissionAssignment as express.RequestHandler
