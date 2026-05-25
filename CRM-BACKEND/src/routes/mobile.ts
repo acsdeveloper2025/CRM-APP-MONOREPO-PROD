@@ -12,6 +12,7 @@ import { MobileSyncController } from '../controllers/mobileSyncController';
 import { MobileTelemetryController } from '../controllers/mobileTelemetryController';
 import { NotificationController } from '../controllers/notificationController';
 import { listVerificationTypeOutcomes } from '../controllers/verificationTypeOutcomesController';
+import { getActiveRevokeReasons } from '../controllers/revokeReasonsController';
 import { ProfilePhotoController } from '../controllers/profilePhotoController';
 import { profilePhotoUpload } from '../middleware/profilePhotoUpload';
 import { authenticateToken } from '../middleware/auth';
@@ -203,6 +204,16 @@ router.get(
   authenticateToken,
   validateMobileVersion,
   listVerificationTypeOutcomes
+);
+
+// A2.4 (audit 2026-05-25): reference data — revoke_reasons master.
+// Mobile syncs this on every download cycle to keep the local
+// TaskRevokeModal dropdown in lockstep with the BE master.
+router.get(
+  '/reference/revoke-reasons',
+  authenticateToken,
+  validateMobileVersion,
+  getActiveRevokeReasons
 );
 
 // Mobile Case Management Routes (CACHED)
