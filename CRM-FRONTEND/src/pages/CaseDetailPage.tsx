@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import {
   FileCheck,
   ClipboardList,
   Bell,
+  RefreshCw,
 } from 'lucide-react';
 import { CaseAttachmentsSection } from '@/components/attachments/CaseAttachmentsSection';
 import { CaseNotificationsTab } from '@/components/cases/CaseNotificationsTab';
@@ -57,6 +58,10 @@ export const CaseDetailPage: React.FC = () => {
 
   // Ensure id is available or use empty string (hooks will handle empty/undefined)
   const safeId = id || '';
+  // Controlled tab state so the case-level "Revisit Case" / "Reassign Case"
+  // buttons (rendered in the Actions card below) can switch to the Tasks tab
+  // where per-task Revisit/Reassign dropdowns live.
+  const [activeTab, setActiveTab] = useState<string>('details');
   const { data: caseData, isLoading } = useCase(safeId);
   const { data: formSubmissionsData, isLoading: formSubmissionsLoading } =
     useCaseFormSubmissions(safeId);
@@ -199,7 +204,7 @@ export const CaseDetailPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-6">
         {/* Main Content — 3/4 (lg) → 4/5 (xl) of viewport */}
         <div className="lg:col-span-3 xl:col-span-4">
-          <Tabs defaultValue="details" className="space-y-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="details" className="flex items-center space-x-2">
                 <FileText className="h-4 w-4" />
@@ -543,6 +548,20 @@ export const CaseDetailPage: React.FC = () => {
                   Edit Case
                 </Button>
               )}
+              {caseItem.status === 'COMPLETED' && (
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => setActiveTab('field-tasks')}
+                  title="Switch to the Tasks tab to revisit a completed task"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Revisit Case
+                </Button>
+              )}
+              {/* "Reassign Case" omitted at case-level — REVOKED is a Task
+                  status (per FE CaseStatusType), not a Case status. Use the
+                  per-task Reassign action in the Tasks tab. */}
               {caseItem.status !== 'COMPLETED' && <Button className="w-full">Mark Complete</Button>}
             </CardContent>
           </Card>

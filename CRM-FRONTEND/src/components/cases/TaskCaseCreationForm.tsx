@@ -500,8 +500,20 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                         </FormLabel>
                         <Select
                           onValueChange={(value) => {
+                            // Guard against Radix Select firing onValueChange
+                            // spuriously when the Select is disabled (edit
+                            // mode or scope-locked). Radix sometimes fires
+                            // onValueChange('') during the async clients-list
+                            // reload window because the controlled value
+                            // briefly has no matching SelectItem. This was
+                            // wiping the freshly-set clientId in edit-from-
+                            // pending-task flow (cascaded → productId
+                            // cleared by effect 290 → VT/RT/pincode/area
+                            // all empty). See project_in_progress_edit_lock_audit_2026_05_24.md.
+                            if (editMode || isClientScopeLocked) {
+                              return;
+                            }
                             field.onChange(value);
-                            form.setValue('productId', '');
                           }}
                           value={field.value}
                           disabled={editMode || isClientScopeLocked}
@@ -548,7 +560,15 @@ export const TaskCaseCreationForm: React.FC<TaskCaseCreationFormProps> = ({
                           ) : null}
                         </FormLabel>
                         <Select
-                          onValueChange={field.onChange}
+                          onValueChange={(value) => {
+                            // Same disabled-guard as Client Select — avoid
+                            // Radix spurious onValueChange('') from wiping
+                            // a programmatically-set productId in edit mode.
+                            if (editMode || isProductScopeLocked || !selectedClientId) {
+                              return;
+                            }
+                            field.onChange(value);
+                          }}
                           value={field.value}
                           disabled={editMode || isProductScopeLocked || !selectedClientId}
                         >
@@ -824,7 +844,13 @@ const TaskCard: React.FC<TaskCardProps> = ({
       return;
     }
 
-    if (task.areaId && !areaIds.includes(task.areaId)) {
+    // B-class race guard — only wipe when the areas list HAS loaded.
+    // Without `areas.length > 0`, the initial-load window fires this
+    // effect with areas=[] (areaIds=[]) → !areaIds.includes(...) is
+    // always TRUE → wipes prefilled areaId on every edit-mode mount.
+    // Same pattern as the SZR area-wipe fix (commit 08ef77f1) and
+    // documented in feedback_code_quality_standards.md §3.x.
+    if (areas.length > 0 && task.areaId && !areaIds.includes(task.areaId)) {
       updateTask(task.id, 'areaId', '');
     }
   }, [task.id, task.pincodeId, task.areaId, areas, areaIds, updateTask]);

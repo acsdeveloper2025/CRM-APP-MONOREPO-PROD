@@ -79,7 +79,7 @@ export const NewCasePage: React.FC = () => {
         setPincodeIdForAreas(undefined);
       }
     }
-  }, [isEditMode, caseData, verificationTasksResponse, editTaskId]);
+  }, [isEditMode, caseData?.data, verificationTasksResponse?.data, editTaskId]);
 
   // Second useEffect: Map all case data when areas are loaded
   useEffect(() => {
@@ -262,12 +262,20 @@ export const NewCasePage: React.FC = () => {
       }
       // Don't redirect on error, just log it
     }
+    // Deps narrowed to the stable inner `.data` fields. Pre-fix the deps
+    // included the full React Query wrapper objects (`caseData`,
+    // `areasResponse`, etc.) which React Query recreates on every render.
+    // That re-fired this effect every render → setInitialData(new obj)
+    // → re-render → effect re-fires → infinite loop in NewCasePage which
+    // surfaced as "Maximum update depth exceeded" once any downstream
+    // child (CaseCreationStepper → TaskCaseCreationForm Slot/composeRefs)
+    // tried to compose refs. See project_in_progress_edit_lock_audit_2026_05_24.md.
   }, [
     isEditMode,
-    caseData,
-    areasResponse,
-    verificationTasksResponse,
-    caseAttachmentsResponse,
+    caseData?.data,
+    areasResponse?.data,
+    verificationTasksResponse?.data,
+    caseAttachmentsResponse?.data,
     editCaseId,
     editTaskId,
   ]);

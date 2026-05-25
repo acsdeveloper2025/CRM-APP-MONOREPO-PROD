@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Check, User, Target } from 'lucide-react';
 import { CustomerInfoStep, type CustomerInfoData } from './CustomerInfoStep';
@@ -935,6 +935,30 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     }
   };
 
+  // Memoize the initialData prop passed to TaskCaseCreationForm so its
+  // reference is stable across re-renders. Pre-fix this was an inline
+  // object literal `{ caseLevelData, tasks }` recreated every render,
+  // which triggered the child's useEffect([initialData, form]) every
+  // render → form.reset() + setTasks(...) → parent re-render → new
+  // literal → infinite loop. Root cause of the "Maximum update depth
+  // exceeded" crash on Edit-from-Pending-Tasks. See
+  // project_in_progress_edit_lock_audit_2026_05_24.md.
+  const taskFormInitialData = useMemo(
+    () =>
+      editMode && initialData
+        ? {
+            caseLevelData: initialData.caseLevelData || initialData.caseFormData,
+            tasks: initialData.tasks,
+          }
+        : undefined,
+    [editMode, initialData]
+  );
+
+  // Stable callback ref so the child's useEffect deps don't churn (was
+  // recreated every render, causing "Reset product when client changes"
+  // effect to re-fire and spuriously clear productId on edit-mode load).
+  const handleClientProductChange = useCallback(() => setKYCDocuments([]), []);
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Progress Stepper */}
@@ -1025,14 +1049,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             onSubmit={handleMultiTaskCaseCreation}
             onBack={editMode ? undefined : handleBackToCustomerInfo}
             isSubmitting={isSubmitting}
-            initialData={
-              editMode && initialData
-                ? {
-                    caseLevelData: initialData.caseLevelData || initialData.caseFormData,
-                    tasks: initialData.tasks,
-                  }
-                : undefined
-            }
+            initialData={taskFormInitialData}
             editMode={editMode}
             caseType={caseType}
             // Round 1 bug 3 (2026-05-04): clear KYC docs when caseType
@@ -1053,7 +1070,7 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
             // (client, product)-scoped — the previously chosen docs
             // would otherwise carry the wrong client+product mapping
             // forward silently.
-            onClientProductChange={() => setKYCDocuments([])}
+            onClientProductChange={handleClientProductChange}
             // Round 2 #6 (2026-05-04): surface KYC count for accurate
             // submit-button text.
             kycCount={kycDocuments.length}

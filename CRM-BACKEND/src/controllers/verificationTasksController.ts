@@ -1582,6 +1582,13 @@ export class VerificationTasksController {
         actualAmount: parseFloat(row.actualAmount || '0'),
         address: row.address,
         pincode: row.pincode,
+        // Pincode FK ID was missing from the hand-picked field list pre-fix;
+        // the Edit Case form needs the numeric id to match the Pincode
+        // Select option. Without this, every Edit-from-task flow rendered
+        // an empty Pincode dropdown (which cascaded to area, rate type
+        // refetches that depend on it). See
+        // project_in_progress_edit_lock_audit_2026_05_24.md.
+        pincodeId: row.pincodeId,
         areaId: row.areaId,
         // Use task-level trigger/applicantType if available, otherwise fall back to case-level
         trigger: row.trigger || caseInfo.trigger,

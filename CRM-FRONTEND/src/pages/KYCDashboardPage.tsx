@@ -36,8 +36,19 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
+  UserCheck,
 } from 'lucide-react';
-import { useKYCTasks, useKYCDocumentTypes } from '@/hooks/useKYC';
+import { useKYCTasks, useKYCDocumentTypes, useAssignKYCTask } from '@/hooks/useKYC';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { apiService } from '@/services/api';
+import { extractEditBlockedError } from '@/utils/editLock';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import { useScopePageReset } from '@/hooks/useScopePageReset';
 import { kycService } from '@/services/kyc';
@@ -101,6 +112,40 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isExporting, setIsExporting] = useState(false);
+  // Reassign dialog state — surfaces the existing /api/kyc/tasks/:id/assign
+  // endpoint at the row level so admins can reroute a REVOKED or
+  // mis-assigned KYC doc without leaving the dashboard.
+  const [reassignTaskId, setReassignTaskId] = useState<string | null>(null);
+  const [reassignTo, setReassignTo] = useState<string>('');
+  const { mutateAsync: assignKyc, isPending: isReassigning } = useAssignKYCTask();
+  const { data: kycVerifiersData } = useQuery({
+    queryKey: ['users-kyc-verifier-assignable'],
+    queryFn: async () => {
+      const res = await apiService.get('/users/assignable-by-role', { role: 'KYC_VERIFIER' });
+      return res.data as Array<{ id: string; name: string; employeeId: string }>;
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: reassignTaskId !== null,
+  });
+  const kycVerifiers = kycVerifiersData || [];
+  const handleReassignSubmit = async () => {
+    if (!reassignTaskId || !reassignTo) {
+      return;
+    }
+    try {
+      await assignKyc({ taskId: reassignTaskId, assignedTo: reassignTo });
+      toast.success('KYC document reassigned');
+      setReassignTaskId(null);
+      setReassignTo('');
+    } catch (error) {
+      const blocked = extractEditBlockedError(error);
+      toast.error(
+        blocked?.message ||
+          (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          'Failed to reassign'
+      );
+    }
+  };
 
   // URL state — every filter survives reload + is shareable.
   const page = Number(searchParams.get('page') || '1');
@@ -444,14 +489,32 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                       {format(new Date(task.createdAt), 'dd MMM yyyy')}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(`/kyc-verification/verify/${task.id}`)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        {task.verificationStatus === 'PENDING' ? 'Verify' : 'View'}
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/kyc-verification/verify/${task.id}`)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          {task.verificationStatus === 'PENDING' ? 'Verify' : 'View'}
+                        </Button>
+                        {(task.verificationStatus === 'PENDING' ||
+                          task.verificationStatus === 'ASSIGNED' ||
+                          task.verificationStatus === 'REVOKED') && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setReassignTaskId(task.id);
+                              setReassignTo('');
+                            }}
+                            title="Reassign this KYC document to another verifier"
+                          >
+                            <UserCheck className="h-4 w-4 mr-1" />
+                            {task.verificationStatus === 'REVOKED' ? 'Reassign' : 'Assign'}
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -516,6 +579,60 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
           </CardContent>
         </Card>
       )}
+
+      {/* Reassign KYC dialog — wraps existing /api/kyc/tasks/:id/assign */}
+      <Dialog
+        open={reassignTaskId !== null}
+        onOpenChange={(open) => {
+          if (!open && !isReassigning) {
+            setReassignTaskId(null);
+            setReassignTo('');
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reassign KYC document</DialogTitle>
+            <DialogDescription>Pick a KYC verifier to take over this document.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="kyc-reassign-to">Verifier</Label>
+            <Select value={reassignTo} onValueChange={setReassignTo}>
+              <SelectTrigger id="kyc-reassign-to">
+                <SelectValue placeholder="Select a verifier" />
+              </SelectTrigger>
+              <SelectContent>
+                {kycVerifiers.length === 0 ? (
+                  <SelectItem value="empty" disabled>
+                    No verifiers available
+                  </SelectItem>
+                ) : (
+                  kycVerifiers.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name} {u.employeeId ? `(${u.employeeId})` : ''}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+            <Button
+              variant="outline"
+              disabled={isReassigning}
+              onClick={() => {
+                setReassignTaskId(null);
+                setReassignTo('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleReassignSubmit} disabled={isReassigning || !reassignTo}>
+              {isReassigning ? 'Reassigning…' : 'Reassign'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
