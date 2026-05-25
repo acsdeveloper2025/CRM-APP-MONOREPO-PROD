@@ -656,9 +656,25 @@ export const CacheInvalidationPatterns = {
 
   documentTypeUpdate: ['document-types:*', 'api_cache:*:*document-types*'],
 
-  departmentUpdate: ['departments:*', 'api_cache:*:*departments*'],
+  // 2026-05-25: department mutation also affects the users-list cache
+  // (JOIN departments populates `departmentName`) + users/stats
+  // (usersByDepartment aggregate). Symmetric to the
+  // userUpdate → departments/designations invalidation.
+  departmentUpdate: [
+    'departments:*',
+    'api_cache:*:*departments*',
+    'users:*',
+    'users:stats:*',
+    'api_cache:*:*users*',
+  ],
 
-  designationUpdate: ['designations:*', 'api_cache:*:*designations*'],
+  designationUpdate: [
+    'designations:*',
+    'api_cache:*:*designations*',
+    'users:*',
+    'users:stats:*',
+    'api_cache:*:*users*',
+  ],
 
   kycRateUpdate: ['kyc-rates:*', 'api_cache:*:*kyc-rates*', 'rate-management-stats:*'],
 
