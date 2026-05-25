@@ -609,6 +609,17 @@ export const CacheInvalidationPatterns = {
     'users:*',
     'users:stats:*',
     'field-monitoring:*',
+    // 2026-05-25: a user mutation can flip department_id / designation_id
+    // which changes the userCount subquery returned by /api/departments
+    // + /api/designations (and their /stats endpoints). Without these,
+    // those pages show stale per-master user counts until the 1h TTL
+    // expires OR someone CRUDs a department/designation. Surfaced when
+    // operator assigned a department to a user and the Users column on
+    // /user-management/departments stayed at the old count.
+    'departments:*',
+    'api_cache:*:*departments*',
+    'designations:*',
+    'api_cache:*:*designations*',
   ],
 
   assignmentUpdate: [
