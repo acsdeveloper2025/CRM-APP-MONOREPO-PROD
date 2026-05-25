@@ -70,7 +70,6 @@ export {
 
 // Form Types
 export type {
-  VerificationOutcome,
   FormField,
   FormSection,
   FormSubmission,

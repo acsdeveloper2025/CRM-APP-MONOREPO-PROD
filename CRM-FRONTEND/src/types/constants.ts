@@ -68,27 +68,6 @@ export const CASE_PRIORITY = {
 
 export type CasePriorityType = (typeof CASE_PRIORITY)[keyof typeof CASE_PRIORITY];
 
-// Verification Outcomes
-//
-// F2.7.1: Authoritative runtime source is `/api/verification-type-outcomes`
-// hydrated via `useVerificationTypeOutcomes(verificationTypeCode)` hook.
-// This const is kept ONLY for compile-time type narrowing (string-literal
-// unions). DO NOT use it as a dropdown data source — different verification
-// types have different valid outcomes (PIV no SHIFTED, PAV has NEGATIVE,
-// no SHIFTED/NSP), and only the hook reflects per-type filtering.
-export const VERIFICATION_OUTCOMES = {
-  POSITIVE: 'POSITIVE',
-  NEGATIVE: 'NEGATIVE',
-  SHIFTED: 'SHIFTED',
-  NSP: 'NSP', // No Such Person
-  ENTRY_RESTRICTED: 'ENTRY_RESTRICTED',
-  UNTRACEABLE: 'UNTRACEABLE',
-  REFER_TO_CREDIT: 'REFER_TO_CREDIT',
-} as const;
-
-export type VerificationOutcome =
-  (typeof VERIFICATION_OUTCOMES)[keyof typeof VERIFICATION_OUTCOMES];
-
 // Form Submission Status
 export const FORM_SUBMISSION_STATUS = {
   DRAFT: 'DRAFT',

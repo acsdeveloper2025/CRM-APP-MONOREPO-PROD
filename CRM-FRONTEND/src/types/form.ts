@@ -1,5 +1,4 @@
 import {
-  type VerificationOutcome as VerificationOutcomeConstant,
   type FormSubmissionStatus,
   type ValidationStatusType,
   type FormFieldType as FormFieldTypeConstant,
@@ -7,7 +6,6 @@ import {
 
 // Re-export types from constants for consistency
 export type VerificationType = string;
-export type VerificationOutcome = VerificationOutcomeConstant;
 export type FormSubmissionStatusType = FormSubmissionStatus;
 export type ValidationStatus = ValidationStatusType;
 export type FormFieldType = FormFieldTypeConstant;
@@ -243,7 +241,7 @@ export interface FormTemplate {
   id: string;
   formType: string;
   verificationType: VerificationType;
-  outcome: VerificationOutcome;
+  outcome: string;
   name: string;
   description: string;
   sections: FormSectionTemplate[];
