@@ -135,7 +135,16 @@ export const useUpdateVerificationTask = () => {
       const response = await api.put(`/verification-tasks/${id}`, data);
       return response.data;
     },
-    invalidateKeys: [['verification-tasks'], ['cases']],
+    // Cover all three task query key prefixes (plural list, singular
+    // detail, all-tasks list page) — different consumers use different
+    // keys. See cache-invalidation audit 2026-05-25.
+    invalidateKeys: [
+      ['verification-tasks'],
+      ['verification-task'],
+      ['all-verification-tasks'],
+      ['verification-tasks-stats'],
+      ['cases'],
+    ],
     errorContext: 'Verification Task Update',
   });
 };
@@ -146,7 +155,12 @@ export const useCreateVerificationTasks = (caseId: string) => {
       const response = await api.post(`/cases/${caseId}/verification-tasks`, { tasks });
       return response.data;
     },
-    invalidateKeys: [['verification-tasks', caseId], ['cases']],
+    invalidateKeys: [
+      ['verification-tasks', caseId],
+      ['all-verification-tasks'],
+      ['verification-tasks-stats'],
+      ['cases'],
+    ],
     errorContext: 'Verification Task Creation',
   });
 };
