@@ -409,7 +409,12 @@ router.get('/:id/data-export', authenticateToken, exportUserData);
 // row + hard-deletes session/device/notification records. Statutory
 // retention (RBI 7yr commission, audit logs, KYC business records)
 // honors the §15 carve-out. Auth: self OR settings.manage admin.
-router.delete('/:id/data', authenticateToken, eraseUserData);
+router.delete(
+  '/:id/data',
+  authenticateToken,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
+  eraseUserData
+);
 
 // A-CRIT-1 chunk 3 (AUDIT 2026-05-17): per-device session management.
 // List active sessions / revoke ONE without nuking other devices.
@@ -680,6 +685,7 @@ router.post(
   '/:id/generate-temp-password',
   authenticateToken,
   authorize('user.update'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   [param('id').trim().notEmpty().withMessage('User ID is required')],
   validate,
   generateTemporaryPassword
@@ -692,6 +698,7 @@ router.post(
 router.post(
   '/:id/change-password',
   authenticateToken,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   [
     param('id').trim().notEmpty().withMessage('User ID is required'),
     body('currentPassword').notEmpty().withMessage('Current password is required'),
@@ -709,6 +716,7 @@ router.post(
   '/reset-password',
   authenticateToken,
   authorize('user.update'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   [
     body('username').notEmpty().withMessage('Username is required'),
     body('newPassword')
@@ -729,6 +737,7 @@ router.post(
   '/:userId/profile-photo',
   authenticateToken,
   authorize('user.update'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   profilePhotoUpload.single('photo'),
   ProfilePhotoController.uploadForUser
 );
@@ -736,6 +745,7 @@ router.delete(
   '/:userId/profile-photo',
   authenticateToken,
   authorize('user.update'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   ProfilePhotoController.deleteForUser
 );
 
@@ -763,6 +773,7 @@ router.post(
 router.patch(
   '/me/profile',
   authenticateToken,
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.userUpdate),
   [
     body('email')
       .optional({ values: 'falsy' })
