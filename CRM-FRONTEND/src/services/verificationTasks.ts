@@ -228,6 +228,7 @@ export class VerificationTasksService {
       validateResponse(VerificationTaskSchema, response.data, {
         service: 'verificationTasks',
         endpoint: 'PUT /verification-tasks/:id',
+        strict: true,
       });
     }
     return response.data as unknown as VerificationTaskResponse;
@@ -250,6 +251,7 @@ export class VerificationTasksService {
       validateResponse(VerificationTaskSchema, response.data, {
         service: 'verificationTasks',
         endpoint: 'POST /verification-tasks/:id/assign',
+        strict: true,
       });
     }
     return response.data as unknown as VerificationTaskResponse;
@@ -273,6 +275,7 @@ export class VerificationTasksService {
       validateResponse(VerificationTaskSchema, response.data, {
         service: 'verificationTasks',
         endpoint: 'POST /verification-tasks/:id/complete',
+        strict: true,
       });
     }
     return response.data as unknown as VerificationTaskResponse;
@@ -287,6 +290,7 @@ export class VerificationTasksService {
       validateResponse(VerificationTaskSchema, response.data, {
         service: 'verificationTasks',
         endpoint: 'POST /verification-tasks/:id/start',
+        strict: true,
       });
     }
     return response.data as unknown as VerificationTaskResponse;
@@ -306,6 +310,7 @@ export class VerificationTasksService {
       validateResponse(VerificationTaskSchema, response.data, {
         service: 'verificationTasks',
         endpoint: 'POST /verification-tasks/:id/revoke',
+        strict: true,
       });
     }
     return response.data as unknown as VerificationTaskResponse;
