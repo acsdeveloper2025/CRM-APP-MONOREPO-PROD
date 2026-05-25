@@ -79,6 +79,7 @@ const DepartmentsPage = React.lazy(() =>
 const DesignationsPage = React.lazy(() =>
   import('@/pages/DesignationsPage').then((module) => ({ default: module.DesignationsPage }))
 );
+const RevokeReasonsPage = React.lazy(() => import('@/pages/RevokeReasonsPage'));
 const UnauthorizedPage = React.lazy(() =>
   import('@/pages/UnauthorizedPage').then((module) => ({ default: module.UnauthorizedPage }))
 );
@@ -777,6 +778,14 @@ export const AppRoutes: React.FC = () => {
             element={
               <ProtectedRoute permission="page.users">
                 <DesignationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/user-management/revoke-reasons"
+            element={
+              <ProtectedRoute permission="page.users">
+                <RevokeReasonsPage />
               </ProtectedRoute>
             }
           />

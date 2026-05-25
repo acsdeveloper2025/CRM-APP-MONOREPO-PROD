@@ -1,9 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { AxiosError } from 'axios';
+import { useQuery } from '@tanstack/react-query';
 import { usePermission } from '@/hooks/usePermissions';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
 import { VerificationTasksService } from '@/services/verificationTasks';
+import { revokeReasonsService } from '@/services/revokeReasons';
 import {
   Dialog,
   DialogContent,
@@ -25,20 +27,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { logger } from '@/utils/logger';
 
 /**
- * Canonical revoke-reason set. Matches mobile `RevokeReason` enum
- * (`crm-mobile-native/src/types/api.ts`) plus an `OTHER` escape hatch
- * for cases the picker doesn't cover. Keep this list and the mobile
- * one in sync — they feed the same `task_revocations.revoke_reason`
- * column and downstream reason-rate analytics.
+ * A2.3 (audit 2026-05-25): reasons are now fetched from the
+ * `/api/revoke-reasons/active` master endpoint instead of being
+ * hardcoded here. The submitted `reason` is the master `label`
+ * string so the existing `task_revocations.revoke_reason` TEXT
+ * column keeps a human-readable value (analytics + history). The
+ * BE additionally populates `revoke_reason_id` via
+ * `TaskRevocationService.resolveReasonId` for forward analytics.
+ *
+ * The `OTHER` code is the documented escape hatch — when selected
+ * the dialog reveals a free-text Textarea and the submitted
+ * `reason` becomes the user-entered string (NOT 'Other').
  */
-const REVOKE_REASONS: ReadonlyArray<{ value: string; label: string }> = [
-  { value: 'Not my area', label: 'Not my area' },
-  { value: 'Wrong pincode', label: 'Wrong pincode' },
-  { value: 'Address not working', label: 'Address not working' },
-  { value: 'Customer left area', label: 'Customer left area' },
-  { value: 'Wrong address', label: 'Wrong address' },
-  { value: 'Other', label: 'Other (specify below)' },
-];
 
 interface BackendError {
   message?: string;
@@ -93,8 +93,20 @@ export const useRevokeTaskAction = () => {
     id: string;
     label?: string;
   } | null>(null);
+  // Holds the selected reason CODE ('NOT_MY_AREA' / 'OTHER' / …),
+  // not the label. Resolved to label string on submit.
   const [selectedReason, setSelectedReason] = useState<string>('');
   const [otherReason, setOtherReason] = useState<string>('');
+
+  // Fetch active reasons. Cached at the query layer; refetched only when
+  // the dialog opens (the hook itself stays mounted at parent level so the
+  // query is shared across consumers — e.g. VerificationTasksManager).
+  const { data: reasonsResp, isLoading: reasonsLoading } = useQuery({
+    queryKey: ['revoke-reasons', 'active'],
+    queryFn: () => revokeReasonsService.listActive(),
+    staleTime: 5 * 60 * 1000, // 5 min — reasons rarely change
+  });
+  const activeReasons = useMemo(() => reasonsResp?.data ?? [], [reasonsResp]);
 
   const mutation = useMutationWithInvalidation({
     mutationFn: async ({ taskId, reason }: { taskId: string; reason: string }) =>
@@ -132,7 +144,13 @@ export const useRevokeTaskAction = () => {
     if (!pendingTask) {
       return;
     }
-    const reason = selectedReason === 'Other' ? otherReason.trim() : selectedReason;
+    // When OTHER is picked, submit the free-text. Otherwise resolve the
+    // selected code to the master's label so the BE stores a human-readable
+    // string in task_revocations.revoke_reason (back-compat with historical
+    // analytics that reads label strings).
+    const matched = activeReasons.find((r) => r.code === selectedReason);
+    const reason =
+      selectedReason === 'OTHER' ? otherReason.trim() : matched?.label || selectedReason;
     if (!reason) {
       toast.error('Please pick or enter a revoke reason.');
       return;
@@ -151,11 +169,11 @@ export const useRevokeTaskAction = () => {
         },
       }
     );
-  }, [pendingTask, selectedReason, otherReason, mutation, handleClose]);
+  }, [pendingTask, selectedReason, otherReason, mutation, handleClose, activeReasons]);
 
   const submitDisabled =
     !selectedReason ||
-    (selectedReason === 'Other' && otherReason.trim().length === 0) ||
+    (selectedReason === 'OTHER' && otherReason.trim().length === 0) ||
     mutation.isPending;
 
   const dialog = (
@@ -185,16 +203,26 @@ export const useRevokeTaskAction = () => {
                 <SelectValue placeholder="Pick a reason" />
               </SelectTrigger>
               <SelectContent>
-                {REVOKE_REASONS.map((r) => (
-                  <SelectItem key={r.value} value={r.value}>
-                    {r.label}
+                {reasonsLoading ? (
+                  <SelectItem value="loading" disabled>
+                    Loading reasons…
                   </SelectItem>
-                ))}
+                ) : activeReasons.length === 0 ? (
+                  <SelectItem value="empty" disabled>
+                    No revoke reasons configured
+                  </SelectItem>
+                ) : (
+                  activeReasons.map((r) => (
+                    <SelectItem key={r.code} value={r.code}>
+                      {r.label}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
 
-          {selectedReason === 'Other' && (
+          {selectedReason === 'OTHER' && (
             <div className="space-y-2">
               <Label htmlFor="revoke-other-reason">Specify reason *</Label>
               <Textarea

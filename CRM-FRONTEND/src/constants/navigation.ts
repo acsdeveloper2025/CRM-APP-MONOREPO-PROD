@@ -553,6 +553,14 @@ export const navigationItems: NavigationItem[] = [
         permission: { resource: 'users', action: 'read' },
       },
       {
+        id: 'revoke-reasons',
+        label: 'Revoke Reasons',
+        href: '/user-management/revoke-reasons',
+        icon: XCircle,
+        permissionCode: 'page.users',
+        permission: { resource: 'users', action: 'read' },
+      },
+      {
         id: 'rbac-admin',
         label: 'RBAC Administration',
         href: '/user-management/rbac-administration',
