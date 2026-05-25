@@ -17,7 +17,11 @@ import {
   getKYCTasksForCase,
   exportKYCToExcel,
 } from '@/controllers/kycVerificationController';
-import { EnterpriseCache, EnterpriseCacheConfigs } from '@/middleware/enterpriseCache';
+import {
+  EnterpriseCache,
+  EnterpriseCacheConfigs,
+  CacheInvalidationPatterns,
+} from '@/middleware/enterpriseCache';
 
 const router = express.Router();
 
@@ -98,7 +102,12 @@ router.get('/cases/:caseId/tasks', authorizeAny(['kyc.view', 'case.view']), getK
 router.get('/tasks/:taskId', authorize('kyc.view'), getKYCTaskDetail);
 
 // Verify document (Pass/Fail/Refer)
-router.put('/tasks/:taskId/verify', authorize('kyc.verify'), verifyKYCDocument);
+router.put(
+  '/tasks/:taskId/verify',
+  authorize('kyc.verify'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
+  verifyKYCDocument
+);
 
 // Assign KYC task to verifier
 // 2026-05-05 (bug 49): widen to include case.create / case.assign /
@@ -109,6 +118,7 @@ router.put('/tasks/:taskId/verify', authorize('kyc.verify'), verifyKYCDocument);
 router.put(
   '/tasks/:taskId/assign',
   authorizeAny(['kyc.assign', 'case.create', 'case.assign', 'case.reassign']),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.assignmentUpdate, { synchronous: true }),
   assignKYCTask
 );
 
@@ -122,6 +132,7 @@ router.put(
 router.post(
   '/tasks/:taskId/upload',
   authorizeAny(['kyc.verify', 'case.create']),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
   upload.single('document'),
   uploadKYCDocument
 );

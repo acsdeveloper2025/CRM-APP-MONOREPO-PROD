@@ -56,6 +56,7 @@ router.post(
   '/cases/:caseId/verification-tasks',
   authenticateToken,
   authorize('case.assign'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
   validateCaseAccess,
   validateCaseProductAccess,
   validateTaskCreation,
@@ -703,6 +704,7 @@ router.post(
   '/mobile/verification-tasks/:taskId/submit',
   authenticateToken,
   authorize('visit.submit', { ownership: 'task' }),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
   async (req: AuthenticatedRequest, res) => {
     try {
       const { taskId: _taskId } = req.params;
