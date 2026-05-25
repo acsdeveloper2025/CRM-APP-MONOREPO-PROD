@@ -1892,12 +1892,18 @@ export class MobileCaseController {
           throw new Error('TASK_NO_LONGER_REVOKABLE');
         }
 
+        // A2.2 (audit 2026-05-25): resolve free-text reason to master FK
+        // when possible. NULL on no-match keeps pre-A2.4 mobile builds
+        // working unmodified.
+        const revokeReasonId = await TaskRevocationService.resolveReasonId(reason);
+
         await TaskRevocationService.recordRevocation(client, {
           taskId,
           revokedByUserId: userId,
           revokedByRole: TaskRevocationService.deriveRevokedByRole(req.user),
           revokedFromUserId: taskData.assigned_to,
           revokeReason: reason,
+          revokeReasonId,
           previousStatus: lockedStatus,
         });
 

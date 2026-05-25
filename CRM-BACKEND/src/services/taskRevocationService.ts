@@ -12,6 +12,13 @@ type RecordRevocationInput = {
   revokedByRole: string;
   revokedFromUserId: string | null;
   revokeReason: string;
+  /**
+   * A2.2 (audit 2026-05-25): FK to revoke_reasons master. Resolved upstream
+   * via TaskRevocationService.resolveReasonId(text); NULL when the inbound
+   * string doesn't match any active master row (back-compat for legacy /
+   * free-text callers — pre-A2.4 mobile releases keep working).
+   */
+  revokeReasonId?: number | null;
   previousStatus: string;
 };
 
@@ -53,6 +60,33 @@ export class TaskRevocationService {
     return 'ADMIN'; // generic fallback for unknown non-FE actor
   }
 
+  /**
+   * A2.2 (audit 2026-05-25): resolve a free-text revoke reason to a master
+   * row id by case-insensitive label OR code match. Returns NULL when no
+   * active row matches — caller stores the text-only legacy form.
+   */
+  static async resolveReasonId(reasonText: string): Promise<number | null> {
+    const trimmed = (reasonText || '').trim();
+    if (!trimmed) {
+      return null;
+    }
+    const result = await query(
+      `
+        SELECT id
+        FROM revoke_reasons
+        WHERE is_active = TRUE
+          AND (LOWER(label) = LOWER($1) OR UPPER(code) = UPPER($1))
+        ORDER BY sort_order ASC, id ASC
+        LIMIT 1
+      `,
+      [trimmed]
+    );
+    if (result.rows.length === 0) {
+      return null;
+    }
+    return Number(result.rows[0].id);
+  }
+
   static async recordRevocation(db: Queryable, input: RecordRevocationInput): Promise<number> {
     const result = await db.query(
       `
@@ -62,11 +96,12 @@ export class TaskRevocationService {
           revoked_by_role,
           revoked_from_user_id,
           revoke_reason,
+          revoke_reason_id,
           previous_status,
           revoked_at,
           created_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
         RETURNING id
       `,
       [
@@ -75,6 +110,7 @@ export class TaskRevocationService {
         input.revokedByRole,
         input.revokedFromUserId,
         input.revokeReason,
+        input.revokeReasonId ?? null,
         input.previousStatus,
       ]
     );

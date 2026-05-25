@@ -2340,6 +2340,10 @@ export class VerificationTasksController {
         return;
       }
 
+      // A2.2 (audit 2026-05-25): resolve free-text reason to master FK when
+      // possible. NULL on no-match keeps legacy/free-text callers working.
+      const revokeReasonId = await TaskRevocationService.resolveReasonId(reason);
+
       await TaskRevocationService.recordRevocation(client, {
         taskId,
         revokedByUserId: userId,
@@ -2349,6 +2353,7 @@ export class VerificationTasksController {
         revokedByRole: TaskRevocationService.deriveRevokedByRole(req.user),
         revokedFromUserId: task.assignedTo,
         revokeReason: reason,
+        revokeReasonId,
         previousStatus: task.status,
       });
 

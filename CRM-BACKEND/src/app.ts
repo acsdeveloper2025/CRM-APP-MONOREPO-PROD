@@ -46,6 +46,7 @@ import rolesRoutes from '@/routes/roles';
 import rbacRoutes from '@/routes/rbac';
 import departmentsRoutes from '@/routes/departments';
 import designationsRoutes from '@/routes/designations';
+import revokeReasonsRoutes from '@/routes/revokeReasons';
 import reportsRoutes from '@/routes/reports';
 import exportsRoutes from '@/routes/exports';
 import auditLogsRoutes from '@/routes/audit-logs';
@@ -270,6 +271,7 @@ apiRouter.use('/rbac', rbacRoutes);
 apiRouter.use('/permissions', rbacRoutes);
 apiRouter.use('/departments', departmentsRoutes);
 apiRouter.use('/designations', designationsRoutes);
+apiRouter.use('/revoke-reasons', revokeReasonsRoutes);
 
 // Extended timeout (2min) for heavy report/export operations
 apiRouter.use('/reports', extendedTimeout, reportsRoutes);
