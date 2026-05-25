@@ -658,17 +658,29 @@ export const CacheInvalidationPatterns = {
     'kyc-rates:*',
     'api_cache:*:*kyc-rates*',
     'analytics:*kyc-rates*',
+    // 2026-05-25: caseList + verification-tasks list JOIN clients for
+    // client_name. Rename a client → cached lists show old name.
+    // caseList cache key shape is `user:<id>:cases:page:<n>:<md5>`.
+    'cases:*',
+    'case:*',
+    'api_cache:*:*cases*',
+    'user:*:cases:*',
+    'verification-tasks:*',
+    'api_cache:*:*verification-tasks*',
   ],
 
   // 2026-05-25: verification-type mutation propagates to caseList /
   // verification-task list (both show vt name via JOIN) + products list
   // (productCount via junction). Stats endpoints under `analytics:`.
+  // caseList cache key shape `user:<id>:cases:page:*` covered too.
   verificationTypeUpdate: [
     'verification-types:*',
     'api_cache:*:*verification-types*',
     'analytics:*verification-types*',
     'cases:*',
+    'case:*',
     'api_cache:*:*cases*',
+    'user:*:cases:*',
     'verification-tasks:*',
     'api_cache:*:*verification-tasks*',
   ],
@@ -690,11 +702,17 @@ export const CacheInvalidationPatterns = {
     'kyc-rates:*',
     'api_cache:*:*kyc-rates*',
     'analytics:*kyc-rates*',
+    // 2026-05-25: caseList + verification-tasks JOIN products for name.
+    'cases:*',
+    'case:*',
+    'api_cache:*:*cases*',
+    'verification-tasks:*',
+    'api_cache:*:*verification-tasks*',
   ],
 
   // 2026-05-25: rate_type mutation propagates to case/task lists
   // (rate_type_id JOIN shows the type name) + rates page (uses rate_types
-  // master).
+  // master). caseList cache key shape `user:<id>:cases:page:*` covered.
   rateTypeUpdate: [
     'rate-types:*',
     'api_cache:*:*rate-types*',
@@ -702,7 +720,10 @@ export const CacheInvalidationPatterns = {
     'rates:*',
     'api_cache:*:*rates*',
     'cases:*',
+    'case:*',
+    'user:*:cases:*',
     'verification-tasks:*',
+    'api_cache:*:*verification-tasks*',
   ],
 
   // 2026-05-25: rate mutation drives `hasRates` + `withRatesCount`
@@ -726,8 +747,9 @@ export const CacheInvalidationPatterns = {
   ],
 
   // 2026-05-25: document-type mutation propagates to clients list (via
-  // junction usage counts) + kyc_rates (FK references doctype). Stats
-  // endpoints under `analytics:`.
+  // junction usage counts) + kyc_rates (FK references doctype) + KYC
+  // verification tasks (kyc_document_verifications joins doctype name).
+  // Stats endpoints under `analytics:`.
   documentTypeUpdate: [
     'document-types:*',
     'api_cache:*:*document-types*',
@@ -738,6 +760,11 @@ export const CacheInvalidationPatterns = {
     'kyc-rates:*',
     'api_cache:*:*kyc-rates*',
     'analytics:*kyc-rates*',
+    'cases:*',
+    'case:*',
+    'user:*:cases:*',
+    'verification-tasks:*',
+    'api_cache:*:*verification-tasks*',
   ],
 
   // 2026-05-25: department mutation also affects the users-list cache
