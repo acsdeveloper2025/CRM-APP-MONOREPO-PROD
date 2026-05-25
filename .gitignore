@@ -330,3 +330,12 @@ REPOSITORY_SECURITY_AUDIT.md
 SECRET_ENV_MIGRATION_REPORT.md
 CRM_FRONTEND_PERFORMANCE_AUDIT_REPORT.md
 .claude/
+
+# =====================================================
+# graphify — local knowledge-graph artifacts + hooks
+# =====================================================
+# Derived per-developer; not tracked. Rebuild via `graphify update .`
+# or the local post-commit hook (also gitignored below).
+graphify-out/
+.husky/post-commit
+.husky/post-checkout

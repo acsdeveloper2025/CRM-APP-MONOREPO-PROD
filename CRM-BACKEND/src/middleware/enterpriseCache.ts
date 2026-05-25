@@ -613,13 +613,14 @@ export const CacheInvalidationPatterns = {
     // which changes the userCount subquery returned by /api/departments
     // + /api/designations (and their /stats endpoints). Without these,
     // those pages show stale per-master user counts until the 1h TTL
-    // expires OR someone CRUDs a department/designation. Surfaced when
-    // operator assigned a department to a user and the Users column on
-    // /user-management/departments stayed at the old count.
+    // expires OR someone CRUDs a department/designation. Stats endpoints
+    // use the `analytics:` cache prefix.
     'departments:*',
     'api_cache:*:*departments*',
+    'analytics:*departments*',
     'designations:*',
     'api_cache:*:*designations*',
+    'analytics:*designations*',
   ],
 
   assignmentUpdate: [
@@ -638,15 +639,77 @@ export const CacheInvalidationPatterns = {
     'field-monitoring:*',
   ],
 
-  clientUpdate: ['clients:*', 'api_cache:*:*clients*'],
+  // 2026-05-25: client mutation can alter client_product_documents +
+  // client_product_verifications junctions (PUT /clients/:id rewrites
+  // productMappings), which drives clientCount on /document-types and
+  // hasRates / clientCount on /verification-types. Stats endpoints use
+  // the `analytics:` cache prefix so flush those too.
+  clientUpdate: [
+    'clients:*',
+    'api_cache:*:*clients*',
+    'analytics:*clients*',
+    'document-types:*',
+    'api_cache:*:*document-types*',
+    'analytics:*document-types*',
+    'verification-types:*',
+    'api_cache:*:*verification-types*',
+    'analytics:*verification-types*',
+  ],
 
-  verificationTypeUpdate: ['verification-types:*', 'api_cache:*:*verification-types*'],
+  // 2026-05-25: verification-type mutation propagates to caseList /
+  // verification-task list (both show vt name via JOIN) + products list
+  // (productCount via junction). Stats endpoints under `analytics:`.
+  verificationTypeUpdate: [
+    'verification-types:*',
+    'api_cache:*:*verification-types*',
+    'analytics:*verification-types*',
+    'cases:*',
+    'api_cache:*:*cases*',
+    'verification-tasks:*',
+    'api_cache:*:*verification-tasks*',
+  ],
 
-  productUpdate: ['products:*', 'api_cache:*:*products*'],
+  // 2026-05-25: product mutation alters client_product_documents /
+  // client_product_verifications counts on /document-types +
+  // /verification-types lists. Stats endpoints under `analytics:`.
+  productUpdate: [
+    'products:*',
+    'api_cache:*:*products*',
+    'analytics:*products*',
+    'document-types:*',
+    'api_cache:*:*document-types*',
+    'analytics:*document-types*',
+    'verification-types:*',
+    'api_cache:*:*verification-types*',
+    'analytics:*verification-types*',
+  ],
 
-  rateTypeUpdate: ['rate-types:*', 'api_cache:*:*rate-types*'],
+  // 2026-05-25: rate_type mutation propagates to case/task lists
+  // (rate_type_id JOIN shows the type name) + rates page (uses rate_types
+  // master).
+  rateTypeUpdate: [
+    'rate-types:*',
+    'api_cache:*:*rate-types*',
+    'analytics:*rate-types*',
+    'rates:*',
+    'api_cache:*:*rates*',
+    'cases:*',
+    'verification-tasks:*',
+  ],
 
-  rateUpdate: ['rates:*', 'api_cache:*:*rates*', 'rate-management-stats:*'],
+  // 2026-05-25: rate mutation drives `hasRates` + `withRatesCount`
+  // subqueries on /products and /verification-types list responses.
+  rateUpdate: [
+    'rates:*',
+    'api_cache:*:*rates*',
+    'rate-management-stats:*',
+    'products:*',
+    'api_cache:*:*products*',
+    'analytics:*products*',
+    'verification-types:*',
+    'api_cache:*:*verification-types*',
+    'analytics:*verification-types*',
+  ],
 
   rateTypeAssignmentUpdate: [
     'rate-type-assignments:*',
@@ -654,26 +717,43 @@ export const CacheInvalidationPatterns = {
     'rate-management-stats:*',
   ],
 
-  documentTypeUpdate: ['document-types:*', 'api_cache:*:*document-types*'],
+  // 2026-05-25: document-type mutation propagates to clients list (via
+  // junction usage counts) + kyc_rates (FK references doctype). Stats
+  // endpoints under `analytics:`.
+  documentTypeUpdate: [
+    'document-types:*',
+    'api_cache:*:*document-types*',
+    'analytics:*document-types*',
+    'clients:*',
+    'api_cache:*:*clients*',
+    'analytics:*clients*',
+    'kyc-rates:*',
+    'api_cache:*:*kyc-rates*',
+  ],
 
   // 2026-05-25: department mutation also affects the users-list cache
   // (JOIN departments populates `departmentName`) + users/stats
   // (usersByDepartment aggregate). Symmetric to the
-  // userUpdate → departments/designations invalidation.
+  // userUpdate → departments/designations invalidation. Stats endpoints
+  // use the `analytics:` cache prefix.
   departmentUpdate: [
     'departments:*',
     'api_cache:*:*departments*',
+    'analytics:*departments*',
     'users:*',
     'users:stats:*',
     'api_cache:*:*users*',
+    'analytics:*users*',
   ],
 
   designationUpdate: [
     'designations:*',
     'api_cache:*:*designations*',
+    'analytics:*designations*',
     'users:*',
     'users:stats:*',
     'api_cache:*:*users*',
+    'analytics:*users*',
   ],
 
   kycRateUpdate: ['kyc-rates:*', 'api_cache:*:*kyc-rates*', 'rate-management-stats:*'],
@@ -683,6 +763,11 @@ export const CacheInvalidationPatterns = {
     'client-product-documents:*',
     'api_cache:*:*client-document-types*',
     'clients:*',
+    // 2026-05-25: mapping changes affect clientCount + productCount on
+    // /document-types list/stats (analytics cache prefix).
+    'document-types:*',
+    'api_cache:*:*document-types*',
+    'analytics:*document-types*',
   ],
 
   fieldMonitoringUpdate: ['field-monitoring:*'],
