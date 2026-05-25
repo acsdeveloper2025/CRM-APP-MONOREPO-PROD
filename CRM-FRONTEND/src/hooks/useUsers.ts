@@ -49,6 +49,13 @@ export const useAvailableFieldUsers = (pincodeId?: number, areaId?: number) => {
     queryKey: userKeys.availableFieldUsers(pincodeId, areaId),
     queryFn: () => territoryAssignmentsService.getAvailableFieldAgents(pincodeId as number, areaId),
     enabled: hasPincodeId,
+    // staleTime: 0 — always re-fetch on mount. Field-agent territory
+    // assignments are admin-triggered and can change between dialog
+    // openings; we never want to show a cached list that excludes a
+    // newly-assigned agent. The territory mutation invalidates this
+    // key on save, but a defensive zero-stale also closes the
+    // cross-tab / dialog-kept-open edge case.
+    staleTime: 0,
   });
 };
 

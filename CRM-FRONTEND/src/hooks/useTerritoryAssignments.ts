@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useStandardizedMutation } from '@/hooks/useStandardizedMutation';
 import { territoryAssignmentsService } from '@/services/territoryAssignments';
+import { userKeys } from '@/hooks/useUsers';
 import type {
   UserTerritoryAssignments,
   TerritoryAssignment,
@@ -59,6 +60,15 @@ export const useBulkSaveTerritoryAssignments = (userId: string) => {
       queryClient.invalidateQueries({ queryKey: ['userTerritoryAssignments', userId] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['user', userId] });
+      // Belt-and-suspenders: explicitly invalidate the field-users
+      // sub-tree (covered by ['users'] prefix above, but kept explicit
+      // so a future refactor can't accidentally narrow the parent
+      // invalidation and silently break the Edit-task Assign-To
+      // dropdown). Plus the legacy ['availableFieldAgents', ...] key
+      // used by `useAvailableFieldAgents` (zero consumers today but
+      // still defined in this file).
+      queryClient.invalidateQueries({ queryKey: userKeys.fieldUsers() });
+      queryClient.invalidateQueries({ queryKey: ['availableFieldAgents'] });
       toast.success(
         `Territory assignments saved! ${data.data.pincodeAssignmentsCreated} pincodes, ${data.data.areaAssignmentsCreated} areas.`
       );
