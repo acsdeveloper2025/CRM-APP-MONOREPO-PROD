@@ -56,6 +56,12 @@ export const useAvailableFieldUsers = (pincodeId?: number, areaId?: number) => {
     // key on save, but a defensive zero-stale also closes the
     // cross-tab / dialog-kept-open edge case.
     staleTime: 0,
+    // refetchOnMount: 'always' forces a network round-trip on every
+    // mount even if React Query thinks data is fresh — matters when
+    // the dialog containing this dropdown stays mounted but is
+    // closed/reopened (the underlying query observer stays alive,
+    // so plain staleTime:0 alone refetches only on prop change).
+    refetchOnMount: 'always',
   });
 };
 
@@ -66,6 +72,11 @@ export const useFieldUsersByPincode = (pincodeCode?: string) => {
     queryFn: () => usersService.getFieldUsersByPincode(pincodeCode as string),
     select: (data) => data.data || [],
     enabled: !!pincodeCode,
+    // staleTime: 0 — match useAvailableFieldUsers (the TaskAssignmentModal
+    // path goes through here). Admin-triggered list, never show a
+    // cached snapshot that excludes a newly-assigned agent.
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 };
 
