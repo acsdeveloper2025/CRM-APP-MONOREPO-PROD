@@ -94,9 +94,9 @@ export class DashboardService {
     return apiService.get('/dashboard/tat-stats');
   }
 
-  // Export dashboard data
+  // Export dashboard data (xlsx workbook)
   async exportDashboardReport(query: DashboardQuery = {}): Promise<Blob> {
-    const response = await apiService.postRaw<Blob>('/dashboard/export', query, {
+    const response = await apiService.getRaw<Blob>('/dashboard/export', query, {
       responseType: 'blob',
     });
     return response.data;

@@ -3,11 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { CaseStatusChart } from '@/components/dashboard/CaseStatusChart';
-import { MonthlyTrendsChart } from '@/components/dashboard/MonthlyTrendsChart';
 import { RecentActivities } from '@/components/dashboard/RecentActivities';
 import { useDashboardKPI } from '@/hooks/useDashboardKPI';
 import { usePermission } from '@/hooks/usePermissions';
 import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
+import { dashboardService } from '@/services/dashboard';
 import {
   XCircle,
   CheckSquare,
@@ -47,7 +49,6 @@ export const DashboardPage: React.FC = () => {
     hasKYCPagePermission || hasCaseViewPermission || hasCaseCreatePermission || isCaseTouchingRole;
   const hasCasesAccess = usePermission('page.cases');
   const hasTasksAccess = usePermission('page.tasks');
-  const hasBillingAccess = usePermission('page.billing');
 
   // Fetch dashboard data via Unified KPI Engine
   const {
@@ -55,22 +56,20 @@ export const DashboardPage: React.FC = () => {
     tatStats: tatStatsRaw,
     kycStats: kycStatsRaw,
     caseDistributionData: distData,
-    trendsData: trData,
     activitiesData: actData,
-    cardTrends,
+    activitiesLoading,
     isLoading,
   } = useDashboardKPI();
+
+  const [isExporting, setIsExporting] = React.useState(false);
 
   // Adapters for legacy JSX compatibility
   const statsData = { data: kpiStats };
   const tatStatsData = { data: tatStatsRaw };
   const caseDistributionData = { data: distData };
-  const trendsData = { data: trData };
   const activitiesData = { data: actData };
 
-  const activitiesLoading = isLoading;
   const distributionLoading = isLoading;
-  const trendsLoading = isLoading;
 
   // Mock data fallback for development
 
@@ -107,26 +106,13 @@ export const DashboardPage: React.FC = () => {
     verifiedToday: 0,
   };
 
-  // Mock data removed - using real API data only
-
-  // Fallback data for charts when API data is not available
+  // Fallback for charts when API data is not available
   const mockCaseDistribution = [
     { status: 'PENDING', count: 0, percentage: 0 },
     { status: 'IN_PROGRESS', count: 0, percentage: 0 },
     { status: 'COMPLETED', count: 0, percentage: 0 },
-    { status: 'PENDING_REVIEW', count: 0, percentage: 0 },
+    { status: 'REVOKED', count: 0, percentage: 0 },
   ];
-
-  const mockTrends = [
-    { month: 'Jan', totalCases: 0, revenue: 0, completionRate: 0 },
-    { month: 'Feb', totalCases: 0, revenue: 0, completionRate: 0 },
-    { month: 'Mar', totalCases: 0, revenue: 0, completionRate: 0 },
-    { month: 'Apr', totalCases: 0, revenue: 0, completionRate: 0 },
-    { month: 'May', totalCases: 0, revenue: 0, completionRate: 0 },
-    { month: 'Jun', totalCases: 0, revenue: 0, completionRate: 0 },
-  ];
-
-  // Activities handled by kpiStats or actData
 
   const quickActions = [
     ...(hasCasesAccess
@@ -151,14 +137,6 @@ export const DashboardPage: React.FC = () => {
       : []),
     ...(hasTasksAccess
       ? [
-          {
-            title: 'Pending Reviews',
-            description: 'Cases waiting for approval',
-            href: '/task-management/pending-tasks',
-            icon: CheckSquare,
-            count: stats.pendingReviewCases,
-            color: 'bg-yellow-500',
-          },
           {
             title: 'Completed Tasks',
             description: 'View finished verifications',
@@ -191,6 +169,30 @@ export const DashboardPage: React.FC = () => {
       : []),
   ];
 
+  const handleExportDashboard = async () => {
+    if (isExporting) {
+      return;
+    }
+    setIsExporting(true);
+    try {
+      const blob = await dashboardService.exportDashboardReport();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `dashboard_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Dashboard exported');
+    } catch (error) {
+      logger.error('Dashboard export failed', error);
+      toast.error('Failed to export dashboard');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
       {/* Page Header */}
@@ -204,10 +206,12 @@ export const DashboardPage: React.FC = () => {
         <Button
           variant="outline"
           size="sm"
+          onClick={handleExportDashboard}
+          disabled={isExporting || isLoading}
           className="flex items-center space-x-2 hover:shadow-md transition-all duration-200 w-full sm:w-auto"
         >
           <Download className="h-4 w-4" />
-          <span>Export Report</span>
+          <span>{isExporting ? 'Exporting…' : 'Export Report'}</span>
         </Button>
       </div>
 
@@ -218,7 +222,6 @@ export const DashboardPage: React.FC = () => {
           value={stats.pendingCases || 0}
           description="Pending & Assigned tasks"
           icon={FileText}
-          trend={cardTrends?.totalCases}
           color="text-blue-600"
           onClick={() => navigate('/task-management/pending-tasks')}
           className="cursor-pointer"
@@ -226,9 +229,8 @@ export const DashboardPage: React.FC = () => {
         <StatsCard
           title="In Progress"
           value={stats.inProgressCases}
-          description="from last month"
+          description="Currently in progress"
           icon={CheckSquare}
-          trend={cardTrends?.inProgress}
           color="text-yellow-600"
           onClick={() => navigate('/task-management/in-progress-tasks')}
           className="cursor-pointer"
@@ -247,7 +249,6 @@ export const DashboardPage: React.FC = () => {
           value={stats.revokedTasks || 0}
           description="Tasks revoked"
           icon={XCircle}
-          trend={cardTrends?.revokedTasks}
           color="text-red-600"
           onClick={() => navigate('/task-management/revoke-tasks')}
           className="cursor-pointer"
@@ -255,9 +256,8 @@ export const DashboardPage: React.FC = () => {
         <StatsCard
           title="Completed"
           value={stats.completedCases}
-          description="from last month"
+          description="Completed tasks"
           icon={CheckSquare}
-          trend={cardTrends?.completed}
           color="text-green-600"
           onClick={() => navigate('/task-management/completed-tasks')}
           className="cursor-pointer"
@@ -319,13 +319,10 @@ export const DashboardPage: React.FC = () => {
       )}
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <CaseStatusChart
-          data={caseDistributionData?.data || mockCaseDistribution}
-          isLoading={distributionLoading}
-        />
-        <MonthlyTrendsChart data={trendsData?.data || mockTrends} isLoading={trendsLoading} />
-      </div>
+      <CaseStatusChart
+        data={caseDistributionData?.data || mockCaseDistribution}
+        isLoading={distributionLoading}
+      />
 
       {/* Quick Actions */}
       <Card>
@@ -359,64 +356,8 @@ export const DashboardPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Recent Activities and Additional Stats */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <RecentActivities activities={activitiesData?.data || []} isLoading={activitiesLoading} />
-        </div>
-
-        <div className="space-y-6">
-          {/* Additional KPIs */}
-          {hasBillingAccess && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Financial Overview</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Monthly Revenue</span>
-                  <span className="font-bold text-green-600">
-                    ${stats.monthlyRevenue?.toLocaleString() || '0'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Total Invoices</span>
-                  <span className="font-bold text-foreground">{stats.totalInvoices || 0}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Pending Commissions</span>
-                  <span className="font-bold text-yellow-600">{stats.pendingCommissions || 0}</span>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Performance Metrics */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Avg. Completion Time</span>
-                <span className="font-bold text-foreground">
-                  {stats.avgTurnaroundDays ? `${stats.avgTurnaroundDays.toFixed(1)} days` : 'N/A'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Success Rate</span>
-                <span className="font-bold text-green-600">
-                  {stats.completionRate ? `${stats.completionRate.toFixed(1)}%` : 'N/A'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between" title="Based on completed tasks">
-                <span className="text-sm text-muted-foreground">Operations Health</span>
-                <span className="font-bold text-green-600">Stable</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      {/* Recent Activities */}
+      <RecentActivities activities={activitiesData?.data || []} isLoading={activitiesLoading} />
     </div>
   );
 };

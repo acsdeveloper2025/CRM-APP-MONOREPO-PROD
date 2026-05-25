@@ -14,6 +14,7 @@ import {
   getMonthlyTrends,
   getOverdueTasks,
   getTATStats,
+  exportDashboardReport,
 } from '@/controllers/dashboardController';
 
 import { DashboardKPIController } from '../controllers/dashboardKPIController';
@@ -136,11 +137,15 @@ router.get(
   getMonthlyTrends
 );
 
+// Activity feed reads audit_logs which any mutation appends to. Caching here
+// would mask the user's own recent action until TTL expires, since only
+// caseUpdate / assignmentUpdate flush the dashboard:* prefix today (a full
+// invalidation matrix would require touching 13+ mutation patterns). Skip
+// cache: per-user feed, ≤20 rows from indexed audit_logs.created_at — cheap.
 router.get(
   '/recent-activities',
   authenticateToken,
   authorize('dashboard.view'),
-  EnterpriseCache.create(EnterpriseCacheConfigs.dashboard),
   recentActivitiesValidation,
   validate,
   getRecentActivities
@@ -192,5 +197,7 @@ router.get(
   EnterpriseCache.create(EnterpriseCacheConfigs.dashboard),
   getTATStats
 );
+
+router.get('/export', authenticateToken, authorize('dashboard.view'), exportDashboardReport);
 
 export default router;

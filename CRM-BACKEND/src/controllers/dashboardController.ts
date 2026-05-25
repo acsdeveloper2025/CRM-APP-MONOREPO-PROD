@@ -1,4 +1,5 @@
 import type { Response } from 'express';
+import ExcelJS from 'exceljs';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { DashboardKPIService } from '@/services/dashboardKPIService';
@@ -6,6 +7,8 @@ import { query as dbQuery } from '@/config/database';
 import { isFieldExecutionActor, isScopedOperationsUser } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
 import { resolveDataScope } from '@/security/dataScope';
+import { createAuditLog } from '@/utils/auditLogger';
+import { escapeFormulaRow } from '@/utils/formulaGuard';
 
 const getBackendUserScopeFilters = async (req: AuthenticatedRequest) => {
   const empty = {
@@ -169,16 +172,125 @@ export const getChartData = (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
-// GET /api/dashboard/recent-activities - Get recent activities
-export const getRecentActivities = (req: AuthenticatedRequest, res: Response) => {
-  try {
-    // KPI Engine does not yet support recent activity feed.
-    // Returning empty list to satisfy "No Direct SQL" rule.
-    const activities: unknown[] = [];
+// Audit-log noise to keep out of the dashboard activity feed.
+const ACTIVITY_NOISE_ACTIONS = [
+  'MOBILE_SYNC_DOWNLOAD',
+  'MOBILE_NOTIFICATION_TOKEN_REGISTERED',
+  'MOBILE_ATTACHMENT_ACCESSED',
+  'WEB_LOGIN_SUCCESS',
+  'WEB_LOGIN_FAILED',
+  'MOBILE_LOGIN_SUCCESS',
+  'MOBILE_LOGIN_FAILED',
+  'LOGOUT',
+];
 
-    logger.info('Recent activities retrieved (via KPI Engine - Empty)', {
+// Entity types that surface as meaningful operational activity.
+const ACTIVITY_ENTITY_TYPES = [
+  'CASE',
+  'VERIFICATION_TASK',
+  'CLIENT',
+  'INVOICE',
+  'COMMISSION',
+  'KYC_REVIEW',
+  'KYC',
+  'PRODUCT',
+];
+
+const toTitleCase = (action: string): string =>
+  action
+    .toLowerCase()
+    .split('_')
+    .map(w => (w.length > 0 ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(' ');
+
+const mapActionToType = (action: string): string => {
+  const a = action.toUpperCase();
+  if (a.includes('COMPLETE')) {
+    return 'caseCompleted';
+  }
+  if (a.includes('APPROVE')) {
+    return 'caseApproved';
+  }
+  if (a.includes('INVOICE')) {
+    return 'invoiceGenerated';
+  }
+  return 'caseAssigned';
+};
+
+interface AuditRow {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  createdAt: string;
+  userName: string | null;
+  userId: string | null;
+}
+
+// GET /api/dashboard/recent-activities - Get recent activities from audit_logs.
+// RBAC: SYSTEM scope (SUPER_ADMIN) sees everything; other roles filtered to
+// the user IDs in their operational scope. Field actors fall back to self-only.
+export const getRecentActivities = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const limit = Math.min(Math.max(parseInt((req.query.limit as string) || '20', 10), 1), 50);
+
+    const params: Array<string | string[] | number> = [
+      ACTIVITY_ENTITY_TYPES,
+      ACTIVITY_NOISE_ACTIONS,
+    ];
+    const conditions: string[] = [`a.entity_type = ANY($1::text[])`, `a.action <> ALL($2::text[])`];
+    let idx = 3;
+
+    if (req.user?.id && isFieldExecutionActor(req.user)) {
+      conditions.push(`a.user_id = $${idx++}`);
+      params.push(req.user.id);
+    } else if (req.user?.id) {
+      const scopedIds = await getScopedOperationalUserIds(req.user.id);
+      if (scopedIds && scopedIds.length > 0) {
+        conditions.push(`a.user_id = ANY($${idx++}::uuid[])`);
+        params.push(scopedIds);
+      }
+    }
+
+    const limitIdx = idx;
+    params.push(limit);
+
+    const result = await dbQuery(
+      `
+      SELECT
+        a.id::text AS id,
+        a.action,
+        a.entity_type,
+        a.entity_id,
+        a.created_at,
+        u.name AS user_name,
+        a.user_id::text AS user_id
+      FROM audit_logs a
+      LEFT JOIN users u ON u.id = a.user_id
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY a.created_at DESC
+      LIMIT $${limitIdx}
+      `,
+      params
+    );
+
+    const activities = (result.rows as AuditRow[]).map(row => {
+      const titleBase = toTitleCase(row.action);
+      const entityLabel = toTitleCase(row.entityType);
+      return {
+        id: row.id,
+        type: mapActionToType(row.action),
+        title: titleBase,
+        description: row.entityId ? `${entityLabel} ${row.entityId}` : entityLabel,
+        timestamp: row.createdAt,
+        userId: row.userId ?? undefined,
+        userName: row.userName ?? undefined,
+      };
+    });
+
+    logger.info('Recent activities retrieved from audit_logs', {
       userId: req.user?.id,
-      activityCount: 0,
+      activityCount: activities.length,
     });
 
     res.json({
@@ -678,5 +790,183 @@ export const getSLARiskMonitoring = async (req: AuthenticatedRequest, res: Respo
       message: 'Failed to retrieve SLA risk monitoring data',
       error: { code: 'INTERNAL_ERROR' },
     });
+  }
+};
+
+// GET /api/dashboard/export - Export the dashboard snapshot as xlsx.
+// Workbook layout:
+//   Sheet 1: Stats        — top-5 task cards + KYC 5 cards
+//   Sheet 2: Distribution — case status counts derived from KPI engine
+//   Sheet 3: Activities   — last 50 audit_log rows scoped to user's perms
+const DASHBOARD_EXPORT_ACTIVITY_LIMIT = 50;
+
+export const exportDashboardReport = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { clientId } = req.query;
+    const backendScope = await getBackendUserScopeFilters(req);
+    const hierarchyAgentIds = req.user?.id
+      ? await getScopedOperationalUserIds(req.user.id)
+      : undefined;
+    const effectiveAgentId = getEffectiveAgentId(req);
+
+    const filters = {
+      clientId: clientId ? Number(clientId) : undefined,
+      agentId: effectiveAgentId,
+      agentIds: effectiveAgentId ? undefined : hierarchyAgentIds,
+      clientIds: backendScope.clientIds,
+      productIds: backendScope.productIds,
+      creatorUserIds: backendScope.creatorUserIds,
+    };
+
+    const kpi = await DashboardKPIService.getKPIs(filters);
+    const lc = kpi.legacyCompatibility;
+    const wl = kpi.workload;
+
+    const pendingDerived = Math.max(0, wl.openTasks.value - wl.inProgressTasks.value);
+
+    const statsRows = [
+      { metric: 'Pending Tasks', value: pendingDerived },
+      { metric: 'In Progress', value: lc.tasks.inProgress.value },
+      { metric: 'TAT Critical Overdue', value: wl.slaRiskTasks.value },
+      { metric: 'TAT Total Overdue', value: wl.overdueTasks.value },
+      { metric: 'Revoked Tasks', value: lc.tasks.revoked.value },
+      { metric: 'Completed Tasks', value: lc.tasks.completed.value },
+      { metric: 'KYC Total', value: kpi.kyc.total },
+      { metric: 'KYC Pending', value: kpi.kyc.pending },
+      { metric: 'KYC Passed', value: kpi.kyc.passed },
+      { metric: 'KYC Failed', value: kpi.kyc.failed },
+      { metric: 'KYC Referred', value: kpi.kyc.referred },
+    ];
+
+    const distributionSlices = [
+      { status: 'PENDING', count: pendingDerived },
+      { status: 'IN_PROGRESS', count: lc.tasks.inProgress.value },
+      { status: 'COMPLETED', count: lc.tasks.completed.value },
+      { status: 'REVOKED', count: lc.tasks.revoked.value },
+    ];
+    const sliceTotal = distributionSlices.reduce((acc, s) => acc + s.count, 0) || 1;
+    const distributionRows = distributionSlices.map(s => ({
+      status: s.status,
+      count: s.count,
+      percentage: Number(((s.count / sliceTotal) * 100).toFixed(1)),
+    }));
+
+    const activityParams: Array<string | string[] | number> = [
+      ACTIVITY_ENTITY_TYPES,
+      ACTIVITY_NOISE_ACTIONS,
+    ];
+    const activityConditions: string[] = [
+      `a.entity_type = ANY($1::text[])`,
+      `a.action <> ALL($2::text[])`,
+    ];
+    let aIdx = 3;
+    if (req.user?.id && isFieldExecutionActor(req.user)) {
+      activityConditions.push(`a.user_id = $${aIdx++}`);
+      activityParams.push(req.user.id);
+    } else if (req.user?.id) {
+      const scopedIds = await getScopedOperationalUserIds(req.user.id);
+      if (scopedIds && scopedIds.length > 0) {
+        activityConditions.push(`a.user_id = ANY($${aIdx++}::uuid[])`);
+        activityParams.push(scopedIds);
+      }
+    }
+    const activityLimitIdx = aIdx;
+    activityParams.push(DASHBOARD_EXPORT_ACTIVITY_LIMIT);
+
+    const activityResult = await dbQuery(
+      `
+      SELECT
+        a.action,
+        a.entity_type,
+        a.entity_id,
+        a.created_at,
+        u.name AS user_name
+      FROM audit_logs a
+      LEFT JOIN users u ON u.id = a.user_id
+      WHERE ${activityConditions.join(' AND ')}
+      ORDER BY a.created_at DESC
+      LIMIT $${activityLimitIdx}
+      `,
+      activityParams
+    );
+
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'DASHBOARD_EXPORTED',
+      entityType: 'DASHBOARD',
+      details: {
+        statsCount: statsRows.length,
+        activitiesCount: activityResult.rows.length,
+      },
+    });
+
+    const workbook = new ExcelJS.Workbook();
+
+    const statsSheet = workbook.addWorksheet('Stats');
+    statsSheet.columns = [
+      { header: 'Metric', key: 'metric', width: 28 },
+      { header: 'Value', key: 'value', width: 14 },
+    ];
+    statsSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    statsSheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' },
+    };
+    statsRows.forEach(row => statsSheet.addRow(escapeFormulaRow(row)));
+
+    const distributionSheet = workbook.addWorksheet('Distribution');
+    distributionSheet.columns = [
+      { header: 'Status', key: 'status', width: 20 },
+      { header: 'Count', key: 'count', width: 12 },
+      { header: 'Percentage', key: 'percentage', width: 14 },
+    ];
+    distributionSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    distributionSheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' },
+    };
+    distributionRows.forEach(row => distributionSheet.addRow(escapeFormulaRow(row)));
+
+    const activitiesSheet = workbook.addWorksheet('Activities');
+    activitiesSheet.columns = [
+      { header: 'Timestamp', key: 'timestamp', width: 22 },
+      { header: 'User', key: 'user', width: 24 },
+      { header: 'Action', key: 'action', width: 36 },
+      { header: 'Entity Type', key: 'entityType', width: 20 },
+      { header: 'Entity ID', key: 'entityId', width: 28 },
+    ];
+    activitiesSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    activitiesSheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' },
+    };
+    activityResult.rows.forEach((row: Record<string, unknown>) => {
+      activitiesSheet.addRow(
+        escapeFormulaRow({
+          timestamp: row.createdAt ? new Date(row.createdAt as string).toLocaleString() : '',
+          user: row.userName ?? '',
+          action: row.action ?? '',
+          entityType: row.entityType ?? '',
+          entityId: row.entityId ?? '',
+        })
+      );
+    });
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=dashboard_${new Date().toISOString().split('T')[0]}.xlsx`
+    );
+    await workbook.xlsx.write(res);
+    return res.end();
+  } catch (error) {
+    logger.error('Error exporting dashboard report:', error);
+    return res.status(500).json({ success: false, message: 'Failed to export dashboard report' });
   }
 };

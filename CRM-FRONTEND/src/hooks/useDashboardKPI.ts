@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '@/services/api';
 import type { DashboardStats, RecentActivity } from '@/types/dashboard';
-import type { TATStats, MonthlyTrend, CaseStatusDistribution } from '@/types/dto/dashboard.dto';
+import type { TATStats, CaseStatusDistribution } from '@/types/dto/dashboard.dto';
 
 // --- KPI Interface (Mirrors Backend) ---
 
@@ -92,6 +92,18 @@ export const useDashboardKPI = () => {
     refetchOnWindowFocus: true, // KPIs change with case/task activity — refresh on tab return
   });
 
+  const activitiesQuery = useQuery({
+    queryKey: ['dashboard', 'recent-activities'],
+    queryFn: async () => {
+      const response = await apiService.get<RecentActivity[]>('/dashboard/recent-activities', {
+        limit: 20,
+      });
+      return response.data ?? [];
+    },
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: true,
+  });
+
   const kpi = query.data;
 
   // --- Mapper Layer ---
@@ -149,131 +161,27 @@ export const useDashboardKPI = () => {
         }
       : undefined;
 
-  // 3. Map to CaseStatusDistribution[]
+  // 3. Map to CaseStatusDistribution[] — denominator is the sum of slice counts
+  // so percentages always total 100 (prevents the prior 500% PENDING bug where
+  // the denominator came from a different scope than the numerator).
   const caseDistributionData: CaseStatusDistribution[] | undefined =
     kpi && lc && wl
-      ? [
-          {
-            status: 'PENDING',
-            count: (wl.openTasks?.value ?? 0) - (wl.inProgressTasks?.value ?? 0),
-            percentage: 0,
-          },
-          { status: 'IN_PROGRESS', count: lc.tasks?.inProgress?.value ?? 0, percentage: 0 },
-          { status: 'COMPLETED', count: lc.tasks?.completed?.value ?? 0, percentage: 0 },
-          { status: 'REVOKED', count: lc.tasks?.revoked?.value ?? 0, percentage: 0 },
-        ].map((item) => {
-          const total = lc.tasks?.total?.value || 1;
-          return { ...item, percentage: Math.round((item.count / total) * 100) };
-        })
-      : undefined;
-
-  // 4. Map to MonthlyTrend[]
-  const trendsData: MonthlyTrend[] | undefined =
-    kpi && lc
-      ? [
-          {
-            month: 'Jul',
-            monthName: 'Jul',
-            totalCases: 45,
-            completedCases: 40,
-            pendingCases: 5,
-            inProgressCases: 0,
-            rejectedCases: 0,
-            revenue: 12000,
-            completionRate: 88,
-            avgTurnaroundDays: 2.5,
-          },
-          {
-            month: 'Aug',
-            monthName: 'Aug',
-            totalCases: 52,
-            completedCases: 47,
-            pendingCases: 5,
-            inProgressCases: 0,
-            rejectedCases: 0,
-            revenue: 15000,
-            completionRate: 90,
-            avgTurnaroundDays: 2.4,
-          },
-          {
-            month: 'Sep',
-            monthName: 'Sep',
-            totalCases: 48,
-            completedCases: 43,
-            pendingCases: 5,
-            inProgressCases: 0,
-            rejectedCases: 0,
-            revenue: 13500,
-            completionRate: 89,
-            avgTurnaroundDays: 2.3,
-          },
-          {
-            month: 'Oct',
-            monthName: 'Oct',
-            totalCases: 60,
-            completedCases: 55,
-            pendingCases: 5,
-            inProgressCases: 0,
-            rejectedCases: 0,
-            revenue: 18000,
-            completionRate: 92,
-            avgTurnaroundDays: 2.2,
-          },
-          {
-            month: 'Nov',
-            monthName: 'Nov',
-            totalCases: lc.tasks?.total?.previousPeriodValue ?? 55,
-            completedCases: lc.tasks?.completed?.previousPeriodValue ?? 50,
-            pendingCases: 5,
-            inProgressCases: 0,
-            rejectedCases: 0,
-            revenue: kpi.financial?.actualAmount?.previousPeriodValue ?? 16000,
-            completionRate: 91,
-            avgTurnaroundDays: 2.1,
-          },
-          {
-            month: 'Dec',
-            monthName: 'Dec',
-            totalCases: lc.tasks?.total?.value ?? 0,
-            completedCases: lc.tasks?.completed?.value ?? 0,
-            pendingCases: 5,
-            inProgressCases: 0,
-            rejectedCases: 0,
-            revenue: kpi.financial?.actualAmount?.value ?? 0,
-            completionRate: kpi.financial?.collectionEfficiencyPercent?.value ?? 93,
-            avgTurnaroundDays: kpi.performance?.avgTatDays?.value ?? 0,
-          },
-        ]
-      : undefined;
-
-  // 5. Activities (Empty for now per specs)
-  const activitiesData: RecentActivity[] = [];
-
-  // 6. Map to Card Trends
-  const cardTrends =
-    kpi && lc
-      ? {
-          totalCases: {
-            value: Math.abs(lc.cases?.total?.changePercent ?? 0),
-            isPositive: (lc.cases?.total?.changePercent ?? 0) >= 0,
-          },
-          revokedTasks: {
-            value: Math.abs(lc.tasks?.revoked?.changePercent ?? 0),
-            isPositive: (lc.tasks?.revoked?.changePercent ?? 0) >= 0,
-          },
-          inProgress: {
-            value: Math.abs(lc.tasks?.inProgress?.changePercent ?? 0),
-            isPositive: (lc.tasks?.inProgress?.changePercent ?? 0) >= 0,
-          },
-          completed: {
-            value: Math.abs(lc.tasks?.completed?.changePercent ?? 0),
-            isPositive: (lc.tasks?.completed?.changePercent ?? 0) >= 0,
-          },
-          totalClients: {
-            value: Math.abs(lc.clients?.total?.changePercent ?? 0),
-            isPositive: (lc.clients?.total?.changePercent ?? 0) >= 0,
-          },
-        }
+      ? (() => {
+          const slices = [
+            {
+              status: 'PENDING',
+              count: Math.max(0, (wl.openTasks?.value ?? 0) - (wl.inProgressTasks?.value ?? 0)),
+            },
+            { status: 'IN_PROGRESS', count: lc.tasks?.inProgress?.value ?? 0 },
+            { status: 'COMPLETED', count: lc.tasks?.completed?.value ?? 0 },
+            { status: 'REVOKED', count: lc.tasks?.revoked?.value ?? 0 },
+          ];
+          const total = slices.reduce((acc, s) => acc + s.count, 0) || 1;
+          return slices.map((s) => ({
+            ...s,
+            percentage: Math.round((s.count / total) * 100),
+          }));
+        })()
       : undefined;
 
   // 7. KYC stats
@@ -293,9 +201,8 @@ export const useDashboardKPI = () => {
     tatStats,
     kycStats,
     caseDistributionData,
-    trendsData,
-    activitiesData,
-    cardTrends,
+    activitiesData: activitiesQuery.data ?? [],
+    activitiesLoading: activitiesQuery.isLoading,
     refetch: query.refetch,
   };
 };
