@@ -34,9 +34,15 @@ class DepartmentsService {
   ): Promise<PaginatedResponse<Department>> {
     const queryParams = new URLSearchParams();
 
-    if (params.page) {queryParams.append('page', params.page.toString());}
-    if (params.limit) {queryParams.append('limit', params.limit.toString());}
-    if (params.search) {queryParams.append('search', params.search);}
+    if (params.page) {
+      queryParams.append('page', params.page.toString());
+    }
+    if (params.limit) {
+      queryParams.append('limit', params.limit.toString());
+    }
+    if (params.search) {
+      queryParams.append('search', params.search);
+    }
 
     // includeInactive shim — old callers pass boolean; new code uses isActive.
     if (params.isActive !== undefined) {
@@ -45,10 +51,18 @@ class DepartmentsService {
       queryParams.append('isActive', 'true');
     }
 
-    if (params.sortBy) {queryParams.append('sortBy', params.sortBy);}
-    if (params.sortOrder) {queryParams.append('sortOrder', params.sortOrder);}
-    if (params.createdFrom) {queryParams.append('createdFrom', params.createdFrom);}
-    if (params.createdTo) {queryParams.append('createdTo', params.createdTo);}
+    if (params.sortBy) {
+      queryParams.append('sortBy', params.sortBy);
+    }
+    if (params.sortOrder) {
+      queryParams.append('sortOrder', params.sortOrder);
+    }
+    if (params.createdFrom) {
+      queryParams.append('createdFrom', params.createdFrom);
+    }
+    if (params.createdTo) {
+      queryParams.append('createdTo', params.createdTo);
+    }
 
     const qs = queryParams.toString();
     const response = await apiService.get<Department[]>(`/departments${qs ? `?${qs}` : ''}`);

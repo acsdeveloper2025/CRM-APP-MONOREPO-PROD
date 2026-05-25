@@ -170,7 +170,9 @@ export function DepartmentsTable({ data, isLoading }: DepartmentsTableProps) {
           open={showEdit}
           onOpenChange={(open) => {
             setShowEdit(open);
-            if (!open) {setEditing(null);}
+            if (!open) {
+              setEditing(null);
+            }
           }}
         />
       )}
