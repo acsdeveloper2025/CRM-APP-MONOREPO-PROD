@@ -271,9 +271,9 @@ export const TaskDetailPage: React.FC = () => {
   if (error || !task) {
     return (
       <div className="container mx-auto py-6">
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-destructive/20 bg-destructive/10">
           <CardContent className="py-6">
-            <p className="text-red-600">{error || 'Task not found'}</p>
+            <p className="text-destructive">{error || 'Task not found'}</p>
             <Button onClick={() => navigate('/task-management/all-tasks')} className="mt-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Tasks
