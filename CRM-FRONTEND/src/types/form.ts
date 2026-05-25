@@ -1,7 +1,4 @@
 import {
-  FORM_TYPES,
-  VERIFICATION_OUTCOMES,
-  type FormType as FormTypeConstant,
   type VerificationOutcome as VerificationOutcomeConstant,
   type FormSubmissionStatus,
   type ValidationStatusType,
@@ -9,67 +6,11 @@ import {
 } from './constants';
 
 // Re-export types from constants for consistency
-export type FormType = FormTypeConstant;
-export type VerificationType = FormTypeConstant;
+export type VerificationType = string;
 export type VerificationOutcome = VerificationOutcomeConstant;
 export type FormSubmissionStatusType = FormSubmissionStatus;
 export type ValidationStatus = ValidationStatusType;
 export type FormFieldType = FormFieldTypeConstant;
-
-// Form-specific enums for detailed form types
-export const DetailedFormType = {
-  // Residence Forms
-  RESIDENCE_POSITIVE: 'residence-positive',
-  RESIDENCE_SHIFTED: 'residence-shifted',
-  RESIDENCE_NSP: 'residence-nsp',
-  RESIDENCE_ENTRY_RESTRICTED: 'residence-entry-restricted',
-  RESIDENCE_UNTRACEABLE: 'residence-untraceable',
-
-  // Office Forms
-  OFFICE_POSITIVE: 'office-positive',
-  OFFICE_SHIFTED: 'office-shifted',
-  OFFICE_NSP: 'office-nsp',
-  OFFICE_ENTRY_RESTRICTED: 'office-entry-restricted',
-  OFFICE_UNTRACEABLE: 'office-untraceable',
-
-  // Business Forms
-  BUSINESS_POSITIVE: 'business-positive',
-  BUSINESS_SHIFTED: 'business-shifted',
-  BUSINESS_NSP: 'business-nsp',
-  BUSINESS_ENTRY_RESTRICTED: 'business-entry-restricted',
-  BUSINESS_UNTRACEABLE: 'business-untraceable',
-
-  // Residence-cum-Office Forms
-  RESIDENCE_CUM_OFFICE_POSITIVE: 'residence-cum-office-positive',
-  RESIDENCE_CUM_OFFICE_SHIFTED: 'residence-cum-office-shifted',
-  RESIDENCE_CUM_OFFICE_NSP: 'residence-cum-office-nsp',
-  RESIDENCE_CUM_OFFICE_ENTRY_RESTRICTED: 'residence-cum-office-entry-restricted',
-  RESIDENCE_CUM_OFFICE_UNTRACEABLE: 'residence-cum-office-untraceable',
-} as const;
-
-export type DetailedFormType = (typeof DetailedFormType)[keyof typeof DetailedFormType];
-
-// Verification type display names
-export const VerificationTypeDisplayNames = {
-  [FORM_TYPES.RESIDENCE]: 'Residence',
-  [FORM_TYPES.OFFICE]: 'Office',
-  [FORM_TYPES.BUSINESS]: 'Business',
-  [FORM_TYPES.RESIDENCE_CUM_OFFICE]: 'Residence-cum-office',
-  [FORM_TYPES.BUILDER]: 'Builder',
-  [FORM_TYPES.NOC]: 'NOC',
-  [FORM_TYPES.DSA_CONNECTOR]: 'DSA/DST & Connector',
-  [FORM_TYPES.PROPERTY_APF]: 'Property APF',
-  [FORM_TYPES.PROPERTY_INDIVIDUAL]: 'Property Individual',
-} as const;
-
-// Verification outcome display names
-export const VerificationOutcomeDisplayNames = {
-  [VERIFICATION_OUTCOMES.POSITIVE]: 'Positive',
-  [VERIFICATION_OUTCOMES.SHIFTED]: 'Shifted',
-  NSP: 'NSP',
-  ENTRY_RESTRICTED: 'Entry Restricted',
-  UNTRACEABLE: 'Untraceable',
-} as const;
 
 // Common Form Field Types
 export interface FormField {
@@ -300,7 +241,7 @@ export interface BusinessFormData {
 // Form Template Types
 export interface FormTemplate {
   id: string;
-  formType: FormType;
+  formType: string;
   verificationType: VerificationType;
   outcome: VerificationOutcome;
   name: string;

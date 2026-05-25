@@ -68,21 +68,6 @@ export const CASE_PRIORITY = {
 
 export type CasePriorityType = (typeof CASE_PRIORITY)[keyof typeof CASE_PRIORITY];
 
-// Form Types
-export const FORM_TYPES = {
-  RESIDENCE: 'RESIDENCE',
-  OFFICE: 'OFFICE',
-  BUSINESS: 'BUSINESS',
-  BUILDER: 'BUILDER',
-  DSA_CONNECTOR: 'DSA_CONNECTOR',
-  NOC: 'NOC',
-  PROPERTY_APF: 'PROPERTY_APF',
-  PROPERTY_INDIVIDUAL: 'PROPERTY_INDIVIDUAL',
-  RESIDENCE_CUM_OFFICE: 'RESIDENCE_CUM_OFFICE',
-} as const;
-
-export type FormType = (typeof FORM_TYPES)[keyof typeof FORM_TYPES];
-
 // Verification Outcomes
 //
 // F2.7.1: Authoritative runtime source is `/api/verification-type-outcomes`
@@ -250,16 +235,6 @@ export const COMMISSION_STATUS = {
 } as const;
 
 export type CommissionStatus = (typeof COMMISSION_STATUS)[keyof typeof COMMISSION_STATUS];
-
-// Rate Types
-export const RATE_TYPES = {
-  LOCAL: 'LOCAL',
-  OGL: 'OGL', // Out of Geolocation
-  OUTSTATION: 'OUTSTATION',
-  STANDARD: 'STANDARD',
-} as const;
-
-export type RateType = (typeof RATE_TYPES)[keyof typeof RATE_TYPES];
 
 // Currency
 export const CURRENCIES = {
