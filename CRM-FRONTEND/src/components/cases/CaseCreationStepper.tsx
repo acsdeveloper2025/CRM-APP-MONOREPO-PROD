@@ -125,8 +125,12 @@ export const CaseCreationStepper: React.FC<CaseCreationStepperProps> = ({
     return results.flatMap((r) => (r && r.success && r.data ? [r.data] : []));
   };
 
-  // Fetch verification types for ID lookup
-  const { data: verificationTypesResponse } = useVerificationTypes({ limit: 500 });
+  // Fetch verification types for ID lookup — excludeKyc=true to keep the
+  // synthetic 'KYC Verification' parent type out of field-task creation.
+  const { data: verificationTypesResponse } = useVerificationTypes({
+    limit: 500,
+    excludeKyc: true,
+  });
   const verificationTypes = verificationTypesResponse?.data || [];
 
   // Update state when initialData changes (for edit mode)

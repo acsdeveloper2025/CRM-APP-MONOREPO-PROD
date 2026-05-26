@@ -37,8 +37,11 @@ export function ProductMappingsEditor({
   });
 
   const { data: vtData } = useStandardizedQuery({
-    queryKey: ['verification-types', 'all-for-mapping'],
-    queryFn: () => verificationTypesService.getVerificationTypes({ limit: 500 }),
+    queryKey: ['verification-types', 'all-for-mapping-excl-kyc'],
+    // F9.2: excludeKyc=true — client+product field-task mappings must NOT
+    // include the synthetic 'KYC Verification' parent type. KYC docs flow
+    // through the document_types mapping instead (dtData below).
+    queryFn: () => verificationTypesService.getVerificationTypes({ limit: 500, excludeKyc: true }),
     enabled,
     errorContext: 'Loading Verification Types',
     errorFallbackMessage: 'Failed to load verification types',

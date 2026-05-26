@@ -87,7 +87,11 @@ export const FullCaseFormStep: React.FC<FullCaseFormStepProps> = ({
 }) => {
   const { user } = useAuth();
   const { data: clientsResponse, isLoading: loadingClients } = useClients({ limit: 500 });
-  const { data: verificationTypesResponse } = useVerificationTypes({ limit: 500 });
+  // excludeKyc=true — field-task creation must not list the KYC parent type.
+  const { data: verificationTypesResponse } = useVerificationTypes({
+    limit: 500,
+    excludeKyc: true,
+  });
 
   // Helper function to get user display name
   const getUserDisplayName = (user: unknown) => {

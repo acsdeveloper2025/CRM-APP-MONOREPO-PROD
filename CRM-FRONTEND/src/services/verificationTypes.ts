@@ -54,6 +54,8 @@ export interface VerificationTypeListQuery extends PaginationQuery {
   search?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  /** F9.2: field-task dropdowns pass true to filter out the KYC parent type. */
+  excludeKyc?: boolean;
 }
 
 export class VerificationTypesService {

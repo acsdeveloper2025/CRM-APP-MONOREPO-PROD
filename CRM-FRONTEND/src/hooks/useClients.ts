@@ -84,7 +84,7 @@ export const useProductsByClient = (clientId?: string) => {
 };
 
 // Verification type queries
-export const useVerificationTypes = (query: PaginationQuery = {}) => {
+export const useVerificationTypes = (query: PaginationQuery & { excludeKyc?: boolean } = {}) => {
   return useQuery({
     queryKey: verificationTypeKeys.list(query),
     queryFn: () => clientsService.getVerificationTypes(query),

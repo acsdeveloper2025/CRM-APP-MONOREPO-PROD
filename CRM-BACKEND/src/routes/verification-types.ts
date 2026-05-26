@@ -75,6 +75,10 @@ const listVerificationTypesValidation = [
     .withMessage("isActive must be 'true', 'false', or 'all'"),
   query('createdFrom').optional().isISO8601().withMessage('createdFrom must be ISO 8601'),
   query('createdTo').optional().isISO8601().withMessage('createdTo must be ISO 8601'),
+  query('excludeKyc')
+    .optional()
+    .isIn(['true', 'false', '1', '0'])
+    .withMessage('excludeKyc must be true/false/1/0'),
   query('search')
     .optional()
     .trim()

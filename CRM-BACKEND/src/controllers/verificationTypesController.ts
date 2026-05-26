@@ -12,7 +12,7 @@ import { escapeFormulaRow } from '@/utils/formulaGuard';
 const buildVerificationTypesWhereClause = (
   req: AuthenticatedRequest
 ): { whereClause: string; queryParams: QueryParams; nextParamIndex: number } => {
-  const { search, isActive, createdFrom, createdTo } = req.query;
+  const { search, isActive, createdFrom, createdTo, excludeKyc } = req.query;
   const whereConditions: string[] = [];
   const queryParams: QueryParams = [];
   let paramIndex = 1;
@@ -45,6 +45,14 @@ const buildVerificationTypesWhereClause = (
     whereConditions.push(`created_at < ($${paramIndex}::date + INTERVAL '1 day')`);
     queryParams.push(createdTo);
     paramIndex++;
+  }
+
+  // F9.2 (2026-05-26): field-task dropdowns pass excludeKyc=true so the
+  // synthetic 'KYC Verification' row (used only as the parent type for KYC
+  // tasks) doesn't appear in case/task creation flows. Admin
+  // VerificationTypesPage and ProductMappingsEditor stay unfiltered.
+  if (excludeKyc === 'true' || excludeKyc === '1') {
+    whereConditions.push(`code <> 'KYC'`);
   }
 
   const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';

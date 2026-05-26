@@ -125,8 +125,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ caseId, onClos
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // excludeKyc=true — Create Task modal is field-task only.
   const { data: verificationTypesData, isLoading: verificationTypesLoading } = useVerificationTypes(
-    { limit: 500 }
+    { limit: 500, excludeKyc: true }
   );
   const { data: fieldUsers = [], isLoading: fieldUsersLoading } = useFieldUsers();
 

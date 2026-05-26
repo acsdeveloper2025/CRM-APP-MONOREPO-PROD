@@ -132,7 +132,7 @@ export class ClientsService {
 
   // Verification Type operations
   async getVerificationTypes(
-    query: PaginationQuery = {}
+    query: PaginationQuery & { excludeKyc?: boolean } = {}
   ): Promise<ApiResponse<VerificationType[]>> {
     return apiService.get('/verification-types', query);
   }
