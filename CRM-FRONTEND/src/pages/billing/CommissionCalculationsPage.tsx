@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calculator, Download, DollarSign, Clock, CheckCircle, TrendingUp } from 'lucide-react';
+import { Calculator, CheckCircle, Clock, Download } from 'lucide-react';
 import { CommissionCalculationsTab } from '@/components/commission/CommissionCalculationsTab';
 import { commissionManagementService } from '@/services/commissionManagement';
 import { toast } from 'sonner';
@@ -16,11 +16,17 @@ export const CommissionCalculationsPage: React.FC = () => {
 
   const stats = statsData?.data || {};
   const totalCommissions = stats.totalCommissions ?? 0;
-  const totalAmount = Number(stats.totalAmount ?? 0);
-  const pendingCommissions = stats.pendingCommissions ?? 0;
-  const pendingAmount = Number(stats.pendingAmount ?? 0);
   const approvedCommissions = stats.approvedCommissions ?? 0;
-  const avgCommission = totalCommissions > 0 ? Math.round(totalAmount / totalCommissions) : 0;
+  const paidCommissions = stats.paidCommissions ?? 0;
+  const rejectedCommissions = stats.rejectedCommissions ?? 0;
+  // "Awaiting Approval" = rows that haven't been approved / paid / rejected.
+  // Truthful-sweep 2026-05-26: dropped the 'status=PENDING-only' interpretation
+  // because every row is created in CALCULATED and the FE has no path to
+  // transition CALCULATED→APPROVED yet — original tile was perpetually 0.
+  const awaitingApproval = Math.max(
+    0,
+    totalCommissions - approvedCommissions - paidCommissions - rejectedCommissions
+  );
 
   const handleExport = async () => {
     try {
@@ -56,7 +62,7 @@ export const CommissionCalculationsPage: React.FC = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Calculations</CardTitle>
@@ -69,14 +75,12 @@ export const CommissionCalculationsPage: React.FC = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Approval</CardTitle>
+            <CardTitle className="text-sm font-medium">Awaiting Approval</CardTitle>
             <Clock className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingCommissions}</div>
-            <p className="text-xs text-muted-foreground">
-              ₹{pendingAmount.toLocaleString()} pending
-            </p>
+            <div className="text-2xl font-bold">{awaitingApproval}</div>
+            <p className="text-xs text-muted-foreground">Not yet approved or paid</p>
           </CardContent>
         </Card>
         <Card>
@@ -87,26 +91,6 @@ export const CommissionCalculationsPage: React.FC = () => {
           <CardContent>
             <div className="text-2xl font-bold">{approvedCommissions}</div>
             <p className="text-xs text-muted-foreground">Ready for payment</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
-            <DollarSign className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{totalAmount.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">All commissions</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Commission</CardTitle>
-            <TrendingUp className="h-4 w-4 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{avgCommission.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Per calculation</p>
           </CardContent>
         </Card>
       </div>
