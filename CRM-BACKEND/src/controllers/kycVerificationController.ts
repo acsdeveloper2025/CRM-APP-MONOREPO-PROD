@@ -492,7 +492,12 @@ export const getKYCTaskStats = async (req: AuthenticatedRequest, res: Response) 
         ) as "agingOver3Days",
         AVG(EXTRACT(EPOCH FROM (kdv.verified_at - kdv.created_at)) / 3600.0) FILTER (
           WHERE kdv.verification_status = 'COMPLETED' AND kdv.verified_at IS NOT NULL
-        ) as "avgVerifyHours"
+        ) as "avgVerifyHours",
+        -- Distinct KYC verifiers actively assigned. Truthful-sweep
+        -- 2026-05-26 added so analytics can show field agent + KYC
+        -- verifier headcounts side by side.
+        COUNT(DISTINCT vt.assigned_to) FILTER (WHERE vt.assigned_to IS NOT NULL)
+          as "activeKycVerifiers"
        FROM kyc_document_verifications kdv
        JOIN cases c ON c.id = kdv.case_id
        JOIN verification_tasks vt ON vt.id = kdv.verification_task_id
@@ -527,6 +532,7 @@ export const getKYCTaskStats = async (req: AuthenticatedRequest, res: Response) 
         completedThisWeek: num('completedThisWeek'),
         agingOver3Days: num('agingOver3Days'),
         avgVerifyHours: flt('avgVerifyHours'),
+        activeKycVerifiers: num('activeKycVerifiers'),
       },
       message: 'KYC task stats retrieved successfully',
     });

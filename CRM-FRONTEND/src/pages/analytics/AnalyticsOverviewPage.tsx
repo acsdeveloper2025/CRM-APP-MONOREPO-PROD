@@ -26,21 +26,25 @@ export const AnalyticsOverviewPage: React.FC = () => {
 
   const caseSummary = caseAnalytics?.data?.summary;
 
-  const taskPayload = (
-    tasksData?.data as {
-      data?: {
-        statistics: {
-          pending: number;
-          assigned: number;
-          inProgress: number;
-          completed: number;
-          highPriority: number;
-          totalAgents: number;
+  // BE shape: { success, data: { tasks, pagination, statistics }, message }
+  // useQuery exposes the apiService envelope as tasksData; .data is the inner
+  // object. Previously this page treated tasksData?.data as { data: {...} }
+  // and read .data.statistics — perpetually undefined → all 4 task tiles
+  // showed 0. Truthful-sweep 2026-05-26 fix.
+  const taskPayload = tasksData?.data as
+    | {
+        statistics?: {
+          pending?: number;
+          assigned?: number;
+          inProgress?: number;
+          completed?: number;
+          highPriority?: number;
+          totalAgents?: number;
+          totalKycVerifiers?: number;
         };
-        pagination: { total: number };
-      };
-    }
-  )?.data;
+        pagination?: { total: number };
+      }
+    | undefined;
   const taskStats = taskPayload?.statistics;
   const totalTasks = taskPayload?.pagination?.total || 0;
   const completedTasks = taskStats?.completed || 0;
@@ -48,6 +52,7 @@ export const AnalyticsOverviewPage: React.FC = () => {
   const pendingTasks = (taskStats?.pending || 0) + (taskStats?.assigned || 0);
   const taskCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
   const activeAgents = taskStats?.totalAgents || 0;
+  const activeKycVerifiers = taskStats?.totalKycVerifiers || 0;
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
@@ -60,7 +65,7 @@ export const AnalyticsOverviewPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Cases</CardTitle>
@@ -102,12 +107,23 @@ export const AnalyticsOverviewPage: React.FC = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Agents</CardTitle>
+            <CardTitle className="text-sm font-medium">Field Agents</CardTitle>
             <Users className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{activeAgents}</div>
-            <p className="text-xs text-muted-foreground">Field agents</p>
+            <p className="text-xs text-muted-foreground">Assigned NORMAL / REVISIT tasks</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">KYC Verifiers</CardTitle>
+            <Users className="h-4 w-4 text-indigo-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activeKycVerifiers}</div>
+            <p className="text-xs text-muted-foreground">Assigned KYC tasks</p>
           </CardContent>
         </Card>
 

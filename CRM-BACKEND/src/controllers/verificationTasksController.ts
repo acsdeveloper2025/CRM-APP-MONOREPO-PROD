@@ -1124,7 +1124,17 @@ export class VerificationTasksController {
           COUNT(*) FILTER (WHERE vt.status = 'REVOKED') as revoked_count,
           COUNT(*) FILTER (WHERE vt.priority = 'URGENT') as urgent_count,
           COUNT(*) FILTER (WHERE vt.priority IN ('HIGH', 'URGENT')) as high_priority_count,
-          COUNT(DISTINCT vt.assigned_to) FILTER (WHERE vt.assigned_to IS NOT NULL) as total_agents,
+          -- Field agents vs KYC verifiers are SEPARATE roles — track both.
+          -- Truthful-sweep 2026-05-26: user flagged that totalAgents=4 was
+          -- wrong because only 3 field agents exist + 1 KYC verifier.
+          -- task_type_enum is {NORMAL, REVISIT, KYC} — field tasks are
+          -- NORMAL or REVISIT.
+          COUNT(DISTINCT vt.assigned_to) FILTER (
+            WHERE vt.assigned_to IS NOT NULL AND vt.task_type <> 'KYC'
+          ) as total_agents,
+          COUNT(DISTINCT vt.assigned_to) FILTER (
+            WHERE vt.assigned_to IS NOT NULL AND vt.task_type = 'KYC'
+          ) as total_kyc_verifiers,
           COUNT(*) FILTER (WHERE vt.status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED') AND vt.created_at < NOW() - INTERVAL '24 hours') as long_running_count,
           AVG(CASE WHEN vt.status = 'IN_PROGRESS' AND vt.started_at IS NOT NULL THEN EXTRACT(EPOCH FROM (NOW() - vt.started_at)) / 3600 END) as avg_duration_hours,
           AVG(CASE WHEN vt.status = 'COMPLETED' AND vt.completed_at IS NOT NULL THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.created_at)) / 3600 END) as avg_turnaround_hours,
@@ -1185,6 +1195,7 @@ export class VerificationTasksController {
             urgent: parseInt(stats.urgentCount || '0'),
             highPriority: parseInt(stats.highPriorityCount || '0'),
             totalAgents: parseInt(stats.totalAgents || '0'),
+            totalKycVerifiers: parseInt(stats.totalKycVerifiers || '0'),
             longRunning: parseInt(stats.longRunningCount || '0'),
             avgDuration: parseFloat(stats.avgDurationHours || '0'),
             avgTurnaround: parseFloat(stats.avgTurnaroundHours || '0'),

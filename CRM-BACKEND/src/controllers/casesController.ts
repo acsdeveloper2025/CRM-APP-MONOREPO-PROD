@@ -844,12 +844,20 @@ export const getCaseStats = async (req: AuthenticatedRequest, res: Response) => 
           WHERE c.status = 'COMPLETED'
           AND c.completed_at >= date_trunc('week', CURRENT_DATE)
         ) as "completedThisWeek",
+        -- Field agents vs KYC verifiers are SEPARATE roles — track both.
+        -- Truthful-sweep 2026-05-26: user flagged that agent counts were
+        -- including KYC verifiers. task_type_enum is {NORMAL, REVISIT,
+        -- KYC} — field tasks are NORMAL or REVISIT.
         COUNT(DISTINCT vt.assigned_to) FILTER (
           WHERE c.status = 'IN_PROGRESS' AND vt.assigned_to IS NOT NULL
+            AND vt.task_type <> 'KYC'
         ) as "activeAgentsInProgress",
         COUNT(DISTINCT vt.assigned_to) FILTER (
-          WHERE vt.assigned_to IS NOT NULL
+          WHERE vt.assigned_to IS NOT NULL AND vt.task_type <> 'KYC'
         ) as "activeAgentsAny",
+        COUNT(DISTINCT vt.assigned_to) FILTER (
+          WHERE vt.assigned_to IS NOT NULL AND vt.task_type = 'KYC'
+        ) as "activeKycVerifiers",
         AVG(EXTRACT(EPOCH FROM (NOW() - c.created_at)) / 86400) FILTER (
           WHERE c.status IN ('PENDING','ASSIGNED')
         ) as "avgPendingDays",
@@ -887,6 +895,7 @@ export const getCaseStats = async (req: AuthenticatedRequest, res: Response) => 
         completedThisWeek: num('completedThisWeek'),
         activeAgentsInProgress: num('activeAgentsInProgress'),
         activeAgentsAny: num('activeAgentsAny'),
+        activeKycVerifiers: num('activeKycVerifiers'),
         avgPendingDays: flt('avgPendingDays'),
         avgInProgressDays: flt('avgInProgressDays'),
         avgTATDays: flt('avgTATDays'),
