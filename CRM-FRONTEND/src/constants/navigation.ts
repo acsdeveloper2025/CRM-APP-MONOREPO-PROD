@@ -178,8 +178,9 @@ export const navigationItems: NavigationItem[] = [
         label: 'Revoke KYC',
         href: '/kyc-verification/revoke-kyc',
         icon: XCircle,
-        permissionCode: 'page.kyc',
-        permission: { resource: 'kyc', action: 'read' },
+        // F9.3: hide for KYC verifier (no kyc.revoke perm); admin/manager see it.
+        permissionCode: 'kyc.revoke',
+        permission: { resource: 'kyc', action: 'revoke' },
       },
       {
         id: 'kyc-in-progress',
@@ -194,8 +195,9 @@ export const navigationItems: NavigationItem[] = [
         label: 'Recheck KYC',
         href: '/kyc-verification/recheck-kyc',
         icon: Copy,
-        permissionCode: 'page.kyc',
-        permission: { resource: 'kyc', action: 'read' },
+        // F9.3: hide for KYC verifier (no kyc.recheck perm); admin/manager see it.
+        permissionCode: 'kyc.recheck',
+        permission: { resource: 'kyc', action: 'recheck' },
       },
       {
         id: 'kyc-completed',

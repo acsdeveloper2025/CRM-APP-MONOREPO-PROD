@@ -15,6 +15,12 @@ const EXECUTION_PERMISSION_CODES = [
   'visit.revisit',
 ] as const;
 
+// F9.3 (2026-05-26): KYC verifier role parallels field execution actor.
+// `kyc.verify` is the desk-equivalent of `visit.submit`. Users with
+// kyc.verify but no supervisory perms scope KYC tasks to assigned_to=self
+// (same as field execution actor does for visit.*). See isKycExecutionActor.
+const KYC_EXECUTION_PERMISSION_CODES = ['kyc.verify', 'kyc.start'] as const;
+
 const SUPERVISORY_PERMISSION_CODES = [
   'case.assign',
   'case.reassign',
@@ -97,6 +103,25 @@ export const isFieldExecutionActor = (user: AuthenticatedRequest['user'] | undef
     return false;
   }
   return deriveCapabilitiesFromPermissionCodes(user.permissionCodes).executionActor;
+};
+
+// F9.3 (2026-05-26): KYC verifier role classifier. A "KYC execution actor"
+// holds kyc.verify (or kyc.start) but no supervisory perms — the desk
+// analogue of a field execution actor. Used to add an `assigned_to=self`
+// scope branch in buildKycTasksBaseWhereClause + requireKycRowAccess so
+// dedicated KYC verifiers can see/act on the tasks they were assigned.
+export const isKycExecutionActor = (user: AuthenticatedRequest['user'] | undefined): boolean => {
+  if (!user) {
+    return false;
+  }
+  const codes = user.permissionCodes || [];
+  const systemScope = hasCode(codes, '*') || hasCode(codes, 'settings.manage');
+  if (systemScope) {
+    return false;
+  }
+  const kycExecution = KYC_EXECUTION_PERMISSION_CODES.some(c => hasCode(codes, c));
+  const supervisory = SUPERVISORY_PERMISSION_CODES.some(c => hasCode(codes, c));
+  return kycExecution && !supervisory;
 };
 
 export const requireOwnershipOnlyForExecutionActor = (

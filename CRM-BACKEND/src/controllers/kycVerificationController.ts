@@ -14,6 +14,7 @@ import { escapeFormulaRow } from '@/utils/formulaGuard';
 import {
   hasSystemScopeBypass,
   isFieldExecutionActor,
+  isKycExecutionActor,
   isScopedOperationsUser,
 } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
@@ -72,11 +73,18 @@ async function buildKycTasksBaseWhereClause(
 
   const isAdmin = hasSystemScopeBypass(req.user);
   const isExecutionActor = isFieldExecutionActor(req.user);
+  const isKycActor = isKycExecutionActor(req.user);
   const isScopedOps = isScopedOperationsUser(req.user);
 
   if (req.user?.id && !isAdmin) {
     const userId = req.user.id;
-    if (isExecutionActor) {
+    // F9.3 (2026-05-26): KYC execution actors (kyc.verify holders without
+    // supervisory perms) scope to assigned_to=self — same branch as field
+    // execution actors. Without this, KYC_VERIFIER role sees 0 tasks even
+    // when explicitly assigned. Checked BEFORE isScopedOps because
+    // KYC_VERIFIER also has case.view (which classifies as isScopedOps
+    // and would otherwise fall to a client/product branch with 0 hits).
+    if (isExecutionActor || isKycActor) {
       baseConditions.push(
         `(kdv.assigned_to = $${baseParamIndex} OR vt.assigned_to = $${baseParamIndex})`
       );
@@ -164,16 +172,25 @@ const requireKycRowAccess = async (
   if (!userId || !kdvId) {
     return { ok: false };
   }
-  const lookup = await query<{ caseId: string }>(
+  // F9.3 (2026-05-26): also fetch assigned_to so KYC execution actors
+  // (kyc.verify holders without supervisory perms) can access tasks
+  // explicitly assigned to them even when enforceBackendUserCaseScope
+  // would otherwise reject (e.g. they have no client/product mappings).
+  const lookup = await query<{ caseId: string; assignedTo: string | null }>(
     // NEW-CRIT-1 (AUDIT 2026-05-17): soft-deleted KYC docs must not surface in
     // permission lookups — DPDP erasure intent. Returns NOT_FOUND.
-    `SELECT case_id FROM kyc_document_verifications WHERE id = $1 AND deleted_at IS NULL`,
+    `SELECT case_id, assigned_to FROM kyc_document_verifications WHERE id = $1 AND deleted_at IS NULL`,
     [kdvId]
   );
   if (lookup.rows.length === 0) {
     return { ok: false };
   }
   const caseId = lookup.rows[0].caseId;
+  const assignedTo = lookup.rows[0].assignedTo;
+  // KYC execution actor self-assigned shortcut — bypasses case-scope check.
+  if (isKycExecutionActor(req.user) && assignedTo === userId) {
+    return { ok: true, caseId };
+  }
   const allowed = await enforceBackendUserCaseScope(userId, req.user, caseId, req.activeScope);
   if (!allowed) {
     return { ok: false };
