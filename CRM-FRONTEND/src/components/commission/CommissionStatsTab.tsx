@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Download, TrendingUp, Users } from 'lucide-react';
 import { commissionManagementApi } from '@/services/commissionManagementApi';
 import { CommissionPivotTable } from './CommissionPivotTable';
-import type { CommissionPivotPeriod } from '@/types/commission';
+import type { CommissionPivotDimKey, CommissionPivotPeriod } from '@/types/commission';
 import { logger } from '@/utils/logger';
 
 const PERIOD_OPTIONS: { value: CommissionPivotPeriod; label: string }[] = [
@@ -28,6 +28,20 @@ const PERIOD_OPTIONS: { value: CommissionPivotPeriod; label: string }[] = [
   { value: 'custom', label: 'Custom Range' },
 ];
 
+const DIM_OPTIONS: { value: CommissionPivotDimKey; label: string }[] = [
+  { value: 'user', label: 'Field Executive' },
+  { value: 'client', label: 'Client' },
+  { value: 'product', label: 'Product' },
+  { value: 'rateType', label: 'Rate Type' },
+];
+
+const DEFAULT_ROWS: CommissionPivotDimKey = 'user';
+const DEFAULT_SUBROWS: CommissionPivotDimKey | 'none' = 'rateType';
+const DEFAULT_COLS: CommissionPivotDimKey = 'client';
+
+const isDimKey = (v: string | null): v is CommissionPivotDimKey =>
+  v === 'user' || v === 'client' || v === 'product' || v === 'rateType';
+
 const fmtAmount = (n: number) =>
   new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n);
 
@@ -36,6 +50,13 @@ export const CommissionStatsTab: React.FC = () => {
   const period = (searchParams.get('period') as CommissionPivotPeriod) || 'month';
   const dateFrom = searchParams.get('dateFrom') || '';
   const dateTo = searchParams.get('dateTo') || '';
+  const rawRows = searchParams.get('rows');
+  const rawSubRows = searchParams.get('subRows');
+  const rawCols = searchParams.get('cols');
+  const pivotRows: CommissionPivotDimKey = isDimKey(rawRows) ? rawRows : DEFAULT_ROWS;
+  const pivotCols: CommissionPivotDimKey = isDimKey(rawCols) ? rawCols : DEFAULT_COLS;
+  const pivotSubRows: CommissionPivotDimKey | 'none' =
+    rawSubRows === 'none' ? 'none' : isDimKey(rawSubRows) ? rawSubRows : DEFAULT_SUBROWS;
 
   const updateParam = (key: string, value: string) => {
     const next = new URLSearchParams(searchParams);
@@ -56,8 +77,11 @@ export const CommissionStatsTab: React.FC = () => {
       period,
       ...(period === 'custom' && dateFrom ? { dateFrom } : {}),
       ...(period === 'custom' && dateTo ? { dateTo } : {}),
+      rows: pivotRows,
+      subRows: pivotSubRows,
+      cols: pivotCols,
     }),
-    [period, dateFrom, dateTo]
+    [period, dateFrom, dateTo, pivotRows, pivotSubRows, pivotCols]
   );
 
   const statsQuery = useQuery({
@@ -216,10 +240,61 @@ export const CommissionStatsTab: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">
-            Commission Pivot: Field Executive × Client × Rate Type
+            Commission Pivot:{' '}
+            {pivot
+              ? `${pivot.dims.rows.label}${pivot.dims.subRows ? ` × ${pivot.dims.subRows.label}` : ''} × ${pivot.dims.cols.label}`
+              : 'Field Executive × Rate Type × Client'}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+            <div className="space-y-1">
+              <Label htmlFor="pivot-rows">Rows</Label>
+              <Select value={pivotRows} onValueChange={(v) => updateParam('rows', v)}>
+                <SelectTrigger id="pivot-rows">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DIM_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="pivot-subrows">Sub-rows</Label>
+              <Select value={pivotSubRows} onValueChange={(v) => updateParam('subRows', v)}>
+                <SelectTrigger id="pivot-subrows">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None (flat)</SelectItem>
+                  {DIM_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="pivot-cols">Columns</Label>
+              <Select value={pivotCols} onValueChange={(v) => updateParam('cols', v)}>
+                <SelectTrigger id="pivot-cols">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DIM_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           {pivotQuery.isLoading ? (
             <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
               Loading pivot…

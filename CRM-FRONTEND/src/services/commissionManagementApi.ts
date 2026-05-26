@@ -9,6 +9,7 @@ import {
   CommissionStats,
   CommissionPivot,
   CommissionPivotPeriod,
+  CommissionPivotDimKey,
 } from '../types/commission';
 import { validateResponse } from './schemas/runtime';
 import { GenericEntityListSchema, GenericObjectSchema } from './schemas/generic.schema';
@@ -210,11 +211,14 @@ export const commissionManagementApi = {
     return response;
   },
 
-  // Commission Pivot (User × Client × Rate Type)
+  // Commission Pivot (configurable 4-dimension pivot)
   async getCommissionPivot(params: {
     period: CommissionPivotPeriod;
     dateFrom?: string;
     dateTo?: string;
+    rows?: CommissionPivotDimKey;
+    subRows?: CommissionPivotDimKey | 'none';
+    cols?: CommissionPivotDimKey;
   }): Promise<ApiResponse<CommissionPivot>> {
     const queryParams: Record<string, string> = { period: params.period };
     if (params.dateFrom) {
@@ -222,6 +226,15 @@ export const commissionManagementApi = {
     }
     if (params.dateTo) {
       queryParams.dateTo = params.dateTo;
+    }
+    if (params.rows) {
+      queryParams.rows = params.rows;
+    }
+    if (params.subRows) {
+      queryParams.subRows = params.subRows;
+    }
+    if (params.cols) {
+      queryParams.cols = params.cols;
     }
     const response = await apiService.get<CommissionPivot>(
       '/commission-management/pivot',
@@ -240,6 +253,9 @@ export const commissionManagementApi = {
     period: CommissionPivotPeriod;
     dateFrom?: string;
     dateTo?: string;
+    rows?: CommissionPivotDimKey;
+    subRows?: CommissionPivotDimKey | 'none';
+    cols?: CommissionPivotDimKey;
   }): Promise<Blob> {
     const queryParams: Record<string, string> = { period: params.period };
     if (params.dateFrom) {
@@ -247,6 +263,15 @@ export const commissionManagementApi = {
     }
     if (params.dateTo) {
       queryParams.dateTo = params.dateTo;
+    }
+    if (params.rows) {
+      queryParams.rows = params.rows;
+    }
+    if (params.subRows) {
+      queryParams.subRows = params.subRows;
+    }
+    if (params.cols) {
+      queryParams.cols = params.cols;
     }
     return apiService.getBlob('/commission-management/pivot/export', queryParams);
   },

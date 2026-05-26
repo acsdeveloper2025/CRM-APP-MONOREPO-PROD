@@ -228,6 +228,9 @@ const pivotQueryValidation = [
   query('period').optional().isIn(['week', 'month', 'quarter', 'year', 'all', 'custom']),
   query('dateFrom').optional().isISO8601(),
   query('dateTo').optional().isISO8601(),
+  query('rows').optional().isIn(['user', 'client', 'product', 'rateType']),
+  query('cols').optional().isIn(['user', 'client', 'product', 'rateType']),
+  query('subRows').optional().isIn(['user', 'client', 'product', 'rateType', 'none']),
 ];
 
 router.get(

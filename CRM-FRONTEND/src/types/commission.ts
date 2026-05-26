@@ -225,31 +225,43 @@ export interface CommissionStats {
 
 export type CommissionPivotPeriod = 'week' | 'month' | 'quarter' | 'year' | 'all' | 'custom';
 
+export type CommissionPivotDimKey = 'user' | 'client' | 'product' | 'rateType';
+
 export interface CommissionPivotCell {
   amount: number;
   count: number;
 }
 
-export interface CommissionPivotRateType {
-  rateTypeId: number;
-  rateTypeName: string;
+export interface CommissionPivotSubRow {
+  id: string;
+  name: string;
   totals: CommissionPivotCell;
-  perClient: Record<string, CommissionPivotCell>;
+  perCol: Record<string, CommissionPivotCell>;
 }
 
-export interface CommissionPivotUser {
-  userId: string;
-  userName: string;
+export interface CommissionPivotRow {
+  id: string;
+  name: string;
   totals: CommissionPivotCell;
-  perClient: Record<string, CommissionPivotCell>;
-  rateTypes: CommissionPivotRateType[];
+  perCol: Record<string, CommissionPivotCell>;
+  subRows: CommissionPivotSubRow[] | null;
+}
+
+export interface CommissionPivotDimDescriptor {
+  key: CommissionPivotDimKey;
+  label: string;
 }
 
 export interface CommissionPivot {
   period: { type: CommissionPivotPeriod; from: string | null; to: string | null };
-  clients: { id: number; name: string }[];
-  users: CommissionPivotUser[];
-  grandTotal: CommissionPivotCell & { perClient: Record<string, CommissionPivotCell> };
+  dims: {
+    rows: CommissionPivotDimDescriptor;
+    subRows: CommissionPivotDimDescriptor | null;
+    cols: CommissionPivotDimDescriptor;
+  };
+  cols: { id: string; name: string }[];
+  rows: CommissionPivotRow[];
+  grandTotal: CommissionPivotCell & { perCol: Record<string, CommissionPivotCell> };
 }
 
 export interface CommissionSummary {

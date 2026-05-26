@@ -1581,33 +1581,48 @@ export const exportCommissionsToExcel = async (req: AuthenticatedRequest, res: R
 };
 
 // =====================================================
-// COMMISSION PIVOT (User × Client × Rate Type)
+// COMMISSION PIVOT — configurable 4-dimension pivot
+// Dimensions: user | client | product | rateType
+// Caller picks rows + cols + optional subRows; remaining
+// 4th dimension is rolled up into cell aggregates.
 // =====================================================
 
 type PivotPeriod = 'week' | 'month' | 'quarter' | 'year' | 'all' | 'custom';
 
 type PivotCell = { amount: number; count: number };
 
-type PivotRateTypeRow = {
-  rateTypeId: number;
-  rateTypeName: string;
-  totals: PivotCell;
-  perClient: Record<string, PivotCell>;
+type PivotDimKey = 'user' | 'client' | 'product' | 'rateType';
+
+const PIVOT_DIMS: Record<PivotDimKey, { idExpr: string; nameExpr: string; label: string }> = {
+  user: { idExpr: 'cc.user_id::text', nameExpr: 'u.name', label: 'Field Executive' },
+  client: { idExpr: 'cc.client_id::text', nameExpr: 'cl.name', label: 'Client' },
+  product: { idExpr: 'cases.product_id::text', nameExpr: 'p.name', label: 'Product' },
+  rateType: { idExpr: 'cc.rate_type_id::text', nameExpr: 'rt.name', label: 'Rate Type' },
 };
 
-type PivotUserRow = {
-  userId: string;
-  userName: string;
+type PivotDimDescriptor = { key: PivotDimKey; label: string };
+
+type PivotSubRow = {
+  id: string;
+  name: string;
   totals: PivotCell;
-  perClient: Record<string, PivotCell>;
-  rateTypes: PivotRateTypeRow[];
+  perCol: Record<string, PivotCell>;
+};
+
+type PivotRow = {
+  id: string;
+  name: string;
+  totals: PivotCell;
+  perCol: Record<string, PivotCell>;
+  subRows: PivotSubRow[] | null;
 };
 
 type PivotResponse = {
   period: { type: PivotPeriod; from: string | null; to: string | null };
-  clients: { id: number; name: string }[];
-  users: PivotUserRow[];
-  grandTotal: PivotCell & { perClient: Record<string, PivotCell> };
+  dims: { rows: PivotDimDescriptor; subRows: PivotDimDescriptor | null; cols: PivotDimDescriptor };
+  cols: { id: string; name: string }[];
+  rows: PivotRow[];
+  grandTotal: PivotCell & { perCol: Record<string, PivotCell> };
 };
 
 const PIVOT_PERIODS: ReadonlyArray<PivotPeriod> = [
@@ -1686,81 +1701,161 @@ const buildPivotConditions = (
   return { conditions, params };
 };
 
+const PIVOT_DIM_KEYS: ReadonlyArray<PivotDimKey> = ['user', 'client', 'product', 'rateType'];
+
+const resolvePivotDims = (
+  rawRows: unknown,
+  rawSubRows: unknown,
+  rawCols: unknown
+): { rows: PivotDimKey; subRows: PivotDimKey | null; cols: PivotDimKey } => {
+  const pick = (raw: unknown, fallback: PivotDimKey): PivotDimKey =>
+    PIVOT_DIM_KEYS.includes(raw as PivotDimKey) ? (raw as PivotDimKey) : fallback;
+  let rows = pick(rawRows, 'user');
+  let cols = pick(rawCols, 'client');
+  let subRows: PivotDimKey | null = rawSubRows === 'none' ? null : pick(rawSubRows, 'rateType');
+  // Force distinctness; cycle through remaining dims if user picks duplicates.
+  const taken = new Set<PivotDimKey>();
+  const ensureDistinct = (current: PivotDimKey): PivotDimKey => {
+    if (!taken.has(current)) {
+      taken.add(current);
+      return current;
+    }
+    const fallback = PIVOT_DIM_KEYS.find(d => !taken.has(d))!;
+    taken.add(fallback);
+    return fallback;
+  };
+  rows = ensureDistinct(rows);
+  cols = ensureDistinct(cols);
+  if (subRows) {
+    if (taken.has(subRows)) {
+      const alt = PIVOT_DIM_KEYS.find(d => !taken.has(d));
+      subRows = alt ?? null;
+      if (alt) {
+        taken.add(alt);
+      }
+    } else {
+      taken.add(subRows);
+    }
+  }
+  return { rows, subRows, cols };
+};
+
+const buildPivotSql = (resolvedDims: ReturnType<typeof resolvePivotDims>): string => {
+  const dims: PivotDimKey[] = [resolvedDims.rows, resolvedDims.cols];
+  if (resolvedDims.subRows) {
+    dims.push(resolvedDims.subRows);
+  }
+  const selectParts: string[] = [];
+  const groupParts: string[] = [];
+  selectParts.push(`${PIVOT_DIMS[resolvedDims.rows].idExpr} AS row_id`);
+  selectParts.push(`${PIVOT_DIMS[resolvedDims.rows].nameExpr} AS row_name`);
+  groupParts.push(PIVOT_DIMS[resolvedDims.rows].idExpr);
+  groupParts.push(PIVOT_DIMS[resolvedDims.rows].nameExpr);
+  selectParts.push(`${PIVOT_DIMS[resolvedDims.cols].idExpr} AS col_id`);
+  selectParts.push(`${PIVOT_DIMS[resolvedDims.cols].nameExpr} AS col_name`);
+  groupParts.push(PIVOT_DIMS[resolvedDims.cols].idExpr);
+  groupParts.push(PIVOT_DIMS[resolvedDims.cols].nameExpr);
+  if (resolvedDims.subRows) {
+    selectParts.push(`${PIVOT_DIMS[resolvedDims.subRows].idExpr} AS sub_id`);
+    selectParts.push(`${PIVOT_DIMS[resolvedDims.subRows].nameExpr} AS sub_name`);
+    groupParts.push(PIVOT_DIMS[resolvedDims.subRows].idExpr);
+    groupParts.push(PIVOT_DIMS[resolvedDims.subRows].nameExpr);
+  }
+  selectParts.push('COALESCE(SUM(cc.commission_amount), 0) AS amount');
+  selectParts.push('COUNT(DISTINCT cc.case_id) AS case_count');
+  return `
+    SELECT ${selectParts.join(', ')}
+    FROM commission_calculations cc
+    LEFT JOIN users u ON cc.user_id = u.id
+    LEFT JOIN rate_types rt ON cc.rate_type_id = rt.id
+    LEFT JOIN clients cl ON cc.client_id = cl.id
+    LEFT JOIN cases ON cc.case_id = cases.id
+    LEFT JOIN products p ON cases.product_id = p.id
+    __WHERE__
+    GROUP BY ${groupParts.join(', ')}
+    ORDER BY row_name NULLS LAST, ${resolvedDims.subRows ? 'sub_name NULLS LAST, ' : ''}col_name NULLS LAST
+  `;
+};
+
 const buildPivotResponse = (
-  rows: Array<Record<string, unknown>>,
-  period: ReturnType<typeof resolvePivotPeriod>
+  rawRows: Array<Record<string, unknown>>,
+  period: ReturnType<typeof resolvePivotPeriod>,
+  resolvedDims: ReturnType<typeof resolvePivotDims>
 ): PivotResponse => {
-  const clientMap = new Map<number, string>();
-  const userMap = new Map<string, PivotUserRow>();
-  const grandPerClient: Record<string, PivotCell> = {};
+  const colMap = new Map<string, string>();
+  const rowMap = new Map<string, PivotRow>();
+  const grandPerCol: Record<string, PivotCell> = {};
   let grandAmount = 0;
   let grandCount = 0;
 
-  for (const row of rows) {
-    const userId = row.userId as string | null;
-    const userName = (row.userName as string | null) || 'Unknown';
-    const rateTypeId = row.rateTypeId as number | null;
-    const rateTypeName = (row.rateTypeName as string | null) || 'Unknown';
-    const clientId = row.clientId as number | null;
-    const clientName = (row.clientName as string | null) || 'Unknown';
-    const amount = Number(row.amount) || 0;
-    const count = Number(row.caseCount) || 0;
-    if (!userId || rateTypeId == null || clientId == null) {
+  for (const r of rawRows) {
+    const rowId = r.rowId as string | null;
+    const rowName = (r.rowName as string | null) || 'Unknown';
+    const colId = r.colId as string | null;
+    const colName = (r.colName as string | null) || 'Unknown';
+    const subId = resolvedDims.subRows ? (r.subId as string | null) : null;
+    const subName = resolvedDims.subRows ? (r.subName as string | null) || 'Unknown' : null;
+    const amount = Number(r.amount) || 0;
+    const count = Number(r.caseCount) || 0;
+    if (rowId == null || colId == null) {
+      continue;
+    }
+    if (resolvedDims.subRows && subId == null) {
       continue;
     }
 
-    clientMap.set(clientId, clientName);
+    colMap.set(colId, colName);
 
-    let userRow = userMap.get(userId);
-    if (!userRow) {
-      userRow = {
-        userId,
-        userName,
+    let row = rowMap.get(rowId);
+    if (!row) {
+      row = {
+        id: rowId,
+        name: rowName,
         totals: { amount: 0, count: 0 },
-        perClient: {},
-        rateTypes: [],
+        perCol: {},
+        subRows: resolvedDims.subRows ? [] : null,
       };
-      userMap.set(userId, userRow);
+      rowMap.set(rowId, row);
     }
-    userRow.totals.amount += amount;
-    userRow.totals.count += count;
-    const upcKey = String(clientId);
-    const upc = userRow.perClient[upcKey] ?? { amount: 0, count: 0 };
-    upc.amount += amount;
-    upc.count += count;
-    userRow.perClient[upcKey] = upc;
+    row.totals.amount += amount;
+    row.totals.count += count;
+    const rpc = row.perCol[colId] ?? { amount: 0, count: 0 };
+    rpc.amount += amount;
+    rpc.count += count;
+    row.perCol[colId] = rpc;
 
-    let rtRow = userRow.rateTypes.find(r => r.rateTypeId === rateTypeId);
-    if (!rtRow) {
-      rtRow = {
-        rateTypeId,
-        rateTypeName,
-        totals: { amount: 0, count: 0 },
-        perClient: {},
-      };
-      userRow.rateTypes.push(rtRow);
+    if (resolvedDims.subRows && subId != null && subName != null) {
+      let sub = row.subRows!.find(s => s.id === subId);
+      if (!sub) {
+        sub = { id: subId, name: subName, totals: { amount: 0, count: 0 }, perCol: {} };
+        row.subRows!.push(sub);
+      }
+      sub.totals.amount += amount;
+      sub.totals.count += count;
+      const spc = sub.perCol[colId] ?? { amount: 0, count: 0 };
+      spc.amount += amount;
+      spc.count += count;
+      sub.perCol[colId] = spc;
     }
-    rtRow.totals.amount += amount;
-    rtRow.totals.count += count;
-    const rtpc = rtRow.perClient[upcKey] ?? { amount: 0, count: 0 };
-    rtpc.amount += amount;
-    rtpc.count += count;
-    rtRow.perClient[upcKey] = rtpc;
 
-    const gpc = grandPerClient[upcKey] ?? { amount: 0, count: 0 };
+    const gpc = grandPerCol[colId] ?? { amount: 0, count: 0 };
     gpc.amount += amount;
     gpc.count += count;
-    grandPerClient[upcKey] = gpc;
+    grandPerCol[colId] = gpc;
     grandAmount += amount;
     grandCount += count;
   }
 
-  const clients = Array.from(clientMap.entries())
+  const cols = Array.from(colMap.entries())
     .map(([id, name]) => ({ id, name }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const users = Array.from(userMap.values()).sort((a, b) => a.userName.localeCompare(b.userName));
-  users.forEach(u => u.rateTypes.sort((a, b) => a.rateTypeName.localeCompare(b.rateTypeName)));
+  const rows = Array.from(rowMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  rows.forEach(row => {
+    if (row.subRows) {
+      row.subRows.sort((a, b) => a.name.localeCompare(b.name));
+    }
+  });
 
   return {
     period: {
@@ -1768,44 +1863,37 @@ const buildPivotResponse = (
       from: period.from ? period.from.toISOString() : null,
       to: period.to ? period.to.toISOString() : null,
     },
-    clients,
-    users,
-    grandTotal: { amount: grandAmount, count: grandCount, perClient: grandPerClient },
+    dims: {
+      rows: { key: resolvedDims.rows, label: PIVOT_DIMS[resolvedDims.rows].label },
+      subRows: resolvedDims.subRows
+        ? { key: resolvedDims.subRows, label: PIVOT_DIMS[resolvedDims.subRows].label }
+        : null,
+      cols: { key: resolvedDims.cols, label: PIVOT_DIMS[resolvedDims.cols].label },
+    },
+    cols,
+    rows,
+    grandTotal: { amount: grandAmount, count: grandCount, perCol: grandPerCol },
   };
 };
 
-const PIVOT_SQL = `
-  SELECT
-    cc.user_id,
-    u.name AS user_name,
-    cc.rate_type_id,
-    rt.name AS rate_type_name,
-    cc.client_id,
-    cl.name AS client_name,
-    COALESCE(SUM(cc.commission_amount), 0) AS amount,
-    COUNT(DISTINCT cc.case_id) AS case_count
-  FROM commission_calculations cc
-  LEFT JOIN users u ON cc.user_id = u.id
-  LEFT JOIN rate_types rt ON cc.rate_type_id = rt.id
-  LEFT JOIN clients cl ON cc.client_id = cl.id
-  LEFT JOIN cases ON cc.case_id = cases.id
-  __WHERE__
-  GROUP BY cc.user_id, u.name, cc.rate_type_id, rt.name, cc.client_id, cl.name
-  ORDER BY u.name NULLS LAST, rt.name NULLS LAST, cl.name NULLS LAST
-`;
+const fetchPivot = async (req: AuthenticatedRequest): Promise<PivotResponse> => {
+  const scope = await resolveDataScope(req as never);
+  const period = resolvePivotPeriod(req.query.period, req.query.dateFrom, req.query.dateTo);
+  const dims = resolvePivotDims(req.query.rows, req.query.subRows, req.query.cols);
+  const { conditions, params } = buildPivotConditions(scope, period);
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const sql = buildPivotSql(dims).replace('__WHERE__', where);
+  const result = await query(sql, params);
+  return buildPivotResponse(result.rows, period, dims);
+};
 
-// GET /api/commission-management/pivot — Commission pivot (User × Client × Rate Type)
+// GET /api/commission-management/pivot — Configurable commission pivot
 export const getCommissionPivot = async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!requireControllerPermission(req as never, res, 'billing.download')) {
       return;
     }
-    const scope = await resolveDataScope(req as never);
-    const period = resolvePivotPeriod(req.query.period, req.query.dateFrom, req.query.dateTo);
-    const { conditions, params } = buildPivotConditions(scope, period);
-    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-    const result = await query(PIVOT_SQL.replace('__WHERE__', where), params);
-    const pivot = buildPivotResponse(result.rows, period);
+    const pivot = await fetchPivot(req);
     res.json({ success: true, data: pivot });
   } catch (error) {
     logger.error('Error retrieving commission pivot', {
@@ -1823,20 +1911,20 @@ export const exportCommissionPivot = async (req: AuthenticatedRequest, res: Resp
     if (!requireControllerPermission(req as never, res, 'billing.download')) {
       return;
     }
-    const scope = await resolveDataScope(req as never);
-    const period = resolvePivotPeriod(req.query.period, req.query.dateFrom, req.query.dateTo);
-    const { conditions, params } = buildPivotConditions(scope, period);
-    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-    const result = await query(PIVOT_SQL.replace('__WHERE__', where), params);
-    const pivot = buildPivotResponse(result.rows, period);
+    const pivot = await fetchPivot(req);
 
     await createAuditLog({
       userId: req.user?.id,
       action: 'COMMISSION_PIVOT_EXPORTED',
       entityType: 'commission',
       details: {
-        userCount: pivot.users.length,
-        clientCount: pivot.clients.length,
+        rowCount: pivot.rows.length,
+        colCount: pivot.cols.length,
+        dims: {
+          rows: pivot.dims.rows.key,
+          subRows: pivot.dims.subRows?.key ?? null,
+          cols: pivot.dims.cols.key,
+        },
         period: pivot.period,
       },
     });
@@ -1844,9 +1932,14 @@ export const exportCommissionPivot = async (req: AuthenticatedRequest, res: Resp
     const workbook = new ExcelJS.Workbook();
     const ws = workbook.addWorksheet('Commission Pivot');
 
-    const headerRow1: string[] = ['Field Executive', 'Rate Type'];
-    const headerRow2: string[] = ['', ''];
-    for (const c of pivot.clients) {
+    const hasSubRows = pivot.dims.subRows != null;
+    const headerLabels: string[] = [pivot.dims.rows.label];
+    if (hasSubRows && pivot.dims.subRows) {
+      headerLabels.push(pivot.dims.subRows.label);
+    }
+    const headerRow1: string[] = [...headerLabels];
+    const headerRow2: string[] = headerLabels.map(() => '');
+    for (const c of pivot.cols) {
       headerRow1.push(c.name, '');
       headerRow2.push('Sum (₹)', 'Count');
     }
@@ -1857,9 +1950,10 @@ export const exportCommissionPivot = async (req: AuthenticatedRequest, res: Resp
     ws.getRow(1).font = { bold: true };
     ws.getRow(2).font = { bold: true };
 
+    // Merge two-row headers for each column group (cols + Total).
     const merges: string[] = [];
-    let col = 3;
-    for (let i = 0; i < pivot.clients.length; i++) {
+    let col = headerLabels.length + 1;
+    for (let i = 0; i < pivot.cols.length; i++) {
       merges.push(`${ws.getColumn(col).letter}1:${ws.getColumn(col + 1).letter}1`);
       col += 2;
     }
@@ -1871,30 +1965,38 @@ export const exportCommissionPivot = async (req: AuthenticatedRequest, res: Resp
       cell ? cell.count : 0,
     ];
 
-    for (const user of pivot.users) {
-      const userRow: Array<string | number> = [user.userName, 'All'];
-      pivot.clients.forEach(c => {
-        const [a, n] = formatCell(user.perClient[String(c.id)]);
-        userRow.push(a, n);
+    for (const row of pivot.rows) {
+      const xlsxRow: Array<string | number> = [row.name];
+      if (hasSubRows) {
+        xlsxRow.push('All');
+      }
+      pivot.cols.forEach(c => {
+        const [a, n] = formatCell(row.perCol[c.id]);
+        xlsxRow.push(a, n);
       });
-      userRow.push(user.totals.amount, user.totals.count);
-      const r = ws.addRow(escapeFormulaRow(userRow));
+      xlsxRow.push(row.totals.amount, row.totals.count);
+      const r = ws.addRow(escapeFormulaRow(xlsxRow));
       r.font = { bold: true };
 
-      for (const rt of user.rateTypes) {
-        const rtRow: Array<string | number> = ['', rt.rateTypeName];
-        pivot.clients.forEach(c => {
-          const [a, n] = formatCell(rt.perClient[String(c.id)]);
-          rtRow.push(a, n);
-        });
-        rtRow.push(rt.totals.amount, rt.totals.count);
-        ws.addRow(escapeFormulaRow(rtRow));
+      if (hasSubRows && row.subRows) {
+        for (const sub of row.subRows) {
+          const subRow: Array<string | number> = ['', sub.name];
+          pivot.cols.forEach(c => {
+            const [a, n] = formatCell(sub.perCol[c.id]);
+            subRow.push(a, n);
+          });
+          subRow.push(sub.totals.amount, sub.totals.count);
+          ws.addRow(escapeFormulaRow(subRow));
+        }
       }
     }
 
-    const grandRow: Array<string | number> = ['Grand Total', ''];
-    pivot.clients.forEach(c => {
-      const [a, n] = formatCell(pivot.grandTotal.perClient[String(c.id)]);
+    const grandRow: Array<string | number> = ['Grand Total'];
+    if (hasSubRows) {
+      grandRow.push('');
+    }
+    pivot.cols.forEach(c => {
+      const [a, n] = formatCell(pivot.grandTotal.perCol[c.id]);
       grandRow.push(a, n);
     });
     grandRow.push(pivot.grandTotal.amount, pivot.grandTotal.count);
