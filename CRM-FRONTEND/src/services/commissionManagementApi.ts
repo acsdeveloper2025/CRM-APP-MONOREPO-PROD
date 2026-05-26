@@ -7,6 +7,8 @@ import {
   CreateFieldUserCommissionAssignmentData,
   CommissionCalculation,
   CommissionStats,
+  CommissionPivot,
+  CommissionPivotPeriod,
 } from '../types/commission';
 import { validateResponse } from './schemas/runtime';
 import { GenericEntityListSchema, GenericObjectSchema } from './schemas/generic.schema';
@@ -206,6 +208,47 @@ export const commissionManagementApi = {
       });
     }
     return response;
+  },
+
+  // Commission Pivot (User × Client × Rate Type)
+  async getCommissionPivot(params: {
+    period: CommissionPivotPeriod;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<ApiResponse<CommissionPivot>> {
+    const queryParams: Record<string, string> = { period: params.period };
+    if (params.dateFrom) {
+      queryParams.dateFrom = params.dateFrom;
+    }
+    if (params.dateTo) {
+      queryParams.dateTo = params.dateTo;
+    }
+    const response = await apiService.get<CommissionPivot>(
+      '/commission-management/pivot',
+      queryParams
+    );
+    if (response?.success && response.data && typeof response.data === 'object') {
+      validateResponse(GenericObjectSchema, response.data, {
+        service: 'commissionManagementApi',
+        endpoint: 'GET /commission-management/pivot',
+      });
+    }
+    return response;
+  },
+
+  async exportCommissionPivot(params: {
+    period: CommissionPivotPeriod;
+    dateFrom?: string;
+    dateTo?: string;
+  }): Promise<Blob> {
+    const queryParams: Record<string, string> = { period: params.period };
+    if (params.dateFrom) {
+      queryParams.dateFrom = params.dateFrom;
+    }
+    if (params.dateTo) {
+      queryParams.dateTo = params.dateTo;
+    }
+    return apiService.getBlob('/commission-management/pivot/export', queryParams);
   },
 
   // Export Functions

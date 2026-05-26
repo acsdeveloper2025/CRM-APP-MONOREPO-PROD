@@ -1,207 +1,240 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart3, TrendingUp, Users, DollarSign, Calendar, Download } from 'lucide-react';
-import { commissionManagementApi } from '../../services/commissionManagementApi';
-import { CommissionStats } from '../../types/commission';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Download, TrendingUp, Users } from 'lucide-react';
+import { commissionManagementApi } from '@/services/commissionManagementApi';
+import { CommissionPivotTable } from './CommissionPivotTable';
+import type { CommissionPivotPeriod } from '@/types/commission';
 import { logger } from '@/utils/logger';
 
+const PERIOD_OPTIONS: { value: CommissionPivotPeriod; label: string }[] = [
+  { value: 'week', label: 'This Week' },
+  { value: 'month', label: 'This Month' },
+  { value: 'quarter', label: 'This Quarter' },
+  { value: 'year', label: 'This Year' },
+  { value: 'all', label: 'All Time' },
+  { value: 'custom', label: 'Custom Range' },
+];
+
+const fmtAmount = (n: number) =>
+  new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n);
+
 export const CommissionStatsTab: React.FC = () => {
-  const [stats, setStats] = useState<CommissionStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState('month');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const period = (searchParams.get('period') as CommissionPivotPeriod) || 'month';
+  const dateFrom = searchParams.get('dateFrom') || '';
+  const dateTo = searchParams.get('dateTo') || '';
 
-  useEffect(() => {
-    loadStats();
-  }, [selectedPeriod]);
+  const updateParam = (key: string, value: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) {
+      next.set(key, value);
+    } else {
+      next.delete(key);
+    }
+    if (key === 'period' && value !== 'custom') {
+      next.delete('dateFrom');
+      next.delete('dateTo');
+    }
+    setSearchParams(next);
+  };
 
-  const loadStats = async () => {
+  const pivotParams = useMemo(
+    () => ({
+      period,
+      ...(period === 'custom' && dateFrom ? { dateFrom } : {}),
+      ...(period === 'custom' && dateTo ? { dateTo } : {}),
+    }),
+    [period, dateFrom, dateTo]
+  );
+
+  const statsQuery = useQuery({
+    queryKey: ['commission-stats'],
+    queryFn: () => commissionManagementApi.getCommissionStats(),
+  });
+
+  const pivotQuery = useQuery({
+    queryKey: ['commission-pivot', pivotParams],
+    queryFn: () => commissionManagementApi.getCommissionPivot(pivotParams),
+  });
+
+  const stats = statsQuery.data?.data;
+  const pivot = pivotQuery.data?.data;
+
+  const handleExport = async () => {
     try {
-      setLoading(true);
-      const response = await commissionManagementApi.getCommissionStats();
-      setStats(response.data ?? null);
+      const blob = await commissionManagementApi.exportCommissionPivot(pivotParams);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `commission_pivot_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success('Pivot exported');
     } catch (error) {
-      logger.error('Error loading commission stats:', error);
-    } finally {
-      setLoading(false);
+      logger.error('Failed to export commission pivot', error);
+      toast.error('Export failed');
     }
   };
-
-  const exportStats = () => {
-    if (!stats) {
-      return;
-    }
-
-    const csvContent = [
-      ['Metric', 'Value'],
-      ['Total Commission Paid', `${stats.totalCommissionPaid || 0}`],
-      ['Total Commission Pending', `${stats.totalCommissionPending || 0}`],
-      ['Active Field Users', `${stats.activeFieldUsers || 0}`],
-      ['Total Assignments', `${stats.totalAssignments || 0}`],
-      ['Average Commission Per Case', `${stats.averageCommissionPerCase || 0}`],
-      ['Top Performing User', `${stats.topPerformingUser || 'N/A'}`],
-      ['Most Used Rate Type', `${stats.mostUsedRateType || 'N/A'}`],
-    ]
-      .map((row) => row.join(','))
-      .join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `commission-stats-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-1">
+              <Label htmlFor="commission-period">Period</Label>
+              <Select value={period} onValueChange={(v) => updateParam('period', v)}>
+                <SelectTrigger id="commission-period">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PERIOD_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {period === 'custom' && (
+              <>
+                <div className="space-y-1">
+                  <Label htmlFor="commission-date-from">Date From</Label>
+                  <Input
+                    id="commission-date-from"
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => updateParam('dateFrom', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="commission-date-to">Date To</Label>
+                  <Input
+                    id="commission-date-to"
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => updateParam('dateTo', e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="space-y-1 sm:col-start-4 sm:row-start-1 flex items-end justify-end">
+              <Button
+                variant="default"
+                onClick={handleExport}
+                disabled={!pivot || pivotQuery.isLoading}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stat tiles */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {statsQuery.isLoading ? '—' : (stats?.activeFieldUsers ?? 0)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Field execs with an active commission assignment
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg Per Task</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ₹{statsQuery.isLoading ? '—' : fmtAmount(stats?.averageCommissionPerCase ?? 0)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Average commission across all calculations
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Performance Insights */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Commission Statistics
+          <CardTitle className="text-lg">Performance Insights</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Top Earner</span>
+              <span className="font-medium text-right">
+                {stats?.topPerformingUser
+                  ? `${stats.topPerformingUser} (₹${fmtAmount(stats.topPerformerAmount ?? 0)})`
+                  : 'N/A'}
+              </span>
             </div>
-            <div className="flex gap-2">
-              <select
-                value={selectedPeriod}
-                onChange={(e) => setSelectedPeriod(e.target.value)}
-                className="px-3 py-1 border border-input rounded-lg text-sm"
-              >
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="quarter">This Quarter</option>
-                <option value="year">This Year</option>
-              </select>
-              <button
-                onClick={exportStats}
-                className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-              >
-                <Download className="h-4 w-4" />
-                Export
-              </button>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Most Used Rate Type</span>
+              <span className="font-medium">{stats?.mostUsedRateType ?? 'N/A'}</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Total Assignments</span>
+              <span className="font-medium">{stats?.totalAssignments ?? 0}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Commission Rate Types</span>
+              <span className="font-medium">{stats?.totalRateTypes ?? 0}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Pivot Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">
+            Commission Pivot: Field Executive × Client × Rate Type
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {/* Total Commission Paid */}
-            <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100 text-sm">Total Paid</p>
-                  <p className="text-2xl font-bold">
-                    ₹{stats?.totalCommissionPaid?.toLocaleString() || '0'}
-                  </p>
-                </div>
-                <DollarSign className="h-8 w-8 text-green-200" />
-              </div>
+          {pivotQuery.isLoading ? (
+            <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+              Loading pivot…
             </div>
-
-            {/* Total Commission Pending */}
-            <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg p-6 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-yellow-100 text-sm">Total Pending</p>
-                  <p className="text-2xl font-bold">
-                    ₹{stats?.totalCommissionPending?.toLocaleString() || '0'}
-                  </p>
-                </div>
-                <Calendar className="h-8 w-8 text-yellow-200" />
-              </div>
+          ) : pivotQuery.isError || !pivot ? (
+            <div className="flex items-center justify-center h-32 text-sm text-destructive">
+              Failed to load pivot.
             </div>
-
-            {/* Active Field Users */}
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm">Active Users</p>
-                  <p className="text-2xl font-bold">{stats?.activeFieldUsers || '0'}</p>
-                </div>
-                <Users className="h-8 w-8 text-blue-200" />
-              </div>
-            </div>
-
-            {/* Average Commission */}
-            <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100 text-sm">Avg Per Case</p>
-                  <p className="text-2xl font-bold">
-                    ₹{stats?.averageCommissionPerCase?.toLocaleString() || '0'}
-                  </p>
-                </div>
-                <TrendingUp className="h-8 w-8 text-purple-200" />
-              </div>
-            </div>
-          </div>
-
-          {/* Additional Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Performance Insights</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Top Performing User:</span>
-                    <span className="font-semibold">{stats?.topPerformingUser || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Most Used Rate Type:</span>
-                    <span className="font-semibold">{stats?.mostUsedRateType || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Total Assignments:</span>
-                    <span className="font-semibold">{stats?.totalAssignments || '0'}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Commission Rate Types:</span>
-                    <span className="font-semibold">{stats?.totalRateTypes || '0'}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Cases Completed Today:</span>
-                    <span className="font-semibold">{stats?.casesCompletedToday || '0'}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Commission Calculated Today:</span>
-                    <span className="font-semibold">
-                      ₹{stats?.commissionCalculatedToday?.toLocaleString() || '0'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">New Assignments This Week:</span>
-                    <span className="font-semibold">{stats?.newAssignmentsThisWeek || '0'}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Payment Batches Pending:</span>
-                    <span className="font-semibold">{stats?.paymentBatchesPending || '0'}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          ) : (
+            <CommissionPivotTable data={pivot} />
+          )}
         </CardContent>
       </Card>
     </div>
   );
 };
+
+export default CommissionStatsTab;

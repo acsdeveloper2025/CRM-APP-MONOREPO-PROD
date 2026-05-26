@@ -217,13 +217,39 @@ export interface CommissionStats {
   activeFieldUsers?: number;
   totalAssignments?: number;
   averageCommissionPerCase?: number;
-  topPerformingUser?: string;
-  mostUsedRateType?: string;
+  topPerformingUser?: string | null;
+  topPerformerAmount?: number;
+  mostUsedRateType?: string | null;
   totalRateTypes?: number;
-  casesCompletedToday?: number;
-  commissionCalculatedToday?: number;
-  newAssignmentsThisWeek?: number;
-  paymentBatchesPending?: number;
+}
+
+export type CommissionPivotPeriod = 'week' | 'month' | 'quarter' | 'year' | 'all' | 'custom';
+
+export interface CommissionPivotCell {
+  amount: number;
+  count: number;
+}
+
+export interface CommissionPivotRateType {
+  rateTypeId: number;
+  rateTypeName: string;
+  totals: CommissionPivotCell;
+  perClient: Record<string, CommissionPivotCell>;
+}
+
+export interface CommissionPivotUser {
+  userId: string;
+  userName: string;
+  totals: CommissionPivotCell;
+  perClient: Record<string, CommissionPivotCell>;
+  rateTypes: CommissionPivotRateType[];
+}
+
+export interface CommissionPivot {
+  period: { type: CommissionPivotPeriod; from: string | null; to: string | null };
+  clients: { id: number; name: string }[];
+  users: CommissionPivotUser[];
+  grandTotal: CommissionPivotCell & { perClient: Record<string, CommissionPivotCell> };
 }
 
 export interface CommissionSummary {

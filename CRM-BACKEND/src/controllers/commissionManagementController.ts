@@ -1325,20 +1325,24 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
     const assignmentsResult = await query(assignmentsQuery, assignmentParams);
     const totalAssignments = assignmentsResult.rows[0]?.totalAssignments || 0;
 
-    // Get top performing user
+    // Top earner: highest SUM(commission_amount) across non-REJECTED rows
+    // (payment workflow does not yet ship — gating on status='PAID' would
+    // make this perpetually N/A; sweep 2026-05-26 broadened to all statuses
+    // except REJECTED so the field reflects real work the user has done.)
     const topUserQuery = `
-      SELECT u.name as user_name, COUNT(*) as calculation_count
+      SELECT u.name as user_name, COALESCE(SUM(cc.commission_amount), 0) as total_amount
       FROM commission_calculations cc
       LEFT JOIN users u ON cc.user_id = u.id
       LEFT JOIN cases ON cc.case_id = cases.id
-      WHERE cc.status = 'PAID'
+      WHERE cc.status <> 'REJECTED'
       ${calcConditions.length ? `AND ${calcConditions.join(' AND ')}` : ''}
       GROUP BY cc.user_id, u.name
-      ORDER BY calculation_count DESC
+      ORDER BY total_amount DESC NULLS LAST
       LIMIT 1
     `;
     const topUserResult = await query(topUserQuery, calcParams);
     const topUser = topUserResult.rows[0]?.userName || null;
+    const topUserAmount = parseFloat(topUserResult.rows[0]?.totalAmount) || 0;
 
     // Get most used rate type
     const topRateTypeQuery = `
@@ -1369,27 +1373,11 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
     const rateTypesResult = await query(rateTypesQuery);
     const totalRateTypes = rateTypesResult.rows[0]?.totalRateTypes || 0;
 
-    // Get today's stats
-    const todayQuery = `
-      SELECT
-        COUNT(CASE WHEN DATE(cc.created_at) = CURRENT_DATE THEN 1 END) as calculations_today,
-        COALESCE(SUM(CASE WHEN DATE(cc.created_at) = CURRENT_DATE THEN cc.commission_amount ELSE 0 END), 0) as commission_today
-      FROM commission_calculations cc
-      LEFT JOIN cases ON cc.case_id = cases.id
-      ${calcWhere}
-    `;
-    const todayResult = await query(todayQuery, calcParams);
-    const todayStats = todayResult.rows[0];
-
-    // Get this week's new assignments
-    const thisWeekQuery = `
-      SELECT COUNT(*) as new_assignments_week
-      FROM field_user_commission_assignments
-      WHERE created_at >= DATE_TRUNC('week', CURRENT_DATE)
-      ${assignmentConditions.length ? `AND ${assignmentConditions.join(' AND ')}` : ''}
-    `;
-    const thisWeekResult = await query(thisWeekQuery, assignmentParams);
-    const newAssignmentsWeek = thisWeekResult.rows[0]?.newAssignmentsWeek || 0;
+    // Truthful-data sweep 2026-05-26: dropped today/thisWeek subqueries.
+    // `casesCompletedToday` was mislabeled (counted commission_calculations
+    // rows created today, not case completions); `commissionCalculatedToday`
+    // + `newAssignmentsThisWeek` + hardcoded `paymentBatchesPending` were the
+    // 'Recent Activity' card that the page now no longer renders.
 
     const commissionStats = {
       // Basic stats
@@ -1412,12 +1400,9 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       totalAssignments: parseInt(totalAssignments) || 0,
       averageCommissionPerCase: parseFloat(stats.averageCommission) || 0,
       topPerformingUser: topUser,
+      topPerformerAmount: topUserAmount,
       mostUsedRateType: topRateType,
       totalRateTypes: parseInt(totalRateTypes) || 0,
-      casesCompletedToday: parseInt(todayStats.calculationsToday) || 0,
-      commissionCalculatedToday: parseFloat(todayStats.commissionToday) || 0,
-      newAssignmentsThisWeek: parseInt(newAssignmentsWeek) || 0,
-      paymentBatchesPending: 0, // Can be implemented when payment batches are added
     };
 
     logger.info('Retrieved commission statistics', {
@@ -1592,5 +1577,346 @@ export const exportCommissionsToExcel = async (req: AuthenticatedRequest, res: R
   } catch (error) {
     logger.error('Error exporting commissions:', error);
     res.status(500).json({ success: false, message: 'Failed to export commissions' });
+  }
+};
+
+// =====================================================
+// COMMISSION PIVOT (User × Client × Rate Type)
+// =====================================================
+
+type PivotPeriod = 'week' | 'month' | 'quarter' | 'year' | 'all' | 'custom';
+
+type PivotCell = { amount: number; count: number };
+
+type PivotRateTypeRow = {
+  rateTypeId: number;
+  rateTypeName: string;
+  totals: PivotCell;
+  perClient: Record<string, PivotCell>;
+};
+
+type PivotUserRow = {
+  userId: string;
+  userName: string;
+  totals: PivotCell;
+  perClient: Record<string, PivotCell>;
+  rateTypes: PivotRateTypeRow[];
+};
+
+type PivotResponse = {
+  period: { type: PivotPeriod; from: string | null; to: string | null };
+  clients: { id: number; name: string }[];
+  users: PivotUserRow[];
+  grandTotal: PivotCell & { perClient: Record<string, PivotCell> };
+};
+
+const PIVOT_PERIODS: ReadonlyArray<PivotPeriod> = [
+  'week',
+  'month',
+  'quarter',
+  'year',
+  'all',
+  'custom',
+];
+
+const resolvePivotPeriod = (
+  rawPeriod: unknown,
+  rawFrom: unknown,
+  rawTo: unknown
+): { type: PivotPeriod; from: Date | null; to: Date | null } => {
+  const type: PivotPeriod = PIVOT_PERIODS.includes(rawPeriod as PivotPeriod)
+    ? (rawPeriod as PivotPeriod)
+    : 'month';
+  const now = new Date();
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  if (type === 'all') {
+    return { type, from: null, to: null };
+  }
+  if (type === 'week') {
+    const day = now.getDay() || 7; // Mon=1..Sun=7 (treat Sunday as end of prior week)
+    const from = startOfDay(new Date(now));
+    from.setDate(from.getDate() - (day - 1));
+    return { type, from, to: now };
+  }
+  if (type === 'month') {
+    const from = new Date(now.getFullYear(), now.getMonth(), 1);
+    return { type, from, to: now };
+  }
+  if (type === 'quarter') {
+    const q = Math.floor(now.getMonth() / 3);
+    const from = new Date(now.getFullYear(), q * 3, 1);
+    return { type, from, to: now };
+  }
+  if (type === 'year') {
+    const from = new Date(now.getFullYear(), 0, 1);
+    return { type, from, to: now };
+  }
+  // custom — half-open: to is treated exclusive at end-of-day (canonical < dateTo+1day)
+  const from = typeof rawFrom === 'string' && rawFrom ? new Date(rawFrom) : null;
+  const to = typeof rawTo === 'string' && rawTo ? new Date(rawTo) : null;
+  return { type, from, to };
+};
+
+const buildPivotConditions = (
+  scope: Awaited<ReturnType<typeof resolveDataScope>>,
+  period: ReturnType<typeof resolvePivotPeriod>
+) => {
+  const conditions: string[] = [];
+  const params: Array<string | number | boolean | string[] | number[]> = [];
+  appendOperationalScopeConditions({
+    scope,
+    conditions,
+    params,
+    userExpr: 'cc.user_id',
+    clientExpr: 'cc.client_id',
+    productExpr: 'cases.product_id',
+  });
+  conditions.push(`cc.status <> 'REJECTED'`);
+  if (period.from) {
+    conditions.push(`cc.case_completed_at >= $${params.length + 1}`);
+    params.push(period.from.toISOString());
+  }
+  if (period.to) {
+    // Half-open boundary so the "to" date is inclusive of its full day.
+    const exclusiveTo = new Date(period.to);
+    exclusiveTo.setDate(exclusiveTo.getDate() + 1);
+    conditions.push(`cc.case_completed_at < $${params.length + 1}`);
+    params.push(exclusiveTo.toISOString());
+  }
+  return { conditions, params };
+};
+
+const buildPivotResponse = (
+  rows: Array<Record<string, unknown>>,
+  period: ReturnType<typeof resolvePivotPeriod>
+): PivotResponse => {
+  const clientMap = new Map<number, string>();
+  const userMap = new Map<string, PivotUserRow>();
+  const grandPerClient: Record<string, PivotCell> = {};
+  let grandAmount = 0;
+  let grandCount = 0;
+
+  for (const row of rows) {
+    const userId = row.userId as string | null;
+    const userName = (row.userName as string | null) || 'Unknown';
+    const rateTypeId = row.rateTypeId as number | null;
+    const rateTypeName = (row.rateTypeName as string | null) || 'Unknown';
+    const clientId = row.clientId as number | null;
+    const clientName = (row.clientName as string | null) || 'Unknown';
+    const amount = Number(row.amount) || 0;
+    const count = Number(row.caseCount) || 0;
+    if (!userId || rateTypeId == null || clientId == null) {
+      continue;
+    }
+
+    clientMap.set(clientId, clientName);
+
+    let userRow = userMap.get(userId);
+    if (!userRow) {
+      userRow = {
+        userId,
+        userName,
+        totals: { amount: 0, count: 0 },
+        perClient: {},
+        rateTypes: [],
+      };
+      userMap.set(userId, userRow);
+    }
+    userRow.totals.amount += amount;
+    userRow.totals.count += count;
+    const upcKey = String(clientId);
+    const upc = userRow.perClient[upcKey] ?? { amount: 0, count: 0 };
+    upc.amount += amount;
+    upc.count += count;
+    userRow.perClient[upcKey] = upc;
+
+    let rtRow = userRow.rateTypes.find(r => r.rateTypeId === rateTypeId);
+    if (!rtRow) {
+      rtRow = {
+        rateTypeId,
+        rateTypeName,
+        totals: { amount: 0, count: 0 },
+        perClient: {},
+      };
+      userRow.rateTypes.push(rtRow);
+    }
+    rtRow.totals.amount += amount;
+    rtRow.totals.count += count;
+    const rtpc = rtRow.perClient[upcKey] ?? { amount: 0, count: 0 };
+    rtpc.amount += amount;
+    rtpc.count += count;
+    rtRow.perClient[upcKey] = rtpc;
+
+    const gpc = grandPerClient[upcKey] ?? { amount: 0, count: 0 };
+    gpc.amount += amount;
+    gpc.count += count;
+    grandPerClient[upcKey] = gpc;
+    grandAmount += amount;
+    grandCount += count;
+  }
+
+  const clients = Array.from(clientMap.entries())
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const users = Array.from(userMap.values()).sort((a, b) => a.userName.localeCompare(b.userName));
+  users.forEach(u => u.rateTypes.sort((a, b) => a.rateTypeName.localeCompare(b.rateTypeName)));
+
+  return {
+    period: {
+      type: period.type,
+      from: period.from ? period.from.toISOString() : null,
+      to: period.to ? period.to.toISOString() : null,
+    },
+    clients,
+    users,
+    grandTotal: { amount: grandAmount, count: grandCount, perClient: grandPerClient },
+  };
+};
+
+const PIVOT_SQL = `
+  SELECT
+    cc.user_id,
+    u.name AS user_name,
+    cc.rate_type_id,
+    rt.name AS rate_type_name,
+    cc.client_id,
+    cl.name AS client_name,
+    COALESCE(SUM(cc.commission_amount), 0) AS amount,
+    COUNT(DISTINCT cc.case_id) AS case_count
+  FROM commission_calculations cc
+  LEFT JOIN users u ON cc.user_id = u.id
+  LEFT JOIN rate_types rt ON cc.rate_type_id = rt.id
+  LEFT JOIN clients cl ON cc.client_id = cl.id
+  LEFT JOIN cases ON cc.case_id = cases.id
+  __WHERE__
+  GROUP BY cc.user_id, u.name, cc.rate_type_id, rt.name, cc.client_id, cl.name
+  ORDER BY u.name NULLS LAST, rt.name NULLS LAST, cl.name NULLS LAST
+`;
+
+// GET /api/commission-management/pivot — Commission pivot (User × Client × Rate Type)
+export const getCommissionPivot = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!requireControllerPermission(req as never, res, 'billing.download')) {
+      return;
+    }
+    const scope = await resolveDataScope(req as never);
+    const period = resolvePivotPeriod(req.query.period, req.query.dateFrom, req.query.dateTo);
+    const { conditions, params } = buildPivotConditions(scope, period);
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const result = await query(PIVOT_SQL.replace('__WHERE__', where), params);
+    const pivot = buildPivotResponse(result.rows, period);
+    res.json({ success: true, data: pivot });
+  } catch (error) {
+    logger.error('Error retrieving commission pivot', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: req.user?.id,
+    });
+    res.status(500).json({ success: false, message: 'Failed to retrieve commission pivot' });
+  }
+};
+
+// GET /api/commission-management/pivot/export — xlsx of pivot
+export const exportCommissionPivot = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!requireControllerPermission(req as never, res, 'billing.download')) {
+      return;
+    }
+    const scope = await resolveDataScope(req as never);
+    const period = resolvePivotPeriod(req.query.period, req.query.dateFrom, req.query.dateTo);
+    const { conditions, params } = buildPivotConditions(scope, period);
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const result = await query(PIVOT_SQL.replace('__WHERE__', where), params);
+    const pivot = buildPivotResponse(result.rows, period);
+
+    await createAuditLog({
+      userId: req.user?.id,
+      action: 'COMMISSION_PIVOT_EXPORTED',
+      entityType: 'commission',
+      details: {
+        userCount: pivot.users.length,
+        clientCount: pivot.clients.length,
+        period: pivot.period,
+      },
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('Commission Pivot');
+
+    const headerRow1: string[] = ['Field Executive', 'Rate Type'];
+    const headerRow2: string[] = ['', ''];
+    for (const c of pivot.clients) {
+      headerRow1.push(c.name, '');
+      headerRow2.push('Sum (₹)', 'Count');
+    }
+    headerRow1.push('Total', '');
+    headerRow2.push('Sum (₹)', 'Count');
+    ws.addRow(escapeFormulaRow(headerRow1));
+    ws.addRow(escapeFormulaRow(headerRow2));
+    ws.getRow(1).font = { bold: true };
+    ws.getRow(2).font = { bold: true };
+
+    const merges: string[] = [];
+    let col = 3;
+    for (let i = 0; i < pivot.clients.length; i++) {
+      merges.push(`${ws.getColumn(col).letter}1:${ws.getColumn(col + 1).letter}1`);
+      col += 2;
+    }
+    merges.push(`${ws.getColumn(col).letter}1:${ws.getColumn(col + 1).letter}1`);
+    merges.forEach(m => ws.mergeCells(m));
+
+    const formatCell = (cell: PivotCell | undefined) => [
+      cell ? cell.amount : 0,
+      cell ? cell.count : 0,
+    ];
+
+    for (const user of pivot.users) {
+      const userRow: Array<string | number> = [user.userName, 'All'];
+      pivot.clients.forEach(c => {
+        const [a, n] = formatCell(user.perClient[String(c.id)]);
+        userRow.push(a, n);
+      });
+      userRow.push(user.totals.amount, user.totals.count);
+      const r = ws.addRow(escapeFormulaRow(userRow));
+      r.font = { bold: true };
+
+      for (const rt of user.rateTypes) {
+        const rtRow: Array<string | number> = ['', rt.rateTypeName];
+        pivot.clients.forEach(c => {
+          const [a, n] = formatCell(rt.perClient[String(c.id)]);
+          rtRow.push(a, n);
+        });
+        rtRow.push(rt.totals.amount, rt.totals.count);
+        ws.addRow(escapeFormulaRow(rtRow));
+      }
+    }
+
+    const grandRow: Array<string | number> = ['Grand Total', ''];
+    pivot.clients.forEach(c => {
+      const [a, n] = formatCell(pivot.grandTotal.perClient[String(c.id)]);
+      grandRow.push(a, n);
+    });
+    grandRow.push(pivot.grandTotal.amount, pivot.grandTotal.count);
+    const gr = ws.addRow(escapeFormulaRow(grandRow));
+    gr.font = { bold: true };
+
+    ws.columns.forEach(c => {
+      c.width = 18;
+    });
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=commission_pivot_${new Date().toISOString().split('T')[0]}.xlsx`
+    );
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    logger.error('Error exporting commission pivot:', error);
+    res.status(500).json({ success: false, message: 'Failed to export commission pivot' });
   }
 };

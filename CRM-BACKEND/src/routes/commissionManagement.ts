@@ -19,6 +19,9 @@ import {
   getCommissionCalculations,
   // Commission Statistics
   getCommissionStats,
+  // Commission Pivot
+  getCommissionPivot,
+  exportCommissionPivot,
   // Export
   exportCommissionsToExcel,
 } from '@/controllers/commissionManagementController';
@@ -218,6 +221,30 @@ router.get(
 
 // Commission Statistics Route
 router.get('/stats', authorize('billing.download'), getCommissionStats as express.RequestHandler);
+
+// Commission Pivot (User × Client × Rate Type) — /pivot/export MUST be declared
+// before /pivot so Express does not eat the /export path as a query param.
+const pivotQueryValidation = [
+  query('period').optional().isIn(['week', 'month', 'quarter', 'year', 'all', 'custom']),
+  query('dateFrom').optional().isISO8601(),
+  query('dateTo').optional().isISO8601(),
+];
+
+router.get(
+  '/pivot/export',
+  authorize('billing.download'),
+  pivotQueryValidation,
+  validate,
+  exportCommissionPivot as express.RequestHandler
+);
+
+router.get(
+  '/pivot',
+  authorize('billing.download'),
+  pivotQueryValidation,
+  validate,
+  getCommissionPivot as express.RequestHandler
+);
 
 // Export Route
 router.get(
