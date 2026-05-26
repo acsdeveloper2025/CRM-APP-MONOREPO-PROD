@@ -784,17 +784,23 @@ export const assignKYCTask = async (req: AuthenticatedRequest, res: Response) =>
       return res.status(404).json({ success: false, message: 'KYC task not found' });
     }
 
-    // F9.1 (2026-05-26): also flip child verification_status PENDING→ASSIGNED
-    // so the state machine actually transitions. Don't downgrade from
-    // IN_PROGRESS (verifier may have already started); don't touch COMPLETED
-    // or REVOKED.
+    // F9.1 + F9.3 (2026-05-26): also flip child verification_status. Two
+    // valid transitions on assign:
+    //   PENDING → ASSIGNED  (first-time route to verifier)
+    //   REVOKED → ASSIGNED  (post-revoke reassign — clears revoke metadata
+    //                        so the new verifier sees a clean task)
+    // Don't touch IN_PROGRESS (verifier in-flight) or COMPLETED (terminal).
     const result = await query(
       `UPDATE kyc_document_verifications
        SET assigned_to = $1, assigned_by = $2, assigned_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP,
            verification_status = CASE
-             WHEN verification_status = 'PENDING' THEN 'ASSIGNED'
+             WHEN verification_status IN ('PENDING','REVOKED') THEN 'ASSIGNED'
              ELSE verification_status
-           END
+           END,
+           revoked_at = CASE WHEN verification_status = 'REVOKED' THEN NULL ELSE revoked_at END,
+           revoked_by = CASE WHEN verification_status = 'REVOKED' THEN NULL ELSE revoked_by END,
+           revocation_reason = CASE WHEN verification_status = 'REVOKED' THEN NULL ELSE revocation_reason END,
+           revoke_reason_id = CASE WHEN verification_status = 'REVOKED' THEN NULL ELSE revoke_reason_id END
        WHERE id = $3
        RETURNING id, verification_task_id`,
       [assignedTo, userId, taskId]
