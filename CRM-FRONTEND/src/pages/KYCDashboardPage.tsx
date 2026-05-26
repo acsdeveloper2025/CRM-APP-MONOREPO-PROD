@@ -552,14 +552,12 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                     status === 'PENDING' || status === 'ASSIGNED' || status === 'IN_PROGRESS';
                   const canRevoke =
                     status === 'PENDING' || status === 'ASSIGNED' || status === 'IN_PROGRESS';
-                  // F9.1 Gap B: BE supports reassign on any non-COMPLETED state.
-                  // Expose Reassign on PENDING/ASSIGNED/IN_PROGRESS/REVOKED so admins
-                  // can hand off mid-verification or re-route a revoked doc in one click.
+                  // Field-task parity: Assign on PENDING (first-time, no assignee yet),
+                  // Reassign on REVOKED (after revoke). ASSIGNED/IN_PROGRESS users
+                  // MUST revoke first so the task leaves the current verifier's tray
+                  // cleanly — no silent yank.
                   const canAssign =
-                    status === 'PENDING' ||
-                    status === 'ASSIGNED' ||
-                    status === 'IN_PROGRESS' ||
-                    status === 'REVOKED';
+                    (status === 'PENDING' && !task.assignedTo) || status === 'REVOKED';
                   // F9.1: COMPLETED rows can also be rechecked (re-open a verified doc).
                   const canRecheck = status === 'REVOKED' || status === 'COMPLETED';
                   const isCompleted = status === 'COMPLETED';
