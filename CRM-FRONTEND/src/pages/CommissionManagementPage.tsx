@@ -2,15 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Users,
-  FileText,
-  Download,
-  DollarSign,
-  Clock,
-  CheckCircle,
-  TrendingUp,
-} from 'lucide-react';
+import { Users, FileText, Download, CheckCircle, TrendingUp } from 'lucide-react';
 import { FieldUserAssignmentsTab } from '@/components/commission/FieldUserAssignmentsTab';
 import { commissionManagementService } from '@/services/commissionManagement';
 import { toast } from 'sonner';
@@ -82,33 +74,12 @@ export const CommissionManagementPage: React.FC = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Paid</CardTitle>
-            <DollarSign className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{stats.paidAmount?.toLocaleString() || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.paidCommissions || 0} commissions paid
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{stats.pendingAmount?.toLocaleString() || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.pendingCommissions || 0} awaiting payment
-            </p>
-          </CardContent>
-        </Card>
-
+      {/* Truthful-data sweep 2026-05-26: dropped 'Total Paid' + 'Pending'
+          (both perpetually ₹0 — workflow gap, no FE path moves rows to
+          PAID/PENDING; see project_commission_calculations_truthful_2026_05_26).
+          'This Month' renamed → 'Total Earned' + backed by new BE
+          totalEarnedAmount (SUM across non-REJECTED). */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Agents</CardTitle>
@@ -135,12 +106,14 @@ export const CommissionManagementPage: React.FC = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">This Month</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Earned</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{stats.totalAmount?.toLocaleString() || 0}</div>
-            <p className="text-xs text-muted-foreground">Total commissions</p>
+            <div className="text-2xl font-bold">
+              ₹{stats.totalEarnedAmount?.toLocaleString() || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">All commissions (excl. rejected)</p>
           </CardContent>
         </Card>
       </div>

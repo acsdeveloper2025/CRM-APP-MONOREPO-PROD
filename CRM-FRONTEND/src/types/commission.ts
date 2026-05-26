@@ -221,6 +221,7 @@ export interface CommissionStats {
   topPerformerAmount?: number;
   mostUsedRateType?: string | null;
   totalRateTypes?: number;
+  totalEarnedAmount?: number;
 }
 
 export type CommissionPivotPeriod = 'week' | 'month' | 'quarter' | 'year' | 'all' | 'custom';

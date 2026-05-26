@@ -1285,6 +1285,7 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
         COUNT(CASE WHEN cc.status = 'REJECTED' THEN 1 END) as rejected_calculations,
         COALESCE(SUM(CASE WHEN cc.status = 'PAID' THEN cc.commission_amount ELSE 0 END), 0) as total_paid_amount,
         COALESCE(SUM(CASE WHEN cc.status = 'PENDING' THEN cc.commission_amount ELSE 0 END), 0) as total_pending_amount,
+        COALESCE(SUM(CASE WHEN cc.status <> 'REJECTED' THEN cc.commission_amount ELSE 0 END), 0) as total_earned_amount,
         COALESCE(AVG(commission_amount), 0) as average_commission
       FROM commission_calculations cc
       LEFT JOIN cases ON cc.case_id = cases.id
@@ -1383,6 +1384,11 @@ export const getCommissionStats = async (req: AuthenticatedRequest, res: Respons
       // Basic stats
       totalCommissions: parseInt(stats.totalCalculations) || 0,
       totalAmount: parseFloat(stats.totalPaidAmount) + parseFloat(stats.totalPendingAmount) || 0,
+      // Total earned across all non-REJECTED rows. Added 2026-05-26 sweep
+      // because the FE 'This Month' tile on /commission-management was
+      // reading totalAmount which is PAID+PENDING only — perpetually 0 due
+      // to the CALCULATED→APPROVED workflow gap.
+      totalEarnedAmount: parseFloat(stats.totalEarnedAmount) || 0,
       pendingCommissions: parseInt(stats.pendingCalculations) || 0,
       pendingAmount: parseFloat(stats.totalPendingAmount) || 0,
       approvedCommissions: parseInt(stats.approvedCalculations) || 0,
