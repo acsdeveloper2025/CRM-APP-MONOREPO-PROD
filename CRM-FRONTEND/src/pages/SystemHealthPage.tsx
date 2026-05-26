@@ -1,4 +1,14 @@
-import { Activity, Database, HardDrive, Layers, RefreshCw, Server, Boxes, Cpu } from 'lucide-react';
+import {
+  Activity,
+  Bell,
+  Boxes,
+  Cpu,
+  Database,
+  HardDrive,
+  Layers,
+  RefreshCw,
+  Server,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusPill } from '@/components/system-health/StatusPill';
@@ -23,6 +33,9 @@ function pickNumber(svc: ServiceHealth | undefined, path: string[]): string | un
   }
   if (typeof cursor === 'string') {
     return cursor;
+  }
+  if (typeof cursor === 'boolean') {
+    return cursor ? 'yes' : 'no';
   }
   return undefined;
 }
@@ -223,6 +236,34 @@ export function SystemHealthPage() {
               value: `${c.cpu_pct}% / ${c.mem_mb}MB`,
             }));
           })()}
+        />
+
+        <ServiceCard
+          title="Push Notifications"
+          icon={Bell}
+          service={services.fcm}
+          metrics={[
+            {
+              label: 'FCM initialized',
+              value: pickNumber(services.fcm, ['fcm_initialized']) ?? '—',
+            },
+            {
+              label: 'APNs initialized',
+              value: pickNumber(services.fcm, ['apns_initialized']) ?? '—',
+            },
+            {
+              label: 'Last successful push',
+              value: pickNumber(services.fcm, ['last_successful_push']) ?? 'never',
+            },
+            {
+              label: 'Failures (1h)',
+              value: pickNumber(services.fcm, ['push_failures_last_hour']) ?? '—',
+            },
+            {
+              label: 'Active tokens',
+              value: pickNumber(services.fcm, ['active_push_tokens']) ?? '—',
+            },
+          ]}
         />
       </div>
     </div>
