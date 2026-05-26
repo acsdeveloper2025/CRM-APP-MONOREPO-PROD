@@ -820,6 +820,42 @@ export const AppRoutes: React.FC = () => {
             }
           />
           <Route
+            path="/kyc-verification/revoke-kyc"
+            element={
+              <ProtectedRoute permission="page.kyc">
+                <KYCDashboardPage
+                  defaultStatus="REVOKED"
+                  pageTitle="Revoke KYC Verification"
+                  pageSubtitle="KYC documents that have been revoked"
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/kyc-verification/in-progress-kyc"
+            element={
+              <ProtectedRoute permission="page.kyc">
+                <KYCDashboardPage
+                  defaultStatus="IN_PROGRESS"
+                  pageTitle="In Progress KYC Verification"
+                  pageSubtitle="KYC documents currently being verified"
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/kyc-verification/recheck-kyc"
+            element={
+              <ProtectedRoute permission="page.kyc">
+                <KYCDashboardPage
+                  recheckedOnly
+                  pageTitle="Recheck KYC Verification"
+                  pageSubtitle="KYC documents rechecked after revocation"
+                />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/kyc-verification/completed-kyc"
             element={
               <ProtectedRoute permission="page.kyc">

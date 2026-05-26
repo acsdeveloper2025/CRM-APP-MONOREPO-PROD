@@ -22,6 +22,7 @@ import { getAssignedProductIds } from '@/middleware/productAccess';
 import { enforceBackendUserCaseScope } from '@/controllers/attachmentsController';
 import { createAuditLog } from '@/utils/auditLogger';
 import { checkEditable, buildEditBlockedResponse } from '@/utils/editLockGuard';
+import { TaskRevocationService } from '@/services/taskRevocationService';
 
 // =====================================================
 // Module-scope export + sort constants (filter-sweep 2026-05-23)
@@ -282,6 +283,7 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
       caseId,
       dateFrom,
       dateTo,
+      recheckedOnly,
     } = req.query;
 
     const pageNum = Math.max(1, parseInt(page as string));
@@ -311,6 +313,12 @@ export const listKYCTasks = async (req: AuthenticatedRequest, res: Response) => 
       );
       params.push(documentType as string);
       paramIndex++;
+    }
+    // F9.1 (2026-05-26): "Recheck KYC" page filter — show only rows that
+    // have been rechecked at least once (recheck_count > 0). Rows may be in
+    // any current state since recheck resets back to PENDING.
+    if (recheckedOnly === 'true' || recheckedOnly === '1') {
+      conditions.push(`kdv.recheck_count > 0`);
     }
     if (caseId) {
       conditions.push(`kdv.case_id = $${paramIndex}`);
@@ -610,11 +618,11 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
     try {
       await client.query('BEGIN');
 
-      // IN_PROGRESS edit-lock + state-transition guard — see
-      // project_in_progress_edit_lock_audit_2026_05_24.md. Without this,
-      // a direct API call could (a) skip the PENDING decision step or
-      // (b) overwrite a recorded final_status on an already-COMPLETED
-      // row, breaking the audit trail. PENDING is the only valid state
+      // F9.1 (2026-05-26): require IN_PROGRESS — verifier must call /start
+      // first. Mirrors field-task workflow (PENDING → IN_PROGRESS → COMPLETED).
+      // Without this guard, a direct API call could (a) skip the start step
+      // entirely or (b) overwrite a recorded final_status on a COMPLETED
+      // row, breaking the audit trail. IN_PROGRESS is the only valid state
       // for verify.
       const statusCheck = await client.query<{ verificationStatus: string }>(
         `SELECT verification_status FROM kyc_document_verifications
@@ -626,19 +634,19 @@ export const verifyKYCDocument = async (req: AuthenticatedRequest, res: Response
         return res.status(404).json({ success: false, message: 'KYC task not found' });
       }
       const currentStatus = statusCheck.rows[0].verificationStatus;
-      if (currentStatus !== 'PENDING') {
+      if (currentStatus !== 'IN_PROGRESS') {
         await client.query('ROLLBACK');
         const editCheck = checkEditable(currentStatus);
-        // For IN_PROGRESS/COMPLETED/REVOKED return canonical EDIT_BLOCKED
-        // so FE can show the standard "cannot edit" copy. For ASSIGNED
-        // (currently editable in the shared helper but not a valid
-        // verify-source state) return INVALID_STATE_TRANSITION.
+        // For COMPLETED/REVOKED return canonical EDIT_BLOCKED so FE shows
+        // the standard "cannot edit" copy. For PENDING/ASSIGNED (still
+        // editable but not a valid verify-source state) return
+        // INVALID_STATE_TRANSITION — FE should call /start first.
         if (!editCheck.editable) {
           return res.status(409).json(buildEditBlockedResponse('KYC document', editCheck));
         }
         return res.status(409).json({
           success: false,
-          message: `KYC document must be in PENDING state to verify; current state is ${currentStatus}.`,
+          message: `KYC document must be in IN_PROGRESS state to verify; current state is ${currentStatus}. Call /start first.`,
           error: { code: 'INVALID_STATE_TRANSITION', currentStatus },
         });
       }
@@ -759,9 +767,17 @@ export const assignKYCTask = async (req: AuthenticatedRequest, res: Response) =>
       return res.status(404).json({ success: false, message: 'KYC task not found' });
     }
 
+    // F9.1 (2026-05-26): also flip child verification_status PENDING→ASSIGNED
+    // so the state machine actually transitions. Don't downgrade from
+    // IN_PROGRESS (verifier may have already started); don't touch COMPLETED
+    // or REVOKED.
     const result = await query(
       `UPDATE kyc_document_verifications
-       SET assigned_to = $1, assigned_by = $2, assigned_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+       SET assigned_to = $1, assigned_by = $2, assigned_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP,
+           verification_status = CASE
+             WHEN verification_status = 'PENDING' THEN 'ASSIGNED'
+             ELSE verification_status
+           END
        WHERE id = $3
        RETURNING id, verification_task_id`,
       [assignedTo, userId, taskId]
@@ -784,6 +800,329 @@ export const assignKYCTask = async (req: AuthenticatedRequest, res: Response) =>
   } catch (error) {
     logger.error('Error assigning KYC task:', error);
     res.status(500).json({ success: false, message: 'Failed to assign KYC task' });
+  }
+};
+
+// F9.1 (2026-05-26): KYC state-transition endpoints (start / revoke / recheck).
+// Mirrors verification_tasks workflow. Per-document state lives on
+// kyc_document_verifications.verification_status. CHECK constraint allows
+// PENDING / ASSIGNED / IN_PROGRESS / COMPLETED / REVOKED.
+
+// Valid KYC transitions — narrower than field task because verify is the only
+// terminal-decision path (no separate complete step). COMPLETED → PENDING is
+// allowed via /recheck so operators can re-open a verified doc when an error
+// is caught post-decision.
+const KYC_VALID_TRANSITIONS: Record<string, string[]> = {
+  PENDING: ['ASSIGNED', 'IN_PROGRESS', 'REVOKED'],
+  ASSIGNED: ['IN_PROGRESS', 'REVOKED'],
+  IN_PROGRESS: ['COMPLETED', 'REVOKED'],
+  COMPLETED: ['PENDING'], // via /recheck
+  REVOKED: ['PENDING'], // via /recheck
+};
+
+const canKycTransition = (from: string, to: string): boolean =>
+  (KYC_VALID_TRANSITIONS[from] || []).includes(to);
+
+// POST /api/kyc/tasks/:taskId/start
+// PENDING/ASSIGNED → IN_PROGRESS. Sets started_at + started_by.
+export const startKYCTask = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const taskId = String(req.params.taskId || '');
+    const userId = req.user!.id;
+
+    const access = await requireKycRowAccess(req, taskId);
+    if (!access.ok) {
+      return res.status(404).json({ success: false, message: 'KYC task not found' });
+    }
+
+    const client = wrapClient(await pool.connect());
+    try {
+      await client.query('BEGIN');
+
+      const statusCheck = await client.query<{ verificationStatus: string }>(
+        `SELECT verification_status FROM kyc_document_verifications
+         WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
+        [taskId]
+      );
+      if (statusCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ success: false, message: 'KYC task not found' });
+      }
+      const currentStatus = statusCheck.rows[0].verificationStatus;
+      if (!canKycTransition(currentStatus, 'IN_PROGRESS')) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({
+          success: false,
+          message: `Cannot start KYC document from status ${currentStatus}.`,
+          error: { code: 'INVALID_STATE_TRANSITION', currentStatus },
+        });
+      }
+
+      const updateResult = await client.query(
+        `UPDATE kyc_document_verifications
+         SET verification_status = 'IN_PROGRESS',
+             started_at = COALESCE(started_at, CURRENT_TIMESTAMP),
+             started_by = COALESCE(started_by, $1),
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $2
+         RETURNING verification_task_id`,
+        [userId, taskId]
+      );
+
+      // F9.1 (2026-05-26): mirror state onto parent verification_tasks.
+      // Trigger task_status_transitions only allows PENDING→ASSIGNED→IN_PROGRESS,
+      // so push the parent through both hops here (only effective when it's
+      // still in the earlier state). Without this, the eventual ASSIGNED→COMPLETED
+      // jump on verify is rejected by enforce_verification_task_status_transition.
+      const parentTaskId = updateResult.rows[0].verificationTaskId as string;
+      await client.query(
+        `UPDATE verification_tasks SET status='ASSIGNED', updated_at=CURRENT_TIMESTAMP
+         WHERE id = $1 AND status = 'PENDING'`,
+        [parentTaskId]
+      );
+      await client.query(
+        `UPDATE verification_tasks SET status='IN_PROGRESS', started_at=COALESCE(started_at, CURRENT_TIMESTAMP), updated_at=CURRENT_TIMESTAMP
+         WHERE id = $1 AND status = 'ASSIGNED'`,
+        [parentTaskId]
+      );
+
+      // F9.1 Gap A: roll up case status so the parent case reflects the new
+      // task state (PENDING/ASSIGNED → IN_PROGRESS may flip the case to
+      // IN_PROGRESS too). Same in-transaction pattern as verifyKYCDocument.
+      await CaseStatusSyncService.recalculateCaseStatus(access.caseId, client);
+
+      await client.query('COMMIT');
+
+      await createAuditLog({
+        userId,
+        action: 'KYC_STARTED',
+        entityType: 'KYC',
+        entityId: taskId,
+        details: { previousStatus: currentStatus },
+      });
+
+      res.json({
+        success: true,
+        message: 'KYC document started',
+        data: { id: taskId, status: 'IN_PROGRESS' },
+      });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    logger.error('Error starting KYC document:', error);
+    res.status(500).json({ success: false, message: 'Failed to start KYC document' });
+  }
+};
+
+// POST /api/kyc/tasks/:taskId/revoke
+// PENDING/ASSIGNED/IN_PROGRESS → REVOKED. Writes kyc_revocations row.
+// Requires revokeReason. Clears assigned_to.
+export const revokeKYCTask = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const taskId = String(req.params.taskId || '');
+    const userId = req.user!.id;
+    const reason = String(req.body.revokeReason || req.body.reason || '').trim();
+
+    if (!reason) {
+      return res.status(400).json({
+        success: false,
+        message: 'Revocation reason is required',
+        error: { code: 'REASON_REQUIRED' },
+      });
+    }
+
+    const access = await requireKycRowAccess(req, taskId);
+    if (!access.ok) {
+      return res.status(404).json({ success: false, message: 'KYC task not found' });
+    }
+
+    const revokeReasonId = await TaskRevocationService.resolveReasonId(reason);
+    const revokedByRole = TaskRevocationService.deriveRevokedByRole(req.user);
+
+    const client = wrapClient(await pool.connect());
+    try {
+      await client.query('BEGIN');
+
+      const lookup = await client.query<{ verificationStatus: string; assignedTo: string | null }>(
+        `SELECT verification_status, assigned_to FROM kyc_document_verifications
+         WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
+        [taskId]
+      );
+      if (lookup.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ success: false, message: 'KYC task not found' });
+      }
+      const currentStatus = lookup.rows[0].verificationStatus;
+      const previousAssignee = lookup.rows[0].assignedTo;
+
+      if (!canKycTransition(currentStatus, 'REVOKED')) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({
+          success: false,
+          message: `Cannot revoke a KYC document in status ${currentStatus}.`,
+          error: { code: 'INVALID_STATE_TRANSITION', currentStatus },
+        });
+      }
+
+      await client.query(
+        `UPDATE kyc_document_verifications
+         SET verification_status = 'REVOKED',
+             revoked_at = CURRENT_TIMESTAMP,
+             revoked_by = $1,
+             revocation_reason = $2,
+             revoke_reason_id = $3,
+             assigned_to = NULL,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $4`,
+        [userId, reason, revokeReasonId, taskId]
+      );
+
+      await client.query(
+        `INSERT INTO kyc_revocations (
+           kyc_id, revoked_by_user_id, revoked_by_role, revoked_from_user_id,
+           revoke_reason, revoke_reason_id, previous_status
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [taskId, userId, revokedByRole, previousAssignee, reason, revokeReasonId, currentStatus]
+      );
+
+      // F9.1 Gap A: roll up case status. A revoked task may push the case to
+      // REVOKED (if all siblings revoked) or leave it IN_PROGRESS / PENDING.
+      await CaseStatusSyncService.recalculateCaseStatus(access.caseId, client);
+
+      await client.query('COMMIT');
+
+      await createAuditLog({
+        userId,
+        action: 'KYC_REVOKED',
+        entityType: 'KYC',
+        entityId: taskId,
+        details: { previousStatus: currentStatus, reason, revokeReasonId },
+      });
+
+      res.json({
+        success: true,
+        message: 'KYC document revoked',
+        data: { id: taskId, status: 'REVOKED' },
+      });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    logger.error('Error revoking KYC document:', error);
+    res.status(500).json({ success: false, message: 'Failed to revoke KYC document' });
+  }
+};
+
+// POST /api/kyc/tasks/:taskId/recheck
+// REVOKED → PENDING. Increments recheck_count. Clears revoke_* fields and
+// assigned_to (a fresh verifier must pick it up).
+export const recheckKYCTask = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const taskId = String(req.params.taskId || '');
+    const userId = req.user!.id;
+
+    const access = await requireKycRowAccess(req, taskId);
+    if (!access.ok) {
+      return res.status(404).json({ success: false, message: 'KYC task not found' });
+    }
+
+    const client = wrapClient(await pool.connect());
+    try {
+      await client.query('BEGIN');
+
+      const lookup = await client.query<{ verificationStatus: string; recheckCount: number }>(
+        `SELECT verification_status, recheck_count FROM kyc_document_verifications
+         WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
+        [taskId]
+      );
+      if (lookup.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ success: false, message: 'KYC task not found' });
+      }
+      const currentStatus = lookup.rows[0].verificationStatus;
+      if (!canKycTransition(currentStatus, 'PENDING')) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({
+          success: false,
+          message: `Cannot recheck a KYC document in status ${currentStatus}. Recheck requires REVOKED or COMPLETED.`,
+          error: { code: 'INVALID_STATE_TRANSITION', currentStatus },
+        });
+      }
+
+      const recheckResult = await client.query<{ verificationTaskId: string }>(
+        `UPDATE kyc_document_verifications
+         SET verification_status = 'PENDING',
+             recheck_count = recheck_count + 1,
+             revoked_at = NULL,
+             revoked_by = NULL,
+             revocation_reason = NULL,
+             revoke_reason_id = NULL,
+             started_at = NULL,
+             started_by = NULL,
+             assigned_to = NULL,
+             assigned_by = NULL,
+             assigned_at = NULL,
+             verified_at = NULL,
+             verified_by = NULL,
+             final_status = NULL,
+             remarks = NULL,
+             rejection_reason = NULL,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1
+         RETURNING verification_task_id`,
+        [taskId]
+      );
+
+      // F9.1 (2026-05-26): if parent verification_task is COMPLETED (Flow C —
+      // rechecking a finalized KYC), push parent back to ASSIGNED so the next
+      // start can transition ASSIGNED → IN_PROGRESS. Trigger allows
+      // COMPLETED → ASSIGNED (seeded in task_status_transitions). For the
+      // REVOKED-side flow (Flow B), parent is already IN_PROGRESS — leave it.
+      const parentTaskId = recheckResult.rows[0].verificationTaskId;
+      await client.query(
+        `UPDATE verification_tasks
+         SET status = 'ASSIGNED', completed_at = NULL, verification_outcome = NULL,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1 AND status = 'COMPLETED'`,
+        [parentTaskId]
+      );
+
+      // F9.1 Gap A: roll up case status. Rechecking a COMPLETED row re-opens
+      // the case (COMPLETED → ASSIGNED). Rechecking a REVOKED row when other
+      // siblings are active reverts case to ASSIGNED/IN_PROGRESS.
+      await CaseStatusSyncService.recalculateCaseStatus(access.caseId, client);
+
+      await client.query('COMMIT');
+
+      await createAuditLog({
+        userId,
+        action: 'KYC_RECHECKED',
+        entityType: 'KYC',
+        entityId: taskId,
+        details: { previousStatus: currentStatus, recheckCount: lookup.rows[0].recheckCount + 1 },
+      });
+
+      res.json({
+        success: true,
+        message: 'KYC document rechecked',
+        data: { id: taskId, status: 'PENDING' },
+      });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    logger.error('Error rechecking KYC document:', error);
+    res.status(500).json({ success: false, message: 'Failed to recheck KYC document' });
   }
 };
 

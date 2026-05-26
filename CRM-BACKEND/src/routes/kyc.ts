@@ -16,6 +16,9 @@ import {
   uploadKYCDocument,
   getKYCTasksForCase,
   exportKYCToExcel,
+  startKYCTask,
+  revokeKYCTask,
+  recheckKYCTask,
 } from '@/controllers/kycVerificationController';
 import {
   EnterpriseCache,
@@ -135,6 +138,29 @@ router.post(
   EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
   upload.single('document'),
   uploadKYCDocument
+);
+
+// F9.1 (2026-05-26): KYC state-transition endpoints (parity with field tasks).
+// All three flush dashboard + case + analytics caches via caseUpdate pattern.
+router.post(
+  '/tasks/:taskId/start',
+  authorize('kyc.start'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
+  startKYCTask
+);
+
+router.post(
+  '/tasks/:taskId/revoke',
+  authorize('kyc.revoke'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
+  revokeKYCTask
+);
+
+router.post(
+  '/tasks/:taskId/recheck',
+  authorize('kyc.recheck'),
+  EnterpriseCache.invalidate(CacheInvalidationPatterns.caseUpdate, { synchronous: true }),
+  recheckKYCTask
 );
 
 // Excel export

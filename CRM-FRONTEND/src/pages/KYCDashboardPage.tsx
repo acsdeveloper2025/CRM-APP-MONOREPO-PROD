@@ -30,15 +30,23 @@ import {
   Clock,
   PlayCircle,
   CheckCircle,
-  Percent,
   Download,
   RefreshCw,
   Eye,
   ChevronLeft,
   ChevronRight,
   UserCheck,
+  XCircle,
 } from 'lucide-react';
-import { useKYCTasks, useKYCDocumentTypes, useAssignKYCTask } from '@/hooks/useKYC';
+import {
+  useKYCTasks,
+  useKYCDocumentTypes,
+  useAssignKYCTask,
+  useStartKYCTask,
+  useRevokeKYCTask,
+  useRecheckKYCTask,
+} from '@/hooks/useKYC';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -48,6 +56,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { apiService } from '@/services/api';
+import { revokeReasonsService } from '@/services/revokeReasons';
 import { extractEditBlockedError } from '@/utils/editLock';
 import { useUnifiedSearch } from '@/hooks/useUnifiedSearch';
 import { useScopePageReset } from '@/hooks/useScopePageReset';
@@ -97,17 +106,20 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 interface KYCDashboardPageProps {
-  /** Route-default status filter override. Accepts 'PENDING' (pending page)
-   *  or 'COMPLETED' (completed page maps to statusNot=PENDING). */
+  /** Route-default status filter override. Accepts 'PENDING' / 'IN_PROGRESS' /
+   *  'REVOKED' / 'COMPLETED' (completed page maps to statusNot=PENDING). */
   defaultStatus?: string;
   pageTitle?: string;
   pageSubtitle?: string;
+  /** F9.1: restrict list to rows with recheck_count > 0 (Recheck KYC page). */
+  recheckedOnly?: boolean;
 }
 
 export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   defaultStatus,
   pageTitle = 'KYC Verification',
   pageSubtitle = 'Verify identity, financial, and address documents',
+  recheckedOnly,
 }) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -118,6 +130,25 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
   const [reassignTaskId, setReassignTaskId] = useState<string | null>(null);
   const [reassignTo, setReassignTo] = useState<string>('');
   const { mutateAsync: assignKyc, isPending: isReassigning } = useAssignKYCTask();
+
+  // F9.1: KYC state-transition state + mutations
+  const { mutateAsync: startKyc, isPending: isStarting } = useStartKYCTask();
+  const { mutateAsync: revokeKyc, isPending: isRevoking } = useRevokeKYCTask();
+  const { mutateAsync: recheckKyc, isPending: isRechecking } = useRecheckKYCTask();
+  const [revokeTask, setRevokeTask] = useState<{ id: string; taskNumber: string } | null>(null);
+  const [revokeReasonCode, setRevokeReasonCode] = useState<string>('');
+  const [revokeOtherReason, setRevokeOtherReason] = useState<string>('');
+  const [recheckTask, setRecheckTask] = useState<{
+    id: string;
+    taskNumber: string;
+  } | null>(null);
+  const { data: revokeReasonsResp } = useQuery({
+    queryKey: ['revoke-reasons', 'active'],
+    queryFn: () => revokeReasonsService.listActive(),
+    staleTime: 5 * 60 * 1000,
+    enabled: revokeTask !== null,
+  });
+  const activeRevokeReasons = revokeReasonsResp?.data ?? [];
   const { data: kycVerifiersData } = useQuery({
     queryKey: ['users-kyc-verifier-assignable'],
     queryFn: async () => {
@@ -143,6 +174,63 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
         blocked?.message ||
           (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
           'Failed to reassign'
+      );
+    }
+  };
+
+  // F9.1: Start + Verify composite — if state isn't IN_PROGRESS, call /start
+  // first then route to the verify page. One click for the verifier.
+  const handleStartAndVerify = async (task: { id: string; verificationStatus: string }) => {
+    try {
+      if (task.verificationStatus !== 'IN_PROGRESS') {
+        await startKyc(task.id);
+      }
+      navigate(`/kyc-verification/verify/${task.id}`);
+    } catch (error) {
+      toast.error(
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          'Failed to start verification'
+      );
+    }
+  };
+
+  const handleRevokeSubmit = async () => {
+    if (!revokeTask) {
+      return;
+    }
+    const matched = activeRevokeReasons.find((r) => r.code === revokeReasonCode);
+    const reason =
+      revokeReasonCode === 'OTHER' ? revokeOtherReason.trim() : matched?.label || revokeReasonCode;
+    if (!reason) {
+      toast.error('Please pick or enter a revoke reason.');
+      return;
+    }
+    try {
+      await revokeKyc({ taskId: revokeTask.id, revokeReason: reason });
+      toast.success('KYC document revoked');
+      setRevokeTask(null);
+      setRevokeReasonCode('');
+      setRevokeOtherReason('');
+    } catch (error) {
+      toast.error(
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          'Failed to revoke'
+      );
+    }
+  };
+
+  const handleRecheckSubmit = async () => {
+    if (!recheckTask) {
+      return;
+    }
+    try {
+      await recheckKyc(recheckTask.id);
+      toast.success('KYC document moved back to Pending');
+      setRecheckTask(null);
+    } catch (error) {
+      toast.error(
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          'Failed to recheck'
       );
     }
   };
@@ -206,6 +294,7 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
     sortOrder: sortPair.sortOrder,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
+    recheckedOnly: recheckedOnly || undefined,
   };
 
   const { data: taskData, isLoading, refetch } = useKYCTasks(queryFilters);
@@ -326,15 +415,11 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <Percent className="h-8 w-8 text-purple-600" />
+              <XCircle className="h-8 w-8 text-red-600" />
               <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">Positive Rate</p>
-                <p className="text-2xl font-bold">
-                  {stats !== undefined ? `${stats.positiveRate}%` : '—'}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {stats?.positive ?? 0} of {stats?.completed ?? 0}
-                </p>
+                <p className="text-sm font-medium text-muted-foreground">Revoked</p>
+                <p className="text-2xl font-bold">{stats?.revoked ?? '—'}</p>
+                <p className="text-xs text-muted-foreground">Needs recheck</p>
               </div>
             </div>
           </CardContent>
@@ -448,6 +533,7 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Task #</TableHead>
                   <TableHead>Case #</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Category</TableHead>
@@ -460,64 +546,151 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tasks.map((task) => (
-                  <TableRow key={task.id} className="hover:bg-muted">
-                    <TableCell className="font-medium">#{task.caseNumber}</TableCell>
-                    <TableCell>{task.customerName}</TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_COLORS[task.documentCategory] || 'bg-muted text-foreground'}`}
-                      >
-                        {task.documentCategory}
-                      </span>
-                    </TableCell>
-                    <TableCell>{task.documentTypeName}</TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {task.documentNumber || '-'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={STATUS_COLORS[task.verificationStatus] || ''}>
-                        {task.verificationStatus}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {task.assignedToName || (
-                        <span className="text-muted-foreground">Unassigned</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {format(new Date(task.createdAt), 'dd MMM yyyy')}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/kyc-verification/verify/${task.id}`)}
+                {tasks.map((task) => {
+                  const status = task.verificationStatus;
+                  const canStartVerify =
+                    status === 'PENDING' || status === 'ASSIGNED' || status === 'IN_PROGRESS';
+                  const canRevoke =
+                    status === 'PENDING' || status === 'ASSIGNED' || status === 'IN_PROGRESS';
+                  // F9.1 Gap B: BE supports reassign on any non-COMPLETED state.
+                  // Expose Reassign on PENDING/ASSIGNED/IN_PROGRESS/REVOKED so admins
+                  // can hand off mid-verification or re-route a revoked doc in one click.
+                  const canAssign =
+                    status === 'PENDING' ||
+                    status === 'ASSIGNED' ||
+                    status === 'IN_PROGRESS' ||
+                    status === 'REVOKED';
+                  // F9.1: COMPLETED rows can also be rechecked (re-open a verified doc).
+                  const canRecheck = status === 'REVOKED' || status === 'COMPLETED';
+                  const isCompleted = status === 'COMPLETED';
+                  return (
+                    <TableRow key={task.id} className="hover:bg-muted">
+                      <TableCell>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate(
+                              `/task-management/${task.taskNumber || task.verificationTaskId}`
+                            )
+                          }
+                          className="inline-flex items-center rounded-md bg-green-600 px-2.5 py-0.5 text-xs font-medium uppercase text-white hover:bg-green-700 transition-colors"
+                          title="Open task details"
                         >
-                          <Eye className="h-4 w-4 mr-1" />
-                          {task.verificationStatus === 'PENDING' ? 'Verify' : 'View'}
+                          {task.taskNumber}
+                        </button>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-auto p-0 text-primary hover:underline font-medium"
+                          onClick={() => navigate(`/case-management/${task.caseId}`)}
+                        >
+                          {task.caseNumber}
                         </Button>
-                        {(task.verificationStatus === 'PENDING' ||
-                          task.verificationStatus === 'ASSIGNED' ||
-                          task.verificationStatus === 'REVOKED') && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setReassignTaskId(task.id);
-                              setReassignTo('');
-                            }}
-                            title="Reassign this KYC document to another verifier"
-                          >
-                            <UserCheck className="h-4 w-4 mr-1" />
-                            {task.verificationStatus === 'REVOKED' ? 'Reassign' : 'Assign'}
-                          </Button>
+                      </TableCell>
+                      <TableCell>{task.customerName}</TableCell>
+                      <TableCell>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${CATEGORY_COLORS[task.documentCategory] || 'bg-muted text-foreground'}`}
+                        >
+                          {task.documentCategory}
+                        </span>
+                      </TableCell>
+                      <TableCell>{task.documentTypeName}</TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {task.documentNumber || '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={STATUS_COLORS[status] || ''}>{status}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {task.assignedToName || (
+                          <span className="text-muted-foreground">Unassigned</span>
                         )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {format(new Date(task.createdAt), 'dd MMM yyyy')}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {canStartVerify && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={isStarting}
+                              onClick={() => handleStartAndVerify(task)}
+                              title={
+                                status === 'IN_PROGRESS'
+                                  ? 'Open verify page'
+                                  : 'Start and open verify page'
+                              }
+                            >
+                              <PlayCircle className="h-4 w-4 mr-1" />
+                              {status === 'IN_PROGRESS' ? 'Verify' : 'Start + Verify'}
+                            </Button>
+                          )}
+                          {isCompleted && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/kyc-verification/verify/${task.id}`)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                          )}
+                          {canAssign && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setReassignTaskId(task.id);
+                                setReassignTo('');
+                              }}
+                              title={
+                                status === 'PENDING'
+                                  ? 'Assign this KYC document to a verifier'
+                                  : 'Hand off this KYC document to a different verifier'
+                              }
+                            >
+                              <UserCheck className="h-4 w-4 mr-1" />
+                              {status === 'PENDING' ? 'Assign' : 'Reassign'}
+                            </Button>
+                          )}
+                          {canRevoke && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setRevokeTask({ id: task.id, taskNumber: task.taskNumber });
+                                setRevokeReasonCode('');
+                                setRevokeOtherReason('');
+                              }}
+                              title="Revoke this KYC document"
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Revoke
+                            </Button>
+                          )}
+                          {canRecheck && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                setRecheckTask({ id: task.id, taskNumber: task.taskNumber })
+                              }
+                              title="Move back to Pending for a fresh verification"
+                            >
+                              <RefreshCw className="h-4 w-4 mr-1" />
+                              Recheck
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
@@ -629,6 +802,119 @@ export const KYCDashboardPage: React.FC<KYCDashboardPageProps> = ({
             </Button>
             <Button onClick={handleReassignSubmit} disabled={isReassigning || !reassignTo}>
               {isReassigning ? 'Reassigning…' : 'Reassign'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* F9.1: Revoke KYC dialog — picks from revoke_reasons master with
+          OTHER → free-text fallback. BE writes kyc_revocations audit row. */}
+      <Dialog
+        open={revokeTask !== null}
+        onOpenChange={(open) => {
+          if (!open && !isRevoking) {
+            setRevokeTask(null);
+            setRevokeReasonCode('');
+            setRevokeOtherReason('');
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Revoke KYC document?</DialogTitle>
+            <DialogDescription>
+              This sends <strong>{revokeTask?.taskNumber || 'this document'}</strong> to the Revoke
+              KYC queue. The verifier&apos;s assignment is cleared. A reviewer can later recheck it
+              to move it back to Pending.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="kyc-revoke-reason">Reason *</Label>
+              <Select value={revokeReasonCode} onValueChange={setRevokeReasonCode}>
+                <SelectTrigger id="kyc-revoke-reason">
+                  <SelectValue placeholder="Pick a reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeRevokeReasons.length === 0 ? (
+                    <SelectItem value="empty" disabled>
+                      No revoke reasons configured
+                    </SelectItem>
+                  ) : (
+                    activeRevokeReasons.map((r) => (
+                      <SelectItem key={r.code} value={r.code}>
+                        {r.label}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            {revokeReasonCode === 'OTHER' && (
+              <div className="space-y-2">
+                <Label htmlFor="kyc-revoke-other">Specify reason *</Label>
+                <Textarea
+                  id="kyc-revoke-other"
+                  value={revokeOtherReason}
+                  onChange={(e) => setRevokeOtherReason(e.target.value)}
+                  placeholder="Explain why this KYC document should be revoked"
+                  rows={3}
+                  maxLength={500}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+            <Button
+              variant="outline"
+              disabled={isRevoking}
+              onClick={() => {
+                setRevokeTask(null);
+                setRevokeReasonCode('');
+                setRevokeOtherReason('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleRevokeSubmit}
+              disabled={
+                isRevoking ||
+                !revokeReasonCode ||
+                (revokeReasonCode === 'OTHER' && revokeOtherReason.trim().length === 0)
+              }
+            >
+              {isRevoking ? 'Revoking…' : 'Revoke'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* F9.1: Recheck confirm dialog */}
+      <Dialog
+        open={recheckTask !== null}
+        onOpenChange={(open) => {
+          if (!open && !isRechecking) {
+            setRecheckTask(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Recheck KYC document?</DialogTitle>
+            <DialogDescription>
+              <strong>{recheckTask?.taskNumber || 'This document'}</strong> goes back to Pending for
+              a fresh verification. Previous revoke metadata is cleared and the recheck count
+              increments.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+            <Button variant="outline" disabled={isRechecking} onClick={() => setRecheckTask(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleRecheckSubmit} disabled={isRechecking}>
+              {isRechecking ? 'Rechecking…' : 'Recheck'}
             </Button>
           </DialogFooter>
         </DialogContent>

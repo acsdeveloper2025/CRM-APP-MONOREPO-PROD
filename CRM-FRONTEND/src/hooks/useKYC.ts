@@ -113,6 +113,32 @@ export const useAssignKYCTask = () => {
   });
 };
 
+// F9.1: KYC state transitions
+export const useStartKYCTask = () => {
+  return useMutationWithInvalidation({
+    mutationFn: (taskId: string) => kycService.startTask(taskId),
+    invalidateKeys: [kycKeys.all],
+    errorContext: 'KYC Start',
+  });
+};
+
+export const useRevokeKYCTask = () => {
+  return useMutationWithInvalidation({
+    mutationFn: ({ taskId, revokeReason }: { taskId: string; revokeReason: string }) =>
+      kycService.revokeTask(taskId, revokeReason),
+    invalidateKeys: [kycKeys.all],
+    errorContext: 'KYC Revoke',
+  });
+};
+
+export const useRecheckKYCTask = () => {
+  return useMutationWithInvalidation({
+    mutationFn: (taskId: string) => kycService.recheckTask(taskId),
+    invalidateKeys: [kycKeys.all],
+    errorContext: 'KYC Recheck',
+  });
+};
+
 export const useUploadKYCDocument = () => {
   return useMutationWithInvalidation({
     mutationFn: ({ taskId, file }: { taskId: string; file: File }) =>

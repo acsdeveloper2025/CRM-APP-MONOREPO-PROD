@@ -96,6 +96,10 @@ export interface KYCTaskListQuery {
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
   caseId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  /** F9.1: filter to rows that have been rechecked at least once. */
+  recheckedOnly?: boolean;
 }
 
 class KYCService {
@@ -162,6 +166,22 @@ class KYCService {
 
   async assignTask(taskId: string, assignedTo: string): Promise<ApiResponse<{ id: string }>> {
     return apiService.put(`/kyc/tasks/${taskId}/assign`, { assignedTo });
+  }
+
+  // F9.1: KYC state-transition endpoints (parity with field tasks).
+  async startTask(taskId: string): Promise<ApiResponse<{ id: string; status: string }>> {
+    return apiService.post(`/kyc/tasks/${taskId}/start`, {});
+  }
+
+  async revokeTask(
+    taskId: string,
+    revokeReason: string
+  ): Promise<ApiResponse<{ id: string; status: string }>> {
+    return apiService.post(`/kyc/tasks/${taskId}/revoke`, { revokeReason });
+  }
+
+  async recheckTask(taskId: string): Promise<ApiResponse<{ id: string; status: string }>> {
+    return apiService.post(`/kyc/tasks/${taskId}/recheck`, {});
   }
 
   async uploadDocument(taskId: string, file: File): Promise<ApiResponse<{ filePath: string }>> {
