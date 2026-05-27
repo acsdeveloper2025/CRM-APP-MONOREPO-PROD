@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -69,27 +69,40 @@ export const CasesAnalytics: React.FC = () => {
   // P1 + P7 truthful-sweep 2026-05-27: all 3 distributions come from BE
   // aggregate (Promise.all of 3 GROUP BY queries) — no FE reduce over
   // a paginated `cases[]` row dump.
-  const statusDistribution = Object.entries(summary?.statusDistribution || {}).map(
-    ([status, count]) => ({
-      name: status.replace(/_/g, ' '),
-      value: count,
-      color: STATUS_COLORS[status] || '#6b7280',
-    })
+  // P10 truthful-sweep 2026-05-27: useMemo so the chart `data` prop is
+  // referentially stable across viewType-toggle re-renders (recharts
+  // bails out of re-layout when the array ref doesn't change).
+  const statusDistribution = useMemo(
+    () =>
+      Object.entries(summary?.statusDistribution || {}).map(([status, count]) => ({
+        name: status.replace(/_/g, ' '),
+        value: count,
+        color: STATUS_COLORS[status] || '#6b7280',
+      })),
+    [summary?.statusDistribution]
   );
 
-  const clientData = Object.entries(summary?.clientDistribution || {})
-    .map(([name, count], index) => ({
-      name,
-      value: count,
-      color: `hsl(${index * 45}, 70%, 50%)`,
-    }))
-    .sort((a, b) => b.value - a.value);
+  const clientData = useMemo(
+    () =>
+      Object.entries(summary?.clientDistribution || {})
+        .map(([name, count], index) => ({
+          name,
+          value: count,
+          color: `hsl(${index * 45}, 70%, 50%)`,
+        }))
+        .sort((a, b) => b.value - a.value),
+    [summary?.clientDistribution]
+  );
 
-  const priorityData = Object.entries(summary?.priorityDistribution || {}).map(([name, count]) => ({
-    name,
-    value: count,
-    color: PRIORITY_COLORS[name] || '#6b7280',
-  }));
+  const priorityData = useMemo(
+    () =>
+      Object.entries(summary?.priorityDistribution || {}).map(([name, count]) => ({
+        name,
+        value: count,
+        color: PRIORITY_COLORS[name] || '#6b7280',
+      })),
+    [summary?.priorityDistribution]
+  );
 
   // Loading state
   if (isLoading) {

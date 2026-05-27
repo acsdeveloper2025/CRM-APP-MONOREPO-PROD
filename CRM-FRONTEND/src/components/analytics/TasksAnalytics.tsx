@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -109,29 +109,43 @@ export const TasksAnalytics: React.FC = () => {
   const totalActualAmount = stats?.totalActualAmount ?? 0;
   const totalEstimatedAmount = stats?.totalEstimatedAmount ?? 0;
 
-  const statusData = [
-    { name: 'Pending', value: stats?.pending ?? 0, color: STATUS_COLORS.PENDING },
-    { name: 'Assigned', value: stats?.assigned ?? 0, color: STATUS_COLORS.ASSIGNED },
-    { name: 'In Progress', value: stats?.inProgress ?? 0, color: STATUS_COLORS.IN_PROGRESS },
-    { name: 'Completed', value: stats?.completed ?? 0, color: STATUS_COLORS.COMPLETED },
-    { name: 'Revoked', value: stats?.revoked ?? 0, color: STATUS_COLORS.REVOKED },
-  ].filter((d) => d.value > 0);
+  // P10 truthful-sweep 2026-05-27: memoize chart data so viewType
+  // toggle doesn't rebuild every array on every render.
+  const statusData = useMemo(
+    () =>
+      [
+        { name: 'Pending', value: stats?.pending ?? 0, color: STATUS_COLORS.PENDING },
+        { name: 'Assigned', value: stats?.assigned ?? 0, color: STATUS_COLORS.ASSIGNED },
+        { name: 'In Progress', value: stats?.inProgress ?? 0, color: STATUS_COLORS.IN_PROGRESS },
+        { name: 'Completed', value: stats?.completed ?? 0, color: STATUS_COLORS.COMPLETED },
+        { name: 'Revoked', value: stats?.revoked ?? 0, color: STATUS_COLORS.REVOKED },
+      ].filter((d) => d.value > 0),
+    [stats?.pending, stats?.assigned, stats?.inProgress, stats?.completed, stats?.revoked]
+  );
 
-  const typeData = Object.entries(stats?.verificationTypeDistribution ?? {})
-    .map(([name, value], index) => ({
-      name,
-      value,
-      color: `hsl(${index * 45}, 70%, 50%)`,
-    }))
-    .sort((a, b) => b.value - a.value);
+  const typeData = useMemo(
+    () =>
+      Object.entries(stats?.verificationTypeDistribution ?? {})
+        .map(([name, value], index) => ({
+          name,
+          value,
+          color: `hsl(${index * 45}, 70%, 50%)`,
+        }))
+        .sort((a, b) => b.value - a.value),
+    [stats?.verificationTypeDistribution]
+  );
 
-  const agentData = Object.entries(stats?.agentDistribution ?? {})
-    .map(([name, value], index) => ({
-      name,
-      value,
-      color: `hsl(${index * 45}, 70%, 50%)`,
-    }))
-    .sort((a, b) => b.value - a.value);
+  const agentData = useMemo(
+    () =>
+      Object.entries(stats?.agentDistribution ?? {})
+        .map(([name, value], index) => ({
+          name,
+          value,
+          color: `hsl(${index * 45}, 70%, 50%)`,
+        }))
+        .sort((a, b) => b.value - a.value),
+    [stats?.agentDistribution]
+  );
 
   if (isLoading) {
     return (

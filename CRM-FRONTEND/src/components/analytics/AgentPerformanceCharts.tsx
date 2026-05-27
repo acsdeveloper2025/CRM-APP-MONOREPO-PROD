@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -48,7 +48,10 @@ export const AgentPerformanceCharts: React.FC = () => {
     dateTo: new Date().toISOString().split('T')[0],
   });
 
-  const agents = performanceData?.data?.agents || [];
+  const agents = useMemo(
+    () => performanceData?.data?.agents ?? [],
+    [performanceData?.data?.agents]
+  );
   const summary = performanceData?.data?.summary;
 
   const totalAgents = summary?.totalAgents ?? 0;
@@ -62,14 +65,21 @@ export const AgentPerformanceCharts: React.FC = () => {
   const inTatPct = tatTotal > 0 ? Math.round((inTat / tatTotal) * 100) : 0;
 
   // Per-agent comparison chart data (real BE fields only).
-  const agentComparisonData = agents.map((agent) => ({
-    name: agent.name.split(' ')[0],
-    fullName: agent.name,
-    totalTasks: agent.totalTasks,
-    completedTasks: agent.completedTasks,
-    pendingTasks: agent.pendingTasks,
-    totalAmount: agent.totalAmount,
-  }));
+  // P10 truthful-sweep 2026-05-27: useMemo so chart data ref is stable
+  // across timeRange-change re-renders (recharts skips re-layout when
+  // data prop ref unchanged).
+  const agentComparisonData = useMemo(
+    () =>
+      agents.map((agent) => ({
+        name: agent.name.split(' ')[0],
+        fullName: agent.name,
+        totalTasks: agent.totalTasks,
+        completedTasks: agent.completedTasks,
+        pendingTasks: agent.pendingTasks,
+        totalAmount: agent.totalAmount,
+      })),
+    [agents]
+  );
 
   if (error) {
     return (
