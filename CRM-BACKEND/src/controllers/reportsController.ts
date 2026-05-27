@@ -10,7 +10,6 @@ import { getScopedOperationalUserIds } from '@/security/userScope';
 import { resolveDataScope } from '@/security/dataScope';
 import { createAuditLog } from '@/utils/auditLogger';
 import { escapeFormulaRow } from '@/utils/formulaGuard';
-import { CaseAnalyticsRow } from '../types/reports';
 import ExcelJS from 'exceljs';
 
 const MIS_EXPORT_ROW_LIMIT = 10000;
@@ -617,63 +616,86 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Get comprehensive case analytics using multi-task architecture (snakeCase)
-    const analyticsQuery = `
+    // P1 truthful-sweep rebuild 2026-05-27: aggregate-only. Previous shape
+    // returned `c.*` per case + LEFT JOIN verification_tasks + task_form_submissions
+    // → 597 KB payload for 100 cases (≈6 KB per row × 80-field snake+camel
+    // duplicates); at 10k cases this is ~60 MB and at 100k ~600 MB. FE only
+    // reads `summary` aggregates; the `cases[]` array was used solely to
+    // FE-reduce `clientDistribution` + `priorityDistribution` Maps. Those
+    // are now BE-computed via dedicated GROUP BY queries below.
+    //
+    // Total queries: 4 small aggregate queries (parallelized via Promise.all),
+    // each O(filtered_cases) with no row materialization.
+    const summaryQuery = `
       SELECT
-        c.*,
-        cl.name as client_name,
-        COUNT(DISTINCT vt.id) as total_tasks,
-        COUNT(DISTINCT CASE WHEN vt.status = 'COMPLETED' THEN vt.id END) as completed_tasks,
-        COUNT(DISTINCT tfs.id) as form_submissions,
-        0 as attachment_count,
-        CASE
-          WHEN COUNT(DISTINCT CASE WHEN vt.status = 'COMPLETED' THEN vt.id END) > 0
-          THEN AVG(CASE
-            WHEN vt.status = 'COMPLETED' AND vt.completed_at IS NOT NULL AND vt.first_assigned_at IS NOT NULL
-            THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.first_assigned_at))/86400
-          END)
-          ELSE NULL
-        END as completion_days,
-        CASE
-          WHEN COUNT(DISTINCT vt.id) > 0
-          THEN ROUND(
-            COUNT(DISTINCT CASE WHEN vt.status = 'COMPLETED' THEN vt.id END)::numeric /
-            COUNT(DISTINCT vt.id) * 100, 2
-          )
-          ELSE 0
-        END as task_completion_percentage
+        COUNT(*) AS total_cases,
+        COUNT(*) FILTER (WHERE c.status = 'COMPLETED') AS completed_cases,
+        AVG(c.form_completion_percentage) AS avg_form_completion,
+        AVG(
+          CASE
+            WHEN c.status = 'COMPLETED' THEN (
+              SELECT EXTRACT(EPOCH FROM (vt.completed_at - vt.first_assigned_at)) / 86400
+              FROM verification_tasks vt
+              WHERE vt.case_id = c.id
+                AND vt.status = 'COMPLETED'
+                AND vt.completed_at IS NOT NULL
+                AND vt.first_assigned_at IS NOT NULL
+              ORDER BY vt.completed_at DESC
+              LIMIT 1
+            )
+          END
+        ) AS avg_completion_days
       FROM cases c
-      LEFT JOIN clients cl ON c.client_id = cl.id
-      LEFT JOIN verification_tasks vt ON c.id = vt.case_id
-      LEFT JOIN task_form_submissions tfs ON vt.id = tfs.verification_task_id
       ${whereClause}
-      GROUP BY c.id, c.case_id, cl.name
-      ORDER BY c.created_at DESC
     `;
 
-    const analyticsResult = await dbQuery(analyticsQuery, params);
+    const statusDistQuery = `
+      SELECT c.status, COUNT(*) AS count
+      FROM cases c
+      ${whereClause}
+      GROUP BY c.status
+    `;
 
-    // Calculate summary metrics
-    const cases = analyticsResult.rows;
-    const totalCases = cases.length;
-    const completedCases = cases.filter(c => c.status === 'COMPLETED').length;
-    const avgCompletionDays =
-      cases
-        .filter(c => c.completionDays !== null)
-        .reduce((sum, c) => sum + parseFloat(c.completionDays), 0) /
-        cases.filter(c => c.completionDays !== null).length || 0;
+    const clientDistQuery = `
+      SELECT cl.name AS client_name, COUNT(*) AS count
+      FROM cases c
+      LEFT JOIN clients cl ON c.client_id = cl.id
+      ${whereClause}
+      GROUP BY cl.name
+      ORDER BY count DESC
+      LIMIT 10
+    `;
 
-    const avgFormCompletion =
-      cases.reduce((sum, c) => sum + parseFloat(c.formCompletionPercentage), 0) / totalCases || 0;
+    const priorityDistQuery = `
+      SELECT COALESCE(c.priority, 'MEDIUM') AS priority, COUNT(*) AS count
+      FROM cases c
+      ${whereClause}
+      GROUP BY COALESCE(c.priority, 'MEDIUM')
+    `;
 
-    // Status distribution
-    const statusDistribution = cases.reduce(
-      (acc: Record<string, number>, c: CaseAnalyticsRow) => {
-        acc[c.status] = (acc[c.status] || 0) + 1;
+    const [summaryRes, statusRes, clientRes, priorityRes] = await Promise.all([
+      dbQuery(summaryQuery, params),
+      dbQuery(statusDistQuery, params),
+      dbQuery(clientDistQuery, params),
+      dbQuery(priorityDistQuery, params),
+    ]);
+
+    const row = summaryRes.rows[0] || {};
+    const totalCases = parseInt(row.totalCases || '0', 10);
+    const completedCases = parseInt(row.completedCases || '0', 10);
+    const completionRate = totalCases > 0 ? (completedCases / totalCases) * 100 : 0;
+
+    const toDist = (
+      rows: Array<Record<string, string | number | null>>,
+      key: string
+    ): Record<string, number> =>
+      rows.reduce<Record<string, number>>((acc, r) => {
+        const rawKey = r[key];
+        const k = rawKey === null || rawKey === undefined ? 'UNKNOWN' : String(rawKey);
+        const rawCount = r.count;
+        acc[k] = typeof rawCount === 'number' ? rawCount : parseInt(String(rawCount ?? '0'), 10);
         return acc;
-      },
-      {} as Record<string, number>
-    );
+      }, {});
 
     res.json({
       success: true,
@@ -681,12 +703,13 @@ export const getCaseAnalytics = async (req: AuthenticatedRequest, res: Response)
         summary: {
           totalCases,
           completedCases,
-          completionRate: totalCases > 0 ? (completedCases / totalCases) * 100 : 0,
-          avgCompletionDays: Math.round(avgCompletionDays * 100) / 100,
-          avgFormCompletion: Math.round(avgFormCompletion * 100) / 100,
-          statusDistribution,
+          completionRate: Math.round(completionRate * 100) / 100,
+          avgCompletionDays: Math.round(parseFloat(row.avgCompletionDays || '0') * 100) / 100,
+          avgFormCompletion: Math.round(parseFloat(row.avgFormCompletion || '0') * 100) / 100,
+          statusDistribution: toDist(statusRes.rows, 'status'),
+          clientDistribution: toDist(clientRes.rows, 'clientName'),
+          priorityDistribution: toDist(priorityRes.rows, 'priority'),
         },
-        cases,
         generatedAt: new Date().toISOString(),
         generatedBy: req.user?.id,
       },

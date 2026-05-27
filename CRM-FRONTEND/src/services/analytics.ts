@@ -1,65 +1,16 @@
 import { apiService } from './api';
-import type { ApiResponse, PaginationQuery } from '@/types/api';
+import type { ApiResponse } from '@/types/api';
 import { validateResponse } from './schemas/runtime';
 import { GenericObjectSchema } from './schemas/generic.schema';
 
-// ===== PHASE 1: NEW DATA VISUALIZATION & REPORTING SERVICES =====
+// Analytics service — narrowed to live consumers (CasesAnalytics +
+// AgentPerformanceCharts). Form-submission + agent-productivity APIs
+// stripped during P1/P7 truthful-sweep cleanup 2026-05-27 — zero
+// FE consumers; BE routes remain alive for future use.
 
-// Form Submission Types
-export interface FormSubmission {
-  formType: 'RESIDENCE' | 'OFFICE' | 'BUSINESS';
-  caseId: string;
-  submittedBy: string;
-  submittedAt: string;
-  validationStatus: 'VALID' | 'PENDING' | 'INVALID';
-  submissionData: Record<string, unknown>;
-  photosCount: number;
-  customerName?: string;
-  caseNumber?: string;
-  agentName?: string;
-  employeeId?: string;
-  attachmentCount?: number;
-}
-
-export interface FormSubmissionSummary {
-  totalSubmissions: number;
-  validSubmissions: number;
-  pendingSubmissions: number;
-  residenceForms: number;
-  officeForms: number;
-  validationRate: number;
-}
-
-export interface FormSubmissionsResponse {
-  submissions: FormSubmission[];
-  summary: FormSubmissionSummary;
-  pagination: {
-    limit: number;
-    offset: number;
-    total: number;
-  };
-}
-
-// Case Analytics Types
-export interface CaseAnalytics {
-  id: string;
-  caseId: number;
-  customerName: string;
-  status: string;
-  priority: string;
-  assignedTo: string;
-  clientName: string;
-  agentName: string;
-  employeeId: string;
-  residenceReports: number;
-  officeReports: number;
-  attachmentCount: number;
-  completionDays: number | null;
-  formCompletionPercentage: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
+// Case Analytics — mirrors GET /api/reports/case-analytics
+// (P1 truthful-sweep rebuild 2026-05-27: aggregate-only; no per-case
+// row dump). Distribution Maps come from BE GROUP BY queries.
 export interface CaseAnalyticsSummary {
   totalCases: number;
   completedCases: number;
@@ -67,17 +18,18 @@ export interface CaseAnalyticsSummary {
   avgCompletionDays: number;
   avgFormCompletion: number;
   statusDistribution: Record<string, number>;
+  clientDistribution: Record<string, number>;
+  priorityDistribution: Record<string, number>;
 }
 
 export interface CaseAnalyticsResponse {
   summary: CaseAnalyticsSummary;
-  cases: CaseAnalytics[];
   generatedAt: string;
   generatedBy: string;
 }
 
-// Agent Performance Types — mirrors GET /api/reports/agent-performance
-// response (verified 2026-05-27 E5 truthful sweep).
+// Agent Performance — mirrors GET /api/reports/agent-performance
+// (verified 2026-05-27 E5 truthful sweep).
 export interface AgentPerformance {
   id: string;
   name: string;
@@ -110,26 +62,7 @@ export interface AgentPerformanceResponse {
   generatedBy: string;
 }
 
-// Agent Productivity Types
-export interface AgentProductivityResponse {
-  agent: AgentPerformance;
-  summary: {
-    totalWorkDays: number;
-    avgCasesPerDay: number;
-    avgFormsPerDay: number;
-  };
-}
-
 // Query Types
-export interface FormSubmissionQuery extends PaginationQuery {
-  formType?: 'RESIDENCE' | 'OFFICE' | 'BUSINESS';
-  dateFrom?: string;
-  dateTo?: string;
-  agentId?: string;
-  validationStatus?: 'VALID' | 'PENDING' | 'INVALID';
-  caseId?: string;
-}
-
 export interface CaseAnalyticsQuery {
   dateFrom?: string;
   dateTo?: string;
@@ -145,85 +78,8 @@ export interface AgentPerformanceQuery {
   departmentId?: number;
 }
 
-export interface AgentProductivityQuery {
-  dateFrom?: string;
-  dateTo?: string;
-}
-
-// Form Validation Status Types
-export interface FormValidationStatus {
-  formType: string;
-  totalForms: number;
-  validatedForms: number;
-  pendingForms: number;
-  avgValidationTimeHours: number;
-}
-
-export interface FormValidationResponse {
-  summary: {
-    totalForms: number;
-    validatedForms: number;
-    pendingForms: number;
-    validationRate: number;
-  };
-  byFormType: FormValidationStatus[];
-  generatedAt: string;
-  generatedBy: string;
-}
-
 // Analytics Service Class
 export class AnalyticsService {
-  // 1.1 Form Submission Data APIs
-  async getFormSubmissions(
-    query: FormSubmissionQuery = {}
-  ): Promise<ApiResponse<FormSubmissionsResponse>> {
-    const response = await apiService.get<FormSubmissionsResponse>(
-      '/reports/form-submissions',
-      query
-    );
-    if (response?.success && response.data && typeof response.data === 'object') {
-      validateResponse(GenericObjectSchema, response.data, {
-        service: 'analytics',
-        endpoint: 'GET /reports/form-submissions',
-      });
-    }
-    return response;
-  }
-
-  async getFormSubmissionsByType(
-    formType: string,
-    query: Omit<FormSubmissionQuery, 'formType'> = {}
-  ): Promise<ApiResponse<FormSubmissionsResponse>> {
-    const response = await apiService.get<FormSubmissionsResponse>(
-      `/reports/form-submissions/${formType}`,
-      query
-    );
-    if (response?.success && response.data && typeof response.data === 'object') {
-      validateResponse(GenericObjectSchema, response.data, {
-        service: 'analytics',
-        endpoint: 'GET /reports/form-submissions/:type',
-      });
-    }
-    return response;
-  }
-
-  async getFormValidationStatus(
-    query: { dateFrom?: string; dateTo?: string } = {}
-  ): Promise<ApiResponse<FormValidationResponse>> {
-    const response = await apiService.get<FormValidationResponse>(
-      '/reports/form-validation-status',
-      query
-    );
-    if (response?.success && response.data && typeof response.data === 'object') {
-      validateResponse(GenericObjectSchema, response.data, {
-        service: 'analytics',
-        endpoint: 'GET /reports/form-validation-status',
-      });
-    }
-    return response;
-  }
-
-  // 1.2 Case Analytics APIs
   async getCaseAnalytics(
     query: CaseAnalyticsQuery = {}
   ): Promise<ApiResponse<CaseAnalyticsResponse>> {
@@ -237,7 +93,6 @@ export class AnalyticsService {
     return response;
   }
 
-  // 1.3 Agent Performance APIs
   async getAgentPerformance(
     query: AgentPerformanceQuery = {}
   ): Promise<ApiResponse<AgentPerformanceResponse>> {
@@ -249,23 +104,6 @@ export class AnalyticsService {
       validateResponse(GenericObjectSchema, response.data, {
         service: 'analytics',
         endpoint: 'GET /reports/agent-performance',
-      });
-    }
-    return response;
-  }
-
-  async getAgentProductivity(
-    agentId: string,
-    query: AgentProductivityQuery = {}
-  ): Promise<ApiResponse<AgentProductivityResponse>> {
-    const response = await apiService.get<AgentProductivityResponse>(
-      `/reports/agent-productivity/${agentId}`,
-      query
-    );
-    if (response?.success && response.data && typeof response.data === 'object') {
-      validateResponse(GenericObjectSchema, response.data, {
-        service: 'analytics',
-        endpoint: 'GET /reports/agent-productivity/:agentId',
       });
     }
     return response;

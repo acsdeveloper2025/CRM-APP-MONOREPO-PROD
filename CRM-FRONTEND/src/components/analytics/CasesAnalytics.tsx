@@ -10,18 +10,14 @@ import {
 import {
   BarChart,
   Bar,
-  PieChart,
-  Pie,
   Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from 'recharts';
 import { useCaseAnalytics } from '@/hooks/useAnalytics';
-import type { CaseAnalytics } from '@/services/analytics';
 import { FileText, TrendingUp, CheckCircle2, Clock, XCircle } from 'lucide-react';
 
 // Canonical case-status enum (5 values, locked 2026-05-13 workflow audit).
@@ -69,9 +65,10 @@ export const CasesAnalytics: React.FC = () => {
   });
 
   const summary = analyticsData?.data?.summary;
-  const cases = analyticsData?.data?.cases || [];
 
-  // Calculate distributions
+  // P1 + P7 truthful-sweep 2026-05-27: all 3 distributions come from BE
+  // aggregate (Promise.all of 3 GROUP BY queries) — no FE reduce over
+  // a paginated `cases[]` row dump.
   const statusDistribution = Object.entries(summary?.statusDistribution || {}).map(
     ([status, count]) => ({
       name: status.replace(/_/g, ' '),
@@ -80,28 +77,15 @@ export const CasesAnalytics: React.FC = () => {
     })
   );
 
-  const clientDistribution = cases.reduce((acc: Record<string, number>, c: CaseAnalytics) => {
-    const client = c.clientName || 'Unknown';
-    acc[client] = (acc[client] || 0) + 1;
-    return acc;
-  }, {});
-
-  const clientData = Object.entries(clientDistribution)
+  const clientData = Object.entries(summary?.clientDistribution || {})
     .map(([name, count], index) => ({
       name,
       value: count,
       color: `hsl(${index * 45}, 70%, 50%)`,
     }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 10);
+    .sort((a, b) => b.value - a.value);
 
-  const priorityDistribution = cases.reduce((acc: Record<string, number>, c: CaseAnalytics) => {
-    const priority = c.priority || 'MEDIUM';
-    acc[priority] = (acc[priority] || 0) + 1;
-    return acc;
-  }, {});
-
-  const priorityData = Object.entries(priorityDistribution).map(([name, count]) => ({
+  const priorityData = Object.entries(summary?.priorityDistribution || {}).map(([name, count]) => ({
     name,
     value: count,
     color: PRIORITY_COLORS[name] || '#6b7280',
@@ -237,105 +221,38 @@ export const CasesAnalytics: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-            {/* Pie Chart */}
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={
-                      viewType === 'status'
-                        ? statusDistribution
-                        : viewType === 'priority'
-                          ? priorityData
-                          : clientData
-                    }
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={(props: { name?: string; percent?: number }) =>
-                      `${props.name || ''}: ${((props.percent || 0) * 100).toFixed(0)}%`
-                    }
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {(viewType === 'status'
-                      ? statusDistribution
-                      : viewType === 'priority'
-                        ? priorityData
-                        : clientData
-                    ).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Bar Chart */}
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={
-                    viewType === 'status'
-                      ? statusDistribution
-                      : viewType === 'priority'
-                        ? priorityData
-                        : clientData
-                  }
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#3b82f6">
-                    {(viewType === 'status'
-                      ? statusDistribution
-                      : viewType === 'priority'
-                        ? priorityData
-                        : clientData
-                    ).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Status Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Status Breakdown</CardTitle>
-          <CardDescription>Detailed view of cases by status</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {statusDistribution.map((status) => (
-              <div
-                key={status.name}
-                className="flex items-center justify-between p-4 border rounded-lg"
+          {/* P7 truthful-sweep 2026-05-27: single Bar chart per view-type.
+              Previous shape had Pie + Bar plotting identical data +
+              a "Status Breakdown" card grid duplicating the same counts —
+              three widgets, one dataset. Bar scales to many categories
+              (client view can be top-10); pie tooltip already conveys %. */}
+          <div className="h-[360px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={
+                  viewType === 'status'
+                    ? statusDistribution
+                    : viewType === 'priority'
+                      ? priorityData
+                      : clientData
+                }
               >
-                <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: status.color }} />
-                  <div>
-                    <p className="font-medium">{status.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {summary?.totalCases
-                        ? ((status.value / summary.totalCases) * 100).toFixed(1)
-                        : 0}
-                      %
-                    </p>
-                  </div>
-                </div>
-                <div className="text-2xl font-bold">{status.value}</div>
-              </div>
-            ))}
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#3b82f6">
+                  {(viewType === 'status'
+                    ? statusDistribution
+                    : viewType === 'priority'
+                      ? priorityData
+                      : clientData
+                  ).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
