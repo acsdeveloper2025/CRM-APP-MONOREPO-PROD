@@ -48,10 +48,11 @@ interface VerificationTasksResponse {
     inProgress: number;
     completed: number;
     revoked: number;
-    onHold: number;
     urgent: number;
     highPriority: number;
     totalAgents: number;
+    totalEstimatedAmount: number;
+    totalActualAmount: number;
   };
 }
 
@@ -62,6 +63,8 @@ const STATUS_COLORS: Record<string, string> = {
   COMPLETED: '#10b981',
   REVOKED: '#ef4444',
 };
+
+const INR = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 
 const getDateFromRange = (range: string): string => {
   const now = new Date();
@@ -121,15 +124,10 @@ export const TasksAnalytics: React.FC = () => {
   // Still need to use the tasks array for type and agent distribution as backend doesn't aggregate them yet
   const tasks: VerificationTask[] = payload?.tasks || [];
 
-  // Calculate total amounts (ideally these should also come from backend statistics)
-  const totalEstimatedAmount = tasks.reduce(
-    (sum: number, t: VerificationTask) => sum + (parseFloat(t.estimatedAmount) || 0),
-    0
-  );
-  const totalActualAmount = tasks.reduce(
-    (sum: number, t: VerificationTask) => sum + (parseFloat(t.actualAmount) || 0),
-    0
-  );
+  // Money totals come from BE SUM (D-17 anti-pattern fix 2026-05-27).
+  // Reducing over the paginated tasks[] silently truncated above limit=100.
+  const totalEstimatedAmount = taskStats?.totalEstimatedAmount ?? 0;
+  const totalActualAmount = taskStats?.totalActualAmount ?? 0;
 
   // Verification type distribution
   const typeDistribution = tasks.reduce((acc: Record<string, number>, t: VerificationTask) => {
@@ -200,28 +198,18 @@ export const TasksAnalytics: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">
-            Verification Tasks Analytics
-          </h2>
-          <p className="mt-1 text-sm sm:text-base text-muted-foreground">
-            Task-level metrics and performance analysis
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-full sm:w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Time-range selector (page H1 lives in AnalyticsTasksPage wrapper). */}
+      <div className="flex justify-end">
+        <Select value={timeRange} onValueChange={setTimeRange}>
+          <SelectTrigger className="w-full sm:w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7d">Last 7 days</SelectItem>
+            <SelectItem value="30d">Last 30 days</SelectItem>
+            <SelectItem value="90d">Last 90 days</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Summary Cards */}
@@ -267,9 +255,9 @@ export const TasksAnalytics: React.FC = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{totalActualAmount.toLocaleString()}</div>
+            <div className="text-2xl font-bold">₹{INR.format(totalActualAmount)}</div>
             <p className="text-xs text-muted-foreground">
-              Est: ₹{totalEstimatedAmount.toLocaleString()}
+              Est: ₹{INR.format(totalEstimatedAmount)}
             </p>
           </CardContent>
         </Card>

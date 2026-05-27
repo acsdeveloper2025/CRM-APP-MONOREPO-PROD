@@ -1163,7 +1163,13 @@ export class VerificationTasksController {
                  WHERE repl.parent_task_id = vt.id
                    AND repl.status NOT IN ('REVOKED', 'COMPLETED')
               )
-          ) as awaiting_reassignment_count
+          ) as awaiting_reassignment_count,
+          -- Truthful-sweep 2026-05-27 (E4 Tasks Analytics): money totals
+          -- MUST come from BE SUM, not a FE reduce over the paginated
+          -- tasks[] array (D-17 anti-pattern — truncates above the page
+          -- limit). Mirrors /reports/mis-dashboard-data summary shape.
+          COALESCE(SUM(vt.estimated_amount), 0) as total_estimated_amount,
+          COALESCE(SUM(vt.actual_amount), 0) as total_actual_amount
         FROM verification_tasks vt
         LEFT JOIN cases c ON vt.case_id = c.id
         ${whereClause}
@@ -1203,6 +1209,8 @@ export class VerificationTasksController {
             revokedToday: parseInt(stats.revokedTodayCount || '0'),
             reassigned: parseInt(stats.reassignedCount || '0'),
             awaitingReassignment: parseInt(stats.awaitingReassignmentCount || '0'),
+            totalEstimatedAmount: parseFloat(stats.totalEstimatedAmount || '0'),
+            totalActualAmount: parseFloat(stats.totalActualAmount || '0'),
           },
         },
         message: 'Verification tasks retrieved successfully',
