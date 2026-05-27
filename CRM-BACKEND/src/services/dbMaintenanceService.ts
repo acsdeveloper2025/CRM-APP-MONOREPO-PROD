@@ -15,9 +15,11 @@ import { query } from '@/config/database';
 import { logger } from '@/utils/logger';
 
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+const FIVE_MINUTES_MS = 5 * 60 * 1000;
 const INITIAL_DELAY_MS = 30 * 1000; // wait 30s after boot for DB+pool to settle
 
 let maintenanceInterval: ReturnType<typeof setInterval> | null = null;
+let kpiRefreshInterval: ReturnType<typeof setInterval> | null = null;
 
 const tasks: Array<{ name: string; sql: string }> = [
   {
@@ -76,22 +78,61 @@ const runOnce = async (): Promise<void> => {
   }
 };
 
+// P5 truthful-sweep 2026-05-27: dashboard KPI materialized view
+// refresh. Mat view aggregates verification_tasks per
+// (agent, creator, client, product) — pre-computes the 25-FILTER
+// COUNT() shape the dashboardKPIService.coreQuery does on every
+// request. CONCURRENT refresh requires the UNIQUE INDEX created in
+// the 2026-05-27_p5_dashboard_kpi_mat_view migration. 5-min cadence
+// → dashboard KPIs are stale-by-up-to-5-min, acceptable for trend +
+// snapshot views.
+const refreshKpiMatView = async (): Promise<void> => {
+  try {
+    const result = await query<Record<string, unknown>>(
+      'REFRESH MATERIALIZED VIEW CONCURRENTLY mv_dashboard_kpi_7d'
+    );
+    logger.info('db-maintenance refresh_mv_dashboard_kpi_7d ok', {
+      result: result.rows[0] || null,
+    });
+  } catch (err) {
+    // Non-fatal — most likely cause is the mat view not yet created
+    // on an older DB snapshot. Log + continue; the next run retries.
+    logger.warn('db-maintenance refresh_mv_dashboard_kpi_7d failed', {
+      error: String(err),
+    });
+  }
+};
+
 export const startDbMaintenance = (): void => {
   if (maintenanceInterval) {
     clearInterval(maintenanceInterval);
   }
+  if (kpiRefreshInterval) {
+    clearInterval(kpiRefreshInterval);
+  }
   setTimeout(() => {
     void runOnce();
+    void refreshKpiMatView();
   }, INITIAL_DELAY_MS);
   maintenanceInterval = setInterval(() => {
     void runOnce();
   }, TWENTY_FOUR_HOURS_MS);
-  logger.info('db-maintenance scheduled', { intervalMs: TWENTY_FOUR_HOURS_MS });
+  kpiRefreshInterval = setInterval(() => {
+    void refreshKpiMatView();
+  }, FIVE_MINUTES_MS);
+  logger.info('db-maintenance scheduled', {
+    purgeIntervalMs: TWENTY_FOUR_HOURS_MS,
+    kpiRefreshIntervalMs: FIVE_MINUTES_MS,
+  });
 };
 
 export const stopDbMaintenance = (): void => {
   if (maintenanceInterval) {
     clearInterval(maintenanceInterval);
     maintenanceInterval = null;
+  }
+  if (kpiRefreshInterval) {
+    clearInterval(kpiRefreshInterval);
+    kpiRefreshInterval = null;
   }
 };
