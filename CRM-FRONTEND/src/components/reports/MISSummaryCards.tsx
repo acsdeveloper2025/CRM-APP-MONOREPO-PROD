@@ -7,6 +7,8 @@ interface MISSummaryCardsProps {
   isLoading?: boolean;
 }
 
+const INR = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
+
 export function MISSummaryCards({ summary, isLoading }: MISSummaryCardsProps) {
   if (isLoading) {
     return (
@@ -42,16 +44,16 @@ export function MISSummaryCards({ summary, isLoading }: MISSummaryCardsProps) {
   const cards = [
     {
       title: 'Total Tasks',
-      value: safeSummary.totalTasks.toLocaleString(),
-      subtitle: `${safeSummary.completedTasks} completed`,
+      value: INR.format(safeSummary.totalTasks),
+      subtitle: `${INR.format(safeSummary.completedTasks)} completed`,
       icon: FileText,
       color: 'text-blue-600 dark:text-blue-400',
       bgColor: 'bg-blue-100 dark:bg-blue-900/20',
     },
     {
       title: 'Total Amount',
-      value: `₹${safeSummary.totalActualAmount.toLocaleString()}`,
-      subtitle: `Est: ₹${safeSummary.totalEstimatedAmount.toLocaleString()}`,
+      value: `₹${INR.format(safeSummary.totalActualAmount)}`,
+      subtitle: `Est: ₹${INR.format(safeSummary.totalEstimatedAmount)}`,
       icon: DollarSign,
       color: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-green-100 dark:bg-green-900/20',
@@ -59,7 +61,7 @@ export function MISSummaryCards({ summary, isLoading }: MISSummaryCardsProps) {
     {
       title: 'Completion Rate',
       value: `${safeSummary.taskCompletionRate}%`,
-      subtitle: `${safeSummary.completedTasks} completed`,
+      subtitle: `${INR.format(safeSummary.completedTasks)} of ${INR.format(safeSummary.totalTasks)} tasks`,
       icon: CheckCircle,
       color: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-green-100 dark:bg-green-900/20',
@@ -74,7 +76,7 @@ export function MISSummaryCards({ summary, isLoading }: MISSummaryCardsProps) {
     },
     {
       title: 'Open Tasks',
-      value: openTasks.toLocaleString(),
+      value: INR.format(openTasks),
       subtitle: `${((openTasks / Math.max(safeSummary.totalTasks, 1)) * 100).toFixed(1)}% of total`,
       icon: TrendingUp,
       color: 'text-red-600 dark:text-red-400',
