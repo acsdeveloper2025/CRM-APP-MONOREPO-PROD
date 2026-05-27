@@ -14,7 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Pencil, Plus } from 'lucide-react';
 import { useMutationWithInvalidation } from '@/hooks/useStandardizedMutation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -164,10 +164,7 @@ export default function RevokeReasonsPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">All Revoke Reasons</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {isLoading ? (
             <div className="flex justify-center py-8">
               <LoadingSpinner size="lg" />

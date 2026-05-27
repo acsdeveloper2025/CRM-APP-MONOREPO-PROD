@@ -106,6 +106,9 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     if (path === '/user-management/designations') {
       return 'Designations';
     }
+    if (path === '/user-management/revoke-reasons') {
+      return 'Revoke Reasons';
+    }
     if (path === '/reports-and-mis') {
       return 'Reports';
     }
