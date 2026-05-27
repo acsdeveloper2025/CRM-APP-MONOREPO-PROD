@@ -290,15 +290,3 @@ export interface FormCondition {
   operator: 'equals' | 'notEquals' | 'contains' | 'notContains' | 'greaterThan' | 'lessThan';
   value: unknown;
 }
-
-// Form Viewer Props
-export interface FormViewerProps {
-  submission: FormSubmission;
-  template?: FormTemplate;
-  readonly?: boolean;
-  showAttachments?: boolean;
-  showLocation?: boolean;
-  showMetadata?: boolean;
-  onFieldChange?: (fieldId: string, value: unknown) => void;
-  onSectionToggle?: (sectionId: string, expanded: boolean) => void;
-}
