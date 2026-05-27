@@ -65,6 +65,19 @@ SELECT
   -- SNAPSHOTS (point-in-time at refresh)
   COUNT(*) FILTER (WHERE vt.status = 'IN_PROGRESS')                                           AS cp_in_progress,
   COUNT(*) FILTER (WHERE vt.status IN ('PENDING','ASSIGNED','IN_PROGRESS'))                   AS cp_open,
+  -- PP snapshots (approximation — same shape as the original
+  -- dashboardKPIService.coreQuery comment "solid approximation"):
+  -- task was active 7 days ago if created_at <= 7d_ago AND
+  -- (completed_at > 7d_ago OR completed_at IS NULL) AND status != REVOKED.
+  COUNT(*) FILTER (
+    WHERE vt.created_at <= NOW() - INTERVAL '7 days'
+      AND (vt.completed_at > NOW() - INTERVAL '7 days' OR vt.completed_at IS NULL)
+      AND vt.status != 'REVOKED'
+  ) AS pp_in_progress,
+  COUNT(*) FILTER (
+    WHERE vt.created_at <= NOW() - INTERVAL '7 days'
+      AND (vt.completed_at > NOW() - INTERVAL '7 days' OR vt.completed_at IS NULL)
+  ) AS pp_open,
   COUNT(*) FILTER (WHERE vt.status NOT IN ('COMPLETED','REVOKED','CANCELLED')
                      AND vt.created_at < NOW() - INTERVAL '72 hours')                         AS cp_overdue,
   COUNT(*) FILTER (WHERE vt.status NOT IN ('COMPLETED','REVOKED','CANCELLED')

@@ -127,136 +127,131 @@ export class DashboardKPIService {
 
     const { clientId, agentId, agentIds, clientIds, productIds, creatorUserIds } = filters;
 
-    // Base WHERE clauses
-    const conditions: string[] = ['1=1'];
+    // ----------------------------------------------------------------------
+    // CORE QUERY: scope-filtered SUM across mv_dashboard_kpi_7d
+    // ----------------------------------------------------------------------
+    // P5 Phase B truthful-sweep 2026-05-27: this was a 25-FILTER CTE
+    // against verification_tasks scanning all rows on every dashboard
+    // request. Now SUMs across pre-aggregated rows in mv_dashboard_kpi_7d
+    // (refreshed every 5 min by dbMaintenanceService). KYC exclusion is
+    // baked into the mat view at materialize time.
+    //
+    // Mat view dimensions: agent_user_id, creator_user_id, client_id,
+    // product_id. Service scope filters map directly:
+    //   - creatorUserIds → (creator_user_id IN OR agent_user_id IN)
+    //   - clientId / clientIds → client_id IN
+    //   - productIds → product_id IN
+    //   - agentId / agentIds → agent_user_id IN
+    //
+    // Stale-by-up-to-5-min is accepted UX; cache TTL on the controller
+    // is already 60s (longer than refresh cycle is fine — eventually
+    // consistent).
+
+    const mvConditions: string[] = ['1=1'];
     const params: QueryParams = [];
     let idx = 1;
 
-    // Creator OR assignment scope: BACKEND_USER sees only their created
-    // cases. TL/Manager also see cases where tasks are assigned to their
-    // subordinates (field agents).
     if (creatorUserIds && creatorUserIds.length > 0) {
-      conditions.push(`(
-        c.created_by_backend_user = ANY($${idx}::uuid[])
-        OR EXISTS (
-          SELECT 1 FROM verification_tasks vt_scope
-          WHERE vt_scope.case_id = c.id
-            AND vt_scope.assigned_to = ANY($${idx}::uuid[])
-        )
-      )`);
+      mvConditions.push(
+        `(creator_user_id = ANY($${idx}::uuid[]) OR agent_user_id = ANY($${idx}::uuid[]))`
+      );
       params.push(creatorUserIds);
       idx++;
     }
     if (clientId) {
-      conditions.push(`c.client_id = $${idx++}`);
+      mvConditions.push(`client_id = $${idx++}`);
       params.push(clientId);
     }
     if (clientIds && clientIds.length > 0) {
-      conditions.push(`c.client_id = ANY($${idx++}::int[])`);
+      mvConditions.push(`client_id = ANY($${idx++}::int[])`);
       params.push(clientIds);
     }
     if (productIds && productIds.length > 0) {
-      conditions.push(`c.product_id = ANY($${idx++}::int[])`);
+      mvConditions.push(`product_id = ANY($${idx++}::int[])`);
       params.push(productIds);
     }
     if (agentId) {
-      conditions.push(`vt.assigned_to = $${idx++}`);
+      mvConditions.push(`agent_user_id = $${idx++}`);
       params.push(agentId);
     }
     if (agentIds && agentIds.length > 0) {
-      conditions.push(`vt.assigned_to = ANY($${idx++}::uuid[])`);
+      mvConditions.push(`agent_user_id = ANY($${idx++}::uuid[])`);
       params.push(agentIds);
     }
 
+    const mvWhereClause = mvConditions.join(' AND ');
+
+    // Legacy WHERE-clause shape for queries that still scan raw tables
+    // (kycQuery + perfQuery). Mat view doesn't cover KYC (excluded at
+    // materialize time) or per-task TAT metrics (point-in-time AVG of
+    // completed_at - created_at requires per-row data, not pre-grouped
+    // counts). These queries remain on raw tables; the coreQuery
+    // (which IS the 25-FILTER monster) is the one that moved.
+    //
+    // Param positions MUST match the mvConditions build above (same
+    // order, same set) so both whereClause variants can share the
+    // single `params` array.
+    const conditions: string[] = ['1=1'];
+    let legacyIdx = 1;
+    if (creatorUserIds && creatorUserIds.length > 0) {
+      conditions.push(`(
+        c.created_by_backend_user = ANY($${legacyIdx}::uuid[])
+        OR EXISTS (
+          SELECT 1 FROM verification_tasks vt_scope
+          WHERE vt_scope.case_id = c.id
+            AND vt_scope.assigned_to = ANY($${legacyIdx}::uuid[])
+        )
+      )`);
+      legacyIdx++;
+    }
+    if (clientId) {
+      conditions.push(`c.client_id = $${legacyIdx++}`);
+    }
+    if (clientIds && clientIds.length > 0) {
+      conditions.push(`c.client_id = ANY($${legacyIdx++}::int[])`);
+    }
+    if (productIds && productIds.length > 0) {
+      conditions.push(`c.product_id = ANY($${legacyIdx++}::int[])`);
+    }
+    if (agentId) {
+      conditions.push(`vt.assigned_to = $${legacyIdx++}`);
+    }
+    if (agentIds && agentIds.length > 0) {
+      conditions.push(`vt.assigned_to = ANY($${legacyIdx++}::uuid[])`);
+    }
     const whereClause = conditions.join(' AND ');
 
-    // ----------------------------------------------------------------------
-    // CORE QUERY: Aggregating Verification Tasks (Flow & Snapshot)
-    // ----------------------------------------------------------------------
-    // We calculate 4 sets of numbers:
-    // 1. CP Flow (Created/Completed in last 7 days)
-    // 2. PP Flow (Created/Completed in prev 7 days)
-    // 3. CP Snapshot (Status at NOW)
-    // 4. PP Snapshot (Status at NOW-7d)
-
-    // NOTE: reconstructing PP Snapshot for "In Progress" requires checking history.
-    // Logic: Task was InProgress at T if:
-    //    created_at <= T AND (completed_at > T OR completed_at IS NULL)
-    //    AND status != 'REVOKED' (simplified)
-
+    // SUM across the matching mat-view rows. Weighted AVG for
+    // cp_avg_overdue_days: SUM(cp_overdue × cp_avg_overdue_days) /
+    // SUM(cp_overdue) recovers the correct cross-scope average.
     const coreQuery = `
-      WITH date_ranges AS (
-        SELECT 
-          NOW() as cp_end,
-          NOW() - INTERVAL '7 days' as cp_start,
-          NOW() - INTERVAL '7 days' as pp_end,  -- same as cp_start
-          NOW() - INTERVAL '14 days' as pp_start,
-          CURRENT_DATE as today_start,
-          CURRENT_DATE - INTERVAL '1 day' as yesterday_start
-      ),
-      filtered_tasks AS (
-        SELECT vt.*
-        FROM verification_tasks vt
-        LEFT JOIN cases c ON vt.case_id = c.id
-        WHERE ${whereClause}
-          -- 2026-05-06 bug 74: exclude KYC tasks from workload counts. KYC has its own
-          -- dedicated dashboard section (kycQuery) with own bucketing. Mixing them in
-          -- workload counts caused dashboard "Pending Tasks N" to mismatch the
-          -- /task-management/pending-tasks page (which uses excludeTaskType=KYC default).
-          AND COALESCE(vt.task_type, 'NORMAL') <> 'KYC'
-      )
       SELECT
-        -- VOLUME (CREATED)
-        COUNT(*) FILTER (WHERE created_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_created,
-        COUNT(*) FILTER (WHERE created_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_created,
-        
-        -- COMPLETED (FLOW)
-        COUNT(*) FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_completed,
-        COUNT(*) FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_completed,
-
-        -- REVOKED (FLOW)
-        COUNT(*) FILTER (WHERE status = 'REVOKED' AND updated_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_revoked,
-        COUNT(*) FILTER (WHERE status = 'REVOKED' AND updated_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_revoked,
-
-        -- IN PROGRESS (SNAPSHOT RECONSTRUCTION)
-        -- Current: Status is IN_PROGRESS
-        COUNT(*) FILTER (WHERE status = 'IN_PROGRESS') as cp_in_progress,
-        
-        -- Previous: Created before PP_End AND (Not completed OR Completed after PP_End)
-        COUNT(*) FILTER (
-          WHERE created_at <= (SELECT pp_end FROM date_ranges) 
-          AND (completed_at > (SELECT pp_end FROM date_ranges) OR completed_at IS NULL)
-          AND status != 'REVOKED' -- Exclude revoked from active count approximation
-        ) as pp_in_progress,
-
-        -- OPEN TASKS (PENDING + ASSIGNED + IN_PROGRESS)
-        COUNT(*) FILTER (WHERE status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS')) as cp_open,
-        COUNT(*) FILTER (
-           WHERE created_at <= (SELECT pp_end FROM date_ranges)
-           AND (completed_at > (SELECT pp_end FROM date_ranges) OR completed_at IS NULL)
-           -- Ideally strict logic would check assignment history, but this is a solid approximation
-        ) as pp_open,
-
-        -- TODAY OPS (vs YESTERDAY)
-        COUNT(*) FILTER (WHERE status = 'COMPLETED' AND completed_at >= (SELECT today_start FROM date_ranges)) as today_completed,
-        COUNT(*) FILTER (WHERE status = 'COMPLETED' AND completed_at >= (SELECT yesterday_start FROM date_ranges) AND completed_at < (SELECT today_start FROM date_ranges)) as yesterday_completed,
-        
-        COUNT(*) FILTER (WHERE assigned_at >= (SELECT today_start FROM date_ranges)) as today_assigned,
-        COUNT(*) FILTER (WHERE assigned_at >= (SELECT yesterday_start FROM date_ranges) AND assigned_at < (SELECT today_start FROM date_ranges)) as yesterday_assigned,
-
-        -- FINANCIAL
-        SUM(estimated_amount) FILTER (WHERE created_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_est_amt,
-        SUM(estimated_amount) FILTER (WHERE created_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_est_amt,
-
-        SUM(actual_amount) FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges)) as cp_act_amt,
-        SUM(actual_amount) FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges)) as pp_act_amt,
-
-        -- OVERDUE & RISK (SNAPSHOT)
-        COUNT(*) FILTER (WHERE status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED') AND created_at < NOW() - INTERVAL '72 hours') as cp_overdue,
-        COUNT(*) FILTER (WHERE status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED') AND created_at < NOW() - INTERVAL '24 hours') as cp_sla_risk,
-        AVG(EXTRACT(EPOCH FROM (NOW() - created_at))/86400) FILTER (WHERE status NOT IN ('COMPLETED', 'REVOKED', 'CANCELLED') AND created_at < NOW() - INTERVAL '72 hours') as cp_avg_overdue_days,
-        COUNT(*) FILTER (WHERE status = 'COMPLETED' AND completed_at >= CURRENT_DATE) as completed_today
-      FROM filtered_tasks
+        COALESCE(SUM(cp_created), 0)        as cp_created,
+        COALESCE(SUM(pp_created), 0)        as pp_created,
+        COALESCE(SUM(cp_completed), 0)      as cp_completed,
+        COALESCE(SUM(pp_completed), 0)      as pp_completed,
+        COALESCE(SUM(cp_revoked), 0)        as cp_revoked,
+        COALESCE(SUM(pp_revoked), 0)        as pp_revoked,
+        COALESCE(SUM(cp_in_progress), 0)    as cp_in_progress,
+        COALESCE(SUM(pp_in_progress), 0)    as pp_in_progress,
+        COALESCE(SUM(cp_open), 0)           as cp_open,
+        COALESCE(SUM(pp_open), 0)           as pp_open,
+        COALESCE(SUM(today_completed), 0)   as today_completed,
+        COALESCE(SUM(yesterday_completed), 0) as yesterday_completed,
+        COALESCE(SUM(today_assigned), 0)    as today_assigned,
+        COALESCE(SUM(yesterday_assigned), 0) as yesterday_assigned,
+        COALESCE(SUM(cp_est_amt), 0)        as cp_est_amt,
+        COALESCE(SUM(pp_est_amt), 0)        as pp_est_amt,
+        COALESCE(SUM(cp_act_amt), 0)        as cp_act_amt,
+        COALESCE(SUM(pp_act_amt), 0)        as pp_act_amt,
+        COALESCE(SUM(cp_overdue), 0)        as cp_overdue,
+        COALESCE(SUM(cp_sla_risk), 0)       as cp_sla_risk,
+        CASE WHEN COALESCE(SUM(cp_overdue), 0) > 0
+          THEN SUM(cp_overdue * cp_avg_overdue_days) / SUM(cp_overdue)
+          ELSE 0 END                        as cp_avg_overdue_days,
+        COALESCE(SUM(today_completed), 0)   as completed_today
+      FROM mv_dashboard_kpi_7d
+      WHERE ${mvWhereClause}
     `;
 
     // ----------------------------------------------------------------------
