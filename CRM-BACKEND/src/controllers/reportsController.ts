@@ -778,155 +778,102 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Simple query: Get all verification tasks with agent, client, product, rate type info
-    const performanceQuery = `
+    // P2 truthful-sweep rebuild 2026-05-27: BE-side GROUP BY per agent.
+    // Previous shape ran a single SELECT per-task across all agents
+    // (one row per verification_task with agent + client + product joined)
+    // then grouped in JS — O(tasks) network + O(tasks) loop. At 100k tasks
+    // that's a multi-MB payload + multi-second event-loop block. Now: SQL
+    // does the GROUP BY; one row per agent (≤ N_field_agents rows ever).
+    const agentsQuery = `
       SELECT
         u.id as agent_id,
         u.name as agent_name,
         u.employee_id as employee_id,
-        vt.id as task_id,
-        vt.task_number,
-        vt.status,
-        vt.created_at,
-        vt.updated_at,
-        vt.estimated_amount,
-        vt.actual_amount,
-        cl.name as client_name,
-        p.name as product_name,
-        vtype.name as verification_type,
-        rt.name as rate_type,
-        CASE
-          WHEN vt.status = 'COMPLETED' AND vt.completed_at IS NOT NULL AND vt.current_assigned_at IS NOT NULL
-          THEN EXTRACT(EPOCH FROM (vt.completed_at - vt.current_assigned_at))/86400
-          ELSE NULL
-        END as completion_days
+        COUNT(*) as total_tasks,
+        COUNT(*) FILTER (WHERE vt.status = 'COMPLETED') as completed_tasks,
+        COUNT(*) FILTER (
+          WHERE vt.status = 'COMPLETED'
+            AND vt.completed_at IS NOT NULL
+            AND vt.current_assigned_at IS NOT NULL
+            AND EXTRACT(EPOCH FROM (vt.completed_at - vt.current_assigned_at))/86400 <= 2
+        ) as in_tat,
+        COUNT(*) FILTER (
+          WHERE vt.status = 'COMPLETED'
+            AND vt.completed_at IS NOT NULL
+            AND vt.current_assigned_at IS NOT NULL
+            AND EXTRACT(EPOCH FROM (vt.completed_at - vt.current_assigned_at))/86400 > 2
+        ) as out_tat,
+        COUNT(*) FILTER (WHERE LOWER(COALESCE(rt.name, '')) LIKE '%local%') as local_tasks,
+        COUNT(*) FILTER (WHERE LOWER(COALESCE(rt.name, '')) LIKE '%ogl%') as ogl_tasks,
+        COALESCE(SUM(COALESCE(vt.actual_amount, vt.estimated_amount, 0)), 0) as total_amount,
+        ARRAY_AGG(DISTINCT cl.name) FILTER (WHERE cl.name IS NOT NULL) as clients,
+        ARRAY_AGG(DISTINCT p.name) FILTER (WHERE p.name IS NOT NULL) as products
       FROM verification_tasks vt
       INNER JOIN users u ON vt.assigned_to = u.id
       LEFT JOIN cases cas ON vt.case_id = cas.id
       LEFT JOIN clients cl ON cas.client_id = cl.id
       LEFT JOIN products p ON cas.product_id = p.id
-      LEFT JOIN verification_types vtype ON vt.verification_type_id = vtype.id
       LEFT JOIN rate_types rt ON vt.rate_type_id = rt.id
       ${whereClause}
-      ORDER BY vt.created_at DESC
+      GROUP BY u.id, u.name, u.employee_id
+      ORDER BY total_tasks DESC
     `;
 
-    const result = await dbQuery(performanceQuery, params);
-    const tasks = result.rows;
+    const result = await dbQuery(agentsQuery, params);
 
-    interface AgentPerformanceAccumulator {
-      id: string;
-      name: string;
+    interface AgentRow {
+      agentId: string;
+      agentName: string;
       employeeId: string;
-      totalTasks: number;
-      completedTasks: number;
-      inTat: number;
-      outTat: number;
-      localTasks: number;
-      oglTasks: number;
-      totalAmount: number;
-      clients: Set<string>;
-      products: Set<string>;
-      tasks: Record<string, unknown>[];
+      totalTasks: string | number;
+      completedTasks: string | number;
+      inTat: string | number;
+      outTat: string | number;
+      localTasks: string | number;
+      oglTasks: string | number;
+      totalAmount: string | number;
+      clients: string[] | null;
+      products: string[] | null;
     }
 
-    // Group by agent and calculate metrics
-    const agentMap = new Map<string, AgentPerformanceAccumulator>();
+    const num = (v: string | number | null | undefined): number =>
+      typeof v === 'number' ? v : parseInt(String(v ?? '0'), 10);
+    const flt = (v: string | number | null | undefined): number =>
+      typeof v === 'number' ? v : parseFloat(String(v ?? '0'));
 
-    tasks.forEach(task => {
-      const taskAgentId = task.agentId;
-
-      if (!agentMap.has(taskAgentId)) {
-        agentMap.set(taskAgentId, {
-          id: task.agentId,
-          name: task.agentName,
-          employeeId: task.employeeId,
-          totalTasks: 0,
-          completedTasks: 0,
-          inTat: 0,
-          outTat: 0,
-          localTasks: 0,
-          oglTasks: 0,
-          totalAmount: 0,
-          clients: new Set(),
-          products: new Set(),
-          tasks: [],
-        });
-      }
-
-      // agentMap was just populated above if missing, so .get is non-null here
-      const agent = agentMap.get(taskAgentId)!;
-      agent.totalTasks++;
-      agent.tasks.push(task);
-
-      if (task.status === 'COMPLETED') {
-        agent.completedTasks++;
-
-        // TAT calculation (assuming 2 days TAT)
-        if (task.completionDays !== null) {
-          if (task.completionDays <= 2) {
-            agent.inTat++;
-          } else {
-            agent.outTat++;
-          }
-        }
-      }
-
-      // Rate type
-      if (task.rateType?.toLowerCase().includes('local')) {
-        agent.localTasks++;
-      } else if (task.rateType?.toLowerCase().includes('ogl')) {
-        agent.oglTasks++;
-      }
-
-      // Amount
-      if (task.actualAmount) {
-        agent.totalAmount += parseFloat(task.actualAmount);
-      } else if (task.estimatedAmount) {
-        agent.totalAmount += parseFloat(task.estimatedAmount);
-      }
-
-      // Clients and products
-      if (task.clientName) {
-        agent.clients.add(task.clientName);
-      }
-      if (task.productName) {
-        agent.products.add(task.productName);
-      }
+    const agents = (result.rows as AgentRow[]).map(row => {
+      const total = num(row.totalTasks);
+      const completed = num(row.completedTasks);
+      return {
+        id: row.agentId,
+        name: row.agentName,
+        employeeId: row.employeeId,
+        totalTasks: total,
+        completedTasks: completed,
+        pendingTasks: total - completed,
+        inTat: num(row.inTat),
+        outTat: num(row.outTat),
+        localTasks: num(row.localTasks),
+        oglTasks: num(row.oglTasks),
+        totalAmount: Math.round(flt(row.totalAmount) * 100) / 100,
+        clients: row.clients ?? [],
+        products: row.products ?? [],
+        completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
+      };
     });
 
-    // Convert to array and format
-    const agents = Array.from(agentMap.values()).map(agent => ({
-      id: agent.id,
-      name: agent.name,
-      employeeId: agent.employeeId,
-      totalTasks: agent.totalTasks,
-      completedTasks: agent.completedTasks,
-      pendingTasks: agent.totalTasks - agent.completedTasks,
-      inTat: agent.inTat,
-      outTat: agent.outTat,
-      localTasks: agent.localTasks,
-      oglTasks: agent.oglTasks,
-      totalAmount: Math.round(agent.totalAmount * 100) / 100,
-      clients: Array.from(agent.clients),
-      products: Array.from(agent.products),
-      completionRate:
-        agent.totalTasks > 0 ? Math.round((agent.completedTasks / agent.totalTasks) * 100) : 0,
-    }));
-
-    // Sort by total tasks
-    agents.sort((a, b) => b.totalTasks - a.totalTasks);
+    const summary = {
+      totalAgents: agents.length,
+      totalTasks: agents.reduce((sum, a) => sum + a.totalTasks, 0),
+      completedTasks: agents.reduce((sum, a) => sum + a.completedTasks, 0),
+      inTat: agents.reduce((sum, a) => sum + a.inTat, 0),
+      outTat: agents.reduce((sum, a) => sum + a.outTat, 0),
+    };
 
     res.json({
       success: true,
       data: {
-        summary: {
-          totalAgents: agents.length,
-          totalTasks: tasks.length,
-          completedTasks: agents.reduce((sum, a) => sum + a.completedTasks, 0),
-          inTat: agents.reduce((sum, a) => sum + a.inTat, 0),
-          outTat: agents.reduce((sum, a) => sum + a.outTat, 0),
-        },
+        summary,
         agents,
         generatedAt: new Date().toISOString(),
         generatedBy: req.user?.id,

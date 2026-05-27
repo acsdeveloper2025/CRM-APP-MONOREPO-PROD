@@ -1311,7 +1311,12 @@ export class VerificationTasksController {
           COUNT(*) FILTER (
             WHERE vt.task_type = 'REVISIT' AND vt.parent_task_id IS NOT NULL
           ) as revisit_parent_linked_count,
-          COUNT(*) FILTER (WHERE vt.task_type = 'REVISIT') as revisit_total_count
+          COUNT(*) FILTER (WHERE vt.task_type = 'REVISIT') as revisit_total_count,
+          -- P2 truthful-sweep 2026-05-27: money totals on /stats so the
+          -- TasksAnalytics page can drop its /verification-tasks?limit=100
+          -- fetch entirely (D-17 anti-pattern). Mirrors list /statistics block.
+          COALESCE(SUM(vt.estimated_amount), 0) as total_estimated_amount,
+          COALESCE(SUM(vt.actual_amount), 0) as total_actual_amount
         FROM verification_tasks vt
         LEFT JOIN cases c ON vt.case_id = c.id
         ${whereClause}
@@ -1325,6 +1330,52 @@ export class VerificationTasksController {
 
       const revisitTotal = num('revisitTotalCount');
       const revisitParentLinked = num('revisitParentLinkedCount');
+
+      // P6 truthful-sweep 2026-05-27: distribution Maps for the
+      // TasksAnalytics page. Previously the FE fetched
+      // /verification-tasks?limit=100 (144 KB at 113 tasks; 12+ MB at 10k)
+      // and reduced over `tasks[]` to build verification-type + agent
+      // distributions, silently truncating above 100. Now: 2 GROUP BY
+      // queries scoped by the same buildVerificationTasksWhereClause.
+      // Parallelized with the main stats query.
+      const [typeDistRes, agentDistRes] = await Promise.all([
+        dbQuery(
+          `
+          SELECT COALESCE(vt_type.name, 'Unknown') as name, COUNT(*) as count
+          FROM verification_tasks vt
+          LEFT JOIN cases c ON vt.case_id = c.id
+          LEFT JOIN verification_types vt_type ON vt.verification_type_id = vt_type.id
+          ${whereClause}
+          GROUP BY COALESCE(vt_type.name, 'Unknown')
+          ORDER BY count DESC
+          LIMIT 10
+        `,
+          where.params
+        ),
+        dbQuery(
+          `
+          SELECT COALESCE(u.name, 'Unassigned') as name, COUNT(*) as count
+          FROM verification_tasks vt
+          LEFT JOIN cases c ON vt.case_id = c.id
+          LEFT JOIN users u ON vt.assigned_to = u.id
+          ${whereClause}
+          GROUP BY COALESCE(u.name, 'Unassigned')
+          ORDER BY count DESC
+          LIMIT 10
+        `,
+          where.params
+        ),
+      ]);
+
+      const toDist = (
+        rows: Array<{ name?: string | null; count?: string | number | null }>
+      ): Record<string, number> =>
+        rows.reduce<Record<string, number>>((acc, r) => {
+          const k = r.name === null || r.name === undefined ? 'UNKNOWN' : String(r.name);
+          const c = r.count;
+          acc[k] = typeof c === 'number' ? c : parseInt(String(c ?? '0'), 10);
+          return acc;
+        }, {});
 
       res.json({
         success: true,
@@ -1352,6 +1403,10 @@ export class VerificationTasksController {
           revisitParentLinked,
           revisitParentLinkedPct:
             revisitTotal > 0 ? Math.round((revisitParentLinked / revisitTotal) * 100) : 0,
+          totalEstimatedAmount: flt('totalEstimatedAmount'),
+          totalActualAmount: flt('totalActualAmount'),
+          verificationTypeDistribution: toDist(typeDistRes.rows),
+          agentDistribution: toDist(agentDistRes.rows),
         },
         message: 'Verification task stats retrieved successfully',
       });
