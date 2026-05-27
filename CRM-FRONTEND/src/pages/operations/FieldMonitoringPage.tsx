@@ -58,7 +58,14 @@ import {
 import { frontendSocketService } from '@/services/socket';
 import { logger } from '@/utils/logger';
 
-const REFRESH_INTERVAL = 60_000; // 60s refresh for 1000+ field users (was 30s)
+// P9 truthful-sweep 2026-05-27: WS `field-monitoring:location-updated`
+// is the primary refresh trigger (see useEffect ~line 432). Polling
+// interval below is a safety net for WS-drop scenarios + routes that
+// mutate roster state without emitting location-updated (status
+// changes, assignments). Bumped 60s → 5 min — was 4 simultaneous
+// polls/min hammering /roster + /map + /stats + /detail at every open
+// admin session.
+const WS_SAFETY_NET_INTERVAL = 5 * 60_000; // 5 min fallback
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 // P3 truthful-sweep 2026-05-27: with viewport-bounded BE query, the
 // limit is per-viewport not global. Bumped 200 → 1000 because the
@@ -187,8 +194,8 @@ function FieldMonitoringDetailView({ userId }: { userId: string }) {
   const { data: detailResponse, isLoading: detailLoading } = useQuery({
     queryKey: ['field-monitoring', 'user-detail', userId],
     queryFn: () => fieldMonitoringService.getUserMonitoringDetail(userId),
-    staleTime: REFRESH_INTERVAL,
-    refetchInterval: REFRESH_INTERVAL,
+    staleTime: WS_SAFETY_NET_INTERVAL,
+    refetchInterval: WS_SAFETY_NET_INTERVAL,
   });
 
   const detail = detailResponse?.data;
@@ -556,8 +563,8 @@ function FieldMonitoringRosterView() {
   } = useQuery({
     queryKey: ['field-monitoring', 'stats'],
     queryFn: () => fieldMonitoringService.getMonitoringStats(),
-    staleTime: REFRESH_INTERVAL,
-    refetchInterval: REFRESH_INTERVAL,
+    staleTime: WS_SAFETY_NET_INTERVAL,
+    refetchInterval: WS_SAFETY_NET_INTERVAL,
   });
 
   const { data: pincodesResponse } = usePincodes({ limit: 500 });
@@ -599,8 +606,8 @@ function FieldMonitoringRosterView() {
         limit: pageSize,
         ...commonRosterFilters,
       }),
-    staleTime: REFRESH_INTERVAL,
-    refetchInterval: REFRESH_INTERVAL,
+    staleTime: WS_SAFETY_NET_INTERVAL,
+    refetchInterval: WS_SAFETY_NET_INTERVAL,
     enabled: activeView === 'table',
   });
 
@@ -624,8 +631,8 @@ function FieldMonitoringRosterView() {
             }
           : {}),
       }),
-    staleTime: REFRESH_INTERVAL,
-    refetchInterval: activeView === 'map' ? REFRESH_INTERVAL : false,
+    staleTime: WS_SAFETY_NET_INTERVAL,
+    refetchInterval: activeView === 'map' ? WS_SAFETY_NET_INTERVAL : false,
     enabled: activeView === 'map',
   });
 
