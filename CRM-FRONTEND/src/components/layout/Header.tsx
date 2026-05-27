@@ -85,8 +85,35 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     if (path === '/task-management/pending-tasks') {
       return 'Pending Tasks';
     }
-    if (path === '/client-management/clients') {
+    if (path === '/client-management' || path === '/client-management/clients') {
       return 'Clients';
+    }
+    if (path === '/client-management/products') {
+      return 'Products';
+    }
+    if (path === '/client-management/verification-types') {
+      return 'Verification Types';
+    }
+    if (path === '/client-management/document-types') {
+      return 'Document Types';
+    }
+    if (path === '/client-management/data-entry-templates') {
+      return 'Data Entry Templates';
+    }
+    if (path === '/client-management/report-templates') {
+      return 'Report Templates';
+    }
+    if (path === '/rate-management' || path === '/rate-management/rate-types') {
+      return 'Rate Types';
+    }
+    if (path === '/rate-management/service-zone-rules') {
+      return 'Service Zone Rules';
+    }
+    if (path === '/rate-management/kyc-rates') {
+      return 'KYC Rates';
+    }
+    if (path === '/rate-management/rate-report') {
+      return 'Rate Report';
     }
     if (path === '/user-management/users') {
       return 'Users';
