@@ -5,7 +5,7 @@ import type { Role } from '@/types/auth';
 import { USER_ROLE_OPTIONS } from '@/types/constants';
 import { Plus, Upload, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { usersService } from '@/services/users';
 import { UsersTable } from '@/components/users/UsersTable';
 import { CreateUserDialog } from '@/components/users/CreateUserDialog';
@@ -208,10 +208,6 @@ export function UsersPage() {
       {canViewUsersData && <UserStatsCards stats={resolvedUserStats} />}
 
       <Card>
-        <CardHeader>
-          <CardTitle>User Management System</CardTitle>
-          <CardDescription>Comprehensive user administration and access control</CardDescription>
-        </CardHeader>
         <CardContent className="p-4 sm:p-6 space-y-4">
           <UnifiedSearchFilterLayout
             searchValue={search.searchValue}
