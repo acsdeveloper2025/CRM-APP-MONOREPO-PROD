@@ -196,6 +196,9 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     if (path === '/dedupe') {
       return 'Dedupe';
     }
+    if (path.startsWith('/profile')) {
+      return 'My Profile';
+    }
     if (path === '/forms') {
       return 'Forms';
     }
