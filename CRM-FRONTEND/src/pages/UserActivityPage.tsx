@@ -10,7 +10,7 @@ import {
   Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   UnifiedSearchFilterLayout,
   FilterGrid,
@@ -200,10 +200,6 @@ export function UserActivityPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Activity Log</CardTitle>
-          <CardDescription>Filter by action, date range, or search keyword</CardDescription>
-        </CardHeader>
         <CardContent className="p-4 sm:p-6 space-y-4">
           <UnifiedSearchFilterLayout
             searchValue={search.searchValue}
