@@ -60,8 +60,16 @@ export const TATMonitoringPage: React.FC = () => {
   // query string (filter-sweep §9.4). Inner-pagination invariant from
   // the Reports & MIS sub-sweep (commit ab5cb48a): every Prev/Next must
   // flip URL via the same updateParam helper, not local useState.
-  const activeTab = (searchParams.get('tab') === 'all' ? 'all' : 'critical') as 'critical' | 'all';
+  // P8 truthful-sweep 2026-05-27: aging buckets expanded from 2 → 3 tabs.
+  // Critical (>3d) — existing. High (>2d) — NEW. All Overdue (>1d) — was
+  // 'all'. Keeping 'critical' as the default (the most urgent bucket).
+  const tabParam = searchParams.get('tab');
+  const activeTab = (tabParam === 'all' || tabParam === 'high' ? tabParam : 'critical') as
+    | 'critical'
+    | 'high'
+    | 'all';
   const criticalPage = Number(searchParams.get('pageCritical') || '1');
+  const highPage = Number(searchParams.get('pageHigh') || '1');
   const allPage = Number(searchParams.get('pageAll') || '1');
   const sortBy = searchParams.get('sortBy') || 'daysOverdue';
   const sortOrder = (searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc';
@@ -100,6 +108,10 @@ export const TATMonitoringPage: React.FC = () => {
       next.delete('pageCritical');
       dirty = true;
     }
+    if (next.has('pageHigh')) {
+      next.delete('pageHigh');
+      dirty = true;
+    }
     if (next.has('pageAll')) {
       next.delete('pageAll');
       dirty = true;
@@ -116,6 +128,7 @@ export const TATMonitoringPage: React.FC = () => {
   useScopePageReset(() => {
     const next = new URLSearchParams(searchParams);
     next.delete('pageCritical');
+    next.delete('pageHigh');
     next.delete('pageAll');
     setSearchParams(next, { replace: true });
   });
@@ -145,6 +158,19 @@ export const TATMonitoringPage: React.FC = () => {
     ...filterParams,
   });
 
+  // Fetch high-aging overdue tasks (>2 days) — NEW bucket between
+  // critical (>3d) and all-overdue (>1d).
+  const {
+    data: highData,
+    isLoading: highLoading,
+    refetch: refetchHigh,
+  } = useOverdueTasks({
+    threshold: 2,
+    page: highPage,
+    limit: 20,
+    ...filterParams,
+  });
+
   // Fetch all overdue tasks (>1 day)
   const {
     data: allData,
@@ -159,11 +185,21 @@ export const TATMonitoringPage: React.FC = () => {
 
   const handleRefresh = () => {
     refetchCritical();
+    refetchHigh();
     refetchAll();
   };
 
   const criticalTasks = criticalData?.data?.tasks || [];
   const criticalPagination = criticalData?.data?.pagination || {
+    page: 1,
+    totalPages: 1,
+    totalCount: 0,
+    limit: 20,
+    total: 0,
+  };
+
+  const highTasks = highData?.data?.tasks || [];
+  const highPagination = highData?.data?.pagination || {
     page: 1,
     totalPages: 1,
     totalCount: 0,
@@ -574,21 +610,32 @@ export const TATMonitoringPage: React.FC = () => {
         <CardContent>
           <Tabs
             value={activeTab}
-            onValueChange={(value) => updateParam('tab', value === 'critical' ? null : value)}
+            onValueChange={(value) =>
+              updateParam('tab', value === 'critical' ? null : (value as string))
+            }
           >
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="critical" className="flex items-center space-x-2">
                 <AlertTriangle className="h-4 w-4" />
-                <span>Critical Overdue (&gt;3 Days)</span>
+                <span>Critical (&gt;3 Days)</span>
+              </TabsTrigger>
+              <TabsTrigger value="high" className="flex items-center space-x-2">
+                <AlertTriangle className="h-4 w-4" />
+                <span>High (&gt;2 Days)</span>
               </TabsTrigger>
               <TabsTrigger value="all" className="flex items-center space-x-2">
                 <Clock className="h-4 w-4" />
-                <span>All Overdue Tasks (&gt;1 Day)</span>
+                <span>All Overdue (&gt;1 Day)</span>
               </TabsTrigger>
             </TabsList>
             <TabsContent value="critical" className="mt-6">
               {renderTaskTable(criticalTasks, criticalLoading, criticalPagination, (p) =>
                 updateParam('pageCritical', p <= 1 ? null : String(p))
+              )}
+            </TabsContent>
+            <TabsContent value="high" className="mt-6">
+              {renderTaskTable(highTasks, highLoading, highPagination, (p) =>
+                updateParam('pageHigh', p <= 1 ? null : String(p))
               )}
             </TabsContent>
             <TabsContent value="all" className="mt-6">
