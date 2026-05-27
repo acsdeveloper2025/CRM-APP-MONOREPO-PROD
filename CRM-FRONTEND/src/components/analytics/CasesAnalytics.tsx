@@ -24,21 +24,21 @@ import { useCaseAnalytics } from '@/hooks/useAnalytics';
 import type { CaseAnalytics } from '@/services/analytics';
 import { FileText, TrendingUp, CheckCircle2, Clock, XCircle } from 'lucide-react';
 
+// Canonical case-status enum (5 values, locked 2026-05-13 workflow audit).
 const STATUS_COLORS: Record<string, string> = {
   PENDING: '#f59e0b',
+  ASSIGNED: '#8b5cf6',
   IN_PROGRESS: '#3b82f6',
   COMPLETED: '#10b981',
-  APPROVED: '#059669',
-  REJECTED: '#ef4444',
-  REWORK_REQUIRED: '#f97316',
+  REVOKED: '#ef4444',
 };
 
+// Canonical priority enum (4 values, locked P16 2026-05-15).
 const PRIORITY_COLORS: Record<string, string> = {
   LOW: '#6b7280',
   MEDIUM: '#3b82f6',
   HIGH: '#f59e0b',
   URGENT: '#ef4444',
-  CRITICAL: '#dc2626',
 };
 
 const getDateFromRange = (range: string): string => {
@@ -144,28 +144,18 @@ export const CasesAnalytics: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">
-            Cases Analytics
-          </h2>
-          <p className="mt-1 text-sm sm:text-base text-muted-foreground">
-            Comprehensive case metrics and distribution analysis
-          </p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-full sm:w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Time-range selector (page H1 lives in AnalyticsCasesPage wrapper). */}
+      <div className="flex justify-end">
+        <Select value={timeRange} onValueChange={setTimeRange}>
+          <SelectTrigger className="w-full sm:w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7d">Last 7 days</SelectItem>
+            <SelectItem value="30d">Last 30 days</SelectItem>
+            <SelectItem value="90d">Last 90 days</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Summary Cards */}
