@@ -189,6 +189,15 @@ export type MonitoringRosterParams = {
   sortOrder?: 'asc' | 'desc';
   createdFrom?: string;
   createdTo?: string;
+  // P3 truthful-sweep 2026-05-27: viewport-bounded map fetch.
+  // When all 4 bounds are present, restrict to users whose latest
+  // location lat/lng falls within the bbox. Map view passes these
+  // on every `idle` event (debounced 500ms). List/roster view
+  // never sends bounds — full unfiltered set with pagination.
+  boundsSwLat?: number;
+  boundsSwLng?: number;
+  boundsNeLat?: number;
+  boundsNeLng?: number;
 };
 
 type RosterRow = {
@@ -611,6 +620,30 @@ export class FieldMonitoringService {
       paramIndex++;
     }
 
+    // P3 viewport-bounded map fetch. Apply only when ALL 4 bounds present.
+    const haveBounds =
+      typeof params.boundsSwLat === 'number' &&
+      typeof params.boundsSwLng === 'number' &&
+      typeof params.boundsNeLat === 'number' &&
+      typeof params.boundsNeLng === 'number';
+    const boundsPlaceholders = haveBounds
+      ? {
+          swLat: `$${paramIndex}`,
+          swLng: `$${paramIndex + 1}`,
+          neLat: `$${paramIndex + 2}`,
+          neLng: `$${paramIndex + 3}`,
+        }
+      : null;
+    if (haveBounds) {
+      queryParams.push(
+        params.boundsSwLat as number,
+        params.boundsSwLng as number,
+        params.boundsNeLat as number,
+        params.boundsNeLng as number
+      );
+      paramIndex += 4;
+    }
+
     const sortBy = params.sortBy === 'createdAt' ? 'u.created_at' : 'u.name';
     const sortOrder: 'ASC' | 'DESC' = params.sortOrder === 'desc' ? 'DESC' : 'ASC';
 
@@ -646,14 +679,67 @@ export class FieldMonitoringService {
           loc.source AS loc_source, loc.requested_by_id, loc.requested_by_name, loc.ping_source
         FROM base b
         LEFT JOIN LATERAL (
-          SELECT l.latitude AS lat, l.longitude AS lng, l.accuracy, l.recorded_at,
-            'locations'::text AS source, l.source AS ping_source,
-            requester.id AS requested_by_id, requester.name AS requested_by_name
-          FROM locations l
-          LEFT JOIN users requester ON requester.id = l.requested_by_user_id
-          WHERE l.recorded_by = b.id
-          ORDER BY l.recorded_at DESC, l.id DESC
-          LIMIT 1
+          -- P3 truthful-sweep 2026-05-27: 3-source priority for bbox filter.
+          -- Was: locations table only -- empty for users whose location
+          -- data comes via form_submissions or verification_tasks. That
+          -- made the bbox filter operate on empty columns. Now: UNION the
+          -- 3 sources, take the freshest non-null lat/lng per user.
+          -- Source 1: locations table (canonical pings)
+          -- Source 2: form_submissions.geo_location JSONB
+          -- Source 3: verification_tasks.latitude/longitude direct cols
+          -- Returns the most-recent across all 3 ordered by ts DESC.
+          (
+            SELECT lat, lng, accuracy, recorded_at, source, ping_source,
+                   requested_by_id, requested_by_name
+            FROM (
+              SELECT
+                l.latitude AS lat, l.longitude AS lng, l.accuracy,
+                l.recorded_at, 'locations'::text AS source,
+                l.source AS ping_source,
+                requester.id AS requested_by_id,
+                requester.name AS requested_by_name
+              FROM locations l
+              LEFT JOIN users requester ON requester.id = l.requested_by_user_id
+              WHERE l.recorded_by = b.id
+              UNION ALL
+              SELECT
+                (f.geo_location->>'latitude')::numeric AS lat,
+                (f.geo_location->>'longitude')::numeric AS lng,
+                NULL::numeric AS accuracy,
+                f.submitted_at AS recorded_at,
+                'form_submissions'::text AS source,
+                NULL::text AS ping_source,
+                NULL::uuid AS requested_by_id,
+                NULL::text AS requested_by_name
+              FROM form_submissions f
+              WHERE f.submitted_by = b.id
+                AND f.geo_location IS NOT NULL
+                AND f.geo_location ? 'latitude'
+                AND f.geo_location ? 'longitude'
+              UNION ALL
+              SELECT
+                vt.latitude AS lat, vt.longitude AS lng,
+                NULL::numeric AS accuracy,
+                COALESCE(
+                  vt.started_at::timestamptz,
+                  vt.current_assigned_at,
+                  vt.assigned_at::timestamptz,
+                  vt.updated_at::timestamptz,
+                  vt.created_at::timestamptz
+                ) AS recorded_at,
+                'verification_tasks'::text AS source,
+                NULL::text AS ping_source,
+                NULL::uuid AS requested_by_id,
+                NULL::text AS requested_by_name
+              FROM verification_tasks vt
+              WHERE vt.assigned_to = b.id
+                AND vt.latitude IS NOT NULL
+                AND vt.longitude IS NOT NULL
+            ) sources
+            WHERE lat IS NOT NULL AND lng IS NOT NULL
+            ORDER BY recorded_at DESC NULLS LAST
+            LIMIT 1
+          )
         ) loc ON true
       ),
       with_status AS (
@@ -677,7 +763,20 @@ export class FieldMonitoringService {
       ),
       filtered AS (
         SELECT * FROM with_status
-        ${statusPlaceholder ? `WHERE live_status = ${statusPlaceholder}` : ''}
+        ${
+          statusPlaceholder || boundsPlaceholders
+            ? `WHERE ${[
+                statusPlaceholder ? `live_status = ${statusPlaceholder}` : null,
+                boundsPlaceholders
+                  ? `lat IS NOT NULL AND lng IS NOT NULL
+                     AND lat BETWEEN ${boundsPlaceholders.swLat} AND ${boundsPlaceholders.neLat}
+                     AND lng BETWEEN ${boundsPlaceholders.swLng} AND ${boundsPlaceholders.neLng}`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(' AND ')}`
+            : ''
+        }
       )
     `;
 

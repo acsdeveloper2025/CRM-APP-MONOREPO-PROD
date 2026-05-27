@@ -29,6 +29,13 @@ export type FieldMonitoringRosterQuery = {
   sortOrder?: 'asc' | 'desc';
   createdFrom?: string;
   createdTo?: string;
+  // P3 truthful-sweep 2026-05-27: map-view viewport bounds. All 4 must
+  // be present for the bbox filter to apply server-side. List view
+  // never sends bounds.
+  boundsSwLat?: number;
+  boundsSwLng?: number;
+  boundsNeLat?: number;
+  boundsNeLng?: number;
 };
 
 export type FieldMonitoringRosterItem = {

@@ -45,7 +45,11 @@ import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { useAreas } from '@/hooks/useAreas';
 import { usePincodes } from '@/hooks/useLocations';
 import { useScopePageReset } from '@/hooks/useScopePageReset';
-import { GoogleMarkerMap, type GoogleMarkerMapItem } from '@/components/maps/GoogleMarkerMap';
+import {
+  GoogleMarkerMap,
+  type GoogleMarkerMapItem,
+  type GoogleMapBounds,
+} from '@/components/maps/GoogleMarkerMap';
 import {
   fieldMonitoringService,
   type FieldMonitoringLiveStatus,
@@ -56,7 +60,11 @@ import { logger } from '@/utils/logger';
 
 const REFRESH_INTERVAL = 60_000; // 60s refresh for 1000+ field users (was 30s)
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
-const MAP_PAGE_SIZE = 200; // Reduced from 500 for better map performance at scale
+// P3 truthful-sweep 2026-05-27: with viewport-bounded BE query, the
+// limit is per-viewport not global. Bumped 200 → 1000 because the
+// bbox filter naturally caps marker volume. Marker-clusterer handles
+// up to ~5k cleanly; beyond that we'd need server-side clustering.
+const MAP_PAGE_SIZE = 1000;
 const STATUS_OPTIONS: FieldMonitoringLiveStatus[] = [
   'Idle',
   'Travelling',
@@ -378,6 +386,11 @@ function FieldMonitoringRosterView() {
   // from the prior tenant can't strand the user on an empty page.
   useScopePageReset(() => setPage(1));
   const [activeView, setActiveView] = useState<'table' | 'map'>('table');
+  // P3 truthful-sweep 2026-05-27: viewport-bounded map fetch. Set by
+  // GoogleMarkerMap's idle event (debounced 500ms inside the component).
+  // When set, the map fetch passes bounds to the BE bbox filter.
+  // Cleared on view-switch back to 'table'.
+  const [mapBounds, setMapBounds] = useState<GoogleMapBounds | null>(null);
   // Set of userIds with an in-flight location-ping request. UI shows
   // the row's Refresh button as a spinning loader while pending; cleared
   // on either the incoming WebSocket event (success) or the 20s
@@ -596,12 +609,20 @@ function FieldMonitoringRosterView() {
     isLoading: mapRosterLoading,
     refetch: refetchMapRoster,
   } = useQuery({
-    queryKey: ['field-monitoring', 'users', 'map', MAP_PAGE_SIZE, commonRosterFilters],
+    queryKey: ['field-monitoring', 'users', 'map', MAP_PAGE_SIZE, commonRosterFilters, mapBounds],
     queryFn: () =>
       fieldMonitoringService.getMonitoringRoster({
         page: 1,
         limit: MAP_PAGE_SIZE,
         ...commonRosterFilters,
+        ...(mapBounds
+          ? {
+              boundsSwLat: mapBounds.swLat,
+              boundsSwLng: mapBounds.swLng,
+              boundsNeLat: mapBounds.neLat,
+              boundsNeLng: mapBounds.neLng,
+            }
+          : {}),
       }),
     staleTime: REFRESH_INTERVAL,
     refetchInterval: activeView === 'map' ? REFRESH_INTERVAL : false,
@@ -892,7 +913,16 @@ function FieldMonitoringRosterView() {
 
           <Tabs
             value={activeView}
-            onValueChange={(value) => setActiveView(value as 'table' | 'map')}
+            onValueChange={(value) => {
+              const next = value as 'table' | 'map';
+              setActiveView(next);
+              // P3: clear viewport bounds when leaving the map. Next
+              // map-view open starts with a global query until the
+              // first `idle` event sets fresh bounds (debounced 500ms).
+              if (next === 'table') {
+                setMapBounds(null);
+              }
+            }}
             className="space-y-4"
           >
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -1083,6 +1113,7 @@ function FieldMonitoringRosterView() {
                   emptyTitle="No mappable field executives"
                   emptyDescription="No valid last known coordinates available for the current filters."
                   markerSummary={`Showing ${mapMarkers.length} field executives with valid last known coordinates.`}
+                  onBoundsChanged={setMapBounds}
                 />
               )}
             </TabsContent>

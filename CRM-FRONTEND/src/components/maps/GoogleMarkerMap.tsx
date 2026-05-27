@@ -50,6 +50,11 @@ type GoogleMapInstance = {
   fitBounds: (bounds: GoogleLatLngBoundsInstance) => void;
   setCenter: (latLng: { lat: number; lng: number }) => void;
   setZoom: (zoom: number) => void;
+  addListener: (eventName: string, handler: () => void) => { remove?: () => void };
+  getBounds: () => {
+    getSouthWest: () => { lat: () => number; lng: () => number };
+    getNorthEast: () => { lat: () => number; lng: () => number };
+  } | null;
 };
 
 type PinElementInstance = {
@@ -87,6 +92,13 @@ export type GoogleMarkerMapItem = {
   infoHtml: string;
 };
 
+export type GoogleMapBounds = {
+  swLat: number;
+  swLng: number;
+  neLat: number;
+  neLng: number;
+};
+
 type GoogleMarkerMapProps = {
   items: GoogleMarkerMapItem[];
   defaultCenter?: { lat: number; lng: number };
@@ -95,6 +107,10 @@ type GoogleMarkerMapProps = {
   emptyTitle?: string;
   emptyDescription?: string;
   markerSummary?: string;
+  // P3 truthful-sweep 2026-05-27: viewport-bounded fetch. Fires on map
+  // `idle` events (debounced 500ms) so the parent can refetch with a
+  // bbox. Pass undefined to opt out (list view).
+  onBoundsChanged?: (bounds: GoogleMapBounds) => void;
 };
 
 const loadGoogleMapsScript = async (): Promise<void> => {
@@ -172,6 +188,7 @@ export function GoogleMarkerMap({
   emptyTitle = 'No mappable records',
   emptyDescription = 'No valid coordinates available for the current filters.',
   markerSummary,
+  onBoundsChanged,
 }: GoogleMarkerMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
@@ -230,6 +247,49 @@ export function GoogleMarkerMap({
       disposed = true;
     };
   }, [defaultCenter, defaultZoom]);
+
+  // P3 truthful-sweep 2026-05-27: wire viewport-bounds capture on
+  // `idle` (fires after pan/zoom settles), debounced 500ms so we don't
+  // hammer the BE on every wheel tick. Parent debounce + this debounce
+  // combine; the BE roster query is the expensive one being rate-limited.
+  useEffect(() => {
+    if (!onBoundsChanged) {
+      return;
+    }
+    const mapsApi = (window as GoogleMapsWindow).google?.maps;
+    const map = mapRef.current;
+    if (!mapsApi || !map) {
+      return;
+    }
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const listener = map.addListener('idle', () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      timeoutId = setTimeout(() => {
+        const b = map.getBounds();
+        if (!b) {
+          return;
+        }
+        const sw = b.getSouthWest();
+        const ne = b.getNorthEast();
+        onBoundsChanged({
+          swLat: sw.lat(),
+          swLng: sw.lng(),
+          neLat: ne.lat(),
+          neLng: ne.lng(),
+        });
+      }, 500);
+    });
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      if (listener && typeof listener.remove === 'function') {
+        listener.remove();
+      }
+    };
+  }, [onBoundsChanged]);
 
   useEffect(() => {
     const mapsApi = (window as GoogleMapsWindow).google?.maps;

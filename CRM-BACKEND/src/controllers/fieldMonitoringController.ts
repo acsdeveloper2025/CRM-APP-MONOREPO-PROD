@@ -114,6 +114,36 @@ const parseOptionalSortOrder = (value: unknown): 'asc' | 'desc' | undefined => {
   return undefined;
 };
 
+// Parse a single bbox edge from the query string. Returns undefined if
+// missing/malformed (any non-finite or out-of-range value) so the bbox
+// filter is silently disabled — partial bounds never apply.
+const parseOptionalLatLng = (raw: unknown, kind: 'lat' | 'lng'): number | undefined => {
+  if (raw === undefined || raw === null) {
+    return undefined;
+  }
+  let n: number;
+  if (typeof raw === 'number') {
+    n = raw;
+  } else if (typeof raw === 'string') {
+    if (raw === '') {
+      return undefined;
+    }
+    n = parseFloat(raw);
+  } else {
+    return undefined;
+  }
+  if (!Number.isFinite(n)) {
+    return undefined;
+  }
+  if (kind === 'lat' && (n < -90 || n > 90)) {
+    return undefined;
+  }
+  if (kind === 'lng' && (n < -180 || n > 180)) {
+    return undefined;
+  }
+  return n;
+};
+
 const buildRosterParams = (req: AuthenticatedRequest) => ({
   page: parsePositiveInt(req.query.page, 1),
   limit: parsePositiveInt(req.query.limit, 20),
@@ -125,6 +155,12 @@ const buildRosterParams = (req: AuthenticatedRequest) => ({
   sortOrder: parseOptionalSortOrder(req.query.sortOrder),
   createdFrom: parseOptionalString(req.query.createdFrom),
   createdTo: parseOptionalString(req.query.createdTo),
+  // P3 truthful-sweep 2026-05-27: map-view passes viewport bbox.
+  // All 4 must parse for the filter to apply.
+  boundsSwLat: parseOptionalLatLng(req.query.boundsSwLat, 'lat'),
+  boundsSwLng: parseOptionalLatLng(req.query.boundsSwLng, 'lng'),
+  boundsNeLat: parseOptionalLatLng(req.query.boundsNeLat, 'lat'),
+  boundsNeLng: parseOptionalLatLng(req.query.boundsNeLng, 'lng'),
 });
 
 export const getFieldMonitoringUsers = async (
