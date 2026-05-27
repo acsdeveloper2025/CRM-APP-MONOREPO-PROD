@@ -113,7 +113,9 @@ export const useAgentPerformanceOverview = (dateRange?: { from: string; to: stri
   return useAgentPerformance(query);
 };
 
-// Hook for getting top performing agents
+// Hook for getting top performing agents — derived FE-side from the
+// agents[] array (BE doesn't return a topPerformers slice). Sorted by
+// completionRate DESC; truncated to `limit`.
 export const useTopPerformingAgents = (
   limit: number = 5,
   dateRange?: { from: string; to: string }
@@ -122,7 +124,10 @@ export const useTopPerformingAgents = (
     ...(dateRange && { dateFrom: dateRange.from, dateTo: dateRange.to }),
   });
 
-  const topPerformers = data?.data?.topPerformers?.slice(0, limit) || [];
+  const agents = data?.data?.agents ?? [];
+  const topPerformers = [...agents]
+    .sort((a, b) => b.completionRate - a.completionRate)
+    .slice(0, limit);
 
   return {
     data: { data: topPerformers },

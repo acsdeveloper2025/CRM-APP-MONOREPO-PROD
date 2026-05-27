@@ -748,6 +748,11 @@ export const getAgentPerformance = async (req: AuthenticatedRequest, res: Respon
       paramIndex++;
     }
 
+    // Truthful-sweep 2026-05-27 (E5): /agent-performance page is field-agent
+    // focused. KYC verifiers have their own pool and metrics. task_type_enum
+    // is {NORMAL, REVISIT, KYC} — field tasks are NORMAL or REVISIT.
+    conditions.push(`vt.task_type <> 'KYC'`);
+
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Simple query: Get all verification tasks with agent, client, product, rate type info

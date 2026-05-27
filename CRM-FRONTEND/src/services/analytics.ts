@@ -76,51 +76,43 @@ export interface CaseAnalyticsResponse {
   generatedBy: string;
 }
 
-// Agent Performance Types
+// Agent Performance Types — mirrors GET /api/reports/agent-performance
+// response (verified 2026-05-27 E5 truthful sweep).
 export interface AgentPerformance {
   id: string;
   name: string;
   employeeId: string;
-  email: string;
-  departmentName: string;
-  totalCasesAssigned: number;
-  casesCompleted: number;
-  residenceFormsSubmitted: number;
-  officeFormsSubmitted: number;
-  attachmentsUploaded: number;
-  avgCompletionDays: number | null;
-  formQualityScore: number;
-  activeDays: number;
+  totalTasks: number;
+  completedTasks: number;
+  pendingTasks: number;
+  inTat: number;
+  outTat: number;
+  localTasks: number;
+  oglTasks: number;
+  totalAmount: number;
+  clients: string[];
+  products: string[];
+  completionRate: number;
 }
 
 export interface AgentPerformanceSummary {
   totalAgents: number;
-  activeAgents: number;
-  avgCasesPerAgent: number;
-  avgCompletionRate: number;
+  totalTasks: number;
+  completedTasks: number;
+  inTat: number;
+  outTat: number;
 }
 
 export interface AgentPerformanceResponse {
   summary: AgentPerformanceSummary;
   agents: AgentPerformance[];
-  topPerformers: AgentPerformance[];
   generatedAt: string;
   generatedBy: string;
 }
 
 // Agent Productivity Types
-export interface DailyProductivity {
-  workDate: string;
-  casesAssigned: number;
-  casesCompleted: number;
-  residenceForms: number;
-  officeForms: number;
-  attachmentsUploaded: number;
-}
-
 export interface AgentProductivityResponse {
   agent: AgentPerformance;
-  dailyProductivity: DailyProductivity[];
   summary: {
     totalWorkDays: number;
     avgCasesPerDay: number;
