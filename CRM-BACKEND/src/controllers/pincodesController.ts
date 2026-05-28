@@ -91,8 +91,8 @@ export const getPincodes = async (req: AuthenticatedRequest, res: Response) => {
       orderBy = `p.code ${sortDirection}`;
     }
 
-    const pageNum = parseInt(page as string, 10);
-    const limitNum = parseInt(limit as string, 10);
+    const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit as string, 10) || 20));
     const offset = (pageNum - 1) * limitNum;
 
     const sql = `
@@ -689,7 +689,7 @@ export const searchPincodes = async (req: AuthenticatedRequest, res: Response) =
     }
 
     const searchTerm = `%${(q as string).toLowerCase()}%`;
-    const limitNum = parseInt(limit as string, 10);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit as string, 10) || 10));
 
     const result = await query(
       `

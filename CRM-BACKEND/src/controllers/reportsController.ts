@@ -112,8 +112,12 @@ export const getFormSubmissions = async (req: AuthenticatedRequest, res: Respons
     const agentId = (req.query.agentId as unknown as string) || '';
     const validationStatus = (req.query.validationStatus as unknown as string) || '';
     const caseId = (req.query.caseId as unknown as string) || '';
-    const limit = Number(
-      Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit || 100
+    const limit = Math.min(
+      500,
+      Math.max(
+        1,
+        Number(Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit || 100)
+      )
     );
     const offset = Number(
       Array.isArray(req.query.offset) ? req.query.offset[0] : req.query.offset || 0
@@ -312,8 +316,12 @@ export const getFormSubmissionsByType = async (req: AuthenticatedRequest, res: R
     const dateFrom = (req.query.dateFrom as unknown as string) || '';
     const dateTo = (req.query.dateTo as unknown as string) || '';
     const agentId = (req.query.agentId as unknown as string) || '';
-    const limit = Number(
-      Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit || 50
+    const limit = Math.min(
+      500,
+      Math.max(
+        1,
+        Number(Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit || 50)
+      )
     );
     const offset = Number(
       Array.isArray(req.query.offset) ? req.query.offset[0] : req.query.offset || 0
@@ -1535,9 +1543,10 @@ export const getMISData = async (req: AuthenticatedRequest, res: Response) => {
     const { whereClause, params } = await buildMISWhereClause(req);
     const paramIndex = params.length + 1;
 
-    // Calculate pagination
-    const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
+    // Calculate pagination (clamp limit so a client cannot request the full
+    // MIS dataset in one page at scale).
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit as string) || 50));
     const offset = (pageNum - 1) * limitNum;
 
     // Save param indices for LIMIT and OFFSET

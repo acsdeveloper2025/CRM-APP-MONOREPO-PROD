@@ -398,6 +398,9 @@ export const getFieldUserCommissionAssignments = async (
     }
     const scope = await resolveDataScope(req as never);
     const { userId, rateTypeId, clientId, isActive, page = 1, limit = 20 } = req.query;
+    // Clamp pagination so a client cannot request the whole table in one page.
+    const safePage = Math.max(1, Number(page) || 1);
+    const safeLimit = Math.min(200, Math.max(1, Number(limit) || 20));
 
     let whereClause = '';
     const queryParams: QueryParams = [];
@@ -438,9 +441,9 @@ export const getFieldUserCommissionAssignments = async (
     whereClause = scopeConditions.join(' AND ');
     paramCount = queryParams.length;
 
-    const offset = (Number(page) - 1) * Number(limit);
+    const offset = (safePage - 1) * safeLimit;
     paramCount++;
-    queryParams.push(Number(limit));
+    queryParams.push(safeLimit);
     paramCount++;
     queryParams.push(offset);
 
@@ -474,8 +477,8 @@ export const getFieldUserCommissionAssignments = async (
 
     logger.info('Retrieved field user commission assignments', {
       userId: req.user?.id,
-      page: Number(page),
-      limit: Number(limit),
+      page: safePage,
+      limit: safeLimit,
       total,
       filters: { userId, rateTypeId, clientId, isActive },
     });
@@ -484,10 +487,10 @@ export const getFieldUserCommissionAssignments = async (
       success: true,
       data: assignments.rows,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page: safePage,
+        limit: safeLimit,
         total,
-        totalPages: Math.ceil(total / Number(limit)),
+        totalPages: Math.ceil(total / safeLimit),
       },
     });
   } catch (error) {
@@ -902,6 +905,9 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
       sortBy,
       sortOrder,
     } = req.query;
+    // Clamp pagination so a client cannot pull the full 1M+ commission_calculations table in one page.
+    const safePage = Math.max(1, Number(page) || 1);
+    const safeLimit = Math.min(200, Math.max(1, Number(limit) || 20));
 
     let whereClause = '';
     const queryParams: QueryParams = [];
@@ -972,9 +978,9 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
     whereClause = scopeConditions.join(' AND ');
     paramCount = queryParams.length;
 
-    const offset = (Number(page) - 1) * Number(limit);
+    const offset = (safePage - 1) * safeLimit;
     paramCount++;
-    queryParams.push(Number(limit));
+    queryParams.push(safeLimit);
     paramCount++;
     queryParams.push(offset);
 
@@ -1048,8 +1054,8 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
 
     logger.info('Retrieved commission calculations', {
       userId: req.user?.id,
-      page: Number(page),
-      limit: Number(limit),
+      page: safePage,
+      limit: safeLimit,
       total,
       filters: { userId, clientId, rateTypeId, status, startDate, endDate },
     });
@@ -1059,10 +1065,10 @@ export const getCommissionCalculations = async (req: AuthenticatedRequest, res: 
       data: calculations.rows,
       summary: summaryResult.rows[0],
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page: safePage,
+        limit: safeLimit,
         total,
-        totalPages: Math.ceil(total / Number(limit)),
+        totalPages: Math.ceil(total / safeLimit),
       },
     });
   } catch (error) {
