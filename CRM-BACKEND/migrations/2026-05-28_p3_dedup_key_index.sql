@@ -2,9 +2,15 @@
 -- getDuplicateClusters groups by COALESCE(pan_number, customer_phone). A
 -- functional index on that exact expression lets the GROUP BY use an ordered
 -- index scan instead of a full seq-scan + hash-agg (run twice: data + count).
--- Expression index via CONCURRENTLY = no table rewrite, no lock (vs a STORED
--- generated column, which would ACCESS EXCLUSIVE-lock + rewrite cases — costly
--- at 10M rows). Apply with psql -f (CONCURRENTLY cannot run in a txn).
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cases_dedup_key
+--
+-- NOTE: plain CREATE INDEX (no CONCURRENTLY) because scripts/run-migrations.ts
+-- wraps every migration in BEGIN/COMMIT and CONCURRENTLY cannot run in a
+-- transaction. On the current small dataset the in-tx build is instant. When
+-- `cases` is large, pre-create this CONCURRENTLY out-of-band BEFORE the deploy
+-- so the in-tx CREATE below is a no-op via IF NOT EXISTS (zero lock):
+--   psql "<conn>" -c "CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_cases_dedup_key
+--     ON cases ((COALESCE(pan_number, customer_phone)))
+--     WHERE pan_number IS NOT NULL OR customer_phone IS NOT NULL;"
+CREATE INDEX IF NOT EXISTS idx_cases_dedup_key
   ON cases ((COALESCE(pan_number, customer_phone)))
   WHERE pan_number IS NOT NULL OR customer_phone IS NOT NULL;
