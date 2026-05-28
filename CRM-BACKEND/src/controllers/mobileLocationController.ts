@@ -697,9 +697,12 @@ export class MobileLocationController {
         }
       }
 
-      const vals: QueryParams = [];
-      let sql = `SELECT l.id, l.latitude, l.longitude, l.accuracy, l.recorded_at as timestamp, c.id as case_id, c.title, c.customer_name FROM locations l JOIN cases c ON c.id = l.case_id`;
-      const wh: string[] = [];
+      // Scope to the requesting user's own trail. Previously `where.userId`
+      // was computed but never applied to the SQL WHERE, so this returned
+      // EVERY user's locations (cross-user leak). recorded_by is indexed.
+      const vals: QueryParams = [where.userId];
+      let sql = `SELECT l.id, l.latitude, l.longitude, l.accuracy, l.recorded_at as timestamp, c.id as case_id, c.customer_name FROM locations l JOIN cases c ON c.id = l.case_id`;
+      const wh: string[] = [`l.recorded_by = $1`];
       if (where.caseId) {
         vals.push(where.caseId);
         wh.push(`l.case_id = $${vals.length}`);
@@ -726,7 +729,8 @@ export class MobileLocationController {
         longitude: location.longitude,
         accuracy: location.accuracy,
         timestamp: (location.timestamp as Date).toISOString(),
-        case: location.case,
+        caseId: location.caseId ?? location.case_id,
+        customerName: location.customerName ?? location.customer_name,
       }));
 
       res.json({
