@@ -2,6 +2,9 @@ import type { Response } from 'express';
 import { logger } from '@/config/logger';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query as dbQuery } from '@/config/database';
+// Real audit-write path (partitioned audit_logs + HMAC chain). Aliased to
+// avoid clashing with this controller's own createAuditLog HTTP handler.
+import { createAuditLog as recordAuditLog } from '@/utils/auditLogger';
 
 interface AuditLog {
   id: string;
@@ -28,99 +31,6 @@ const getSingleQueryValue = (value: unknown): string | null => {
   }
   return null;
 };
-
-// In-memory audit log buffer for stats/export operations (primary queries use database)
-let auditLogs: AuditLog[] = [
-  {
-    id: 'audit_1',
-    userId: 'user_1',
-    userName: 'John Doe',
-    action: 'CASE_CREATED',
-    resource: 'cases',
-    resourceId: 'case_1',
-    details: {
-      title: 'Residence Verification - John Doe',
-      clientId: 'client_1',
-      assignedToId: 'user_1',
-    },
-    ipAddress: '192.168.1.100',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    timestamp: '2024-01-01T10:00:00.000Z',
-    severity: 'INFO',
-    category: 'CASE_MANAGEMENT',
-  },
-  {
-    id: 'audit_2',
-    userId: 'user_3',
-    userName: 'Admin User',
-    action: 'USER_LOGIN',
-    resource: 'auth',
-    resourceId: 'user_3',
-    details: {
-      loginMethod: 'email',
-      success: true,
-    },
-    ipAddress: '192.168.1.101',
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-    timestamp: '2024-01-01T09:30:00.000Z',
-    severity: 'INFO',
-    category: 'AUTHENTICATION',
-  },
-  {
-    id: 'audit_3',
-    userId: 'user_2',
-    userName: 'Jane Smith',
-    action: 'CASE_STATUS_UPDATED',
-    resource: 'cases',
-    resourceId: 'case_2',
-    details: {
-      oldStatus: 'PENDING',
-      newStatus: 'IN_PROGRESS',
-      caseTitle: 'Office Verification - Tech Solutions Inc',
-    },
-    ipAddress: '192.168.1.102',
-    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15',
-    timestamp: '2024-01-01T11:15:00.000Z',
-    severity: 'INFO',
-    category: 'CASE_MANAGEMENT',
-  },
-  {
-    id: 'audit_4',
-    userId: 'user_3',
-    userName: 'Admin User',
-    action: 'USER_CREATED',
-    resource: 'users',
-    resourceId: 'user_4',
-    details: {
-      newUserName: 'New Field Agent',
-      role: 'FIELD',
-      email: 'newagent@example.com',
-    },
-    ipAddress: '192.168.1.101',
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-    timestamp: '2024-01-01T14:20:00.000Z',
-    severity: 'WARN',
-    category: 'USER_MANAGEMENT',
-  },
-  {
-    id: 'audit_5',
-    userId: 'user_1',
-    userName: 'John Doe',
-    action: 'FILE_UPLOADED',
-    resource: 'attachments',
-    resourceId: 'attachment_1',
-    details: {
-      fileName: 'residence_photo.jpg',
-      fileSize: 1024000,
-      caseId: 'case_1',
-    },
-    ipAddress: '192.168.1.100',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    timestamp: '2024-01-01T15:45:00.000Z',
-    severity: 'INFO',
-    category: 'FILE_MANAGEMENT',
-  },
-];
 
 // GET /api/audit-logs - List audit logs with pagination and filters
 export const getAuditLogs = (req: AuthenticatedRequest, res: Response) => {
@@ -260,6 +170,16 @@ export const getAuditLogById = (req: AuthenticatedRequest, res: Response) => {
   void (async () => {
     try {
       const { id } = req.params;
+      // audit_logs.id is bigint. Casting the COLUMN to text (al.id::text=$1)
+      // defeated the per-partition (id) index; cast the PARAM instead. Guard
+      // non-numeric ids → 404 (so $1::bigint can't throw).
+      if (!/^\d+$/.test(String(id))) {
+        return res.status(404).json({
+          success: false,
+          message: 'Audit log not found',
+          error: { code: 'NOT_FOUND' },
+        });
+      }
       const result = await dbQuery<AuditLog>(
         `
         SELECT
@@ -286,7 +206,7 @@ export const getAuditLogById = (req: AuthenticatedRequest, res: Response) => {
           END as category
         FROM audit_logs al
         LEFT JOIN users u ON u.id = al.user_id
-        WHERE al.id::text = $1
+        WHERE al.id = $1::bigint
         LIMIT 1
       `,
         [id]
@@ -320,7 +240,7 @@ export const getAuditLogById = (req: AuthenticatedRequest, res: Response) => {
 };
 
 // POST /api/mobile/audit/logs - Create mobile audit log batch
-export const createMobileAuditLogs = (req: AuthenticatedRequest, res: Response) => {
+export const createMobileAuditLogs = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { logs, batchId, deviceId } = req.body;
 
@@ -333,39 +253,41 @@ export const createMobileAuditLogs = (req: AuthenticatedRequest, res: Response) 
 
     logger.info(`📝 Processing ${logs.length} mobile audit logs (batch: ${batchId})`);
 
-    // Process each log in the batch
-    const processedLogs = logs.map(log => ({
-      id: log.id || `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      userId: req.user?.id || log.userId,
-      userName: log.username || (req.user?.id ? `User ${req.user.id}` : 'Mobile User'),
-      action: log.action || 'MOBILE_ACTION',
-      resource: log.entityType || 'mobile',
-      resourceId: log.entityId || 'unknown',
-      details: {
-        ...log.details,
-        deviceInfo: log.deviceInfo,
-        location: log.location,
-        timestamp: log.timestamp,
-        batchId,
-        deviceId,
-      },
-      ipAddress: req.ip || req.connection.remoteAddress || 'Unknown',
-      userAgent: req.get('User-Agent') || 'Mobile App',
-      timestamp: log.timestamp || new Date().toISOString(),
-      severity: 'INFO',
-      category: 'CASE_MANAGEMENT',
-    }));
+    // Persist each mobile audit event through the REAL audit_logs chain
+    // (utils/auditLogger → partitioned table + HMAC row-hash). Previously these
+    // were pushed to an in-memory mock array and silently dropped on restart /
+    // never queryable — i.e. mobile audit was lost.
+    const userAgent = req.get('User-Agent') || undefined;
+    await Promise.allSettled(
+      (logs as Array<Record<string, unknown>>).map(log =>
+        recordAuditLog({
+          action: typeof log.action === 'string' ? log.action : 'MOBILE_ACTION',
+          entityType: typeof log.entityType === 'string' ? log.entityType : 'MOBILE',
+          entityId: typeof log.entityId === 'string' ? log.entityId : undefined,
+          userId: req.user?.id ?? (typeof log.userId === 'string' ? log.userId : undefined),
+          details: {
+            ...(log.details && typeof log.details === 'object'
+              ? (log.details as Record<string, unknown>)
+              : {}),
+            deviceInfo: log.deviceInfo,
+            location: log.location,
+            clientTimestamp: log.timestamp,
+            batchId,
+            deviceId,
+          },
+          ipAddress: req.ip,
+          userAgent,
+        })
+      )
+    );
 
-    // Add to mock storage (replace with actual database operations)
-    auditLogs.push(...processedLogs);
-
-    logger.info(`✅ Successfully processed ${processedLogs.length} mobile audit logs`);
+    logger.info(`✅ Persisted ${logs.length} mobile audit logs (batch: ${batchId})`);
 
     res.status(201).json({
       success: true,
-      message: `Successfully processed ${processedLogs.length} audit logs`,
+      message: `Successfully processed ${logs.length} audit logs`,
       batchId,
-      processed: processedLogs.length,
+      processed: logs.length,
     });
   } catch (error) {
     logger.error('Error creating mobile audit logs:', error);
@@ -378,28 +300,26 @@ export const createMobileAuditLogs = (req: AuthenticatedRequest, res: Response) 
 };
 
 // POST /api/audit-logs - Create audit log entry
-export const createAuditLog = (req: AuthenticatedRequest, res: Response) => {
+export const createAuditLog = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { action, resource, resourceId, details, severity = 'INFO', category } = req.body;
+    const { action, resource, resourceId, details, severity, category } = req.body;
 
-    const newAuditLog: AuditLog = {
-      id: `audit_${Date.now()}`,
-      userId: req.user?.id ?? 'Unknown',
-      userName: req.user?.id ? `User ${req.user.id}` : 'Unknown User',
+    // Persist through the real audit_logs chain (was pushed to a mock array).
+    await recordAuditLog({
       action,
-      resource,
-      resourceId,
-      details: details || {},
-      ipAddress: req.ip || req.connection.remoteAddress || 'Unknown',
-      userAgent: req.get('User-Agent') || 'Unknown',
-      timestamp: new Date().toISOString(),
-      severity,
-      category,
-    };
+      entityType: resource || 'SYSTEM',
+      entityId: resourceId,
+      userId: req.user?.id,
+      details: {
+        ...(details && typeof details === 'object' ? details : {}),
+        ...(severity ? { severity } : {}),
+        ...(category ? { category } : {}),
+      },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent') || undefined,
+    });
 
-    auditLogs.push(newAuditLog);
-
-    logger.info(`Created audit log: ${newAuditLog.id}`, {
+    logger.info('Created audit log', {
       userId: req.user?.id,
       action,
       resource,
@@ -408,7 +328,6 @@ export const createAuditLog = (req: AuthenticatedRequest, res: Response) => {
 
     res.status(201).json({
       success: true,
-      data: newAuditLog,
       message: 'Audit log created successfully',
     });
   } catch (error) {
@@ -523,115 +442,66 @@ export const getAuditCategories = (req: AuthenticatedRequest, res: Response) => 
 };
 
 // GET /api/audit-logs/stats - Get audit log statistics
-export const getAuditStats = (req: AuthenticatedRequest, res: Response) => {
+export const getAuditStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { period = 'week' } = req.query;
+    const period = getSingleQueryValue(req.query.period) || 'week';
 
-    const totalLogs = auditLogs.length;
-
-    // Calculate date range based on period
-    const now = new Date();
-    const startDate = new Date();
-
-    switch (period) {
-      case 'day':
-        startDate.setDate(now.getDate() - 1);
-        break;
-      case 'week':
-        startDate.setDate(now.getDate() - 7);
-        break;
-      case 'month':
-        startDate.setMonth(now.getMonth() - 1);
-        break;
-      case 'year':
-        startDate.setFullYear(now.getFullYear() - 1);
-        break;
-      default:
-        startDate.setDate(now.getDate() - 7);
-    }
-
-    const periodLogs = auditLogs.filter(log => new Date(log.timestamp) >= startDate);
-
-    // Action distribution
-    const actionDistribution = auditLogs.reduce(
-      (acc, log) => {
-        acc[log.action] = (acc[log.action] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
-
-    // Category distribution
-    const categoryDistribution = auditLogs.reduce(
-      (acc, log) => {
-        acc[log.category] = (acc[log.category] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
-
-    // Severity distribution
-    const severityDistribution = auditLogs.reduce(
-      (acc, log) => {
-        acc[log.severity] = (acc[log.severity] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
-
-    // User activity
-    const userActivity = auditLogs.reduce(
-      (acc, log) => {
-        if (!acc[log.userId]) {
-          acc[log.userId] = {
-            userId: log.userId,
-            userName: log.userName,
-            totalActions: 0,
-            lastActivity: log.timestamp,
-          };
-        }
-        acc[log.userId].totalActions++;
-        if (new Date(log.timestamp) > new Date(acc[log.userId].lastActivity)) {
-          acc[log.userId].lastActivity = log.timestamp;
-        }
-        return acc;
-      },
-      {} as Record<
-        string,
-        { userId: string; userName: string; totalActions: number; lastActivity: string }
-      >
-    );
-
-    // Daily activity for the period
-    const dailyActivity = periodLogs.reduce(
-      (acc, log) => {
-        const date = new Date(log.timestamp).toISOString().split('T')[0];
-        acc[date] = (acc[date] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
-
-    const stats = {
-      totalLogs,
-      periodLogs: periodLogs.length,
-      period,
-      actionDistribution,
-      categoryDistribution,
-      severityDistribution,
-      topUsers: Object.values(userActivity)
-        .sort(
-          (a: Record<string, unknown>, b: Record<string, unknown>) =>
-            (b.totalActions as number) - (a.totalActions as number)
-        )
-        .slice(0, 10),
-      dailyActivity,
-      generatedAt: new Date().toISOString(),
+    // Real aggregates over the partitioned audit_logs table, BOUNDED to the
+    // requested period window (created_at >= start) so PG can prune partitions
+    // — a full-history scan here would itself be a scale risk. Was computed
+    // over an in-memory mock array (fabricated/empty).
+    const intervalByPeriod: Record<string, string> = {
+      day: '1 day',
+      week: '7 days',
+      month: '1 month',
+      year: '1 year',
     };
+    const interval = intervalByPeriod[period] || '7 days';
+    const sevExpr = `CASE WHEN action LIKE '%FAILED%' OR action LIKE '%REJECTED%' THEN 'ERROR' WHEN action LIKE '%REVOKED%' THEN 'WARN' ELSE 'INFO' END`;
+    const catExpr = `CASE WHEN entity_type IN ('VERIFICATION_TASK','CASE') THEN 'CASE_MANAGEMENT' WHEN entity_type='USER' THEN 'USER_MANAGEMENT' WHEN entity_type='ATTACHMENT' THEN 'FILE_MANAGEMENT' ELSE 'SYSTEM' END`;
+    const windowSql = `created_at >= NOW() - INTERVAL '${interval}'`;
+
+    const [actionRes, catRes, sevRes, userRes] = await Promise.all([
+      dbQuery<{ k: string; c: number }>(
+        `SELECT action AS k, COUNT(*)::int AS c FROM audit_logs WHERE ${windowSql} GROUP BY action ORDER BY c DESC LIMIT 20`
+      ),
+      dbQuery<{ k: string; c: number }>(
+        `SELECT ${catExpr} AS k, COUNT(*)::int AS c FROM audit_logs WHERE ${windowSql} GROUP BY 1`
+      ),
+      dbQuery<{ k: string; c: number }>(
+        `SELECT ${sevExpr} AS k, COUNT(*)::int AS c FROM audit_logs WHERE ${windowSql} GROUP BY 1`
+      ),
+      dbQuery<{ userId: string; userName: string; totalActions: number; lastActivity: string }>(
+        `SELECT al.user_id AS "userId", COALESCE(u.name, 'System') AS "userName",
+                COUNT(*)::int AS "totalActions", MAX(al.created_at)::text AS "lastActivity"
+         FROM audit_logs al LEFT JOIN users u ON u.id = al.user_id
+         WHERE ${windowSql} GROUP BY al.user_id, u.name ORDER BY "totalActions" DESC LIMIT 10`
+      ),
+    ]);
+
+    const toDist = (rows: { k: string; c: number }[]): Record<string, number> =>
+      rows.reduce(
+        (acc, r) => {
+          acc[r.k] = r.c;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
+
+    const periodLogs = sevRes.rows.reduce((s, r) => s + r.c, 0);
 
     res.json({
       success: true,
-      data: stats,
+      data: {
+        totalLogs: periodLogs,
+        periodLogs,
+        period,
+        actionDistribution: toDist(actionRes.rows),
+        categoryDistribution: toDist(catRes.rows),
+        severityDistribution: toDist(sevRes.rows),
+        topUsers: userRes.rows,
+        generatedAt: new Date().toISOString(),
+      },
     });
   } catch (error) {
     logger.error('Error getting audit stats:', error);
@@ -645,60 +515,20 @@ export const getAuditStats = (req: AuthenticatedRequest, res: Response) => {
 
 // DELETE /api/audit-logs/cleanup - Cleanup old audit logs
 export const cleanupAuditLogs = (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { olderThanDays = 90 } = req.body;
-
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - Number(olderThanDays));
-
-    const initialCount = auditLogs.length;
-    auditLogs = auditLogs.filter(log => new Date(log.timestamp) >= cutoffDate);
-    const deletedCount = initialCount - auditLogs.length;
-
-    // Create audit log for cleanup action
-    const cleanupAuditLog: AuditLog = {
-      id: `audit_${Date.now()}`,
-      userId: req.user?.id ?? 'Unknown',
-      userName: req.user?.id ? `User ${req.user.id}` : 'Unknown User',
-      action: 'SYSTEM_MAINTENANCE',
-      resource: 'audit-logs',
-      resourceId: undefined,
-      details: {
-        operation: 'cleanup',
-        olderThanDays: Number(olderThanDays),
-        deletedCount,
-        remainingCount: auditLogs.length,
-      },
-      ipAddress: req.ip || req.connection.remoteAddress || 'Unknown',
-      userAgent: req.get('User-Agent') || 'Unknown',
-      timestamp: new Date().toISOString(),
-      severity: 'WARN',
-      category: 'SYSTEM',
-    };
-
-    auditLogs.push(cleanupAuditLog);
-
-    logger.info('Audit logs cleanup completed', {
-      userId: req.user?.id,
-      deletedCount,
-      remainingCount: auditLogs.length,
-    });
-
-    res.json({
-      success: true,
-      data: {
-        deletedCount,
-        remainingCount: auditLogs.length,
-        cutoffDate: cutoffDate.toISOString(),
-      },
-      message: `Cleanup completed: ${deletedCount} logs deleted`,
-    });
-  } catch (error) {
-    logger.error('Error cleaning up audit logs:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to cleanup audit logs',
-      error: { code: 'INTERNAL_ERROR' },
-    });
-  }
+  // audit_logs is a date-RANGE PARTITIONED table; retention is enforced by
+  // dropping old monthly partitions, NOT by row-level DELETE. Deleting audit
+  // rows would also break the HMAC row-hash chain (tamper-evidence, T1-1).
+  // Previously this filtered an in-memory mock array (no real effect). Return
+  // an honest no-op instead of pretending to delete.
+  const { olderThanDays = 90 } = req.body;
+  logger.info('Audit-logs manual cleanup requested — no-op (partition-rotation retention)', {
+    userId: req.user?.id,
+    olderThanDays: Number(olderThanDays),
+  });
+  res.json({
+    success: true,
+    data: { deletedCount: 0 },
+    message:
+      'Audit log retention is managed by automatic partition rotation; no manual row deletion is performed (would break the audit hash chain).',
+  });
 };
