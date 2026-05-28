@@ -41,17 +41,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { useUnifiedSearch, useUnifiedFilters } from '@/hooks/useUnifiedSearch';
 import { useAreas } from '@/hooks/useAreas';
 import { usePincodes } from '@/hooks/useLocations';
 import { useScopePageReset } from '@/hooks/useScopePageReset';
-import {
-  GoogleMarkerMap,
-  type GoogleMarkerMapItem,
-  type GoogleMapBounds,
-} from '@/components/maps/GoogleMarkerMap';
 import {
   fieldMonitoringService,
   type FieldMonitoringLiveStatus,
@@ -69,11 +63,6 @@ import { logger } from '@/utils/logger';
 // admin session.
 const WS_SAFETY_NET_INTERVAL = 5 * 60_000; // 5 min fallback
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
-// P3 truthful-sweep 2026-05-27: with viewport-bounded BE query, the
-// limit is per-viewport not global. Bumped 200 → 1000 because the
-// bbox filter naturally caps marker volume. Marker-clusterer handles
-// up to ~5k cleanly; beyond that we'd need server-side clustering.
-const MAP_PAGE_SIZE = 1000;
 const STATUS_OPTIONS: FieldMonitoringLiveStatus[] = ['Online', 'Offline'];
 
 type SortOption = 'name_asc' | 'name_desc' | 'createdAt_desc' | 'createdAt_asc';
@@ -100,10 +89,6 @@ const statusBadgeClassNames: Record<FieldMonitoringLiveStatus, string> = {
   Offline: 'bg-muted text-foreground border-border',
 };
 
-const markerColors: Record<FieldMonitoringLiveStatus, string> = {
-  Online: '#16a34a',
-  Offline: '#6b7280',
-};
 
 const formatTimestamp = (value: string | null | undefined): string => {
   if (!value) {
@@ -145,14 +130,6 @@ const formatRelativeTime = (value: string | null | undefined): string => {
     return '';
   }
 };
-
-const escapeHtml = (value: string): string =>
-  value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
 
 // Roster "Location" cell: the executive's real current address resolved
 // from their latest GPS fix, plus the raw coordinates and a maps link.
@@ -205,41 +182,6 @@ function ExecutiveLocationCell({ user }: { user: FieldMonitoringRosterItem }) {
     </div>
   );
 }
-
-const createMarkerInfoWindowContent = (user: FieldMonitoringRosterItem): string => {
-  const lastPingedBy =
-    user.lastLocation?.pingSource === 'ADMIN_PING' && user.lastLocation?.requestedByName
-      ? `${user.lastLocation.requestedByName}`
-      : null;
-  const infoRows = [
-    ['Mobile', getMobileDisplay(user)],
-    ['Live Status', user.liveStatus],
-    ['Operating Pincode', user.operatingPincode || '-'],
-    ['Last Activity', formatTimestamp(user.lastActivityAt)],
-    ['Last Location', getLastLocationDisplayTime(user)],
-    ...(lastPingedBy ? [['Last ping by', lastPingedBy]] : []),
-  ]
-    .map(
-      ([label, value]) =>
-        `<div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;line-height:18px;">
-          <span style="color:#6b7280;">${escapeHtml(label)}</span>
-          <span style="color:#111827;font-weight:500;text-align:right;">${escapeHtml(value)}</span>
-        </div>`
-    )
-    .join('');
-
-  return `
-    <div style="min-width:220px;padding:4px 2px;font-family:inherit;">
-      <div style="font-size:14px;font-weight:700;color:#111827;margin-bottom:8px;">${escapeHtml(user.name)}</div>
-      ${infoRows}
-      <button
-        type="button"
-        data-refresh-userid="${escapeHtml(user.id)}"
-        style="margin-top:10px;width:100%;padding:6px 10px;font-size:12px;font-weight:600;color:#ffffff;background-color:#16a34a;border:none;border-radius:6px;cursor:pointer;"
-      >🔄 Get fresh location</button>
-    </div>
-  `;
-};
 
 function FieldMonitoringDetailView({ userId }: { userId: string }) {
   const navigate = useNavigate();
@@ -445,12 +387,6 @@ function FieldMonitoringRosterView() {
   // Reset roster pagination when scope toggles so a stale page index
   // from the prior tenant can't strand the user on an empty page.
   useScopePageReset(() => setPage(1));
-  const [activeView, setActiveView] = useState<'table' | 'map'>('table');
-  // P3 truthful-sweep 2026-05-27: viewport-bounded map fetch. Set by
-  // GoogleMarkerMap's idle event (debounced 500ms inside the component).
-  // When set, the map fetch passes bounds to the BE bbox filter.
-  // Cleared on view-switch back to 'table'.
-  const [mapBounds, setMapBounds] = useState<GoogleMapBounds | null>(null);
   // Set of userIds with an in-flight location-ping request. UI shows
   // the row's Refresh button as a spinning loader while pending; cleared
   // on either the incoming WebSocket event (success) or the 20s
@@ -566,33 +502,10 @@ function FieldMonitoringRosterView() {
     [pendingPings]
   );
 
-  // 2026-05-13: bridge from map-marker InfoWindow (raw innerHTML) into
-  // the React handler. createMarkerInfoWindowContent embeds a button
-  // with data-refresh-userid attribute; this document-level click
-  // listener delegates the click into handleRefreshLocation. Reattaches
-  // when handleRefreshLocation identity changes.
-  useEffect(() => {
-    const onClick = (event: Event) => {
-      const target = event.target as HTMLElement | null;
-      const button = target?.closest<HTMLElement>('[data-refresh-userid]');
-      const userId = button?.dataset.refreshUserid;
-      if (userId) {
-        event.preventDefault();
-        event.stopPropagation();
-        void handleRefreshLocation(userId);
-      }
-    };
-    document.addEventListener('click', onClick);
-    return () => {
-      document.removeEventListener('click', onClick);
-    };
-  }, [handleRefreshLocation]);
-
   // 2026-05-13: bulk-refresh — fires one FCM ping per currently-visible
   // agent. Per Q4.A there's no rate-limit, but we serialize the dispatch
-  // here client-side so we don't open 200 parallel HTTP requests when
-  // an admin clicks on a fully-loaded map (MAP_PAGE_SIZE=200). One agent
-  // every ~30ms is plenty fast and stays kind to FCM quota.
+  // here client-side so we don't open N parallel HTTP requests for a full
+  // page. One agent every ~30ms is plenty fast and stays kind to FCM quota.
   const handleBulkRefresh = useCallback(
     async (userIds: string[]) => {
       const targets = userIds.filter((id) => !pendingPings.has(id));
@@ -661,32 +574,6 @@ function FieldMonitoringRosterView() {
       }),
     staleTime: WS_SAFETY_NET_INTERVAL,
     refetchInterval: WS_SAFETY_NET_INTERVAL,
-    enabled: activeView === 'table',
-  });
-
-  const {
-    data: mapRosterResponse,
-    isLoading: mapRosterLoading,
-    refetch: refetchMapRoster,
-  } = useQuery({
-    queryKey: ['field-monitoring', 'users', 'map', MAP_PAGE_SIZE, commonRosterFilters, mapBounds],
-    queryFn: () =>
-      fieldMonitoringService.getMonitoringRoster({
-        page: 1,
-        limit: MAP_PAGE_SIZE,
-        ...commonRosterFilters,
-        ...(mapBounds
-          ? {
-              boundsSwLat: mapBounds.swLat,
-              boundsSwLng: mapBounds.swLng,
-              boundsNeLat: mapBounds.neLat,
-              boundsNeLng: mapBounds.neLng,
-            }
-          : {}),
-      }),
-    staleTime: WS_SAFETY_NET_INTERVAL,
-    refetchInterval: activeView === 'map' ? WS_SAFETY_NET_INTERVAL : false,
-    enabled: activeView === 'map',
   });
 
   const stats = statsResponse?.data || {
@@ -724,25 +611,6 @@ function FieldMonitoringRosterView() {
     }
   }, [commonRosterFilters]);
 
-  const mapRoster = useMemo(() => mapRosterResponse?.data?.data || [], [mapRosterResponse]);
-  const mapMarkers = useMemo<GoogleMarkerMapItem[]>(
-    () =>
-      mapRoster
-        .filter(
-          (user) =>
-            typeof user.lastLocation?.lat === 'number' && typeof user.lastLocation?.lng === 'number'
-        )
-        .map((user) => ({
-          id: user.id,
-          title: user.name,
-          lat: user.lastLocation?.lat as number,
-          lng: user.lastLocation?.lng as number,
-          color: markerColors[user.liveStatus],
-          infoHtml: createMarkerInfoWindowContent(user),
-        })),
-    [mapRoster]
-  );
-
   const pincodeOptions = pincodesResponse?.data || [];
   const areaOptions = areasResponse?.data || [];
 
@@ -764,10 +632,6 @@ function FieldMonitoringRosterView() {
 
   const handleRefresh = () => {
     void refetchStats();
-    if (activeView === 'map') {
-      void refetchMapRoster();
-      return;
-    }
     void refetchRoster();
   };
 
@@ -971,36 +835,15 @@ function FieldMonitoringRosterView() {
             }
           />
 
-          <Tabs
-            value={activeView}
-            onValueChange={(value) => {
-              const next = value as 'table' | 'map';
-              setActiveView(next);
-              // P3: clear viewport bounds when leaving the map. Next
-              // map-view open starts with a global query until the
-              // first `idle` event sets fresh bounds (debounced 500ms).
-              if (next === 'table') {
-                setMapBounds(null);
-              }
-            }}
-            className="space-y-4"
-          >
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <TabsList className="grid w-full max-w-sm grid-cols-2">
-                <TabsTrigger value="table">Table View</TabsTrigger>
-                <TabsTrigger value="map">Map View</TabsTrigger>
-              </TabsList>
-              {(activeView === 'table' ? roster : mapRoster).length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-end">
+              {roster.length > 0 && (
                 <Button
                   variant="outline"
                   size="sm"
                   className="gap-2"
                   disabled={pendingPings.size > 0}
-                  onClick={() =>
-                    handleBulkRefresh(
-                      (activeView === 'table' ? roster : mapRoster).map((u) => u.id)
-                    )
-                  }
+                  onClick={() => handleBulkRefresh(roster.map((u) => u.id))}
                   title={
                     pendingPings.size > 0
                       ? `${pendingPings.size} ping(s) in flight`
@@ -1013,7 +856,7 @@ function FieldMonitoringRosterView() {
               )}
             </div>
 
-            <TabsContent value="table" className="space-y-4">
+            <div className="space-y-4">
               {rosterLoading && !rosterResponse ? (
                 <div className="flex min-h-[320px] items-center justify-center">
                   <LoadingState message="Loading field monitoring roster..." size="lg" />
@@ -1038,7 +881,6 @@ function FieldMonitoringRosterView() {
                           <TableHead>Location</TableHead>
                           <TableHead>Last Activity Time</TableHead>
                           <TableHead>Last Location Time</TableHead>
-                          <TableHead>Last Pinged By</TableHead>
                           <TableHead>Active Assignments</TableHead>
                           <TableHead className="text-right">Action</TableHead>
                         </TableRow>
@@ -1097,12 +939,6 @@ function FieldMonitoringRosterView() {
                               ) : (
                                 getLastLocationDisplayTime(user)
                               )}
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {user.lastLocation?.pingSource === 'ADMIN_PING' &&
-                              user.lastLocation?.requestedByName
-                                ? user.lastLocation.requestedByName
-                                : '-'}
                             </TableCell>
                             <TableCell>{user.activeAssignmentCount}</TableCell>
                             <TableCell className="text-right">
@@ -1189,24 +1025,8 @@ function FieldMonitoringRosterView() {
                   </div>
                 </>
               )}
-            </TabsContent>
-
-            <TabsContent value="map" className="space-y-4">
-              {mapRosterLoading && !mapRosterResponse ? (
-                <div className="flex min-h-[520px] items-center justify-center">
-                  <LoadingState message="Loading field locations..." size="lg" />
-                </div>
-              ) : (
-                <GoogleMarkerMap
-                  items={mapMarkers}
-                  emptyTitle="No mappable field executives"
-                  emptyDescription="No valid last known coordinates available for the current filters."
-                  markerSummary={`Showing ${mapMarkers.length} field executives with valid last known coordinates.`}
-                  onBoundsChanged={setMapBounds}
-                />
-              )}
-            </TabsContent>
-          </Tabs>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
