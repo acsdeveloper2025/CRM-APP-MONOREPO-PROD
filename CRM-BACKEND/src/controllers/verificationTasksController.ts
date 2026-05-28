@@ -979,9 +979,13 @@ export class VerificationTasksController {
    */
   static async getAllTasks(req: AuthenticatedRequest, res: Response): Promise<void> {
     const { page = 1, limit = 50, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
+    // Clamp limit so ?limit=1000000 cannot force a full-table SELECT vt.* + 10
+    // JOINs into memory (OOM/DoS). Mirrors getCases' Math.min(500) guard.
+    const safePage = Math.max(1, Number(page) || 1);
+    const safeLimit = Math.min(200, Math.max(1, Number(limit) || 50));
 
     try {
-      const offset = (Number(page) - 1) * Number(limit);
+      const offset = (safePage - 1) * safeLimit;
 
       // Build WHERE via shared helper (single source of WHERE-truth shared
       // with /export + /stats). See module-scope buildVerificationTasksWhereClause.
@@ -1044,7 +1048,7 @@ export class VerificationTasksController {
         ORDER BY ${safeSortColumn} ${safeSortOrder} NULLS LAST
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `,
-        [...params, Number(limit), offset]
+        [...params, safeLimit, offset]
       );
 
       const tasks = tasksResult.rows.map(row => ({
@@ -1184,10 +1188,10 @@ export class VerificationTasksController {
         data: {
           tasks,
           pagination: {
-            page: Number(page),
-            limit: Number(limit),
+            page: safePage,
+            limit: safeLimit,
             total: totalTasks,
-            totalPages: Math.ceil(totalTasks / Number(limit)),
+            totalPages: Math.ceil(totalTasks / safeLimit),
           },
           statistics: {
             pending: parseInt(stats.pendingCount || '0'),
