@@ -11,12 +11,7 @@ export type FieldMonitoringStats = {
   offlineCount: number;
 };
 
-export type FieldMonitoringLiveStatus =
-  | 'Idle'
-  | 'Travelling'
-  | 'At Location'
-  | 'Submitted'
-  | 'Offline';
+export type FieldMonitoringLiveStatus = 'Online' | 'Offline';
 
 export type FieldMonitoringRosterQuery = {
   page?: number;
@@ -213,6 +208,20 @@ class FieldMonitoringService {
       responseType: 'blob',
     });
     return response.data;
+  }
+
+  // Reverse-geocode an executive's latest GPS fix to a human-readable
+  // address for the roster Location column. Backed by the shared admin
+  // endpoint (Redis-cached server-side by 6dp coords), so repeated
+  // lookups of the same position never re-hit Google.
+  async reverseGeocode(
+    latitude: number,
+    longitude: number
+  ): Promise<ApiResponse<{ address: string; coordinates: { latitude: number; longitude: number } }>> {
+    return apiService.get<{
+      address: string;
+      coordinates: { latitude: number; longitude: number };
+    }>('/geocode/reverse', { latitude, longitude });
   }
 }
 

@@ -17,14 +17,11 @@ const router = express.Router();
 
 const rosterListValidation = [
   query('page').optional().isInt({ min: 1 }).withMessage('page must be a positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 500 }).withMessage('limit must be 1-500'),
+  query('limit').optional().isInt({ min: 1, max: 1000 }).withMessage('limit must be 1-1000'),
   query('search').optional().isString().withMessage('search must be a string'),
   query('pincode').optional().isString().withMessage('pincode must be a string'),
   query('areaId').optional().isInt({ min: 1 }).withMessage('areaId must be a positive integer'),
-  query('status')
-    .optional()
-    .isIn(['Offline', 'Submitted', 'At Location', 'Travelling', 'Idle'])
-    .withMessage('status is invalid'),
+  query('status').optional().isIn(['Online', 'Offline']).withMessage('status is invalid'),
   query('sortBy').optional().isIn(['name', 'createdAt']).withMessage('sortBy is invalid'),
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('sortOrder must be asc or desc'),
   query('createdFrom')

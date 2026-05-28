@@ -1,10 +1,10 @@
 import { query } from '@/config/database';
 import { deriveCapabilitiesFromPermissionCodes } from '@/security/rbacAccess';
+import { getOnlineUserIds } from '@/websocket/server';
 
 const ACTIVE_ASSIGNMENT_STATUSES = ['ASSIGNED', 'IN_PROGRESS', 'PENDING'] as const;
-const ALLOWED_STATUSES = ['Offline', 'Submitted', 'At Location', 'Travelling', 'Idle'] as const;
+const ALLOWED_STATUSES = ['Online', 'Offline'] as const;
 const OFFLINE_THRESHOLD_MS = 15 * 60 * 1000;
-const SUBMITTED_THRESHOLD_MS = 10 * 60 * 1000;
 const AT_LOCATION_THRESHOLD_MS = 15 * 60 * 1000;
 
 type NullableDate = Date | null;
@@ -113,7 +113,7 @@ export type FieldUserActivity = {
   lastSubmissionAt: NullableDate;
 };
 
-export type FieldUserLiveStatus = 'Offline' | 'Submitted' | 'At Location' | 'Travelling' | 'Idle';
+export type FieldUserLiveStatus = 'Online' | 'Offline';
 
 export type FieldUserLatestLocation = {
   lat: number;
@@ -338,12 +338,12 @@ export class FieldMonitoringService {
   }
 
   static async computeLiveStatus(userId: string): Promise<FieldUserLiveStatus> {
-    const [activity, location, assignments] = await Promise.all([
+    const [activity, location, onlineIds] = await Promise.all([
       this.computeUserActivity(userId),
       this.getLatestLocation(userId),
-      this.getActiveAssignments(userId),
+      getOnlineUserIds(),
     ]);
-    return this.deriveLiveStatus(activity, location, assignments);
+    return this.deriveLiveStatus(activity, location, onlineIds.includes(userId));
   }
 
   static async getLatestLocation(userId: string): Promise<FieldUserLatestLocation | null> {
@@ -521,11 +521,12 @@ export class FieldMonitoringService {
       return null;
     }
 
-    const [activities, locations, territories, assignments] = await Promise.all([
+    const [activities, locations, territories, assignments, onlineIds] = await Promise.all([
       this.getUserActivities([userId]),
       this.getLatestLocations([userId]),
       this.getAssignedTerritories([userId]),
       this.getOpenAssignments([userId]),
+      getOnlineUserIds(),
     ]);
 
     const activity = activities.get(userId) || this.emptyActivity();
@@ -543,7 +544,7 @@ export class FieldMonitoringService {
         employeeId: user.employeeId,
       },
       activity,
-      liveStatus: this.deriveLiveStatus(activity, lastKnownLocation, openAssignments),
+      liveStatus: this.deriveLiveStatus(activity, lastKnownLocation, onlineIds.includes(userId)),
       lastKnownLocation,
       openAssignments,
       operatingTerritory: {
@@ -644,6 +645,14 @@ export class FieldMonitoringService {
       paramIndex += 4;
     }
 
+    // Live presence: userIds with an open socket (app foregrounded). One
+    // of the two signals that mark a user 'Online'; the other is a fresh
+    // real GPS ping (computed in the live_status CASE below).
+    const onlineUserIds = await getOnlineUserIds();
+    const onlinePlaceholder = `$${paramIndex}`;
+    queryParams.push(onlineUserIds);
+    paramIndex++;
+
     const sortBy = params.sortBy === 'createdAt' ? 'u.created_at' : 'u.name';
     const sortOrder: 'ASC' | 'DESC' = params.sortOrder === 'desc' ? 'DESC' : 'ASC';
 
@@ -685,7 +694,7 @@ export class FieldMonitoringService {
         -- loc_source maps the projection's source back to the provenance the
         -- live_status CASE expects: a real GPS ping (TASK/ADMIN_PING/TRACKING)
         -- reads as 'locations'; FORM / TASK_GEO are fallbacks that must NOT
-        -- count toward 'At Location'.
+        -- count toward 'Online'.
         SELECT b.*,
           ll.latitude AS lat, ll.longitude AS lng, ll.accuracy,
           ll.recorded_at AS loc_recorded_at,
@@ -703,20 +712,16 @@ export class FieldMonitoringService {
       ),
       with_status AS (
         SELECT w.*,
+          -- Binary presence: Online if the app holds a live socket OR a
+          -- real GPS ping (loc_source='locations', i.e. TASK/ADMIN_PING/
+          -- TRACKING — not the FORM/TASK_GEO fallbacks) landed in the last
+          -- 15 min; else Offline.
           CASE
-            WHEN GREATEST(w.last_task_activity_at, w.last_location_at, w.last_submission_at) IS NULL
-              OR GREATEST(w.last_task_activity_at, w.last_location_at, w.last_submission_at)
-                 < NOW() - INTERVAL '15 minutes'
-              THEN 'Offline'
-            WHEN w.last_submission_at >= NOW() - INTERVAL '10 minutes'
-              THEN 'Submitted'
-            WHEN w.loc_source = 'locations'
-              AND w.last_location_at >= NOW() - INTERVAL '15 minutes'
-              AND w.assignment_count > 0
-              THEN 'At Location'
-            WHEN w.assignment_count > 0
-              THEN 'Travelling'
-            ELSE 'Idle'
+            WHEN w.id = ANY(${onlinePlaceholder}::uuid[])
+              OR (w.loc_source = 'locations'
+                  AND w.loc_recorded_at >= NOW() - INTERVAL '15 minutes')
+              THEN 'Online'
+            ELSE 'Offline'
           END AS live_status
         FROM with_location w
       ),
@@ -1359,55 +1364,24 @@ export class FieldMonitoringService {
   private static deriveLiveStatus(
     activity: FieldUserActivity,
     location: FieldUserLatestLocation | null,
-    assignments: FieldUserActiveAssignment[]
+    online: boolean
   ): FieldUserLiveStatus {
-    // 2026-05-23: dropped the `lastHeartbeatAt`-first gate. No code path
-    // writes to mobile_device_sync (the heartbeat source), so every user
-    // was permanently 'Offline'. Live status now falls back to operational
-    // activity freshness (tasks / locations / submissions). Admin-triggered
-    // FCM ping (source='ADMIN_PING') still inserts into `locations`, which
-    // refreshes lastLocationAt and lets the Submitted / At Location /
-    // Travelling branches resolve.
-    const latestOperationalActivity = this.maxDate([
-      activity.lastTaskActivityAt,
-      activity.lastLocationAt,
-      activity.lastSubmissionAt,
-    ]);
-
-    if (!this.isFresh(latestOperationalActivity, OFFLINE_THRESHOLD_MS)) {
-      return 'Offline';
-    }
-
-    if (this.isFresh(activity.lastSubmissionAt, SUBMITTED_THRESHOLD_MS)) {
-      return 'Submitted';
+    // Binary presence (mirrors the roster SQL CASE): Online if the app
+    // holds a live socket OR a real GPS ping (source='locations', i.e.
+    // TASK/ADMIN_PING/TRACKING — not the FORM/TASK_GEO fallbacks) landed
+    // within the last 15 min; else Offline.
+    if (online) {
+      return 'Online';
     }
 
     if (
       location?.source === 'locations' &&
-      this.isFresh(activity.lastLocationAt, AT_LOCATION_THRESHOLD_MS) &&
-      assignments.length > 0
+      this.isFresh(activity.lastLocationAt, AT_LOCATION_THRESHOLD_MS)
     ) {
-      return 'At Location';
+      return 'Online';
     }
 
-    if (assignments.length > 0) {
-      const hasOperationalAssignment = assignments.some(assignment =>
-        Boolean(
-          assignment.task.startedAt ||
-            assignment.task.assignedAt ||
-            assignment.task.currentAssignedAt ||
-            ACTIVE_ASSIGNMENT_STATUSES.includes(
-              assignment.task.status as (typeof ACTIVE_ASSIGNMENT_STATUSES)[number]
-            )
-        )
-      );
-
-      if (hasOperationalAssignment) {
-        return 'Travelling';
-      }
-    }
-
-    return 'Idle';
+    return 'Offline';
   }
 
   private static getStartOfToday(): Date {

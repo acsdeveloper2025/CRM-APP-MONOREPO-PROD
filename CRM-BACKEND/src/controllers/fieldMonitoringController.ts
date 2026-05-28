@@ -17,13 +17,7 @@ const FIELD_MONITORING_EXPORT_LIMIT = 10000;
 
 const pushNotificationService = PushNotificationService.getInstance();
 
-const ALLOWED_STATUSES: FieldUserLiveStatus[] = [
-  'Offline',
-  'Submitted',
-  'At Location',
-  'Travelling',
-  'Idle',
-];
+const ALLOWED_STATUSES: FieldUserLiveStatus[] = ['Online', 'Offline'];
 
 const resolveScopedUserIds = async (req: AuthenticatedRequest): Promise<string[] | undefined> => {
   if (!req.user?.id) {

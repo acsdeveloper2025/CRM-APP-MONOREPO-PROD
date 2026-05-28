@@ -6,7 +6,9 @@ import {
   ArrowLeft,
   CheckSquare,
   Download,
+  ExternalLink,
   Eye,
+  MapPin,
   Navigation,
   Radio,
   RefreshCw,
@@ -72,13 +74,7 @@ const PAGE_SIZE_OPTIONS = [20, 50, 100];
 // bbox filter naturally caps marker volume. Marker-clusterer handles
 // up to ~5k cleanly; beyond that we'd need server-side clustering.
 const MAP_PAGE_SIZE = 1000;
-const STATUS_OPTIONS: FieldMonitoringLiveStatus[] = [
-  'Idle',
-  'Travelling',
-  'At Location',
-  'Submitted',
-  'Offline',
-];
+const STATUS_OPTIONS: FieldMonitoringLiveStatus[] = ['Online', 'Offline'];
 
 type SortOption = 'name_asc' | 'name_desc' | 'createdAt_desc' | 'createdAt_asc';
 const SORT_OPTIONS: {
@@ -100,19 +96,13 @@ type FieldMonitoringFilters = {
 };
 
 const statusBadgeClassNames: Record<FieldMonitoringLiveStatus, string> = {
-  Idle: 'bg-muted text-foreground border-border',
-  Travelling: 'bg-amber-100 text-amber-700 border-amber-200',
-  'At Location': 'bg-green-100 text-green-700 border-green-200',
-  Submitted: 'bg-purple-100 text-purple-700 border-purple-200',
+  Online: 'bg-green-100 text-green-700 border-green-200',
   Offline: 'bg-muted text-foreground border-border',
 };
 
 const markerColors: Record<FieldMonitoringLiveStatus, string> = {
+  Online: '#16a34a',
   Offline: '#6b7280',
-  Idle: '#2563eb',
-  Travelling: '#f59e0b',
-  'At Location': '#16a34a',
-  Submitted: '#9333ea',
 };
 
 const formatTimestamp = (value: string | null | undefined): string => {
@@ -163,6 +153,58 @@ const escapeHtml = (value: string): string =>
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
+
+// Roster "Location" cell: the executive's real current address resolved
+// from their latest GPS fix, plus the raw coordinates and a maps link.
+// Lazy per-row reverse-geocode keyed by 6dp coords so react-query dedupes
+// identical positions; backend caches in Redis so repeats never hit Google.
+function ExecutiveLocationCell({ user }: { user: FieldMonitoringRosterItem }) {
+  const loc = user.lastLocation;
+  const lat = loc?.lat ?? null;
+  const lng = loc?.lng ?? null;
+  const latKey = lat != null ? lat.toFixed(6) : null;
+  const lngKey = lng != null ? lng.toFixed(6) : null;
+
+  const { data: address, isLoading } = useQuery({
+    queryKey: ['reverse-geocode', latKey, lngKey],
+    queryFn: async () => {
+      const res = await fieldMonitoringService.reverseGeocode(lat as number, lng as number);
+      return res?.data?.address ?? null;
+    },
+    enabled: lat != null && lng != null,
+    staleTime: 24 * 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
+    retry: false,
+  });
+
+  if (lat == null || lng == null) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+
+  const coords = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+
+  return (
+    <div className="flex max-w-[260px] flex-col gap-0.5">
+      <span className="flex items-start gap-1 text-sm">
+        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <span className="line-clamp-2">
+          {isLoading ? 'Resolving…' : address || 'Address unavailable'}
+        </span>
+      </span>
+      <span className="pl-[18px] font-mono text-xs text-muted-foreground">{coords}</span>
+      <a
+        href={mapsUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1 pl-[18px] text-xs text-primary hover:underline"
+      >
+        Open in Maps
+        <ExternalLink className="h-3 w-3" />
+      </a>
+    </div>
+  );
+}
 
 const createMarkerInfoWindowContent = (user: FieldMonitoringRosterItem): string => {
   const lastPingedBy =
@@ -993,6 +1035,7 @@ function FieldMonitoringRosterView() {
                           <TableHead>Live Status</TableHead>
                           <TableHead>Operating Area</TableHead>
                           <TableHead>Operating Pincode</TableHead>
+                          <TableHead>Location</TableHead>
                           <TableHead>Last Activity Time</TableHead>
                           <TableHead>Last Location Time</TableHead>
                           <TableHead>Last Pinged By</TableHead>
@@ -1025,6 +1068,9 @@ function FieldMonitoringRosterView() {
                             </TableCell>
                             <TableCell>{user.operatingArea || '-'}</TableCell>
                             <TableCell>{user.operatingPincode || '-'}</TableCell>
+                            <TableCell>
+                              <ExecutiveLocationCell user={user} />
+                            </TableCell>
                             <TableCell>{formatTimestamp(user.lastActivityAt)}</TableCell>
                             <TableCell>
                               {user.lastLocation?.time ? (

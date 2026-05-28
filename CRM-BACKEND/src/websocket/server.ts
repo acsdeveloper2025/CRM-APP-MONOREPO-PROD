@@ -637,6 +637,43 @@ export const emitSessionRevoked = (
 // Export functions to access global WebSocket instance from controllers
 export const getSocketIO = (): SocketIOServer | null => globalSocketIO;
 
+// Field-monitoring presence: userIds with at least one live socket.
+// Derived from the per-user rooms every socket auto-joins on connection
+// (`user:${id}`). With the Redis adapter (prod), allRooms() aggregates
+// across all nodes, so this is cluster-wide; stateless — no registry to
+// keep in sync on disconnect. Falls back to the local rooms Map when an
+// adapter without allRooms() is in use (dev without Redis).
+export const getOnlineUserIds = async (): Promise<string[]> => {
+  const io = globalSocketIO;
+  if (!io) {
+    return [];
+  }
+  try {
+    const adapter = io.of('/').adapter as unknown as {
+      allRooms?: () => Promise<Set<string>>;
+      rooms?: Map<string, Set<string>>;
+    };
+    let rooms: Iterable<string>;
+    if (typeof adapter.allRooms === 'function') {
+      rooms = await adapter.allRooms();
+    } else if (adapter.rooms) {
+      rooms = adapter.rooms.keys();
+    } else {
+      return [];
+    }
+    const ids: string[] = [];
+    for (const room of rooms) {
+      if (room.startsWith('user:')) {
+        ids.push(room.slice('user:'.length));
+      }
+    }
+    return ids;
+  } catch (error) {
+    logger.warn('getOnlineUserIds failed', { error: String(error) });
+    return [];
+  }
+};
+
 export const getMobileEvents = (): MobileWebSocketEvents | null => mobileEvents;
 
 // Helper function to emit case assignment notification
