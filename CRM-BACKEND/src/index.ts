@@ -18,6 +18,7 @@ import { connectRedis, disconnectRedis } from '@/config/redis';
 import { initAuthCachePubSub } from '@/middleware/auth';
 import { initializeWebSocket } from '@/websocket/server';
 import { EnterpriseCacheService } from './services/enterpriseCacheService';
+import { PDFExportService } from './services/PDFExportService';
 import {
   startMetricsCleanup,
   startMetricsBatchFlush,
@@ -314,6 +315,21 @@ const gracefulShutdown = async (signal: string): Promise<void> => {
       // Stop worker heartbeat writer + drop the key (Redis TTL would
       // expire it anyway, but explicit del flips status faster).
       await stopWorkerHeartbeat();
+    }
+
+    // Close the shared Puppeteer browser used by PDF exports (api-side
+    // singleton). Previously cleanup() existed but was never invoked from
+    // any shutdown hook, so the Chromium process leaked for the lifetime of
+    // the server. cleanup() is a no-op if no browser was ever launched.
+    if (isApi) {
+      try {
+        await PDFExportService.getInstance().cleanup();
+        logger.info('PDF export browser closed');
+      } catch (error) {
+        logger.warn('PDF export browser cleanup failed', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
 
     // Close enterprise cache service (initialized on every role)

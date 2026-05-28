@@ -1129,6 +1129,7 @@ export const getCasesReport = async (req: AuthenticatedRequest, res: Response) =
       LEFT JOIN users creator ON c.created_by_backend_user = creator.id
       ${whereClause}
       ORDER BY c.created_at DESC
+      LIMIT ${MIS_EXPORT_ROW_LIMIT}
     `;
 
     const casesResult = await dbQuery(casesQuery, params);
@@ -1270,6 +1271,7 @@ export const getUserPerformanceReport = async (req: AuthenticatedRequest, res: R
       ${userWhereClause}
       GROUP BY u.id
       ORDER BY u.name
+      LIMIT ${MIS_EXPORT_ROW_LIMIT}
     `;
 
     const usersResult = await dbQuery(usersQuery, userParams);
@@ -2059,6 +2061,10 @@ const buildInvoiceReportQuery = async (req: AuthenticatedRequest, includePaginat
   if (includePagination) {
     dataParams.push(limit, offset);
     paginationClause = `LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+  } else {
+    // Download path (no client pagination) still hard-caps so the CSV is not
+    // built unbounded in memory.
+    paginationClause = `LIMIT ${MIS_EXPORT_ROW_LIMIT}`;
   }
 
   const dataQuery = `

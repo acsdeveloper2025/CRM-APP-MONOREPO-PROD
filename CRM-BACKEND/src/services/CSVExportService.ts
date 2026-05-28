@@ -179,6 +179,7 @@ export class CSVExportService {
         WHERE urf.user_id = u.id AND pf.code = 'visit.submit'
       )
       ORDER BY apd.date DESC, u.name
+      LIMIT 5000
     `;
 
     const result = await dbQuery(query, queryParams);
@@ -297,6 +298,7 @@ export class CSVExportService {
       FROM case_completion_analytics
       ${whereClause}
       ORDER BY created_at DESC
+      LIMIT 5000
     `;
 
     const result = await dbQuery(query, queryParams);

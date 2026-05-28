@@ -4,6 +4,7 @@ import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
 import { EnterpriseCache, EnterpriseCacheConfigs } from '@/middleware/enterpriseCache';
+import { exportRateLimit } from '@/middleware/rateLimiter';
 import {
   getFieldMonitoringStats,
   getFieldMonitoringUsers,
@@ -49,6 +50,7 @@ router.get(
   '/export',
   authenticateToken,
   authorize('page.field_monitoring'),
+  exportRateLimit,
   rosterListValidation,
   validate,
   exportFieldMonitoring
