@@ -7,6 +7,7 @@ import {
   type FieldUserLiveStatus,
 } from '@/services/fieldMonitoringService';
 import { getScopedOperationalUserIds } from '@/security/userScope';
+import { getSocketIO } from '@/websocket/server';
 import { PushNotificationService } from '@/services/PushNotificationService';
 import { createAuditLog } from '@/utils/auditLogger';
 import { escapeFormulaRow } from '@/utils/formulaGuard';
@@ -356,12 +357,33 @@ export const requestUserLocation = async (
     }
 
     const requestId = randomUUID();
+    const requestedBy = req.user?.id || '';
+    const requestedAt = new Date().toISOString();
+
     const fcmResult = await pushNotificationService.sendDataMessage([targetUserId], {
       type: 'LOCATION_REQUEST',
       requestId,
-      requestedBy: req.user?.id || '',
-      requestedAt: new Date().toISOString(),
+      requestedBy,
+      requestedAt,
     });
+
+    // Also dispatch over the live WebSocket. FCM data-messages are
+    // unreliable (delayed/dropped under Doze); a foregrounded agent has
+    // an open `user:${id}` socket, so this reaches them immediately. The
+    // mobile listener calls the same handleLocationRequest as the FCM
+    // path, so duplicate delivery is idempotent via the requestId
+    // (locations.operation_id unique index dedupes).
+    const io = getSocketIO();
+    let socketDelivered = false;
+    if (io) {
+      io.to(`user:${targetUserId}`).emit('location:request', {
+        type: 'LOCATION_REQUEST',
+        requestId,
+        requestedBy,
+        requestedAt,
+      });
+      socketDelivered = true;
+    }
 
     logger.info('Location-request ping dispatched', {
       requestId,
@@ -369,6 +391,7 @@ export const requestUserLocation = async (
       requestedBy: req.user?.id,
       fcmSuccess: fcmResult.success,
       fcmFailed: fcmResult.failed,
+      socketDelivered,
     });
 
     res.status(202).json({
