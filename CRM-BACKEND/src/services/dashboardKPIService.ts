@@ -249,6 +249,15 @@ export class DashboardKPIService {
         CASE WHEN COALESCE(SUM(cp_overdue), 0) > 0
           THEN SUM(cp_overdue * cp_avg_overdue_days) / SUM(cp_overdue)
           ELSE 0 END                        as cp_avg_overdue_days,
+        -- Weighted AVG turnaround (folds the former raw perfQuery): the mat
+        -- view stores per-window SUM(tat) + COUNT, so SUM(sum)/SUM(count)
+        -- across the scoped rows recovers the true cross-scope average.
+        CASE WHEN COALESCE(SUM(cp_tat_count), 0) > 0
+          THEN SUM(cp_tat_sum) / SUM(cp_tat_count)
+          ELSE 0 END                        as cp_avg_tat,
+        CASE WHEN COALESCE(SUM(pp_tat_count), 0) > 0
+          THEN SUM(pp_tat_sum) / SUM(pp_tat_count)
+          ELSE 0 END                        as pp_avg_tat,
         COALESCE(SUM(today_completed), 0)   as completed_today
       FROM mv_dashboard_kpi_7d
       WHERE ${mvWhereClause}
@@ -460,36 +469,14 @@ export class DashboardKPIService {
       WHERE kdv.deleted_at IS NULL AND (${whereClause})
     `;
 
-    const [taskRes, casesRes, clientsRes, agentsRes, perfRes, kycRes] = await Promise.all([
+    // perfQuery (raw verification_tasks CTE for AVG TAT) was folded into the
+    // mat view (cp_avg_tat / pp_avg_tat now come from coreQuery via the
+    // cp_tat_sum / cp_tat_count columns). One fewer full-table scan per call.
+    const [taskRes, casesRes, clientsRes, agentsRes, kycRes] = await Promise.all([
       query(coreQuery, params),
       query(casesQuery, casesParams),
       query(clientsQuery, clientsParams),
       query(agentsQuery, agentsParamsFull),
-      query(
-        `WITH date_ranges AS (
-        SELECT
-          NOW() as cp_end,
-          NOW() - INTERVAL '7 days' as cp_start,
-          NOW() - INTERVAL '7 days' as pp_end,
-          NOW() - INTERVAL '14 days' as pp_start
-      ), filtered_tasks AS (
-        SELECT vt.* FROM verification_tasks vt
-        LEFT JOIN cases c ON vt.case_id = c.id
-        WHERE ${whereClause}
-          -- 2026-05-06 bug 74: exclude KYC from TAT/perf metrics — same reason as core query.
-          AND COALESCE(vt.task_type, 'NORMAL') <> 'KYC'
-      )
-      SELECT
-        AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/86400)
-          FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT cp_start FROM date_ranges) AND (SELECT cp_end FROM date_ranges))
-          as cp_avg_tat,
-
-        AVG(EXTRACT(EPOCH FROM (completed_at - created_at))/86400)
-          FILTER (WHERE status = 'COMPLETED' AND completed_at BETWEEN (SELECT pp_start FROM date_ranges) AND (SELECT pp_end FROM date_ranges))
-          as pp_avg_tat
-      FROM filtered_tasks`,
-        params
-      ),
       query(kycQuery, params),
     ]);
 
@@ -504,7 +491,7 @@ export class DashboardKPIService {
     };
     const clientStats = clientsRes.rows[0] || { total: 0, active: 0 };
     const agentStats = agentsRes.rows[0] || { totalAgents: 0, activeToday: 0 };
-    const perfStats = perfRes.rows[0] || { cpAvgTat: 0, ppAvgTat: 0 };
+    // cp_avg_tat / pp_avg_tat now live on `stats` (coreQuery / mat view).
     const kycStats = kycRes.rows[0] || {
       total: 0,
       pending: 0,
@@ -557,7 +544,7 @@ export class DashboardKPIService {
       },
 
       performance: {
-        avgTatDays: buildMetric(perfStats.cpAvgTat, perfStats.ppAvgTat),
+        avgTatDays: buildMetric(stats.cpAvgTat, stats.ppAvgTat),
         firstVisitSuccessRate: buildMetric(0, 0),
         revisitRate: buildMetric(0, 0),
       },
