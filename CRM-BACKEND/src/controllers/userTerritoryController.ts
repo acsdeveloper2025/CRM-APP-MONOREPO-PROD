@@ -134,38 +134,63 @@ export const bulkSaveTerritoryAssignments = async (req: AuthenticatedRequest, re
     let pincodeCount = 0;
     let areaCount = 0;
 
-    // Step 2: Create new assignments
-    for (const assignment of assignments) {
-      const { pincodeId, areaIds } = assignment;
+    // Step 2: Create new assignments — batched. Previously this was a
+    // per-pincode INSERT with a NESTED per-area INSERT loop, i.e.
+    // O(pincodes x areas) sequential round-trips (up to ~2500 for a large
+    // territory). Now: one multi-row INSERT for the pincode assignments
+    // (RETURNING id, pincode_id), map pincode_id -> new assignment id, then a
+    // single multi-row INSERT for all area rows.
+    const typedAssignments = assignments as Array<{ pincodeId: number; areaIds?: number[] }>;
+    const pincodeIds = typedAssignments.map(a => a.pincodeId);
 
-      // Insert pincode assignment
+    if (pincodeIds.length > 0) {
+      const pincodeValues = pincodeIds
+        .map((_id, i) => {
+          const o = i * 3;
+          return `($${o + 1}, $${o + 2}, $${o + 3}, true)`;
+        })
+        .join(', ');
+      const pincodeParams = pincodeIds.flatMap(pincodeId => [userId, pincodeId, assignedBy]);
       const pincodeResult = await client.query(
-        `
-        INSERT INTO user_pincode_assignments 
-        (user_id, pincode_id, assigned_by, is_active)
-        VALUES ($1, $2, $3, true)
-        RETURNING id
-      `,
-        [userId, pincodeId, assignedBy]
+        `INSERT INTO user_pincode_assignments (user_id, pincode_id, assigned_by, is_active)
+         VALUES ${pincodeValues}
+         RETURNING id, pincode_id`,
+        pincodeParams
       );
+      pincodeCount = pincodeResult.rows.length;
 
-      const userPincodeAssignmentId = pincodeResult.rows[0].id;
-      pincodeCount++;
+      const assignmentIdByPincode = new Map<string, string>();
+      for (const r of pincodeResult.rows) {
+        assignmentIdByPincode.set(String(r.pincodeId ?? r.pincode_id), String(r.id));
+      }
 
-      // Insert area assignments
-      if (areaIds && areaIds.length > 0) {
-        for (const areaId of areaIds) {
-          await client.query(
-            `
-            INSERT INTO user_area_assignments 
-            (user_id, pincode_id, area_id, user_pincode_assignment_id, assigned_by, is_active)
-            VALUES ($1, $2, $3, $4, $5, true)
-          `,
-            [userId, pincodeId, areaId, userPincodeAssignmentId, assignedBy]
-          );
-
-          areaCount++;
+      // Flatten every area row across all assignments into one batch.
+      const areaRows: Array<[string, number, number, string, string]> = [];
+      for (const assignment of typedAssignments) {
+        const upaId = assignmentIdByPincode.get(String(assignment.pincodeId));
+        if (!upaId || !Array.isArray(assignment.areaIds)) {
+          continue;
         }
+        for (const areaId of assignment.areaIds) {
+          areaRows.push([userId, assignment.pincodeId, areaId, upaId, assignedBy]);
+        }
+      }
+
+      if (areaRows.length > 0) {
+        const areaValues = areaRows
+          .map((_row, i) => {
+            const o = i * 5;
+            return `($${o + 1}, $${o + 2}, $${o + 3}, $${o + 4}, $${o + 5}, true)`;
+          })
+          .join(', ');
+        const areaParams = areaRows.flat();
+        await client.query(
+          `INSERT INTO user_area_assignments
+           (user_id, pincode_id, area_id, user_pincode_assignment_id, assigned_by, is_active)
+           VALUES ${areaValues}`,
+          areaParams
+        );
+        areaCount = areaRows.length;
       }
     }
 

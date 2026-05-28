@@ -108,6 +108,12 @@ export class NotificationController {
               AND (nm.expires_at IS NULL OR nm.expires_at > NOW())
           )
         ORDER BY created_at DESC
+        -- Bound the per-user fetch so a user with a very large history cannot
+        -- pull their entire notification feed into memory (the JS RBAC scope
+        -- filter + .slice paging ran over the WHOLE result set). 1000 most-
+        -- recent rows covers realistic feeds; the proper fix (push LIMIT +
+        -- scope into SQL true-pagination) is a Phase 3 follow-up.
+        LIMIT 1000
       `,
       [user.id, sqlCaseId]
     );

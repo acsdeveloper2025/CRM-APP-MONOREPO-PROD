@@ -166,18 +166,30 @@ export class NotificationService {
     notificationTemplate: Omit<NotificationData, 'userId'>
   ): Promise<string[]> {
     try {
-      const notificationPromises = userIds.map(userId =>
-        this.sendNotification({ ...notificationTemplate, userId })
-      );
+      // Fan out in bounded chunks rather than firing Promise.allSettled over
+      // EVERY recipient at once. Each sendNotification runs ~6-8 sequential
+      // queries (dedup + insert + preferences + delivery-log), so an
+      // org-wide fan-out (hundreds/thousands of users) previously opened that
+      // many concurrent query chains and exhausted the connection pool. A
+      // fixed chunk size caps concurrent DB load while preserving the
+      // per-user dedup / preference / WS-push delivery semantics.
+      const FANOUT_CHUNK_SIZE = 25;
+      const successfulNotifications: string[] = [];
+      let failedCount = 0;
 
-      const results = await Promise.allSettled(notificationPromises);
-
-      const successfulNotifications = results
-        .filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled')
-        .map(result => result.value)
-        .filter(id => id !== '');
-
-      const failedCount = results.length - successfulNotifications.length;
+      for (let i = 0; i < userIds.length; i += FANOUT_CHUNK_SIZE) {
+        const chunk = userIds.slice(i, i + FANOUT_CHUNK_SIZE);
+        const results = await Promise.allSettled(
+          chunk.map(userId => this.sendNotification({ ...notificationTemplate, userId }))
+        );
+        for (const result of results) {
+          if (result.status === 'fulfilled' && result.value !== '') {
+            successfulNotifications.push(result.value);
+          } else {
+            failedCount++;
+          }
+        }
+      }
 
       logger.info(`Bulk notification completed`, {
         totalUsers: userIds.length,

@@ -1261,12 +1261,29 @@ const createInvoiceFromDb = async (req: AuthenticatedRequest, res: Response) => 
 
         const invoiceItemId = Number(itemResult.rows[0].id);
 
-        for (const linkedTask of line.linkedTasks) {
+        // Batch all linked-task rows for this line into a single multi-row
+        // INSERT. Previously this was a per-task INSERT inside the per-line
+        // loop — O(tasks) sequential round-trips holding the invoice tx (and
+        // the FY-sequence lock) open. Same rows/values, far fewer round-trips.
+        if (line.linkedTasks.length > 0) {
+          const taskValues = line.linkedTasks
+            .map((_t, i) => {
+              const o = i * 5;
+              return `($${o + 1}, $${o + 2}, $${o + 3}, $${o + 4}, $${o + 5})`;
+            })
+            .join(', ');
+          const taskParams = line.linkedTasks.flatMap(linkedTask => [
+            invoiceItemId,
+            linkedTask.taskId,
+            linkedTask.caseId,
+            clientId,
+            linkedTask.billedAmount,
+          ]);
           await client.query(
             `INSERT INTO invoice_item_tasks (
                invoice_item_id, verification_task_id, case_id, client_id, billed_amount
-             ) VALUES ($1, $2, $3, $4, $5)`,
-            [invoiceItemId, linkedTask.taskId, linkedTask.caseId, clientId, linkedTask.billedAmount]
+             ) VALUES ${taskValues}`,
+            taskParams
           );
         }
       }
