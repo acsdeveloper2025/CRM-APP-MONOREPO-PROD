@@ -45,6 +45,42 @@ export class MobileLocationController {
     return headerValue || null;
   }
 
+  // Field-exec tracking: is the current moment inside the shift window (IST)?
+  // TRACKING-source ingest is rejected outside it (consent promise).
+  private static isWithinShiftWindow(): boolean {
+    const istHour = new Date(Date.now() + 5.5 * 60 * 60 * 1000).getUTCHours();
+    return (
+      istHour >= config.mobile.trackingShiftStartHour &&
+      istHour < config.mobile.trackingShiftEndHour
+    );
+  }
+
+  // Upsert the per-agent latest_location projection (D1 option a: fed by every
+  // locations write). The WHERE guard keeps the freshest fix when out-of-order
+  // sync replays an older point.
+  private static async upsertLatestLocation(
+    userId: string,
+    latitude: number,
+    longitude: number,
+    accuracy: number | null,
+    recordedAt: Date,
+    source: string
+  ): Promise<void> {
+    await query(
+      `INSERT INTO latest_location (user_id, latitude, longitude, accuracy, recorded_at, source, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, now())
+       ON CONFLICT (user_id) DO UPDATE SET
+         latitude = EXCLUDED.latitude,
+         longitude = EXCLUDED.longitude,
+         accuracy = EXCLUDED.accuracy,
+         recorded_at = EXCLUDED.recorded_at,
+         source = EXCLUDED.source,
+         updated_at = now()
+       WHERE latest_location.recorded_at <= EXCLUDED.recorded_at`,
+      [userId, latitude, longitude, accuracy, recordedAt, source]
+    );
+  }
+
   // Capture GPS location
   static async captureLocation(this: void, req: AuthenticatedRequest, res: Response) {
     try {
@@ -107,6 +143,15 @@ export class MobileLocationController {
         );
         const row = adminPingRes.rows[0];
 
+        await MobileLocationController.upsertLatestLocation(
+          userId,
+          latitude,
+          longitude,
+          accuracy ?? null,
+          row.recorded_at,
+          'ADMIN_PING'
+        );
+
         const io = getSocketIO();
         if (io) {
           io.to('perm:field_monitoring').emit('field-monitoring:location-updated', {
@@ -141,6 +186,66 @@ export class MobileLocationController {
           data: {
             id: row.id,
             timestamp: row.recorded_at.toISOString(),
+            accuracy,
+          },
+        });
+      }
+
+      // Field-exec tracking branch — periodic foreground GPS point, untethered
+      // from any task. Shift-window gated; lands a row with case_id=NULL,
+      // verification_task_id=NULL, source='TRACKING'; updates latest_location
+      // and repaints the live map via the field-monitoring WS event. Accuracy
+      // is not strictly thresholded here (tracking is a position estimate for
+      // the map, not task-presence proof).
+      if (source === 'TRACKING') {
+        if (!MobileLocationController.isWithinShiftWindow()) {
+          return res.status(403).json({
+            success: false,
+            message: 'Location tracking is only recorded during the shift window',
+            error: { code: 'OUTSIDE_SHIFT_WINDOW' },
+          });
+        }
+
+        const trackOpId = MobileLocationController.getOperationId(req);
+        const recordedAt = new Date(timestamp);
+        const trackRes = await query(
+          `INSERT INTO locations (
+             latitude, longitude, accuracy, recorded_at, recorded_by, operation_id, source
+           ) VALUES ($1, $2, $3, $4, $5, $6, 'TRACKING')
+           ON CONFLICT (operation_id) WHERE operation_id IS NOT NULL
+           DO UPDATE SET operation_id = EXCLUDED.operation_id
+           RETURNING id, recorded_at, latitude, longitude, accuracy`,
+          [latitude, longitude, accuracy, recordedAt, userId, trackOpId]
+        );
+        const trackRow = trackRes.rows[0];
+
+        await MobileLocationController.upsertLatestLocation(
+          userId,
+          latitude,
+          longitude,
+          accuracy ?? null,
+          trackRow.recorded_at,
+          'TRACKING'
+        );
+
+        const trackIo = getSocketIO();
+        if (trackIo) {
+          trackIo.to('perm:field_monitoring').emit('field-monitoring:location-updated', {
+            userId,
+            latitude: Number(trackRow.latitude),
+            longitude: Number(trackRow.longitude),
+            accuracy: trackRow.accuracy != null ? Number(trackRow.accuracy) : null,
+            recordedAt: trackRow.recorded_at.toISOString(),
+            source: 'TRACKING',
+          });
+        }
+
+        return res.json({
+          success: true,
+          message: 'Location captured',
+          data: {
+            id: trackRow.id,
+            timestamp: trackRow.recorded_at.toISOString(),
             accuracy,
           },
         });
@@ -279,6 +384,15 @@ export class MobileLocationController {
         ]
       );
       const locationRecord = locRes.rows[0];
+
+      await MobileLocationController.upsertLatestLocation(
+        userId,
+        latitude,
+        longitude,
+        accuracy ?? null,
+        locationRecord.timestamp,
+        'TASK'
+      );
 
       // 4. Logging
       await createAuditLog({

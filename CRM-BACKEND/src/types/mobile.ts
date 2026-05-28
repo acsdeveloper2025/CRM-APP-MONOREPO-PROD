@@ -343,7 +343,7 @@ export interface MobileLocationCaptureRequest {
   longitude: number;
   accuracy: number;
   timestamp: string;
-  source: 'GPS' | 'NETWORK' | 'PASSIVE' | 'ADMIN_PING';
+  source: 'GPS' | 'NETWORK' | 'PASSIVE' | 'ADMIN_PING' | 'TRACKING';
   requestedBy?: string;
   caseId?: string;
   taskId?: string; // Stage-2: Dual Write support

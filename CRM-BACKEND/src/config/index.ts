@@ -282,6 +282,11 @@ export const config = {
     ),
     locationTimeout: parseInt(process.env.MOBILE_LOCATION_TIMEOUT || '30000', 10),
     enableLocationValidation: process.env.MOBILE_ENABLE_LOCATION_VALIDATION === 'true',
+    // Field-exec tracking shift window (IST). TRACKING-source ingest is
+    // rejected outside [start, end). Matches the consent promise that
+    // location is not recorded outside shift hours.
+    trackingShiftStartHour: parseInt(process.env.MOBILE_TRACKING_SHIFT_START_HOUR || '8', 10),
+    trackingShiftEndHour: parseInt(process.env.MOBILE_TRACKING_SHIFT_END_HOUR || '22', 10),
     reverseGeocodingEnabled: process.env.MOBILE_REVERSE_GEOCODING_ENABLED === 'true',
 
     // Mobile Offline Sync

@@ -55,13 +55,16 @@ const tasks: Array<{ name: string; sql: string }> = [
     name: 'purge_stale_performance_metrics',
     sql: "SELECT purge_stale_performance_metrics('7 days'::interval) AS deleted",
   },
-  // 2026-05-13: 7-day rolling retention on field-monitoring location pings.
-  // Each ping (TASK or ADMIN_PING) is one row in `locations`; at 1000+
-  // agents × N pings/day this grows quickly. Keep just enough history
-  // for "what happened last week?" lookups; older rows are purged.
+  // 90-day rolling retention on field-monitoring location pings (field-exec
+  // tracking epic P1; was 7 days). Each ping (TASK / ADMIN_PING / TRACKING)
+  // is one row in `locations`; at 1000+ agents × periodic foreground tracking
+  // this grows fast. 90 days covers the dispute/audit window. The
+  // latest_location projection is always-current and not purged. When volume
+  // demands, range-partition `locations` by recorded_at and drop old
+  // partitions instead of this DELETE.
   {
     name: 'purge_stale_locations',
-    sql: "DELETE FROM locations WHERE recorded_at < now() - interval '7 days' RETURNING id",
+    sql: "DELETE FROM locations WHERE recorded_at < now() - interval '90 days' RETURNING id",
   },
 ];
 
