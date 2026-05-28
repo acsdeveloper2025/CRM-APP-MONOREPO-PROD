@@ -58,6 +58,8 @@ const buildRateTypesWhereClause = (
 export const getRateTypes = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { page = 1, limit = 20, search, sortBy = 'name', sortOrder = 'asc' } = req.query;
+    const safeLimit = Math.min(500, Math.max(1, Number(limit) || 20));
+    const safePage = Math.max(1, Number(page) || 1);
 
     const { whereClause, queryParams: values } = buildRateTypesWhereClause(req);
 
@@ -69,7 +71,7 @@ export const getRateTypes = async (req: AuthenticatedRequest, res: Response) => 
     const totalCount = Number(countRes.rows[0]?.count || 0);
 
     // Get rate types with pagination
-    const offset = (Number(page) - 1) * Number(limit);
+    const offset = (safePage - 1) * safeLimit;
     // API contract: sortBy is camelCase; map to snake_case DB column.
     const sortColumnMap: Record<string, string> = {
       name: 'name',
@@ -88,14 +90,14 @@ export const getRateTypes = async (req: AuthenticatedRequest, res: Response) => 
        ${whereClause}
        ORDER BY ${sortCol} ${sortDir}
        LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
-      [...values, Number(limit), offset]
+      [...values, safeLimit, offset]
     );
     const rateTypes = listRes.rows;
 
     logger.info(`Retrieved ${rateTypes.length} rate types from database`, {
       userId: req.user?.id,
-      page: Number(page),
-      limit: Number(limit),
+      page: safePage,
+      limit: safeLimit,
       search: search || '',
       total: totalCount,
     });
@@ -104,10 +106,10 @@ export const getRateTypes = async (req: AuthenticatedRequest, res: Response) => 
       success: true,
       data: rateTypes,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page: safePage,
+        limit: safeLimit,
         total: totalCount,
-        totalPages: Math.ceil(totalCount / Number(limit)),
+        totalPages: Math.ceil(totalCount / safeLimit),
       },
     });
   } catch (error) {

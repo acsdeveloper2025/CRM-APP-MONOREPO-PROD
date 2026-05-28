@@ -55,8 +55,10 @@ const buildDocumentTypesWhereClause = (
 export const getDocumentTypes = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { page = 1, limit = 20, sortBy = 'name', sortOrder = 'asc' } = req.query;
+    const safeLimit = Math.min(500, Math.max(1, Number(limit) || 20));
+    const safePage = Math.max(1, Number(page) || 1);
 
-    const offset = (Number(page) - 1) * Number(limit);
+    const offset = (safePage - 1) * safeLimit;
     const {
       whereClause,
       queryParams: params,
@@ -113,24 +115,24 @@ export const getDocumentTypes = async (req: AuthenticatedRequest, res: Response)
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
-    params.push(Number(limit), offset);
+    params.push(safeLimit, offset);
     const documentTypesResult = await query(documentTypesQuery, params);
 
     const response = {
       success: true,
       data: documentTypesResult.rows,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page: safePage,
+        limit: safeLimit,
         total,
-        totalPages: Math.ceil(total / Number(limit)),
+        totalPages: Math.ceil(total / safeLimit),
       },
     };
 
     logger.info(`Retrieved ${documentTypesResult.rows.length} document types`, {
       userId: req.user?.id,
-      page: Number(page),
-      limit: Number(limit),
+      page: safePage,
+      limit: safeLimit,
       total,
     });
 

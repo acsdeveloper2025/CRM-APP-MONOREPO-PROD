@@ -73,6 +73,8 @@ const SORT_COLUMN_MAP: Record<string, string> = {
 export const getVerificationTypes = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { page = 1, limit = 20, search, sortBy = 'name', sortOrder = 'asc' } = req.query;
+    const safeLimit = Math.min(500, Math.max(1, Number(limit) || 20));
+    const safePage = Math.max(1, Number(page) || 1);
 
     const {
       whereClause,
@@ -95,14 +97,14 @@ export const getVerificationTypes = async (req: AuthenticatedRequest, res: Respo
          SELECT 1 FROM rates r WHERE r.verification_type_id = verification_types.id AND r.is_active = true
        ) as "hasRates"
        FROM verification_types ${whereClause} ORDER BY ${sortCol} ${sortDir}, id ASC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-    const dataParams = [...queryParams, Number(limit), (Number(page) - 1) * Number(limit)];
+    const dataParams = [...queryParams, safeLimit, (safePage - 1) * safeLimit];
     const vtRes = await query(dataQuery, dataParams);
     const verificationTypes = vtRes.rows;
 
     logger.info(`Retrieved ${verificationTypes.length} verification types from database`, {
       userId: req.user?.id,
-      page: Number(page),
-      limit: Number(limit),
+      page: safePage,
+      limit: safeLimit,
       search: search || '',
       total: totalCount,
     });
@@ -111,10 +113,10 @@ export const getVerificationTypes = async (req: AuthenticatedRequest, res: Respo
       success: true,
       data: verificationTypes,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page: safePage,
+        limit: safeLimit,
         total: totalCount,
-        totalPages: Math.ceil(totalCount / Number(limit)),
+        totalPages: Math.ceil(totalCount / safeLimit),
       },
     });
   } catch (error) {

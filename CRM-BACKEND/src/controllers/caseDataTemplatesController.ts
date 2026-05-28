@@ -20,6 +20,8 @@ export const getTemplates = async (req: AuthenticatedRequest, res: Response) => 
       sortBy = 'createdAt',
       sortOrder = 'desc',
     } = req.query;
+    const safeLimit = Math.min(500, Math.max(1, Number(limit) || 20));
+    const safePage = Math.max(1, Number(page) || 1);
 
     const whereConditions: string[] = [];
     const queryParams: QueryParams = [];
@@ -89,17 +91,17 @@ export const getTemplates = async (req: AuthenticatedRequest, res: Response) => 
        ${whereClause}
        ORDER BY ${sortCol} ${sortDir}, t.id ASC
        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
-      [...queryParams, Number(limit), (Number(page) - 1) * Number(limit)]
+      [...queryParams, safeLimit, (safePage - 1) * safeLimit]
     );
 
     res.json({
       success: true,
       data: dataRes.rows,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page: safePage,
+        limit: safeLimit,
         total: totalCount,
-        totalPages: Math.ceil(totalCount / Number(limit)),
+        totalPages: Math.ceil(totalCount / safeLimit),
       },
     });
   } catch (error) {

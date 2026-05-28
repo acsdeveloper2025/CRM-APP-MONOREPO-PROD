@@ -95,6 +95,8 @@ const RATES_SORT_COLUMNS: Record<string, string> = {
 export const getRates = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { page = 1, limit = 20, sortBy = 'clientName', sortOrder = 'asc' } = req.query;
+    const safeLimit = Math.min(500, Math.max(1, Number(limit) || 20));
+    const safePage = Math.max(1, Number(page) || 1);
 
     const { whereClause, queryParams: values } = buildRatesWhereClause(req);
 
@@ -106,7 +108,7 @@ export const getRates = async (req: AuthenticatedRequest, res: Response) => {
     const totalCount = Number(countRes.rows[0]?.count || 0);
 
     // Get rates with pagination
-    const offset = (Number(page) - 1) * Number(limit);
+    const offset = (safePage - 1) * safeLimit;
     const sortCol: string =
       RATES_SORT_COLUMNS[typeof sortBy === 'string' ? sortBy : ''] || 'client_name';
     const sortOrderStr = typeof sortOrder === 'string' ? sortOrder : 'asc';
@@ -117,14 +119,14 @@ export const getRates = async (req: AuthenticatedRequest, res: Response) => {
        ${whereClause}
        ORDER BY ${sortCol} ${sortDir}
        LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
-      [...values, Number(limit), offset]
+      [...values, safeLimit, offset]
     );
     const rates = listRes.rows;
 
     logger.info(`Retrieved ${rates.length} rates from database`, {
       userId: req.user?.id,
-      page: Number(page),
-      limit: Number(limit),
+      page: safePage,
+      limit: safeLimit,
       search: req.query.search || '',
       total: totalCount,
     });
@@ -133,10 +135,10 @@ export const getRates = async (req: AuthenticatedRequest, res: Response) => {
       success: true,
       data: rates,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page: safePage,
+        limit: safeLimit,
         total: totalCount,
-        totalPages: Math.ceil(totalCount / Number(limit)),
+        totalPages: Math.ceil(totalCount / safeLimit),
       },
     });
   } catch (error) {

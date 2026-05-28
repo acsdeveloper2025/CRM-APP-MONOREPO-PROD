@@ -79,6 +79,8 @@ const buildProductsWhereClause = (
 export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { page = 1, limit = 20, search, sortBy = 'name', sortOrder = 'asc' } = req.query;
+    const safeLimit = Math.min(500, Math.max(1, Number(limit) || 20));
+    const safePage = Math.max(1, Number(page) || 1);
 
     const built = buildProductsWhereClause(req);
     if (built === null) {
@@ -86,8 +88,8 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
         success: true,
         data: [],
         pagination: {
-          page: Number(page),
-          limit: Number(limit),
+          page: safePage,
+          limit: safeLimit,
           total: 0,
           totalPages: 0,
         },
@@ -105,7 +107,7 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
     const totalCount = Number(countRes.rows[0]?.count || 0);
 
     // Get products with pagination
-    const offset = (Number(page) - 1) * Number(limit);
+    const offset = (safePage - 1) * safeLimit;
     const sortByStr = typeof sortBy === 'string' ? sortBy : 'name';
     const sortOrderStr = typeof sortOrder === 'string' ? sortOrder : 'asc';
     const sortCol: string = ['name', 'code', 'createdAt', 'updatedAt'].includes(sortByStr)
@@ -121,14 +123,14 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
        ${whereClause}
        ORDER BY "${sortCol}" ${sortDir}
        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
-      [...values, Number(limit), offset]
+      [...values, safeLimit, offset]
     );
     const products = listRes.rows;
 
     logger.info(`Retrieved ${products.length} products from database`, {
       userId: req.user?.id,
-      page: Number(page),
-      limit: Number(limit),
+      page: safePage,
+      limit: safeLimit,
       search: search || '',
       total: totalCount,
     });
@@ -137,10 +139,10 @@ export const getProducts = async (req: AuthenticatedRequest, res: Response) => {
       success: true,
       data: products,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page: safePage,
+        limit: safeLimit,
         total: totalCount,
-        totalPages: Math.ceil(totalCount / Number(limit)),
+        totalPages: Math.ceil(totalCount / safeLimit),
       },
     });
   } catch (error) {

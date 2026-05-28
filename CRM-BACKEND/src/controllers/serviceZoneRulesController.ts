@@ -205,6 +205,10 @@ const validateReferences = async (
 export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { page = 1, limit = 20, sortBy = 'name', sortOrder = 'asc' } = req.query;
+    // SZR is a 5-table join (client×product×pincode×area×vtype) that grows;
+    // clamp the page size so a single request can't pull the whole join.
+    const safeLimit = Math.min(500, Math.max(1, Number(limit) || 20));
+    const safePage = Math.max(1, Number(page) || 1);
 
     const {
       whereClause,
@@ -222,7 +226,7 @@ export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Respo
       values
     );
     const total = Number(countRes.rows[0]?.count || 0);
-    const offset = (Number(page) - 1) * Number(limit);
+    const offset = (safePage - 1) * safeLimit;
 
     const listRes = await query(
       `SELECT
@@ -247,17 +251,17 @@ export const listServiceZoneRules = async (req: AuthenticatedRequest, res: Respo
        ${whereClause}
        ORDER BY ${sortCol} ${sortDir}, p.name, pin.code, a.name
        LIMIT $${nextParamIndex} OFFSET $${nextParamIndex + 1}`,
-      [...values, Number(limit), offset]
+      [...values, safeLimit, offset]
     );
 
     res.json({
       success: true,
       data: listRes.rows,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page: safePage,
+        limit: safeLimit,
         total,
-        totalPages: Math.ceil(total / Number(limit)),
+        totalPages: Math.ceil(total / safeLimit),
       },
     });
   } catch (error) {

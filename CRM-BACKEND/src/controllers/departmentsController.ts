@@ -69,6 +69,8 @@ const DEPARTMENT_EXPORT_ROW_LIMIT = 10000;
 export const getDepartments = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { page = 1, limit = 20, sortBy = 'name', sortOrder = 'asc' } = req.query;
+    const safeLimit = Math.min(500, Math.max(1, Number(limit) || 20));
+    const safePage = Math.max(1, Number(page) || 1);
 
     const {
       whereClause,
@@ -89,7 +91,7 @@ export const getDepartments = async (req: AuthenticatedRequest, res: Response) =
     const totalCount = Number(countRes.rows[0]?.count || 0);
 
     // Page slice
-    const offset = (Number(page) - 1) * Number(limit);
+    const offset = (safePage - 1) * safeLimit;
     const listRes = await query(
       `SELECT
          d.*,
@@ -104,7 +106,7 @@ export const getDepartments = async (req: AuthenticatedRequest, res: Response) =
        ${whereClause}
        ORDER BY ${sortCol} ${sortDir} NULLS LAST
        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
-      [...values, Number(limit), offset]
+      [...values, safeLimit, offset]
     );
 
     logger.info('Retrieved departments', {
@@ -117,10 +119,10 @@ export const getDepartments = async (req: AuthenticatedRequest, res: Response) =
       success: true,
       data: listRes.rows,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page: safePage,
+        limit: safeLimit,
         total: totalCount,
-        totalPages: Math.ceil(totalCount / Number(limit)),
+        totalPages: Math.ceil(totalCount / safeLimit),
       },
     });
   } catch (error) {

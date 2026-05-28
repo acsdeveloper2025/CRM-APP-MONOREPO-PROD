@@ -82,8 +82,8 @@ export const getCountries = async (req: AuthenticatedRequest, res: Response) => 
     const sortField = SORT_COLUMNS[sortBy as string] || 'name';
     const sortDirection: 'ASC' | 'DESC' = sortOrder === 'desc' ? 'DESC' : 'ASC';
 
-    const pageNum = parseInt(page as string, 10);
-    const limitNum = parseInt(limit as string, 10);
+    const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+    const limitNum = Math.min(500, Math.max(1, parseInt(limit as string, 10) || 20));
     const offset = (pageNum - 1) * limitNum;
 
     const sql = `

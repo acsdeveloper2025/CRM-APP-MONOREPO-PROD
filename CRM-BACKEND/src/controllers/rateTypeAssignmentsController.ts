@@ -16,6 +16,8 @@ export const getRateTypeAssignments = async (req: AuthenticatedRequest, res: Res
       rateTypeId,
       isActive,
     } = req.query;
+    const safeLimit = Math.min(500, Math.max(1, Number(limit) || 20));
+    const safePage = Math.max(1, Number(page) || 1);
 
     // Build where clause
     const values: QueryParams = [];
@@ -56,21 +58,21 @@ export const getRateTypeAssignments = async (req: AuthenticatedRequest, res: Res
     const totalCount = Number(countRes.rows[0]?.count || 0);
 
     // Get assignments with pagination
-    const offset = (Number(page) - 1) * Number(limit);
+    const offset = (safePage - 1) * safeLimit;
 
     const listRes = await query(
       `SELECT * FROM rate_type_assignment_view rta
        ${whereClause}
        ORDER BY client_name, product_name, verification_type_name, rate_type_name
        LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
-      [...values, Number(limit), offset]
+      [...values, safeLimit, offset]
     );
     const assignments = listRes.rows;
 
     logger.info(`Retrieved ${assignments.length} rate type assignments from database`, {
       userId: req.user?.id,
-      page: Number(page),
-      limit: Number(limit),
+      page: safePage,
+      limit: safeLimit,
       total: totalCount,
     });
 
@@ -78,10 +80,10 @@ export const getRateTypeAssignments = async (req: AuthenticatedRequest, res: Res
       success: true,
       data: assignments,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page: safePage,
+        limit: safeLimit,
         total: totalCount,
-        totalPages: Math.ceil(totalCount / Number(limit)),
+        totalPages: Math.ceil(totalCount / safeLimit),
       },
     });
   } catch (error) {

@@ -73,6 +73,8 @@ const DESIGNATION_EXPORT_ROW_LIMIT = 10000;
 export const getDesignations = async (req: Request, res: Response) => {
   try {
     const { page = 1, limit = 50, sortBy = 'name', sortOrder = 'asc' } = req.query;
+    const safeLimit = Math.min(500, Math.max(1, Number(limit) || 50));
+    const safePage = Math.max(1, Number(page) || 1);
 
     const {
       whereClause,
@@ -85,7 +87,7 @@ export const getDesignations = async (req: Request, res: Response) => {
     const sortCol = DESIGNATION_SORT_MAP[sortByStr] || DESIGNATION_SORT_MAP.name;
     const sortDir: 'ASC' | 'DESC' = sortOrderStr.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
-    const offset = (Number(page) - 1) * Number(limit);
+    const offset = (safePage - 1) * safeLimit;
 
     const designationsQuery = `
       SELECT
@@ -116,23 +118,23 @@ export const getDesignations = async (req: Request, res: Response) => {
     `;
 
     const [designationsResult, countResult] = await Promise.all([
-      query(designationsQuery, [...values, Number(limit), offset]),
+      query(designationsQuery, [...values, safeLimit, offset]),
       query(countQuery, values),
     ]);
 
     const total = parseInt(countResult.rows[0].total);
-    const totalPages = Math.ceil(total / Number(limit));
+    const totalPages = Math.ceil(total / safeLimit);
 
     res.json({
       success: true,
       data: designationsResult.rows,
       pagination: {
-        page: Number(page),
-        limit: Number(limit),
+        page: safePage,
+        limit: safeLimit,
         total,
         totalPages,
-        hasNext: Number(page) < totalPages,
-        hasPrev: Number(page) > 1,
+        hasNext: safePage < totalPages,
+        hasPrev: safePage > 1,
       },
     });
   } catch (error) {
