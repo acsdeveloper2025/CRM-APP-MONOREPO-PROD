@@ -86,7 +86,7 @@ PROPERTY DETAILS:
 The door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} {Customer_Name}'s shift from the given address. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -110,7 +110,7 @@ PROPERTY DETAILS:
 The door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
@@ -164,7 +164,7 @@ PROPERTY DETAILS:
 The door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that no such person is staying at the given address.
@@ -188,7 +188,7 @@ PROPERTY DETAILS:
 The door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Customer_Name}'s presence at this address is not confirmed by the field executive's observation or from TPC.
@@ -205,10 +205,10 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), who confirmed that {Customer_Name} has been working at the given office for the last {Working_Period} as {Applicant_Designation}.
 
 EMPLOYMENT & OFFICE DETAILS:
-{Customer_Name} works as {Applicant_Designation} and {Sitting_Location_Text}. The office is a {Office_Type} engaged in {Company_Nature_Of_Business}. It has been established at the given address for the last {Establishment_Period}. Total staff strength is {Staff_Strength}, of which {Staff_Seen} were seen during the visit. The office area is approximately {Office_Approx_Area}. Company nameplate {Company_Name_Plate_Text}.
+{Customer_Name} works as {Applicant_Designation} and {Sitting_Location_Text}. The office is a {Office_Type} engaged in {Company_Nature_Of_Business}. It has been established at the given address for the last {Establishment_Period}. Total staff strength is {Staff_Strength}, of which {Staff_Seen} were seen during the visit. The office area is approximately {Office_Approx_Area}. Company nameplate {Company_Name_Plate_Text}. {Document_Shown_Sentence}
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} {Customer_Name}'s employment and office existence. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -232,7 +232,7 @@ OFFICE DETAILS:
 Company nameplate {Company_Name_Plate_Text}. The office has been established at the given address for the last {Establishment_Period}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
@@ -250,7 +250,7 @@ CURRENT OFFICE STATUS:
 {Current_Company_Name} is currently operating at the given address for the last {Current_Company_Period}. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that the company has shifted from the given address {Old_Office_Shifted_Period} ago. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -274,7 +274,7 @@ CURRENT OFFICE STATUS:
 {Current_Company_Name} is currently operating at the given address for the last {Current_Company_Period}. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
@@ -328,7 +328,7 @@ OFFICE DETAILS:
 Company nameplate {Company_Name_Plate_Text}. {Current_Company_Name} is currently operating at the given address.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that no such person is working at the given address.
@@ -352,7 +352,7 @@ CURRENT OFFICE STATUS:
 {Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Customer_Name}'s employment is not confirmed by the field executive's observation or from TPC.
@@ -369,10 +369,10 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was {Business_Status_Lc}. Met with {Met_Person_Name} ({Designation}), who confirmed that {Customer_Name} has been running the business at the given address for the last {Business_Period}.
 
 BUSINESS DETAILS:
-Business type is {Business_Type} ({Ownership_Type}) and the nature of business is {Company_Nature_Of_Business}. The business area is approximately {Business_Approx_Area}. Business owner: {Business_Owner_Name}. Company nameplate {Company_Name_Plate_Text}. Total staff strength is {Staff_Strength} and {Staff_Seen} were seen during the visit.
+Business type is {Business_Type} ({Ownership_Type}) and the nature of business is {Company_Nature_Of_Business}. The business area is approximately {Business_Approx_Area}. Business owner: {Business_Owner_Name}. Company nameplate {Company_Name_Plate_Text}. Total staff strength is {Staff_Strength} and {Staff_Seen} were seen during the visit. {Document_Shown_Sentence}
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} {Customer_Name}'s business existence. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -396,7 +396,7 @@ BUSINESS DETAILS:
 The nature of business is {Company_Nature_Of_Business}. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
@@ -414,7 +414,7 @@ CURRENT BUSINESS STATUS:
 {Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that the business has shifted from the given address {Old_Business_Shifted_Period} ago. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -438,7 +438,7 @@ CURRENT BUSINESS STATUS:
 {Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
@@ -459,7 +459,7 @@ CURRENT BUSINESS DETAILS:
 At present, the given premises is {Premises_Status}. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that no such person is running a business at the given address.
@@ -483,7 +483,7 @@ CURRENT BUSINESS STATUS:
 {Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Customer_Name}'s business presence is not confirmed by the field executive's observation or from TPC.
@@ -587,7 +587,7 @@ PROPERTY DETAILS:
 Door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that {Customer_Name} has shifted from the given address {Shifted_Period} ago. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -611,7 +611,7 @@ PROPERTY DETAILS:
 Door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
@@ -629,7 +629,7 @@ RESIDENCE & OFFICE VERIFICATION:
 The met person informed that no such person is staying or working at the given address. As per current residents and office staff, {Customer_Name} has never stayed or worked at this address.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that no such person is staying or working at the given address.
@@ -650,7 +650,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that the residence and office exist at the given address but no such person ({Customer_Name}) is staying or working there. The current occupant at the given address is {Staying_Person_Name}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Customer_Name}'s residence and office presence is not confirmed by the field executive's observation or from TPC.
@@ -703,7 +703,7 @@ BUILDER & OFFICE DETAILS:
 Builder type is {Builder_Type} ({Ownership_Type}) and the nature of business is {Company_Nature_Of_Business}. Office area is approximately {Office_Approx_Area}. The office premises are held {Address_Status}. Builder name: {Builder_Name}. Total staff strength is {Staff_Strength} and {Staff_Seen} were seen. Company nameplate {Company_Name_Plate_Text}. {Document_Shown_Sentence}
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} {Customer_Name}'s builder office existence. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -727,7 +727,7 @@ BUILDER & OFFICE DETAILS:
 The nature of business is {Company_Nature_Of_Business}. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
@@ -745,7 +745,7 @@ CURRENT OFFICE STATUS:
 At present, the given premises is {Premises_Status}. {Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that the builder office has shifted from the given address {Old_Office_Shifted_Period} ago. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -769,7 +769,7 @@ CURRENT OFFICE STATUS:
 {Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
@@ -790,7 +790,7 @@ CURRENT OFFICE DETAILS:
 At present, the given premises is {Premises_Status}. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that no such person is working as a builder at the given address.
@@ -814,7 +814,7 @@ CURRENT OFFICE STATUS:
 {Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Customer_Name}'s builder presence is not confirmed by the field executive's observation or from TPC.
@@ -864,7 +864,7 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the NOC office was {Office_Status}. Met with {Met_Person_Name} ({Designation}), who confirmed that NOC has been issued in the name of {Name_on_NOC} for flat/shop/office no. {Flat_No}. The authorised signatory is {Authorised_Signature}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
@@ -879,7 +879,7 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the NOC office was closed.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
@@ -897,7 +897,7 @@ CURRENT OFFICE STATUS:
 {Current_Company_Name} is currently operating at the given address for the last {Current_Company_Period}. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that the NOC office has shifted from the given address {Old_Office_Shifted_Period} ago. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -921,7 +921,7 @@ CURRENT OFFICE STATUS:
 {Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
@@ -939,7 +939,7 @@ NOC VERIFICATION:
 As per the met person, {Customer_Name} has no connection with the NOC or the project at this address. At present, the given premises is {Premises_Status}. Current company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that no such person ({Customer_Name}) is associated with the NOC at the given address.
@@ -963,7 +963,7 @@ CURRENT OFFICE STATUS:
 {Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Customer_Name}'s association with the NOC is not confirmed by the field executive's observation or from TPC.
@@ -1019,7 +1019,7 @@ THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} {Customer_Name}'s DSA/Connector office existence. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}. {Customer_Name}'s DSA/Connector office stability is confirmed by the field executive's observation as well as from TPC.
@@ -1040,7 +1040,7 @@ BUSINESS DETAILS:
 The nature of business is {Company_Nature_Of_Business}. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
@@ -1058,7 +1058,7 @@ CURRENT STATUS:
 {Current_Company_Operating_Sentence}The premises status is {Premises_Status}. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that the DSA/Connector office has shifted from the given address {Old_Office_Shifted_Period} ago. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -1082,7 +1082,7 @@ CURRENT STATUS:
 {Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
@@ -1100,7 +1100,7 @@ DSA/CONNECTOR VERIFICATION:
 The met person informed that no such person is operating as a DSA/Connector at the given address. As per the current office staff, {Customer_Name} has never worked as a DSA/Connector at this location. At present, the given premises is {Premises_Status}. Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that no such person is operating as a DSA/Connector at the given address.
@@ -1124,7 +1124,7 @@ CURRENT OFFICE STATUS:
 {Current_Company_Operating_Sentence}Company nameplate {Company_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Customer_Name}'s DSA/Connector presence is not confirmed by the field executive's observation or from TPC.
@@ -1139,7 +1139,7 @@ VERIFICATION DETAILS:
 Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, met with {Name_of_Met_Person} ({Met_Person_Type}), who informed that entry to the given premises is not allowed.
 
 ENTRY RESTRICTION DETAILS:
-{Name_of_Met_Person} {Met_Person_Confirmation_Text} the DSA/Connector office existence at the given address{Business_Exists_Status_Clause}. The applicant's office is on the {Applicant_Staying_Floor} floor. Entry is restricted due to security protocols or office policies.
+{Name_of_Met_Person} {Met_Person_Confirmation_Text} the DSA/Connector office existence at the given address{Business_Exists_Status_Clause}. Entry is restricted due to security protocols or office policies.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color}.
@@ -1273,7 +1273,7 @@ PROPERTY DETAILS:
 Property owner: {Property_Owner_Name}. Approximate area is {Approx_Area_Sq_Feet}. Door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The address exists at floor {Address_Exist_At}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} {Customer_Name}'s property ownership. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -1297,7 +1297,7 @@ PROPERTY DETAILS:
 Door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The address exists at floor {Address_Exist_At}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Feedback_from_Neighbour} feedback was received from neighbours. {Political_Connection_Text}.
@@ -1315,7 +1315,7 @@ PROPERTY DETAILS:
 As per the met person, the current property owner is {Property_Owner_Name}. Door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that {Customer_Name} has never owned property at this address. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -1339,7 +1339,7 @@ PROPERTY DETAILS:
 Door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}.
 
 LOCALITY INFORMATION:
-The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
+The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}. {Address_Floor_Sentence}
 
 AREA ASSESSMENT:
 Landmarks nearby: {Landmark_1} and {Landmark_2}. {Dominated_Area_Text}. {Customer_Name}'s property ownership is not confirmed by the field executive's observation or from TPC.
@@ -2244,6 +2244,18 @@ Hence the profile is marked as {Final_Status}.`,
       return text ? `During the visit, ${text}.` : '';
     };
 
+    // Address floor narration. Empty → omitted (no fabricated "Ground").
+    // Explicit "Ground"/"G"/"0" → "ground floor"; numeric → ordinal floor.
+    const addressFloorSentence = (raw: string): string => {
+      const v = (raw || '').trim();
+      if (!v) {
+        return '';
+      }
+      const lc = v.toLowerCase();
+      const floor = lc === 'ground' || lc === 'g' || v === '0' ? 'ground' : ordinal(v);
+      return `The premises is located on the ${floor} floor.`;
+    };
+
     // Lowercases a mobile-captured value for mid-sentence narration.
     // Mobile dropdowns store phrases like "Confirmed" / "Salaried" /
     // "On a Self Owned Basis" in title case. When templates stitch these
@@ -2671,6 +2683,11 @@ Hence the profile is marked as {Final_Status}.`,
       Locality_Type: safeGet(formData, 'localityType') || safeGet(formData, 'locality'),
       Address_Structure: safeGet(formData, 'addressStructure') || '',
       Address_Floor: safeGet(formData, 'addressFloor') || safeGet(formData, 'floor'),
+      Address_Floor_Sentence: addressFloorSentence(
+        safeGet(formData, 'addressFloor') ||
+          safeGet(formData, 'applicantStayingFloor') ||
+          safeGet(formData, 'floor')
+      ),
       // 2026-04-26: removed `Feedback_From_Neighbour` (uppercase variant).
       // Canonical key is `Feedback_from_Neighbour` (defined elsewhere in
       // this resolver, used by every template). This case-variant was

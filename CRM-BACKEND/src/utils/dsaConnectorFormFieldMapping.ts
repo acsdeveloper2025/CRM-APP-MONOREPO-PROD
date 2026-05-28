@@ -28,6 +28,7 @@ export const DSA_CONNECTOR_FIELD_MAPPING: DatabaseFieldMapping = {
   addressRating: 'address_rating',
   locality: 'locality',
   addressStructure: 'address_structure',
+  addressFloor: 'address_floor',
   addressStructureColor: 'address_structure_color',
   doorColor: 'door_color',
 
@@ -284,6 +285,7 @@ export function ensureAllDsaConnectorFieldsPopulated(
     'address_rating',
     'locality',
     'address_structure',
+    'address_floor',
     'address_structure_color',
     'door_color',
 

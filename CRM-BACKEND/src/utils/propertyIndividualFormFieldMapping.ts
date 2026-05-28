@@ -28,6 +28,7 @@ export const PROPERTY_INDIVIDUAL_FIELD_MAPPING: DatabaseFieldMapping = {
   addressRating: 'address_rating',
   locality: 'locality',
   addressStructure: 'address_structure',
+  addressFloor: 'address_floor',
   addressStructureColor: 'address_structure_color',
   doorColor: 'door_color',
 
