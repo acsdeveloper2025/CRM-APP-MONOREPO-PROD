@@ -2758,9 +2758,12 @@ export class VerificationTasksController {
     const userId = req.user!.id;
     const status = (req.query.status as unknown as string) || '';
     const priority = (req.query.priority as unknown as string) || '';
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+    const offset = (page - 1) * limit;
 
     try {
-      const whereConditions = ['vt.assignedTo = $1'];
+      const whereConditions = ['vt.assigned_to = $1'];
       const queryParams: (string | undefined)[] = [userId];
       let paramIndex = 2;
 
@@ -2800,8 +2803,9 @@ export class VerificationTasksController {
             WHEN 'LOW' THEN 4
           END,
           vt.assigned_at ASC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `,
-        queryParams
+        [...queryParams, String(limit), String(offset)]
       );
 
       // Get summary statistics
@@ -2835,6 +2839,7 @@ export class VerificationTasksController {
             totalEarnings: parseFloat(summary.totalEarnings),
             pendingCommission: 0, // Will be calculated from commission table
           },
+          pagination: { page, limit },
         },
         message: 'Tasks retrieved successfully',
       });
