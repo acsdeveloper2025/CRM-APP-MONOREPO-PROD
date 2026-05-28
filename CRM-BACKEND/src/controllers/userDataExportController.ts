@@ -33,7 +33,7 @@
 //   - else → 403
 
 import type { Response } from 'express';
-import puppeteer from 'puppeteer';
+import { reportTemplateRenderer } from '@/services/reportTemplateRenderer';
 import type { AuthenticatedRequest } from '@/middleware/auth';
 import { query } from '@/config/database';
 import { logger } from '@/config/logger';
@@ -202,28 +202,19 @@ const bundleToHtml = (bundle: Record<string, unknown>, targetUserId: string): st
 </html>`;
 };
 
-// Render HTML → PDF via puppeteer. Uses a one-shot Browser instance per
-// call. For higher-throughput exports we'd reuse a pool (see
-// PDFExportService.ts); for self-service §11 access this is rare enough.
-const htmlToPdf = async (html: string): Promise<Buffer> => {
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+// Render HTML → PDF via the shared, pooled reportTemplateRenderer browser
+// (singleton + connected-check/relaunch + concurrency slot) instead of
+// launching a fresh Chromium per call. A per-request puppeteer.launch() costs
+// ~300-800ms + significant memory and, under a few concurrent self-service
+// exports, could exhaust memory. renderHtmlToPdfBuffer skips Handlebars
+// compilation so the export markup / user data is rendered verbatim.
+const htmlToPdf = (html: string): Promise<Buffer> =>
+  reportTemplateRenderer.renderHtmlToPdfBuffer(html, {
+    marginTop: '16mm',
+    marginRight: '14mm',
+    marginBottom: '16mm',
+    marginLeft: '14mm',
   });
-  try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'load' });
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: { top: '16mm', right: '14mm', bottom: '16mm', left: '14mm' },
-    });
-    return Buffer.from(pdf);
-  } finally {
-    await browser.close();
-  }
-};
 
 export const exportUserData = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const targetUserId = String(req.params.id ?? '');

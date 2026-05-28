@@ -349,6 +349,54 @@ class ReportTemplateRenderer {
     }
   }
 
+  /**
+   * Render ALREADY-rendered HTML to a PDF buffer, reusing the pooled browser +
+   * concurrency slot. Unlike renderToPdfBuffer this does NOT Handlebars-compile
+   * the input — for callers that build their own final HTML (e.g. the DPDP
+   * user-data export) where the markup / user data may legitimately contain
+   * `{{` or `{` that must not be treated as template tokens.
+   */
+  public async renderHtmlToPdfBuffer(
+    html: string,
+    options: RenderToPdfOptions = {}
+  ): Promise<Buffer> {
+    await this.acquireSlot();
+    let page: Awaited<ReturnType<Browser['newPage']>> | null = null;
+    try {
+      const browser = await this.ensureBrowser();
+      page = await browser.newPage();
+      await this.timeoutGuard(
+        page.setContent(html, { waitUntil: 'load', timeout: SET_CONTENT_TIMEOUT_MS }),
+        SET_CONTENT_TIMEOUT_MS + 2000,
+        'page.setContent'
+      );
+      const pdfOptions: PDFOptions = {
+        format: options.pageSize ?? 'A4',
+        landscape: options.pageOrientation === 'landscape',
+        margin: {
+          top: options.marginTop ?? '15mm',
+          right: options.marginRight ?? '10mm',
+          bottom: options.marginBottom ?? '15mm',
+          left: options.marginLeft ?? '10mm',
+        },
+        printBackground: true,
+        preferCSSPageSize: true,
+        timeout: PDF_TIMEOUT_MS,
+      };
+      const raw = await this.timeoutGuard(page.pdf(pdfOptions), PDF_TIMEOUT_MS, 'page.pdf');
+      return Buffer.from(raw);
+    } finally {
+      if (page) {
+        try {
+          await page.close();
+        } catch (closeErr) {
+          logger.warn('ReportTemplateRenderer: page close failed', { closeErr });
+        }
+      }
+      this.releaseSlot();
+    }
+  }
+
   public async close(): Promise<void> {
     if (this.browser) {
       try {
