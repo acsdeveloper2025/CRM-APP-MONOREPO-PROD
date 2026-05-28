@@ -566,7 +566,7 @@ PROPERTY DETAILS:
 Door nameplate {Door_Name_Plate_Text}. Society board {Society_Name_Plate_Text}. Company nameplate {Company_Name_Plate_Text}.
 
 VERIFICATION EVIDENCE:
-Applicant is staying on the {Applicant_Staying_Floor} floor. The business is operated as {Business_Status} {Business_Location_Text}. Residence setup was {Residence_Setup_Text} and business setup was {Business_Setup_Text}.
+Applicant is staying on the {Applicant_Staying_Floor} floor. The business is operated as {Business_Status} {Business_Location_Text}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color} and door color is {Door_Color}.
