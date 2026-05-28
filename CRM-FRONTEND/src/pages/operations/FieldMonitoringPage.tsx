@@ -12,7 +12,7 @@ import {
   RefreshCw,
   UserCheck,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -144,6 +144,17 @@ const getMobileDisplay = (
 const getLastLocationDisplayTime = (
   user: Pick<FieldMonitoringRosterItem, 'lastLocation' | 'lastHeartbeatAt'>
 ): string => formatTimestamp(user.lastLocation?.time || user.lastHeartbeatAt);
+
+const formatRelativeTime = (value: string | null | undefined): string => {
+  if (!value) {
+    return '';
+  }
+  try {
+    return formatDistanceToNow(new Date(value), { addSuffix: true });
+  } catch {
+    return '';
+  }
+};
 
 const escapeHtml = (value: string): string =>
   value
@@ -1015,7 +1026,32 @@ function FieldMonitoringRosterView() {
                             <TableCell>{user.operatingArea || '-'}</TableCell>
                             <TableCell>{user.operatingPincode || '-'}</TableCell>
                             <TableCell>{formatTimestamp(user.lastActivityAt)}</TableCell>
-                            <TableCell>{getLastLocationDisplayTime(user)}</TableCell>
+                            <TableCell>
+                              {user.lastLocation?.time ? (
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={`h-2 w-2 shrink-0 rounded-full ${
+                                      user.lastLocation.freshness === 'fresh'
+                                        ? 'bg-green-500'
+                                        : 'bg-muted-foreground/40'
+                                    }`}
+                                    title={
+                                      user.lastLocation.freshness === 'fresh'
+                                        ? 'Fresh location'
+                                        : 'Stale location'
+                                    }
+                                  />
+                                  <div className="flex flex-col">
+                                    <span>{formatTimestamp(user.lastLocation.time)}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {formatRelativeTime(user.lastLocation.time)}
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : (
+                                getLastLocationDisplayTime(user)
+                              )}
+                            </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {user.lastLocation?.pingSource === 'ADMIN_PING' &&
                               user.lastLocation?.requestedByName

@@ -39,7 +39,7 @@ type LocationRow = {
   lng: string | number | null;
   accuracy: string | number | null;
   recordedAt: Date | null;
-  source: 'TASK' | 'ADMIN_PING' | null;
+  source: 'TASK' | 'ADMIN_PING' | 'TRACKING' | null;
   requestedById: string | null;
   requestedByName: string | null;
 };
@@ -124,7 +124,7 @@ export type FieldUserLatestLocation = {
   // 2026-05-13: when the locations-row was an admin-triggered ping,
   // these surface WHO triggered it. NULL for 'TASK'-source rows and
   // for formSubmissions / verificationTasks fallbacks.
-  pingSource?: 'TASK' | 'ADMIN_PING' | null;
+  pingSource?: 'TASK' | 'ADMIN_PING' | 'TRACKING' | null;
   requestedById?: string | null;
   requestedByName?: string | null;
 };
@@ -217,7 +217,7 @@ type RosterRow = {
   accuracy: string | number | null;
   loc_recorded_at: Date | string | null;
   loc_source: string | null;
-  ping_source: 'TASK' | 'ADMIN_PING' | null;
+  ping_source: 'TASK' | 'ADMIN_PING' | 'TRACKING' | null;
   requested_by_id: string | null;
   requested_by_name: string | null;
   live_status: string;
@@ -238,7 +238,7 @@ export type MonitoringRosterItem = {
     time: NullableDate;
     freshness: 'fresh' | 'stale';
     source: FieldUserLatestLocation['source'];
-    pingSource?: 'TASK' | 'ADMIN_PING' | null;
+    pingSource?: 'TASK' | 'ADMIN_PING' | 'TRACKING' | null;
     requestedById?: string | null;
     requestedByName?: string | null;
   } | null;
