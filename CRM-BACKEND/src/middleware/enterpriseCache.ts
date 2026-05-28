@@ -820,6 +820,13 @@ export const CacheInvalidationPatterns = {
     'commissions:*',
     'api_cache:*:*commissions*',
     'analytics:*commissions*',
+    // analytics-cache keyGen strips '/api/' so commission-management stats /
+    // pivot keys look like 'analytics:<uid>:commission-management/...'. The
+    // 'analytics:*commissions*' glob does NOT match 'commission-management'
+    // (no plural 's'), so add an explicit pattern or those cached financial
+    // aggregates would stay stale for the full 30-min analytics TTL after a
+    // commission mutation.
+    'analytics:*commission-management*',
     'commission-management:*',
     'api_cache:*:*commission-management*',
   ],

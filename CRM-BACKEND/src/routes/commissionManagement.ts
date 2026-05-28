@@ -3,7 +3,11 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
-import { EnterpriseCache, CacheInvalidationPatterns } from '@/middleware/enterpriseCache';
+import {
+  EnterpriseCache,
+  EnterpriseCacheConfigs,
+  CacheInvalidationPatterns,
+} from '@/middleware/enterpriseCache';
 import {
   // Commission Rate Types
   getCommissionRateTypes,
@@ -220,7 +224,12 @@ router.get(
 // =====================================================
 
 // Commission Statistics Route
-router.get('/stats', authorize('billing.download'), getCommissionStats as express.RequestHandler);
+router.get(
+  '/stats',
+  authorize('billing.download'),
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
+  getCommissionStats as express.RequestHandler
+);
 
 // Commission Pivot (User × Client × Rate Type) — /pivot/export MUST be declared
 // before /pivot so Express does not eat the /export path as a query param.
@@ -246,6 +255,7 @@ router.get(
   authorize('billing.download'),
   pivotQueryValidation,
   validate,
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getCommissionPivot as express.RequestHandler
 );
 

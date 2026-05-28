@@ -3,7 +3,11 @@ import { body, query, param } from 'express-validator';
 import { authenticateToken } from '@/middleware/auth';
 import { authorize } from '@/middleware/authorize';
 import { validate } from '@/middleware/validation';
-import { EnterpriseCache, CacheInvalidationPatterns } from '@/middleware/enterpriseCache';
+import {
+  EnterpriseCache,
+  EnterpriseCacheConfigs,
+  CacheInvalidationPatterns,
+} from '@/middleware/enterpriseCache';
 import {
   getCommissions,
   getCommissionById,
@@ -126,6 +130,7 @@ router.get(
   authorize('billing.download'),
   summaryValidation,
   validate,
+  EnterpriseCache.create(EnterpriseCacheConfigs.analytics),
   getCommissionSummary
 );
 
