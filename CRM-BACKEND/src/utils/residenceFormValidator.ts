@@ -15,7 +15,6 @@ const NUMERIC_FIELDS: readonly string[] = [
   'totalFamilyMembers',
   'totalEarningMember',
   'approxArea',
-  'addressFloor',
   'familyMembers',
   'addressStructure',
 ];

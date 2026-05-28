@@ -24,7 +24,6 @@ const NUMERIC_FIELDS: readonly string[] = [
   'teamSize',
   'subAgentsCount',
   'activePolicies',
-  'addressFloor',
   'addressStructure',
 ];
 const DATE_FIELDS: readonly string[] = ['businessEstablishmentYear'];

@@ -27,7 +27,6 @@ const NUMERIC_FIELDS: readonly string[] = [
   'marketValue',
   'loanAmount',
   'emiAmount',
-  'addressFloor',
   'addressStructure',
 ];
 const DATE_FIELDS: readonly string[] = ['constructionYear', 'renovationYear'];

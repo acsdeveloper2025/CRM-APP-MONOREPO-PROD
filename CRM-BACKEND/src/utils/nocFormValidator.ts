@@ -15,7 +15,6 @@ const NUMERIC_FIELDS: readonly string[] = [
   'totalUnits',
   'completedUnits',
   'projectArea',
-  'addressFloor',
   'addressStructure',
 ];
 const DATE_FIELDS: readonly string[] = ['nocIssueDate', 'nocExpiryDate', 'completionDate'];

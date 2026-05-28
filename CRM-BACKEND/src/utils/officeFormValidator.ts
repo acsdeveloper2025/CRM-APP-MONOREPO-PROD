@@ -16,7 +16,6 @@ const NUMERIC_FIELDS: readonly string[] = [
   'staffStrength',
   'staffSeen',
   'officeApproxArea',
-  'addressFloor',
   'addressStructure',
 ];
 const DATE_FIELDS: readonly string[] = [];
