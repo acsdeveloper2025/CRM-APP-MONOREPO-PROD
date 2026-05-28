@@ -523,6 +523,18 @@ export const getCommissionSummary = async (req: AuthenticatedRequest, res: Respo
       params.push(userId as string);
     }
 
+    // Apply the `period` window. Previously `period` was accepted + echoed in
+    // the response but NEVER applied to the WHERE, so the numbers were always
+    // all-time regardless of the selector. Filter on case_completed_at (the
+    // billing date — same column the commission pivot scopes on, and indexed
+    // by idx_commission_calculations_completed_at). 'all' (or an unknown
+    // value) = no window = all-time.
+    const periodStr = typeof period === 'string' ? period : 'month';
+    if (['week', 'month', 'quarter', 'year'].includes(periodStr)) {
+      conditions.push(`cc.case_completed_at >= date_trunc($${paramIndex++}, NOW())`);
+      params.push(periodStr);
+    }
+
     appendOperationalScopeConditions({
       scope,
       conditions,
