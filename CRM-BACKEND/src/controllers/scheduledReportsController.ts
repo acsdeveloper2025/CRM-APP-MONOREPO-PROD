@@ -334,57 +334,18 @@ export const getScheduledReportHistory = (req: AuthenticatedRequest, res: Respon
       Array.isArray(req.query.offset) ? req.query.offset[0] : req.query.offset || 0
     );
 
-    // This would typically come from a database table tracking executions
-    // For now, return mock data
-    interface ScheduledReportRun {
-      id: string;
-      scheduledReportId: string;
-      executedAt: string;
-      status: string;
-      fileSize: number | null;
-      recipients: string[];
-      executionTime: number;
-      error: string | null;
-    }
-    const mockHistory: ScheduledReportRun[] = [
-      {
-        id: '1',
-        scheduledReportId: id,
-        executedAt: '2024-01-15T08:00:00Z',
-        status: 'success',
-        fileSize: 2457600,
-        recipients: ['user@example.com'],
-        executionTime: 45000, // milliseconds
-        error: null,
-      },
-      {
-        id: '2',
-        scheduledReportId: id,
-        executedAt: '2024-01-08T08:00:00Z',
-        status: 'success',
-        fileSize: 2234567,
-        recipients: ['user@example.com'],
-        executionTime: 38000,
-        error: null,
-      },
-      {
-        id: '3',
-        scheduledReportId: id,
-        executedAt: '2024-01-01T08:00:00Z',
-        status: 'failed',
-        fileSize: null,
-        recipients: ['user@example.com'],
-        executionTime: 5000,
-        error: 'Database connection timeout',
-      },
-    ];
+    // No scheduled_report_runs execution-tracking table exists yet. Previously
+    // this returned 3 hardcoded fabricated runs (2024 dates) — return an honest
+    // empty history instead of fake data. Query the runs table here once added.
+    void id;
+    const history: unknown[] = [];
 
     res.json({
       success: true,
       data: {
-        history: mockHistory,
+        history,
         pagination: {
-          total: mockHistory.length,
+          total: history.length,
           limit,
           offset,
         },
@@ -424,13 +385,18 @@ export const testScheduledReport = async (req: AuthenticatedRequest, res: Respon
       });
     }
 
-    // Execute the report immediately (this would be implemented in the service)
-    // For now, just return success
+    // On-demand test execution is not implemented yet (no immediate
+    // generate+email path). Previously this returned a success message
+    // claiming the user "will receive the report via email shortly" — which
+    // was false (nothing ran). Return an honest 501 after validating the
+    // report exists + the caller has permission.
     logger.info(`Test execution requested for scheduled report ${id} by user ${req.user!.id}`);
 
-    res.json({
-      success: true,
-      message: 'Test execution initiated. You will receive the report via email shortly.',
+    res.status(501).json({
+      success: false,
+      message:
+        'On-demand test execution is not implemented yet. The schedule itself runs on its configured cron.',
+      error: { code: 'NOT_IMPLEMENTED' },
     });
   } catch (error) {
     logger.error('Error testing scheduled report:', error);

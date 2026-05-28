@@ -288,39 +288,19 @@ export const getExportHistory = (req: AuthenticatedRequest, res: Response) => {
     const offset = Math.max(Number(req.query.offset) || 0, 0);
     const userId = req.user!.id;
 
-    // Mock export history - ready to connect to export_history table when persistence layer is available
-    // For now, return strictly typed mock data
-    const mockHistory: ExportHistoryItem[] = [
-      {
-        id: '1',
-        fileName: 'form_submissions_report_2024-01-15T10-30-00.pdf',
-        reportType: 'form-submissions',
-        format: 'pdf',
-        fileSize: 2457600,
-        createdAt: '2024-01-15T10:30:00Z',
-        createdBy: userId,
-        status: 'completed',
-        downloadCount: 3,
-      },
-      {
-        id: '2',
-        fileName: 'agent_performance_report_2024-01-14T15-45-00.xlsx',
-        reportType: 'agent-performance',
-        format: 'excel',
-        fileSize: 1843200,
-        createdAt: '2024-01-14T15:45:00Z',
-        createdBy: userId,
-        status: 'completed',
-        downloadCount: 1,
-      },
-    ];
+    // No export_history persistence table exists yet, so there is no real
+    // history to return. Previously this returned 2 hardcoded fabricated rows
+    // (2024 dates) — return an honest empty list instead of fake data. When an
+    // export_history table is added, query it here (limit/offset already clamped).
+    void userId;
+    const exports: ExportHistoryItem[] = [];
 
     res.json({
       success: true,
       data: {
-        exports: mockHistory,
+        exports,
         pagination: {
-          total: mockHistory.length,
+          total: exports.length,
           limit,
           offset,
         },
