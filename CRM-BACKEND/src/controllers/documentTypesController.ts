@@ -411,11 +411,18 @@ export const deleteDocumentType = async (req: AuthenticatedRequest, res: Respons
 
     const documentType = existingResult.rows[0];
 
-    // Check if document type is being used
+    // Check if document type is being used. Real references to document_types
+    // are client_product_documents.document_type_id and
+    // kyc_document_verifications.document_type_id. The previous list also
+    // queried verification_tasks and cases for a document_type_id column that
+    // does NOT exist on either table — those statements always threw and were
+    // swallowed by the per-query catch below, so (a) two erroring round-trips
+    // ran on every delete and (b) KYC usage was never actually checked, which
+    // could let a document type still referenced by KYC verifications be
+    // deleted. Use the columns that exist.
     const usageCheckQueries = [
       `SELECT COUNT(*) as count FROM client_product_documents WHERE document_type_id = $1`,
-      `SELECT COUNT(*) as count FROM verification_tasks WHERE document_type_id = $1`,
-      `SELECT COUNT(*) as count FROM cases WHERE document_type_id = $1`,
+      `SELECT COUNT(*) as count FROM kyc_document_verifications WHERE document_type_id = $1`,
     ];
 
     let totalUsage = 0;
