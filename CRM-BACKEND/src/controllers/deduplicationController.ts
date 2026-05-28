@@ -188,30 +188,32 @@ export const getDuplicateClusters = async (req: AuthenticatedRequest, res: Respo
     const offset = (page - 1) * limit;
 
     // Find cases with potential duplicates based on exact matches
+    // Dedup key: PAN, else phone. (The previous query referenced
+    // aadhaar_number / applicant_phone / bank_account_number / case_number /
+    // applicant_name — none of which exist on `cases` — so it errored on
+    // every call. Real columns: pan_number, customer_phone, case_id,
+    // customer_name. Matches the intent of idx_cases_deduplication_fields
+    // (pan_number, customer_phone).)
     const query = `
       WITH duplicate_groups AS (
-        SELECT 
-          COALESCE(pan_number, aadhaar_number, applicant_phone, bank_account_number) as group_key,
+        SELECT
+          COALESCE(pan_number, customer_phone) as group_key,
           COUNT(*) as case_count,
           ARRAY_AGG(
             json_build_object(
               'id', id,
-              'caseNumber', case_number,
-              'applicantName', applicant_name,
+              'caseNumber', case_id,
+              'customerName', customer_name,
               'status', status,
               'createdAt', created_at,
               'panNumber', pan_number,
-              'aadhaarNumber', aadhaar_number,
-              'applicantPhone', applicant_phone,
-              'bankAccountNumber', bank_account_number
+              'customerPhone', customer_phone
             ) ORDER BY created_at DESC
           ) as cases
         FROM cases
         WHERE (
-          pan_number IS NOT NULL OR 
-          aadhaar_number IS NOT NULL OR 
-          applicant_phone IS NOT NULL OR 
-          bank_account_number IS NOT NULL
+          pan_number IS NOT NULL OR
+          customer_phone IS NOT NULL
         )
         GROUP BY group_key
         HAVING COUNT(*) > 1
@@ -223,15 +225,13 @@ export const getDuplicateClusters = async (req: AuthenticatedRequest, res: Respo
 
     const countQuery = `
       WITH duplicate_groups AS (
-        SELECT 
-          COALESCE(pan_number, aadhaar_number, applicant_phone, bank_account_number) as group_key,
+        SELECT
+          COALESCE(pan_number, customer_phone) as group_key,
           COUNT(*) as case_count
         FROM cases
         WHERE (
-          pan_number IS NOT NULL OR 
-          aadhaar_number IS NOT NULL OR 
-          applicant_phone IS NOT NULL OR 
-          bank_account_number IS NOT NULL
+          pan_number IS NOT NULL OR
+          customer_phone IS NOT NULL
         )
         GROUP BY group_key
         HAVING COUNT(*) > 1
