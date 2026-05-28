@@ -297,8 +297,11 @@ export class MobileCaseController {
                vtask.task_completed_at,
                vtask.assigned_at,
                vtask.task_created_at,
-               -- Attachment count
-               COALESCE(att_count.attachment_count, 0) as "attachmentCount"
+               -- Attachment count: correlated per-row count over the existing
+               -- attachments(case_id) index. Was a LEFT JOIN to a full-table
+               -- GROUP BY over the ENTIRE attachments table on every call;
+               -- now only counts the page's cases.
+               (SELECT COUNT(*) FROM attachments a WHERE a.case_id = c.id) as "attachmentCount"
         FROM cases c
         LEFT JOIN clients cl ON cl.id = c.client_id
         LEFT JOIN products p ON p.id = c.product_id
@@ -327,11 +330,6 @@ export class MobileCaseController {
             CASE WHEN vt.status IN ('PENDING', 'ASSIGNED', 'IN_PROGRESS') THEN 0 ELSE 1 END,  -- Prioritize active tasks over completed
             vt.created_at DESC  -- Show newest task first (Revisit tasks are newer)
         ) vtask ON true
-        LEFT JOIN (
-          SELECT case_id, COUNT(*) as attachment_count
-          FROM attachments
-          GROUP BY case_id
-        ) att_count ON att_count.case_id = c.id
         ${whereSql}
         ORDER BY c.priority DESC, c.created_at DESC
         LIMIT $${vals.length + 2} OFFSET $${vals.length + 3}`;

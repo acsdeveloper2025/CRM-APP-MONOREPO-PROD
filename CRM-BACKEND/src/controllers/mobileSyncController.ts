@@ -437,7 +437,10 @@ export class MobileSyncController {
                 vtask.revoked_by_name,
                 vtask.revocation_reason,
                 vtask.task_updated_at,
-                COALESCE(att_count.attachment_count, 0) as "attachmentCount"
+                -- Correlated per-row count over attachments(case_id); was a
+                -- LEFT JOIN to a full-table GROUP BY over ALL attachments
+                -- every sync cycle. Now only counts the page's cases.
+                (SELECT COUNT(*) FROM attachments a WHERE a.case_id = c.id) as "attachmentCount"
          FROM cases c
          LEFT JOIN clients cl ON cl.id = c.client_id
          LEFT JOIN products p ON p.id = c.product_id
@@ -466,11 +469,6 @@ export class MobileSyncController {
              vt.created_at DESC
            LIMIT 1
          ) vtask ON true
-         LEFT JOIN (
-           SELECT case_id, COUNT(*) as attachment_count
-           FROM attachments
-           GROUP BY case_id
-         ) att_count ON att_count.case_id = c.id
          WHERE vtask.id IS NOT NULL
            AND (
              c.updated_at > $${syncTimestampParamIndex}
