@@ -536,6 +536,14 @@ router.post(
   authenticateToken,
   authorize('visit.start'),
   validateMobileVersion,
+  // 2.2 (idempotency-only): batch-retry safety WITHOUT changing the
+  // intentional per-row partial-commit resilience inside uploadSync. When the
+  // client sends an Idempotency-Key for a batch, a retry of that exact batch
+  // (e.g. response lost on a flaky link) returns the cached result instead of
+  // re-running every queued op. required:false = backward-compatible (no key →
+  // no-op); the client opts in by sending a stable per-batch key, the same
+  // mechanism it already uses for attachments/forms/operations uploads.
+  idempotencyMiddleware({ required: false, scope: 'mobile.sync.upload' }),
   invalidateFieldMonitoring,
   MobileSyncController.uploadSync
 );
