@@ -674,73 +674,32 @@ export class FieldMonitoringService {
         WHERE ${baseConditions}
       ),
       with_location AS (
+        -- Field-exec tracking epic P2: read the freshest position per agent
+        -- from the latest_location projection instead of the former
+        -- per-request 3-source LATERAL (run twice — count + data). The
+        -- projection is fed by the app-side upsert on every locations write
+        -- (mobileLocationController) plus the dbMaintenanceService reconcile
+        -- across locations / form_submissions.geo_location /
+        -- verification_tasks.lat-lng, so no agent is lost. The bbox filter in
+        -- the filtered CTE is now index-eligible (idx_latest_location_geo).
+        -- loc_source maps the projection's source back to the provenance the
+        -- live_status CASE expects: a real GPS ping (TASK/ADMIN_PING/TRACKING)
+        -- reads as 'locations'; FORM / TASK_GEO are fallbacks that must NOT
+        -- count toward 'At Location'.
         SELECT b.*,
-          loc.lat, loc.lng, loc.accuracy, loc.recorded_at AS loc_recorded_at,
-          loc.source AS loc_source, loc.requested_by_id, loc.requested_by_name, loc.ping_source
+          ll.latitude AS lat, ll.longitude AS lng, ll.accuracy,
+          ll.recorded_at AS loc_recorded_at,
+          CASE
+            WHEN ll.source IN ('TASK', 'ADMIN_PING', 'TRACKING') THEN 'locations'
+            WHEN ll.source = 'FORM' THEN 'form_submissions'
+            WHEN ll.source = 'TASK_GEO' THEN 'verification_tasks'
+            ELSE NULL
+          END AS loc_source,
+          ll.source AS ping_source,
+          NULL::uuid AS requested_by_id,
+          NULL::text AS requested_by_name
         FROM base b
-        LEFT JOIN LATERAL (
-          -- P3 truthful-sweep 2026-05-27: 3-source priority for bbox filter.
-          -- Was: locations table only -- empty for users whose location
-          -- data comes via form_submissions or verification_tasks. That
-          -- made the bbox filter operate on empty columns. Now: UNION the
-          -- 3 sources, take the freshest non-null lat/lng per user.
-          -- Source 1: locations table (canonical pings)
-          -- Source 2: form_submissions.geo_location JSONB
-          -- Source 3: verification_tasks.latitude/longitude direct cols
-          -- Returns the most-recent across all 3 ordered by ts DESC.
-          (
-            SELECT lat, lng, accuracy, recorded_at, source, ping_source,
-                   requested_by_id, requested_by_name
-            FROM (
-              SELECT
-                l.latitude AS lat, l.longitude AS lng, l.accuracy,
-                l.recorded_at, 'locations'::text AS source,
-                l.source AS ping_source,
-                requester.id AS requested_by_id,
-                requester.name AS requested_by_name
-              FROM locations l
-              LEFT JOIN users requester ON requester.id = l.requested_by_user_id
-              WHERE l.recorded_by = b.id
-              UNION ALL
-              SELECT
-                (f.geo_location->>'latitude')::numeric AS lat,
-                (f.geo_location->>'longitude')::numeric AS lng,
-                NULL::numeric AS accuracy,
-                f.submitted_at AS recorded_at,
-                'form_submissions'::text AS source,
-                NULL::text AS ping_source,
-                NULL::uuid AS requested_by_id,
-                NULL::text AS requested_by_name
-              FROM form_submissions f
-              WHERE f.submitted_by = b.id
-                AND f.geo_location IS NOT NULL
-                AND f.geo_location ? 'latitude'
-                AND f.geo_location ? 'longitude'
-              UNION ALL
-              SELECT
-                vt.latitude AS lat, vt.longitude AS lng,
-                NULL::numeric AS accuracy,
-                COALESCE(
-                  vt.started_at::timestamptz,
-                  vt.current_assigned_at,
-                  vt.assigned_at::timestamptz,
-                  vt.updated_at::timestamptz,
-                  vt.created_at::timestamptz
-                ) AS recorded_at,
-                'verification_tasks'::text AS source,
-                NULL::text AS ping_source,
-                NULL::uuid AS requested_by_id,
-                NULL::text AS requested_by_name
-              FROM verification_tasks vt
-              WHERE vt.assigned_to = b.id
-                AND vt.latitude IS NOT NULL
-                AND vt.longitude IS NOT NULL
-            ) sources
-            WHERE lat IS NOT NULL AND lng IS NOT NULL
-            ORDER BY recorded_at DESC NULLS LAST
-            LIMIT 1
-          )
-        ) loc ON true
+        LEFT JOIN latest_location ll ON ll.user_id = b.id
       ),
       with_status AS (
         SELECT w.*,
