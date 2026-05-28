@@ -754,28 +754,34 @@ export class MobileSyncController {
       const userId = req.user!.id;
       const deviceId = String(req.headers['x-device-id'] || 'default');
 
+      // Previously this queried a `devices` table that does not exist in the
+      // schema (guaranteed 500 on every poll). The real device-heartbeat table
+      // is `mobile_device_sync` — the SAME source field monitoring reads for
+      // last_heartbeat_at (fieldMonitoringService: MAX(last_sync_at)). Read it
+      // here so sync-status and the field-monitoring roster agree.
       const devRes = await query(
-        `SELECT id, user_id, device_id, device_name, "platform", app_version, last_active_at, created_at FROM devices WHERE user_id = $1 AND device_id = $2 LIMIT 1`,
+        `SELECT last_sync_at, app_version, platform, sync_count
+           FROM mobile_device_sync
+          WHERE user_id = $1 AND device_id = $2
+          LIMIT 1`,
         [userId, deviceId]
       );
-      const device = devRes.rows[0];
-
-      if (!device) {
-        return res.status(404).json({
-          success: false,
-          message: 'Device not found',
-          error: {
-            code: 'DEVICE_NOT_FOUND',
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
+      const row = devRes.rows[0];
+      const lastSync = row?.lastSyncAt ?? row?.last_sync_at ?? null;
+      // Online if the device synced within the last 10 minutes (matches the
+      // heartbeat-recency notion used by field monitoring's live-status check).
+      const isOnline = lastSync
+        ? Date.now() - new Date(lastSync as string | Date).getTime() < 10 * 60 * 1000
+        : false;
 
       const syncStatus = {
-        lastSyncAt: device.lastUsed?.toISOString(),
-        lastSyncData: null as unknown, // Field doesn't exist in schema
-        isOnline: true,
-        pendingChanges: 0, // Would calculate based on local changes
+        lastSyncAt: lastSync ? new Date(lastSync as string | Date).toISOString() : null,
+        appVersion: row?.appVersion ?? row?.app_version ?? null,
+        platform: row?.platform ?? null,
+        syncCount: Number(row?.syncCount ?? row?.sync_count ?? 0),
+        lastSyncData: null as unknown,
+        isOnline,
+        pendingChanges: 0, // client-tracked; server has no authoritative count
       };
 
       res.json({
