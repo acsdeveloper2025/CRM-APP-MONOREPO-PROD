@@ -59,7 +59,7 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE_DOOR_LOCKED: `Residence Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the door was {House_Status}.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the door was {House_Status}. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} {Customer_Name}'s name and stay at the given address. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} {Customer_Name}'s residence. It is confirmed that {Customer_Name} has been staying at the given address for the last {Staying_Period} {Staying_Status}.
@@ -101,7 +101,7 @@ Hence the profile is marked as {Final_Status}.`,
     SHIFTED_DOOR_LOCKED: `Residence Remark: SHIFTED & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the door was locked.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the door was locked. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} {Customer_Name}'s shift from the given address for the last {Shifted_Period}. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -179,7 +179,7 @@ Hence the profile is marked as {Final_Status}.`,
     NSP_DOOR_LOCKED: `Residence Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the door was locked.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the door was locked. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who informed that no such person ({Customer_Name}) is staying at the given address. The current occupant at the given address is {Staying_Person_Name}.
@@ -223,7 +223,7 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE_DOOR_LOCKED: `Office Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the office was {Office_Status}.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the office was {Office_Status}. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} {Customer_Name}'s employment and office existence. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -265,7 +265,7 @@ Hence the profile is marked as {Final_Status}.`,
     SHIFTED_DOOR_LOCKED: `Office Remark: SHIFTED & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the office was closed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the office was closed. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that the company has shifted from the given address {Old_Office_Shifted_Period} ago. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -343,7 +343,7 @@ Hence the profile is marked as {Final_Status}.`,
     NSP_DOOR_LOCKED: `Office Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the office was closed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the office was closed. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that the office exists at the given address but no such person ({Customer_Name}) is working there.
@@ -387,7 +387,7 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE_DOOR_LOCKED: `Business Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was {Business_Status_Lc}.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was {Business_Status_Lc}. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} {Customer_Name}'s business existence. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same. They informed that the business has been operating at the given address for the last {Business_Period}.
@@ -429,7 +429,7 @@ Hence the profile is marked as {Final_Status}.`,
     SHIFTED_DOOR_LOCKED: `Business Remark: SHIFTED & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was closed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was closed. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that the business has shifted from the given address {Old_Business_Shifted_Period} ago. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -474,7 +474,7 @@ Hence the profile is marked as {Final_Status}.`,
     NSP_DOOR_LOCKED: `Business Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was closed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the business was closed. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that the business exists at the given address but no such person ({Customer_Name}) is running it.
@@ -557,7 +557,7 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE_DOOR_LOCKED: `Residence-cum-Office Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the residence-cum-office was closed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the residence-cum-office was closed. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} {Customer_Name}'s residence and business existence. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same. They informed that {Customer_Name} has been staying at the given address for the last {Staying_Period} and operating the business for the last {Business_Period}.
@@ -602,7 +602,7 @@ Hence the profile is marked as {Final_Status}.`,
     SHIFTED_DOOR_LOCKED: `Residence-cum-Office Remark: SHIFTED & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the residence-cum-office was closed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the residence-cum-office was closed. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that {Customer_Name} has shifted from the given address {Shifted_Period} ago. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -644,7 +644,7 @@ Hence the profile is marked as {Final_Status}.`,
     NSP_DOOR_LOCKED: `Residence-cum-Office Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is {Address_Traceable} and rated as {Address_Rating}. At the time of visit, the residence-cum-office was closed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is {Address_Traceable} and rated as {Address_Rating}. At the time of visit, the residence-cum-office was closed. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that the residence and office exist at the given address but no such person ({Customer_Name}) is staying or working there. The current occupant at the given address is {Staying_Person_Name}.
@@ -718,7 +718,7 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE_DOOR_LOCKED: `Builder Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the builder office was {Office_Status}.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the builder office was {Office_Status}. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} {Customer_Name}'s builder office existence. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same. They informed that the builder has been operating at the given address for the last {Business_Period}.
@@ -760,7 +760,7 @@ Hence the profile is marked as {Final_Status}.`,
     SHIFTED_DOOR_LOCKED: `Builder Remark: SHIFTED & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the builder office was closed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the builder office was closed. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that the builder office has shifted from the given address {Old_Office_Shifted_Period} ago. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -805,7 +805,7 @@ Hence the profile is marked as {Final_Status}.`,
     NSP_DOOR_LOCKED: `Builder Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the builder office was closed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the builder office was closed. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that the builder office exists at the given address but no such person ({Customer_Name}) is working there as a builder.
@@ -876,7 +876,7 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE_DOOR_LOCKED: `NOC Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the NOC office was closed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the NOC office was closed. A telephonic attempt was also made and {Call_Remark}.
 
 LOCALITY INFORMATION:
 The locality is {Locality} with an address structure of G+{Address_Structure_G_Plus}. The Structure color is {Address_Structure_Color}. {Address_Floor_Sentence}
@@ -912,7 +912,7 @@ Hence the profile is marked as {Final_Status}.`,
     SHIFTED_DOOR_LOCKED: `NOC Remark: SHIFTED & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the premises were closed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the premises were closed. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that the NOC office has shifted from the given address. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -954,7 +954,7 @@ Hence the profile is marked as {Final_Status}.`,
     NSP_DOOR_LOCKED: `NOC Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the premises were closed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the premises were closed. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that the NOC office exists at the given address but no such person ({Customer_Name}) is associated with it.
@@ -1031,7 +1031,7 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE_DOOR_LOCKED: `DSA/Connector Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the office was closed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the office was closed. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} {Customer_Name}'s DSA/Connector office existence. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same. They informed that the office has been operating at the given address for the last {Business_Period}.
@@ -1073,7 +1073,7 @@ Hence the profile is marked as {Final_Status}.`,
     SHIFTED_DOOR_LOCKED: `DSA/Connector Remark: SHIFTED & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the office was closed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the office was closed. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that the DSA/Connector office has shifted from the given address {Old_Office_Shifted_Period} ago. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -1115,7 +1115,7 @@ Hence the profile is marked as {Final_Status}.`,
     NSP_DOOR_LOCKED: `DSA/Connector Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the DSA/Connector office was closed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. At the time of visit, the DSA/Connector office was closed. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label} and {TPC_2_Label}, who confirmed that the DSA/Connector office exists at the given address but no such person ({Customer_Name}) is operating there.
@@ -1288,7 +1288,7 @@ Hence the profile is marked as {Final_Status}.`,
     POSITIVE_DOOR_LOCKED: `Property Individual Remark: POSITIVE & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. The building status is {Building_Status}. At the time of visit, the flat was closed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. The building status is {Building_Status}. At the time of visit, the flat was closed. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} {Customer_Name}'s property ownership. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
@@ -1330,7 +1330,7 @@ Hence the profile is marked as {Final_Status}.`,
     NSP_DOOR_LOCKED: `Property Individual Remark: NSP & DOOR LOCKED.
 
 VERIFICATION DETAILS:
-Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. The building status is {Building_Status}. At the time of visit, the flat was closed.
+Visited at the given address ({Customer_Address}) for {Customer_Name} ({Applicant_Type}). The given address is locatable and rated as {Address_Rating}. The building status is {Building_Status}. At the time of visit, the flat was closed. A telephonic attempt was also made and {Call_Remark}.
 
 THIRD PARTY CONFIRMATION:
 TPC was conducted with {TPC_1_Label}, who {TPC_Confirmation_1} that {Customer_Name} has never owned property at this address. Second TPC was done with {TPC_2_Label}, who also {TPC_Confirmation_2} the same.
