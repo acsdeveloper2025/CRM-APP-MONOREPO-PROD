@@ -36,6 +36,16 @@ psql "$TEST_URL" -q -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
 echo "Loading schema + seed dump (errors for the materialized view / late objects are expected) ..."
 psql "$TEST_URL" -q -v ON_ERROR_STOP=0 -f "$DUMP" > /tmp/acs_db_test_load.log 2>&1 || true
 
+# The dashboard materialized views are created by migrations, not the dump
+# (the dump's REFRESH statements fail because the CREATE never lands in load
+# order). Apply them so dashboard/analytics endpoints work in tests.
+echo "Applying dashboard materialized-view migrations ..."
+for MV in 2026-05-27_p5_dashboard_kpi_mat_view.sql 2026-05-28_p3_1_mv_dashboard_tat.sql; do
+  if [ -f "$BE_DIR/migrations/$MV" ]; then
+    psql "$TEST_URL" -q -v ON_ERROR_STOP=0 -f "$BE_DIR/migrations/$MV" >> /tmp/acs_db_test_load.log 2>&1 || true
+  fi
+done
+
 TABLES="$(psql "$TEST_URL" -tAc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';")"
 USERS="$(psql "$TEST_URL" -tAc "SELECT count(*) FROM users;")"
 echo "Done. acs_db_test has $TABLES tables and $USERS seeded users."
