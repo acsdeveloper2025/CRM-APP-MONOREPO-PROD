@@ -5,9 +5,8 @@
  * and database columns for business verification forms.
  */
 
-import { logger } from '@/config/logger';
 import { eqCI } from './caseInsensitiveCompare';
-import { pickRelevantFieldsForFormType, MISSING_FIELD_DEFAULT } from './formFieldRelevance';
+import { populateMappedFields } from './formFieldRelevance';
 
 export interface DatabaseFieldMapping {
   [mobileField: string]: string | null; // null means field should be ignored
@@ -383,8 +382,6 @@ export function ensureAllBusinessFieldsPopulated(
   mappedData: Record<string, unknown>,
   formType: string
 ): Record<string, unknown> {
-  const completeData = { ...mappedData };
-
   // Define all possible database fields for business verification
   const allDatabaseFields = [
     // Address and location fields
@@ -456,21 +453,11 @@ export function ensureAllBusinessFieldsPopulated(
     'final_status',
   ];
 
-  // Get fields that are relevant for this form type
-  const relevantFields = pickRelevantFieldsForFormType(formType, RELEVANT_FIELDS_BY_TYPE);
-
-  // Populate missing fields with appropriate defaults
-  for (const field of allDatabaseFields) {
-    if (completeData[field] === undefined || completeData[field] === null) {
-      if (relevantFields.includes(field)) {
-        // Field is relevant for this form type but missing - this might indicate an issue
-        logger.warn(`⚠️ Missing relevant field for ${formType} business form: ${field}`);
-      }
-
-      // Set default value (NULL for all missing fields)
-      completeData[field] = MISSING_FIELD_DEFAULT;
-    }
-  }
-
-  return completeData;
+  return populateMappedFields(
+    mappedData,
+    formType,
+    allDatabaseFields,
+    RELEVANT_FIELDS_BY_TYPE,
+    'business'
+  );
 }

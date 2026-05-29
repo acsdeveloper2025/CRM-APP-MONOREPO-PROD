@@ -30,6 +30,8 @@
  * shared util in `formFieldValueProcessor.ts`.
  */
 
+import { logger } from '@/config/logger';
+
 export type RelevantFieldsByFormType = Readonly<Record<string, readonly string[]>>;
 
 /**
@@ -60,3 +62,44 @@ export function pickRelevantFieldsForFormType(
  * intentionally and removes the no-op getter functions.
  */
 export const MISSING_FIELD_DEFAULT: null = null;
+
+/**
+ * Shared core for the 9 `ensureAll<X>FieldsPopulated` functions.
+ *
+ * Pre-2026-05-29 each of the 9 mapping files inlined an identical loop:
+ * copy `mappedData`, then for every column in a per-type `allDatabaseFields`
+ * list, default any undefined/null value to `MISSING_FIELD_DEFAULT` (null)
+ * and `logger.warn` when a relevant-for-this-form-type column is missing.
+ * Only the DATA differed (the field list, the relevance map, and a label
+ * word in the warning). This consolidates the loop; each caller passes its
+ * own data + label.
+ *
+ * `formLabel` reproduces the per-type wording in the warning exactly:
+ *   residence ''            → "... for POSITIVE form: x"
+ *   office 'office'         → "... for POSITIVE office form: x"
+ *   noc 'NOC', etc.
+ * Output is byte-identical to the prior per-type functions (guarded by the
+ * snapshot characterization tests in formFieldMappings.test.ts).
+ */
+export function populateMappedFields(
+  mappedData: Record<string, unknown>,
+  formType: string,
+  allDatabaseFields: readonly string[],
+  relevantFieldsByType: RelevantFieldsByFormType,
+  formLabel = ''
+): Record<string, unknown> {
+  const completeData = { ...mappedData };
+  const relevantFields = pickRelevantFieldsForFormType(formType, relevantFieldsByType);
+  const label = formLabel ? ` ${formLabel}` : '';
+
+  for (const field of allDatabaseFields) {
+    if (completeData[field] === undefined || completeData[field] === null) {
+      if (relevantFields.includes(field)) {
+        logger.warn(`⚠️ Missing relevant field for ${formType}${label} form: ${field}`);
+      }
+      completeData[field] = MISSING_FIELD_DEFAULT;
+    }
+  }
+
+  return completeData;
+}

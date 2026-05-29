@@ -5,8 +5,7 @@
  * and database columns for DSA/DST Connector verification forms.
  */
 
-import { logger } from '@/config/logger';
-import { pickRelevantFieldsForFormType, MISSING_FIELD_DEFAULT } from './formFieldRelevance';
+import { populateMappedFields } from './formFieldRelevance';
 
 export interface DatabaseFieldMapping {
   [mobileField: string]: string | null; // null means field should be ignored
@@ -263,8 +262,6 @@ export function ensureAllDsaConnectorFieldsPopulated(
   mappedData: Record<string, unknown>,
   formType: string
 ): Record<string, unknown> {
-  const completeData = { ...mappedData };
-
   // Define all possible database fields for DSA Connector verification
   // Curated to match actual dsa_connector_verification_reports schema (2026-04-19).
   // Removed 65 speculative columns that never existed (connector_category,
@@ -363,21 +360,11 @@ export function ensureAllDsaConnectorFieldsPopulated(
     'final_status',
   ];
 
-  // Get fields that are relevant for this form type
-  const relevantFields = pickRelevantFieldsForFormType(formType, RELEVANT_FIELDS_BY_TYPE);
-
-  // Populate missing fields with appropriate defaults
-  for (const field of allDatabaseFields) {
-    if (completeData[field] === undefined || completeData[field] === null) {
-      if (relevantFields.includes(field)) {
-        // Field is relevant for this form type but missing - this might indicate an issue
-        logger.warn(`⚠️ Missing relevant field for ${formType} DSA Connector form: ${field}`);
-      }
-
-      // Set default value (NULL for all missing fields)
-      completeData[field] = MISSING_FIELD_DEFAULT;
-    }
-  }
-
-  return completeData;
+  return populateMappedFields(
+    mappedData,
+    formType,
+    allDatabaseFields,
+    RELEVANT_FIELDS_BY_TYPE,
+    'DSA Connector'
+  );
 }
