@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -393,6 +393,11 @@ function FieldMonitoringRosterView() {
   // client-side timeout (fail). One row can ping concurrently with
   // others — each userId is independent.
   const [pendingPings, setPendingPings] = useState<Set<string>>(new Set());
+  // Per-user "couldn't reach" timers, keyed by userId, so the WS success
+  // event can cancel the pending timeout — otherwise a successful Refresh
+  // ("Fresh location received") was still followed 20s later by a false
+  // "Couldn't reach the agent" toast because the timer was never cleared.
+  const pingTimeouts = useRef<Map<string, number>>(new Map());
   const search = useUnifiedSearch({
     debounceDelay: 500,
     syncWithUrl: true,
@@ -436,6 +441,13 @@ function FieldMonitoringRosterView() {
         next.delete(payload.userId);
         return next;
       });
+      // Cancel the pending "couldn't reach" timer — the location arrived,
+      // so the 20s fallback must NOT fire a false failure toast later.
+      const handle = pingTimeouts.current.get(payload.userId);
+      if (handle) {
+        clearTimeout(handle);
+        pingTimeouts.current.delete(payload.userId);
+      }
       // Surface a success toast only for THIS admin's own pings (not
       // for every TASK-source capture from every agent — that would
       // be a spam fire-hose at 1000 agents).
@@ -466,21 +478,30 @@ function FieldMonitoringRosterView() {
       });
 
       const timeoutHandle = window.setTimeout(() => {
+        pingTimeouts.current.delete(userId);
+        let wasStillPending = false;
         setPendingPings((current) => {
           if (!current.has(userId)) {
             return current;
           }
+          wasStillPending = true;
           const next = new Set(current);
           next.delete(userId);
           return next;
         });
-        toast.warning("Couldn't reach the agent — showing last known location");
+        // Only warn if the ping was STILL pending at timeout. If the WS
+        // success event already cleared it, this fallback must stay silent.
+        if (wasStillPending) {
+          toast.warning("Couldn't reach the agent — showing last known location");
+        }
       }, 20_000);
+      pingTimeouts.current.set(userId, timeoutHandle);
 
       try {
         const response = await fieldMonitoringService.requestUserLocation(userId);
         if (!response?.success) {
           window.clearTimeout(timeoutHandle);
+          pingTimeouts.current.delete(userId);
           setPendingPings((current) => {
             const next = new Set(current);
             next.delete(userId);
@@ -490,6 +511,7 @@ function FieldMonitoringRosterView() {
         }
       } catch (error) {
         window.clearTimeout(timeoutHandle);
+        pingTimeouts.current.delete(userId);
         setPendingPings((current) => {
           const next = new Set(current);
           next.delete(userId);
