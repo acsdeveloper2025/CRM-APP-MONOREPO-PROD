@@ -374,15 +374,29 @@ export const requestUserLocation = async (
     // path, so duplicate delivery is idempotent via the requestId
     // (locations.operation_id unique index dedupes).
     const io = getSocketIO();
-    let socketDelivered = false;
+    let socketReached = 0;
     if (io) {
-      io.to(`user:${targetUserId}`).emit('location:request', {
-        type: 'LOCATION_REQUEST',
-        requestId,
-        requestedBy,
-        requestedAt,
-      });
-      socketDelivered = true;
+      try {
+        // Real delivery check: how many live sockets is the target user
+        // actually on (cluster-wide via the Redis adapter)? Only emit if
+        // ≥1, and log the count so we can tell "socket reached the device
+        // but its listener didn't fire" from "device has no live socket".
+        const sockets = await io.in(`user:${targetUserId}`).fetchSockets();
+        socketReached = sockets.length;
+        if (socketReached > 0) {
+          io.to(`user:${targetUserId}`).emit('location:request', {
+            type: 'LOCATION_REQUEST',
+            requestId,
+            requestedBy,
+            requestedAt,
+          });
+        }
+      } catch (sockErr) {
+        logger.warn('Location-request socket dispatch failed', {
+          requestId,
+          error: errorMessage(sockErr),
+        });
+      }
     }
 
     logger.info('Location-request ping dispatched', {
@@ -391,7 +405,7 @@ export const requestUserLocation = async (
       requestedBy: req.user?.id,
       fcmSuccess: fcmResult.success,
       fcmFailed: fcmResult.failed,
-      socketDelivered,
+      socketReached,
     });
 
     res.status(202).json({
