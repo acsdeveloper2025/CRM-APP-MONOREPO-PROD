@@ -104,6 +104,42 @@ export class MobileSyncController {
   }
 
   // Upload offline changes from mobile app
+  // Field-monitoring activity heartbeat. Every sync (upload OR download)
+  // stamps mobile_device_sync.last_sync_at = now(); the roster's
+  // lastActivityAt reads MAX(last_sync_at) as last_heartbeat_at, so a
+  // syncing agent shows a fresh "Last Activity Time" even without a task/
+  // form/location event. Best-effort + non-fatal — must never break sync.
+  // platform/app_version are NOT NULL: prefer the client-supplied values,
+  // fall back to safe defaults on first insert and never overwrite a known
+  // value on conflict.
+  private static async recordSyncHeartbeat(
+    userId: string,
+    req: AuthenticatedRequest,
+    deviceInfo?: { deviceId?: string; platform?: string; appVersion?: string }
+  ): Promise<void> {
+    try {
+      const deviceId = String(
+        req.headers['x-device-id'] || deviceInfo?.deviceId || 'default'
+      ).slice(0, 255);
+      const rawPlatform = String(deviceInfo?.platform || req.headers['x-platform'] || '').trim();
+      const platform = rawPlatform === 'iOS' || rawPlatform === 'Android' ? rawPlatform : 'Android';
+      const appVersion = String(
+        deviceInfo?.appVersion || req.headers['x-app-version'] || 'unknown'
+      ).slice(0, 50);
+      await query(
+        `INSERT INTO mobile_device_sync (user_id, device_id, last_sync_at, app_version, platform, sync_count, updated_at)
+         VALUES ($1, $2, now(), $3, $4, 1, now())
+         ON CONFLICT (user_id, device_id) DO UPDATE SET
+           last_sync_at = now(),
+           sync_count = mobile_device_sync.sync_count + 1,
+           updated_at = now()`,
+        [userId, deviceId, appVersion, platform]
+      );
+    } catch (err) {
+      logger.warn('recordSyncHeartbeat failed (non-fatal)', { error: String(err) });
+    }
+  }
+
   static async uploadSync(this: void, req: AuthenticatedRequest, res: Response) {
     const startedAt = Date.now();
     try {
@@ -116,6 +152,7 @@ export class MobileSyncController {
       const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
       void MobileTelemetryService.increment('syncRequestRate', 1, { direction: 'upload' });
+      void MobileSyncController.recordSyncHeartbeat(userId, req, deviceInfo);
 
       const retryCount = MobileSyncController.extractRetryCount(req.body);
       if (retryCount > 0) {
@@ -389,6 +426,7 @@ export class MobileSyncController {
     try {
       const userId = req.user!.id;
       const isExecutionActor = isFieldExecutionActor(req.user);
+      void MobileSyncController.recordSyncHeartbeat(userId, req);
       const lastSyncTimestamp = (req.query.lastSyncTimestamp as unknown as string) || '';
       const requestedLimit = Number(req.query.limit) || config.mobile.syncBatchSize;
       const limit = Math.min(Math.max(1, requestedLimit), MobileSyncController.MAX_SYNC_PAGE_SIZE);
