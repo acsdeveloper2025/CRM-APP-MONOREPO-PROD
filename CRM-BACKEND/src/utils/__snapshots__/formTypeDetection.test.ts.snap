@@ -1,0 +1,613 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`detectFormType + helpers > detectFormType routes by verification type (NOTE: args are (verificationType, formData) — reversed vs detectFormTypeEnhanced) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "SHIFTED",
+  "verificationOutcome": "Shifted & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — fields, fallbacks, edge cases > defaults verificationType to RESIDENCE when omitted 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — fields, fallbacks, edge cases > falls back to pattern matching for an unmapped outcome 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "field_indicators",
+  "formType": "UNTRACEABLE",
+  "verificationOutcome": "Untraceable",
+}
+`;
+
+exports[`detectFormTypeEnhanced — fields, fallbacks, edge cases > handles empty form data 1`] = `
+{
+  "confidence": 50,
+  "detectionMethod": "default_fallback",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Locked",
+}
+`;
+
+exports[`detectFormTypeEnhanced — fields, fallbacks, edge cases > reads outcome from finalStatus when verificationOutcome absent 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > BUILDER / Entry Restricted (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "ENTRY_RESTRICTED",
+  "verificationOutcome": "ERT",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > BUILDER / NSP (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NSP",
+  "verificationOutcome": "NSP & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > BUILDER / Negative (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NEGATIVE",
+  "verificationOutcome": "Negative",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > BUILDER / Positive (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > BUILDER / Positive door closed → door-locked refinement 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Locked",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > BUILDER / Shifted (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "SHIFTED",
+  "verificationOutcome": "Shifted & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > BUILDER / Untraceable (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "UNTRACEABLE",
+  "verificationOutcome": "Untraceable",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > BUSINESS / Entry Restricted (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "ENTRY_RESTRICTED",
+  "verificationOutcome": "ERT",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > BUSINESS / NSP (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NSP",
+  "verificationOutcome": "NSP & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > BUSINESS / Negative (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NEGATIVE",
+  "verificationOutcome": "Negative",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > BUSINESS / Positive (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > BUSINESS / Positive door closed → door-locked refinement 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Locked",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > BUSINESS / Shifted (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "SHIFTED",
+  "verificationOutcome": "Shifted & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > BUSINESS / Untraceable (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "UNTRACEABLE",
+  "verificationOutcome": "Untraceable",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > DSA_CONNECTOR / Entry Restricted (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "ENTRY_RESTRICTED",
+  "verificationOutcome": "ERT",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > DSA_CONNECTOR / NSP (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NSP",
+  "verificationOutcome": "NSP & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > DSA_CONNECTOR / Negative (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NEGATIVE",
+  "verificationOutcome": "Negative",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > DSA_CONNECTOR / Positive (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > DSA_CONNECTOR / Positive door closed → door-locked refinement 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Locked",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > DSA_CONNECTOR / Shifted (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "SHIFTED",
+  "verificationOutcome": "Shifted & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > DSA_CONNECTOR / Untraceable (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "UNTRACEABLE",
+  "verificationOutcome": "Untraceable",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > NOC / Entry Restricted (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "ENTRY_RESTRICTED",
+  "verificationOutcome": "ERT",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > NOC / NSP (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NSP",
+  "verificationOutcome": "NSP & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > NOC / Negative (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NEGATIVE",
+  "verificationOutcome": "Negative",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > NOC / Positive (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > NOC / Positive door closed → door-locked refinement 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Locked",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > NOC / Shifted (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "SHIFTED",
+  "verificationOutcome": "Shifted & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > NOC / Untraceable (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "UNTRACEABLE",
+  "verificationOutcome": "Untraceable",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > OFFICE / Entry Restricted (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "ENTRY_RESTRICTED",
+  "verificationOutcome": "ERT",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > OFFICE / NSP (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NSP",
+  "verificationOutcome": "NSP & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > OFFICE / Negative (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NEGATIVE",
+  "verificationOutcome": "Negative",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > OFFICE / Positive (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > OFFICE / Positive door closed → door-locked refinement 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Locked",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > OFFICE / Shifted (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "SHIFTED",
+  "verificationOutcome": "Shifted & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > OFFICE / Untraceable (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "UNTRACEABLE",
+  "verificationOutcome": "Untraceable",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > PROPERTY_APF / Entry Restricted (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "ENTRY_RESTRICTED",
+  "verificationOutcome": "ERT",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > PROPERTY_APF / NSP (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NSP",
+  "verificationOutcome": "NSP & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > PROPERTY_APF / Negative (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NEGATIVE",
+  "verificationOutcome": "Negative",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > PROPERTY_APF / Positive (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > PROPERTY_APF / Positive door closed → door-locked refinement 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > PROPERTY_APF / Shifted (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "SHIFTED",
+  "verificationOutcome": "Shifted & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > PROPERTY_APF / Untraceable (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "UNTRACEABLE",
+  "verificationOutcome": "Untraceable",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > PROPERTY_INDIVIDUAL / Entry Restricted (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "ENTRY_RESTRICTED",
+  "verificationOutcome": "ERT",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > PROPERTY_INDIVIDUAL / NSP (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NSP",
+  "verificationOutcome": "NSP & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > PROPERTY_INDIVIDUAL / Negative (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NEGATIVE",
+  "verificationOutcome": "Negative",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > PROPERTY_INDIVIDUAL / Positive (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > PROPERTY_INDIVIDUAL / Positive door closed → door-locked refinement 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Locked",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > PROPERTY_INDIVIDUAL / Shifted (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "SHIFTED",
+  "verificationOutcome": "Shifted & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > PROPERTY_INDIVIDUAL / Untraceable (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "UNTRACEABLE",
+  "verificationOutcome": "Untraceable",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > RESIDENCE / Entry Restricted (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "ENTRY_RESTRICTED",
+  "verificationOutcome": "ERT",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > RESIDENCE / NSP (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NSP",
+  "verificationOutcome": "NSP & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > RESIDENCE / Negative (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NEGATIVE",
+  "verificationOutcome": "Negative",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > RESIDENCE / Positive (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > RESIDENCE / Positive door closed → door-locked refinement 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Locked",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > RESIDENCE / Shifted (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "SHIFTED",
+  "verificationOutcome": "Shifted & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > RESIDENCE / Untraceable (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "UNTRACEABLE",
+  "verificationOutcome": "Untraceable",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > RESIDENCE_CUM_OFFICE / Entry Restricted (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "ENTRY_RESTRICTED",
+  "verificationOutcome": "ERT",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > RESIDENCE_CUM_OFFICE / NSP (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NSP",
+  "verificationOutcome": "NSP & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > RESIDENCE_CUM_OFFICE / Negative (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "NEGATIVE",
+  "verificationOutcome": "Negative",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > RESIDENCE_CUM_OFFICE / Positive (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > RESIDENCE_CUM_OFFICE / Positive door closed → door-locked refinement 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "POSITIVE",
+  "verificationOutcome": "Positive & Door Locked",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > RESIDENCE_CUM_OFFICE / Shifted (door open) 1`] = `
+{
+  "confidence": 95,
+  "detectionMethod": "outcome_mapping",
+  "formType": "SHIFTED",
+  "verificationOutcome": "Shifted & Door Open",
+}
+`;
+
+exports[`detectFormTypeEnhanced — outcome mapping across types > RESIDENCE_CUM_OFFICE / Untraceable (door open) 1`] = `
+{
+  "confidence": 100,
+  "detectionMethod": "outcome_mapping",
+  "formType": "UNTRACEABLE",
+  "verificationOutcome": "Untraceable",
+}
+`;
