@@ -340,7 +340,12 @@ const MetadataOverlay: React.FC<{
   const compass = formatCompass(location?.heading);
   const tsSource = location?.timestamp || uploadedAt;
   return (
-    <div className="absolute bottom-0 left-0 right-0 px-2.5 py-2 bg-black text-white">
+    // 2026-05-31: metadata renders as a panel BELOW the photo (normal flow),
+    // not an absolute overlay on top of it. This guarantees the photo is never
+    // obscured and the metadata is never clipped — on any aspect ratio. The
+    // black background + layout are unchanged so the downloaded composite
+    // (html2canvas of the whole card) still reads as photo-over-metadata.
+    <div className="px-2.5 py-2 bg-black text-white">
       <div className="flex gap-2 items-stretch">
         <div className="flex-1 min-w-0 space-y-0.5">
           <p className={`${headerCls} font-bold leading-tight uppercase`}>
@@ -660,7 +665,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
           <>
             <div
               data-popup-download-card={image?.id}
-              className="relative bg-card rounded-lg overflow-hidden mx-auto"
+              className="bg-card rounded-lg overflow-hidden mx-auto"
               style={{ maxWidth: '100%' }}
             >
               <img
@@ -734,26 +739,30 @@ const PhotoCard: React.FC<{
       {/* Snapshot target = image + overlaid metadata strip ONLY. Action
           buttons live OUTSIDE this div so the html2canvas snapshot stays
           clean. */}
-      <div
-        data-download-card={image.id}
-        className={`relative ${aspect ? '' : fallbackAspectClass} bg-muted/60 rounded-lg overflow-hidden`}
-        style={aspect ? { aspectRatio: String(aspect) } : undefined}
-      >
-        <AsyncImage
-          imageUrl={image.url}
-          imageId={image.id}
-          thumbnailUrl={image.thumbnailUrl}
-          alt={image.originalName}
-          onAspectRatio={setAspect}
-          className="absolute inset-0 w-full h-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
-          onClick={() => onImageClick(image)}
-        />
-
-        {/* Photo type badge top-right */}
-        <div className="absolute top-2 right-2">
-          <Badge className={photoTypeColor}>{image.photoType}</Badge>
+      <div data-download-card={image.id} className="bg-muted/60 rounded-lg overflow-hidden">
+        {/* Photo — full frame, never cropped or covered. The image box keeps
+            the photo's true aspect ratio so portrait and landscape both
+            render complete. */}
+        <div
+          className={`relative ${aspect ? '' : fallbackAspectClass}`}
+          style={aspect ? { aspectRatio: String(aspect) } : undefined}
+        >
+          <AsyncImage
+            imageUrl={image.url}
+            imageId={image.id}
+            thumbnailUrl={image.thumbnailUrl}
+            alt={image.originalName}
+            onAspectRatio={setAspect}
+            className="absolute inset-0 w-full h-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => onImageClick(image)}
+          />
+          {/* Photo type badge top-right */}
+          <div className="absolute top-2 right-2">
+            <Badge className={photoTypeColor}>{image.photoType}</Badge>
+          </div>
         </div>
 
+        {/* Metadata panel — below the photo, in normal flow. */}
         <MetadataOverlay
           attachmentId={image.id}
           location={location}
