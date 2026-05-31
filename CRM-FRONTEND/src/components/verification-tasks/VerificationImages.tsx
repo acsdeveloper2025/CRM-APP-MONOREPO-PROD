@@ -488,6 +488,11 @@ interface AsyncImageProps {
   alt: string;
   className?: string;
   onClick?: () => void;
+  // 2026-05-31: report the image's intrinsic aspect ratio (w/h) once it
+  // loads, so the parent card can size itself to match. Without this the
+  // card forces a portrait aspect and landscape photos get letterboxed
+  // (and the bottom metadata overlay floats over the black bar).
+  onAspectRatio?: (ratio: number) => void;
 }
 
 const AsyncImage: React.FC<AsyncImageProps> = ({
@@ -497,12 +502,22 @@ const AsyncImage: React.FC<AsyncImageProps> = ({
   alt,
   className,
   onClick,
+  onAspectRatio,
 }) => {
   const { url: displayUrl, loading: imageLoading } = useImageUrl(imageUrl, imageId);
   const { url: thumbUrl, loading: thumbLoading } = useThumbnailUrl(thumbnailUrl || '', imageId);
 
   const finalUrl = thumbnailUrl ? thumbUrl : displayUrl;
   const isLoading = thumbnailUrl ? thumbLoading : imageLoading;
+
+  const handleLoad = onAspectRatio
+    ? (e: React.SyntheticEvent<HTMLImageElement>) => {
+        const { naturalWidth, naturalHeight } = e.currentTarget;
+        if (naturalWidth > 0 && naturalHeight > 0) {
+          onAspectRatio(naturalWidth / naturalHeight);
+        }
+      }
+    : undefined;
 
   if (isLoading) {
     return (
@@ -520,12 +535,28 @@ const AsyncImage: React.FC<AsyncImageProps> = ({
         aria-label={alt}
         className={`p-0 border-0 bg-transparent cursor-pointer ${className || ''}`}
       >
-        <img src={finalUrl} alt={alt} loading="lazy" decoding="async" className={className} />
+        <img
+          src={finalUrl}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          onLoad={handleLoad}
+          className={className}
+        />
       </button>
     );
   }
 
-  return <img src={finalUrl} alt={alt} loading="lazy" decoding="async" className={className} />;
+  return (
+    <img
+      src={finalUrl}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      onLoad={handleLoad}
+      className={className}
+    />
+  );
 };
 
 interface VerificationImagesProps {
@@ -665,6 +696,98 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
         )}
       </DialogContent>
     </Dialog>
+  );
+};
+
+// 2026-05-31: one evidence/selfie grid card. Sizes itself to the photo's
+// REAL aspect ratio once it loads (via AsyncImage.onAspectRatio) instead of
+// forcing a portrait `aspect-[3/4]` / square box — that box cropped/letter-
+// boxed landscape photos and left the bottom metadata overlay floating over
+// the black bar. The card now matches the image, so the overlay anchors to
+// the true image edge and the html2canvas download captures the full frame.
+const PhotoCard: React.FC<{
+  image: VerificationImage;
+  downloadIndex: number;
+  fallbackAspectClass: string;
+  submissionAddress?: string | null;
+  photoTypeColor: string;
+  onImageClick: (image: VerificationImage) => void;
+  onDownload: (image: VerificationImage, index: number) => void;
+  onOpenMaps: (lat: number, lng: number) => void;
+}> = ({
+  image,
+  downloadIndex,
+  fallbackAspectClass,
+  submissionAddress,
+  photoTypeColor,
+  onImageClick,
+  onDownload,
+  onOpenMaps,
+}) => {
+  const [aspect, setAspect] = useState<number | null>(null);
+  const rawGeo = image.geoLocation;
+  const location =
+    rawGeo && typeof rawGeo === 'object' && typeof rawGeo.latitude === 'number' ? rawGeo : null;
+
+  return (
+    <div className="group relative">
+      {/* Snapshot target = image + overlaid metadata strip ONLY. Action
+          buttons live OUTSIDE this div so the html2canvas snapshot stays
+          clean. */}
+      <div
+        data-download-card={image.id}
+        className={`relative ${aspect ? '' : fallbackAspectClass} bg-muted/60 rounded-lg overflow-hidden`}
+        style={aspect ? { aspectRatio: String(aspect) } : undefined}
+      >
+        <AsyncImage
+          imageUrl={image.url}
+          imageId={image.id}
+          thumbnailUrl={image.thumbnailUrl}
+          alt={image.originalName}
+          onAspectRatio={setAspect}
+          className="absolute inset-0 w-full h-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
+          onClick={() => onImageClick(image)}
+        />
+
+        {/* Photo type badge top-right */}
+        <div className="absolute top-2 right-2">
+          <Badge className={photoTypeColor}>{image.photoType}</Badge>
+        </div>
+
+        <MetadataOverlay
+          attachmentId={image.id}
+          location={location}
+          uploadedAt={image.uploadedAt}
+          submissionAddress={submissionAddress}
+          compact
+          mapSize="88x88"
+        />
+      </div>
+
+      {/* Action buttons — outside snapshot target, normal flow */}
+      <div className="flex gap-2 pt-2">
+        <Button
+          size="sm"
+          variant="secondary"
+          className="flex-1 h-8 text-xs"
+          onClick={() => onDownload(image, downloadIndex)}
+        >
+          <Download className="h-3 w-3 mr-1" />
+          Download
+        </Button>
+        {location && (
+          <Button
+            size="sm"
+            variant="secondary"
+            className="flex-1 h-8 text-xs"
+            onClick={() => onOpenMaps(location.latitude, location.longitude)}
+          >
+            <ExternalLink className="h-3 w-3 mr-1" />
+            Maps
+          </Button>
+        )}
+      </div>
+    </div>
   );
 };
 
@@ -935,77 +1058,21 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                   Verification Photos ({verificationPhotos.length})
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {verificationPhotos.map((image, index) => {
-                    const rawGeo = image.geoLocation;
-                    const location =
-                      rawGeo && typeof rawGeo === 'object' && typeof rawGeo.latitude === 'number'
-                        ? rawGeo
-                        : null;
-                    return (
-                      <div key={image.id} className="group relative">
-                        {/* Snapshot target = image + overlaid metadata strip
-                            ONLY. Action buttons live OUTSIDE this div so the
-                            html2canvas snapshot stays clean. */}
-                        <div
-                          data-download-card={image.id}
-                          className="relative aspect-[3/4] bg-muted/60 rounded-lg overflow-hidden"
-                        >
-                          <AsyncImage
-                            imageUrl={image.url}
-                            imageId={image.id}
-                            thumbnailUrl={image.thumbnailUrl}
-                            alt={image.originalName}
-                            className="absolute inset-0 w-full h-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() =>
-                              handleImageClick(image.url, image.originalName, image.id, image)
-                            }
-                          />
-
-                          {/* Photo type badge top-right */}
-                          <div className="absolute top-2 right-2">
-                            <Badge className={getPhotoTypeColor(image.photoType)}>
-                              {image.photoType}
-                            </Badge>
-                          </div>
-
-                          <MetadataOverlay
-                            attachmentId={image.id}
-                            location={location}
-                            uploadedAt={image.uploadedAt}
-                            submissionAddress={submissionAddress}
-                            compact
-                            mapSize="88x88"
-                          />
-                        </div>
-
-                        {/* Action buttons — outside snapshot target, normal flow */}
-                        <div className="flex gap-2 pt-2">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            className="flex-1 h-8 text-xs"
-                            onClick={() => handleDownloadWithMetadata(image, index + 1)}
-                          >
-                            <Download className="h-3 w-3 mr-1" />
-                            Download
-                          </Button>
-                          {location && (
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              className="flex-1 h-8 text-xs"
-                              onClick={() =>
-                                openInGoogleMaps(location.latitude, location.longitude)
-                              }
-                            >
-                              <ExternalLink className="h-3 w-3 mr-1" />
-                              Maps
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {verificationPhotos.map((image, index) => (
+                    <PhotoCard
+                      key={image.id}
+                      image={image}
+                      downloadIndex={index + 1}
+                      fallbackAspectClass="aspect-[3/4]"
+                      submissionAddress={submissionAddress}
+                      photoTypeColor={getPhotoTypeColor(image.photoType)}
+                      onImageClick={(img) =>
+                        handleImageClick(img.url, img.originalName, img.id, img)
+                      }
+                      onDownload={handleDownloadWithMetadata}
+                      onOpenMaps={openInGoogleMaps}
+                    />
+                  ))}
                 </div>
               </div>
             )}
@@ -1018,81 +1085,21 @@ const VerificationImages: React.FC<VerificationImagesProps> = ({
                   Selfie Photos ({selfiePhotos.length})
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {selfiePhotos.map((image, index) => {
-                    const rawGeo = image.geoLocation;
-                    const location =
-                      rawGeo && typeof rawGeo === 'object' && typeof rawGeo.latitude === 'number'
-                        ? rawGeo
-                        : null;
-                    return (
-                      <div key={image.id} className="group relative">
-                        {/* Snapshot target = image + overlaid metadata strip
-                            ONLY. Action buttons live OUTSIDE this div so the
-                            html2canvas snapshot stays clean. Same pattern as
-                            verification photo grid card for visual parity. */}
-                        <div
-                          data-download-card={image.id}
-                          className="relative aspect-square bg-muted/60 rounded-lg overflow-hidden"
-                        >
-                          <AsyncImage
-                            imageUrl={image.url}
-                            imageId={image.id}
-                            thumbnailUrl={image.thumbnailUrl}
-                            alt={image.originalName}
-                            className="absolute inset-0 w-full h-full object-contain cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() =>
-                              handleImageClick(image.url, image.originalName, image.id, image)
-                            }
-                          />
-
-                          <div className="absolute top-2 right-2">
-                            <Badge className={getPhotoTypeColor(image.photoType)}>
-                              {image.photoType}
-                            </Badge>
-                          </div>
-
-                          <MetadataOverlay
-                            attachmentId={image.id}
-                            location={location}
-                            uploadedAt={image.uploadedAt}
-                            submissionAddress={submissionAddress}
-                            compact
-                            mapSize="88x88"
-                          />
-                        </div>
-
-                        <div className="flex gap-2 pt-2">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            className="flex-1 h-8 text-xs"
-                            onClick={() =>
-                              handleDownloadWithMetadata(
-                                image,
-                                verificationPhotos.length + index + 1
-                              )
-                            }
-                          >
-                            <Download className="h-3 w-3 mr-1" />
-                            Download
-                          </Button>
-                          {location && (
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              className="flex-1 h-8 text-xs"
-                              onClick={() =>
-                                openInGoogleMaps(location.latitude, location.longitude)
-                              }
-                            >
-                              <ExternalLink className="h-3 w-3 mr-1" />
-                              Maps
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {selfiePhotos.map((image, index) => (
+                    <PhotoCard
+                      key={image.id}
+                      image={image}
+                      downloadIndex={verificationPhotos.length + index + 1}
+                      fallbackAspectClass="aspect-square"
+                      submissionAddress={submissionAddress}
+                      photoTypeColor={getPhotoTypeColor(image.photoType)}
+                      onImageClick={(img) =>
+                        handleImageClick(img.url, img.originalName, img.id, img)
+                      }
+                      onDownload={handleDownloadWithMetadata}
+                      onOpenMaps={openInGoogleMaps}
+                    />
+                  ))}
                 </div>
               </div>
             )}
