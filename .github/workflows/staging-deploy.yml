@@ -97,6 +97,7 @@ jobs:
 
   # ---- Build & push images -------------------------------------------------
   build:
+    needs: test # gate: no image build / deploy unless the test job is green
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.resolve_tag.outputs.tag }}
