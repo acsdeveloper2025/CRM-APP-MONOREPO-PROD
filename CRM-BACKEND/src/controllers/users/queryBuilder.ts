@@ -6,6 +6,20 @@ import {
 } from '@/security/rbacAccess';
 import { getScopedOperationalUserIds } from '@/security/userScope';
 
+// Export contract — keep in lockstep with §9.5 list-page shell rules.
+// Pagination is intentionally absent on export; rows are hard-capped here.
+export const USER_EXPORT_ROW_LIMIT = 10000;
+
+// Shared SQL fragment: a user's PRIMARY rbac role name (alphabetically
+// first assigned role, or 'UNASSIGNED'). Assumes the query aliases users
+// as `u`. Used by the list/by-id/stats/export queries.
+export const PRIMARY_RBAC_ROLE_NAME_SQL = `
+  COALESCE(
+    (SELECT rv.name FROM user_roles ur JOIN roles_v2 rv ON rv.id = ur.role_id WHERE ur.user_id = u.id ORDER BY rv.name LIMIT 1),
+    'UNASSIGNED'
+  )
+`;
+
 // Module-scope WHERE-builder for the users list + export endpoints (single
 // source of WHERE-truth). Extracted from usersController (§7 decomposition);
 // pure function (reads req.query only). Behaviour pinned by
